@@ -1,0 +1,246 @@
+{
+  "posiciones": {
+    "AGENTS.md": [
+      112.0,
+      104.0
+    ],
+    "CASM": [
+      112.0,
+      0.0
+    ],
+    "README.md": [
+      336.0,
+      104.0
+    ],
+    "bmo-x2.ps1": [
+      224.0,
+      104.0
+    ],
+    "build": [
+      0.0,
+      0.0
+    ],
+    "contratos": [
+      224.0,
+      0.0
+    ],
+    "docs": [
+      336.0,
+      0.0
+    ],
+    "herencia": [
+      448.0,
+      0.0
+    ],
+    "herramientas": [
+      560.0,
+      0.0
+    ],
+    "kernel": [
+      672.0,
+      0.0
+    ],
+    "super-grafo": [
+      784.0,
+      0.0
+    ],
+    "usuarios": [
+      0.0,
+      104.0
+    ]
+  },
+  "rejilla": false,
+  "bloqueada": false,
+  "grafo": {
+    "": [
+      -350.0,
+      170.0
+    ],
+    "AGENTS.md": [
+      320.0,
+      495.0
+    ],
+    "CASM": [
+      0.0,
+      0.0
+    ],
+    "CASM/contracts": [
+      1480,
+      0
+    ],
+    "CASM/examples": [
+      0,
+      0
+    ],
+    "CASM/native": [
+      -680.0,
+      135.0
+    ],
+    "CASM/native/compiler.body.casm": [
+      0,
+      650
+    ],
+    "CASM/native/compiler.casm": [
+      740,
+      650
+    ],
+    "CASM/native/freestanding.py": [
+      1480,
+      650
+    ],
+    "CASM/native/runtime.py": [
+      0,
+      910
+    ],
+    "CASM/native/verify.py": [
+      1110,
+      650
+    ],
+    "CASM/src": [
+      -680.0,
+      270.0
+    ],
+    "CASM/src/casm.h": [
+      740,
+      260
+    ],
+    "CASM/src/emitter.c": [
+      1110,
+      0
+    ],
+    "CASM/src/frontend.c": [
+      740,
+      0
+    ],
+    "CASM/src/main.c": [
+      370,
+      0
+    ],
+    "CASM/test.py": [
+      2220,
+      0
+    ],
+    "CASM/traspaso": [
+      2220,
+      650
+    ],
+    "CASM/verify.py": [
+      1850,
+      0
+    ],
+    "CASM/x86_64": [
+      1850,
+      650
+    ],
+    "README.md": [
+      640.0,
+      330.0
+    ],
+    "bmo-x2.ps1": [
+      0.0,
+      495.0
+    ],
+    "contracts": [
+      0.0,
+      165.0
+    ],
+    "docs": [
+      0.0,
+      330.0
+    ],
+    "heritage": [
+      640.0,
+      165.0
+    ],
+    "kernel": [
+      320.0,
+      0.0
+    ],
+    "kernel/arch": [
+      -680.0,
+      540.0
+    ],
+    "kernel/arch/x86_64": [
+      -680.0,
+      675.0
+    ],
+    "kernel/arch/x86_64/cpu": [
+      370,
+      1400
+    ],
+    "kernel/arch/x86_64/exceptions": [
+      740,
+      1400
+    ],
+    "kernel/arch/x86_64/interrupts": [
+      370,
+      1660
+    ],
+    "kernel/boot": [
+      0,
+      1400
+    ],
+    "kernel/boot/entry.casm": [
+      0,
+      1660
+    ],
+    "kernel/capabilities": [
+      1110,
+      1400
+    ],
+    "kernel/drivers": [
+      1850,
+      1400
+    ],
+    "kernel/init": [
+      0,
+      1880
+    ],
+    "kernel/ipc": [
+      1480,
+      1660
+    ],
+    "kernel/mm": [
+      740,
+      1660
+    ],
+    "kernel/sched": [
+      1110,
+      1660
+    ],
+    "kernel/syscalls": [
+      1480,
+      1400
+    ],
+    "kernel/time": [
+      370,
+      1880
+    ],
+    "super-grafo": [
+      320.0,
+      330.0
+    ],
+    "tools": [
+      320.0,
+      165.0
+    ],
+    "userspace": [
+      640.0,
+      0.0
+    ],
+    "userspace/apps": [
+      740,
+      2200
+    ],
+    "userspace/runtime": [
+      0,
+      2200
+    ],
+    "userspace/services": [
+      370,
+      2200
+    ]
+  },
+  "foco": "",
+  "desplegadas": []
+}

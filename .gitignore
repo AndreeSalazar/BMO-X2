@@ -1,0 +1,6 @@
+/build/
+/target/
+**/__pycache__/
+*.pyc
+/.super-grafo-cache*
+/.super-grafo-vivo.jsonl

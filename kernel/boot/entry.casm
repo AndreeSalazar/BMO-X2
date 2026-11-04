@@ -1,0 +1,7 @@
+// First BMO-X2 entry probe: metal64 ABI, compile/verify on the host only.
+// Requires the loader service table for metal_puts; returns to that loader.
+void metal_main(void) {
+    const char greeting[] = "BMO-X2: CASM x86-64 kernel entry.\r\n";
+    metal_puts(greeting);
+    return;
+}

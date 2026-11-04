@@ -1,0 +1,162 @@
+{
+  "esquema": 1,
+  "fecha": "2026-11-04",
+  "origen": "Linux Reconstruido",
+  "commit": "5a751b1cf493780003ff2714a83e738f2981c1dd",
+  "ultimo_cambio_casm": "3a6e796",
+  "licencia": "GPL-2.0-only; se conservan los avisos de los archivos de origen",
+  "archivos": [
+    {
+      "ruta": "CASM/AUTOCOMPILACION.md",
+      "sha256": "e5898c4e0fb65bb0968aca441ac96a3c1620779fba4efac3f77e62d64b50d2d8"
+    },
+    {
+      "ruta": "CASM/LANGUAGE.md",
+      "sha256": "e27d8b5255372382d6980dc00d6e7d373a050b624320af32ce34ee3b4d714321"
+    },
+    {
+      "ruta": "CASM/README.md",
+      "sha256": "f6534086a2b02ac38f7d8d58c2e55dcacb70dcb0f02e2fdd514d4e7500b1c727"
+    },
+    {
+      "ruta": "CASM/SAMURAI.md",
+      "sha256": "7ae09ba528d181dd22fa6aa260932e53148de1639e7d4285a1c3af4d50fcd8ac"
+    },
+    {
+      "ruta": "CASM/autocompilacion.csv",
+      "sha256": "c26651da6881e0c36ac93efc756b36660e98aea5db17f0819de593ad1d78ea70"
+    },
+    {
+      "ruta": "CASM/bootstrap.py",
+      "sha256": "7037c47f6ad625cd341a76ca4dfaf079a134b6a2312ef1074bebd32974dae597"
+    },
+    {
+      "ruta": "CASM/compilar-native.sh",
+      "sha256": "95f12acfd57261e505662e08da786dabcf88c4b5e387ee33d6e69788b1424175"
+    },
+    {
+      "ruta": "CASM/compilar.sh",
+      "sha256": "02323b42840f87fe0a276be03cf11090d2851f8d8d1312e17764859d9bfe9cf9"
+    },
+    {
+      "ruta": "CASM/construir.sh",
+      "sha256": "d2194a2320a3cbd8d2ff734791d84096f901fc0b7a0fa8d344ca4ae0311733df"
+    },
+    {
+      "ruta": "CASM/contrastar.py",
+      "sha256": "a76c7aa8378a4b8de5e41448a1bb6a5bc0dc3a479afde1ba966ffb3c5fd3e560"
+    },
+    {
+      "ruta": "CASM/elf_linux.py",
+      "sha256": "0266e73895bc1f7b9af3b715c38382a318deb4f9fc615751b1662996e2d2c114"
+    },
+    {
+      "ruta": "CASM/examples/enteros.casm",
+      "sha256": "141fe2d778571b28b4a9985802b13969b54c65dd22bd56094cec95a87451c6ba"
+    },
+    {
+      "ruta": "CASM/examples/hello.casm",
+      "sha256": "20eac0ebefc6cfd25109e42b2de52e1ff0fab6b927993f2a4efc7d07c31e6f30"
+    },
+    {
+      "ruta": "CASM/native/FREESTANDING.md",
+      "sha256": "f7a08a9bf8f9c01d2e162fa09950f696bada6d32cb81b817791e0fa1c6eb9044"
+    },
+    {
+      "ruta": "CASM/native/README.md",
+      "sha256": "ec22e9f523393a976c702274fd0e85615bd825dc105e05f3d2368af879f9d703"
+    },
+    {
+      "ruta": "CASM/native/compiler.body.casm",
+      "sha256": "e6bcd9991a3a9c864b86c3f4459c371bbf1290d625a12127398b6d0d74dc3459"
+    },
+    {
+      "ruta": "CASM/native/compiler.casm",
+      "sha256": "80cdd9e0f282fb8b1608b359fa5610f3edcc55abc9a891daa06b502745bcfd1e"
+    },
+    {
+      "ruta": "CASM/native/driver.py",
+      "sha256": "6883cc8fbef9eb0cfbd6d0d2d7e750b6781950db1ddcaa3898b6fd681b7a4334"
+    },
+    {
+      "ruta": "CASM/native/ejemplo-puro.casm",
+      "sha256": "17de2e811d6b18aef295b93d59ce84b98ec5f0963c1aae930cf5a39cfe75d73a"
+    },
+    {
+      "ruta": "CASM/native/ejemplo.casm",
+      "sha256": "7a5b9c3c99c9f9e78e0973076d6cc8f551b2a586ee0174d10567ca146a731748"
+    },
+    {
+      "ruta": "CASM/native/freestanding.py",
+      "sha256": "a6a51fe182c7974643422a57ced60bd843a98962ec885f9367e306ab51ba52ad"
+    },
+    {
+      "ruta": "CASM/native/runtime.py",
+      "sha256": "d0a8104f500a036a2799463eab1a4d7c8bda775da51af52c295b94d5bf4575d0"
+    },
+    {
+      "ruta": "CASM/native/sealed.sh",
+      "sha256": "d20b14c2fc4d4fbc7b503ed0efac99d0491d7f638a57d25f51c56c771cdc4b16"
+    },
+    {
+      "ruta": "CASM/native/seed.py",
+      "sha256": "11368974e0bca5b209f7cffaa638d8f4dbb43fe3d28058f59ad6551bedcad0df"
+    },
+    {
+      "ruta": "CASM/native/test.py",
+      "sha256": "b14eceb6155d9b15a6415f3feea60b97486c6171937c58cf0526ded93a415673"
+    },
+    {
+      "ruta": "CASM/native/test_freestanding.py",
+      "sha256": "0c7bc79d33288e06716ff9ee957205028a390a2d11d89be74793ed14638f8e84"
+    },
+    {
+      "ruta": "CASM/native/verify.py",
+      "sha256": "c23dce74e3ea8c6793230cecb298203bf678c0a4002a696a0f7bead866f70f29"
+    },
+    {
+      "ruta": "CASM/probar.sh",
+      "sha256": "742f4e83edabc9daca5e165aaf4c1cf8a572db36dc9dbd699765c5e0e016f7c6"
+    },
+    {
+      "ruta": "CASM/probar_bootstrap.py",
+      "sha256": "14bad90813b340a2a0cf74e6bf02eec04eb15331bfc0caa23d57aff274397814"
+    },
+    {
+      "ruta": "CASM/probar_elf_linux.py",
+      "sha256": "73df493615d34dac5cf7842d62e20811a5a0de4004a16092ebebd7f7f510ffa6"
+    },
+    {
+      "ruta": "CASM/src/casm.h",
+      "sha256": "63c80dbf4eecdc491c90ff7310d4afb6700a6e1a64762099b18bdfcb9587665f"
+    },
+    {
+      "ruta": "CASM/src/emitter.c",
+      "sha256": "aab368c3e2cca626e7e7608b13fdb8d002032fca87e850f6656358b85dfcd0d3"
+    },
+    {
+      "ruta": "CASM/src/frontend.c",
+      "sha256": "eaaa2e934d51bb58e6357d6fd8d733c91b4289a81e44a9d0bcac95b563fa3f37"
+    },
+    {
+      "ruta": "CASM/src/main.c",
+      "sha256": "ed2b2a6ebdef5290f457f47bed67cad1611d1c10af7b77d9c4b8a55ba49d2022"
+    },
+    {
+      "ruta": "CASM/test.py",
+      "sha256": "025fd8c3cbb1dfb0807fe840d9e8db3e16fee64c3150445a7c1ec98340053424"
+    },
+    {
+      "ruta": "CASM/traspaso/LEEME.md",
+      "sha256": "dcebebc5a69ba4b3805426afca04c51f920e70b131c5ccd7a2a9673fce2f50c4"
+    },
+    {
+      "ruta": "CASM/traspaso/casm-0.3-wip.patch",
+      "sha256": "88134096cdb7c513bbc2cbd74a13fa2e18d92cabbf7402d03e2ef4e08962f6e0"
+    },
+    {
+      "ruta": "CASM/verify.py",
+      "sha256": "4387e66d01c4e5ce05f027d09d47e3a37229e24ce2d4d16341b170aefed5f5b1"
+    }
+  ]
+}

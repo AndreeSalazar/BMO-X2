@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "architecture": "x86-64",
+  "purpose": "Emit precise bytes for the BMO-X2 Ring 0 kernel",
+  "policy": "Implement the instructions and effects required by a kernel milestone; do not claim the whole x86 instruction set.",
+  "features": [
+    {"id":"source","status":"inherited","need":"Bounded source, names, diagnostics and source locations","evidence":"metal64 frontend and rejection bank; Native frontend has its own grammar"},
+    {"id":"runtime-integers","status":"partial","need":"CPU-width integers with defined arithmetic and explicit traps","evidence":"metal64 has checked constants; Native has checked runtime u64; sized runtime types remain pending"},
+    {"id":"control-flow","status":"inherited","need":"Functions, calls, branches and loops","evidence":"Native implements them; privileged kernel profile has not been derived or executed"},
+    {"id":"data-layout","status":"required","need":"Records, fixed arrays, sizes and alignment for hardware structures","evidence":"No general kernel data-layout contract implemented yet"},
+    {"id":"memory-access","status":"required","need":"Addresses, access widths, regions, lifetimes and permissions","evidence":"Native checked buffers are a reference; they are not general kernel pointers"},
+    {"id":"mmio","status":"required","need":"Explicit volatile device reads/writes and ordering","evidence":"No kernel MMIO language contract implemented"},
+    {"id":"privileged-cpu","status":"required","need":"CPUID, control registers, MSRs, ports and declared CPU preconditions","evidence":"Only add an encoding after a milestone requires it and it has an independent byte vector"},
+    {"id":"exceptions","status":"required","need":"Descriptor tables, entry frames, stack alignment and exception return","evidence":"No IDT/TSS entry implementation in BMO-X2"},
+    {"id":"privilege-transition","status":"required","need":"Enter Ring 3 and return through a checked, versioned syscall ABI","evidence":"No BMO-X2 transition or syscall implementation"},
+    {"id":"atomics","status":"required","need":"Defined atomics, barriers and synchronization before concurrency","evidence":"Single-CPU bring-up first; no SMP claim"},
+    {"id":"encoding","status":"partial","need":"Own x86-64 encoding for required registers, operands and instructions","evidence":"metal64 and Native have bounded encoders; no complete privileged backend"},
+    {"id":"linking-image","status":"required","need":"Units, symbols, relocations, entry and RX/RW/NX image regions","evidence":"FAGRAW64 and Native module formats are references, not a chosen BMO-X2 kernel image"},
+    {"id":"independent-verifier","status":"partial","need":"Check code, data, control flow and trap declarations before publication","evidence":"Separate existing template verifiers; every new instruction requires coverage"},
+    {"id":"hex-source-map","status":"partial","need":"Frozen source to IR to exact HEX bytes, with hashes and visible maps","evidence":"metal64 source/IR/HEX and SG map exist; new kernel effects still need mapping"},
+    {"id":"freestanding-runtime","status":"partial","need":"Execute without implicit Linux or Windows services","evidence":"Native pure modules exist; entry.casm still requires the metal64 loader service table"},
+    {"id":"execution-evidence","status":"required","need":"Host vectors, isolated QEMU execution and later hardware evidence","evidence":"Current BMO-X2 entry is host-compiled and verified only; no BMO-X2 boot observed"}
+  ]
+}

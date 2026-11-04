@@ -1,0 +1,867 @@
+{
+  "esquema": 1,
+  "destino": "x86-64",
+  "ring0": "CASM",
+  "ring3": "Rust",
+  "nodos": [
+    {
+      "id": "contracts",
+      "titulo": "Contratos de BMO-X2",
+      "ruta": "contracts",
+      "estado": "diseno",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
+      "posicion": [
+        -280,
+        -400
+      ],
+      "que": "Fija destino, imagen, memoria, permisos y frontera CASM/Rust.",
+      "entrada": "Decisiones del propietario y lecciones verificables de BMO-X.",
+      "salida": "Contratos versionados y pruebas de sus invariantes.",
+      "aceptacion": "Cada campo del ABI y formato tiene productor, consumidor y caso negativo.",
+      "falta": "Definir el primer ABI BMO-X2 y su imagen de carga."
+    },
+    {
+      "id": "source",
+      "titulo": "Programas CASM",
+      "ruta": "CASM/examples",
+      "estado": "heredado",
+      "anillo": "host",
+      "lenguaje": "CASM",
+      "posicion": [
+        0,
+        0
+      ],
+      "que": "Programas pequenos para comprobar fuente, semantica y bytes exactos.",
+      "entrada": "Fuente ASCII del perfil metal64 0.2.",
+      "salida": "Fuente congelada por cada compilacion.",
+      "aceptacion": "Hello conserva su paquete de oro; enteros conserva resultados y rechazos.",
+      "falta": "Ejemplos de kernel conforme se habiliten operaciones de ejecucion."
+    },
+    {
+      "id": "compiler-entry",
+      "titulo": "Entrada del compilador",
+      "ruta": "CASM/src/main.c",
+      "estado": "heredado",
+      "anillo": "host",
+      "lenguaje": "C semilla",
+      "posicion": [
+        370,
+        0
+      ],
+      "que": "Lee una fuente acotada, invoca analisis y emision y comunica el rechazo.",
+      "entrada": "Ruta fuente y rutas nuevas de HEX/IR.",
+      "salida": "CasmProgram analizado y salida de emision sin publicar paquete.",
+      "aceptacion": "Casos HOST-READ, SOURCE-SIZE, HOST-WRITE y HOST-MEMORY donde el SO permite probarlo.",
+      "falta": "Portar el anfitrion del compilador propio cuando BMO-X2 tenga servicios de archivos."
+    },
+    {
+      "id": "frontend",
+      "titulo": "Lexico, sintaxis y semantica",
+      "ruta": "CASM/src/frontend.c",
+      "estado": "heredado",
+      "anillo": "host",
+      "lenguaje": "C semilla",
+      "posicion": [
+        740,
+        0
+      ],
+      "que": "Reconoce el lenguaje metal64 y calcula enteros exactos con reglas explicitas.",
+      "entrada": "Bytes de fuente ASCII acotada.",
+      "salida": "Programa, tipos, constantes, llamadas y origen fuente.",
+      "aceptacion": "Cada regla rechaza su caso; reparto futuro conserva HEX/IR y diagnosticos del banco.",
+      "falta": "Separar lexer, parser, nombres y enteros; incorporar semantica de runtime para el kernel."
+    },
+    {
+      "id": "metal64-ir",
+      "titulo": "IR y tipos metal64",
+      "ruta": "CASM/src/casm.h",
+      "estado": "heredado",
+      "anillo": "host",
+      "lenguaje": "C semilla",
+      "posicion": [
+        740,
+        260
+      ],
+      "que": "Contrato acotado de datos entre analisis y emisor metal64.",
+      "entrada": "Declaraciones, expresiones y limites del perfil.",
+      "salida": "CasmProgram, CasmInteger, CasmConstant y CasmCall.",
+      "aceptacion": "Emisor y verificador coinciden en tipos, medidas y valores; limites ejercitados.",
+      "falta": "IR versionada del kernel con flujo, funciones, efectos y trampas."
+    },
+    {
+      "id": "encoder-x86_64",
+      "titulo": "Codificador x86-64",
+      "ruta": "CASM/src/emitter.c",
+      "estado": "heredado",
+      "anillo": "host",
+      "lenguaje": "C semilla",
+      "posicion": [
+        1110,
+        0
+      ],
+      "que": "Escribe las instrucciones y datos propios de metal64; no usa un backend externo.",
+      "entrada": "CasmProgram valido.",
+      "salida": "program.hex y program.ir.json sin paquete admitido.",
+      "aceptacion": "Bytes de oro, desplazamientos RIP y regiones coinciden con el verificador independiente.",
+      "falta": "Codificaciones y ABI del subconjunto de CPU que requiera el kernel."
+    },
+    {
+      "id": "hex-contract",
+      "titulo": "Contrato HEX preciso",
+      "ruta": "CASM/contracts",
+      "estado": "diseno",
+      "pagina": true,
+      "anillo": "contrato",
+      "lenguaje": "contrato",
+      "posicion": [
+        1480,
+        0
+      ],
+      "que": "Define el significado de HEX preciso: bytes exactos y evidencia de su correspondencia.",
+      "entrada": "Fuente congelada, perfil, IR, bytes y origen de herramientas.",
+      "salida": "Contrato fuente -> IR -> HEX -> bytes, con entrada, regiones, medidas y huellas.",
+      "aceptacion": "Roundtrip HEX/bytes exacto y rechazo de IR, opcode, desplazamiento o dato alterado.",
+      "falta": "Extender el contrato actual a trampas y relocaciones del kernel; HEX no acredita por si solo ejecucion."
+    },
+    {
+      "id": "metal64-verifier",
+      "titulo": "Verificador metal64",
+      "ruta": "CASM/verify.py",
+      "estado": "heredado",
+      "anillo": "host",
+      "lenguaje": "Python control",
+      "posicion": [
+        1850,
+        0
+      ],
+      "que": "Reconstruye bytes y enteros por separado y solo admite el paquete si coinciden.",
+      "entrada": "Fuente congelada, HEX e IR.",
+      "salida": "Paquete FAGRAW64 e informe con huellas, o rechazo.",
+      "aceptacion": "Mutaciones de una sola propiedad rechazan por la regla esperada y no publican paquete.",
+      "falta": "Comprobar instrucciones y efectos nuevos antes de permitir su publicacion."
+    },
+    {
+      "id": "metal64-tests",
+      "titulo": "Banco metal64",
+      "ruta": "CASM/test.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python control",
+      "posicion": [
+        2220,
+        0
+      ],
+      "que": "Comprueba casos validos, rechazos de fuente, mutaciones y el saludo de oro.",
+      "entrada": "Semilla del anfitrion y programas/casos del banco.",
+      "salida": "test-results.json con aprobados y omisiones explicitas.",
+      "aceptacion": "Todos los casos aplicables pasan; RLIMIT_DATA se omite explicitamente en Windows.",
+      "falta": "Repetir banco completo Linux y ejecucion QEMU en esta copia."
+    },
+    {
+      "id": "native-body",
+      "titulo": "Compilador escrito en CASM",
+      "ruta": "CASM/native/compiler.body.casm",
+      "estado": "heredado",
+      "anillo": "host",
+      "lenguaje": "CASM",
+      "posicion": [
+        0,
+        650
+      ],
+      "que": "Analizador y emisor Native expresados en el propio lenguaje.",
+      "entrada": "Fuente Native: u64, funciones, control y buffers.",
+      "salida": "Funciones del compilador que producen ELF/HEX x86-64.",
+      "aceptacion": "Generaciones identicas desde dos semillas y otra fuente compilada en el taller Linux.",
+      "falta": "Repetir evidencia aqui y definir la ampliacion freestanding privilegiada."
+    },
+    {
+      "id": "native-runtime",
+      "titulo": "Runtime del anfitrion Native",
+      "ruta": "CASM/native/runtime.py",
+      "estado": "heredado",
+      "anillo": "host",
+      "lenguaje": "Python generador",
+      "posicion": [
+        0,
+        910
+      ],
+      "que": "Construye las plantillas de servicios y trampas usadas por Native en Linux.",
+      "entrada": "Contrato de servicios Linux y layout de datos Native.",
+      "salida": "Bytes y etiquetas que se incorporan a la fuente completa.",
+      "aceptacion": "Plantillas auditadas; trampas y direcciones coinciden con el verificador Native.",
+      "falta": "Backend de servicios BMO-X2 separado; ningun syscall Linux implicito en Ring 0."
+    },
+    {
+      "id": "native-source",
+      "titulo": "Fuente Native completa",
+      "ruta": "CASM/native/compiler.casm",
+      "estado": "heredado",
+      "anillo": "host",
+      "lenguaje": "CASM",
+      "posicion": [
+        740,
+        650
+      ],
+      "que": "Fuente completa del compilador: cuerpo CASM mas constantes del runtime.",
+      "entrada": "compiler.body.casm y runtime.py, ensamblados por seed.py.",
+      "salida": "Fuente reproducible para las generaciones Native.",
+      "aceptacion": "seed.py exige que la fuente completa coincida con cuerpo y runtime; no se genera desde el ejecutable.",
+      "falta": "Repetir autocompilacion Linux antes de cambiar la generacion heredada."
+    },
+    {
+      "id": "native-verifier",
+      "titulo": "Verificador Native",
+      "ruta": "CASM/native/verify.py",
+      "estado": "heredado",
+      "anillo": "host",
+      "lenguaje": "Python control",
+      "posicion": [
+        1110,
+        650
+      ],
+      "que": "Reconoce el subconjunto de instrucciones, destinos, marcos y buffers de Native.",
+      "entrada": "ELF x86-64 Native y contrato de runtime.",
+      "salida": "Admision acotada o rechazo; no valida todo ejecutable x86.",
+      "aceptacion": "Mutaciones de instrucciones, flujo, pila y direcciones rechazan; fuentes nuevas siguen admitidas.",
+      "falta": "Contrato de verificacion para las futuras operaciones privilegiadas."
+    },
+    {
+      "id": "freestanding",
+      "titulo": "Salida sin servicios Linux",
+      "ruta": "CASM/native/freestanding.py",
+      "estado": "heredado",
+      "anillo": "host",
+      "lenguaje": "Python adaptador",
+      "posicion": [
+        1480,
+        650
+      ],
+      "que": "Deriva un modulo de calculo x86-64 sin runtime Linux, con permisos y trampas.",
+      "entrada": "ELF Native comprobado, sin llamadas a servicios prohibidos.",
+      "salida": "module.json con segmentos, entrada, trampas y procedencia.",
+      "aceptacion": "Calculos, SIGILL y mutaciones pasan en procesos aislados Linux/QEMU; cargador aplica RX/RW/NX.",
+      "falta": "Cargador propio: este modulo no es una imagen EFI ni un kernel."
+    },
+    {
+      "id": "kernel-profile",
+      "titulo": "CASM para el metal privilegiado",
+      "ruta": "CASM/x86_64",
+      "estado": "diseno",
+      "pagina": true,
+      "anillo": "host",
+      "lenguaje": "CASM especificacion",
+      "posicion": [
+        1850,
+        650
+      ],
+      "que": "Define la ampliacion del lenguaje que permite expresar el kernel sin perder control de bytes y efectos.",
+      "entrada": "Programas minimos de CPU, memoria y excepciones que exige BMO-X2.",
+      "salida": "Semantica, IR, emision propia y verificacion de operaciones privilegiadas.",
+      "aceptacion": "Cada operacion tiene codificacion independiente, efecto autorizado y prueba QEMU positiva/negativa.",
+      "falta": "MMIO/volatile, CR/MSR, puertos, atomicos, descriptores, entradas de excepcion y cambios de anillo."
+    },
+    {
+      "id": "boot",
+      "titulo": "Arranque del kernel",
+      "ruta": "kernel/boot",
+      "estado": "diseno",
+      "pagina": true,
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [
+        0,
+        1400
+      ],
+      "que": "Recibe una maquina y una imagen bajo un contrato de entrega verificable.",
+      "entrada": "Estado x86-64, memoria y framebuffer entregados por una cadena de arranque especificada.",
+      "salida": "Entrada del kernel CASM, diagnostico y estado de fallo controlado.",
+      "aceptacion": "QEMU muestra entrada real y rechaza contexto/imagen incompatibles; se conserva recuperacion.",
+      "falta": "Elegir la cadena de carga y contexto; entry.casm es solo una sonda compilada y verificada en host."
+    },
+    {
+      "id": "x86_64-cpu",
+      "titulo": "CPU x86-64",
+      "ruta": "kernel/arch/x86_64/cpu",
+      "estado": "diseno",
+      "pagina": true,
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [
+        370,
+        1400
+      ],
+      "que": "Descubre capacidades CPU y prepara descriptores y estado privilegiado con limites explicitos.",
+      "entrada": "Contrato de arranque y operaciones privilegiadas CASM.",
+      "salida": "Estado CPU apto para excepciones y aislamiento de Ring 3.",
+      "aceptacion": "CPUID y limites observados en QEMU; no se confunde el perfil del Ryzen con todo x86-64.",
+      "falta": "GDT/TSS, modos, registros de control y requisitos minimos del perfil inicial."
+    },
+    {
+      "id": "x86_64-exceptions",
+      "titulo": "Excepciones x86-64",
+      "ruta": "kernel/arch/x86_64/exceptions",
+      "estado": "diseno",
+      "pagina": true,
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [
+        740,
+        1400
+      ],
+      "que": "Contiene fallos de CPU y preserva el estado necesario para explicar quien fallo y donde.",
+      "entrada": "CPU preparada y marcos de excepcion definidos.",
+      "salida": "Diagnostico, terminacion del proceso o parada controlada segun origen.",
+      "aceptacion": "#UD/#PF de Ring 3 terminan ese proceso; el kernel conserva control y evidencia.",
+      "falta": "IDT, entradas, pilas de excepcion, retorno e interrupciones de hardware."
+    },
+    {
+      "id": "mm",
+      "titulo": "Memoria y aislamiento",
+      "ruta": "kernel/mm",
+      "estado": "diseno",
+      "pagina": true,
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [
+        740,
+        1660
+      ],
+      "que": "Asigna paginas y separa memoria del kernel, procesos y aparatos.",
+      "entrada": "Mapa de memoria, capacidades CPU e intervalos reservados.",
+      "salida": "Paginas con propietario, tablas, permisos y devolucion definidos.",
+      "aceptacion": "Ring 3 no escribe kernel ni ejecuta datos NX; rangos invalidos y desbordes se rechazan.",
+      "falta": "Asignador, paginacion, TLB, vida de prestamos y pruebas de muerte del proceso."
+    },
+    {
+      "id": "capabilities",
+      "titulo": "Capacidades",
+      "ruta": "kernel/capabilities",
+      "estado": "diseno",
+      "pagina": true,
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [
+        1110,
+        1400
+      ],
+      "que": "Concede autoridad explicita y comprueba propietario, derechos y vigencia.",
+      "entrada": "Peticion admitida y recursos con propietario.",
+      "salida": "Handle concedido, operacion comprobada o motivo de rechazo.",
+      "aceptacion": "Handle inventado, revocado o de otro proceso falla por su motivo; la autoridad no se hereda implicitamente.",
+      "falta": "Layout del handle, tabla, generacion, transferencia y revocacion."
+    },
+    {
+      "id": "syscalls",
+      "titulo": "Puerta CASM/Rust",
+      "ruta": "kernel/syscalls",
+      "estado": "diseno",
+      "pagina": true,
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [
+        1480,
+        1400
+      ],
+      "que": "Recibe operaciones de Ring 3 y comprueba el contrato antes de tocar recursos.",
+      "entrada": "ABI versionado, registros, capability y buffers declarados.",
+      "salida": "Respuesta definida y retorno seguro a Ring 3.",
+      "aceptacion": "Solicitud valida devuelve resultado; puntero/capacidad invalidos no comprometen al kernel.",
+      "falta": "Convencion de llamada, entradas/salidas, estados y primera operacion observable."
+    },
+    {
+      "id": "rust-runtime",
+      "titulo": "Runtime minimo Rust",
+      "ruta": "userspace/runtime",
+      "estado": "diseno",
+      "pagina": true,
+      "anillo": "3",
+      "lenguaje": "Rust",
+      "posicion": [
+        0,
+        2200
+      ],
+      "que": "Permite ejecutar un programa Rust aislado usando el ABI concedido por CASM.",
+      "entrada": "Imagen admitida, pila, datos y ABI BMO-X2.",
+      "salida": "Entrada de usuario, llamadas y finalizacion/panico controlados.",
+      "aceptacion": "Programa no_std entra en Ring 3, recibe respuesta del kernel y falla de forma contenida.",
+      "falta": "Target, entrada, enlace, wrappers del ABI y manejo de panico; aun no hay crate."
+    },
+    {
+      "id": "rust-services",
+      "titulo": "Servicios Rust",
+      "ruta": "userspace/services",
+      "estado": "diseno",
+      "pagina": true,
+      "anillo": "3",
+      "lenguaje": "Rust",
+      "posicion": [
+        370,
+        2200
+      ],
+      "que": "Aloja servicios con autoridad concedida y politica fuera del kernel.",
+      "entrada": "Runtime Rust y capacidades de sus recursos.",
+      "salida": "Operaciones de servicio con errores y limites definidos.",
+      "aceptacion": "La caida o revocacion de un servicio no concede acceso a recursos ajenos.",
+      "falta": "Primer servicio de diagnostico; entrada, disco y escritorio llegan por separado."
+    },
+    {
+      "id": "rust-apps",
+      "titulo": "Aplicaciones Rust",
+      "ruta": "userspace/apps",
+      "estado": "diseno",
+      "pagina": true,
+      "anillo": "3",
+      "lenguaje": "Rust",
+      "posicion": [
+        740,
+        2200
+      ],
+      "que": "Ejercita los servicios y las capacidades con cargas visibles y repetibles.",
+      "entrada": "Runtime y servicios concedidos.",
+      "salida": "Resultados de usuario y evidencia de fallos/permisos.",
+      "aceptacion": "Primera app solicita una operacion, recibe respuesta y termina sin autoridad implicita.",
+      "falta": "Programa minimo antes de trasladar herramientas o aplicaciones mayores de BMO-X."
+    },
+    {
+      "id": "tools",
+      "titulo": "Construccion y comprobacion host",
+      "ruta": "tools",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python/PowerShell",
+      "posicion": [
+        1480,
+        -400
+      ],
+      "que": "Valida el catalogo, construye metal64 y registra emision y verificacion reproducibles.",
+      "entrada": "Catalogo, semilla Clang, Python y fuentes locales.",
+      "salida": "Informes y compilaciones nuevas en build/; mapa persistente de SG.",
+      "aceptacion": "Banco host y negativos del catalogo pasan; fallo de compilacion impide usar binario anterior.",
+      "falta": "Integrar despues taller Linux/QEMU y builds del kernel sin mezclar sus estados."
+    },
+    {
+      "id": "heritage",
+      "titulo": "Herencia y procedencia",
+      "ruta": "heritage",
+      "estado": "host",
+      "anillo": "contrato",
+      "lenguaje": "registro",
+      "posicion": [
+        370,
+        -400
+      ],
+      "que": "Conserva los motivos de BMO-X y las huellas de los 38 originales CASM importados.",
+      "entrada": "Fuentes del mismo autor y commits fijados.",
+      "salida": "Manifest de origen, licencia y divergencias locales declaradas.",
+      "aceptacion": "Fuentes heredadas coinciden salvo adaptaciones nombradas; no se reetiqueta evidencia de otro proyecto.",
+      "falta": "Actualizar el registro de cambios cuando se amplie o reparta el compilador."
+    },
+    {
+      "id": "roadmap",
+      "titulo": "Ruta y criterios de cierre",
+      "ruta": "docs",
+      "estado": "diseno",
+      "anillo": "contrato",
+      "lenguaje": "plan",
+      "posicion": [
+        740,
+        -400
+      ],
+      "que": "Ordena la construccion de CASM y del kernel por entregas que se puedan comprobar.",
+      "entrada": "Contratos y evidencia actual de cada nodo.",
+      "salida": "Pasos C0..C11 con limites y aceptacion.",
+      "aceptacion": "Ningun paso se cierra solo por tener carpetas, compilar o heredar resultados.",
+      "falta": "Cerrar C1 con el perfil estrategico x86-64 y ejecutar M1 de FIRST-BOOT en QEMU."
+    },
+    {
+      "id": "research-metal64-03",
+      "titulo": "Investigacion metal64 0.3",
+      "ruta": "CASM/traspaso",
+      "estado": "investigacion",
+      "anillo": "host",
+      "lenguaje": "C/Python parche",
+      "posicion": [
+        2220,
+        650
+      ],
+      "que": "Conserva el intento de runtime/RDTSC con su verificador incompleto y limites escritos.",
+      "entrada": "Parche de origen no aplicado y notas de traspaso.",
+      "salida": "Referencia para decidir la IR y las trampas del kernel.",
+      "aceptacion": "Antes de aplicarlo: verify_runtime, pruebas por regla y ejecucion QEMU.",
+      "falta": "No es capacidad disponible ni entrega final de CASM."
+    },
+    {
+      "id": "kernel-entry",
+      "titulo": "Primera entrada CASM",
+      "ruta": "kernel/boot/entry.casm",
+      "estado": "host",
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [
+        0,
+        1660
+      ],
+      "que": "Fuente propia minima que ejercita la emision de una entrada de kernel bajo el ABI metal64.",
+      "entrada": "Tabla de servicios metal64 del cargador, con metal_puts disponible.",
+      "salida": "Mensaje BMO-X2 y retorno al cargador; por ahora solo bytes verificados en host.",
+      "aceptacion": "HEX/IR y paquete coinciden con el contrato; la ejecucion de entrada se acredita por separado en QEMU.",
+      "falta": "No configura la CPU ni la memoria; falta cadena de carga, ejecucion observada y parada controlada."
+    },
+    {
+      "id": "x86_64-interrupts",
+      "titulo": "Interrupciones de hardware",
+      "ruta": "kernel/arch/x86_64/interrupts",
+      "estado": "diseno",
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [
+        370,
+        1660
+      ],
+      "que": "Encamina IRQ con un contrato de entrada y reconocimiento separado de las excepciones.",
+      "entrada": "CPU preparada, tabla de vectores y controlador de interrupciones identificado.",
+      "salida": "Evento acotado y retorno con el estado de CPU preservado.",
+      "aceptacion": "Interrupcion de prueba y fuente muda en QEMU; no perder ni repetir reconocimientos.",
+      "falta": "Controlador, vectores y politica de habilitacion antes de usar tiempo y dispositivos.",
+      "pagina": true
+    },
+    {
+      "id": "init",
+      "titulo": "Inicializacion del kernel",
+      "ruta": "kernel/init",
+      "estado": "diseno",
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [
+        0,
+        1880
+      ],
+      "que": "Ordena fases y precondiciones del kernel sin esconder los fallos de un subsistema.",
+      "entrada": "Contexto boot y resultados de CPU, excepciones y memoria.",
+      "salida": "Estado de fase listo o fallo con nombre y motivo.",
+      "aceptacion": "Una fase invalida impide ejecutar las siguientes; diagnostico identificable en QEMU.",
+      "falta": "Primera secuencia de inicializacion escrita en CASM despues de fijar el perfil de kernel.",
+      "pagina": true
+    },
+    {
+      "id": "time",
+      "titulo": "Reloj y plazos",
+      "ruta": "kernel/time",
+      "estado": "diseno",
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [
+        370,
+        1880
+      ],
+      "que": "Ofrece tiempo monotono y plazos medibles antes de introducir planificacion.",
+      "entrada": "Fuente de tiempo descubierta y mecanismo de interrupcion comprobado.",
+      "salida": "Lecturas y vencimientos con unidad y origen declarados.",
+      "aceptacion": "Plazo vence y tiempo no retrocede; frecuencia observada y coste de lectura registrados.",
+      "falta": "Elegir fuente y calibracion sin suponer frecuencias del Ryzen.",
+      "pagina": true
+    },
+    {
+      "id": "sched",
+      "titulo": "Planificacion",
+      "ruta": "kernel/sched",
+      "estado": "diseno",
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [
+        1110,
+        1660
+      ],
+      "que": "Gestiona ejecucion y espera con contexto y presupuesto definidos.",
+      "entrada": "Tareas admitidas, memoria propia y fuente de tiempo.",
+      "salida": "Cambio de contexto o espera con estado preservado.",
+      "aceptacion": "Dos tareas no comparten contexto y una espera no gira en vacio; empezar por una CPU.",
+      "falta": "Modelo de tarea, registros preservados y despertares; SMP queda para otra entrega.",
+      "pagina": true
+    },
+    {
+      "id": "ipc",
+      "titulo": "Comunicacion entre procesos",
+      "ruta": "kernel/ipc",
+      "estado": "diseno",
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [
+        1480,
+        1660
+      ],
+      "que": "Transporta mensajes y prestamos con autoridad y limites comprobados.",
+      "entrada": "Procesos aislados, capacidades y buffers declarados.",
+      "salida": "Mensaje recibido o error de permisos, medida o vida util.",
+      "aceptacion": "Rechaza destino ajeno, rango invalido y prestamo vencido sin filtrar memoria.",
+      "falta": "Primer canal y sus postcondiciones de cierre/muerte antes de servicios mayores.",
+      "pagina": true
+    },
+    {
+      "id": "drivers",
+      "titulo": "Frontera de dispositivos",
+      "ruta": "kernel/drivers",
+      "estado": "diseno",
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [
+        1850,
+        1400
+      ],
+      "que": "Aisla mecanismos de dispositivos del resto del kernel y explicita acceso a puertos/MMIO/DMA.",
+      "entrada": "Hardware identificado, regiones concedidas e interrupciones comprobadas.",
+      "salida": "Operaciones acotadas con estado, tiempo limite y motivo de fallo.",
+      "aceptacion": "Aparato ausente o mudo no bloquea el kernel; permisos y DMA se prueban por separado.",
+      "falta": "Empezar con un dispositivo simple exigido por el arranque; no trasladar la investigacion GPU a esta base.",
+      "pagina": true
+    }
+  ],
+  "relaciones": [
+    {
+      "de": "compiler-entry",
+      "a": "frontend",
+      "clase": "codigo"
+    },
+    {
+      "de": "compiler-entry",
+      "a": "encoder-x86_64",
+      "clase": "codigo"
+    },
+    {
+      "de": "compiler-entry",
+      "a": "metal64-ir",
+      "clase": "codigo"
+    },
+    {
+      "de": "frontend",
+      "a": "metal64-ir",
+      "clase": "codigo"
+    },
+    {
+      "de": "encoder-x86_64",
+      "a": "metal64-ir",
+      "clase": "codigo"
+    },
+    {
+      "de": "metal64-verifier",
+      "a": "hex-contract",
+      "clase": "verificacion"
+    },
+    {
+      "de": "metal64-tests",
+      "a": "compiler-entry",
+      "clase": "verificacion"
+    },
+    {
+      "de": "metal64-tests",
+      "a": "metal64-verifier",
+      "clase": "verificacion"
+    },
+    {
+      "de": "metal64-tests",
+      "a": "source",
+      "clase": "verificacion"
+    },
+    {
+      "de": "native-source",
+      "a": "native-body",
+      "clase": "generacion"
+    },
+    {
+      "de": "native-source",
+      "a": "native-runtime",
+      "clase": "generacion"
+    },
+    {
+      "de": "native-verifier",
+      "a": "native-runtime",
+      "clase": "codigo"
+    },
+    {
+      "de": "freestanding",
+      "a": "native-verifier",
+      "clase": "codigo"
+    },
+    {
+      "de": "freestanding",
+      "a": "native-runtime",
+      "clase": "codigo"
+    },
+    {
+      "de": "kernel-profile",
+      "a": "contracts",
+      "clase": "plan"
+    },
+    {
+      "de": "kernel-profile",
+      "a": "native-body",
+      "clase": "plan"
+    },
+    {
+      "de": "kernel-profile",
+      "a": "hex-contract",
+      "clase": "plan"
+    },
+    {
+      "de": "boot",
+      "a": "kernel-profile",
+      "clase": "plan"
+    },
+    {
+      "de": "boot",
+      "a": "contracts",
+      "clase": "plan"
+    },
+    {
+      "de": "x86_64-cpu",
+      "a": "boot",
+      "clase": "plan"
+    },
+    {
+      "de": "x86_64-exceptions",
+      "a": "x86_64-cpu",
+      "clase": "plan"
+    },
+    {
+      "de": "mm",
+      "a": "x86_64-cpu",
+      "clase": "plan"
+    },
+    {
+      "de": "capabilities",
+      "a": "mm",
+      "clase": "plan"
+    },
+    {
+      "de": "capabilities",
+      "a": "contracts",
+      "clase": "plan"
+    },
+    {
+      "de": "syscalls",
+      "a": "capabilities",
+      "clase": "plan"
+    },
+    {
+      "de": "syscalls",
+      "a": "x86_64-exceptions",
+      "clase": "plan"
+    },
+    {
+      "de": "rust-runtime",
+      "a": "syscalls",
+      "clase": "plan"
+    },
+    {
+      "de": "rust-services",
+      "a": "rust-runtime",
+      "clase": "plan"
+    },
+    {
+      "de": "rust-apps",
+      "a": "rust-services",
+      "clase": "plan"
+    },
+    {
+      "de": "tools",
+      "a": "compiler-entry",
+      "clase": "codigo"
+    },
+    {
+      "de": "tools",
+      "a": "metal64-verifier",
+      "clase": "codigo"
+    },
+    {
+      "de": "tools",
+      "a": "metal64-tests",
+      "clase": "verificacion"
+    },
+    {
+      "de": "roadmap",
+      "a": "contracts",
+      "clase": "plan"
+    },
+    {
+      "de": "roadmap",
+      "a": "heritage",
+      "clase": "plan"
+    },
+    {
+      "de": "research-metal64-03",
+      "a": "frontend",
+      "clase": "plan"
+    },
+    {
+      "de": "research-metal64-03",
+      "a": "encoder-x86_64",
+      "clase": "plan"
+    },
+    {
+      "de": "research-metal64-03",
+      "a": "metal64-verifier",
+      "clase": "plan"
+    },
+    {
+      "de": "boot",
+      "a": "kernel-entry",
+      "clase": "plan"
+    },
+    {
+      "de": "kernel-entry",
+      "a": "metal64-verifier",
+      "clase": "verificacion"
+    },
+    {
+      "de": "x86_64-interrupts",
+      "a": "x86_64-cpu",
+      "clase": "plan"
+    },
+    {
+      "de": "x86_64-interrupts",
+      "a": "x86_64-exceptions",
+      "clase": "plan"
+    },
+    {
+      "de": "init",
+      "a": "x86_64-exceptions",
+      "clase": "plan"
+    },
+    {
+      "de": "init",
+      "a": "mm",
+      "clase": "plan"
+    },
+    {
+      "de": "time",
+      "a": "x86_64-interrupts",
+      "clase": "plan"
+    },
+    {
+      "de": "sched",
+      "a": "time",
+      "clase": "plan"
+    },
+    {
+      "de": "sched",
+      "a": "init",
+      "clase": "plan"
+    },
+    {
+      "de": "ipc",
+      "a": "capabilities",
+      "clase": "plan"
+    },
+    {
+      "de": "drivers",
+      "a": "mm",
+      "clase": "plan"
+    },
+    {
+      "de": "drivers",
+      "a": "x86_64-interrupts",
+      "clase": "plan"
+    }
+  ]
+}
