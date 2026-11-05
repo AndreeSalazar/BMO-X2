@@ -1,7 +1,7 @@
 # BMO-X2: herramientas host y SUPER GRAFO. No despliega a discos.
 [CmdletBinding()]
 param(
-    [ValidateSet('abrir','resumen','consultar','mapa','comprobar','compilar','preparar-grafo')]
+    [ValidateSet('abrir','resumen','consultar','mapa','comprobar','medir','compilar','preparar-grafo')]
     [string]$Accion = 'resumen',
     [string]$Source,
     [string]$Python,
@@ -50,6 +50,10 @@ switch ($Accion) {
         Invoke-ProjectPython 'comprobar'
         & (Join-Path $projectRoot 'tools/host.ps1') -Accion compilar -Source $Source -Python $Python -Compiler $Compiler
     }
+    'medir' {
+        Invoke-ProjectPython 'comprobar'
+        & (Join-Path $projectRoot 'tools/host.ps1') -Accion medir -Python $Python -Compiler $Compiler
+    }
     'resumen' {
         & $SuperGrafo --consulta resumen $projectRoot
         if ($LASTEXITCODE -ne 0) { throw 'Fallo la consulta resumen de SUPER GRAFO.' }
@@ -72,7 +76,9 @@ switch ($Accion) {
     }
     'abrir' {
         Invoke-ProjectPython 'comprobar'
-        Start-Process -FilePath $SuperGrafo -ArgumentList @('--grafo', ('"' + $projectRoot + '"')) -WindowStyle Normal | Out-Null
-        Write-Output 'SUPER GRAFO abierto sobre BMO-X2.'
+        $workspaceFile = Join-Path $projectRoot 'BMO-X2.sg-workspace'
+        if (-not (Test-Path -LiteralPath $workspaceFile -PathType Leaf)) { throw 'Falta BMO-X2.sg-workspace.' }
+        Start-Process -FilePath $SuperGrafo -ArgumentList @('--workspace', ('"' + $workspaceFile + '"')) -WorkingDirectory $projectRoot -WindowStyle Normal | Out-Null
+        Write-Output 'SUPER GRAFO iniciado con BMO-X2.sg-workspace. La sesion local recuerda vista, panel y pestanas guardadas.'
     }
 }

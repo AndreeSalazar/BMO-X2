@@ -92,7 +92,9 @@ def inherited():
         actual = hashlib.sha256(within(entry['ruta']).read_bytes()).hexdigest()
         if actual != entry['sha256']:
             changed.append(entry['ruta'])
-    require(set(changed) == {'CASM/test.py'}, f'Divergencias no registradas de CASM: {changed}')
+    adaptations = read(ROOT / 'heritage/casm-changes.json')
+    expected = {entry['path'] for entry in adaptations['changes']}
+    require(set(changed) == expected, f'Divergencias no registradas de CASM: {changed}')
     return {'archivos': len(origin['archivos']), 'adaptados': changed, 'commit': origin['commit']}
 
 

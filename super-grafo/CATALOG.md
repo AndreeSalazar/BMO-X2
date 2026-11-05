@@ -7,8 +7,8 @@
 | [Contratos de BMO-X2](../contracts) | diseno | contrato | Fija destino, imagen, memoria, permisos y frontera CASM/Rust. |
 | [Programas CASM](../CASM/examples) | heredado | host | Programas pequenos para comprobar fuente, semantica y bytes exactos. |
 | [Entrada del compilador](../CASM/src/main.c) | heredado | host | Lee una fuente acotada, invoca analisis y emision y comunica el rechazo. |
-| [Lexico, sintaxis y semantica](../CASM/src/frontend.c) | heredado | host | Reconoce el lenguaje metal64 y calcula enteros exactos con reglas explicitas. |
-| [IR y tipos metal64](../CASM/src/casm.h) | heredado | host | Contrato acotado de datos entre analisis y emisor metal64. |
+| [Entrada y diagnosticos del frontend](../CASM/src/frontend.c) | host | host | Valida el limite de fuente y despacha los rechazos reales de los modulos del frontend. |
+| [IR y tipos metal64](../CASM/src/casm.h) | host | host | Contrato privado de IR con dos depositos compartidos acotados, sin buffers maximos por elemento. |
 | [Codificador x86-64](../CASM/src/emitter.c) | heredado | host | Escribe las instrucciones y datos propios de metal64; no usa un backend externo. |
 | [Contrato HEX preciso](../CASM/contracts) | diseno | contrato | Define el significado de HEX preciso: bytes exactos y evidencia de su correspondencia. |
 | [Verificador metal64](../CASM/verify.py) | heredado | host | Reconstruye bytes y enteros por separado y solo admite el paquete si coinciden. |
@@ -39,6 +39,20 @@
 | [Planificacion](../kernel/sched) | diseno | 0 | Gestiona ejecucion y espera con contexto y presupuesto definidos. |
 | [Comunicacion entre procesos](../kernel/ipc) | diseno | 0 | Transporta mensajes y prestamos con autoridad y limites comprobados. |
 | [Frontera de dispositivos](../kernel/drivers) | diseno | 0 | Aisla mecanismos de dispositivos del resto del kernel y explicita acceso a puertos/MMIO/DMA. |
+| [Lexico](../CASM/src/frontend/lexer.c) | host | host | Reconoce tokens ASCII y posiciones sin interpretar los valores. |
+| [Nombres y tipos](../CASM/src/frontend/symbols.c) | host | host | Comprueba nombres reservados, declarados y tipos disponibles. |
+| [Enteros exactos](../CASM/src/frontend/integers.c) | host | host | Evalua expresiones de constantes con anchura declarada y RPN comprobable. |
+| [Sintaxis metal64](../CASM/src/frontend/parser.c) | host | host | Forma declaraciones, llamadas y la entrada del perfil metal64. |
+| [Almacenamiento compartido](../CASM/src/model/storage.c) | host | host | Guarda datos y RPN en depositos comprobados dentro del modelo del anfitrion. |
+| [Tipos de CPU metal64](../CASM/src/model/types.c) | host | host | Tabla generada de nombres, anchuras y signo de los ocho tipos metal64. |
+| [Interfaces del frontend](../CASM/src/frontend/internal.h) | host | host | Declara estado privado del parser, codigos de diagnostico e interfaces entre modulos. |
+| [Manifest de construccion](../CASM/sources.json) | host | host | Enumera las mismas fuentes y cabeceras x86-64 para Windows y Linux. |
+| [Invariantes de memoria](../CASM/tests/workspace.c) | host | host | Prueba extremos, estabilidad y rechazo sin escritura parcial del almacenamiento. |
+| [Comparacion y medida](../CASM/tests/maturity.py) | host | host | Reconstruye d2575a8 y exige la misma emision y diagnosticos del compilador reorganizado. |
+| [Listas y jerarquia de CASM](../CASM/catalog.json) | host | host | Define tipos, sintaxis, IR, codificaciones y capacidades por estado dentro de una jerarquia versionada. |
+| [Generacion desde las listas](../CASM/catalog.py) | host | host | Valida la jerarquia x86-64 y genera la tabla de tipos real del compilador. |
+| [Pruebas de las listas](../CASM/tests/test_catalog.py) | host | host | Exige que las listas no amplien silenciosamente lo que el compilador puede aceptar. |
+| [Espacio de trabajo BMO-X2](../BMO-X2.sg-workspace) | host | host | Define la raiz portable y los valores iniciales de vista y panel de SUPER GRAFO. |
 
 ## Dependencias declaradas
 
@@ -93,5 +107,44 @@
 | ipc | capabilities | plan |
 | drivers | mm | plan |
 | drivers | x86_64-interrupts | plan |
+| frontend | grammar | codigo |
+| frontend | frontend-contract | codigo |
+| frontend-contract | metal64-ir | codigo |
+| lexer | frontend-contract | codigo |
+| symbols | frontend-contract | codigo |
+| symbols | model-types | codigo |
+| integers | frontend-contract | codigo |
+| integers | symbols | codigo |
+| integers | model-storage | codigo |
+| grammar | lexer | codigo |
+| grammar | symbols | codigo |
+| grammar | integers | codigo |
+| grammar | model-storage | codigo |
+| model-types | metal64-ir | codigo |
+| model-storage | metal64-ir | codigo |
+| workspace-tests | model-storage | verificacion |
+| maturity-meter | workspace-tests | verificacion |
+| maturity-meter | compiler-entry | verificacion |
+| maturity-meter | metal64-verifier | verificacion |
+| tools | compiler-sources | generacion |
+| compiler-sources | frontend | generacion |
+| compiler-sources | lexer | generacion |
+| compiler-sources | symbols | generacion |
+| compiler-sources | integers | generacion |
+| compiler-sources | grammar | generacion |
+| compiler-sources | model-storage | generacion |
+| compiler-sources | model-types | generacion |
+| compiler-sources | frontend-contract | generacion |
+| model-types | casm-catalog | generacion |
+| model-types | catalog-generator | generacion |
+| catalog-generator | casm-catalog | codigo |
+| catalog-generator | metal64-verifier | verificacion |
+| catalog-tests | catalog-generator | verificacion |
+| catalog-tests | casm-catalog | verificacion |
+| tools | catalog-generator | generacion |
+| compiler-sources | casm-catalog | generacion |
+| compiler-sources | catalog-generator | generacion |
+| workspace | casm-catalog | plan |
+| tools | workspace | codigo |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

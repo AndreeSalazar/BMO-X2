@@ -1,5 +1,9 @@
 # SUPER GRAFO es la mesa de BMO-X2
 
+`../BMO-X2.sg-workspace` establece esta raiz y el Taller CASM. Guardar el
+espacio conserva la sesion local; guardar/reabrir no regenera este mapa ni
+reacomoda sus nodos. El lanzador `-Accion abrir` abre ese archivo.
+
 - `nodes.json`: catalogo versionado de responsabilidades y relaciones tipadas.
 - `NOTAS.md`: descripcion por ruta; SUPER GRAFO la muestra en cada nodo.
 - `orden.json`: posiciones y carpetas desplegadas en el formato real de SG.
@@ -9,6 +13,9 @@
 `bmo-x2.ps1 -Accion mapa` valida el catalogo, genera notas, pide a SG que
 analice y guarde y aplica las posiciones explicitas de esta reconstruccion.
 El generador no crea dependencias de codigo falsas ni modifica SUPER GRAFO.
+La herramienta SUPER GRAFO se mejora en su propio proyecto por pedido del
+propietario. `-Consulta casm` y el Taller leen ahora `CASM/catalog.json`:
+jerarquia semantica del compilador, ademas de los nodos de archivos de este mapa.
 La vista inicial deja las familias cerradas para leer sus nombres. Entrar en
 CASM y despues en `src/` muestra los nodos de implementacion; el resto del
 detalle conserva posiciones guardadas y se despliega cuando se necesita.

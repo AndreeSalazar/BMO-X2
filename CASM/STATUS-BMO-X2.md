@@ -12,6 +12,17 @@ Esos documentos conservan la fecha, el entorno y el alcance de su trabajo.
 
 ## Primera base reproducible
 
+Revision HOST del 05-11-2026: el frontend metal64 esta repartido en lexer,
+simbolos, enteros y parser, con tipos y almacenamiento en `src/model/`.
+`sources.json` alimenta las construcciones Windows y Linux e incluye las
+cabeceras en la vigencia de la cache. [Fronteras del frontend](src/frontend/README.md).
+
+`catalog.json` organiza 45 elementos jerarquicos. El build valida el catalogo
+y genera la tabla de tipos desde el, contrastada con la tabla independiente
+del verificador. SUPER GRAFO ahora lee la jerarquia y los modulos completos;
+la consulta `casm` expone tipos, IR, codificaciones, reglas y bytes por linea.
+Ver [CATALOG](CATALOG.md).
+
 `bmo-x2.ps1 -Accion comprobar` construye metal64 con Clang del anfitrion y
 corre el banco heredado. La adaptacion de `test.py` para Windows omite
 explicitamente el caso de RLIMIT_DATA; no imita el limite ni lo cuenta aprobado.
@@ -22,10 +33,16 @@ taller Linux/QEMU; no se ejecutan ELF Linux en Windows.
 verifica y publica `INICIO.X86` solo si el verificador acepta. SUPER GRAFO
 puede leer esa compilacion en `build/CASM/run-*` y mostrar linea -> bytes.
 
-La organizacion inicial conserva los archivos del emisor para mantener ese
-panel operativo. Lexico, sintaxis y enteros todavia comparten `src/frontend.c`;
-su separacion fisica se hara con pruebas de equivalencia de bytes y soporte
-del Taller CASM para leer las reglas distribuidas.
+El emisor y el verificador conservan su contrato. `src/frontend.c` ahora es
+la entrada publica y el despacho real de errores. La mejora conjunta solicitada
+de SUPER GRAFO permite leer tambien los sitios originales de `CASM_RULE_*`
+en los modulos; el Taller los presenta antes del despacho.
+
+El modelo de trabajo baja de 1.077.280 a 361.648 bytes en Windows x64 con
+Clang 23.1.2. Once invariantes de deposito y 333 casos diferenciales pasan:
+HEX, IR, paquetes y diagnosticos identicos. El ejecutable HOST crece 512 bytes.
+Esta medida no acredita RSS, ciclos, vatios ni memoria de Ring 0.
+Ver [criterios y reproduccion](CONTROL-PERFORMANCE-ELEGANCE.md).
 
 Consultar [RUTA-CASM](../docs/CASM-ROADMAP.md) para el alcance de CASM destinado
 al kernel. Completo significa suficiente para el contrato x86-64 de BMO-X2,

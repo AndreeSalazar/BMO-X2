@@ -1,5 +1,42 @@
 # Estado de la base BMO-X2 -- 04-11-2026
 
+## Revision de maduracion -- 05-11-2026
+
+- 49 nodos y 88 relaciones tipadas; lexer, simbolos, enteros, parser, tipos y
+  almacenamiento tienen implementaciones separadas y notas de SUPER GRAFO.
+- Modelo de compilacion HOST: 1.077.280 -> 361.648 bytes, ahorro de 715.632
+  bytes (66,43 %). No es una medida de RSS o del kernel; la semilla ejecutable
+  crece 512 bytes (180.736 -> 181.248) con las mismas herramientas y flags.
+- 333 casos (279 admitidos, 54 rechazados) coinciden con `d2575a8` en HEX,
+  IR, paquete, stdout y stderr. No se ejecuta el codigo de destino.
+- El banco metal64 conserva 107 aprobados y una omision Windows declarada.
+  El banco del almacenamiento cubre 11 invariantes. La cache pasa tres pruebas;
+  la cuarta exige enlaces Linux y queda omitida explicitamente.
+- Una lista `CASM/sources.json` alimenta builds Windows y Linux, con todas sus
+  cabeceras registradas. El build Linux y sus sanitizadores siguen pendientes.
+- Resumen y huellas en [host-maturity.json](../CASM/metrics/host-maturity.json).
+  Metodo y limites en [CONTROL-PERFORMANCE-ELEGANCE](../CASM/CONTROL-PERFORMANCE-ELEGANCE.md).
+
+## Listas y jerarquia ejecutable -- 05-11-2026
+
+- `CASM/catalog.json`: 45 elementos del lenguaje y su pipeline; 37 del perfil
+  activo, uno parcial y siete planeados. Son nodos declarativos, no porcentajes.
+- Ocho tipos generan la tabla C. El verificador conserva su tabla independiente;
+  tres patrones x86-64 se contrastan con el vector manual de entrada.
+- Ocho pruebas del catalogo pasan, junto al banco metal64 y las 11 invariantes.
+  Los 333 casos diferenciales siguen identicos tras introducir el generador.
+- SUPER GRAFO lee los modulos y las condiciones originales. Taller revisado
+  visualmente con el arbol, los estados, fuentes y tipos desplegables.
+- Cuatro pruebas puras CASM de SUPER GRAFO y cuatro pruebas nuevas de plataforma
+  pasan; la prueba del repositorio Linux original no se aplica a este checkout.
+  Consultas reales de resumen, tipos, codificaciones, regla y mapa contrastadas.
+- El mapa exige la fuente congelada, reconstruye IR/HEX y contrasta cabecera y
+  cuerpo del paquete y los campos basicos del reporte. No autentica el reporte
+  ni sustituye la verificacion semantica. Entrada: 48 bytes de cuerpo, 72 de paquete.
+- Detalles y comandos en [CASM/CATALOG](../CASM/CATALOG.md).
+
+Lo que sigue conserva las cifras y el alcance del primer commit del 04-11.
+
 ## Lo hecho aqui
 
 - 38 archivos CASM importados del mismo autor, con commit y SHA-256 de origen.
@@ -38,10 +75,18 @@ no se atribuyen al kernel BMO-X2.
 
 ## Lo siguiente
 
+La apertura de SUPER GRAFO se corrigio: `--grafo` delante de la carpeta se
+interpretaba como ruta. El parser acepta ambas posiciones y el lanzador abre
+ahora `BMO-X2.sg-workspace`. La definicion fija raiz/vista/panel; la sesion local
+conserva subcarpeta, vista, panel y pestanas guardadas. Hay acciones de establecer,
+guardar, abrir y reabrir el ultimo espacio. No se ejecutan procesos al restaurar.
+El banco de la aplicacion paso 60 pruebas; una medicion esta ignorada.
+
 Concretar C1 de [CASM-ROADMAP](CASM-ROADMAP.md): lenguaje y perfil de destino del
 kernel, tomando funciones/bucles/buffers de la experiencia Native y el contrato
-de emision/verificacion de metal64. Despues repartir el frontend con equivalencia
-de bytes y ampliar el Taller CASM para sus reglas distribuidas.
+de emision/verificacion de metal64. El reparto del frontend y la lectura de
+reglas distribuidas en SUPER GRAFO ya estan hechos; la siguiente capacidad
+requiere semantica, IR, emision, verificador y pruebas antes de activarse.
 
 Las operaciones privilegiadas, los subsistemas del kernel y el runtime Rust
 siguen en DISENO; la sonda de entrada esta compilada en HOST.

@@ -15,6 +15,12 @@ Adaptacion local inicial: `CASM/test.py` reconoce Windows, utiliza el ejecutable
 pruebas y el emisor/verificador conservan su comportamiento. Las herramientas
 PowerShell de este proyecto son nuevas y se identifican como tales.
 
+Maduracion del 05-11: `casm-changes.json` registra las divergencias activas:
+modelo compacto, reparto del frontend y manifest de fuentes del bootstrap,
+ademas de aquella adaptacion del banco. El registro de SHA-256 de los originales
+se conserva; no se reescribe para ocultar los cambios. Los nuevos modulos son
+trabajo de BMO-X2 y conservan la frontera de licencia de esta base CASM.
+
 Los enlaces relativos de los documentos heredados pueden referirse a evidencia
 que sigue en ULTRA. No se interpreta esa evidencia como una prueba de BMO-X2.
 

@@ -18,6 +18,7 @@ run="$(mktemp -d "$raiz/build/CASM/run-$(date +%Y%m%d-%H%M%S)-XXXX")"
 cp -- "$fuente" "$run/source.casm"
 realpath -- "$fuente" > "$run/origen.txt"
 cp "$raiz/build/CASM/host/toolchain.txt" "$run/toolchain.txt"
+cp "$casm/catalog.json" "$run/catalog.json"
 # Todo lo que dicen el compilador y el verificador queda en registro.txt (el SUPER GRAFO lo lee).
 registro="$run/registro.txt"
 if ! "$raiz/build/CASM/host/casmc" "$run/source.casm" "$run/program.hex" "$run/program.ir.json" > >(tee -a "$registro") 2> >(tee -a "$registro" >&2); then

@@ -57,37 +57,37 @@
     },
     {
       "id": "frontend",
-      "titulo": "Lexico, sintaxis y semantica",
+      "titulo": "Entrada y diagnosticos del frontend",
       "ruta": "CASM/src/frontend.c",
-      "estado": "heredado",
+      "estado": "host",
       "anillo": "host",
       "lenguaje": "C semilla",
       "posicion": [
         740,
         0
       ],
-      "que": "Reconoce el lenguaje metal64 y calcula enteros exactos con reglas explicitas.",
-      "entrada": "Bytes de fuente ASCII acotada.",
-      "salida": "Programa, tipos, constantes, llamadas y origen fuente.",
-      "aceptacion": "Cada regla rechaza su caso; reparto futuro conserva HEX/IR y diagnosticos del banco.",
-      "falta": "Separar lexer, parser, nombres y enteros; incorporar semantica de runtime para el kernel."
+      "que": "Valida el limite de fuente y despacha los rechazos reales de los modulos del frontend.",
+      "entrada": "Fuente acotada o regla, motivo y posicion del modulo que rechaza.",
+      "salida": "Llamada al parser o diagnostico estable legible por el Taller CASM.",
+      "aceptacion": "Los 333 casos diferenciales conservan bytes, IR, paquetes y diagnosticos.",
+      "falta": "Ampliar semantica de runtime y perfil de kernel; el reparto actual corresponde a metal64."
     },
     {
       "id": "metal64-ir",
       "titulo": "IR y tipos metal64",
       "ruta": "CASM/src/casm.h",
-      "estado": "heredado",
+      "estado": "host",
       "anillo": "host",
       "lenguaje": "C semilla",
       "posicion": [
         740,
         260
       ],
-      "que": "Contrato acotado de datos entre analisis y emisor metal64.",
+      "que": "Contrato privado de IR con dos depositos compartidos acotados, sin buffers maximos por elemento.",
       "entrada": "Declaraciones, expresiones y limites del perfil.",
       "salida": "CasmProgram, CasmInteger, CasmConstant y CasmCall.",
-      "aceptacion": "Emisor y verificador coinciden en tipos, medidas y valores; limites ejercitados.",
-      "falta": "IR versionada del kernel con flujo, funciones, efectos y trampas."
+      "aceptacion": "Modelo de 361648 bytes; invariantes de almacenamiento y 333 casos coinciden con la base.",
+      "falta": "IR del kernel con flujo, funciones, efectos y trampas; la IR JSON metal64 conserva su formato."
     },
     {
       "id": "encoder-x86_64",
@@ -437,7 +437,7 @@
       "que": "Valida el catalogo, construye metal64 y registra emision y verificacion reproducibles.",
       "entrada": "Catalogo, semilla Clang, Python y fuentes locales.",
       "salida": "Informes y compilaciones nuevas en build/; mapa persistente de SG.",
-      "aceptacion": "Banco host y negativos del catalogo pasan; fallo de compilacion impide usar binario anterior.",
+      "aceptacion": "Banco metal64 y almacenamiento pasan; medir reconstruye la base y compara 333 fuentes sin ejecutar el destino.",
       "falta": "Integrar despues taller Linux/QEMU y builds del kernel sin mezclar sus estados."
     },
     {
@@ -615,6 +615,244 @@
       "aceptacion": "Aparato ausente o mudo no bloquea el kernel; permisos y DMA se prueban por separado.",
       "falta": "Empezar con un dispositivo simple exigido por el arranque; no trasladar la investigacion GPU a esta base.",
       "pagina": true
+    },
+    {
+      "id": "lexer",
+      "titulo": "Lexico",
+      "ruta": "CASM/src/frontend/lexer.c",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "C11 semilla host",
+      "posicion": [
+        0,
+        -1040
+      ],
+      "que": "Reconoce tokens ASCII y posiciones sin interpretar los valores.",
+      "entrada": "Fuente acotada y estado del parser.",
+      "salida": "Token, texto literal y posicion o rechazo preciso.",
+      "aceptacion": "Conserva limites de nombres, cadenas y comentarios en el banco y corpus diferencial.",
+      "falta": "Tokens y sintaxis adicionales del futuro perfil de kernel."
+    },
+    {
+      "id": "symbols",
+      "titulo": "Nombres y tipos",
+      "ruta": "CASM/src/frontend/symbols.c",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "C11 semilla host",
+      "posicion": [
+        370,
+        -1040
+      ],
+      "que": "Comprueba nombres reservados, declarados y tipos disponibles.",
+      "entrada": "Identificador y tablas del programa.",
+      "salida": "Tipo o estado de nombre; nunca una declaracion implicita.",
+      "aceptacion": "Duplicados, reservados, nombres ausentes y tipos conservan su rechazo.",
+      "falta": "Ambitos y simbolos de funciones al ampliar el perfil."
+    },
+    {
+      "id": "integers",
+      "titulo": "Enteros exactos",
+      "ruta": "CASM/src/frontend/integers.c",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "C11 semilla host",
+      "posicion": [
+        740,
+        -1040
+      ],
+      "que": "Evalua expresiones de constantes con anchura declarada y RPN comprobable.",
+      "entrada": "Tokens, tipos y enteros ya declarados.",
+      "salida": "Valor exacto y RPN estable o rechazo de rango, profundidad o division.",
+      "aceptacion": "Extremos, negacion, referencias y corpus diferencial coinciden con la base.",
+      "falta": "Semantica de enteros en ejecucion del kernel."
+    },
+    {
+      "id": "grammar",
+      "titulo": "Sintaxis metal64",
+      "ruta": "CASM/src/frontend/parser.c",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "C11 semilla host",
+      "posicion": [
+        1110,
+        -1040
+      ],
+      "que": "Forma declaraciones, llamadas y la entrada del perfil metal64.",
+      "entrada": "Tokens y reglas semanticas.",
+      "salida": "Programa admitido sin construcciones ignoradas.",
+      "aceptacion": "Errores tardios y fuentes densas conservan orden y motivo de rechazo.",
+      "falta": "Gramatica explicita del perfil del kernel, sin mezclar silenciosamente Native."
+    },
+    {
+      "id": "model-storage",
+      "titulo": "Almacenamiento compartido",
+      "ruta": "CASM/src/model/storage.c",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "C11 semilla host",
+      "posicion": [
+        1480,
+        -1040
+      ],
+      "que": "Guarda datos y RPN en depositos comprobados dentro del modelo del anfitrion.",
+      "entrada": "Programa en cero, direccion estable y escritura de la expresion actual.",
+      "salida": "Datos estables, uso acotado o rechazo antes de escribir.",
+      "aceptacion": "Once invariantes; 68608 bytes de datos y 262272 de RPN bastan para la fuente admitida.",
+      "falta": "Medir RSS y tiempo real por separado; no atribuir esta medida a Ring 0."
+    },
+    {
+      "id": "model-types",
+      "titulo": "Tipos de CPU metal64",
+      "ruta": "CASM/src/model/types.c",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "C11 semilla host",
+      "posicion": [
+        1850,
+        -1040
+      ],
+      "que": "Tabla generada de nombres, anchuras y signo de los ocho tipos metal64.",
+      "entrada": "CASM/catalog.json validado por catalog.py; tabla independiente del verificador.",
+      "salida": "Tabla unica compartida por simbolos, semantica y emisor.",
+      "aceptacion": "La tabla generada esta vigente y sus anchuras y signos coinciden con el verificador independiente.",
+      "falta": "Tipos de runtime y layout del kernel."
+    },
+    {
+      "id": "frontend-contract",
+      "titulo": "Interfaces del frontend",
+      "ruta": "CASM/src/frontend/internal.h",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "C11 semilla host",
+      "posicion": [
+        740,
+        -780
+      ],
+      "que": "Declara estado privado del parser, codigos de diagnostico e interfaces entre modulos.",
+      "entrada": "Contrato del modelo y fronteras de responsabilidades.",
+      "salida": "Tipos y firmas del anfitrion, sin ABI del destino.",
+      "aceptacion": "Todos los modulos compilan con avisos como errores; sus firmas no se duplican.",
+      "falta": "Mantener pequena esta interfaz al crecer el lenguaje."
+    },
+    {
+      "id": "compiler-sources",
+      "titulo": "Manifest de construccion",
+      "ruta": "CASM/sources.json",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "JSON host",
+      "posicion": [
+        1110,
+        -780
+      ],
+      "que": "Enumera las mismas fuentes y cabeceras x86-64 para Windows y Linux.",
+      "entrada": "Modulos reales del compilador.",
+      "salida": "Lista comun de compilacion y huellas que invalidan la cache.",
+      "aceptacion": "Host y bootstrap usan este archivo; cambiar una cabecera invalida el registro.",
+      "falta": "Ejecucion del build y sanitizadores Linux en el taller."
+    },
+    {
+      "id": "workspace-tests",
+      "titulo": "Invariantes de memoria",
+      "ruta": "CASM/tests/workspace.c",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "C11 semilla host",
+      "posicion": [
+        1480,
+        -780
+      ],
+      "que": "Prueba extremos, estabilidad y rechazo sin escritura parcial del almacenamiento.",
+      "entrada": "Modulo de almacenamiento y modelo.",
+      "salida": "Once comprobaciones y sizeof del modelo en el host.",
+      "aceptacion": "Pruebas de limite exacto y contadores invalidos pasan.",
+      "falta": "Acompanar cada cambio del deposito con casos de limite."
+    },
+    {
+      "id": "maturity-meter",
+      "titulo": "Comparacion y medida",
+      "ruta": "CASM/tests/maturity.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python host",
+      "posicion": [
+        1850,
+        -780
+      ],
+      "que": "Reconstruye d2575a8 y exige la misma emision y diagnosticos del compilador reorganizado.",
+      "entrada": "Clang host, historial Git y 333 fuentes deterministas.",
+      "salida": "Informe de modelo, ejecutables, casos identicos y limites de lo medido.",
+      "aceptacion": "279 fuentes aceptadas y 54 rechazadas coinciden; modelo baja 66.43 por ciento.",
+      "falta": "Medidas de RSS, ciclos y energia requieren experimentos propios."
+    },
+    {
+      "id": "casm-catalog",
+      "titulo": "Listas y jerarquia de CASM",
+      "ruta": "CASM/catalog.json",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "JSON/Python host",
+      "posicion": [
+        0,
+        -1300
+      ],
+      "que": "Define tipos, sintaxis, IR, codificaciones y capacidades por estado dentro de una jerarquia versionada.",
+      "entrada": "Contrato metal64 actual y capacidades futuras declaradas.",
+      "salida": "Catalogo para el generador y SUPER GRAFO, sin convertir PLAN en instrucciones admitidas.",
+      "aceptacion": "Ocho pruebas de catalogo, tipos contra verificador independiente y codificaciones contra vector manual.",
+      "falta": "Ampliar el perfil solo junto a semantica, emisor, verificador y casos nuevos."
+    },
+    {
+      "id": "catalog-generator",
+      "titulo": "Generacion desde las listas",
+      "ruta": "CASM/catalog.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "JSON/Python host",
+      "posicion": [
+        370,
+        -1300
+      ],
+      "que": "Valida la jerarquia x86-64 y genera la tabla de tipos real del compilador.",
+      "entrada": "catalog.json y tabla independiente INT_TYPES del verificador.",
+      "salida": "src/model/types.c generado antes de construir.",
+      "aceptacion": "Cambio de anchura incompatible, opcode alterado, ciclo o ruta externa impiden generar.",
+      "falta": "Generar otras tablas solo cuando su contrato y verificacion independiente esten definidos."
+    },
+    {
+      "id": "catalog-tests",
+      "titulo": "Pruebas de las listas",
+      "ruta": "CASM/tests/test_catalog.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "JSON/Python host",
+      "posicion": [
+        740,
+        -1300
+      ],
+      "que": "Exige que las listas no amplien silenciosamente lo que el compilador puede aceptar.",
+      "entrada": "Catalogo valido y mutaciones independientes.",
+      "salida": "Ocho casos de aceptacion o rechazo con su motivo.",
+      "aceptacion": "El tipo generado coincide; arquitectura, estructura y bytes incorrectos se rechazan.",
+      "falta": "Agregar casos junto a cada nueva familia del perfil."
+    },
+    {
+      "id": "workspace",
+      "titulo": "Espacio de trabajo BMO-X2",
+      "ruta": "BMO-X2.sg-workspace",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "JSON",
+      "posicion": [
+        1110,
+        -400
+      ],
+      "que": "Define la raiz portable y los valores iniciales de vista y panel de SUPER GRAFO.",
+      "entrada": "Ruta del proyecto relativa al archivo; sesion local separada.",
+      "salida": "Apertura de BMO-X2 con grafo, Taller CASM y recuperacion de pestanas guardadas.",
+      "aceptacion": "El lanzador abre la raiz real; guardar y reabrir conserva vista, panel y archivos sin ejecutar comandos.",
+      "falta": "Multiples raices y traslado de una sesion local entre computadoras."
     }
   ],
   "relaciones": [
@@ -862,6 +1100,201 @@
       "de": "drivers",
       "a": "x86_64-interrupts",
       "clase": "plan"
+    },
+    {
+      "de": "frontend",
+      "a": "grammar",
+      "clase": "codigo"
+    },
+    {
+      "de": "frontend",
+      "a": "frontend-contract",
+      "clase": "codigo"
+    },
+    {
+      "de": "frontend-contract",
+      "a": "metal64-ir",
+      "clase": "codigo"
+    },
+    {
+      "de": "lexer",
+      "a": "frontend-contract",
+      "clase": "codigo"
+    },
+    {
+      "de": "symbols",
+      "a": "frontend-contract",
+      "clase": "codigo"
+    },
+    {
+      "de": "symbols",
+      "a": "model-types",
+      "clase": "codigo"
+    },
+    {
+      "de": "integers",
+      "a": "frontend-contract",
+      "clase": "codigo"
+    },
+    {
+      "de": "integers",
+      "a": "symbols",
+      "clase": "codigo"
+    },
+    {
+      "de": "integers",
+      "a": "model-storage",
+      "clase": "codigo"
+    },
+    {
+      "de": "grammar",
+      "a": "lexer",
+      "clase": "codigo"
+    },
+    {
+      "de": "grammar",
+      "a": "symbols",
+      "clase": "codigo"
+    },
+    {
+      "de": "grammar",
+      "a": "integers",
+      "clase": "codigo"
+    },
+    {
+      "de": "grammar",
+      "a": "model-storage",
+      "clase": "codigo"
+    },
+    {
+      "de": "model-types",
+      "a": "metal64-ir",
+      "clase": "codigo"
+    },
+    {
+      "de": "model-storage",
+      "a": "metal64-ir",
+      "clase": "codigo"
+    },
+    {
+      "de": "workspace-tests",
+      "a": "model-storage",
+      "clase": "verificacion"
+    },
+    {
+      "de": "maturity-meter",
+      "a": "workspace-tests",
+      "clase": "verificacion"
+    },
+    {
+      "de": "maturity-meter",
+      "a": "compiler-entry",
+      "clase": "verificacion"
+    },
+    {
+      "de": "maturity-meter",
+      "a": "metal64-verifier",
+      "clase": "verificacion"
+    },
+    {
+      "de": "tools",
+      "a": "compiler-sources",
+      "clase": "generacion"
+    },
+    {
+      "de": "compiler-sources",
+      "a": "frontend",
+      "clase": "generacion"
+    },
+    {
+      "de": "compiler-sources",
+      "a": "lexer",
+      "clase": "generacion"
+    },
+    {
+      "de": "compiler-sources",
+      "a": "symbols",
+      "clase": "generacion"
+    },
+    {
+      "de": "compiler-sources",
+      "a": "integers",
+      "clase": "generacion"
+    },
+    {
+      "de": "compiler-sources",
+      "a": "grammar",
+      "clase": "generacion"
+    },
+    {
+      "de": "compiler-sources",
+      "a": "model-storage",
+      "clase": "generacion"
+    },
+    {
+      "de": "compiler-sources",
+      "a": "model-types",
+      "clase": "generacion"
+    },
+    {
+      "de": "compiler-sources",
+      "a": "frontend-contract",
+      "clase": "generacion"
+    },
+    {
+      "de": "model-types",
+      "a": "casm-catalog",
+      "clase": "generacion"
+    },
+    {
+      "de": "model-types",
+      "a": "catalog-generator",
+      "clase": "generacion"
+    },
+    {
+      "de": "catalog-generator",
+      "a": "casm-catalog",
+      "clase": "codigo"
+    },
+    {
+      "de": "catalog-generator",
+      "a": "metal64-verifier",
+      "clase": "verificacion"
+    },
+    {
+      "de": "catalog-tests",
+      "a": "catalog-generator",
+      "clase": "verificacion"
+    },
+    {
+      "de": "catalog-tests",
+      "a": "casm-catalog",
+      "clase": "verificacion"
+    },
+    {
+      "de": "tools",
+      "a": "catalog-generator",
+      "clase": "generacion"
+    },
+    {
+      "de": "compiler-sources",
+      "a": "casm-catalog",
+      "clase": "generacion"
+    },
+    {
+      "de": "compiler-sources",
+      "a": "catalog-generator",
+      "clase": "generacion"
+    },
+    {
+      "de": "workspace",
+      "a": "casm-catalog",
+      "clase": "plan"
+    },
+    {
+      "de": "tools",
+      "a": "workspace",
+      "clase": "codigo"
     }
   ]
 }

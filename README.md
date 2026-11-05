@@ -7,12 +7,25 @@ Ring 3 y SUPER GRAFO como mesa de trabajo. Autor: Eddi Salazar, Lima, Peru.
 primera entrada propia compilada y verificada en host. Todavia no hay un
 kernel BMO-X2 arrancable. [Estado y evidencia](docs/STATUS.md).
 
+**Avance revisado el 05-11-2026:** frontend metal64 separado en modulos reales,
+49 nodos y 88 relaciones. El modelo HOST baja 66,43 % conservando la emision
+y los rechazos en 333 casos. [CONTROL, RENDIMIENTO y ELEGANCIA](CASM/CONTROL-PERFORMANCE-ELEGANCE.md)
+explica la medida, su coste y lo que aun falta para Ring 0.
+
+**Listas y jerarquia conectadas:** 49 nodos de proyecto y 88 relaciones;
+el catalogo CASM tiene 45 elementos propios. Su lista genera los ocho tipos
+del compilador. SUPER GRAFO permite explorar tipos, sintaxis, IR, codificaciones,
+reglas y mapa fuente -> bytes. [Entrar al catalogo](CASM/CATALOG.md).
+
 ## Una base combinada, tres responsabilidades
 
 ```text
 BMO-X2/
   CASM/                         lenguaje, emisor y verificador del anfitrion
-    src/                        semilla metal64 existente
+    src/frontend/               lexer, symbols, integers y parser
+    src/model/                  tipos y almacenamiento compartido acotado
+    sources.json                lista comun de construccion Windows/Linux
+    tests/  metrics/             pruebas y medidas reproducibles del anfitrion
     native/                     experiencia de autocompilacion en CASM
     x86_64/                     perfil estrategico requerido por el kernel
     contracts/                  precision de HEX, IR y comprobacion
@@ -39,12 +52,20 @@ nodos aun no implementados contienen su responsabilidad y prueba de cierre.
 
 ## Entrar al proyecto
 
+`BMO-X2.sg-workspace` fija la raiz portable, la vista Grafo y el Taller CASM.
+`-Accion abrir` lo pasa a SUPER GRAFO sin confundir opciones con carpetas.
+El menu **Espacio de trabajo** permite establecer, guardar y abrir espacios.
+Al salir se conserva una sesion local con vista, panel y pestanas guardadas;
+sin argumentos SUPER GRAFO reabre el ultimo destino valido. Las posiciones
+siguen en `super-grafo/orden.json`. No se restauran procesos ni texto sin guardar.
+
 ```powershell
 .\bmo-x2.ps1 -Accion abrir       # SUPER GRAFO, con la organizacion del proyecto
 .\bmo-x2.ps1 -Accion resumen     # consulta real a SUPER GRAFO
 .\bmo-x2.ps1 -Accion consultar -Consulta nota -Argumentos '{"ruta":"CASM/x86_64"}'
 .\bmo-x2.ps1 -Accion mapa        # regenera mapa, notas y posiciones
 .\bmo-x2.ps1 -Accion comprobar   # contratos de nodos + banco CASM metal64
+.\bmo-x2.ps1 -Accion medir       # base d2575a8 frente al compilador reorganizado
 .\bmo-x2.ps1 -Accion compilar    # ejemplo -> .hex + IR -> verificacion -> paquete
 .\bmo-x2.ps1 -Accion compilar -Source .\kernel\boot\entry.casm
 .\bmo-x2.ps1 -Accion preparar-grafo # construye SG local si el ejecutable esta anticuado
@@ -92,4 +113,5 @@ del lenguaje para el kernel estan en [requirements.json](CASM/x86_64/requirement
 
 La base CASM importada conserva sus avisos y la copia de licencia en
 [heritage/COPYING-CASM](heritage/COPYING-CASM). BMO-X y los otros proyectos
-permanecen como referencias separadas; el trabajo nuevo se hace aqui.
+permanecen como referencias separadas. Las mejoras de SUPER GRAFO viven en
+su propio proyecto y su ejecutable de trabajo se construye dentro de `build/`.

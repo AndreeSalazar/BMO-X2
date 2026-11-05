@@ -12,7 +12,10 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / 'build/CASM'
-SOURCES = ('src/casm.h', 'src/main.c', 'src/frontend.c', 'src/emitter.c', 'bootstrap.py')
+SOURCE_MANIFEST = json.loads((ROOT/'CASM/sources.json').read_text())
+if SOURCE_MANIFEST.get('schema') != 1 or SOURCE_MANIFEST.get('target') != 'x86-64':
+    raise ValueError('Manifest CASM incompatible: se exige x86-64')
+SOURCES = tuple(SOURCE_MANIFEST['c_sources'] + SOURCE_MANIFEST['headers'] + SOURCE_MANIFEST['inputs'] + ['bootstrap.py', 'sources.json'])
 
 
 def sha(path):
@@ -49,6 +52,7 @@ def current(path, diagnostic=None):
 def build(compiler, variant='host', diagnostic=False):
     if compiler not in ('gcc', 'clang'):
         raise ValueError('CC debe ser gcc o clang')
+    subprocess.run([sys.executable, '-B', str(ROOT/'CASM/catalog.py'), 'generate'], check=True, timeout=15)
     path = directory(variant)
     executable = shutil.which(compiler)
     if not executable:

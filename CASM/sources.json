@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "target": "x86-64",
+  "c_sources": [
+    "src/main.c",
+    "src/frontend.c",
+    "src/frontend/lexer.c",
+    "src/frontend/symbols.c",
+    "src/frontend/integers.c",
+    "src/frontend/parser.c",
+    "src/model/types.c",
+    "src/model/storage.c",
+    "src/emitter.c"
+  ],
+  "inputs": ["catalog.json", "catalog.py", "verify.py"],
+  "headers": [
+    "src/casm.h",
+    "src/frontend/internal.h"
+  ]
+}

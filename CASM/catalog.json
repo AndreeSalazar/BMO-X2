@@ -1,0 +1,837 @@
+{
+  "schema": 1,
+  "architecture": "x86-64",
+  "profile": "metal64-0.2",
+  "pipeline": [
+    "source",
+    "frontend",
+    "ir",
+    "encoding",
+    "hex",
+    "verification",
+    "packet"
+  ],
+  "nodes": [
+    {
+      "id": "casm",
+      "parent": null,
+      "kind": "group",
+      "title": "CASM x86-64",
+      "status": "implemented",
+      "description": "Jerarquia activa de metal64 y capacidades futuras claramente separadas.",
+      "sources": [],
+      "guards": [],
+      "tests": []
+    },
+    {
+      "id": "compiler",
+      "parent": "casm",
+      "kind": "group",
+      "title": "Compilador metal64",
+      "status": "implemented",
+      "description": "Transformaciones de fuente a paquete comprobado.",
+      "sources": [
+        "sources.json"
+      ],
+      "guards": [],
+      "tests": []
+    },
+    {
+      "id": "source",
+      "parent": "compiler",
+      "kind": "phase",
+      "title": "Fuente .casm",
+      "status": "implemented",
+      "description": "Fuente ASCII acotada y congelada para compilar y verificar.",
+      "sources": [
+        "src/main.c"
+      ],
+      "guards": [
+        "SOURCE-SIZE",
+        "SOURCE-ASCII"
+      ],
+      "tests": [
+        "source-max",
+        "source-over"
+      ]
+    },
+    {
+      "id": "frontend",
+      "parent": "compiler",
+      "kind": "phase",
+      "title": "Frontend",
+      "status": "implemented",
+      "description": "Lexico, sintaxis, nombres y semantica explicita.",
+      "sources": [
+        "src/frontend.c",
+        "src/frontend/internal.h"
+      ],
+      "guards": [],
+      "tests": []
+    },
+    {
+      "id": "lexer",
+      "parent": "frontend",
+      "kind": "phase",
+      "title": "Lexico",
+      "status": "implemented",
+      "description": "Reconoce tokens y su posicion sin inventar construcciones.",
+      "sources": [
+        "src/frontend/lexer.c"
+      ],
+      "guards": [
+        "NAME-SIZE",
+        "STRING-SIZE",
+        "TOKEN-UNSUPPORTED"
+      ],
+      "tests": [
+        "long-identifier",
+        "string-size"
+      ]
+    },
+    {
+      "id": "symbols",
+      "parent": "frontend",
+      "kind": "phase",
+      "title": "Nombres y tipos",
+      "status": "implemented",
+      "description": "Nombres declarados y reservados; tabla de tipos de CPU.",
+      "sources": [
+        "src/frontend/symbols.c"
+      ],
+      "guards": [
+        "NAME-RESERVED",
+        "NAME-DUPLICATE",
+        "NAME-UNDEFINED"
+      ],
+      "tests": [
+        "duplicate-name",
+        "keyword-name"
+      ]
+    },
+    {
+      "id": "integers",
+      "parent": "frontend",
+      "kind": "phase",
+      "title": "Semantica de enteros",
+      "status": "implemented",
+      "description": "Evaluacion exacta en el tipo declarado y RPN independiente.",
+      "sources": [
+        "src/frontend/integers.c"
+      ],
+      "guards": [
+        "INT-OVERFLOW",
+        "INT-DIV-ZERO",
+        "EXPR-DEPTH",
+        "EXPR-SIZE"
+      ],
+      "tests": [
+        "integer-edges",
+        "int-sum-overflow"
+      ]
+    },
+    {
+      "id": "grammar",
+      "parent": "frontend",
+      "kind": "group",
+      "title": "Construcciones admitidas",
+      "status": "implemented",
+      "description": "Subconjunto metal64 0.2: sin construcciones ignoradas.",
+      "sources": [
+        "src/frontend/parser.c"
+      ],
+      "guards": [],
+      "tests": []
+    },
+    {
+      "id": "entry",
+      "parent": "grammar",
+      "kind": "syntax",
+      "title": "void metal_main(void)",
+      "status": "implemented",
+      "description": "Una unica funcion de entrada.",
+      "sources": [
+        "src/frontend/parser.c",
+        "src/frontend/integers.c"
+      ],
+      "guards": [
+        "C-SUBSET",
+        "RETURN-REQUIRED",
+        "AFTER-RETURN"
+      ],
+      "tests": [
+        "hello",
+        "integers"
+      ]
+    },
+    {
+      "id": "constant-string",
+      "parent": "grammar",
+      "kind": "syntax",
+      "title": "const char name[]",
+      "status": "implemented",
+      "description": "Cadena ASCII inmutable terminada en NUL.",
+      "sources": [
+        "src/frontend/parser.c",
+        "src/frontend/integers.c"
+      ],
+      "guards": [
+        "C-SUBSET",
+        "RETURN-REQUIRED",
+        "AFTER-RETURN"
+      ],
+      "tests": [
+        "hello",
+        "integers"
+      ]
+    },
+    {
+      "id": "constant-integer",
+      "parent": "grammar",
+      "kind": "syntax",
+      "title": "const integer name",
+      "status": "implemented",
+      "description": "Valor entero calculado al compilar.",
+      "sources": [
+        "src/frontend/parser.c",
+        "src/frontend/integers.c"
+      ],
+      "guards": [
+        "C-SUBSET",
+        "RETURN-REQUIRED",
+        "AFTER-RETURN"
+      ],
+      "tests": [
+        "hello",
+        "integers"
+      ]
+    },
+    {
+      "id": "puts",
+      "parent": "grammar",
+      "kind": "syntax",
+      "title": "metal_puts(name)",
+      "status": "implemented",
+      "description": "Llama al servicio de texto del cargador.",
+      "sources": [
+        "src/frontend/parser.c",
+        "src/frontend/integers.c"
+      ],
+      "guards": [
+        "C-SUBSET",
+        "RETURN-REQUIRED",
+        "AFTER-RETURN"
+      ],
+      "tests": [
+        "hello",
+        "integers"
+      ]
+    },
+    {
+      "id": "put-int",
+      "parent": "grammar",
+      "kind": "syntax",
+      "title": "metal_put_int(name)",
+      "status": "implemented",
+      "description": "Convierte el entero constante a datos decimales y usa el servicio de texto.",
+      "sources": [
+        "src/frontend/parser.c",
+        "src/frontend/integers.c"
+      ],
+      "guards": [
+        "C-SUBSET",
+        "RETURN-REQUIRED",
+        "AFTER-RETURN"
+      ],
+      "tests": [
+        "hello",
+        "integers"
+      ]
+    },
+    {
+      "id": "return-statement",
+      "parent": "grammar",
+      "kind": "syntax",
+      "title": "return;",
+      "status": "implemented",
+      "description": "Retorna al cargador y debe terminar la entrada.",
+      "sources": [
+        "src/frontend/parser.c",
+        "src/frontend/integers.c"
+      ],
+      "guards": [
+        "C-SUBSET",
+        "RETURN-REQUIRED",
+        "AFTER-RETURN"
+      ],
+      "tests": [
+        "hello",
+        "integers"
+      ]
+    },
+    {
+      "id": "model",
+      "parent": "compiler",
+      "kind": "group",
+      "title": "Modelo privado",
+      "status": "implemented",
+      "description": "IR y almacenamiento acotado del anfitrion.",
+      "sources": [
+        "src/casm.h",
+        "src/model/storage.c"
+      ],
+      "guards": [],
+      "tests": []
+    },
+    {
+      "id": "types",
+      "parent": "model",
+      "kind": "group",
+      "title": "Tipos enteros de CPU",
+      "status": "implemented",
+      "description": "La tabla del compilador se genera desde estos ocho tipos; el verificador conserva su tabla independiente.",
+      "sources": [
+        "src/model/types.c",
+        "verify.py"
+      ],
+      "guards": [],
+      "tests": []
+    },
+    {
+      "id": "type-uint8",
+      "parent": "types",
+      "kind": "type",
+      "title": "uint8_t",
+      "status": "implemented",
+      "description": "Entero de anchura declarada, sin conversion ni vuelta silenciosa.",
+      "sources": [
+        "src/model/types.c",
+        "src/frontend/integers.c"
+      ],
+      "guards": [
+        "INT-OVERFLOW"
+      ],
+      "tests": [
+        "integer-edges"
+      ],
+      "name": "uint8_t",
+      "bits": 8,
+      "signed": false
+    },
+    {
+      "id": "type-uint16",
+      "parent": "types",
+      "kind": "type",
+      "title": "uint16_t",
+      "status": "implemented",
+      "description": "Entero de anchura declarada, sin conversion ni vuelta silenciosa.",
+      "sources": [
+        "src/model/types.c",
+        "src/frontend/integers.c"
+      ],
+      "guards": [
+        "INT-OVERFLOW"
+      ],
+      "tests": [
+        "integer-edges"
+      ],
+      "name": "uint16_t",
+      "bits": 16,
+      "signed": false
+    },
+    {
+      "id": "type-uint32",
+      "parent": "types",
+      "kind": "type",
+      "title": "uint32_t",
+      "status": "implemented",
+      "description": "Entero de anchura declarada, sin conversion ni vuelta silenciosa.",
+      "sources": [
+        "src/model/types.c",
+        "src/frontend/integers.c"
+      ],
+      "guards": [
+        "INT-OVERFLOW"
+      ],
+      "tests": [
+        "integer-edges"
+      ],
+      "name": "uint32_t",
+      "bits": 32,
+      "signed": false
+    },
+    {
+      "id": "type-uint64",
+      "parent": "types",
+      "kind": "type",
+      "title": "uint64_t",
+      "status": "implemented",
+      "description": "Entero de anchura declarada, sin conversion ni vuelta silenciosa.",
+      "sources": [
+        "src/model/types.c",
+        "src/frontend/integers.c"
+      ],
+      "guards": [
+        "INT-OVERFLOW"
+      ],
+      "tests": [
+        "integer-edges"
+      ],
+      "name": "uint64_t",
+      "bits": 64,
+      "signed": false
+    },
+    {
+      "id": "type-int8",
+      "parent": "types",
+      "kind": "type",
+      "title": "int8_t",
+      "status": "implemented",
+      "description": "Entero de anchura declarada, sin conversion ni vuelta silenciosa.",
+      "sources": [
+        "src/model/types.c",
+        "src/frontend/integers.c"
+      ],
+      "guards": [
+        "INT-OVERFLOW"
+      ],
+      "tests": [
+        "integer-edges"
+      ],
+      "name": "int8_t",
+      "bits": 8,
+      "signed": true
+    },
+    {
+      "id": "type-int16",
+      "parent": "types",
+      "kind": "type",
+      "title": "int16_t",
+      "status": "implemented",
+      "description": "Entero de anchura declarada, sin conversion ni vuelta silenciosa.",
+      "sources": [
+        "src/model/types.c",
+        "src/frontend/integers.c"
+      ],
+      "guards": [
+        "INT-OVERFLOW"
+      ],
+      "tests": [
+        "integer-edges"
+      ],
+      "name": "int16_t",
+      "bits": 16,
+      "signed": true
+    },
+    {
+      "id": "type-int32",
+      "parent": "types",
+      "kind": "type",
+      "title": "int32_t",
+      "status": "implemented",
+      "description": "Entero de anchura declarada, sin conversion ni vuelta silenciosa.",
+      "sources": [
+        "src/model/types.c",
+        "src/frontend/integers.c"
+      ],
+      "guards": [
+        "INT-OVERFLOW"
+      ],
+      "tests": [
+        "integer-edges"
+      ],
+      "name": "int32_t",
+      "bits": 32,
+      "signed": true
+    },
+    {
+      "id": "type-int64",
+      "parent": "types",
+      "kind": "type",
+      "title": "int64_t",
+      "status": "implemented",
+      "description": "Entero de anchura declarada, sin conversion ni vuelta silenciosa.",
+      "sources": [
+        "src/model/types.c",
+        "src/frontend/integers.c"
+      ],
+      "guards": [
+        "INT-OVERFLOW"
+      ],
+      "tests": [
+        "integer-edges"
+      ],
+      "name": "int64_t",
+      "bits": 64,
+      "signed": true
+    },
+    {
+      "id": "ir",
+      "parent": "model",
+      "kind": "phase",
+      "title": "IR esquema 2",
+      "status": "implemented",
+      "description": "Programa metal64 x86_64: constantes, enteros, llamadas y retorno.",
+      "sources": [
+        "src/casm.h",
+        "src/emitter.c",
+        "verify.py"
+      ],
+      "guards": [],
+      "tests": []
+    },
+    {
+      "id": "ir-constant",
+      "parent": "ir",
+      "kind": "ir",
+      "title": "Constant",
+      "status": "implemented",
+      "description": "Name, Kind, Line, Offset, Hex e Integer para decimal.",
+      "sources": [
+        "src/emitter.c",
+        "verify.py"
+      ],
+      "guards": [
+        "IR-CONTRACT"
+      ],
+      "tests": [
+        "verify-ir-contract"
+      ],
+      "fields": [
+        "Name:string",
+        "Kind:ascii|decimal",
+        "Line:u32",
+        "Offset:u32",
+        "Hex:bytes",
+        "Integer?:name"
+      ]
+    },
+    {
+      "id": "ir-integer",
+      "parent": "ir",
+      "kind": "ir",
+      "title": "Integer",
+      "status": "implemented",
+      "description": "Name, Type, Line, Value y Rpn.",
+      "sources": [
+        "src/emitter.c",
+        "verify.py"
+      ],
+      "guards": [
+        "IR-CONTRACT"
+      ],
+      "tests": [
+        "verify-ir-contract"
+      ],
+      "fields": [
+        "Name:string",
+        "Type:name",
+        "Line:u32",
+        "Value:exact-decimal",
+        "Rpn:tokens"
+      ]
+    },
+    {
+      "id": "ir-call",
+      "parent": "ir",
+      "kind": "ir",
+      "title": "Call",
+      "status": "implemented",
+      "description": "Constant, Line y Offset.",
+      "sources": [
+        "src/emitter.c",
+        "verify.py"
+      ],
+      "guards": [
+        "IR-CONTRACT"
+      ],
+      "tests": [
+        "verify-ir-contract"
+      ],
+      "fields": [
+        "Constant:index",
+        "Line:u32",
+        "Offset:u32"
+      ]
+    },
+    {
+      "id": "ir-return",
+      "parent": "ir",
+      "kind": "ir",
+      "title": "Return",
+      "status": "implemented",
+      "description": "Line y Offset.",
+      "sources": [
+        "src/emitter.c",
+        "verify.py"
+      ],
+      "guards": [
+        "IR-CONTRACT"
+      ],
+      "tests": [
+        "verify-ir-contract"
+      ],
+      "fields": [
+        "Line:u32",
+        "Offset:u32"
+      ]
+    },
+    {
+      "id": "encoding",
+      "parent": "compiler",
+      "kind": "phase",
+      "title": "Codificador x86-64",
+      "status": "implemented",
+      "description": "Solo formas admitidas del perfil; no todo el repertorio x86.",
+      "sources": [
+        "src/emitter.c"
+      ],
+      "guards": [
+        "BODY-LIMIT"
+      ],
+      "tests": [
+        "hello",
+        "kernel-entry"
+      ]
+    },
+    {
+      "id": "lea-rsi-rip32",
+      "parent": "encoding",
+      "kind": "encoding",
+      "title": "LEA RSI,[RIP+disp32]",
+      "status": "implemented",
+      "description": "Forma comprobada por plantilla independiente y vector manual.",
+      "sources": [
+        "src/emitter.c",
+        "verify.py"
+      ],
+      "guards": [
+        "EMISSION-MISMATCH"
+      ],
+      "tests": [
+        "hello",
+        "verify-opcode"
+      ],
+      "hex": "48 8D 35 ?? ?? ?? ??",
+      "length": 7,
+      "fixup": "signed-le32-rip-relative@3"
+    },
+    {
+      "id": "call-r15-service",
+      "parent": "encoding",
+      "kind": "encoding",
+      "title": "CALL [R15+16]",
+      "status": "implemented",
+      "description": "Forma comprobada por plantilla independiente y vector manual.",
+      "sources": [
+        "src/emitter.c",
+        "verify.py"
+      ],
+      "guards": [
+        "EMISSION-MISMATCH"
+      ],
+      "tests": [
+        "hello",
+        "verify-opcode"
+      ],
+      "hex": "41 FF 57 10",
+      "length": 4,
+      "fixup": ""
+    },
+    {
+      "id": "ret",
+      "parent": "encoding",
+      "kind": "encoding",
+      "title": "RET",
+      "status": "implemented",
+      "description": "Forma comprobada por plantilla independiente y vector manual.",
+      "sources": [
+        "src/emitter.c",
+        "verify.py"
+      ],
+      "guards": [
+        "EMISSION-MISMATCH"
+      ],
+      "tests": [
+        "hello",
+        "verify-opcode"
+      ],
+      "hex": "C3",
+      "length": 1,
+      "fixup": ""
+    },
+    {
+      "id": "hex",
+      "parent": "compiler",
+      "kind": "artifact",
+      "title": "HEX exacto",
+      "status": "implemented",
+      "description": "Representacion textual de los bytes del cuerpo; aun no publicado como paquete.",
+      "sources": [
+        "src/emitter.c"
+      ],
+      "guards": [
+        "HEX-TOKEN"
+      ],
+      "tests": [
+        "verify-hex-token"
+      ]
+    },
+    {
+      "id": "verification",
+      "parent": "compiler",
+      "kind": "phase",
+      "title": "Verificador independiente",
+      "status": "implemented",
+      "description": "Reconstruye el cuerpo y comprueba posiciones, enteros y correspondencia con la IR.",
+      "sources": [
+        "verify.py"
+      ],
+      "guards": [
+        "EMISSION-MISMATCH",
+        "INT-VALUE"
+      ],
+      "tests": [
+        "verify-opcode",
+        "verify-int-value"
+      ]
+    },
+    {
+      "id": "packet",
+      "parent": "compiler",
+      "kind": "artifact",
+      "title": "Paquete FAGRAW64",
+      "status": "implemented",
+      "description": "Cabecera de 24 bytes mas cuerpo admitido; informe con huellas.",
+      "sources": [
+        "verify.py"
+      ],
+      "guards": [
+        "OUTPUT-ALIAS"
+      ],
+      "tests": [
+        "verify-output-alias"
+      ]
+    },
+    {
+      "id": "tests",
+      "parent": "compiler",
+      "kind": "group",
+      "title": "Pruebas y medidas",
+      "status": "implemented",
+      "description": "Aceptacion, rechazo, limites del almacenamiento y comparacion con la base.",
+      "sources": [
+        "test.py",
+        "tests/workspace.c",
+        "tests/maturity.py"
+      ],
+      "guards": [],
+      "tests": []
+    },
+    {
+      "id": "kernel-profile",
+      "parent": "casm",
+      "kind": "profile",
+      "title": "Perfil del kernel",
+      "status": "planned",
+      "description": "Requisitos x86-64 pendientes de implementacion y ejecucion.",
+      "sources": [
+        "x86_64/requirements.json"
+      ],
+      "guards": [],
+      "tests": []
+    },
+    {
+      "id": "kernel-memory",
+      "parent": "kernel-profile",
+      "kind": "capability",
+      "title": "Memoria y direcciones",
+      "status": "planned",
+      "description": "Necesidad del kernel: todavia no admitida por el perfil metal64 activo.",
+      "sources": [
+        "x86_64/requirements.json"
+      ],
+      "guards": [],
+      "tests": []
+    },
+    {
+      "id": "kernel-mmio",
+      "parent": "kernel-profile",
+      "kind": "capability",
+      "title": "MMIO y orden de acceso",
+      "status": "planned",
+      "description": "Necesidad del kernel: todavia no admitida por el perfil metal64 activo.",
+      "sources": [
+        "x86_64/requirements.json"
+      ],
+      "guards": [],
+      "tests": []
+    },
+    {
+      "id": "kernel-privileged",
+      "parent": "kernel-profile",
+      "kind": "capability",
+      "title": "Registros privilegiados y puertos",
+      "status": "planned",
+      "description": "Necesidad del kernel: todavia no admitida por el perfil metal64 activo.",
+      "sources": [
+        "x86_64/requirements.json"
+      ],
+      "guards": [],
+      "tests": []
+    },
+    {
+      "id": "kernel-exceptions",
+      "parent": "kernel-profile",
+      "kind": "capability",
+      "title": "Excepciones y descriptores",
+      "status": "planned",
+      "description": "Necesidad del kernel: todavia no admitida por el perfil metal64 activo.",
+      "sources": [
+        "x86_64/requirements.json"
+      ],
+      "guards": [],
+      "tests": []
+    },
+    {
+      "id": "kernel-ring3",
+      "parent": "kernel-profile",
+      "kind": "capability",
+      "title": "Transicion a Ring 3",
+      "status": "planned",
+      "description": "Necesidad del kernel: todavia no admitida por el perfil metal64 activo.",
+      "sources": [
+        "x86_64/requirements.json"
+      ],
+      "guards": [],
+      "tests": []
+    },
+    {
+      "id": "kernel-linking",
+      "parent": "kernel-profile",
+      "kind": "capability",
+      "title": "Simbolos, relocaciones e imagen",
+      "status": "planned",
+      "description": "Necesidad del kernel: todavia no admitida por el perfil metal64 activo.",
+      "sources": [
+        "x86_64/requirements.json"
+      ],
+      "guards": [],
+      "tests": []
+    },
+    {
+      "id": "native-profile",
+      "parent": "casm",
+      "kind": "profile",
+      "title": "Native heredado",
+      "status": "partial",
+      "description": "Funciones, bucles y buffers de otro perfil; no equivale al kernel privilegiado.",
+      "sources": [
+        "native/README.md",
+        "native/FREESTANDING.md"
+      ],
+      "guards": [],
+      "tests": []
+    }
+  ]
+}

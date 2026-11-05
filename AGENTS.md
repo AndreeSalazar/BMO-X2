@@ -1,7 +1,8 @@
 # Trabajo en BMO-X2
 
-- Trabajar en este arbol. No modificar BMO, Linux Reconstruido, SUPER GRAFO ni
-  TALK-CPU-x86-64 como efecto secundario de una tarea de BMO-X2.
+- Trabajar en este arbol. Modificar otros proyectos solo por pedido explicito
+  del propietario. La mejora conjunta de CASM y SUPER GRAFO fue solicitada;
+  BMO, Linux Reconstruido y TALK-CPU-x86-64 siguen separados.
 - Destino exclusivo x86-64. CASM para Ring 0; Rust para Ring 3.
 - Carpetas nuevas en ingles. Tres ramas principales: `CASM/`, `kernel/` y
   `userspace/`; el codigo especifico de CPU vive en `kernel/arch/x86_64/`.
@@ -21,6 +22,14 @@
 - Los bytes CASM salen del emisor propio y pasan un verificador independiente.
   No debilitar una guarda para obtener una emision aceptada.
 - Conservar el saludo de oro byte por byte al reorganizar metal64 0.2.
+- CONTROL, RENDIMIENTO y ELEGANCIA se aplican con evidencia: conservar
+  rechazos y emision, medir el recurso concreto y declarar el coste del cambio.
+- `CASM/sources.json` es la lista comun del build; registrar tambien cabeceras.
+  Al tocar el modelo, ejecutar el banco de almacenamiento y `-Accion medir`.
+- El modelo usa depositos internos y exige direccion estable: inicializar en
+  cero por compilacion y no copiar ni mover el programa mientras tenga punteros.
+- Las modificaciones sobre fuentes de origen se registran en
+  `heritage/casm-changes.json`, conservando las huellas originales.
 - Los numeros del ABI son contratos; RAM, CPU y aparatos se descubren o miden.
 - Partir codigo por la pregunta que responde; no por numero arbitrario de lineas.
 - Fuentes nuevas ASCII. Prosa del sistema en castellano sin acentos.

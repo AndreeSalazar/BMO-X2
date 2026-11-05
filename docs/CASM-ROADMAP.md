@@ -3,6 +3,11 @@
 Los pasos son criterios de cierre, no fechas ni porcentajes. Los contratos
 se amplian cuando un programa concreto del kernel los exige.
 
+Revision 05-11-2026: C2 esta implementado y comprobado en HOST para la
+semilla metal64: lexer, simbolos, enteros y parser separados; depositos
+compartidos y 333 comparaciones sin cambiar emision ni diagnosticos. Native y
+las capacidades privilegiadas mantienen sus limites propios. No cierra C3..C10.
+
 | Paso | Entrega | Cierre exigido |
 |---|---|---|
 | C0 | Base heredada, procedencia, nodos y banco host | Huellas registradas, saludo de oro identico, rechazos por su regla y mapa SG legible. |

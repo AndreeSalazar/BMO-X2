@@ -4,6 +4,10 @@
       112.0,
       104.0
     ],
+    "BMO-X2.sg-workspace": [
+      896.0,
+      0.0
+    ],
     "CASM": [
       112.0,
       0.0
@@ -20,7 +24,7 @@
       0.0,
       0.0
     ],
-    "contratos": [
+    "contracts": [
       224.0,
       0.0
     ],
@@ -28,12 +32,8 @@
       336.0,
       0.0
     ],
-    "herencia": [
+    "heritage": [
       448.0,
-      0.0
-    ],
-    "herramientas": [
-      560.0,
       0.0
     ],
     "kernel": [
@@ -44,7 +44,11 @@
       784.0,
       0.0
     ],
-    "usuarios": [
+    "tools": [
+      560.0,
+      0.0
+    ],
+    "userspace": [
       0.0,
       104.0
     ]
@@ -60,77 +64,145 @@
       320.0,
       495.0
     ],
+    "BMO-X2.sg-workspace": [
+      1110.0,
+      -400.0
+    ],
     "CASM": [
       0.0,
       0.0
     ],
+    "CASM/catalog.json": [
+      0.0,
+      -1300.0
+    ],
+    "CASM/catalog.py": [
+      370.0,
+      -1300.0
+    ],
     "CASM/contracts": [
-      1480,
-      0
+      1480.0,
+      0.0
     ],
     "CASM/examples": [
-      0,
-      0
+      0.0,
+      0.0
     ],
     "CASM/native": [
       -680.0,
       135.0
     ],
     "CASM/native/compiler.body.casm": [
-      0,
-      650
+      0.0,
+      650.0
     ],
     "CASM/native/compiler.casm": [
-      740,
-      650
+      740.0,
+      650.0
     ],
     "CASM/native/freestanding.py": [
-      1480,
-      650
+      1480.0,
+      650.0
     ],
     "CASM/native/runtime.py": [
-      0,
-      910
+      0.0,
+      910.0
     ],
     "CASM/native/verify.py": [
-      1110,
-      650
+      1110.0,
+      650.0
+    ],
+    "CASM/sources.json": [
+      1110.0,
+      -780.0
     ],
     "CASM/src": [
       -680.0,
       270.0
     ],
     "CASM/src/casm.h": [
-      740,
-      260
+      740.0,
+      260.0
     ],
     "CASM/src/emitter.c": [
-      1110,
-      0
+      1110.0,
+      0.0
+    ],
+    "CASM/src/frontend": [
+      -680.0,
+      405.0
     ],
     "CASM/src/frontend.c": [
-      740,
-      0
+      740.0,
+      0.0
+    ],
+    "CASM/src/frontend/integers.c": [
+      740.0,
+      -1040.0
+    ],
+    "CASM/src/frontend/internal.h": [
+      740.0,
+      -780.0
+    ],
+    "CASM/src/frontend/lexer.c": [
+      0.0,
+      -1040.0
+    ],
+    "CASM/src/frontend/parser.c": [
+      1110.0,
+      -1040.0
+    ],
+    "CASM/src/frontend/symbols.c": [
+      370.0,
+      -1040.0
     ],
     "CASM/src/main.c": [
-      370,
-      0
+      370.0,
+      0.0
+    ],
+    "CASM/src/model": [
+      -680.0,
+      540.0
+    ],
+    "CASM/src/model/storage.c": [
+      1480.0,
+      -1040.0
+    ],
+    "CASM/src/model/types.c": [
+      1850.0,
+      -1040.0
     ],
     "CASM/test.py": [
-      2220,
-      0
+      2220.0,
+      0.0
+    ],
+    "CASM/tests": [
+      -680.0,
+      675.0
+    ],
+    "CASM/tests/maturity.py": [
+      1850.0,
+      -780.0
+    ],
+    "CASM/tests/test_catalog.py": [
+      740.0,
+      -1300.0
+    ],
+    "CASM/tests/workspace.c": [
+      1480.0,
+      -780.0
     ],
     "CASM/traspaso": [
-      2220,
-      650
+      2220.0,
+      650.0
     ],
     "CASM/verify.py": [
-      1850,
-      0
+      1850.0,
+      0.0
     ],
     "CASM/x86_64": [
-      1850,
-      650
+      1850.0,
+      650.0
     ],
     "README.md": [
       640.0,
@@ -158,63 +230,63 @@
     ],
     "kernel/arch": [
       -680.0,
-      540.0
+      945.0
     ],
     "kernel/arch/x86_64": [
       -680.0,
-      675.0
+      1080.0
     ],
     "kernel/arch/x86_64/cpu": [
-      370,
-      1400
+      370.0,
+      1400.0
     ],
     "kernel/arch/x86_64/exceptions": [
-      740,
-      1400
+      740.0,
+      1400.0
     ],
     "kernel/arch/x86_64/interrupts": [
-      370,
-      1660
+      370.0,
+      1660.0
     ],
     "kernel/boot": [
-      0,
-      1400
+      0.0,
+      1400.0
     ],
     "kernel/boot/entry.casm": [
-      0,
-      1660
+      0.0,
+      1660.0
     ],
     "kernel/capabilities": [
-      1110,
-      1400
+      1110.0,
+      1400.0
     ],
     "kernel/drivers": [
-      1850,
-      1400
+      1850.0,
+      1400.0
     ],
     "kernel/init": [
-      0,
-      1880
+      0.0,
+      1880.0
     ],
     "kernel/ipc": [
-      1480,
-      1660
+      1480.0,
+      1660.0
     ],
     "kernel/mm": [
-      740,
-      1660
+      740.0,
+      1660.0
     ],
     "kernel/sched": [
-      1110,
-      1660
+      1110.0,
+      1660.0
     ],
     "kernel/syscalls": [
-      1480,
-      1400
+      1480.0,
+      1400.0
     ],
     "kernel/time": [
-      370,
-      1880
+      370.0,
+      1880.0
     ],
     "super-grafo": [
       320.0,
@@ -229,16 +301,16 @@
       0.0
     ],
     "userspace/apps": [
-      740,
-      2200
+      740.0,
+      2200.0
     ],
     "userspace/runtime": [
-      0,
-      2200
+      0.0,
+      2200.0
     ],
     "userspace/services": [
-      370,
-      2200
+      370.0,
+      2200.0
     ]
   },
   "foco": "",

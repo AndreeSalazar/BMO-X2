@@ -1,10 +1,24 @@
 {
   "crates": [],
-  "historia": null,
+  "historia": {
+    "archivos": [
+      86,
+      86
+    ],
+    "commits": 1,
+    "desde": "2026-11-04",
+    "grandes": [],
+    "hasta": "2026-11-04",
+    "lineas": [
+      7962,
+      7962
+    ],
+    "tocados": []
+  },
   "resumen": {
-    "analisis_ms": 6,
-    "archivos_indexados": 116,
-    "archivos_leidos": 19,
+    "analisis_ms": 15,
+    "archivos_indexados": 140,
+    "archivos_leidos": 30,
     "cabeceras_exportadas": null,
     "carpeta": "\\\\?\\C:\\Users\\Salazar\\Documents\\BMO-X2",
     "ciclos": {
@@ -13,7 +27,7 @@
       "total": 0
     },
     "compile_commands": null,
-    "dependencias": 23,
+    "dependencias": 32,
     "diagnosticos_gcc": 0,
     "diagnosticos_marcados": {
       "archivos": 0,
@@ -26,7 +40,7 @@
       "se_pueden_romper": 0
     },
     "guardianes": null,
-    "megabytes": 0.1,
+    "megabytes": 0.2,
     "recortado": false,
     "reutilizados_de_la_cache": 0,
     "revisiones_gcc": {

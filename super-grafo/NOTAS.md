@@ -31,31 +31,31 @@ Lee una fuente acotada, invoca analisis y emision y comunica el rechazo.
 Estado: HEREDADO. Anillo: host. Lenguaje: C semilla.
 Entrada: Ruta fuente y rutas nuevas de HEX/IR.
 Salida: CasmProgram analizado y salida de emision sin publicar paquete.
-Depende de: Lexico, sintaxis y semantica (codigo), Codificador x86-64 (codigo), IR y tipos metal64 (codigo).
+Depende de: Entrada y diagnosticos del frontend (codigo), Codificador x86-64 (codigo), IR y tipos metal64 (codigo).
 Aceptacion: Casos HOST-READ, SOURCE-SIZE, HOST-WRITE y HOST-MEMORY donde el SO permite probarlo.
 Pendiente: Portar el anfitrion del compilador propio cuando BMO-X2 tenga servicios de archivos.
 
 ## CASM/src/frontend.c
 
-Reconoce el lenguaje metal64 y calcula enteros exactos con reglas explicitas.
+Valida el limite de fuente y despacha los rechazos reales de los modulos del frontend.
 
-Estado: HEREDADO. Anillo: host. Lenguaje: C semilla.
-Entrada: Bytes de fuente ASCII acotada.
-Salida: Programa, tipos, constantes, llamadas y origen fuente.
-Depende de: IR y tipos metal64 (codigo).
-Aceptacion: Cada regla rechaza su caso; reparto futuro conserva HEX/IR y diagnosticos del banco.
-Pendiente: Separar lexer, parser, nombres y enteros; incorporar semantica de runtime para el kernel.
+Estado: HOST. Anillo: host. Lenguaje: C semilla.
+Entrada: Fuente acotada o regla, motivo y posicion del modulo que rechaza.
+Salida: Llamada al parser o diagnostico estable legible por el Taller CASM.
+Depende de: IR y tipos metal64 (codigo), Sintaxis metal64 (codigo), Interfaces del frontend (codigo).
+Aceptacion: Los 333 casos diferenciales conservan bytes, IR, paquetes y diagnosticos.
+Pendiente: Ampliar semantica de runtime y perfil de kernel; el reparto actual corresponde a metal64.
 
 ## CASM/src/casm.h
 
-Contrato acotado de datos entre analisis y emisor metal64.
+Contrato privado de IR con dos depositos compartidos acotados, sin buffers maximos por elemento.
 
-Estado: HEREDADO. Anillo: host. Lenguaje: C semilla.
+Estado: HOST. Anillo: host. Lenguaje: C semilla.
 Entrada: Declaraciones, expresiones y limites del perfil.
 Salida: CasmProgram, CasmInteger, CasmConstant y CasmCall.
 Depende de: contrato propio sin dependencias en este catalogo.
-Aceptacion: Emisor y verificador coinciden en tipos, medidas y valores; limites ejercitados.
-Pendiente: IR versionada del kernel con flujo, funciones, efectos y trampas.
+Aceptacion: Modelo de 361648 bytes; invariantes de almacenamiento y 333 casos coinciden con la base.
+Pendiente: IR del kernel con flujo, funciones, efectos y trampas; la IR JSON metal64 conserva su formato.
 
 ## CASM/src/emitter.c
 
@@ -273,8 +273,8 @@ Valida el catalogo, construye metal64 y registra emision y verificacion reproduc
 Estado: HOST. Anillo: host. Lenguaje: Python/PowerShell.
 Entrada: Catalogo, semilla Clang, Python y fuentes locales.
 Salida: Informes y compilaciones nuevas en build/; mapa persistente de SG.
-Depende de: Entrada del compilador (codigo), Verificador metal64 (codigo), Banco metal64 (verificacion).
-Aceptacion: Banco host y negativos del catalogo pasan; fallo de compilacion impide usar binario anterior.
+Depende de: Entrada del compilador (codigo), Verificador metal64 (codigo), Banco metal64 (verificacion), Manifest de construccion (generacion), Generacion desde las listas (generacion), Espacio de trabajo BMO-X2 (codigo).
+Aceptacion: Banco metal64 y almacenamiento pasan; medir reconstruye la base y compara 333 fuentes sin ejecutar el destino.
 Pendiente: Integrar despues taller Linux/QEMU y builds del kernel sin mezclar sus estados.
 
 ## heritage
@@ -306,7 +306,7 @@ Conserva el intento de runtime/RDTSC con su verificador incompleto y limites esc
 Estado: INVESTIGACION. Anillo: host. Lenguaje: C/Python parche.
 Entrada: Parche de origen no aplicado y notas de traspaso.
 Salida: Referencia para decidir la IR y las trampas del kernel.
-Depende de: Lexico, sintaxis y semantica (plan), Codificador x86-64 (plan), Verificador metal64 (plan).
+Depende de: Entrada y diagnosticos del frontend (plan), Codificador x86-64 (plan), Verificador metal64 (plan).
 Aceptacion: Antes de aplicarlo: verify_runtime, pruebas por regla y ejecucion QEMU.
 Pendiente: No es capacidad disponible ni entrega final de CASM.
 
@@ -387,6 +387,160 @@ Depende de: Memoria y aislamiento (plan), Interrupciones de hardware (plan).
 Aceptacion: Aparato ausente o mudo no bloquea el kernel; permisos y DMA se prueban por separado.
 Pendiente: Empezar con un dispositivo simple exigido por el arranque; no trasladar la investigacion GPU a esta base.
 
+## CASM/src/frontend/lexer.c
+
+Reconoce tokens ASCII y posiciones sin interpretar los valores.
+
+Estado: HOST. Anillo: host. Lenguaje: C11 semilla host.
+Entrada: Fuente acotada y estado del parser.
+Salida: Token, texto literal y posicion o rechazo preciso.
+Depende de: Interfaces del frontend (codigo).
+Aceptacion: Conserva limites de nombres, cadenas y comentarios en el banco y corpus diferencial.
+Pendiente: Tokens y sintaxis adicionales del futuro perfil de kernel.
+
+## CASM/src/frontend/symbols.c
+
+Comprueba nombres reservados, declarados y tipos disponibles.
+
+Estado: HOST. Anillo: host. Lenguaje: C11 semilla host.
+Entrada: Identificador y tablas del programa.
+Salida: Tipo o estado de nombre; nunca una declaracion implicita.
+Depende de: Interfaces del frontend (codigo), Tipos de CPU metal64 (codigo).
+Aceptacion: Duplicados, reservados, nombres ausentes y tipos conservan su rechazo.
+Pendiente: Ambitos y simbolos de funciones al ampliar el perfil.
+
+## CASM/src/frontend/integers.c
+
+Evalua expresiones de constantes con anchura declarada y RPN comprobable.
+
+Estado: HOST. Anillo: host. Lenguaje: C11 semilla host.
+Entrada: Tokens, tipos y enteros ya declarados.
+Salida: Valor exacto y RPN estable o rechazo de rango, profundidad o division.
+Depende de: Interfaces del frontend (codigo), Nombres y tipos (codigo), Almacenamiento compartido (codigo).
+Aceptacion: Extremos, negacion, referencias y corpus diferencial coinciden con la base.
+Pendiente: Semantica de enteros en ejecucion del kernel.
+
+## CASM/src/frontend/parser.c
+
+Forma declaraciones, llamadas y la entrada del perfil metal64.
+
+Estado: HOST. Anillo: host. Lenguaje: C11 semilla host.
+Entrada: Tokens y reglas semanticas.
+Salida: Programa admitido sin construcciones ignoradas.
+Depende de: Lexico (codigo), Nombres y tipos (codigo), Enteros exactos (codigo), Almacenamiento compartido (codigo).
+Aceptacion: Errores tardios y fuentes densas conservan orden y motivo de rechazo.
+Pendiente: Gramatica explicita del perfil del kernel, sin mezclar silenciosamente Native.
+
+## CASM/src/model/storage.c
+
+Guarda datos y RPN en depositos comprobados dentro del modelo del anfitrion.
+
+Estado: HOST. Anillo: host. Lenguaje: C11 semilla host.
+Entrada: Programa en cero, direccion estable y escritura de la expresion actual.
+Salida: Datos estables, uso acotado o rechazo antes de escribir.
+Depende de: IR y tipos metal64 (codigo).
+Aceptacion: Once invariantes; 68608 bytes de datos y 262272 de RPN bastan para la fuente admitida.
+Pendiente: Medir RSS y tiempo real por separado; no atribuir esta medida a Ring 0.
+
+## CASM/src/model/types.c
+
+Tabla generada de nombres, anchuras y signo de los ocho tipos metal64.
+
+Estado: HOST. Anillo: host. Lenguaje: C11 semilla host.
+Entrada: CASM/catalog.json validado por catalog.py; tabla independiente del verificador.
+Salida: Tabla unica compartida por simbolos, semantica y emisor.
+Depende de: IR y tipos metal64 (codigo), Listas y jerarquia de CASM (generacion), Generacion desde las listas (generacion).
+Aceptacion: La tabla generada esta vigente y sus anchuras y signos coinciden con el verificador independiente.
+Pendiente: Tipos de runtime y layout del kernel.
+
+## CASM/src/frontend/internal.h
+
+Declara estado privado del parser, codigos de diagnostico e interfaces entre modulos.
+
+Estado: HOST. Anillo: host. Lenguaje: C11 semilla host.
+Entrada: Contrato del modelo y fronteras de responsabilidades.
+Salida: Tipos y firmas del anfitrion, sin ABI del destino.
+Depende de: IR y tipos metal64 (codigo).
+Aceptacion: Todos los modulos compilan con avisos como errores; sus firmas no se duplican.
+Pendiente: Mantener pequena esta interfaz al crecer el lenguaje.
+
+## CASM/sources.json
+
+Enumera las mismas fuentes y cabeceras x86-64 para Windows y Linux.
+
+Estado: HOST. Anillo: host. Lenguaje: JSON host.
+Entrada: Modulos reales del compilador.
+Salida: Lista comun de compilacion y huellas que invalidan la cache.
+Depende de: Entrada y diagnosticos del frontend (generacion), Lexico (generacion), Nombres y tipos (generacion), Enteros exactos (generacion), Sintaxis metal64 (generacion), Almacenamiento compartido (generacion), Tipos de CPU metal64 (generacion), Interfaces del frontend (generacion), Listas y jerarquia de CASM (generacion), Generacion desde las listas (generacion).
+Aceptacion: Host y bootstrap usan este archivo; cambiar una cabecera invalida el registro.
+Pendiente: Ejecucion del build y sanitizadores Linux en el taller.
+
+## CASM/tests/workspace.c
+
+Prueba extremos, estabilidad y rechazo sin escritura parcial del almacenamiento.
+
+Estado: HOST. Anillo: host. Lenguaje: C11 semilla host.
+Entrada: Modulo de almacenamiento y modelo.
+Salida: Once comprobaciones y sizeof del modelo en el host.
+Depende de: Almacenamiento compartido (verificacion).
+Aceptacion: Pruebas de limite exacto y contadores invalidos pasan.
+Pendiente: Acompanar cada cambio del deposito con casos de limite.
+
+## CASM/tests/maturity.py
+
+Reconstruye d2575a8 y exige la misma emision y diagnosticos del compilador reorganizado.
+
+Estado: HOST. Anillo: host. Lenguaje: Python host.
+Entrada: Clang host, historial Git y 333 fuentes deterministas.
+Salida: Informe de modelo, ejecutables, casos identicos y limites de lo medido.
+Depende de: Invariantes de memoria (verificacion), Entrada del compilador (verificacion), Verificador metal64 (verificacion).
+Aceptacion: 279 fuentes aceptadas y 54 rechazadas coinciden; modelo baja 66.43 por ciento.
+Pendiente: Medidas de RSS, ciclos y energia requieren experimentos propios.
+
+## CASM/catalog.json
+
+Define tipos, sintaxis, IR, codificaciones y capacidades por estado dentro de una jerarquia versionada.
+
+Estado: HOST. Anillo: host. Lenguaje: JSON/Python host.
+Entrada: Contrato metal64 actual y capacidades futuras declaradas.
+Salida: Catalogo para el generador y SUPER GRAFO, sin convertir PLAN en instrucciones admitidas.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: Ocho pruebas de catalogo, tipos contra verificador independiente y codificaciones contra vector manual.
+Pendiente: Ampliar el perfil solo junto a semantica, emisor, verificador y casos nuevos.
+
+## CASM/catalog.py
+
+Valida la jerarquia x86-64 y genera la tabla de tipos real del compilador.
+
+Estado: HOST. Anillo: host. Lenguaje: JSON/Python host.
+Entrada: catalog.json y tabla independiente INT_TYPES del verificador.
+Salida: src/model/types.c generado antes de construir.
+Depende de: Listas y jerarquia de CASM (codigo), Verificador metal64 (verificacion).
+Aceptacion: Cambio de anchura incompatible, opcode alterado, ciclo o ruta externa impiden generar.
+Pendiente: Generar otras tablas solo cuando su contrato y verificacion independiente esten definidos.
+
+## CASM/tests/test_catalog.py
+
+Exige que las listas no amplien silenciosamente lo que el compilador puede aceptar.
+
+Estado: HOST. Anillo: host. Lenguaje: JSON/Python host.
+Entrada: Catalogo valido y mutaciones independientes.
+Salida: Ocho casos de aceptacion o rechazo con su motivo.
+Depende de: Generacion desde las listas (verificacion), Listas y jerarquia de CASM (verificacion).
+Aceptacion: El tipo generado coincide; arquitectura, estructura y bytes incorrectos se rechazan.
+Pendiente: Agregar casos junto a cada nueva familia del perfil.
+
+## BMO-X2.sg-workspace
+
+Define la raiz portable y los valores iniciales de vista y panel de SUPER GRAFO.
+
+Estado: HOST. Anillo: host. Lenguaje: JSON.
+Entrada: Ruta del proyecto relativa al archivo; sesion local separada.
+Salida: Apertura de BMO-X2 con grafo, Taller CASM y recuperacion de pestanas guardadas.
+Depende de: Listas y jerarquia de CASM (plan).
+Aceptacion: El lanzador abre la raiz real; guardar y reabrir conserva vista, panel y archivos sin ejecutar comandos.
+Pendiente: Multiples raices y traslado de una sesion local entre computadoras.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -409,4 +563,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-35 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+49 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
