@@ -541,6 +541,28 @@ Depende de: Listas y jerarquia de CASM (plan).
 Aceptacion: El lanzador abre la raiz real; guardar y reabrir conserva vista, panel y archivos sin ejecutar comandos.
 Pendiente: Multiples raices y traslado de una sesion local entre computadoras.
 
+## CASM/contracts/RING0.md
+
+Fija el destino exclusivo del kernel y explica el vector de entrada sin atribuir privilegio al formato HEX.
+
+Estado: HOST. Anillo: host. Lenguaje: contrato.
+Entrada: Fuente congelada, IR, HEX y paquete del perfil metal64.
+Salida: Contrato y lectura comprobable de los bytes actuales.
+Depende de: CASM para el metal privilegiado (plan).
+Aceptacion: Vector manual de entrada y rechazo de HEX o paquete alterado.
+Pendiente: Operaciones propias privilegiadas y evidencia de ejecucion Ring 0.
+
+## tools/hex_report.py
+
+Repite el verificador y contrasta el paquete antes de mostrar linea, offsets, clase y bytes.
+
+Estado: HOST. Anillo: host. Lenguaje: Python.
+Entrada: Fuente congelada, IR, HEX y paquete del perfil metal64.
+Salida: Contrato y lectura comprobable de los bytes actuales.
+Depende de: Verificador metal64 (verificacion), Contrato CASM Ring 0 (plan).
+Aceptacion: Vector manual de entrada y rechazo de HEX o paquete alterado.
+Pendiente: Operaciones propias privilegiadas y evidencia de ejecucion Ring 0.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -563,4 +585,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-49 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+51 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

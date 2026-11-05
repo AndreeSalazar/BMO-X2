@@ -853,6 +853,40 @@
       "salida": "Apertura de BMO-X2 con grafo, Taller CASM y recuperacion de pestanas guardadas.",
       "aceptacion": "El lanzador abre la raiz real; guardar y reabrir conserva vista, panel y archivos sin ejecutar comandos.",
       "falta": "Multiples raices y traslado de una sesion local entre computadoras."
+    },
+    {
+      "id": "ring0-contract",
+      "titulo": "Contrato CASM Ring 0",
+      "ruta": "CASM/contracts/RING0.md",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "contrato",
+      "posicion": [
+        1110,
+        -1300
+      ],
+      "que": "Fija el destino exclusivo del kernel y explica el vector de entrada sin atribuir privilegio al formato HEX.",
+      "entrada": "Fuente congelada, IR, HEX y paquete del perfil metal64.",
+      "salida": "Contrato y lectura comprobable de los bytes actuales.",
+      "aceptacion": "Vector manual de entrada y rechazo de HEX o paquete alterado.",
+      "falta": "Operaciones propias privilegiadas y evidencia de ejecucion Ring 0."
+    },
+    {
+      "id": "hex-reader",
+      "titulo": "Lectura comprobada del HEX",
+      "ruta": "tools/hex_report.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [
+        1480,
+        -1300
+      ],
+      "que": "Repite el verificador y contrasta el paquete antes de mostrar linea, offsets, clase y bytes.",
+      "entrada": "Fuente congelada, IR, HEX y paquete del perfil metal64.",
+      "salida": "Contrato y lectura comprobable de los bytes actuales.",
+      "aceptacion": "Vector manual de entrada y rechazo de HEX o paquete alterado.",
+      "falta": "Operaciones propias privilegiadas y evidencia de ejecucion Ring 0."
     }
   ],
   "relaciones": [
@@ -1295,6 +1329,21 @@
       "de": "tools",
       "a": "workspace",
       "clase": "codigo"
+    },
+    {
+      "de": "hex-reader",
+      "a": "metal64-verifier",
+      "clase": "verificacion"
+    },
+    {
+      "de": "hex-reader",
+      "a": "ring0-contract",
+      "clase": "plan"
+    },
+    {
+      "de": "ring0-contract",
+      "a": "kernel-profile",
+      "clase": "plan"
     }
   ]
 }

@@ -2,7 +2,7 @@
 
 ## Revision de maduracion -- 05-11-2026
 
-- 49 nodos y 88 relaciones tipadas; lexer, simbolos, enteros, parser, tipos y
+- 51 nodos y 91 relaciones tipadas; lexer, simbolos, enteros, parser, tipos y
   almacenamiento tienen implementaciones separadas y notas de SUPER GRAFO.
 - Modelo de compilacion HOST: 1.077.280 -> 361.648 bytes, ahorro de 715.632
   bytes (66,43 %). No es una medida de RSS o del kernel; la semilla ejecutable

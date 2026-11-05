@@ -74,3 +74,5 @@ if ($LASTEXITCODE -ne 0) { throw "Fuente rechazada. No se publico INICIO.X86. Ru
 & $Python -B (Join-Path $projectRoot 'CASM/verify.py') $frozen $hex $ir --packet (Join-Path $run 'INICIO.X86') --report (Join-Path $run 'verified.json') 2>&1 | Tee-Object -FilePath $log -Append
 if ($LASTEXITCODE -ne 0) { throw "Emision rechazada. Run: $run" }
 Write-Output "HOST: HEX, IR y paquete verificados en $run"
+& $Python -B (Join-Path $projectRoot 'tools/hex_report.py') $run
+if ($LASTEXITCODE -ne 0) { throw 'Fallo la lectura comprobada del HEX.' }

@@ -53,6 +53,8 @@
 | [Generacion desde las listas](../CASM/catalog.py) | host | host | Valida la jerarquia x86-64 y genera la tabla de tipos real del compilador. |
 | [Pruebas de las listas](../CASM/tests/test_catalog.py) | host | host | Exige que las listas no amplien silenciosamente lo que el compilador puede aceptar. |
 | [Espacio de trabajo BMO-X2](../BMO-X2.sg-workspace) | host | host | Define la raiz portable y los valores iniciales de vista y panel de SUPER GRAFO. |
+| [Contrato CASM Ring 0](../CASM/contracts/RING0.md) | host | host | Fija el destino exclusivo del kernel y explica el vector de entrada sin atribuir privilegio al formato HEX. |
+| [Lectura comprobada del HEX](../tools/hex_report.py) | host | host | Repite el verificador y contrasta el paquete antes de mostrar linea, offsets, clase y bytes. |
 
 ## Dependencias declaradas
 
@@ -146,5 +148,8 @@
 | compiler-sources | catalog-generator | generacion |
 | workspace | casm-catalog | plan |
 | tools | workspace | codigo |
+| hex-reader | metal64-verifier | verificacion |
+| hex-reader | ring0-contract | plan |
+| ring0-contract | kernel-profile | plan |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

@@ -1,5 +1,10 @@
 # Las listas y la jerarquia de CASM
 
+El destino de desarrollo es el kernel Ring 0 x86-64. El alcance actual y una
+lectura byte a byte se explican en [RING0](contracts/RING0.md). Cada compilacion
+Windows aceptada agrega `HEX.md` tras repetir la verificacion y comprobar el paquete.
+Para releer un run: `bmo-x2.ps1 -Accion leer-hex -Run build/CASM/run-...`.
+
 `catalog.json` declara el perfil activo `metal64-0.2` para x86-64. Sus 45
 elementos forman un arbol con tres estados: implemented, partial y planned.
 

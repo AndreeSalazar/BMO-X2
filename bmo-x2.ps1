@@ -1,9 +1,10 @@
 # BMO-X2: herramientas host y SUPER GRAFO. No despliega a discos.
 [CmdletBinding()]
 param(
-    [ValidateSet('abrir','resumen','consultar','mapa','comprobar','medir','compilar','preparar-grafo')]
+    [ValidateSet('abrir','resumen','consultar','mapa','comprobar','medir','compilar','leer-hex','preparar-grafo')]
     [string]$Accion = 'resumen',
     [string]$Source,
+    [string]$Run,
     [string]$Python,
     [string]$Compiler,
     [string]$SuperGrafo,
@@ -39,6 +40,11 @@ if ($Accion -in @('abrir','resumen','consultar','mapa')) {
     }
 }
 switch ($Accion) {
+    'leer-hex' {
+        if (-not $Run) { throw 'Indicar -Run <build/CASM/run-...>.' }
+        & $Python -B (Join-Path $projectRoot 'tools/hex_report.py') $Run
+        if ($LASTEXITCODE -ne 0) { throw 'No se genera lectura de una emision rechazada.' }
+    }
     'preparar-grafo' {
         & (Join-Path $projectRoot 'tools/super-grafo.ps1')
     }
