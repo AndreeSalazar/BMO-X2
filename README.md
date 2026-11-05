@@ -8,11 +8,11 @@ primera entrada propia compilada y verificada en host. Todavia no hay un
 kernel BMO-X2 arrancable. [Estado y evidencia](docs/STATUS.md).
 
 **Avance revisado el 05-11-2026:** frontend metal64 separado en modulos reales,
-59 nodos y 103 relaciones. El modelo HOST baja 66,43 % conservando la emision
+61 nodos y 105 relaciones. El modelo HOST baja 66,43 % conservando la emision
 y los rechazos en 333 casos. [CONTROL, RENDIMIENTO y ELEGANCIA](CASM/CONTROL-PERFORMANCE-ELEGANCE.md)
 explica la medida, su coste y lo que aun falta para Ring 0.
 
-**Listas y jerarquia conectadas:** 59 nodos de proyecto y 103 relaciones;
+**Listas y jerarquia conectadas:** 61 nodos de proyecto y 105 relaciones;
 el catalogo CASM tiene 45 elementos propios. Su lista genera los ocho tipos
 del compilador. SUPER GRAFO permite explorar tipos, sintaxis, IR, codificaciones,
 reglas y mapa fuente -> bytes. [Entrar al catalogo](CASM/CATALOG.md).
@@ -82,7 +82,9 @@ siguen en `super-grafo/orden.json`. No se restauran procesos ni texto sin guarda
 ```
 
 Los ejecutables de SUPER GRAFO, Clang y Python son herramientas del anfitrion.
-La entrada PowerShell de construccion se usa con PowerShell 7.
+La entrada de construccion admite Windows PowerShell 5.1 y PowerShell 7.
+El build registra sus versiones de PowerShell y CLR. `despertar` usa la misma
+version para preparar su imagen virtual; no exige PowerShell 7 al usuario de 5.1.
 Se pueden indicar sus rutas con `-SuperGrafo`, `-Compiler` y `-Python`.
 La copia actual de SG se construye en `build/tools/super-grafo`, desde
 las fuentes del proyecto vecino, en modo offline y sin modificarlas.

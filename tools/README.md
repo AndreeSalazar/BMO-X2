@@ -1,5 +1,10 @@
 # Herramientas del anfitrion
 
+El lanzador y `host.ps1` admiten Windows PowerShell 5.1 y PowerShell 7.
+`paths.ps1` conserva las rutas de fuentes relativas sin depender de una API
+de .NET Core; `tests/paths.ps1` comprueba nombres con espacios y rechazos de
+rutas externas. El formato de HEX y los bytes del programa no cambian.
+
 `project.py` valida nodos, genera notas/catalogo y aplica el orden de SG.
 `host.ps1` construye la semilla C de metal64 con Clang, corre su banco y
 publica un run con HEX/IR comprobados. No construye todavia un kernel.

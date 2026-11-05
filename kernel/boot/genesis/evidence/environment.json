@@ -5,6 +5,7 @@
   "accelerator": "tcg",
   "cpu": "qemu64",
   "ram_mib": 256,
+  "powershell": "5.1.26100.6584",
   "cases": [
     "normal",
     "firma",
@@ -31,7 +32,7 @@
     "tools/boot/publish.py": "cff317b6edca388a1c0f8f94a3d1ecb9a8541e3fecc01c80df2c23ae7a85232d",
     "tools/boot/scope.py": "3bd9bfc771f0f7600c671fa2be4704aa2ccc910a110085b8dc2829f5cff5d980",
     "tools/boot/test_wake.py": "7ec867b33486b1d0802dda6bf0068e8b8c73f2dbf4c7dced78d0c305345e9670",
-    "tools/boot/wake.py": "f3472cd7b8ac2093f35956cc8ac15ca6a73838d0e4796b01b38255a1a93e4665"
+    "tools/boot/wake.py": "207356c0ea5e609402816b084731a55ac129d6551798bfd7468764d50b983b87"
   },
   "firmware": {
     "edk2-x86_64-code.fd": "33090cc07675baa5190d9f1e84bf5176b33bcbfa9bacac522961150cdb6dbb2a",

@@ -273,7 +273,7 @@ Valida el catalogo, construye metal64 y registra emision y verificacion reproduc
 Estado: HOST. Anillo: host. Lenguaje: Python/PowerShell.
 Entrada: Catalogo, semilla Clang, Python y fuentes locales.
 Salida: Informes y compilaciones nuevas en build/; mapa persistente de SG.
-Depende de: Entrada del compilador (codigo), Verificador metal64 (codigo), Banco metal64 (verificacion), Manifest de construccion (generacion), Generacion desde las listas (generacion), Espacio de trabajo BMO-X2 (codigo).
+Depende de: Entrada del compilador (codigo), Verificador metal64 (codigo), Banco metal64 (verificacion), Manifest de construccion (generacion), Generacion desde las listas (generacion), Espacio de trabajo BMO-X2 (codigo), Rutas host compatibles 5.1 y 7 (codigo).
 Aceptacion: Banco metal64 y almacenamiento pasan; medir reconstruye la base y compara 333 fuentes sin ejecutar el destino.
 Pendiente: Integrar despues taller Linux/QEMU y builds del kernel sin mezclar sus estados.
 
@@ -651,6 +651,28 @@ Depende de: Genesis: prueba aislada en QEMU (verificacion), Genesis: fuente CASM
 Aceptacion: Siete casos pasan y las huellas corresponden a esta fuente y paquete.
 Pendiente: Arranque autonomo, excepciones y memoria propias; prueba fisica no realizada.
 
+## tools/paths.ps1
+
+Forma nombres relativos para registrar huellas; rechaza rutas externas sin usar GetRelativePath de .NET Core.
+
+Estado: HOST. Anillo: host. Lenguaje: PowerShell.
+Entrada: Rutas absolutas de fuentes y raiz del proyecto.
+Salida: Rutas relativas iguales entre versiones y evidencia de siete casos.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: Siete casos pasan en 5.1 y 7; despertar llega a QEMU con el mismo paquete.
+Pendiente: Mantener la prueba de versiones al ampliar las herramientas del anfitrion.
+
+## tools/tests/paths.ps1
+
+Comprueba nombres con espacios, normalizacion y rechazos de rutas externas en Windows PowerShell 5.1 y PowerShell 7.
+
+Estado: HOST. Anillo: host. Lenguaje: PowerShell.
+Entrada: Rutas absolutas de fuentes y raiz del proyecto.
+Salida: Rutas relativas iguales entre versiones y evidencia de siete casos.
+Depende de: Rutas host compatibles 5.1 y 7 (verificacion).
+Aceptacion: Siete casos pasan en 5.1 y 7; despertar llega a QEMU con el mismo paquete.
+Pendiente: Mantener la prueba de versiones al ampliar las herramientas del anfitrion.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -673,4 +695,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-59 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+61 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

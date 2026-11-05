@@ -9,6 +9,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path $PSScriptRoot
+. (Join-Path $PSScriptRoot 'paths.ps1')
 if (-not $Compiler) { $Compiler = Join-Path $env:ProgramFiles 'LLVM/bin/clang.exe' }
 if (-not (Test-Path -LiteralPath $Compiler -PathType Leaf)) { throw 'Falta Clang. Indicar -Compiler <ruta>.' }
 if (-not (Test-Path -LiteralPath $Python -PathType Leaf)) { throw 'Falta Python. Usar bmo-x2.ps1.' }
@@ -29,12 +30,13 @@ $version = (& $Compiler --version | Out-String).Trim()
 if ($LASTEXITCODE -ne 0) { throw 'No se pudo identificar Clang.' }
 $inputs = @($sources) + @(@($sourceManifest.headers) + @($sourceManifest.inputs) | ForEach-Object { Join-Path $projectRoot "CASM/$_" }) + (Join-Path $projectRoot 'CASM/sources.json')
 $hashes = $inputs | ForEach-Object {
-    [ordered]@{ruta=[IO.Path]::GetRelativePath($projectRoot,$_).Replace('\','/');sha256=(Get-FileHash -LiteralPath $_).Hash.ToLowerInvariant()}
+    [ordered]@{ruta=(ConvertTo-ProjectRelativePath -Root $projectRoot -Path $_);sha256=(Get-FileHash -LiteralPath $_).Hash.ToLowerInvariant()}
 }
-$toolchain = [ordered]@{schema=1;host='Windows';target='x86-64 metal64 0.2';compiler=$version;flags=$flags;sources=$hashes;executable_sha256=(Get-FileHash -LiteralPath $compilerExe).Hash.ToLowerInvariant()}
+$toolchain = [ordered]@{schema=1;host='Windows';powershell=$PSVersionTable.PSVersion.ToString();clr=[Environment]::Version.ToString();target='x86-64 metal64 0.2';compiler=$version;flags=$flags;sources=$hashes;executable_sha256=(Get-FileHash -LiteralPath $compilerExe).Hash.ToLowerInvariant()}
 $toolchain | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $outputDir 'toolchain.json') -Encoding utf8
 $version | Set-Content -LiteralPath (Join-Path $outputDir 'toolchain.txt') -Encoding utf8
 if ($Accion -eq 'comprobar') {
+    & (Join-Path $PSScriptRoot 'tests/paths.ps1')
     & $Python -B (Join-Path $projectRoot 'CASM/tests/test_catalog.py')
     if ($LASTEXITCODE -ne 0) { throw 'Fallo el banco del catalogo CASM.' }
     & $Python -B (Join-Path $projectRoot 'CASM/test.py')
@@ -83,7 +85,9 @@ if ($Genesis) {
     if ($LASTEXITCODE -ne 0) { throw 'Genesis no cumple vector, paquete o presupuesto.' }
 }
 if ($Wake) {
-    & $Python -B (Join-Path $projectRoot 'tools/boot/wake.py') $run
+    $shellName = if ($PSVersionTable.PSVersion.Major -le 5) { 'powershell.exe' } else { 'pwsh.exe' }
+    $shellExe = Join-Path $PSHOME $shellName
+    & $Python -B (Join-Path $projectRoot 'tools/boot/wake.py') $run --powershell $shellExe
     if ($LASTEXITCODE -ne 0) { throw 'Fallo Genesis G1 en QEMU. Consultar el run conservado.' }
     & $Python -B (Join-Path $projectRoot 'tools/boot/publish.py') $run
     if ($LASTEXITCODE -ne 0) { throw 'La prueba termino pero no se pudo publicar evidencia comprobada.' }

@@ -40,6 +40,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('run',type=Path)
     parser.add_argument('--qemu',type=Path,default=Path('C:/Program Files/qemu/qemu-system-x86_64.exe'))
+    parser.add_argument('--powershell',type=Path,help='Use the same PowerShell executable as the calling build')
     parser.add_argument('--cases',nargs='+',choices=CASES,default=CASES)
     args=parser.parse_args();run=workspace(args.run)
     check(run)
@@ -54,7 +55,11 @@ def main():
     packet=run/'build/Puente_Metal/METAL/INICIO.X86';packet.parent.mkdir(parents=True,exist_ok=True)
     shutil.copyfile(run/'INICIO.X86',packet)
     version=subprocess.check_output([str(qemu),'--version'],text=True).splitlines()[0]
+    shell=str(args.powershell.resolve()) if args.powershell else (shutil.which('pwsh') or shutil.which('powershell.exe'))
+    if not shell or not Path(shell).is_file(): raise ValueError('Falta PowerShell 5.1 o 7')
+    shell_version=subprocess.check_output([shell,'-NoProfile','-NonInteractive','-Command','$PSVersionTable.PSVersion.ToString()'],text=True).strip()
     record=dict(schema=1,milestone='Genesis G1',qemu=version,accelerator='tcg',cpu='qemu64',ram_mib=256,
+                powershell=shell_version,
                 cases=args.cases,bridge_sha256=sha(efi),bridge_bytes=len(image),packet_sha256=sha(packet),
                 inputs={p.relative_to(ROOT).as_posix():sha(p) for p in paths},
                 tools={p.relative_to(ROOT).as_posix():sha(p) for p in sorted(Path(__file__).resolve().parent.iterdir()) if p.suffix in {'.py','.ps1'}},
@@ -62,9 +67,7 @@ def main():
                 scope='VM snapshot images only; inherited UEFI bootstrap, CASM payload; no physical boot or autonomous kernel')
     (run/'qemu-run.json').write_text(json.dumps(record,indent=2)+'\n',encoding='ascii',newline='\n')
     scripts=Path(__file__).resolve().parent
-    shell=shutil.which('pwsh')
-    if not shell: raise ValueError('Falta PowerShell 7')
-    subprocess.run([shell,'-NoProfile','-File',str(scripts/'disk.ps1'),'-OutputRoot',str(run),'-Programa','INICIO.X86','-GPT'],check=True,cwd=run,timeout=60)
+    subprocess.run([shell,'-NoProfile','-NonInteractive','-File',str(scripts/'disk.ps1'),'-OutputRoot',str(run),'-Programa','INICIO.X86','-GPT'],check=True,cwd=run,timeout=60)
     for case in args.cases:
         subprocess.run([sys.executable,'-B',str(scripts/'prepare.py'),'--workspace',str(run),'--caso',case],check=True,cwd=run,timeout=30)
     result=subprocess.run([sys.executable,'-B','-u',str(scripts/'probe.py'),'--workspace',str(run),'--qemu',str(qemu),'--casos',*args.cases],cwd=run,timeout=600)

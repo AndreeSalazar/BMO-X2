@@ -1023,6 +1023,40 @@
       "salida": "Ejecucion o evidencia de la ruta provisional.",
       "aceptacion": "Siete casos pasan y las huellas corresponden a esta fuente y paquete.",
       "falta": "Arranque autonomo, excepciones y memoria propias; prueba fisica no realizada."
+    },
+    {
+      "id": "host-paths",
+      "ruta": "tools/paths.ps1",
+      "titulo": "Rutas host compatibles 5.1 y 7",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "PowerShell",
+      "posicion": [
+        2960,
+        -1300
+      ],
+      "que": "Forma nombres relativos para registrar huellas; rechaza rutas externas sin usar GetRelativePath de .NET Core.",
+      "entrada": "Rutas absolutas de fuentes y raiz del proyecto.",
+      "salida": "Rutas relativas iguales entre versiones y evidencia de siete casos.",
+      "aceptacion": "Siete casos pasan en 5.1 y 7; despertar llega a QEMU con el mismo paquete.",
+      "falta": "Mantener la prueba de versiones al ampliar las herramientas del anfitrion."
+    },
+    {
+      "id": "host-path-tests",
+      "ruta": "tools/tests/paths.ps1",
+      "titulo": "Regresion de rutas y versiones host",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "PowerShell",
+      "posicion": [
+        2960,
+        -1040
+      ],
+      "que": "Comprueba nombres con espacios, normalizacion y rechazos de rutas externas en Windows PowerShell 5.1 y PowerShell 7.",
+      "entrada": "Rutas absolutas de fuentes y raiz del proyecto.",
+      "salida": "Rutas relativas iguales entre versiones y evidencia de siete casos.",
+      "aceptacion": "Siete casos pasan en 5.1 y 7; despertar llega a QEMU con el mismo paquete.",
+      "falta": "Mantener la prueba de versiones al ampliar las herramientas del anfitrion."
     }
   ],
   "relaciones": [
@@ -1540,6 +1574,16 @@
       "de": "genesis-source",
       "a": "boot-bridge",
       "clase": "plan"
+    },
+    {
+      "de": "tools",
+      "a": "host-paths",
+      "clase": "codigo"
+    },
+    {
+      "de": "host-path-tests",
+      "a": "host-paths",
+      "clase": "verificacion"
     }
   ]
 }

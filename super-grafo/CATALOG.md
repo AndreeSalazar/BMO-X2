@@ -63,6 +63,8 @@
 | [Puente UEFI provisional](../kernel/boot/bridge) | heredado | host | Bootstrap HEX manual importado de TALK-CPU; recibe firmware y entrega contexto metal64 al payload CASM. |
 | [Genesis: prueba aislada en QEMU](../tools/boot/wake.py) | host | host | Prepara imagenes virtuales por run y registra entorno; nunca instala al PC. |
 | [Genesis: evidencia de ejecucion](../kernel/boot/genesis/evidence/qemu.json) | qemu | host | Siete casos observados en QEMU: cuerpo cargado exacto, texto, CPL=0, retorno y rechazos. |
+| [Rutas host compatibles 5.1 y 7](../tools/paths.ps1) | host | host | Forma nombres relativos para registrar huellas; rechaza rutas externas sin usar GetRelativePath de .NET Core. |
+| [Regresion de rutas y versiones host](../tools/tests/paths.ps1) | host | host | Comprueba nombres con espacios, normalizacion y rechazos de rutas externas en Windows PowerShell 5.1 y PowerShell 7. |
 
 ## Dependencias declaradas
 
@@ -171,5 +173,7 @@
 | genesis-qemu | genesis-source | verificacion |
 | genesis-qemu | genesis | verificacion |
 | genesis-source | boot-bridge | plan |
+| tools | host-paths | codigo |
+| host-path-tests | host-paths | verificacion |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

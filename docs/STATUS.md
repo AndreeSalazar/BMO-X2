@@ -1,5 +1,16 @@
 # Estado de la base BMO-X2 -- 04-11-2026
 
+## Compatibilidad del lanzador -- 05-11-2026
+
+Se sustituyo `System.IO.Path.GetRelativePath`, ausente en .NET Framework de
+Windows PowerShell 5.1, por rutas relativas acotadas al proyecto. Siete casos
+de nombres y rechazos pasan en 5.1 y 7. El build registra PowerShell/CLR y el
+generador de imagen usa el mismo PowerShell del llamador.
+La ejecucion completa desde 5.1 paso los siete casos QEMU, con el generador
+de disco tambien en 5.1; `environment.json` conserva la version observada.
+El banco CASM paso 107/108 (una omision Linux), ocho pruebas de catalogo y
+11 invariantes. El cuerpo y el paquete Genesis mantienen 22 y 46 bytes.
+
 ## Genesis G1 -- ejecucion QEMU observada el 05-11-2026
 
 - Siete casos QEMU/OVMF aprobados con Genesis generado por CASM: salida de
@@ -32,12 +43,12 @@ anaden 4 bytes por instancia GPU (44 -> 48); no cambia el HEX de Genesis.
   Doce pruebas del grafo y el banco de la aplicacion SG (60, una medicion
   ignorada) pasan con el soporte nuevo de colores con motivo y direccion local.
 - `super-grafo/genesis.json` fija once nodos del recorrido visual. El catalogo
-  general tiene 59 responsabilidades y 103 relaciones. La disposicion y los
+  general tiene 61 responsabilidades y 105 relaciones. La disposicion y los
   tintes se guardan en esta carpeta, sin desplazar archivos reales.
 
 ## Revision de maduracion -- 05-11-2026
 
-- 59 nodos y 103 relaciones tipadas; lexer, simbolos, enteros, parser, tipos y
+- 61 nodos y 105 relaciones tipadas; lexer, simbolos, enteros, parser, tipos y
   almacenamiento tienen implementaciones separadas y notas de SUPER GRAFO.
 - Modelo de compilacion HOST: 1.077.280 -> 361.648 bytes, ahorro de 715.632
   bytes (66,43 %). No es una medida de RSS o del kernel; la semilla ejecutable
