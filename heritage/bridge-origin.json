@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "project": "TALK-CPU-x86-64",
+  "observed_commit": "b5b8e881a33ffb8a9af4f63285dbfa6c0ae47e87",
+  "files": [
+    {
+      "origin": "Puente_Metal/cabecera.hex",
+      "path": "kernel/boot/bridge/cabecera.hex",
+      "original_sha256": "a9ad17e34a2a7c5ece9f0309bd40d4a8d81e1cf35db0b87c675af115c95264f1",
+      "imported_sha256": "a9ad17e34a2a7c5ece9f0309bd40d4a8d81e1cf35db0b87c675af115c95264f1",
+      "adaptation": "unchanged reference bridge; payload is generated separately by CASM",
+      "local_sha256": "a9ad17e34a2a7c5ece9f0309bd40d4a8d81e1cf35db0b87c675af115c95264f1"
+    },
+    {
+      "origin": "Puente_Metal/entrada.hex",
+      "path": "kernel/boot/bridge/entrada.hex",
+      "original_sha256": "20a42e44122fe8cc719b15c7a5b4d1cb0c958dac7faa4f6adbba0d591e4339eb",
+      "imported_sha256": "20a42e44122fe8cc719b15c7a5b4d1cb0c958dac7faa4f6adbba0d591e4339eb",
+      "adaptation": "unchanged reference bridge; payload is generated separately by CASM",
+      "local_sha256": "20a42e44122fe8cc719b15c7a5b4d1cb0c958dac7faa4f6adbba0d591e4339eb"
+    },
+    {
+      "origin": "Puente_Metal/datos.hex",
+      "path": "kernel/boot/bridge/datos.hex",
+      "original_sha256": "45ed2b4b995e9dbbbb52a3e9cfaf464adc5cc28c7a4c1e9783baa22306f4d7b1",
+      "imported_sha256": "45ed2b4b995e9dbbbb52a3e9cfaf464adc5cc28c7a4c1e9783baa22306f4d7b1",
+      "adaptation": "unchanged reference bridge; payload is generated separately by CASM",
+      "local_sha256": "45ed2b4b995e9dbbbb52a3e9cfaf464adc5cc28c7a4c1e9783baa22306f4d7b1"
+    },
+    {
+      "origin": "Puente_Metal/fuente.hex",
+      "path": "kernel/boot/bridge/fuente.hex",
+      "original_sha256": "82d4a1f3a4a1dd7fd4adb5523783ae1f921d2db94c30305b8206db49f5c95dc5",
+      "imported_sha256": "82d4a1f3a4a1dd7fd4adb5523783ae1f921d2db94c30305b8206db49f5c95dc5",
+      "adaptation": "unchanged reference bridge; payload is generated separately by CASM",
+      "local_sha256": "82d4a1f3a4a1dd7fd4adb5523783ae1f921d2db94c30305b8206db49f5c95dc5"
+    },
+    {
+      "origin": "Puente_Metal/LEEME.md",
+      "path": "kernel/boot/bridge/LEEME.md",
+      "original_sha256": "893e79c349e18b6f4745b7ea74e5031f23b3331a8cb5bb3b05a2d6bc625d4c73",
+      "imported_sha256": "893e79c349e18b6f4745b7ea74e5031f23b3331a8cb5bb3b05a2d6bc625d4c73",
+      "adaptation": "unchanged reference bridge; payload is generated separately by CASM",
+      "local_sha256": "893e79c349e18b6f4745b7ea74e5031f23b3331a8cb5bb3b05a2d6bc625d4c73"
+    },
+    {
+      "origin": "tools/build/crear-disco.ps1",
+      "path": "tools/boot/disk.ps1",
+      "original_sha256": "b93b0f310208ccc62c0f1424adbe6f500ddb658c43b50a03d5c05dffddfc874c",
+      "imported_sha256": "c9e5ca7ed955e72c7f9e0553fca4607eb3adec2e1bac2c4febfff4dca17ffa00",
+      "adaptation": "isolated output workspace; Genesis framebuffer expectation for probe",
+      "local_sha256": "de5d0666e4387d6a0e8c4ecf2dc31220cf0edc15198faa2d721b535b7f4ee361"
+    },
+    {
+      "origin": "tools/build/herramientas-imagen.ps1",
+      "path": "tools/boot/image-support.ps1",
+      "original_sha256": "57d9862735dc904f20969fb56a31d9364c07f111c99e42e9cc8fe4384f2284fb",
+      "imported_sha256": "57d9862735dc904f20969fb56a31d9364c07f111c99e42e9cc8fe4384f2284fb",
+      "adaptation": "isolated output workspace; Genesis framebuffer expectation for probe",
+      "local_sha256": "57d9862735dc904f20969fb56a31d9364c07f111c99e42e9cc8fe4384f2284fb"
+    },
+    {
+      "origin": "tools/build/preparar-imagen-puente.py",
+      "path": "tools/boot/prepare.py",
+      "original_sha256": "e446632985a657f381e732775c759c0c9447a165e866504c3ad969544c22c8bf",
+      "imported_sha256": "9c463ce6eb5e09a4727660dfbdb3278e78639210861d61a8234ed7208a0c7fd9",
+      "adaptation": "isolated output workspace; Genesis framebuffer expectation for probe",
+      "local_sha256": "0b8a4a36f32f14709668c4892996612220f9ac52730712d8e10f228b0d046935"
+    },
+    {
+      "origin": "tools/tests/test-puente.py",
+      "path": "tools/boot/probe.py",
+      "original_sha256": "d701094ecd5dec485b9f646ca298ba742cf9d78bd54a720ddd6582f874b7426f",
+      "imported_sha256": "9e052ee0575bb0c22cc2cd6c32f2600b4ce7dc6f5e14900b935925fed5bc8c0d",
+      "adaptation": "isolated output workspace; Genesis framebuffer expectation for probe",
+      "local_sha256": "b42d17dd3edbbd0d865193511a6bdb48c693e03d8458cf5fd10fc4477c6d328a"
+    }
+  ],
+  "scope": "bridge and host tests, not CASM-generated kernel code",
+  "adaptations": "Host scripts: run output confinement; QEMU cases bounded; Genesis pixels; asserts must be enabled. Bootstrap hex remains unchanged."
+}

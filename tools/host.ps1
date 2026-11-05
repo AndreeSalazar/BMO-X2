@@ -4,7 +4,8 @@ param(
     [string]$Python,
     [string]$Compiler,
     [string]$Source,
-    [switch]$Genesis
+    [switch]$Genesis,
+    [switch]$Wake
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path $PSScriptRoot
@@ -80,4 +81,10 @@ if ($LASTEXITCODE -ne 0) { throw 'Fallo la lectura comprobada del HEX.' }
 if ($Genesis) {
     & $Python -B (Join-Path $projectRoot 'tools/genesis.py') $run
     if ($LASTEXITCODE -ne 0) { throw 'Genesis no cumple vector, paquete o presupuesto.' }
+}
+if ($Wake) {
+    & $Python -B (Join-Path $projectRoot 'tools/boot/wake.py') $run
+    if ($LASTEXITCODE -ne 0) { throw 'Fallo Genesis G1 en QEMU. Consultar el run conservado.' }
+    & $Python -B (Join-Path $projectRoot 'tools/boot/publish.py') $run
+    if ($LASTEXITCODE -ne 0) { throw 'La prueba termino pero no se pudo publicar evidencia comprobada.' }
 }

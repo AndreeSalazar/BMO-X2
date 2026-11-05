@@ -1,5 +1,19 @@
 # Estado de la base BMO-X2 -- 04-11-2026
 
+## Genesis G1 -- ejecucion QEMU observada el 05-11-2026
+
+- Siete casos QEMU/OVMF aprobados con Genesis generado por CASM: salida de
+  BootServices, copia exacta de 22 bytes, texto GENESIS en framebuffer,
+  retorno y estado CPL=0/HLT=1; cinco rechazos de archivo/paquete y fallo
+  inyectado de MapKey con tres reintentos acotados.
+- Paquete: 46 bytes. Puente UEFI heredado: 12288 bytes. VM: 256 MiB, TCG,
+  qemu64, un CPU. No son medidas de energia ni memoria minima necesaria.
+- Evidencia revisada en `kernel/boot/genesis/evidence/`; imagenes y volcados
+  completos en el run bajo `build/CASM/`. `-Accion despertar` reproduce y
+  conserva el resultado. Los comandos no instalan entradas de arranque.
+- El puente es HEX manual de TALK-CPU con procedencia y hash. El nuevo kernel
+  CASM aun necesita excepciones, memoria y mecanismos propios: no es autonomo.
+
 ## Genesis G0 -- 05-11-2026
 
 Revision visual de SUPER GRAFO: tarjetas con texto contenido, conexiones de
@@ -18,12 +32,12 @@ anaden 4 bytes por instancia GPU (44 -> 48); no cambia el HEX de Genesis.
   Doce pruebas del grafo y el banco de la aplicacion SG (60, una medicion
   ignorada) pasan con el soporte nuevo de colores con motivo y direccion local.
 - `super-grafo/genesis.json` fija once nodos del recorrido visual. El catalogo
-  general tiene 56 responsabilidades y 97 relaciones. La disposicion y los
+  general tiene 59 responsabilidades y 103 relaciones. La disposicion y los
   tintes se guardan en esta carpeta, sin desplazar archivos reales.
 
 ## Revision de maduracion -- 05-11-2026
 
-- 56 nodos y 97 relaciones tipadas; lexer, simbolos, enteros, parser, tipos y
+- 59 nodos y 103 relaciones tipadas; lexer, simbolos, enteros, parser, tipos y
   almacenamiento tienen implementaciones separadas y notas de SUPER GRAFO.
 - Modelo de compilacion HOST: 1.077.280 -> 361.648 bytes, ahorro de 715.632
   bytes (66,43 %). No es una medida de RSS o del kernel; la semilla ejecutable
@@ -68,8 +82,8 @@ Lo que sigue conserva las cifras y el alcance del primer commit del 04-11.
 - Estructura en ingles: CASM, kernel y userspace; CPU en kernel/arch/x86_64.
 - Primera fuente nueva kernel/boot/entry.casm: emision HOST de 48 bytes de
   cuerpo y paquete verificado de 72 bytes; usa servicios del cargador metal64.
-- Perfil CASM x86-64: 16 necesidades, con dos heredadas, cinco parciales y
-  nueve pendientes; son estados del inventario, no porcentajes de terminacion.
+- Perfil CASM x86-64: 16 necesidades, con dos heredadas, seis parciales y
+  ocho pendientes; son estados del inventario, no porcentajes de terminacion.
 - SUPER GRAFO actual compilado desde sus fuentes, con `--offline --locked`;
   salida en `build/tools/super-grafo`. El ejecutable previo del proyecto
   vecino no tenia la consulta `guardar` que sus fuentes ya implementaban.
@@ -111,5 +125,6 @@ requiere semantica, IR, emision, verificador y pruebas antes de activarse.
 
 Las operaciones privilegiadas, los subsistemas del kernel y el runtime Rust
 siguen en DISENO; la sonda de entrada esta compilada en HOST.
-No se ha arrancado BMO-X2 en QEMU o en el Ryzen, ni se ha desplegado
+Genesis ya se ejecuto en QEMU mediante el puente provisional. No se ha
+arrancado un kernel BMO-X2 autonomo ni esta entrega en el Ryzen; no se desplego
 a discos. No se aplico el parche incompleto 0.3.

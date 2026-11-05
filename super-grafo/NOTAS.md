@@ -567,23 +567,23 @@ Pendiente: Operaciones propias privilegiadas y evidencia de ejecucion Ring 0.
 
 Contrato y fuente minima observable con salida mediante el cargador.
 
-Estado: HOST. Anillo: host. Lenguaje: contrato.
+Estado: QEMU. Anillo: host. Lenguaje: contrato.
 Entrada: Perfil metal64-0.2 y contratos de Genesis.
-Salida: Fuente, vector o evidencia HOST del recorrido Genesis.
+Salida: Fuente, vector HOST y ejecucion QEMU con siete casos comprobados.
 Depende de: contrato propio sin dependencias en este catalogo.
-Aceptacion: 22 bytes de cuerpo, 46 de paquete; negativos rechazan alteraciones. Colores y motivos se conservan al guardar.
-Pendiente: Ejecucion QEMU, estado CPL observado y mecanismos propios del kernel.
+Aceptacion: Siete casos QEMU aprobados: bytes exactos, framebuffer GENESIS, retorno CPL=0 y rechazos acotados; evidencia persistida.
+Pendiente: Excepciones, memoria y mecanismos CASM propios; puente provisional heredado, sin kernel autonomo.
 
 ## kernel/boot/genesis/main.casm
 
 Declara GENESIS, CR/LF y retorno; requiere la tabla de servicios metal64.
 
-Estado: HOST. Anillo: 0. Lenguaje: CASM.
+Estado: QEMU. Anillo: 0. Lenguaje: CASM.
 Entrada: Perfil metal64-0.2 y contratos de Genesis.
-Salida: Fuente, vector o evidencia HOST del recorrido Genesis.
-Depende de: Genesis G0 (plan), Entrada y diagnosticos del frontend (plan).
-Aceptacion: 22 bytes de cuerpo, 46 de paquete; negativos rechazan alteraciones. Colores y motivos se conservan al guardar.
-Pendiente: Ejecucion QEMU, estado CPL observado y mecanismos propios del kernel.
+Salida: 22 bytes comprobados y ejecutados mediante el puente provisional; paquete de 46 bytes.
+Depende de: Genesis G0 y G1 (plan), Entrada y diagnosticos del frontend (plan), Puente UEFI provisional (plan).
+Aceptacion: Siete casos QEMU aprobados: bytes exactos, framebuffer GENESIS, retorno CPL=0 y rechazos acotados; evidencia persistida.
+Pendiente: Excepciones, memoria y mecanismos CASM propios; puente provisional heredado, sin kernel autonomo.
 
 ## kernel/boot/genesis/expected.hex
 
@@ -594,7 +594,7 @@ Entrada: Perfil metal64-0.2 y contratos de Genesis.
 Salida: Fuente, vector o evidencia HOST del recorrido Genesis.
 Depende de: contrato propio sin dependencias en este catalogo.
 Aceptacion: 22 bytes de cuerpo, 46 de paquete; negativos rechazan alteraciones. Colores y motivos se conservan al guardar.
-Pendiente: Ejecucion QEMU, estado CPL observado y mecanismos propios del kernel.
+Pendiente: QEMU ya tiene evidencia; siguen pendientes mecanismos propios del kernel y prueba fisica.
 
 ## tools/genesis.py
 
@@ -605,7 +605,7 @@ Entrada: Perfil metal64-0.2 y contratos de Genesis.
 Salida: Fuente, vector o evidencia HOST del recorrido Genesis.
 Depende de: Genesis: vector manual (verificacion), Genesis: fuente CASM (verificacion), Verificador metal64 (verificacion).
 Aceptacion: 22 bytes de cuerpo, 46 de paquete; negativos rechazan alteraciones. Colores y motivos se conservan al guardar.
-Pendiente: Ejecucion QEMU, estado CPL observado y mecanismos propios del kernel.
+Pendiente: QEMU ya tiene evidencia; siguen pendientes mecanismos propios del kernel y prueba fisica.
 
 ## super-grafo/genesis.json
 
@@ -614,9 +614,42 @@ Define posiciones y colores por responsabilidad, con un motivo visible por archi
 Estado: HOST. Anillo: host. Lenguaje: contrato.
 Entrada: Perfil metal64-0.2 y contratos de Genesis.
 Salida: Fuente, vector o evidencia HOST del recorrido Genesis.
-Depende de: Genesis G0 (plan).
+Depende de: Genesis G0 y G1 (plan).
 Aceptacion: 22 bytes de cuerpo, 46 de paquete; negativos rechazan alteraciones. Colores y motivos se conservan al guardar.
-Pendiente: Ejecucion QEMU, estado CPL observado y mecanismos propios del kernel.
+Pendiente: QEMU ya tiene evidencia; siguen pendientes mecanismos propios del kernel y prueba fisica.
+
+## kernel/boot/bridge
+
+Bootstrap HEX manual importado de TALK-CPU; recibe firmware y entrega contexto metal64 al payload CASM.
+
+Estado: HEREDADO. Anillo: host. Lenguaje: HEX heredado.
+Entrada: Paquete Genesis comprobado, puente heredado y QEMU/OVMF.
+Salida: Ejecucion o evidencia de la ruta provisional.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: Siete casos pasan y las huellas corresponden a esta fuente y paquete.
+Pendiente: Arranque autonomo, excepciones y memoria propias; prueba fisica no realizada.
+
+## tools/boot/wake.py
+
+Prepara imagenes virtuales por run y registra entorno; nunca instala al PC.
+
+Estado: HOST. Anillo: host. Lenguaje: herramienta/evidencia.
+Entrada: Paquete Genesis comprobado, puente heredado y QEMU/OVMF.
+Salida: Ejecucion o evidencia de la ruta provisional.
+Depende de: Puente UEFI provisional (generacion), Genesis: guardian de bytes y tamano (verificacion).
+Aceptacion: Siete casos pasan y las huellas corresponden a esta fuente y paquete.
+Pendiente: Arranque autonomo, excepciones y memoria propias; prueba fisica no realizada.
+
+## kernel/boot/genesis/evidence/qemu.json
+
+Siete casos observados en QEMU: cuerpo cargado exacto, texto, CPL=0, retorno y rechazos.
+
+Estado: QEMU. Anillo: host. Lenguaje: herramienta/evidencia.
+Entrada: Paquete Genesis comprobado, puente heredado y QEMU/OVMF.
+Salida: Ejecucion o evidencia de la ruta provisional.
+Depende de: Genesis: prueba aislada en QEMU (verificacion), Genesis: fuente CASM (verificacion), Genesis G0 y G1 (verificacion).
+Aceptacion: Siete casos pasan y las huellas corresponden a esta fuente y paquete.
+Pendiente: Arranque autonomo, excepciones y memoria propias; prueba fisica no realizada.
 
 ## CASM
 
@@ -640,4 +673,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-56 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+59 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SG = ROOT / 'super-grafo'
-STATES = {'heredado', 'host', 'diseno', 'investigacion'}
+STATES = {'heredado', 'host', 'qemu', 'diseno', 'investigacion'}
 KINDS = {'codigo', 'generacion', 'verificacion', 'plan'}
 
 

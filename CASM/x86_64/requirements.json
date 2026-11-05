@@ -19,6 +19,6 @@
     {"id":"independent-verifier","status":"partial","need":"Check code, data, control flow and trap declarations before publication","evidence":"Separate existing template verifiers; every new instruction requires coverage"},
     {"id":"hex-source-map","status":"partial","need":"Frozen source to IR to exact HEX bytes, with hashes and visible maps","evidence":"metal64 source/IR/HEX and SG map exist; new kernel effects still need mapping"},
     {"id":"freestanding-runtime","status":"partial","need":"Execute without implicit Linux or Windows services","evidence":"Native pure modules exist; entry.casm still requires the metal64 loader service table"},
-    {"id":"execution-evidence","status":"required","need":"Host vectors, isolated QEMU execution and later hardware evidence","evidence":"Current BMO-X2 entry is host-compiled and verified only; no BMO-X2 boot observed"}
+    {"id":"execution-evidence","status":"partial","need":"Host vectors, isolated QEMU execution and later hardware evidence","evidence":"Genesis G1: seven fresh QEMU/OVMF cases; exact loaded body, framebuffer, return, final CPL=0/HLT=1. Physical BMO-X2 boot and autonomous kernel remain pending."}
   ]
 }

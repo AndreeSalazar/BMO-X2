@@ -20,10 +20,16 @@ un salto directo a esos bytes no satisface ese contrato.
 
 ## M1: el primer arranque en QEMU
 
+Genesis G1 paso siete casos QEMU/OVMF el 05-11-2026: ejecucion normal con
+salida de BootServices, copia exacta del cuerpo, framebuffer esperado, retorno
+y CPL=0/HLT=1; cinco rechazos de archivo/paquete y un MapKey invalido con tres
+reintentos acotados. Evidencia en `kernel/boot/genesis/evidence/`.
+Reproducir con `bmo-x2.ps1 -Accion despertar`.
+
 TALK-CPU ofrece el puente de referencia y evidencia historica de su contexto.
 La revision de piezas y condiciones esta en [TRANSFER](../heritage/TRANSFER.md).
-Repetir esa ruta con BMO-X2 es una prueba nueva, pendiente; sus resultados
-anteriores no se suman como evidencia del hijo.
+La repeticion con Genesis es una prueba nueva conservada aqui; los resultados
+anteriores de TALK-CPU no se suman como evidencia del hijo.
 
 1. Fijar la cadena de carga y su contexto: modo de CPU, mapa de memoria,
    framebuffer, pila, tablas de servicios y tratamiento del retorno.

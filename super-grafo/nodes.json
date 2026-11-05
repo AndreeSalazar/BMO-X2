@@ -891,19 +891,19 @@
     {
       "id": "genesis",
       "ruta": "kernel/boot/genesis",
-      "titulo": "Genesis G0",
+      "titulo": "Genesis G0 y G1",
       "posicion": [
         2220,
         -1300
       ],
-      "estado": "host",
+      "estado": "qemu",
       "anillo": "host",
       "lenguaje": "contrato",
       "que": "Contrato y fuente minima observable con salida mediante el cargador.",
       "entrada": "Perfil metal64-0.2 y contratos de Genesis.",
-      "salida": "Fuente, vector o evidencia HOST del recorrido Genesis.",
-      "aceptacion": "22 bytes de cuerpo, 46 de paquete; negativos rechazan alteraciones. Colores y motivos se conservan al guardar.",
-      "falta": "Ejecucion QEMU, estado CPL observado y mecanismos propios del kernel."
+      "salida": "Fuente, vector HOST y ejecucion QEMU con siete casos comprobados.",
+      "aceptacion": "Siete casos QEMU aprobados: bytes exactos, framebuffer GENESIS, retorno CPL=0 y rechazos acotados; evidencia persistida.",
+      "falta": "Excepciones, memoria y mecanismos CASM propios; puente provisional heredado, sin kernel autonomo."
     },
     {
       "id": "genesis-source",
@@ -913,14 +913,14 @@
         2220,
         -1040
       ],
-      "estado": "host",
+      "estado": "qemu",
       "anillo": "0",
       "lenguaje": "CASM",
       "que": "Declara GENESIS, CR/LF y retorno; requiere la tabla de servicios metal64.",
       "entrada": "Perfil metal64-0.2 y contratos de Genesis.",
-      "salida": "Fuente, vector o evidencia HOST del recorrido Genesis.",
-      "aceptacion": "22 bytes de cuerpo, 46 de paquete; negativos rechazan alteraciones. Colores y motivos se conservan al guardar.",
-      "falta": "Ejecucion QEMU, estado CPL observado y mecanismos propios del kernel."
+      "salida": "22 bytes comprobados y ejecutados mediante el puente provisional; paquete de 46 bytes.",
+      "aceptacion": "Siete casos QEMU aprobados: bytes exactos, framebuffer GENESIS, retorno CPL=0 y rechazos acotados; evidencia persistida.",
+      "falta": "Excepciones, memoria y mecanismos CASM propios; puente provisional heredado, sin kernel autonomo."
     },
     {
       "id": "genesis-vector",
@@ -937,7 +937,7 @@
       "entrada": "Perfil metal64-0.2 y contratos de Genesis.",
       "salida": "Fuente, vector o evidencia HOST del recorrido Genesis.",
       "aceptacion": "22 bytes de cuerpo, 46 de paquete; negativos rechazan alteraciones. Colores y motivos se conservan al guardar.",
-      "falta": "Ejecucion QEMU, estado CPL observado y mecanismos propios del kernel."
+      "falta": "QEMU ya tiene evidencia; siguen pendientes mecanismos propios del kernel y prueba fisica."
     },
     {
       "id": "genesis-guardian",
@@ -954,7 +954,7 @@
       "entrada": "Perfil metal64-0.2 y contratos de Genesis.",
       "salida": "Fuente, vector o evidencia HOST del recorrido Genesis.",
       "aceptacion": "22 bytes de cuerpo, 46 de paquete; negativos rechazan alteraciones. Colores y motivos se conservan al guardar.",
-      "falta": "Ejecucion QEMU, estado CPL observado y mecanismos propios del kernel."
+      "falta": "QEMU ya tiene evidencia; siguen pendientes mecanismos propios del kernel y prueba fisica."
     },
     {
       "id": "genesis-graph",
@@ -971,7 +971,58 @@
       "entrada": "Perfil metal64-0.2 y contratos de Genesis.",
       "salida": "Fuente, vector o evidencia HOST del recorrido Genesis.",
       "aceptacion": "22 bytes de cuerpo, 46 de paquete; negativos rechazan alteraciones. Colores y motivos se conservan al guardar.",
-      "falta": "Ejecucion QEMU, estado CPL observado y mecanismos propios del kernel."
+      "falta": "QEMU ya tiene evidencia; siguen pendientes mecanismos propios del kernel y prueba fisica."
+    },
+    {
+      "id": "boot-bridge",
+      "ruta": "kernel/boot/bridge",
+      "titulo": "Puente UEFI provisional",
+      "estado": "heredado",
+      "posicion": [
+        2590,
+        -1300
+      ],
+      "anillo": "host",
+      "lenguaje": "HEX heredado",
+      "que": "Bootstrap HEX manual importado de TALK-CPU; recibe firmware y entrega contexto metal64 al payload CASM.",
+      "entrada": "Paquete Genesis comprobado, puente heredado y QEMU/OVMF.",
+      "salida": "Ejecucion o evidencia de la ruta provisional.",
+      "aceptacion": "Siete casos pasan y las huellas corresponden a esta fuente y paquete.",
+      "falta": "Arranque autonomo, excepciones y memoria propias; prueba fisica no realizada."
+    },
+    {
+      "id": "qemu-runner",
+      "ruta": "tools/boot/wake.py",
+      "titulo": "Genesis: prueba aislada en QEMU",
+      "estado": "host",
+      "posicion": [
+        2590,
+        -1040
+      ],
+      "anillo": "host",
+      "lenguaje": "herramienta/evidencia",
+      "que": "Prepara imagenes virtuales por run y registra entorno; nunca instala al PC.",
+      "entrada": "Paquete Genesis comprobado, puente heredado y QEMU/OVMF.",
+      "salida": "Ejecucion o evidencia de la ruta provisional.",
+      "aceptacion": "Siete casos pasan y las huellas corresponden a esta fuente y paquete.",
+      "falta": "Arranque autonomo, excepciones y memoria propias; prueba fisica no realizada."
+    },
+    {
+      "id": "genesis-qemu",
+      "ruta": "kernel/boot/genesis/evidence/qemu.json",
+      "titulo": "Genesis: evidencia de ejecucion",
+      "estado": "qemu",
+      "posicion": [
+        2590,
+        -780
+      ],
+      "anillo": "host",
+      "lenguaje": "herramienta/evidencia",
+      "que": "Siete casos observados en QEMU: cuerpo cargado exacto, texto, CPL=0, retorno y rechazos.",
+      "entrada": "Paquete Genesis comprobado, puente heredado y QEMU/OVMF.",
+      "salida": "Ejecucion o evidencia de la ruta provisional.",
+      "aceptacion": "Siete casos pasan y las huellas corresponden a esta fuente y paquete.",
+      "falta": "Arranque autonomo, excepciones y memoria propias; prueba fisica no realizada."
     }
   ],
   "relaciones": [
@@ -1458,6 +1509,36 @@
     {
       "de": "genesis-graph",
       "a": "genesis",
+      "clase": "plan"
+    },
+    {
+      "de": "qemu-runner",
+      "a": "boot-bridge",
+      "clase": "generacion"
+    },
+    {
+      "de": "qemu-runner",
+      "a": "genesis-guardian",
+      "clase": "verificacion"
+    },
+    {
+      "de": "genesis-qemu",
+      "a": "qemu-runner",
+      "clase": "verificacion"
+    },
+    {
+      "de": "genesis-qemu",
+      "a": "genesis-source",
+      "clase": "verificacion"
+    },
+    {
+      "de": "genesis-qemu",
+      "a": "genesis",
+      "clase": "verificacion"
+    },
+    {
+      "de": "genesis-source",
+      "a": "boot-bridge",
       "clase": "plan"
     }
   ]

@@ -11,5 +11,8 @@
 *.patch text eol=lf
 # The imported CASM snapshot has byte hashes; preserve those original bytes.
 CASM/** -text whitespace=cr-at-eol
+kernel/boot/bridge/*.hex -text whitespace=cr-at-eol
+kernel/boot/bridge/LEEME.md -text whitespace=cr-at-eol
+kernel/boot/genesis/evidence/registers.txt -text -diff
 # A stored patch contains significant context prefixes; keep its exact bytes.
 CASM/traspaso/*.patch whitespace=-blank-at-eol,cr-at-eol

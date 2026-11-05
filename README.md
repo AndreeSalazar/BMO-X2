@@ -8,11 +8,11 @@ primera entrada propia compilada y verificada en host. Todavia no hay un
 kernel BMO-X2 arrancable. [Estado y evidencia](docs/STATUS.md).
 
 **Avance revisado el 05-11-2026:** frontend metal64 separado en modulos reales,
-56 nodos y 97 relaciones. El modelo HOST baja 66,43 % conservando la emision
+59 nodos y 103 relaciones. El modelo HOST baja 66,43 % conservando la emision
 y los rechazos en 333 casos. [CONTROL, RENDIMIENTO y ELEGANCIA](CASM/CONTROL-PERFORMANCE-ELEGANCE.md)
 explica la medida, su coste y lo que aun falta para Ring 0.
 
-**Listas y jerarquia conectadas:** 56 nodos de proyecto y 97 relaciones;
+**Listas y jerarquia conectadas:** 59 nodos de proyecto y 103 relaciones;
 el catalogo CASM tiene 45 elementos propios. Su lista genera los ocho tipos
 del compilador. SUPER GRAFO permite explorar tipos, sintaxis, IR, codificaciones,
 reglas y mapa fuente -> bytes. [Entrar al catalogo](CASM/CATALOG.md).
@@ -56,6 +56,11 @@ nodos aun no implementados contienen su responsabilidad y prueba de cierre.
 22 bytes de cuerpo / 46 de paquete, compara su vector manual y aplica el flujo
 vertical y los colores con motivo. Ver [Genesis](kernel/boot/genesis/README.md).
 El cargador queda fuera de esa medida; todavia no es un arranque autonomo.
+
+**Genesis G1:** `bmo-x2.ps1 -Accion despertar` ejecuta siete casos bajo
+QEMU/OVMF. Se observaron los 22 bytes cargados exactos, texto GENESIS,
+retorno y CPL=0. Se conserva la evidencia en `kernel/boot/genesis/evidence/`.
+El puente heredado de TALK-CPU ocupa 12288 bytes y sigue siendo provisional.
 
 `BMO-X2.sg-workspace` fija la raiz portable, la vista Grafo y el Taller CASM.
 `-Accion abrir` lo pasa a SUPER GRAFO sin confundir opciones con carpetas.

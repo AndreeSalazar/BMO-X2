@@ -1,0 +1,72 @@
+{
+  "Passed": 7,
+  "Total": 7,
+  "Cases": [
+    {
+      "Case": "normal",
+      "Passed": true,
+      "BootServicesExited": true,
+      "PayloadReturned": true,
+      "Ring": 0,
+      "OwnFramebufferTextVerified": true,
+      "Context": "0xDE38000",
+      "PayloadSHA256": "4fb365abc1fbc056a4dc8baa1b6655c3a0de52b528593df1726b45e857e4c476"
+    },
+    {
+      "Case": "firma",
+      "Passed": true,
+      "BootServicesExited": false,
+      "PayloadReturned": false,
+      "Reason": "RED [METAL] paquete FAGRAW64 invalido\r\n"
+    },
+    {
+      "Case": "suma",
+      "Passed": true,
+      "BootServicesExited": false,
+      "PayloadReturned": false,
+      "Reason": "RED [METAL] paquete FAGRAW64 invalido\r\n"
+    },
+    {
+      "Case": "entrada",
+      "Passed": true,
+      "BootServicesExited": false,
+      "PayloadReturned": false,
+      "Reason": "RED [METAL] paquete FAGRAW64 invalido\r\n"
+    },
+    {
+      "Case": "ausente",
+      "Passed": true,
+      "BootServicesExited": false,
+      "PayloadReturned": false,
+      "Reason": "RED [METAL] no se pudo leer METAL/INICIO.X86\r\n"
+    },
+    {
+      "Case": "excesivo",
+      "Passed": true,
+      "BootServicesExited": false,
+      "PayloadReturned": false,
+      "Reason": "RED [METAL] paquete FAGRAW64 invalido\r\n"
+    },
+    {
+      "Case": "salida",
+      "Passed": true,
+      "FaultInjection": "MapKey cero en copia de prueba",
+      "BootServicesExited": false,
+      "PayloadReturned": false,
+      "BoundedRetries": 3
+    }
+  ],
+  "schema": 1,
+  "evidence": "QEMU",
+  "milestone": "Genesis G1",
+  "physical_boot": false,
+  "autonomous_kernel": false,
+  "body_bytes": 22,
+  "packet_bytes": 46,
+  "bridge_bytes": 12288,
+  "run": "run-20261105-151227-68f1786a",
+  "packet_sha256": "1d7bade2d4b439629bab06ab152b7a87fc2254c0e80425eedfdeea67dfc813da",
+  "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+  "source_sha256": "52fd152c3f50aa44154cf4418ad04d414ba61e47ebea9cd86abb5731b5e0d388",
+  "case_scope": "UEFI bootstrap and payload; rejects packages and injected stale MapKey, not arbitrary invalid kernel contexts"
+}

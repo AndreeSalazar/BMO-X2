@@ -4,6 +4,10 @@ La transferencia concreta de TALK-CPU y del Rust de BMO-X esta en
 [TRANSFER](TRANSFER.md). `transfer.json` fija las huellas de las fuentes
 revisadas; son candidatos, todavia sin importar ni ejecutar en BMO-X2.
 
+La excepcion ya transferida es el puente provisional de TALK-CPU y sus pruebas
+del anfitrion, registrados en `bridge-origin.json`. Genesis G1 paso siete casos
+nuevos en QEMU dentro de BMO-X2. El Rust del padre sigue sin importar.
+
 CASM se copio de `Linux Reconstruido/CASM`, del mismo autor, en el commit
 `5a751b1cf493780003ff2714a83e738f2981c1dd`. Su ultimo cambio CASM era
 `3a6e796`: modulos freestanding y pruebas adversas.

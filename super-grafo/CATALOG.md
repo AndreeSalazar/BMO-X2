@@ -55,11 +55,14 @@
 | [Espacio de trabajo BMO-X2](../BMO-X2.sg-workspace) | host | host | Define la raiz portable y los valores iniciales de vista y panel de SUPER GRAFO. |
 | [Contrato CASM Ring 0](../CASM/contracts/RING0.md) | host | host | Fija el destino exclusivo del kernel y explica el vector de entrada sin atribuir privilegio al formato HEX. |
 | [Lectura comprobada del HEX](../tools/hex_report.py) | host | host | Repite el verificador y contrasta el paquete antes de mostrar linea, offsets, clase y bytes. |
-| [Genesis G0](../kernel/boot/genesis) | host | host | Contrato y fuente minima observable con salida mediante el cargador. |
-| [Genesis: fuente CASM](../kernel/boot/genesis/main.casm) | host | 0 | Declara GENESIS, CR/LF y retorno; requiere la tabla de servicios metal64. |
+| [Genesis G0 y G1](../kernel/boot/genesis) | qemu | host | Contrato y fuente minima observable con salida mediante el cargador. |
+| [Genesis: fuente CASM](../kernel/boot/genesis/main.casm) | qemu | 0 | Declara GENESIS, CR/LF y retorno; requiere la tabla de servicios metal64. |
 | [Genesis: vector manual](../kernel/boot/genesis/expected.hex) | host | host | Fija 22 bytes independientes del emisor: 12 de instrucciones y 10 de datos. |
 | [Genesis: guardian de bytes y tamano](../tools/genesis.py) | host | host | Exige fuente congelada exacta, verificacion independiente, vector manual y paquete menor de 512 bytes. |
 | [Genesis: colores y flujo vertical](../super-grafo/genesis.json) | host | host | Define posiciones y colores por responsabilidad, con un motivo visible por archivo. |
+| [Puente UEFI provisional](../kernel/boot/bridge) | heredado | host | Bootstrap HEX manual importado de TALK-CPU; recibe firmware y entrega contexto metal64 al payload CASM. |
+| [Genesis: prueba aislada en QEMU](../tools/boot/wake.py) | host | host | Prepara imagenes virtuales por run y registra entorno; nunca instala al PC. |
+| [Genesis: evidencia de ejecucion](../kernel/boot/genesis/evidence/qemu.json) | qemu | host | Siete casos observados en QEMU: cuerpo cargado exacto, texto, CPL=0, retorno y rechazos. |
 
 ## Dependencias declaradas
 
@@ -162,5 +165,11 @@
 | genesis-guardian | genesis-source | verificacion |
 | genesis-guardian | metal64-verifier | verificacion |
 | genesis-graph | genesis | plan |
+| qemu-runner | boot-bridge | generacion |
+| qemu-runner | genesis-guardian | verificacion |
+| genesis-qemu | qemu-runner | verificacion |
+| genesis-qemu | genesis-source | verificacion |
+| genesis-qemu | genesis | verificacion |
+| genesis-source | boot-bridge | plan |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

@@ -52,5 +52,27 @@ Cada nota dice entrada, salida, aceptacion y lo que falta. Los cables del
 analizador siguen siendo dependencias que puede extraer; las relaciones
 conceptuales de etapas se declaran en el catalogo y no se inventan imports.
 
-G1 pendiente: repetir el contexto del puente en QEMU, observar CPL y mensaje,
-y comprobar la carga exacta. Despues: excepciones y mecanismos CASM propios.
+## Genesis G1: ejecucion observada
+
+Siete casos QEMU/OVMF aprobados el 05-11-2026. El normal comprueba el cuerpo
+cargado exacto, texto GENESIS en framebuffer, salida de BootServices, retorno
+y estado final CPL=0/HLT=1. Se rechazan firma, suma, entrada, archivo ausente,
+tamano excesivo y una salida UEFI con MapKey invalido y reintentos acotados.
+
+```powershell
+.\bmo-x2.ps1 -Accion despertar
+```
+
+Cada intento tiene un run nuevo con imagenes virtuales, registros, captura,
+mapa de memoria, hashes de fuentes/herramientas/OVMF y resultados. La copia
+revisada esta en [evidence/qemu.json](evidence/qemu.json); entorno y huellas
+en `evidence/environment.json` y `evidence/manifest.json`.
+
+![Genesis ejecutado bajo QEMU](evidence/normal.png)
+
+El paquete sigue ocupando 46 bytes, pero el puente UEFI heredado ocupa 12288
+y la VM reserva 256 MiB. Estos costes no se ocultan dentro del limite del
+payload. No se ha medido energia ni arrancado el PC con esta entrega.
+
+G2 pendiente: excepciones y mecanismos CASM propios. El puente conserva
+estado del firmware y sus servicios provisionales; no es un kernel autonomo.

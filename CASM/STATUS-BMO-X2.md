@@ -12,6 +12,12 @@ Esos documentos conservan la fecha, el entorno y el alcance de su trabajo.
 
 ## Primera base reproducible
 
+Genesis G1 ya ejecuta una fuente CASM propia bajo QEMU/OVMF: cuerpo de 22
+bytes, paquete de 46, salida y retorno verificados en Ring 0. Siete casos de
+carga/arranque pasaron. El puente UEFI es HEX manual heredado de TALK-CPU;
+CASM no lo genero. Esto no completa operaciones privilegiadas propias ni
+arranque autonomo. Ver `../kernel/boot/genesis/evidence/qemu.json`.
+
 Revision HOST del 05-11-2026: el frontend metal64 esta repartido en lexer,
 simbolos, enteros y parser, con tipos y almacenamiento en `src/model/`.
 `sources.json` alimenta las construcciones Windows y Linux e incluye las

@@ -1,7 +1,7 @@
 # BMO-X2: herramientas host y SUPER GRAFO. No despliega a discos.
 [CmdletBinding()]
 param(
-    [ValidateSet('abrir','resumen','consultar','mapa','comprobar','medir','compilar','genesis','leer-hex','preparar-grafo')]
+    [ValidateSet('abrir','resumen','consultar','mapa','comprobar','medir','compilar','genesis','despertar','leer-hex','preparar-grafo')]
     [string]$Accion = 'resumen',
     [string]$Source,
     [string]$Run,
@@ -40,6 +40,10 @@ if ($Accion -in @('abrir','resumen','consultar','mapa')) {
     }
 }
 switch ($Accion) {
+    'despertar' {
+        Invoke-ProjectPython 'comprobar'
+        & (Join-Path $projectRoot 'tools/host.ps1') -Accion compilar -Source (Join-Path $projectRoot 'kernel/boot/genesis/main.casm') -Python $Python -Compiler $Compiler -Genesis -Wake
+    }
     'genesis' {
         Invoke-ProjectPython 'comprobar'
         & (Join-Path $projectRoot 'tools/host.ps1') -Accion compilar -Source (Join-Path $projectRoot 'kernel/boot/genesis/main.casm') -Python $Python -Compiler $Compiler -Genesis
