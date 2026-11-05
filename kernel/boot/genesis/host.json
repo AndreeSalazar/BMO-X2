@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "milestone": "Genesis G0",
+  "evidence": "HOST",
+  "profile": "metal64-0.2",
+  "body_bytes": 22,
+  "code_bytes": 12,
+  "data_bytes": 10,
+  "packet_bytes": 46,
+  "hex_file_bytes": 127,
+  "budget_exclusive": 512,
+  "packet_sha256": "1d7bade2d4b439629bab06ab152b7a87fc2254c0e80425eedfdeea67dfc813da",
+  "source_sha256": "52fd152c3f50aa44154cf4418ad04d414ba61e47ebea9cd86abb5731b5e0d388",
+  "loader_included": false,
+  "executed": false,
+  "autonomous_kernel": false,
+  "result": "manual vector, verifier and packet agree"
+}

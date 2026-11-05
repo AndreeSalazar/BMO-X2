@@ -1,4 +1,95 @@
 {
+  "tintes": {
+    "CASM/src/casm.h": {
+      "rgb": [
+        90,
+        160,
+        255
+      ],
+      "motivo": "Modelo IR: conserva datos, llamadas y posiciones de fuente."
+    },
+    "CASM/src/emitter.c": {
+      "rgb": [
+        185,
+        130,
+        255
+      ],
+      "motivo": "Emisor: decide codificacion, desplazamientos y orden de bytes."
+    },
+    "CASM/src/frontend.c": {
+      "rgb": [
+        90,
+        160,
+        255
+      ],
+      "motivo": "Frontend: acepta el perfil y rechaza lo que no puede representar."
+    },
+    "CASM/src/main.c": {
+      "rgb": [
+        90,
+        160,
+        255
+      ],
+      "motivo": "Entrada HOST: recibe fuente y rutas de artefactos; no es codigo del kernel."
+    },
+    "CASM/verify.py": {
+      "rgb": [
+        90,
+        200,
+        140
+      ],
+      "motivo": "Verificador: contrasta IR y bytes; el color indica funcion, no resultado aprobado."
+    },
+    "kernel/boot/genesis/README.md": {
+      "rgb": [
+        210,
+        220,
+        235
+      ],
+      "motivo": "Contrato: registra alcance HOST, costes excluidos y siguiente prueba QEMU."
+    },
+    "kernel/boot/genesis/expected.hex": {
+      "rgb": [
+        240,
+        185,
+        70
+      ],
+      "motivo": "Vector manual: referencia independiente, nunca regenerada desde el emisor."
+    },
+    "kernel/boot/genesis/main.casm": {
+      "rgb": [
+        68,
+        210,
+        240
+      ],
+      "motivo": "Fuente: declara el mensaje y el retorno de Genesis."
+    },
+    "tools/genesis.py": {
+      "rgb": [
+        90,
+        200,
+        140
+      ],
+      "motivo": "Guardian Genesis: exige fuente exacta, vector manual y paquete menor de 512 bytes."
+    },
+    "tools/hex_report.py": {
+      "rgb": [
+        210,
+        220,
+        235
+      ],
+      "motivo": "Lectura: explica linea, offset, clase y bytes tras volver a verificar."
+    },
+    "kernel/boot/genesis/host.json": {
+      "rgb": [
+        210,
+        220,
+        235
+      ],
+      "motivo": "Evidencia HOST: medidas y huellas comprobadas; no acredita ejecucion del kernel."
+    }
+  },
+  "direccion": "houdini",
   "posiciones": {
     "AGENTS.md": [
       112.0,
@@ -69,8 +160,8 @@
       -400.0
     ],
     "CASM": [
-      0.0,
-      0.0
+      -1060.6942,
+      -1190.6354
     ],
     "CASM/catalog.json": [
       0.0,
@@ -85,8 +176,8 @@
       0.0
     ],
     "CASM/examples": [
-      0.0,
-      0.0
+      296.8798,
+      -206.43968
     ],
     "CASM/native": [
       -680.0,
@@ -121,20 +212,20 @@
       270.0
     ],
     "CASM/src/casm.h": [
-      740.0,
-      260.0
+      0,
+      480
     ],
     "CASM/src/emitter.c": [
-      1110.0,
-      0.0
+      0,
+      640
     ],
     "CASM/src/frontend": [
       -680.0,
       405.0
     ],
     "CASM/src/frontend.c": [
-      740.0,
-      0.0
+      0,
+      320
     ],
     "CASM/src/frontend/integers.c": [
       740.0,
@@ -157,8 +248,8 @@
       -1040.0
     ],
     "CASM/src/main.c": [
-      370.0,
-      0.0
+      0,
+      160
     ],
     "CASM/src/model": [
       -680.0,
@@ -197,8 +288,8 @@
       650.0
     ],
     "CASM/verify.py": [
-      1850.0,
-      0.0
+      0,
+      800
     ],
     "CASM/x86_64": [
       1850.0,
@@ -256,6 +347,26 @@
       0.0,
       1660.0
     ],
+    "kernel/boot/genesis": [
+      0,
+      0
+    ],
+    "kernel/boot/genesis/README.md": [
+      0,
+      720
+    ],
+    "kernel/boot/genesis/expected.hex": [
+      0,
+      360
+    ],
+    "kernel/boot/genesis/host.json": [
+      0,
+      540
+    ],
+    "kernel/boot/genesis/main.casm": [
+      0,
+      180
+    ],
     "kernel/capabilities": [
       1110.0,
       1400.0
@@ -296,6 +407,14 @@
       320.0,
       165.0
     ],
+    "tools/genesis.py": [
+      0,
+      960
+    ],
+    "tools/hex_report.py": [
+      0,
+      1120
+    ],
     "userspace": [
       640.0,
       0.0
@@ -313,6 +432,13 @@
       2200.0
     ]
   },
-  "foco": "",
-  "desplegadas": []
+  "foco": "kernel/boot/genesis",
+  "desplegadas": [
+    "CASM",
+    "CASM/src",
+    "kernel",
+    "kernel/boot",
+    "kernel/boot/genesis",
+    "tools"
+  ]
 }

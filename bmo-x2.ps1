@@ -1,7 +1,7 @@
 # BMO-X2: herramientas host y SUPER GRAFO. No despliega a discos.
 [CmdletBinding()]
 param(
-    [ValidateSet('abrir','resumen','consultar','mapa','comprobar','medir','compilar','leer-hex','preparar-grafo')]
+    [ValidateSet('abrir','resumen','consultar','mapa','comprobar','medir','compilar','genesis','leer-hex','preparar-grafo')]
     [string]$Accion = 'resumen',
     [string]$Source,
     [string]$Run,
@@ -40,6 +40,12 @@ if ($Accion -in @('abrir','resumen','consultar','mapa')) {
     }
 }
 switch ($Accion) {
+    'genesis' {
+        Invoke-ProjectPython 'comprobar'
+        & (Join-Path $projectRoot 'tools/host.ps1') -Accion compilar -Source (Join-Path $projectRoot 'kernel/boot/genesis/main.casm') -Python $Python -Compiler $Compiler -Genesis
+        & $Python -B (Join-Path $projectRoot 'tools/genesis_graph.py')
+        if ($LASTEXITCODE -ne 0) { throw 'Fallo el guardado del grafo Genesis.' }
+    }
     'leer-hex' {
         if (-not $Run) { throw 'Indicar -Run <build/CASM/run-...>.' }
         & $Python -B (Join-Path $projectRoot 'tools/hex_report.py') $Run

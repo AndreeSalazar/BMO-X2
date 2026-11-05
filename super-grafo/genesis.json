@@ -1,0 +1,149 @@
+{
+  "schema": 1,
+  "direction": "houdini",
+  "nodes": [
+    {
+      "path": "kernel/boot/genesis/main.casm",
+      "rgb": [
+        68,
+        210,
+        240
+      ],
+      "reason": "Fuente: declara el mensaje y el retorno de Genesis.",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "path": "CASM/src/main.c",
+      "rgb": [
+        90,
+        160,
+        255
+      ],
+      "reason": "Entrada HOST: recibe fuente y rutas de artefactos; no es codigo del kernel.",
+      "position": [
+        0,
+        160
+      ]
+    },
+    {
+      "path": "CASM/src/frontend.c",
+      "rgb": [
+        90,
+        160,
+        255
+      ],
+      "reason": "Frontend: acepta el perfil y rechaza lo que no puede representar.",
+      "position": [
+        0,
+        320
+      ]
+    },
+    {
+      "path": "CASM/src/casm.h",
+      "rgb": [
+        90,
+        160,
+        255
+      ],
+      "reason": "Modelo IR: conserva datos, llamadas y posiciones de fuente.",
+      "position": [
+        0,
+        480
+      ]
+    },
+    {
+      "path": "CASM/src/emitter.c",
+      "rgb": [
+        185,
+        130,
+        255
+      ],
+      "reason": "Emisor: decide codificacion, desplazamientos y orden de bytes.",
+      "position": [
+        0,
+        640
+      ]
+    },
+    {
+      "path": "kernel/boot/genesis/expected.hex",
+      "rgb": [
+        240,
+        185,
+        70
+      ],
+      "reason": "Vector manual: referencia independiente, nunca regenerada desde el emisor.",
+      "position": [
+        360,
+        640
+      ]
+    },
+    {
+      "path": "CASM/verify.py",
+      "rgb": [
+        90,
+        200,
+        140
+      ],
+      "reason": "Verificador: contrasta IR y bytes; el color indica funcion, no resultado aprobado.",
+      "position": [
+        0,
+        800
+      ]
+    },
+    {
+      "path": "tools/genesis.py",
+      "rgb": [
+        90,
+        200,
+        140
+      ],
+      "reason": "Guardian Genesis: exige fuente exacta, vector manual y paquete menor de 512 bytes.",
+      "position": [
+        0,
+        960
+      ]
+    },
+    {
+      "path": "tools/hex_report.py",
+      "rgb": [
+        210,
+        220,
+        235
+      ],
+      "reason": "Lectura: explica linea, offset, clase y bytes tras volver a verificar.",
+      "position": [
+        0,
+        1120
+      ]
+    },
+    {
+      "path": "kernel/boot/genesis/README.md",
+      "rgb": [
+        210,
+        220,
+        235
+      ],
+      "reason": "Contrato: registra alcance HOST, costes excluidos y siguiente prueba QEMU.",
+      "position": [
+        0,
+        1280
+      ]
+    },
+    {
+      "path": "kernel/boot/genesis/host.json",
+      "rgb": [
+        210,
+        220,
+        235
+      ],
+      "reason": "Evidencia HOST: medidas y huellas comprobadas; no acredita ejecucion del kernel.",
+      "position": [
+        0,
+        540
+      ]
+    }
+  ]
+}

@@ -1,8 +1,22 @@
 # Estado de la base BMO-X2 -- 04-11-2026
 
+## Genesis G0 -- 05-11-2026
+
+- Fuente propia `kernel/boot/genesis/main.casm`: salida GENESIS por el servicio
+  metal64 y retorno. Vector manual de 22 bytes; paquete FAGRAW64 de 46 bytes.
+- `tools/genesis.py` exige fuente exacta, verificador, vector y presupuesto
+  estricto de menos de 512 bytes incluyendo cabecera. Registro HOST persistido
+  en `kernel/boot/genesis/host.json`; no hay ejecucion ni arranque observado.
+- Tres pruebas Genesis cubren alteraciones, limites y conservacion del grafo.
+  Doce pruebas del grafo y el banco de la aplicacion SG (60, una medicion
+  ignorada) pasan con el soporte nuevo de colores con motivo y direccion local.
+- `super-grafo/genesis.json` fija once nodos del recorrido visual. El catalogo
+  general tiene 56 responsabilidades y 97 relaciones. La disposicion y los
+  tintes se guardan en esta carpeta, sin desplazar archivos reales.
+
 ## Revision de maduracion -- 05-11-2026
 
-- 51 nodos y 91 relaciones tipadas; lexer, simbolos, enteros, parser, tipos y
+- 56 nodos y 97 relaciones tipadas; lexer, simbolos, enteros, parser, tipos y
   almacenamiento tienen implementaciones separadas y notas de SUPER GRAFO.
 - Modelo de compilacion HOST: 1.077.280 -> 361.648 bytes, ahorro de 715.632
   bytes (66,43 %). No es una medida de RSS o del kernel; la semilla ejecutable

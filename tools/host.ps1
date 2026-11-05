@@ -3,7 +3,8 @@ param(
     [ValidateSet('comprobar','compilar','medir')][string]$Accion,
     [string]$Python,
     [string]$Compiler,
-    [string]$Source
+    [string]$Source,
+    [switch]$Genesis
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path $PSScriptRoot
@@ -76,3 +77,7 @@ if ($LASTEXITCODE -ne 0) { throw "Emision rechazada. Run: $run" }
 Write-Output "HOST: HEX, IR y paquete verificados en $run"
 & $Python -B (Join-Path $projectRoot 'tools/hex_report.py') $run
 if ($LASTEXITCODE -ne 0) { throw 'Fallo la lectura comprobada del HEX.' }
+if ($Genesis) {
+    & $Python -B (Join-Path $projectRoot 'tools/genesis.py') $run
+    if ($LASTEXITCODE -ne 0) { throw 'Genesis no cumple vector, paquete o presupuesto.' }
+}

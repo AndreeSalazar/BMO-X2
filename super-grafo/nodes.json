@@ -887,6 +887,91 @@
       "salida": "Contrato y lectura comprobable de los bytes actuales.",
       "aceptacion": "Vector manual de entrada y rechazo de HEX o paquete alterado.",
       "falta": "Operaciones propias privilegiadas y evidencia de ejecucion Ring 0."
+    },
+    {
+      "id": "genesis",
+      "ruta": "kernel/boot/genesis",
+      "titulo": "Genesis G0",
+      "posicion": [
+        2220,
+        -1300
+      ],
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "contrato",
+      "que": "Contrato y fuente minima observable con salida mediante el cargador.",
+      "entrada": "Perfil metal64-0.2 y contratos de Genesis.",
+      "salida": "Fuente, vector o evidencia HOST del recorrido Genesis.",
+      "aceptacion": "22 bytes de cuerpo, 46 de paquete; negativos rechazan alteraciones. Colores y motivos se conservan al guardar.",
+      "falta": "Ejecucion QEMU, estado CPL observado y mecanismos propios del kernel."
+    },
+    {
+      "id": "genesis-source",
+      "ruta": "kernel/boot/genesis/main.casm",
+      "titulo": "Genesis: fuente CASM",
+      "posicion": [
+        2220,
+        -1040
+      ],
+      "estado": "host",
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "que": "Declara GENESIS, CR/LF y retorno; requiere la tabla de servicios metal64.",
+      "entrada": "Perfil metal64-0.2 y contratos de Genesis.",
+      "salida": "Fuente, vector o evidencia HOST del recorrido Genesis.",
+      "aceptacion": "22 bytes de cuerpo, 46 de paquete; negativos rechazan alteraciones. Colores y motivos se conservan al guardar.",
+      "falta": "Ejecucion QEMU, estado CPL observado y mecanismos propios del kernel."
+    },
+    {
+      "id": "genesis-vector",
+      "ruta": "kernel/boot/genesis/expected.hex",
+      "titulo": "Genesis: vector manual",
+      "posicion": [
+        2220,
+        -780
+      ],
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "contrato",
+      "que": "Fija 22 bytes independientes del emisor: 12 de instrucciones y 10 de datos.",
+      "entrada": "Perfil metal64-0.2 y contratos de Genesis.",
+      "salida": "Fuente, vector o evidencia HOST del recorrido Genesis.",
+      "aceptacion": "22 bytes de cuerpo, 46 de paquete; negativos rechazan alteraciones. Colores y motivos se conservan al guardar.",
+      "falta": "Ejecucion QEMU, estado CPL observado y mecanismos propios del kernel."
+    },
+    {
+      "id": "genesis-guardian",
+      "ruta": "tools/genesis.py",
+      "titulo": "Genesis: guardian de bytes y tamano",
+      "posicion": [
+        2220,
+        -520
+      ],
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "contrato",
+      "que": "Exige fuente congelada exacta, verificacion independiente, vector manual y paquete menor de 512 bytes.",
+      "entrada": "Perfil metal64-0.2 y contratos de Genesis.",
+      "salida": "Fuente, vector o evidencia HOST del recorrido Genesis.",
+      "aceptacion": "22 bytes de cuerpo, 46 de paquete; negativos rechazan alteraciones. Colores y motivos se conservan al guardar.",
+      "falta": "Ejecucion QEMU, estado CPL observado y mecanismos propios del kernel."
+    },
+    {
+      "id": "genesis-graph",
+      "ruta": "super-grafo/genesis.json",
+      "titulo": "Genesis: colores y flujo vertical",
+      "posicion": [
+        2220,
+        -260
+      ],
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "contrato",
+      "que": "Define posiciones y colores por responsabilidad, con un motivo visible por archivo.",
+      "entrada": "Perfil metal64-0.2 y contratos de Genesis.",
+      "salida": "Fuente, vector o evidencia HOST del recorrido Genesis.",
+      "aceptacion": "22 bytes de cuerpo, 46 de paquete; negativos rechazan alteraciones. Colores y motivos se conservan al guardar.",
+      "falta": "Ejecucion QEMU, estado CPL observado y mecanismos propios del kernel."
     }
   ],
   "relaciones": [
@@ -1343,6 +1428,36 @@
     {
       "de": "ring0-contract",
       "a": "kernel-profile",
+      "clase": "plan"
+    },
+    {
+      "de": "genesis-source",
+      "a": "genesis",
+      "clase": "plan"
+    },
+    {
+      "de": "genesis-source",
+      "a": "frontend",
+      "clase": "plan"
+    },
+    {
+      "de": "genesis-guardian",
+      "a": "genesis-vector",
+      "clase": "verificacion"
+    },
+    {
+      "de": "genesis-guardian",
+      "a": "genesis-source",
+      "clase": "verificacion"
+    },
+    {
+      "de": "genesis-guardian",
+      "a": "metal64-verifier",
+      "clase": "verificacion"
+    },
+    {
+      "de": "genesis-graph",
+      "a": "genesis",
       "clase": "plan"
     }
   ]

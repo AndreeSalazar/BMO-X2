@@ -1,5 +1,11 @@
 # SUPER GRAFO es la mesa de BMO-X2
 
+`genesis.json` guarda colores con motivo y posiciones del recorrido Genesis.
+`tools/genesis_graph.py` los aplica preservando las demas posiciones. La
+disposicion usa direccion Houdini; las cabeceras y conectores toman sus colores
+de `tintes`, cuyo motivo aparece en el detalle. El color identifica una tarea,
+no demuestra que su resultado este aprobado. Requiere SG actualizado.
+
 `../BMO-X2.sg-workspace` establece esta raiz y el Taller CASM. Guardar el
 espacio conserva la sesion local; guardar/reabrir no regenera este mapa ni
 reacomoda sus nodos. El lanzador `-Accion abrir` abre ese archivo.

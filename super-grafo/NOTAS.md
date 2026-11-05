@@ -563,6 +563,61 @@ Depende de: Verificador metal64 (verificacion), Contrato CASM Ring 0 (plan).
 Aceptacion: Vector manual de entrada y rechazo de HEX o paquete alterado.
 Pendiente: Operaciones propias privilegiadas y evidencia de ejecucion Ring 0.
 
+## kernel/boot/genesis
+
+Contrato y fuente minima observable con salida mediante el cargador.
+
+Estado: HOST. Anillo: host. Lenguaje: contrato.
+Entrada: Perfil metal64-0.2 y contratos de Genesis.
+Salida: Fuente, vector o evidencia HOST del recorrido Genesis.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: 22 bytes de cuerpo, 46 de paquete; negativos rechazan alteraciones. Colores y motivos se conservan al guardar.
+Pendiente: Ejecucion QEMU, estado CPL observado y mecanismos propios del kernel.
+
+## kernel/boot/genesis/main.casm
+
+Declara GENESIS, CR/LF y retorno; requiere la tabla de servicios metal64.
+
+Estado: HOST. Anillo: 0. Lenguaje: CASM.
+Entrada: Perfil metal64-0.2 y contratos de Genesis.
+Salida: Fuente, vector o evidencia HOST del recorrido Genesis.
+Depende de: Genesis G0 (plan), Entrada y diagnosticos del frontend (plan).
+Aceptacion: 22 bytes de cuerpo, 46 de paquete; negativos rechazan alteraciones. Colores y motivos se conservan al guardar.
+Pendiente: Ejecucion QEMU, estado CPL observado y mecanismos propios del kernel.
+
+## kernel/boot/genesis/expected.hex
+
+Fija 22 bytes independientes del emisor: 12 de instrucciones y 10 de datos.
+
+Estado: HOST. Anillo: host. Lenguaje: contrato.
+Entrada: Perfil metal64-0.2 y contratos de Genesis.
+Salida: Fuente, vector o evidencia HOST del recorrido Genesis.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: 22 bytes de cuerpo, 46 de paquete; negativos rechazan alteraciones. Colores y motivos se conservan al guardar.
+Pendiente: Ejecucion QEMU, estado CPL observado y mecanismos propios del kernel.
+
+## tools/genesis.py
+
+Exige fuente congelada exacta, verificacion independiente, vector manual y paquete menor de 512 bytes.
+
+Estado: HOST. Anillo: host. Lenguaje: contrato.
+Entrada: Perfil metal64-0.2 y contratos de Genesis.
+Salida: Fuente, vector o evidencia HOST del recorrido Genesis.
+Depende de: Genesis: vector manual (verificacion), Genesis: fuente CASM (verificacion), Verificador metal64 (verificacion).
+Aceptacion: 22 bytes de cuerpo, 46 de paquete; negativos rechazan alteraciones. Colores y motivos se conservan al guardar.
+Pendiente: Ejecucion QEMU, estado CPL observado y mecanismos propios del kernel.
+
+## super-grafo/genesis.json
+
+Define posiciones y colores por responsabilidad, con un motivo visible por archivo.
+
+Estado: HOST. Anillo: host. Lenguaje: contrato.
+Entrada: Perfil metal64-0.2 y contratos de Genesis.
+Salida: Fuente, vector o evidencia HOST del recorrido Genesis.
+Depende de: Genesis G0 (plan).
+Aceptacion: 22 bytes de cuerpo, 46 de paquete; negativos rechazan alteraciones. Colores y motivos se conservan al guardar.
+Pendiente: Ejecucion QEMU, estado CPL observado y mecanismos propios del kernel.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -585,4 +640,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-51 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+56 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

@@ -1,0 +1,6 @@
+// Genesis G0: visible loader-assisted probe, not an autonomous boot image.
+void metal_main(void) {
+    const char message[] = "GENESIS\r\n";
+    metal_puts(message);
+    return;
+}
