@@ -34,6 +34,12 @@ posiciones. Flujo vertical inspirado en Houdini; no es un archivo de Houdini.
 La apertura enfoca Genesis para leer fuente, vector, evidencia y contrato.
 Salir del foco permite explorar los otros nodos del compilador; no se intenta
 mostrar todo el proyecto expandido en una sola pantalla.
+La disposicion se fija al aplicar Genesis. Los estilos y posiciones ya guardados
+se conservan; `tools/genesis_graph.py --reset` restaura los declarados. En SUPER
+GRAFO, seleccionar un nodo habilita **Estilo del nodo**: color, motivo y forma
+urbana con vista previa y guardado automatico. Los textos completos se leen
+en la ficha; no desbordan la tarjeta. Los cables de este foco representan
+pertenencia a carpetas, no pasos de ejecucion.
 
 - Cian: fuente, lo que se solicita.
 - Azul: frontend y modelo, interpretacion y tipos.

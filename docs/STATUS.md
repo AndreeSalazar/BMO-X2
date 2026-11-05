@@ -2,6 +2,13 @@
 
 ## Genesis G0 -- 05-11-2026
 
+Revision visual de SUPER GRAFO: tarjetas con texto contenido, conexiones de
+arbol desviadas alrededor de nodos y fijacion de posiciones visibles. Editor
+de estilo con motivo y guardado tras 500 ms de pausa. Ciudad distingue formas
+estables por archivo y admite forma manual; color/forma no mueven parcelas.
+14 pruebas de grafo y 61 de aplicacion pasan (una medicion omitida). Las formas
+anaden 4 bytes por instancia GPU (44 -> 48); no cambia el HEX de Genesis.
+
 - Fuente propia `kernel/boot/genesis/main.casm`: salida GENESIS por el servicio
   metal64 y retorno. Vector manual de 22 bytes; paquete FAGRAW64 de 46 bytes.
 - `tools/genesis.py` exige fuente exacta, verificador, vector y presupuesto

@@ -56,6 +56,14 @@
       ],
       "motivo": "Vector manual: referencia independiente, nunca regenerada desde el emisor."
     },
+    "kernel/boot/genesis/host.json": {
+      "rgb": [
+        210,
+        220,
+        235
+      ],
+      "motivo": "Evidencia HOST: medidas y huellas comprobadas; no acredita ejecucion del kernel."
+    },
     "kernel/boot/genesis/main.casm": {
       "rgb": [
         68,
@@ -79,14 +87,6 @@
         235
       ],
       "motivo": "Lectura: explica linea, offset, clase y bytes tras volver a verificar."
-    },
-    "kernel/boot/genesis/host.json": {
-      "rgb": [
-        210,
-        220,
-        235
-      ],
-      "motivo": "Evidencia HOST: medidas y huellas comprobadas; no acredita ejecucion del kernel."
     }
   },
   "direccion": "houdini",
@@ -145,7 +145,7 @@
     ]
   },
   "rejilla": false,
-  "bloqueada": false,
+  "bloqueada": true,
   "grafo": {
     "": [
       -350.0,
@@ -212,20 +212,20 @@
       270.0
     ],
     "CASM/src/casm.h": [
-      0,
-      480
+      0.0,
+      480.0
     ],
     "CASM/src/emitter.c": [
-      0,
-      640
+      0.0,
+      640.0
     ],
     "CASM/src/frontend": [
       -680.0,
       405.0
     ],
     "CASM/src/frontend.c": [
-      0,
-      320
+      0.0,
+      320.0
     ],
     "CASM/src/frontend/integers.c": [
       740.0,
@@ -248,8 +248,8 @@
       -1040.0
     ],
     "CASM/src/main.c": [
-      0,
-      160
+      0.0,
+      160.0
     ],
     "CASM/src/model": [
       -680.0,
@@ -288,8 +288,8 @@
       650.0
     ],
     "CASM/verify.py": [
-      0,
-      800
+      0.0,
+      800.0
     ],
     "CASM/x86_64": [
       1850.0,
@@ -348,24 +348,24 @@
       1660.0
     ],
     "kernel/boot/genesis": [
-      0,
-      0
+      0.0,
+      0.0
     ],
     "kernel/boot/genesis/README.md": [
-      0,
-      720
+      0.0,
+      720.0
     ],
     "kernel/boot/genesis/expected.hex": [
-      0,
-      360
+      0.0,
+      360.0
     ],
     "kernel/boot/genesis/host.json": [
-      0,
-      540
+      0.0,
+      540.0
     ],
     "kernel/boot/genesis/main.casm": [
-      0,
-      180
+      0.0,
+      180.0
     ],
     "kernel/capabilities": [
       1110.0,
@@ -408,12 +408,12 @@
       165.0
     ],
     "tools/genesis.py": [
-      0,
-      960
+      0.0,
+      960.0
     ],
     "tools/hex_report.py": [
-      0,
-      1120
+      0.0,
+      1120.0
     ],
     "userspace": [
       640.0,
@@ -432,7 +432,7 @@
       2200.0
     ]
   },
-  "foco": "kernel/boot/genesis",
+  "foco": "kernel/boot",
   "desplegadas": [
     "CASM",
     "CASM/src",

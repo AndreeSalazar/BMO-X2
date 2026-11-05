@@ -42,6 +42,12 @@ class Genesis(unittest.TestCase):
         self.assertEqual(result['grafo']['mine'],[100,200])
         self.assertEqual(result['tintes']['mine'],order['tintes']['mine'])
         self.assertEqual(result['direccion'],'houdini')
+        self.assertTrue(result['bloqueada'])
+        path=config['nodes'][0]['path'];result['tintes'][path]['rgb']=[7,8,9];result['grafo'][path]=[42,43]
+        saved=apply(copy.deepcopy(result),config)
+        self.assertEqual(saved['tintes'][path]['rgb'],[7,8,9]);self.assertEqual(saved['grafo'][path],[42,43])
+        restored=apply(copy.deepcopy(result),config,reset=True)
+        self.assertEqual(restored['tintes'][path]['rgb'],config['nodes'][0]['rgb'])
         bad=copy.deepcopy(config);bad['nodes'][0]['path']='../outside'
         with self.assertRaises(ValueError): apply(copy.deepcopy(order),bad)
         bad=copy.deepcopy(config);bad['nodes'][0]['rgb']=[256,0,0]
