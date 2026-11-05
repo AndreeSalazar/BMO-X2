@@ -1,5 +1,9 @@
 # Herencia de BMO-X y procedencia de CASM
 
+La transferencia concreta de TALK-CPU y del Rust de BMO-X esta en
+[TRANSFER](TRANSFER.md). `transfer.json` fija las huellas de las fuentes
+revisadas; son candidatos, todavia sin importar ni ejecutar en BMO-X2.
+
 CASM se copio de `Linux Reconstruido/CASM`, del mismo autor, en el commit
 `5a751b1cf493780003ff2714a83e738f2981c1dd`. Su ultimo cambio CASM era
 `3a6e796`: modulos freestanding y pruebas adversas.

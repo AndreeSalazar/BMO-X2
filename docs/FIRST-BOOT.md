@@ -20,6 +20,11 @@ un salto directo a esos bytes no satisface ese contrato.
 
 ## M1: el primer arranque en QEMU
 
+TALK-CPU ofrece el puente de referencia y evidencia historica de su contexto.
+La revision de piezas y condiciones esta en [TRANSFER](../heritage/TRANSFER.md).
+Repetir esa ruta con BMO-X2 es una prueba nueva, pendiente; sus resultados
+anteriores no se suman como evidencia del hijo.
+
 1. Fijar la cadena de carga y su contexto: modo de CPU, mapa de memoria,
    framebuffer, pila, tablas de servicios y tratamiento del retorno.
 2. Cargar una imagen admitida y llegar a la entrada CASM con ese contexto.

@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "reviewed_date": "2026-11-05",
+  "purpose": "CASM Ring 0 from TALK-CPU lessons; Rust Ring 3 inheritance from BMO-X",
+  "execution_in_bmo_x2": false,
+  "files": [
+    {
+      "project": "TALK-CPU-x86-64",
+      "path": "Puente_Metal/LEEME.md",
+      "observed_head": "b5b8e881a33ffb8a9af4f63285dbfa6c0ae47e87",
+      "scope": "working-tree file; not asserted identical to commit",
+      "sha256": "893e79c349e18b6f4745b7ea74e5031f23b3331a8cb5bb3b05a2d6bc625d4c73",
+      "bytes": 8370,
+      "state": "reviewed-not-imported"
+    },
+    {
+      "project": "TALK-CPU-x86-64",
+      "path": "Puente_Metal/entrada.hex",
+      "observed_head": "b5b8e881a33ffb8a9af4f63285dbfa6c0ae47e87",
+      "scope": "working-tree file; not asserted identical to commit",
+      "sha256": "20a42e44122fe8cc719b15c7a5b4d1cb0c958dac7faa4f6adbba0d591e4339eb",
+      "bytes": 6854,
+      "state": "reviewed-not-imported"
+    },
+    {
+      "project": "TALK-CPU-x86-64",
+      "path": "Puente_Metal/cabecera.hex",
+      "observed_head": "b5b8e881a33ffb8a9af4f63285dbfa6c0ae47e87",
+      "scope": "working-tree file; not asserted identical to commit",
+      "sha256": "a9ad17e34a2a7c5ece9f0309bd40d4a8d81e1cf35db0b87c675af115c95264f1",
+      "bytes": 730,
+      "state": "reviewed-not-imported"
+    },
+    {
+      "project": "TALK-CPU-x86-64",
+      "path": "Puente_Metal/datos.hex",
+      "observed_head": "b5b8e881a33ffb8a9af4f63285dbfa6c0ae47e87",
+      "scope": "working-tree file; not asserted identical to commit",
+      "sha256": "45ed2b4b995e9dbbbb52a3e9cfaf464adc5cc28c7a4c1e9783baa22306f4d7b1",
+      "bytes": 2985,
+      "state": "reviewed-not-imported"
+    },
+    {
+      "project": "TALK-CPU-x86-64",
+      "path": "Puente_Metal/fuente.hex",
+      "observed_head": "b5b8e881a33ffb8a9af4f63285dbfa6c0ae47e87",
+      "scope": "working-tree file; not asserted identical to commit",
+      "sha256": "82d4a1f3a4a1dd7fd4adb5523783ae1f921d2db94c30305b8206db49f5c95dc5",
+      "bytes": 6446,
+      "state": "reviewed-not-imported"
+    },
+    {
+      "project": "TALK-CPU-x86-64",
+      "path": "Orquestador_Metal/64-bit/README.md",
+      "observed_head": "b5b8e881a33ffb8a9af4f63285dbfa6c0ae47e87",
+      "scope": "working-tree file; not asserted identical to commit",
+      "sha256": "ad10fbfe2e03546a4e05b338a95679c94b35bf71c32e6ffa3688f2d731ef4681",
+      "bytes": 1544,
+      "state": "reviewed-not-imported"
+    },
+    {
+      "project": "TALK-CPU-x86-64",
+      "path": "EVIDENCIAS/CASM/qemu-tests.json",
+      "observed_head": "b5b8e881a33ffb8a9af4f63285dbfa6c0ae47e87",
+      "scope": "working-tree file; not asserted identical to commit",
+      "sha256": "6523b88bf314848044c554df7bc7354550079129a32b94ed47c446a2618f8d87",
+      "bytes": 368,
+      "state": "reviewed-not-imported"
+    },
+    {
+      "project": "BMO",
+      "path": "Ultra_userspace/userland/src/sys.rs",
+      "observed_head": "6076bdefefc67877419ca53633c6e40cb45fc92d",
+      "scope": "working-tree file; not asserted identical to commit",
+      "sha256": "6912a58c94ff059f1a8da7bb3a5f4766780f05ed0d4d6438638e7f643aa32318",
+      "bytes": 37464,
+      "state": "reviewed-not-imported"
+    },
+    {
+      "project": "BMO",
+      "path": "Ultra_userspace/userland/Cargo.toml",
+      "observed_head": "6076bdefefc67877419ca53633c6e40cb45fc92d",
+      "scope": "working-tree file; not asserted identical to commit",
+      "sha256": "911acf9df2ef41ee65d8068e5c5ab0032201998f175332bef8515e3cd9a42b22",
+      "bytes": 1751,
+      "state": "reviewed-not-imported"
+    },
+    {
+      "project": "BMO",
+      "path": "Ultra_userspace/userland/link.ld",
+      "observed_head": "6076bdefefc67877419ca53633c6e40cb45fc92d",
+      "scope": "working-tree file; not asserted identical to commit",
+      "sha256": "213eff1362f56b03a692f201ebf71265809e25f791b2c1df11de34b673ee5660",
+      "bytes": 1157,
+      "state": "reviewed-not-imported"
+    },
+    {
+      "project": "BMO",
+      "path": "Ultra_userspace/Cargo.toml",
+      "observed_head": "6076bdefefc67877419ca53633c6e40cb45fc92d",
+      "scope": "working-tree file; not asserted identical to commit",
+      "sha256": "8a83c3148780b0557b196940c5b02e4ad72cb6ce37f4c680fc59a2be1f99114d",
+      "bytes": 1691,
+      "state": "reviewed-not-imported"
+    },
+    {
+      "project": "BMO",
+      "path": "platform/abi/bmo-abi/src/syscalls/mod.rs",
+      "observed_head": "6076bdefefc67877419ca53633c6e40cb45fc92d",
+      "scope": "working-tree file; not asserted identical to commit",
+      "sha256": "7a5d720660bc87a808896e8046564c0432fc6d1031576a2fc34a6c2a6a285e0f",
+      "bytes": 5951,
+      "state": "reviewed-not-imported"
+    },
+    {
+      "project": "BMO",
+      "path": "VALKYRIE-ABI/README.md",
+      "observed_head": "6076bdefefc67877419ca53633c6e40cb45fc92d",
+      "scope": "working-tree file; not asserted identical to commit",
+      "sha256": "60d3f779800131ce8758b82614783e42a35087fbc62dd7207e348544fba9653d",
+      "bytes": 7910,
+      "state": "reviewed-not-imported"
+    }
+  ]
+}
