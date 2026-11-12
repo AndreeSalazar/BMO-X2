@@ -45,3 +45,28 @@ def make_packet(reference, image):
     struct.pack_into('<I', packet, 16, sum(packet[24:]))
     return bytes(packet), dict(fault_rip=fault_rip, sbef_bytes=len(image),
                                sbef_sha256=hashlib.sha256(image).hexdigest())
+
+
+def prepend_intro(packet, splash):
+    """Redirect the verified HD intro terminal into the separate ABI probe."""
+    intro = bytearray(splash[24:])
+    terminal = 216
+    if len(intro) != 1255 or intro[terminal:terminal+3] != b'\xf4\xeb\xfd':
+        raise ValueError('Cambio el terminal del gato HD')
+    lea = bytes.fromhex('488d359d000000')
+    site = intro.index(lea)
+    intro[site+3] += 2  # The longer jump shifts the palette and mask by two bytes.
+    intro[terminal:terminal+3] = b'\xe9' + struct.pack('<i', len(intro) - terminal)
+    for branch in (8, 18):
+        if intro[branch:branch+2] != b'\x0f\x85':
+            raise ValueError('Cambio la guarda de entrega del gato HD')
+        struct.pack_into('<i', intro, branch+2, len(intro) - branch - 6)
+    intro.extend(bytes.fromhex('f4ebfd'))  # Preserve the rejected handoff terminal.
+    intro.extend(bytes.fromhex('4889ef'))  # Restore RDI to the bridge context.
+    body = intro + packet[24:]
+    if len(body) + 24 > 4096:
+        raise ValueError('Intro y sonda exceden el limite del puente')
+    header = bytearray(packet[:24])
+    struct.pack_into('<I', header, 8, len(body))
+    struct.pack_into('<I', header, 16, sum(body))
+    return bytes(header + body), len(intro)

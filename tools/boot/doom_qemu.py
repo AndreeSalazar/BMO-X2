@@ -7,7 +7,7 @@ import subprocess
 import sys
 import uuid
 
-from doom_fixture import make_packet
+from doom_fixture import make_packet, prepend_intro
 from scope import ROOT, workspace
 from wake import assemble, check
 
@@ -16,6 +16,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('reference', type=Path)
     parser.add_argument('sbef', type=Path)
+    parser.add_argument('--intro', type=Path)
     parser.add_argument('--qemu', default='C:/Program Files/qemu/qemu-system-x86_64.exe')
     args = parser.parse_args()
     reference = workspace(args.reference)
@@ -25,11 +26,21 @@ def main():
     base_packet = (reference / 'INICIO.X86').read_bytes()
     sbef = args.sbef.read_bytes()
     packet, _ = make_packet(base_packet, sbef)
+    if args.intro:
+        intro = workspace(args.intro)
+        if (intro / 'profile.txt').read_text(encoding='utf-8-sig').strip() != 'ring0-splash-hd-0.1':
+            raise ValueError('Se requiere un run CASM de gato HD')
+        check(intro)
+        splash = (intro / 'INICIO.X86').read_bytes()
+        packet, _ = prepend_intro(packet, splash)
 
     run = reference.parent / f'run-doom-{uuid.uuid4().hex[:12]}'
     run.mkdir()
     (run / 'reference.x86').write_bytes(base_packet)
     (run / 'doom-fixed.sbef').write_bytes(sbef)
+    if args.intro:
+        (run / 'intro.x86').write_bytes(splash)
+        shutil.copyfile(intro / 'source.casm', run / 'intro.casm')
     (run / 'INICIO.X86').write_bytes(packet)
     (run / 'profile.txt').write_text('doom-abi-fixture\n', encoding='ascii')
     bridge = ROOT / 'kernel/boot/bridge'
@@ -50,7 +61,9 @@ def main():
                     '--qemu', qemu, '--halt', '--abi-probe', '--doom-fixture'],
                    check=True, cwd=run, timeout=70)
     report = json.loads((run / 'build/puente-test-results.json').read_text(encoding='utf-8'))
-    report.update(run=run.name, evidence='QEMU', milestone='DoomGeneric fixed arithmetic in CPL3')
+    report.update(run=run.name, evidence='QEMU',
+                  milestone='HD intro then DoomGeneric fixed arithmetic in CPL3' if args.intro
+                  else 'DoomGeneric fixed arithmetic in CPL3')
     (run / 'qemu-results.json').write_text(json.dumps(report, indent=2) + '\n', encoding='ascii')
     (run / 'qemu-run.json').write_text(json.dumps(dict(cpu='qemu64', ram_mib=256)) + '\n', encoding='ascii')
     print(f'Run: {run}')

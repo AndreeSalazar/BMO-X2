@@ -53,10 +53,17 @@ ROOT = workspace(args.workspace)
 if args.doom_fixture and (not args.abi_probe or args.casos != ['normal']):
     parser.error('DOOM requires the normal ABI probe case')
 doom = None
+intro_size = 0
+intro_rows = None
 if args.doom_fixture:
-    from doom_fixture import make_packet
+    from doom_fixture import make_packet, prepend_intro
     reference = (ROOT / 'reference.x86').read_bytes()
     expected, doom = make_packet(reference, (ROOT / 'doom-fixed.sbef').read_bytes())
+    if (ROOT / 'intro.x86').is_file():
+        expected, intro_size = prepend_intro(expected, (ROOT / 'intro.x86').read_bytes())
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'CASM'))
+        from splash_verify import read_rows
+        intro_rows, _, _ = read_rows((ROOT / 'intro.casm').read_bytes(), hd=True)
     if (ROOT / 'build/Puente_Metal/METAL/INICIO.X86').read_bytes() != expected:
         raise ValueError('Paquete DOOM distinto del vector esperado')
 if args.splash:
@@ -168,15 +175,16 @@ def run(case):
                     candidate = memory(address, 0xb0, 'context')
                     if candidate[:8] == b'METAL64!':
                         ebs, returned, failed = (struct.unpack_from('<I', candidate, p)[0] for p in (0x78, 0x98, 0x9c))
-                        if args.splash and ebs == 1 and 'CPL=0' in last_registers and 'HLT=0' in last_registers:
+                        if (args.splash or intro_rows) and ebs == 1 and 'CPL=0' in last_registers and 'HLT=0' in last_registers:
                             frame = register(last_registers, 'R12')
                             if frame in (1,2) and frame not in frames:
                                 command('stop')
                                 try:
                                     stopped = command('human-monitor-command', {'command-line':'info registers'})
                                     code_base = struct.unpack_from('<Q', candidate, 8)[0]
-                                    if register(stopped, 'R12') == frame and wait_low <= register(stopped,'RIP')-code_base < wait_high:
-                                        compare_frame(memory,candidate,logo,frame)
+                                    low, high = (0xb6, 0xd0) if intro_rows else (wait_low, wait_high)
+                                    if register(stopped, 'R12') == frame and low <= register(stopped,'RIP')-code_base < high:
+                                        compare_frame(memory,candidate,intro_rows or logo,frame)
                                         command('screendump', {'filename':str(prefix)+f'-frame-{frame}.png','format':'png'})
                                         frames.add(frame)
                                 finally:
@@ -211,7 +219,7 @@ def run(case):
             packet = mutated_packet(packet, case)
         code = struct.unpack_from('<Q', context, 8)[0]
         assert memory(code, len(packet) - 24, 'code') == packet[24:], 'No ejecuto la copia exacta del cuerpo propio'
-        halt_offset = splash_halt + 1 if args.splash else 866 if args.hot_unmap else 896 if args.abi_probe else 662 if args.user_fault else 471 if args.paging else 426 if args.frame_cycle else 215 if args.memory else 136 if args.fault else 48 if args.stack else 6 if args.identify else 2
+        halt_offset = splash_halt + 1 if args.splash else 866 if args.hot_unmap else intro_size + 896 if args.abi_probe else 662 if args.user_fault else 471 if args.paging else 426 if args.frame_cycle else 215 if args.memory else 136 if args.fault else 48 if args.stack else 6 if args.identify else 2
         if args.halt:
             terminal = 'FA 31 C0 0F A2 F4 EB FD' if args.identify else 'FA F4 EB FD'
             if args.splash:
@@ -227,8 +235,9 @@ def run(case):
             elif args.user_fault:
                 assert len(packet) == 740 and packet[24+661:24+664] == bytes.fromhex('F4 EB FD'), 'Terminal de CPL3 distinto'
             elif args.abi_probe:
-                expected_size = SBEF_OFFSET + doom['sbef_bytes'] if doom else 1263
-                assert len(packet) == expected_size and packet[24+895:24+898] == bytes.fromhex('F4 EB FD'), 'Terminal ABI distinto'
+                expected_size = intro_size + SBEF_OFFSET + doom['sbef_bytes'] if doom else 1263
+                terminal_offset = 24 + intro_size + 895
+                assert len(packet) == expected_size and packet[terminal_offset:terminal_offset+3] == bytes.fromhex('F4 EB FD'), 'Terminal ABI distinto'
             elif args.hot_unmap:
                 assert len(packet) == 954 and packet[24+865:24+868] == bytes.fromhex('F4 EB FD'), 'Terminal de revocacion distinto'
             elif args.stack:
@@ -300,7 +309,7 @@ def run(case):
             assert memory(base + 0x7310, 8, 'rejected-syscalls') == bytes(8), 'Se ejecuto una llamada de usuario'
             result.update(SbefAccepted=False, SyscallCount=0)
         elif user_case:
-            result.update(user_fault_evidence(memory,last_registers,captured,code,case=='contexto',
+            result.update(user_fault_evidence(memory,last_registers,captured,code+intro_size,case=='contexto',
                                               abi_probe=args.abi_probe,hot_unmap=args.hot_unmap,doom=doom))
         if memory_case:
             if args.paging:
@@ -312,6 +321,10 @@ def run(case):
             assert register(last_registers, 'R12') == 3 and frames == {1,2}, 'Faltan cuadros completos'
             compare_frame(memory,context,logo,3)
             result['FramesVerified'] = [1,2,3]
+        if intro_rows:
+            assert frames == {1, 2}, 'Faltan cuadros completos de la intro'
+            compare_frame(memory, context, intro_rows, 3)
+            result['FramesVerified'] = [1, 2, 3]
         return result
     finally:
         if process.poll() is None:

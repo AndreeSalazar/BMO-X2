@@ -55,6 +55,20 @@ El run conserva el SBEF, el disco virtual, la captura y el JSON.
 
 El cargador general de SBEF externo y el motor jugable siguen pendientes.
 
+### Intro y Ring 3 en el mismo arranque
+
+Genera un run con `bmo-x2.ps1 -Accion gato-hd` y agrega
+`-IntroRun <ruta-del-run-gato-hd>` al comando anterior. El ensayo
+verifica los tres cuadros del gato y la ejecucion del SBEF en la
+misma VM. El perfil HD y el perfil ABI de referencia conservan sus
+vectores. La copia combinada termina en la parada del ensayo.
+
+Abre el run DOOM aprobado con:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1 -Run <ruta-del-run-doom>
+```
+
 ## Del escritorio al primer cuadro de DOOM
 
 1. Cargar el SBEF externo en QEMU y comprobar el portal ABI desde CPL3.

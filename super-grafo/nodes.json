@@ -2057,7 +2057,7 @@
       "que": "Compila la aritmetica original de DoomGeneric y empaqueta un cliente ELF64.",
       "entrada": "m_fixed.c fijado, toolchain x86-64 ELF y portal ABI 1.",
       "salida": "Tabla ELF, doom-fixed.sbef e informe QEMU de ejecucion CPL3.",
-      "aceptacion": "GCC produce ELF64, HOST empaqueta y QEMU comprueba aritmetica, tres syscalls y borrado.",
+      "aceptacion": "QEMU comprueba tres cuadros HD y despues el SBEF de GCC, tres syscalls y borrado.",
       "falta": "Cargador general de SBEF externo y port de video, teclado, reloj y WAD."
     },
     {

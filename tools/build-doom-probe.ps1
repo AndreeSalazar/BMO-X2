@@ -4,9 +4,11 @@ param(
     [string]$Gcc,
     [string]$Llvm = (Join-Path $env:ProgramFiles 'LLVM/bin'),
     [string]$Python,
-    [string]$AbiRun
+    [string]$AbiRun,
+    [string]$IntroRun
 )
 $ErrorActionPreference = 'Stop'
+if ($IntroRun -and -not $AbiRun) { throw '-IntroRun requiere -AbiRun.' }
 $root = Split-Path $PSScriptRoot
 if (-not $DoomSource) {
     $DoomSource = Join-Path (Split-Path $root) 'BMO/toolchain/lang/c/expansion/doom/fuentes/doomgeneric/doomgeneric'
@@ -62,6 +64,8 @@ $segments | Set-Content -LiteralPath (Join-Path $out 'elf-segments.txt') -Encodi
 if ($LASTEXITCODE -ne 0) { throw 'Fallo la admision HOST de SBEF.' }
 Write-Output "SBEF: $sbef"
 if ($AbiRun) {
-    & $Python -B (Join-Path $PSScriptRoot 'boot/doom_qemu.py') $AbiRun $sbef
+    $introArguments = @()
+    if ($IntroRun) { $introArguments = @('--intro', $IntroRun) }
+    & $Python -B (Join-Path $PSScriptRoot 'boot/doom_qemu.py') $AbiRun $sbef @introArguments
     if ($LASTEXITCODE -ne 0) { throw 'Fallo la ejecucion de la sonda DOOM en QEMU.' }
 }

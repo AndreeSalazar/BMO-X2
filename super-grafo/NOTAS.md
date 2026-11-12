@@ -1341,7 +1341,7 @@ Estado: QEMU. Anillo: host. Lenguaje: PowerShell y C.
 Entrada: m_fixed.c fijado, toolchain x86-64 ELF y portal ABI 1.
 Salida: Tabla ELF, doom-fixed.sbef e informe QEMU de ejecucion CPL3.
 Depende de: Contrato minimo del cargador SBEF (plan), Empaquetador ELF64 a SBEF (generacion).
-Aceptacion: GCC produce ELF64, HOST empaqueta y QEMU comprueba aritmetica, tres syscalls y borrado.
+Aceptacion: QEMU comprueba tres cuadros HD y despues el SBEF de GCC, tres syscalls y borrado.
 Pendiente: Cargador general de SBEF externo y port de video, teclado, reloj y WAD.
 
 ## userspace/services/audio
