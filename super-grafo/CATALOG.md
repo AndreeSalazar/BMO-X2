@@ -110,6 +110,7 @@
 | [Primer marco de RAM](../kernel/mm/physical/main.casm) | qemu | 0 | Prueba escritura y lectura de un marco convencional tras ExitBootServices. |
 | [Guardian QEMU del marco](../tools/boot/memory_capture.py) | host | host | Comprueba la primera direccion elegible, la marca fisica y el contexto. |
 | [Pesos del build QEMU](../tools/boot/weights.py) | host | host | Mide artefactos en disco y lee la RAM configurada de cada VM. |
+| [Propiedad y devolucion de un marco](../kernel/mm/physical/lifecycle/main.casm) | qemu | 0 | Asigna, protege la propiedad, borra y reasigna un marco de 4 KiB. |
 
 ## Dependencias declaradas
 
@@ -313,5 +314,8 @@
 | ram-frame | stop-verifier | verificacion |
 | ram-qemu | ram-frame | verificacion |
 | qemu-weights | ram-qemu | verificacion |
+| physical-memory | ram-frame-cycle | plan |
+| ram-frame-cycle | ram-frame | codigo |
+| ram-frame-cycle | ram-qemu | verificacion |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

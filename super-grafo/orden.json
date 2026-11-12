@@ -1,5 +1,13 @@
 {
   "tintes": {
+    "kernel/mm/physical/lifecycle/main.casm": {
+      "rgb": [90, 220, 255],
+      "motivo": "Ring 0: prueba propiedad, devolucion y borrado de un marco."
+    },
+    "kernel/mm/physical/lifecycle/expected.hex": {
+      "rgb": [255, 194, 79],
+      "motivo": "Vector independiente del ciclo completo de un marco."
+    },
     "kernel/mm/physical/main.casm": {
       "rgb": [90, 220, 255],
       "motivo": "Ring 0: selecciona y prueba un marco fisico convencional."
@@ -950,6 +958,10 @@
     "tools/boot/weights.py": [
       9000,
       3850
+    ],
+    "kernel/mm/physical/lifecycle/main.casm": [
+      9500,
+      3500
     ]
   },
   "foco": "kernel/boot",

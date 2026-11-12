@@ -947,6 +947,22 @@
       "tests": [
         "tests/test_stop.py"
       ]
+    },
+    {
+      "id": "ring0-frame-cycle",
+      "parent": "casm",
+      "kind": "profile",
+      "title": "Ring 0: asignacion y devolucion de un marco",
+      "status": "implemented",
+      "description": "Prueba propietario, agotamiento, borrado y reutilizacion en QEMU. Paquete de 498 bytes.",
+      "sources": [
+        "src/kernel/stop.c",
+        "stop_verify.py"
+      ],
+      "guards": [],
+      "tests": [
+        "tests/test_stop.py"
+      ]
     }
   ]
 }

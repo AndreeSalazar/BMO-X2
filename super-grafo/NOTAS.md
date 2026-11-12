@@ -823,9 +823,9 @@ Distingue memoria util, reservada y marcos asignados.
 Estado: DISENO. Anillo: 0. Lenguaje: CASM.
 Entrada: Mapa de arranque con limites verificados.
 Salida: Asignacion y devolucion de marcos con propietario.
-Depende de: Memoria y aislamiento (plan), Contexto de entrega (plan), Primer marco de RAM (plan).
+Depende de: Memoria y aislamiento (plan), Contexto de entrega (plan), Primer marco de RAM (plan), Propiedad y devolucion de un marco (plan).
 Aceptacion: No asigna una reserva, detecta doble devolucion y recupera marcos al salir.
-Pendiente: Registrar marcos libres y ocupados, asignar propietario y probar la devolucion.
+Pendiente: Generalizar el ciclo probado a multiples marcos y recuperar los recursos de un proceso.
 
 ## kernel/mm/virtual
 
@@ -1168,6 +1168,17 @@ Depende de: Guardian QEMU del marco (verificacion).
 Aceptacion: Mide archivos conservados y descarta pruebas incompletas.
 Pendiente: Medir memoria residente del kernel cuando exista un asignador.
 
+## kernel/mm/physical/lifecycle/main.casm
+
+Asigna, protege la propiedad, borra y reasigna un marco de 4 KiB.
+
+Estado: QEMU. Anillo: 0. Lenguaje: CASM.
+Entrada: Mapa de arranque y dos propietarios de prueba.
+Salida: Estado de seis pasos, propietario final y marco limpio.
+Depende de: Primer marco de RAM (codigo), Guardian QEMU del marco (verificacion).
+Aceptacion: QEMU coteja agotamiento, devolucion ajena, doble devolucion y 4096 bytes borrados.
+Pendiente: Administrar multiples marcos y conectarlos con permisos de pagina.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -1190,4 +1201,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-106 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+107 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

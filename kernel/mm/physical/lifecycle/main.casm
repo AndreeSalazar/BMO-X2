@@ -1,0 +1,4 @@
+void kernel_main(void) {
+    boot_frame_cycle();
+    cpu_halt();
+}

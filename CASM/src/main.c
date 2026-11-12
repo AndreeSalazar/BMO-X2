@@ -15,10 +15,11 @@ int main(int argc, char **argv) {
     int identify = explicit_profile && !strcmp(argv[2], "ring0-cpu-0.1");
     int context = explicit_profile && !strcmp(argv[2], "ring0-context-0.1");
     int memory = explicit_profile && !strcmp(argv[2], "ring0-memory-0.1");
+    int frame_cycle = explicit_profile && !strcmp(argv[2], "ring0-frame-cycle-0.1");
     int fault = explicit_profile && !strcmp(argv[2], "ring0-fault-0.1");
     int splash_hd = explicit_profile && !strcmp(argv[2], "ring0-splash-hd-0.1");
     int splash = splash_hd || (explicit_profile && !strcmp(argv[2], "ring0-splash-0.1"));
-    int stop = identify || context || fault || memory || (explicit_profile && !strcmp(argv[2], "ring0-stop-0.1"));
+    int stop = identify || context || fault || memory || frame_cycle || (explicit_profile && !strcmp(argv[2], "ring0-stop-0.1"));
     if (stop || splash) { argc -= 2; argv += 2; }
     if (argc != 4) {
         fprintf(stderr, "Usage: casmc SOURCE OUTPUT.hex OUTPUT.ir.json\n");
@@ -38,7 +39,8 @@ int main(int argc, char **argv) {
     if (!ok) fprintf(stderr, "RED [SOURCE-SIZE] Source exceeds 65536 bytes or cannot be read.\n");
     if (ok && splash) ok = casm_splash(source, length, argv[2], argv[3], splash_hd);
     else if (ok && stop) ok = casm_stop(source, length, argv[2], argv[3],
-                                    memory ? KERNEL_MEMORY : fault ? KERNEL_FAULT : context ? KERNEL_CONTEXT : identify ? KERNEL_CPU : KERNEL_STOP);
+                                    frame_cycle ? KERNEL_FRAME_CYCLE : memory ? KERNEL_MEMORY : fault ? KERNEL_FAULT :
+                                    context ? KERNEL_CONTEXT : identify ? KERNEL_CPU : KERNEL_STOP);
     else {
         if (ok) ok = casm_parse(source, length, program);
         if (ok) ok = casm_emit(program, argv[2], argv[3]);

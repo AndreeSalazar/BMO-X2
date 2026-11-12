@@ -11,4 +11,4 @@ Distingue memoria util, reservada y marcos asignados.
 - Entrada: Mapa de arranque con limites verificados.
 - Salida: Asignacion y devolucion de marcos con propietario.
 - Aceptacion: No asigna una reserva, detecta doble devolucion y recupera marcos al salir.
-- Pendiente: Registrar marcos libres y ocupados, asignar propietario y probar la devolucion.
+- Pendiente: Generalizar el ciclo probado a multiples marcos y recuperar los recursos de un proceso.

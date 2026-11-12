@@ -135,6 +135,32 @@ class Stop(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'STOP-EMISSION'):
             verify(self.source, self.hex, self.ir, memory=True)
 
+    def test_frame_cycle_rejects_weakened_scrub_and_capacity(self):
+        source = ROOT/'kernel/mm/physical/lifecycle/main.casm'
+        self.source.write_bytes(source.read_bytes())
+        cmd = [str(self.compiler), '--profile', 'ring0-frame-cycle-0.1',
+               str(self.source), str(self.hex), str(self.ir)]
+        self.assertEqual(subprocess.run(cmd, capture_output=True).returncode, 0)
+        packet, report = verify(self.source, self.hex, self.ir, cycle=True)
+        self.assertEqual(len(packet), 498)
+        self.assertEqual(report['EntryBudget']['RemainingBytes'], 13)
+        ir = json.loads(self.ir.read_text())
+        for key, value in [('Capacity', 2), ('ScrubOnRelease', False)]:
+            modified = copy.deepcopy(ir)
+            modified['Pool'][key] = value
+            self.ir.write_text(json.dumps(modified))
+            with self.assertRaisesRegex(ValueError, 'STOP-IR'):
+                verify(self.source, self.hex, self.ir, cycle=True)
+        self.ir.write_text(json.dumps(ir))
+        vector = bytearray(packet[24:])
+        scrub = vector.index(bytes.fromhex('F3 48 AB'), 442)
+        vector[scrub] = 0x90
+        self.hex.write_text(vector.hex(' '))
+        with self.assertRaisesRegex(ValueError, 'STOP-EMISSION'):
+            verify(self.source, self.hex, self.ir, cycle=True)
+        self.source.write_bytes(self.source.read_bytes().replace(b'boot_frame_cycle', b'boot_memory'))
+        self.assertNotEqual(subprocess.run(cmd, capture_output=True).returncode, 0)
+
     def test_all_byte_bits_and_ir_contract_reject(self):
         self.assertEqual(self.compile().returncode, 0)
         vector = bytes.fromhex(self.hex.read_text())

@@ -2,7 +2,7 @@
 from cpu_config import register
 
 
-def memory_evidence(memory, snapshot, regions, context, code, reject):
+def memory_evidence(memory, snapshot, regions, context, code, reject, *, cycle=False):
     page = 4096
     marker = b'BFRAME0!'
     conventional = [(base, pages) for kind, base, _, pages, _ in regions if kind == 7 and pages]
@@ -17,14 +17,25 @@ def memory_evidence(memory, snapshot, regions, context, code, reject):
     if covering != [(7, address)] or register(snapshot, 'RSP') != context + 0x1fff8:
         raise ValueError('MEMORY-QEMU: solapamiento de marco o cambio de pila')
     actual = tuple(register(snapshot, name) for name in ('RDI', 'R11', 'R12'))
-    data = memory(address, len(marker), 'frame-marker')
+    data = memory(address, page if cycle else len(marker), 'frame-data' if cycle else 'frame-marker')
+    extra = {}
+    if cycle:
+        owner, steps = (register(snapshot, name) for name in ('R13', 'R14'))
+        if reject:
+            if (owner, steps) != (0, 0):
+                raise ValueError('FRAME-CYCLE-QEMU: contexto invalido cambio el estado del marco')
+        elif (owner, steps) != (2, 0x3f) or data != bytes(page):
+            raise ValueError('FRAME-CYCLE-QEMU: estado final o borrado del marco incorrecto')
+        extra.update(FrameOwner=owner, FrameCycleMask=steps, ScrubbedBytes=0 if reject else page,
+                     FrameCycleSteps=[] if reject else ['allocated', 'exhaustion-rejected', 'foreign-release-rejected',
+                                                      'released', 'double-release-rejected', 'reallocated'])
     if reject:
-        if actual != (0, 0, 0) or data == marker:
+        if actual != (0, 0, 0) or data[:len(marker)] == marker:
             raise ValueError('MEMORY-QEMU: entrega invalida aceptada')
-    elif actual != (context, address, 1) or data != marker:
+    elif actual != (context, address, 1) or (not cycle and data != marker):
         raise ValueError('MEMORY-QEMU: direccion o marca fisica distinta')
     return dict(ContextAccepted=not reject, FrameTested=not reject,
                 FrameAddress=None if reject else f'0x{address:X}',
-                FrameBytes=0 if reject else page, MarkerBytes=0 if reject else len(marker),
+                FrameBytes=0 if reject else page, MarkerBytes=0 if reject else page if cycle else len(marker),
                 ConventionalBytes=sum(pages for _, pages in conventional) * page,
-                MemoryMapEntries=len(regions), FaultInjection='RDI=0 al entregar' if reject else None)
+                MemoryMapEntries=len(regions), FaultInjection='RDI=0 al entregar' if reject else None, **extra)

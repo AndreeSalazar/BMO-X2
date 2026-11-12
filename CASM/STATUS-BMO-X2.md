@@ -13,6 +13,7 @@ Esos documentos conservan la fecha, el entorno y el alcance de su trabajo.
 | ring0-splash-hd 0.1 | `src/kernel/splash.c`, `splash_verify.py` | Mascara de 64 por 64, cuerpo de 1255 bytes y tres cuadros QEMU. | La ruta propia desde reset y su entrega grafica. |
 | ring0-fault 0.1 | `src/kernel/stop.c`, `stop_verify.py` | IDT minima, #UD controlada y 138 bytes de codigo comprobados en QEMU. | Manejo general de excepciones o aislamiento de Ring 3. |
 | ring0-memory 0.1 | `src/kernel/stop.c`, `stop_verify.py` | 217 bytes prueban un marco convencional de 4 KiB y rechazan RDI nulo en QEMU. | Asignador, propiedad y paginacion propia. |
+| ring0-frame-cycle 0.1 | `src/kernel/stop.c`, `stop_verify.py` | 474 bytes ejercitan asignacion, propiedad, agotamiento, devolucion y borrado de un marco. | Asignacion general, concurrencia y paginacion propia. |
 | Native 0.1 | `native/` | Compilador CASM, funciones, bucles, buffers, guardas; autocompilacion documentada en Linux. | Autocompilacion nueva en Windows o dentro de BMO-X2. |
 | Native freestanding | `native/freestanding.py` | Adaptador sin servicios Linux, con permisos y trampas declarados. | Imagen EFI ni kernel; sigue necesitando cargador y manejador #UD. |
 | metal64 0.3 | `traspaso/` | Parche de investigacion con RDTSC y trampas. | Verificador completo: NO se ha aplicado al compilador de esta copia. |
@@ -30,7 +31,7 @@ simbolos, enteros y parser, con tipos y almacenamiento en `src/model/`.
 `sources.json` alimenta las construcciones Windows y Linux e incluye las
 cabeceras en la vigencia de la cache. [Fronteras del frontend](src/frontend/README.md).
 
-`catalog.json` organiza 52 elementos jerarquicos. El build valida el catalogo
+`catalog.json` organiza 53 elementos jerarquicos. El build valida el catalogo
 y genera la tabla de tipos desde el, contrastada con la tabla independiente
 del verificador. SUPER GRAFO ahora lee la jerarquia y los modulos completos;
 la consulta `casm` expone tipos, IR, codificaciones, reglas y bytes por linea.

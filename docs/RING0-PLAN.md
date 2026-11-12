@@ -29,12 +29,14 @@ servicio posterior requiere sus propias operaciones y recursos probados.
 [SBEF y ABI](../contracts/SBEF.md).
 
 La entrega 1 ya tiene una prueba de pila y una IDT minima que registra
-una excepcion controlada en QEMU. La entrega 2 ya prueba un marco de
-4 KiB con el mapa de RAM entregado por el puente. Falta registrar
-propiedad y devolucion, y activar tablas con permisos de usuario.
+una excepcion controlada en QEMU. La entrega 2 ya prueba el ciclo de
+propiedad, devolucion, borrado y reutilizacion de un marco de 4 KiB.
+Falta gestionar multiples marcos reservados y activar tablas propias
+con permisos de usuario.
 [Contexto y pila](../kernel/boot/context/STACK.md) y
 [primera excepcion](../kernel/arch/x86_64/exceptions/FAULT.md).
-[Prueba de RAM y pesos](../kernel/mm/physical/FRAME.md).
+[Ciclo de un marco](../kernel/mm/physical/lifecycle/CYCLE.md) y
+[prueba inicial y pesos](../kernel/mm/physical/FRAME.md).
 
 Para dar paso al runtime de Ring 3 se exige un primer proceso aislado.
 El kernel debe poder cargar su SBEF, darle una pila y permisos propios,

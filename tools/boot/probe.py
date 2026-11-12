@@ -29,12 +29,14 @@ parser.add_argument('--identify',action='store_true',help='Collect CPUID leaf 0 
 parser.add_argument('--stack',action='store_true',help='Check the selected stack and handoff status')
 parser.add_argument('--fault',action='store_true',help='Check the own #UD gate and exception frame')
 parser.add_argument('--memory', action='store_true', help='Check the conventional memory frame')
+parser.add_argument('--frame-cycle', action='store_true', help='Check ownership, release and scrub of a physical frame')
 parser.add_argument('--splash',action='store_true',help='Capture the three logo frames')
 parser.add_argument('--splash-hd',action='store_true',help='Use the 64-cell logo layout')
 args = parser.parse_args()
-if any((args.identify,args.stack,args.splash,args.fault,args.memory)) and not args.halt:
+memory_case = args.memory or args.frame_cycle
+if any((args.identify,args.stack,args.splash,args.fault,memory_case)) and not args.halt:
     parser.error('The selected probe requires --halt')
-if (args.splash_hd and not args.splash) or ('contexto' in args.casos and not (args.stack or args.fault or args.memory)) or sum((args.identify,args.stack,args.splash,args.fault,args.memory)) > 1 or (args.memory and args.ram_mib != 256):
+if (args.splash_hd and not args.splash) or ('contexto' in args.casos and not (args.stack or args.fault or memory_case)) or sum((args.identify,args.stack,args.splash,args.fault,args.memory,args.frame_cycle)) > 1 or (memory_case and args.ram_mib != 256):
     parser.error('Invalid combination of payload and probe cases')
 ROOT = workspace(args.workspace)
 if args.splash:
@@ -187,7 +189,7 @@ def run(case):
         packet = (ROOT / 'build/Puente_Metal/METAL/INICIO.X86').read_bytes()
         code = struct.unpack_from('<Q', context, 8)[0]
         assert memory(code, len(packet) - 24, 'code') == packet[24:], 'No ejecuto la copia exacta del cuerpo propio'
-        halt_offset = splash_halt + 1 if args.splash else 215 if args.memory else 136 if args.fault else 48 if args.stack else 6 if args.identify else 2
+        halt_offset = splash_halt + 1 if args.splash else 426 if args.frame_cycle else 215 if args.memory else 136 if args.fault else 48 if args.stack else 6 if args.identify else 2
         if args.halt:
             terminal = 'FA 31 C0 0F A2 F4 EB FD' if args.identify else 'FA F4 EB FD'
             if args.splash:
@@ -196,6 +198,8 @@ def run(case):
                 assert len(packet) == 162 and packet[24+135:] == bytes.fromhex('F4 EB FD'), 'Terminal de excepcion distinto'
             elif args.memory:
                 assert len(packet) == 241 and packet[24+214:] == bytes.fromhex('F4 EB FD'), 'Terminal de memoria distinto'
+            elif args.frame_cycle:
+                assert len(packet) == 498 and packet[24+425:24+428] == bytes.fromhex('F4 EB FD'), 'Terminal de ciclo distinto'
             elif args.stack:
                 assert len(packet) == 74 and packet[24+47:] == bytes.fromhex('F4 EB FD'), 'Terminal de contexto distinto'
             else:
@@ -204,7 +208,7 @@ def run(case):
             flags = int(re.search(r'RFL=([0-9a-fA-F]+)', last_registers)[1], 16)
             assert rip == code + halt_offset and not flags & 0x200, 'No se detuvo en HLT propio con IF=0'
         size, stride = struct.unpack_from('<Q', context, 0x50)[0], struct.unpack_from('<Q', context, 0x60)[0]
-        if args.memory:
+        if memory_case:
             assert 40 <= stride <= 256 and stride <= size <= 65536 and size % stride == 0, 'Geometria de mapa distinta'
         descriptors = memory(captured + 0x1000, size, 'map')
         assert stride >= 40 and size % stride == 0, 'Mapa de memoria invalido'
@@ -249,8 +253,8 @@ def run(case):
             result['CPUIdentification'] = identify(last_registers)
         if args.fault:
             result.update(fault_evidence(memory,last_registers,captured,code,case=='contexto'))
-        if args.memory:
-            result.update(memory_evidence(memory,last_registers,regions,captured,code,case=='contexto'))
+        if memory_case:
+            result.update(memory_evidence(memory,last_registers,regions,captured,code,case=='contexto',cycle=args.frame_cycle))
             result['MemoryMapBytes'] = size
         if args.splash:
             assert register(last_registers, 'R12') == 3 and frames == {1,2}, 'Faltan cuadros completos'

@@ -34,3 +34,6 @@ en el mapa de arranque.
 
 [Fuente CASM](main.casm) | [Vector independiente](expected.hex) |
 [Evidencia QEMU](evidence.json) | [Plan de Ring 0](../../../docs/RING0-PLAN.md)
+
+El perfil de [ciclo de un marco](lifecycle/CYCLE.md) agrega propiedad,
+devolucion y borrado antes de reutilizar la pagina.

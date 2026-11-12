@@ -1297,7 +1297,7 @@
       "entrada": "Mapa de arranque con limites verificados.",
       "salida": "Asignacion y devolucion de marcos con propietario.",
       "aceptacion": "No asigna una reserva, detecta doble devolucion y recupera marcos al salir.",
-      "falta": "Registrar marcos libres y ocupados, asignar propietario y probar la devolucion.",
+      "falta": "Generalizar el ciclo probado a multiples marcos y recuperar los recursos de un proceso.",
       "pagina": true
     },
     {
@@ -1833,6 +1833,20 @@
       "salida": "Bytes de HEX, codigo, paquete, puente, imagenes y directorio de prueba.",
       "aceptacion": "Mide archivos conservados y descarta pruebas incompletas.",
       "falta": "Medir memoria residente del kernel cuando exista un asignador."
+    },
+    {
+      "id": "ram-frame-cycle",
+      "titulo": "Propiedad y devolucion de un marco",
+      "ruta": "kernel/mm/physical/lifecycle/main.casm",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [9500, 3500],
+      "que": "Asigna, protege la propiedad, borra y reasigna un marco de 4 KiB.",
+      "entrada": "Mapa de arranque y dos propietarios de prueba.",
+      "salida": "Estado de seis pasos, propietario final y marco limpio.",
+      "aceptacion": "QEMU coteja agotamiento, devolucion ajena, doble devolucion y 4096 bytes borrados.",
+      "falta": "Administrar multiples marcos y conectarlos con permisos de pagina."
     }
   ],
   "relaciones": [
@@ -2823,6 +2837,21 @@
     },
     {
       "de": "qemu-weights",
+      "a": "ram-qemu",
+      "clase": "verificacion"
+    },
+    {
+      "de": "physical-memory",
+      "a": "ram-frame-cycle",
+      "clase": "plan"
+    },
+    {
+      "de": "ram-frame-cycle",
+      "a": "ram-frame",
+      "clase": "codigo"
+    },
+    {
+      "de": "ram-frame-cycle",
       "a": "ram-qemu",
       "clase": "verificacion"
     }
