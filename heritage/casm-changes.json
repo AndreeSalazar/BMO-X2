@@ -23,7 +23,7 @@
     },
     {
       "path": "CASM/src/main.c",
-      "reason": "Dispatch closed Ring 0 profiles, including the controlled exception. Preserve default metal64 grammar and emission."
+      "reason": "Dispatch closed Ring 0 profiles, including the physical frame probe. Preserve default metal64 grammar and emission."
     }
   ]
 }

@@ -112,6 +112,29 @@ class Stop(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'STOP-EMISSION'):
             verify(self.source,self.hex,self.ir,fault=True)
 
+    def test_memory_profile_checks_bound_and_emission(self):
+        source = ROOT/'kernel/mm/physical/main.casm'
+        self.source.write_bytes(source.read_bytes())
+        cmd = [str(self.compiler), '--profile', 'ring0-memory-0.1',
+               str(self.source), str(self.hex), str(self.ir)]
+        self.assertEqual(subprocess.run(cmd, capture_output=True).returncode, 0)
+        packet, report = verify(self.source, self.hex, self.ir, memory=True)
+        self.assertEqual(len(packet), 241)
+        self.assertEqual(report['EntryBudget']['RemainingBytes'], 270)
+        ir = json.loads(self.ir.read_text())
+        for key in ('MapOffset', 'PageBytes', 'LimitExclusive'):
+            mutated = copy.deepcopy(ir)
+            mutated['Frame'][key] *= 2
+            self.ir.write_text(json.dumps(mutated))
+            with self.assertRaisesRegex(ValueError, 'STOP-IR'):
+                verify(self.source, self.hex, self.ir, memory=True)
+        self.ir.write_text(json.dumps(ir))
+        vector = bytearray(packet[24:])
+        vector[181] ^= 1
+        self.hex.write_text(vector.hex(' '))
+        with self.assertRaisesRegex(ValueError, 'STOP-EMISSION'):
+            verify(self.source, self.hex, self.ir, memory=True)
+
     def test_all_byte_bits_and_ir_contract_reject(self):
         self.assertEqual(self.compile().returncode, 0)
         vector = bytes.fromhex(self.hex.read_text())

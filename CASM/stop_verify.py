@@ -12,6 +12,8 @@ CPU_PROFILE = 'ring0-cpu-0.1'
 CONTEXT_PROFILE = 'ring0-context-0.1'
 FAULT_PROFILE = 'ring0-fault-0.1'
 FAULT_ASSETS = Path(__file__).resolve().parents[1]/'kernel/arch/x86_64/exceptions'
+MEMORY_PROFILE = 'ring0-memory-0.1'
+MEMORY_ASSETS = Path(__file__).resolve().parents[1]/'kernel/mm/physical'
 
 
 def require(ok, reason):
@@ -48,12 +50,12 @@ def no_duplicates(pairs):
     return result
 
 
-def verify(source_path, hex_path, ir_path, *, identify=False, context=False, fault=False):
-    require(sum((identify,context,fault)) <= 1, 'STOP-PROFILE-CONFLICT')
-    for path, limit in [(source_path, 65536), (hex_path, 512 if fault else 256 if context else 128), (ir_path, 4096)]:
+def verify(source_path, hex_path, ir_path, *, identify=False, context=False, fault=False, memory=False):
+    require(sum((identify,context,fault,memory)) <= 1, 'STOP-PROFILE-CONFLICT')
+    for path, limit in [(source_path, 65536), (hex_path, 1024 if memory else 512 if fault else 256 if context else 128), (ir_path, 4096)]:
         require(path.stat().st_size <= limit, 'STOP-INPUT-SIZE')
     source = source_path.read_bytes()
-    line, operation_line = source_lines(source, 'boot_fault' if fault else 'boot_stack' if context else 'cpu_identify' if identify else None)
+    line, operation_line = source_lines(source, 'boot_memory' if memory else 'boot_fault' if fault else 'boot_stack' if context else 'cpu_identify' if identify else None)
     ir = json.loads(ir_path.read_text(encoding='ascii'), object_pairs_hook=no_duplicates)
     expected = dict(Schema=3, Target='x86_64', ABI='ring0-stop', Profile=PROFILE,
                     Entry='kernel_main', RequiredCPL=0, Effects=['mask-interrupts', 'halt'],
@@ -99,6 +101,16 @@ def verify(source_path, hex_path, ir_path, *, identify=False, context=False, fau
         mapping = [(line if a == 135 else operation_line,a,b-a,kind) for a,b,kind in
                    [(0,32,'handoff-guard'),(32,53,'stack-idt-handler-addresses'),(53,97,'idt-gate-6'),
                     (97,122,'lidt'),(122,126,'ud2'),(126,135,'record-fault'),(135,138,'halt')]]
+    if memory:
+        expected = dict(Schema=8, Target='x86_64', ABI='ring0-memory', Profile=MEMORY_PROFILE,
+                        Entry='kernel_main', RequiredCPL=0,
+                        Frame=dict(Line=operation_line, MapOffset=4096, PageBytes=4096, LimitExclusive=268435456),
+                        Terminal=dict(Line=line, Offset=214), BodyBytes=217)
+        vector = bytes.fromhex((MEMORY_ASSETS/'expected.hex').read_text(encoding='ascii'))
+        require(len(vector) == 217 and vector[214:] == b'\xf4\xeb\xfd', 'MEMORY-REFERENCE')
+        mapping = [(line if a == 214 else operation_line,a,b-a,kind) for a,b,kind in
+                   [(0,45,'handoff-guard'),(45,114,'map-geometry'),(114,181,'frame-selection'),
+                    (181,203,'frame-marker'),(203,214,'next-descriptor'),(214,217,'halt')]]
     require(json.dumps(ir, sort_keys=True) == json.dumps(expected, sort_keys=True), 'STOP-IR')
     tokens = hex_path.read_text(encoding='ascii').split()
     require(len(tokens) == len(vector) and all(re.fullmatch('[0-9A-Fa-f]{2}', t) for t in tokens), 'STOP-HEX')
@@ -117,11 +129,11 @@ def verify(source_path, hex_path, ir_path, *, identify=False, context=False, fau
     return packet, report
 
 
-def check(run, *, identify=False, context=False, fault=False):
+def check(run, *, identify=False, context=False, fault=False, memory=False):
     root = Path(__file__).resolve().parents[1]
     packet, report = verify(run/'source.casm', run/'program.hex', run/'program.ir.json',
-                            identify=identify, context=context, fault=fault)
-    source = FAULT_ASSETS/'main.casm' if fault else root / ('kernel/boot/context/main.casm' if context else
+                            identify=identify, context=context, fault=fault, memory=memory)
+    source = MEMORY_ASSETS/'main.casm' if memory else FAULT_ASSETS/'main.casm' if fault else root / ('kernel/boot/context/main.casm' if context else
                      'kernel/arch/x86_64/cpu/identify.casm' if identify else 'kernel/boot/stop/main.casm')
     vector = source.with_suffix('.hex') if identify else source.with_name('expected.hex')
     require((run/'source.casm').read_bytes() == source.read_bytes(), 'STOP-CANONICAL-SOURCE')
@@ -140,11 +152,13 @@ def main():
     profile.add_argument('--identify', action='store_true')
     profile.add_argument('--context', action='store_true')
     profile.add_argument('--fault', action='store_true')
+    profile.add_argument('--memory', action='store_true')
     args = p.parse_args()
     outputs = [args.packet.resolve(), args.report.resolve()]
     require(len(set(outputs)) == 2 and not set(outputs).intersection(
-            path.resolve() for path in [args.source, args.hex, args.ir, FAULT_ASSETS/'expected.hex']), 'STOP-OUTPUT-ALIAS')
-    packet, report = verify(args.source, args.hex, args.ir, identify=args.identify, context=args.context, fault=args.fault)
+            path.resolve() for path in [args.source, args.hex, args.ir, FAULT_ASSETS/'expected.hex', MEMORY_ASSETS/'expected.hex']), 'STOP-OUTPUT-ALIAS')
+    packet, report = verify(args.source, args.hex, args.ir, identify=args.identify, context=args.context,
+                            fault=args.fault, memory=args.memory)
     args.packet.write_bytes(packet)
     args.report.write_text(json.dumps(report, indent=2)+'\n', encoding='ascii', newline='\n')
     print(f'GREEN [STOP-VERIFY] {report["BodyBytes"]} body bytes; {len(packet)} packet bytes independently checked.')

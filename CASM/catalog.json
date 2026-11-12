@@ -931,6 +931,22 @@
       "tests": [
         "tests/test_stop.py"
       ]
+    },
+    {
+      "id": "ring0-memory",
+      "parent": "casm",
+      "kind": "profile",
+      "title": "Ring 0: primer marco fisico",
+      "status": "implemented",
+      "description": "Lee el mapa de UEFI, prueba un marco convencional y se detiene. Paquete de 241 bytes.",
+      "sources": [
+        "src/kernel/stop.c",
+        "stop_verify.py"
+      ],
+      "guards": [],
+      "tests": [
+        "tests/test_stop.py"
+      ]
     }
   ]
 }

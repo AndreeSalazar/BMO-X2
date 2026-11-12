@@ -107,6 +107,9 @@
 | [Faggin 64 bits](../kernel/boot/faggin/stage64) | diseno | 0 | Entrega contexto x86-64 a la misma entrada que utiliza UEFI. |
 | [Gato de arranque de mayor resolucion](../kernel/boot/splash/hd/main.casm) | qemu | 0 | Dibuja la silueta de 64 celdas por lado con tres intensidades de ojos. |
 | [Primera excepcion #UD](../kernel/arch/x86_64/exceptions/main.casm) | qemu | 0 | Instala una IDT minima y registra el vector y RIP de una excepcion controlada. |
+| [Primer marco de RAM](../kernel/mm/physical/main.casm) | qemu | 0 | Prueba escritura y lectura de un marco convencional tras ExitBootServices. |
+| [Guardian QEMU del marco](../tools/boot/memory_capture.py) | host | host | Comprueba la primera direccion elegible, la marca fisica y el contexto. |
+| [Pesos del build QEMU](../tools/boot/weights.py) | host | host | Mide artefactos en disco y lee la RAM configurada de cada VM. |
 
 ## Dependencias declaradas
 
@@ -305,5 +308,10 @@
 | boot-splash-hd | splash-guardian | verificacion |
 | fault-ud | x86_64-exceptions | plan |
 | fault-ud | stop-verifier | verificacion |
+| physical-memory | ram-frame | plan |
+| ram-frame | boot-context | codigo |
+| ram-frame | stop-verifier | verificacion |
+| ram-qemu | ram-frame | verificacion |
+| qemu-weights | ram-qemu | verificacion |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

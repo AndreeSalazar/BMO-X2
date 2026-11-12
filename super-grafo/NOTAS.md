@@ -823,9 +823,9 @@ Distingue memoria util, reservada y marcos asignados.
 Estado: DISENO. Anillo: 0. Lenguaje: CASM.
 Entrada: Mapa de arranque con limites verificados.
 Salida: Asignacion y devolucion de marcos con propietario.
-Depende de: Memoria y aislamiento (plan), Contexto de entrega (plan).
+Depende de: Memoria y aislamiento (plan), Contexto de entrega (plan), Primer marco de RAM (plan).
 Aceptacion: No asigna una reserva, detecta doble devolucion y recupera marcos al salir.
-Pendiente: Definir unidad, limites y primera prueba de asignacion.
+Pendiente: Registrar marcos libres y ocupados, asignar propietario y probar la devolucion.
 
 ## kernel/mm/virtual
 
@@ -1135,6 +1135,39 @@ Depende de: Excepciones x86-64 (plan), Verificador independiente de parada (veri
 Aceptacion: QEMU coteja IDTR, puerta, marco en RAM y rechazo con RDI nulo.
 Pendiente: Generalizar excepciones y diagnostico antes de aislar un proceso.
 
+## kernel/mm/physical/main.casm
+
+Prueba escritura y lectura de un marco convencional tras ExitBootServices.
+
+Estado: QEMU. Anillo: 0. Lenguaje: CASM.
+Entrada: Entrega del puente, mapa UEFI y rango de 256 MiB de la VM.
+Salida: Marca de ocho bytes en un marco de 4096 bytes y parada en CPL0.
+Depende de: Contexto de entrega (codigo), Verificador independiente de parada (verificacion).
+Aceptacion: QEMU coteja el mapa, la direccion y la marca; rechaza RDI nulo.
+Pendiente: Integrar el marco en un asignador con propiedad y liberar recursos.
+
+## tools/boot/memory_capture.py
+
+Comprueba la primera direccion elegible, la marca fisica y el contexto.
+
+Estado: HOST. Anillo: host. Lenguaje: Python control.
+Entrada: Registros, mapa de memoria y lectura fisica de QEMU.
+Salida: Evidencia por caso y bytes convencionales observados.
+Depende de: Primer marco de RAM (verificacion).
+Aceptacion: Coteja entrega valida e invalida en qemu64 y Nehalem.
+Pendiente: Extender la prueba al ciclo de asignacion y devolucion.
+
+## tools/boot/weights.py
+
+Mide artefactos en disco y lee la RAM configurada de cada VM.
+
+Estado: HOST. Anillo: host. Lenguaje: Python control.
+Entrada: Ultima prueba aprobada por perfil y huella del paquete.
+Salida: Bytes de HEX, codigo, paquete, puente, imagenes y directorio de prueba.
+Depende de: Guardian QEMU del marco (verificacion).
+Aceptacion: Mide archivos conservados y descarta pruebas incompletas.
+Pendiente: Medir memoria residente del kernel cuando exista un asignador.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -1157,4 +1190,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-103 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+106 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

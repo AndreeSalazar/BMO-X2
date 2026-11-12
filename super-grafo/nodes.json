@@ -1297,7 +1297,7 @@
       "entrada": "Mapa de arranque con limites verificados.",
       "salida": "Asignacion y devolucion de marcos con propietario.",
       "aceptacion": "No asigna una reserva, detecta doble devolucion y recupera marcos al salir.",
-      "falta": "Definir unidad, limites y primera prueba de asignacion.",
+      "falta": "Registrar marcos libres y ocupados, asignar propietario y probar la devolucion.",
       "pagina": true
     },
     {
@@ -1791,6 +1791,48 @@
       "salida": "Vector 6, RIP de UD2 y parada propia, o rechazo de entrega.",
       "aceptacion": "QEMU coteja IDTR, puerta, marco en RAM y rechazo con RDI nulo.",
       "falta": "Generalizar excepciones y diagnostico antes de aislar un proceso."
+    },
+    {
+      "id": "ram-frame",
+      "titulo": "Primer marco de RAM",
+      "ruta": "kernel/mm/physical/main.casm",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [9000, 3500],
+      "que": "Prueba escritura y lectura de un marco convencional tras ExitBootServices.",
+      "entrada": "Entrega del puente, mapa UEFI y rango de 256 MiB de la VM.",
+      "salida": "Marca de ocho bytes en un marco de 4096 bytes y parada en CPL0.",
+      "aceptacion": "QEMU coteja el mapa, la direccion y la marca; rechaza RDI nulo.",
+      "falta": "Integrar el marco en un asignador con propiedad y liberar recursos."
+    },
+    {
+      "id": "ram-qemu",
+      "titulo": "Guardian QEMU del marco",
+      "ruta": "tools/boot/memory_capture.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python control",
+      "posicion": [9000, 3675],
+      "que": "Comprueba la primera direccion elegible, la marca fisica y el contexto.",
+      "entrada": "Registros, mapa de memoria y lectura fisica de QEMU.",
+      "salida": "Evidencia por caso y bytes convencionales observados.",
+      "aceptacion": "Coteja entrega valida e invalida en qemu64 y Nehalem.",
+      "falta": "Extender la prueba al ciclo de asignacion y devolucion."
+    },
+    {
+      "id": "qemu-weights",
+      "titulo": "Pesos del build QEMU",
+      "ruta": "tools/boot/weights.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python control",
+      "posicion": [9000, 3850],
+      "que": "Mide artefactos en disco y lee la RAM configurada de cada VM.",
+      "entrada": "Ultima prueba aprobada por perfil y huella del paquete.",
+      "salida": "Bytes de HEX, codigo, paquete, puente, imagenes y directorio de prueba.",
+      "aceptacion": "Mide archivos conservados y descarta pruebas incompletas.",
+      "falta": "Medir memoria residente del kernel cuando exista un asignador."
     }
   ],
   "relaciones": [
@@ -2757,6 +2799,31 @@
     {
       "de": "fault-ud",
       "a": "stop-verifier",
+      "clase": "verificacion"
+    },
+    {
+      "de": "physical-memory",
+      "a": "ram-frame",
+      "clase": "plan"
+    },
+    {
+      "de": "ram-frame",
+      "a": "boot-context",
+      "clase": "codigo"
+    },
+    {
+      "de": "ram-frame",
+      "a": "stop-verifier",
+      "clase": "verificacion"
+    },
+    {
+      "de": "ram-qemu",
+      "a": "ram-frame",
+      "clase": "verificacion"
+    },
+    {
+      "de": "qemu-weights",
+      "a": "ram-qemu",
       "clase": "verificacion"
     }
   ]

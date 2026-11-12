@@ -1,5 +1,21 @@
 {
   "tintes": {
+    "kernel/mm/physical/main.casm": {
+      "rgb": [90, 220, 255],
+      "motivo": "Ring 0: selecciona y prueba un marco fisico convencional."
+    },
+    "kernel/mm/physical/expected.hex": {
+      "rgb": [255, 194, 79],
+      "motivo": "Vector de referencia: compara los bytes exactos del perfil."
+    },
+    "tools/boot/memory_capture.py": {
+      "rgb": [90, 200, 140],
+      "motivo": "Guardian QEMU: coteja el mapa, los registros y la marca fisica."
+    },
+    "tools/boot/weights.py": {
+      "rgb": [170, 177, 195],
+      "motivo": "Medicion HOST: bytes en disco y RAM configurada de la VM."
+    },
     "CASM/src/casm.h": {
       "rgb": [
         90,
@@ -922,6 +938,18 @@
     "kernel/arch/x86_64/exceptions/main.casm": [
       8500,
       4375
+    ],
+    "kernel/mm/physical/main.casm": [
+      9000,
+      3500
+    ],
+    "tools/boot/memory_capture.py": [
+      9000,
+      3675
+    ],
+    "tools/boot/weights.py": [
+      9000,
+      3850
     ]
   },
   "foco": "kernel/boot",
