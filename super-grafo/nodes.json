@@ -1686,6 +1686,94 @@
       "salida": "Huellas, registros de la prueba y repeticion visual.",
       "aceptacion": "Tres cuadros comparados pixel a pixel con 1024 MiB de RAM virtual.",
       "falta": "Integrar la escena con diagnostico del kernel antes de pruebas fisicas."
+    },
+    {
+      "id": "faggin-contract",
+      "titulo": "Rutas de arranque Faggin",
+      "ruta": "contracts/FAGGIN.md",
+      "estado": "diseno",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
+      "posicion": [
+        8500,
+        3500
+      ],
+      "que": "Define la convergencia de reset y UEFI en una entrega CASM x86-64.",
+      "entrada": "Contratos de CPU y referencias BMO-X y TALK-CPU.",
+      "salida": "Fronteras por modo, evidencia exigida y ABI de entrega.",
+      "aceptacion": "Se observa cada transicion en QEMU y ambas rutas entregan el contrato de entrada.",
+      "falta": "Emitir y verificar las etapas propias desde reset."
+    },
+    {
+      "id": "faggin16",
+      "titulo": "Faggin 16 bits",
+      "ruta": "kernel/boot/faggin/stage16",
+      "estado": "diseno",
+      "anillo": "contrato",
+      "lenguaje": "CASM arranque",
+      "posicion": [
+        8500,
+        3675
+      ],
+      "que": "Prepara el primer salto desde reset en la ruta propia.",
+      "entrada": "Estado de reset, ROM y espacio de pila temporal.",
+      "salida": "A20, GDT y entrada protegida de 32 bits.",
+      "aceptacion": "QEMU registra el cambio de modo y el destino del salto.",
+      "falta": "Definir el formato y la emision CASM de la etapa de 16 bits.",
+      "pagina": true
+    },
+    {
+      "id": "faggin32",
+      "titulo": "Faggin 32 bits",
+      "ruta": "kernel/boot/faggin/stage32",
+      "estado": "diseno",
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [
+        8500,
+        3850
+      ],
+      "que": "Prepara segmentos, pila y paginacion inicial para modo largo.",
+      "entrada": "Entrega protegida de 32 bits y memoria reservada.",
+      "salida": "Tablas y salto al segmento de codigo de 64 bits.",
+      "aceptacion": "QEMU verifica registros de control y rangos de las reservas.",
+      "falta": "Emitir la transicion de 32 a 64 bits con vector independiente.",
+      "pagina": true
+    },
+    {
+      "id": "faggin64",
+      "titulo": "Faggin 64 bits",
+      "ruta": "kernel/boot/faggin/stage64",
+      "estado": "diseno",
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [
+        8500,
+        4025
+      ],
+      "que": "Entrega contexto x86-64 a la misma entrada que utiliza UEFI.",
+      "entrada": "Modo largo y mapa inicial de la ruta reset.",
+      "salida": "Contexto, pila y recursos de arranque comprobables.",
+      "aceptacion": "La entrada CASM observa modo largo y registra una excepcion controlada.",
+      "falta": "Unir con la entrada despues de validar la IDT propia.",
+      "pagina": true
+    },
+    {
+      "id": "boot-splash-hd",
+      "titulo": "Gato de arranque de mayor resolucion",
+      "ruta": "kernel/boot/splash/hd/main.casm",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [
+        8500,
+        4200
+      ],
+      "que": "Dibuja la silueta de 64 celdas por lado con tres intensidades de ojos.",
+      "entrada": "Mascara derivada de BMO-X y framebuffer entregado por UEFI.",
+      "salida": "Tres cuadros de 256 por 256 y paquete de demostracion de 1279 bytes.",
+      "aceptacion": "QEMU compara cada cuadro y confirma la parada de Ring 0.",
+      "falta": "Integrar la escena con el diagnostico del kernel."
     }
   ],
   "relaciones": [
@@ -2607,6 +2695,41 @@
     {
       "de": "splash-qemu",
       "a": "boot-splash",
+      "clase": "verificacion"
+    },
+    {
+      "de": "faggin-contract",
+      "a": "contracts",
+      "clase": "plan"
+    },
+    {
+      "de": "faggin16",
+      "a": "faggin-contract",
+      "clase": "plan"
+    },
+    {
+      "de": "faggin32",
+      "a": "faggin16",
+      "clase": "plan"
+    },
+    {
+      "de": "faggin64",
+      "a": "faggin32",
+      "clase": "plan"
+    },
+    {
+      "de": "faggin64",
+      "a": "boot-context",
+      "clase": "plan"
+    },
+    {
+      "de": "boot-splash-hd",
+      "a": "boot-splash",
+      "clase": "verificacion"
+    },
+    {
+      "de": "boot-splash-hd",
+      "a": "splash-guardian",
       "clase": "verificacion"
     }
   ]

@@ -13,9 +13,9 @@ def render(run):
     if profile in ('ring0-stop-0.1', 'ring0-cpu-0.1', 'ring0-context-0.1'):
         from stop_verify import verify as selected_verify
         options = {'identify': profile == 'ring0-cpu-0.1', 'context': profile == 'ring0-context-0.1'}
-    elif profile == 'ring0-splash-0.1':
+    elif profile in ('ring0-splash-0.1','ring0-splash-hd-0.1'):
         from splash_verify import verify as selected_verify
-        options = {}
+        options = {'hd':profile == 'ring0-splash-hd-0.1'}
     elif profile == 'metal64-0.2':
         selected_verify = verify
         options = {}
@@ -36,6 +36,8 @@ def render(run):
             f'Archivo HEX de texto: {(run/"program.hex").stat().st_size} bytes.',
             '',
         ])
+    elif bridge_limit := report.get('BridgePacketLimitBytes'):
+        lines.extend([f'Limite del paquete de demostracion del puente: {bridge_limit} bytes.', ''])
     lines.extend(['| Linea | Offset cuerpo | Offset paquete | Clase | Bytes |',
                   '|---|---|---|---|---|'])
     body = packet[24:]

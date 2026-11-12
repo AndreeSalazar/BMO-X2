@@ -367,6 +367,46 @@
         140
       ],
       "motivo": "Tres cuadros observados y vinculados al HEX exacto."
+    },
+    "contracts/FAGGIN.md": {
+      "rgb": [
+        100,
+        170,
+        255
+      ],
+      "motivo": "Define la convergencia de reset y UEFI en una entrega CASM x86-64."
+    },
+    "kernel/boot/faggin/stage16": {
+      "rgb": [
+        100,
+        170,
+        255
+      ],
+      "motivo": "Prepara el primer salto desde reset en la ruta propia."
+    },
+    "kernel/boot/faggin/stage32": {
+      "rgb": [
+        100,
+        170,
+        255
+      ],
+      "motivo": "Prepara segmentos, pila y paginacion inicial para modo largo."
+    },
+    "kernel/boot/faggin/stage64": {
+      "rgb": [
+        100,
+        170,
+        255
+      ],
+      "motivo": "Entrega contexto x86-64 a la misma entrada que utiliza UEFI."
+    },
+    "kernel/boot/splash/hd/main.casm": {
+      "rgb": [
+        68,
+        210,
+        240
+      ],
+      "motivo": "Dibuja la silueta de 64 celdas por lado con tres intensidades de ojos."
     }
   },
   "direccion": "houdini",
@@ -850,6 +890,26 @@
     "kernel/boot/splash/evidence/qemu.json": [
       8000,
       4550
+    ],
+    "contracts/FAGGIN.md": [
+      8500,
+      3500
+    ],
+    "kernel/boot/faggin/stage16": [
+      8500,
+      3675
+    ],
+    "kernel/boot/faggin/stage32": [
+      8500,
+      3850
+    ],
+    "kernel/boot/faggin/stage64": [
+      8500,
+      4025
+    ],
+    "kernel/boot/splash/hd/main.casm": [
+      8500,
+      4200
     ]
   },
   "foco": "kernel/boot",

@@ -14,7 +14,7 @@ sys.path.insert(0,str(ROOT/'tools'))
 from genesis import check as genesis_check
 sys.path.insert(0,str(ROOT/'CASM'))
 from stop_verify import check as stop_check, CPU_PROFILE, CONTEXT_PROFILE
-from splash_verify import check as splash_check, PROFILE as SPLASH_PROFILE
+from splash_verify import check as splash_check, PROFILE as SPLASH_PROFILE, HD_PROFILE
 
 
 def check(run):
@@ -23,6 +23,7 @@ def check(run):
     if profile == CPU_PROFILE: return stop_check(run, identify=True)
     if profile == CONTEXT_PROFILE: return stop_check(run, context=True)
     if profile == SPLASH_PROFILE: return splash_check(run)
+    if profile == HD_PROFILE: return splash_check(run, hd=True)
     if profile != 'metal64-0.2': raise ValueError('Perfil desconocido')
     return genesis_check(run)
 
@@ -57,11 +58,11 @@ def main():
     parser.add_argument('--powershell',type=Path,help='Use the same PowerShell executable as the calling build')
     parser.add_argument('--cases',nargs='+',choices=CASES+['contexto'],default=CASES)
     parser.add_argument('--cpu', choices=['qemu64', 'Nehalem'], default='qemu64')
-    parser.add_argument('--profile',choices=['metal64-0.2','ring0-stop-0.1',CPU_PROFILE,CONTEXT_PROFILE,SPLASH_PROFILE],default='metal64-0.2')
+    parser.add_argument('--profile',choices=['metal64-0.2','ring0-stop-0.1',CPU_PROFILE,CONTEXT_PROFILE,SPLASH_PROFILE,HD_PROFILE],default='metal64-0.2')
     args=parser.parse_args();run=workspace(args.run)
     identify=args.profile==CPU_PROFILE
     stack=args.profile==CONTEXT_PROFILE
-    splash=args.profile==SPLASH_PROFILE
+    splash=args.profile in (SPLASH_PROFILE,HD_PROFILE)
     stop=args.profile!='metal64-0.2'
     frozen_profile=(run/'profile.txt').read_text(encoding='utf-8-sig').strip() if (run/'profile.txt').exists() else 'metal64-0.2'
     if frozen_profile!=args.profile: raise ValueError('Perfil distinto al run congelado')
@@ -103,6 +104,8 @@ def main():
         probe_flags.append('--stack')
     if splash:
         probe_flags.append('--splash')
+    if args.profile == HD_PROFILE:
+        probe_flags.append('--splash-hd')
     result=subprocess.run([sys.executable,'-B','-u',str(scripts/'probe.py'),'--workspace',str(run),'--qemu',str(qemu),'--cpu',args.cpu,'--ram-mib',str(ram_mib),'--casos',*args.cases,*probe_flags],cwd=run,timeout=600)
     report=run/'build/puente-test-results.json'
     if report.is_file():

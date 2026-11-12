@@ -26,10 +26,11 @@ parser.add_argument('--halt',action='store_true',help='Expect the own terminal i
 parser.add_argument('--identify',action='store_true',help='Collect CPUID leaf 0 at the terminal')
 parser.add_argument('--stack',action='store_true',help='Check the selected stack and handoff status')
 parser.add_argument('--splash',action='store_true',help='Capture the three logo frames')
+parser.add_argument('--splash-hd',action='store_true',help='Use the 64-cell logo layout')
 args = parser.parse_args()
 if (args.identify or args.stack or args.splash) and not args.halt:
     parser.error('The selected probe requires --halt')
-if ('contexto' in args.casos and not args.stack) or sum((args.identify,args.stack,args.splash)) > 1:
+if (args.splash_hd and not args.splash) or ('contexto' in args.casos and not args.stack) or sum((args.identify,args.stack,args.splash)) > 1:
     parser.error('Invalid combination of payload and probe cases')
 ROOT = workspace(args.workspace)
 if args.splash:
@@ -37,7 +38,10 @@ if args.splash:
         parser.error('The splash probe requires the normal case')
     sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'CASM'))
     from splash_verify import read_rows
-    logo, _, _ = read_rows((ROOT/'source.casm').read_bytes())
+    logo, _, _ = read_rows((ROOT/'source.casm').read_bytes(), hd=args.splash_hd)
+    splash_halt = 216 if args.splash_hd else 213
+    splash_packet_bytes = 1279 if args.splash_hd else 508
+    wait_low, wait_high = (0xb6,0xd0) if args.splash_hd else (0xb3,0xcd)
 if not __debug__:
     raise RuntimeError('La prueba requiere comprobaciones assert activas; quitar PYTHONOPTIMIZE')
 # Evitar que dos ejecuciones mezclen capturas, contexto o resultados.
@@ -145,7 +149,7 @@ def run(case):
                                 try:
                                     stopped = command('human-monitor-command', {'command-line':'info registers'})
                                     code_base = struct.unpack_from('<Q', candidate, 8)[0]
-                                    if register(stopped, 'R12') == frame and 0xb3 <= register(stopped,'RIP')-code_base < 0xcd:
+                                    if register(stopped, 'R12') == frame and wait_low <= register(stopped,'RIP')-code_base < wait_high:
                                         compare_frame(memory,candidate,logo,frame)
                                         command('screendump', {'filename':str(prefix)+f'-frame-{frame}.png','format':'png'})
                                         frames.add(frame)
@@ -179,11 +183,11 @@ def run(case):
         packet = (ROOT / 'build/Puente_Metal/METAL/INICIO.X86').read_bytes()
         code = struct.unpack_from('<Q', context, 8)[0]
         assert memory(code, len(packet) - 24, 'code') == packet[24:], 'No ejecuto la copia exacta del cuerpo propio'
-        halt_offset = 214 if args.splash else 48 if args.stack else 6 if args.identify else 2
+        halt_offset = splash_halt + 1 if args.splash else 48 if args.stack else 6 if args.identify else 2
         if args.halt:
             terminal = 'FA 31 C0 0F A2 F4 EB FD' if args.identify else 'FA F4 EB FD'
             if args.splash:
-                assert len(packet) == 508 and packet[24+213:24+216] == bytes.fromhex('F4 EB FD'), 'Terminal de splash distinto'
+                assert len(packet) == splash_packet_bytes and packet[24+splash_halt:24+splash_halt+3] == bytes.fromhex('F4 EB FD'), 'Terminal de splash distinto'
             elif args.stack:
                 assert len(packet) == 74 and packet[24+47:] == bytes.fromhex('F4 EB FD'), 'Terminal de contexto distinto'
             else:

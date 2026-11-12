@@ -32,6 +32,10 @@ La entrega 1 ya tiene una prueba de pila con contexto valido e invalido
 en QEMU. El siguiente criterio es instalar una IDT propia y observar
 una excepcion controlada. [Contexto y pila](../kernel/boot/context/STACK.md).
 
+El [contrato Faggin](../contracts/FAGGIN.md) ordena la ruta desde reset
+en 16, 32 y 64 bits. Su entrega converge con la ruta UEFI en el mismo
+contrato de entrada CASM. Rust queda en el runtime y escritorio de Ring 3.
+
 ## Referencia del padre
 
 Inventario de `Ultra_kernel_x86-64/kernel/src/ring0/` de BMO-X en

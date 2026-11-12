@@ -1069,6 +1069,61 @@ Depende de: Gato animado de arranque (verificacion).
 Aceptacion: Tres cuadros comparados pixel a pixel con 1024 MiB de RAM virtual.
 Pendiente: Integrar la escena con diagnostico del kernel antes de pruebas fisicas.
 
+## contracts/FAGGIN.md
+
+Define la convergencia de reset y UEFI en una entrega CASM x86-64.
+
+Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
+Entrada: Contratos de CPU y referencias BMO-X y TALK-CPU.
+Salida: Fronteras por modo, evidencia exigida y ABI de entrega.
+Depende de: Contratos de BMO-X2 (plan).
+Aceptacion: Se observa cada transicion en QEMU y ambas rutas entregan el contrato de entrada.
+Pendiente: Emitir y verificar las etapas propias desde reset.
+
+## kernel/boot/faggin/stage16
+
+Prepara el primer salto desde reset en la ruta propia.
+
+Estado: DISENO. Anillo: contrato. Lenguaje: CASM arranque.
+Entrada: Estado de reset, ROM y espacio de pila temporal.
+Salida: A20, GDT y entrada protegida de 32 bits.
+Depende de: Rutas de arranque Faggin (plan).
+Aceptacion: QEMU registra el cambio de modo y el destino del salto.
+Pendiente: Definir el formato y la emision CASM de la etapa de 16 bits.
+
+## kernel/boot/faggin/stage32
+
+Prepara segmentos, pila y paginacion inicial para modo largo.
+
+Estado: DISENO. Anillo: 0. Lenguaje: CASM.
+Entrada: Entrega protegida de 32 bits y memoria reservada.
+Salida: Tablas y salto al segmento de codigo de 64 bits.
+Depende de: Faggin 16 bits (plan).
+Aceptacion: QEMU verifica registros de control y rangos de las reservas.
+Pendiente: Emitir la transicion de 32 a 64 bits con vector independiente.
+
+## kernel/boot/faggin/stage64
+
+Entrega contexto x86-64 a la misma entrada que utiliza UEFI.
+
+Estado: DISENO. Anillo: 0. Lenguaje: CASM.
+Entrada: Modo largo y mapa inicial de la ruta reset.
+Salida: Contexto, pila y recursos de arranque comprobables.
+Depende de: Faggin 32 bits (plan), Contexto de entrega (plan).
+Aceptacion: La entrada CASM observa modo largo y registra una excepcion controlada.
+Pendiente: Unir con la entrada despues de validar la IDT propia.
+
+## kernel/boot/splash/hd/main.casm
+
+Dibuja la silueta de 64 celdas por lado con tres intensidades de ojos.
+
+Estado: QEMU. Anillo: 0. Lenguaje: CASM.
+Entrada: Mascara derivada de BMO-X y framebuffer entregado por UEFI.
+Salida: Tres cuadros de 256 por 256 y paquete de demostracion de 1279 bytes.
+Depende de: Gato animado de arranque (verificacion), Guardian del HEX grafico (verificacion).
+Aceptacion: QEMU compara cada cuadro y confirma la parada de Ring 0.
+Pendiente: Integrar la escena con el diagnostico del kernel.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -1091,4 +1146,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-97 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+102 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

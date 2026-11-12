@@ -14,7 +14,8 @@ int main(int argc, char **argv) {
     int explicit_profile = argc == 6 && !strcmp(argv[1], "--profile");
     int identify = explicit_profile && !strcmp(argv[2], "ring0-cpu-0.1");
     int context = explicit_profile && !strcmp(argv[2], "ring0-context-0.1");
-    int splash = explicit_profile && !strcmp(argv[2], "ring0-splash-0.1");
+    int splash_hd = explicit_profile && !strcmp(argv[2], "ring0-splash-hd-0.1");
+    int splash = splash_hd || (explicit_profile && !strcmp(argv[2], "ring0-splash-0.1"));
     int stop = identify || context || (explicit_profile && !strcmp(argv[2], "ring0-stop-0.1"));
     if (stop || splash) { argc -= 2; argv += 2; }
     if (argc != 4) {
@@ -33,7 +34,7 @@ int main(int argc, char **argv) {
     ok = !ferror(file) && length <= CASM_SOURCE_MAX;
     fclose(file);
     if (!ok) fprintf(stderr, "RED [SOURCE-SIZE] Source exceeds 65536 bytes or cannot be read.\n");
-    if (ok && splash) ok = casm_splash(source, length, argv[2], argv[3]);
+    if (ok && splash) ok = casm_splash(source, length, argv[2], argv[3], splash_hd);
     else if (ok && stop) ok = casm_stop(source, length, argv[2], argv[3],
                                     context ? KERNEL_CONTEXT : identify ? KERNEL_CPU : KERNEL_STOP);
     else {

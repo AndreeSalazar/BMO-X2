@@ -7,7 +7,7 @@ param(
     [switch]$Genesis,
     [switch]$Wake,
     [ValidateSet('qemu64','Nehalem')][string]$Cpu = 'qemu64',
-    [ValidateSet("metal64-0.2","ring0-stop-0.1","ring0-cpu-0.1","ring0-context-0.1","ring0-splash-0.1")][string]$Profile = "metal64-0.2"
+    [ValidateSet("metal64-0.2","ring0-stop-0.1","ring0-cpu-0.1","ring0-context-0.1","ring0-splash-0.1","ring0-splash-hd-0.1")][string]$Profile = "metal64-0.2"
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path $PSScriptRoot
@@ -34,7 +34,7 @@ $inputs = @($sources) + @(@($sourceManifest.headers) + @($sourceManifest.inputs)
 $hashes = $inputs | ForEach-Object {
     [ordered]@{ruta=(ConvertTo-ProjectRelativePath -Root $projectRoot -Path $_);sha256=(Get-FileHash -LiteralPath $_).Hash.ToLowerInvariant()}
 }
-$toolchain = [ordered]@{schema=1;host='Windows';powershell=$PSVersionTable.PSVersion.ToString();clr=[Environment]::Version.ToString();target='x86-64';profiles=@('metal64-0.2','ring0-stop-0.1','ring0-cpu-0.1','ring0-context-0.1','ring0-splash-0.1');compiler=$version;flags=$flags;sources=$hashes;executable_sha256=(Get-FileHash -LiteralPath $compilerExe).Hash.ToLowerInvariant()}
+$toolchain = [ordered]@{schema=1;host='Windows';powershell=$PSVersionTable.PSVersion.ToString();clr=[Environment]::Version.ToString();target='x86-64';profiles=@('metal64-0.2','ring0-stop-0.1','ring0-cpu-0.1','ring0-context-0.1','ring0-splash-0.1','ring0-splash-hd-0.1');compiler=$version;flags=$flags;sources=$hashes;executable_sha256=(Get-FileHash -LiteralPath $compilerExe).Hash.ToLowerInvariant()}
 $toolchain | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $outputDir 'toolchain.json') -Encoding utf8
 $version | Set-Content -LiteralPath (Join-Path $outputDir 'toolchain.txt') -Encoding utf8
 if ($Accion -eq 'comprobar') {
@@ -81,8 +81,8 @@ Copy-Item -LiteralPath (Join-Path $outputDir 'toolchain.json') -Destination (Joi
 Copy-Item -LiteralPath (Join-Path $projectRoot 'CASM/catalog.json') -Destination (Join-Path $run 'catalog.json')
 $Profile | Set-Content -LiteralPath (Join-Path $run 'profile.txt') -Encoding utf8
 $profileArgs = if ($Profile -ne 'metal64-0.2') { @('--profile', $Profile) } else { @() }
-$verifier = if ($Profile -eq 'ring0-splash-0.1') { 'CASM/splash_verify.py' } elseif ($Profile -ne 'metal64-0.2') { 'CASM/stop_verify.py' } else { 'CASM/verify.py' }
-[string[]]$verifyArgs = if ($Profile -eq 'ring0-cpu-0.1') { '--identify' } elseif ($Profile -eq 'ring0-context-0.1') { '--context' }
+$verifier = if ($Profile -in @('ring0-splash-0.1','ring0-splash-hd-0.1')) { 'CASM/splash_verify.py' } elseif ($Profile -ne 'metal64-0.2') { 'CASM/stop_verify.py' } else { 'CASM/verify.py' }
+[string[]]$verifyArgs = if ($Profile -eq 'ring0-cpu-0.1') { '--identify' } elseif ($Profile -eq 'ring0-context-0.1') { '--context' } elseif ($Profile -eq 'ring0-splash-hd-0.1') { '--hd' }
 & $compilerExe @profileArgs $frozen $hex $ir 2>&1 | Tee-Object -FilePath $log
 if ($LASTEXITCODE -ne 0) { throw "Fuente rechazada. No se publico INICIO.X86. Run: $run" }
 & $Python -B (Join-Path $projectRoot $verifier) $frozen $hex $ir --packet (Join-Path $run 'INICIO.X86') --report (Join-Path $run 'verified.json') @verifyArgs 2>&1 | Tee-Object -FilePath $log -Append
@@ -97,11 +97,11 @@ if ($Genesis) {
 if ($Wake) {
     $shellName = if ($PSVersionTable.PSVersion.Major -le 5) { 'powershell.exe' } else { 'pwsh.exe' }
     $shellExe = Join-Path $PSHOME $shellName
-    $wakeArgs = if ($Profile -in @('ring0-cpu-0.1','ring0-splash-0.1')) { @('--cases','normal','--cpu',$Cpu) } else { @() }
+    $wakeArgs = if ($Profile -in @('ring0-cpu-0.1','ring0-splash-0.1','ring0-splash-hd-0.1')) { @('--cases','normal','--cpu',$Cpu) } else { @() }
     if ($Profile -eq 'ring0-context-0.1') { $wakeArgs = @('--cases','normal','contexto','--cpu',$Cpu) }
     & $Python -B (Join-Path $projectRoot 'tools/boot/wake.py') $run --powershell $shellExe --profile $Profile @wakeArgs
     if ($LASTEXITCODE -ne 0) { throw 'Fallo la prueba en QEMU. Consultar el run conservado.' }
-    if ($Profile -in @('ring0-cpu-0.1','ring0-context-0.1','ring0-splash-0.1')) { return }
+    if ($Profile -in @('ring0-cpu-0.1','ring0-context-0.1','ring0-splash-0.1','ring0-splash-hd-0.1')) { return }
     & $Python -B (Join-Path $projectRoot 'tools/boot/publish.py') $run
     if ($LASTEXITCODE -ne 0) { throw 'La prueba termino pero no se pudo publicar evidencia comprobada.' }
 }

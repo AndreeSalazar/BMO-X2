@@ -1,5 +1,8 @@
 # Gato de arranque de BMO-X2
 
+La [variante de mayor resolucion](hd/README.md) usa 64 por 64 celdas
+y un paquete grafico separado. Esta variante conserva 508 bytes.
+
 Demostracion de Ring 0 en QEMU. El modulo CASM dibuja el gato en el
 framebuffer RGB/BGR de 32 bits validado y entregado por el puente UEFI.
 El contorno es claro y los ojos recorren tres intensidades cian.

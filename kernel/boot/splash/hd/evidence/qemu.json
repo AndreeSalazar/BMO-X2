@@ -1,0 +1,173 @@
+{
+  "schema": 1,
+  "evidence": "QEMU",
+  "qemu": {
+    "Passed": 1,
+    "Total": 1,
+    "Cases": [
+      {
+        "Case": "normal",
+        "Passed": true,
+        "BootServicesExited": true,
+        "PayloadReturned": false,
+        "OwnHalt": true,
+        "InstructionPointerOffset": 217,
+        "InterruptsMasked": true,
+        "Ring": 0,
+        "OwnFramebufferTextVerified": true,
+        "Context": "0x3DE38000",
+        "PayloadSHA256": "0a2aee5ae003b9059d62c946e869e3aeb201b0936b3ad23522f0ebf5f49677cb",
+        "FramesVerified": [
+          1,
+          2,
+          3
+        ]
+      }
+    ],
+    "schema": 1,
+    "evidence": "QEMU",
+    "milestone": "Ring0 cat splash",
+    "physical_boot": false,
+    "autonomous_kernel": false,
+    "body_bytes": 1255,
+    "packet_bytes": 1279,
+    "bridge_bytes": 12288,
+    "run": "run-20261112-045643-3dfb02e6",
+    "packet_sha256": "44ee0d7d73470da2dc4a832644d9ab1dc514f5fe154ebf519cdb05b833ee0227",
+    "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+    "source_sha256": "1c9a9b57c3b5e81a94148ff3f68d5e271960c5de201b29d0bef6a489668d7b33",
+    "case_scope": "Three verified framebuffer frames in Ring 0 under QEMU"
+  },
+  "environment": {
+    "schema": 1,
+    "milestone": "Ring0 cat splash",
+    "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+    "accelerator": "tcg",
+    "cpu": "qemu64",
+    "ram_mib": 1024,
+    "powershell": "7.6.9",
+    "cases": [
+      "normal"
+    ],
+    "bridge_sha256": "4287ad788cb7a75a74922f7f73e69363560c84501b9a73ba271d357f5f71469f",
+    "bridge_bytes": 12288,
+    "packet_sha256": "44ee0d7d73470da2dc4a832644d9ab1dc514f5fe154ebf519cdb05b833ee0227",
+    "inputs": {
+      "kernel/boot/bridge/cabecera.hex": "a9ad17e34a2a7c5ece9f0309bd40d4a8d81e1cf35db0b87c675af115c95264f1",
+      "kernel/boot/bridge/entrada.hex": "20a42e44122fe8cc719b15c7a5b4d1cb0c958dac7faa4f6adbba0d591e4339eb",
+      "kernel/boot/bridge/datos.hex": "45ed2b4b995e9dbbbb52a3e9cfaf464adc5cc28c7a4c1e9783baa22306f4d7b1",
+      "kernel/boot/bridge/fuente.hex": "82d4a1f3a4a1dd7fd4adb5523783ae1f921d2db94c30305b8206db49f5c95dc5"
+    },
+    "tools": {
+      "tools/boot/cpu_config.py": "b673fe5624ce130d01bd9898e0d4f77f1361965ae4bbd2ed86a5e55c826d7389",
+      "tools/boot/disk.ps1": "de5d0666e4387d6a0e8c4ecf2dc31220cf0edc15198faa2d721b535b7f4ee361",
+      "tools/boot/image-support.ps1": "57d9862735dc904f20969fb56a31d9364c07f111c99e42e9cc8fe4384f2284fb",
+      "tools/boot/prepare.py": "db3940c7e79f311b981bc3594ca695c119e7480b820a9f166a078cf68c5c5199",
+      "tools/boot/probe.py": "2b357e60a5d9300fcc7e99b4b1db09ef8aa6995ec77dddd75c2741589de588d5",
+      "tools/boot/publish.py": "2e70f9005c27e1778d2503c33c267bdbfaa4f7d1c83ec408d32827612d45a702",
+      "tools/boot/scope.py": "3bd9bfc771f0f7600c671fa2be4704aa2ccc910a110085b8dc2829f5cff5d980",
+      "tools/boot/splash_capture.py": "2bde5c5a374773269beefb4dc09a8b1ef8d2f8ae6b51ff458cdc2324b24c0df8",
+      "tools/boot/test_wake.py": "df889b3efe8bd530bc90bafbf8dc6f78269a763a728be0696faab12a5cd9a745",
+      "tools/boot/wake.py": "4e9ac60494b2ec117b7ce170c6b35080223d0965aaba5219feb3c4e282b795e7"
+    },
+    "firmware": {
+      "edk2-x86_64-code.fd": "33090cc07675baa5190d9f1e84bf5176b33bcbfa9bacac522961150cdb6dbb2a",
+      "edk2-i386-vars.fd": "5d2ac383371b408398accee7ec27c8c09ea5b74a0de0ceea6513388b15be5d1e"
+    },
+    "scope": "VM snapshot images only; inherited UEFI bootstrap, CASM payload; no physical boot or autonomous kernel"
+  },
+  "compiler": "clang version 23.1.2 (https://github.com/llvm/llvm-project 85ac560262434c9ccfc0c183ec22d4138ed647fb)",
+  "compiler_sha256": "6485a958a5731d02e374159ed0432c26b2926721d3dd13e41d97cc54f574cb41",
+  "verification": {
+    "Schema": 1,
+    "Verified": true,
+    "Target": "x86_64",
+    "ABI": "ring0-splash",
+    "Profile": "ring0-splash-hd-0.1",
+    "BodyBytes": 1255,
+    "PacketBytes": 1279,
+    "Mapping": [
+      {
+        "Line": 2,
+        "Offset": 0,
+        "Bytes": 24,
+        "Kind": "handoff-guard"
+      },
+      {
+        "Line": 2,
+        "Offset": 24,
+        "Bytes": 53,
+        "Kind": "center-and-locate-mask"
+      },
+      {
+        "Line": 2,
+        "Offset": 77,
+        "Bytes": 24,
+        "Kind": "palette-and-pixel-order"
+      },
+      {
+        "Line": 2,
+        "Offset": 101,
+        "Bytes": 71,
+        "Kind": "draw-256x256"
+      },
+      {
+        "Line": 2,
+        "Offset": 172,
+        "Bytes": 44,
+        "Kind": "frame-count-and-delay"
+      },
+      {
+        "Line": 68,
+        "Offset": 216,
+        "Bytes": 3,
+        "Kind": "halt"
+      },
+      {
+        "Line": 2,
+        "Offset": 219,
+        "Bytes": 12,
+        "Kind": "eye-palette"
+      },
+      {
+        "Line": 2,
+        "Offset": 231,
+        "Bytes": 1024,
+        "Kind": "cat-masks"
+      }
+    ],
+    "BridgePacketLimitBytes": 4096,
+    "SourceSHA256": "1c9a9b57c3b5e81a94148ff3f68d5e271960c5de201b29d0bef6a489668d7b33",
+    "HexSHA256": "c9e1cd17d9f2c77d7043f6626192fdaca421b0424706836346a3b806bf5826b6",
+    "IRSHA256": "075d1df173fe620a5da7ea16e7f916d099e0773fd7ebe5d14ab74e4f40f1c92e",
+    "PacketSHA256": "44ee0d7d73470da2dc4a832644d9ab1dc514f5fe154ebf519cdb05b833ee0227"
+  },
+  "captures": [
+    {
+      "file": "frame-1.png",
+      "sha256": "f5e78a48e59f04e14dade75847f338f26d1c47ff1bfac58cd5254dbdffbbf8ca"
+    },
+    {
+      "file": "frame-2.png",
+      "sha256": "d2f64a703786296ca7559c46c291de8e08a9127cabbb7b3cac443fa730206342"
+    },
+    {
+      "file": "frame-3.png",
+      "sha256": "c43b4c1cf9c0b560b9660d5ec71ea752fe3a1c722df094b2957c8970611586a5"
+    }
+  ],
+  "replay": {
+    "file": "gato.gif",
+    "sha256": "895bfdc004fb67468443d1412c71455836866990f0900effbc433d79c53f3de2",
+    "scope": "Replay of captures; timings illustrative."
+  },
+  "compact_regression": {
+    "run": "run-20261112-045636-c461240e",
+    "packet_sha256": "9a066c056633335dacb76b1a7a7f3e1eff0b42c2db1cf9040305fccd54e60cbc",
+    "frames": [
+      1,
+      2,
+      3
+    ]
+  }
+}

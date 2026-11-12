@@ -7,10 +7,30 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'CASM'))
-from splash_verify import ASSETS, PROFILE, verify
+from splash_verify import ASSETS, HD_PROFILE, PROFILE, verify
 
 
 class Splash(unittest.TestCase):
+    def test_hd_has_distinct_mask_layout_and_uses_bridge_budget(self):
+        with tempfile.TemporaryDirectory() as directory:
+            run = Path(directory)
+            source, hexa, ir = [run/name for name in ('source.casm','program.hex','program.ir.json')]
+            source.write_bytes((ASSETS/'hd/main.casm').read_bytes())
+            compiler = ROOT/'build/CASM/host/casmc.exe'
+            subprocess.run([str(compiler),'--profile',HD_PROFILE,str(source),str(hexa),str(ir)],
+                           check=True,capture_output=True)
+            packet, report = verify(source,hexa,ir,hd=True)
+            self.assertEqual((len(packet),report['Mapping'][-1]['Bytes']),(1279,1024))
+            self.assertEqual(report['BridgePacketLimitBytes'],4096)
+            self.assertNotIn('EntryBudget',report)
+            with self.assertRaises(ValueError):
+                verify(source,hexa,ir)
+            body = bytearray(bytes.fromhex(hexa.read_text()))
+            body[-1] ^= 0x80
+            hexa.write_text(body.hex(' '),encoding='ascii')
+            with self.assertRaisesRegex(ValueError,'SPLASH-MASK'):
+                verify(source,hexa,ir,hd=True)
+
     def test_emission_and_mutations(self):
         with tempfile.TemporaryDirectory() as directory:
             run = Path(directory)

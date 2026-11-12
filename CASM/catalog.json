@@ -898,6 +898,23 @@
       "tests": [
         "tests/test_splash.py"
       ]
+    },
+    {
+      "id": "ring0-splash-hd",
+      "parent": "casm",
+      "kind": "profile",
+      "title": "Ring 0: gato de mayor resolucion",
+      "status": "implemented",
+      "description": "64 filas y dos mascaras de 64 bits por fila. Paquete grafico de 1279 bytes.",
+      "sources": [
+        "src/kernel/splash.c",
+        "src/kernel/splash_bytes.h",
+        "splash_verify.py"
+      ],
+      "guards": [],
+      "tests": [
+        "tests/test_splash.py"
+      ]
     }
   ]
 }

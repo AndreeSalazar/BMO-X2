@@ -101,6 +101,11 @@
 | [Gato animado de arranque](../kernel/boot/splash/main.casm) | qemu | 0 | Dibuja y anima el gato en el framebuffer entregado al Ring 0. |
 | [Guardian del HEX grafico](../CASM/splash_verify.py) | host | host | Reconstruye mascara y verifica el renderer, IR y presupuesto. |
 | [Evidencia de los tres cuadros](../kernel/boot/splash/evidence/qemu.json) | qemu | host | Vincula la animacion observada al paquete exacto y al entorno QEMU. |
+| [Rutas de arranque Faggin](../contracts/FAGGIN.md) | diseno | contrato | Define la convergencia de reset y UEFI en una entrega CASM x86-64. |
+| [Faggin 16 bits](../kernel/boot/faggin/stage16) | diseno | contrato | Prepara el primer salto desde reset en la ruta propia. |
+| [Faggin 32 bits](../kernel/boot/faggin/stage32) | diseno | 0 | Prepara segmentos, pila y paginacion inicial para modo largo. |
+| [Faggin 64 bits](../kernel/boot/faggin/stage64) | diseno | 0 | Entrega contexto x86-64 a la misma entrada que utiliza UEFI. |
+| [Gato de arranque de mayor resolucion](../kernel/boot/splash/hd/main.casm) | qemu | 0 | Dibuja la silueta de 64 celdas por lado con tres intensidades de ojos. |
 
 ## Dependencias declaradas
 
@@ -290,5 +295,12 @@
 | boot-splash | splash-guardian | verificacion |
 | splash-guardian | entry-budget | verificacion |
 | splash-qemu | boot-splash | verificacion |
+| faggin-contract | contracts | plan |
+| faggin16 | faggin-contract | plan |
+| faggin32 | faggin16 | plan |
+| faggin64 | faggin32 | plan |
+| faggin64 | boot-context | plan |
+| boot-splash-hd | boot-splash | verificacion |
+| boot-splash-hd | splash-guardian | verificacion |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

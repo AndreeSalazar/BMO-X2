@@ -13,9 +13,10 @@ def compare_frame(memory, context, rows, frame):
     if order == 1:
         eye = eye[::-1]
     colors = {'.':bytes(4), '#':bytes((232,232,232,0)), 'o':bytes((*eye,0))}
+    scale = 256 // len(rows)
     for index, row in enumerate(rows):
-        expected = b''.join(colors[cell]*8 for cell in row)
-        for scanline in range(index*8,index*8+8):
+        expected = b''.join(colors[cell]*scale for cell in row)
+        for scanline in range(index*scale,(index+1)*scale):
             offset = scanline*pitch*4
             if raw[offset:offset+1024] != expected:
                 raise ValueError(f'SPLASH-PIXELS: cuadro {frame}, linea {scanline}')
