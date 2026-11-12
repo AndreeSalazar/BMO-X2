@@ -1319,12 +1319,12 @@ Estado: HOST. Anillo: 3. Lenguaje: Rust.
 Entrada: Eventos de entrada, superficies de clientes y capacidad de pantalla.
 Salida: Cuadro en RAM, espacio activo, foco y movimiento de ventanas.
 Depende de: Supervisor Rust de Ring 3 (plan).
-Aceptacion: HOST verifica cuatro espacios, foco, movimiento y pixels compuestos. tools/view-desktop.ps1 abre la vista interactiva.
-Pendiente: Arrancar el SBEF externo, presentar el cuadro y recibir la capacidad de entrada.
+Aceptacion: HOST verifica cuatro espacios, atajos estables, foco y composicion. El visor muestra CPU y RAM de Windows.
+Pendiente: Arrancar el SBEF externo y conectar pantalla, entrada y la capacidad de telemetria de Ring 0.
 
 ## userspace/services/desktop/src/keyboard.rs
 
-Convierte el evento crudo de BMO-X en acciones directas del escritorio.
+Convierte eventos de BMO-X en cambios de espacio, foco numerado y movimiento de ventanas.
 
 Estado: HOST. Anillo: 3. Lenguaje: Rust.
 Entrada: Scancode normalizado, flanco y modificadores asociados al evento.

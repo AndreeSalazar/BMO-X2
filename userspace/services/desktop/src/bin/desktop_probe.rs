@@ -20,7 +20,7 @@ fn check_desktop() -> bool {
     let mut desktop = Desktop::<2>::new();
     let mut keyboard = Keyboard::default();
     desktop.open(1, 0, 0, red).unwrap();
-    if keyboard.handle(&mut desktop, 0x303, 0x20) != Ok(Some(KeyRoute::Consumed)) {
+    if keyboard.handle(&mut desktop, 0x303, 0x22) != Ok(Some(KeyRoute::Consumed)) {
         return false;
     }
     desktop.open(2, 0, 0, blue).unwrap();
@@ -29,7 +29,7 @@ fn check_desktop() -> bool {
     if pixels != [0x000000ff, 0] || desktop.focused() != Some(2) {
         return false;
     }
-    if keyboard.handle(&mut desktop, 0x302, 0x20) != Ok(Some(KeyRoute::Consumed)) {
+    if keyboard.handle(&mut desktop, 0x302, 0x22) != Ok(Some(KeyRoute::Consumed)) {
         return false;
     }
     desktop.compose(&mut Frame::new(2, 1, &mut pixels).unwrap(), 0);

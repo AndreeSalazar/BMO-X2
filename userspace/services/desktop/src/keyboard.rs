@@ -4,9 +4,11 @@ const EVENT_PRESENT: u64 = 1 << 8;
 const KEY_PRESSED: u64 = 1 << 9;
 const EVENT_MASK: u64 = 0xff | EVENT_PRESENT | KEY_PRESSED;
 const MOD_SHIFT: u8 = 1 << 0;
+const MOD_CTRL: u8 = 1 << 1;
 const MOD_CAPS: u8 = 1 << 4;
 const MOD_SUPER: u8 = 1 << 5;
 const MOD_SUPER_SHIFT: u8 = MOD_SUPER | MOD_SHIFT;
+const MOD_SUPER_CTRL: u8 = MOD_SUPER | MOD_CTRL;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct KeyEvent {
@@ -41,12 +43,12 @@ pub enum KeyRoute {
     Consumed,
 }
 
-/// Tracks only the top-row keys 1 through 4. Captured keys keep their
+/// Tracks only the top-row keys 1 through 9. Captured keys keep their
 /// press, repeat, and release together even if modifiers change.
 #[derive(Default)]
 pub struct Keyboard {
-    down: u8,
-    captured: u8,
+    down: u16,
+    captured: u16,
 }
 
 impl Keyboard {
@@ -61,10 +63,11 @@ impl Keyboard {
         let Some(event) = KeyEvent::from_bmo_x(raw)? else {
             return Ok(None);
         };
-        let Some(workspace) = event.scancode.checked_sub(1).and_then(Workspace::new) else {
+        let number = event.scancode - 1;
+        if !(1..=9).contains(&number) {
             return Ok(Some(KeyRoute::Forward(event)));
-        };
-        let bit = 1 << (workspace.number() - 1);
+        }
+        let bit = 1 << (number - 1);
         if !event.pressed {
             let was_captured = self.captured & bit != 0;
             self.down &= !bit;
@@ -83,9 +86,12 @@ impl Keyboard {
             }));
         }
         self.down |= bit;
-        match modifiers & !MOD_CAPS {
-            MOD_SUPER => desktop.switch(workspace),
-            MOD_SUPER_SHIFT => {
+        match (modifiers & !MOD_CAPS, Workspace::new(number)) {
+            (MOD_SUPER, _) => {
+                desktop.focus_shortcut(number);
+            }
+            (MOD_SUPER_CTRL, Some(workspace)) => desktop.switch(workspace),
+            (MOD_SUPER_SHIFT, Some(workspace)) => {
                 desktop.move_focused(workspace);
             }
             _ => return Ok(Some(KeyRoute::Forward(event))),

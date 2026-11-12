@@ -35,6 +35,7 @@ pub enum OpenError {
 struct Window<'a> {
     id: u32,
     workspace: Workspace,
+    shortcut: u8,
     x: i32,
     y: i32,
     surface: Surface<'a>,
@@ -73,16 +74,49 @@ impl<'a, const N: usize> Desktop<'a, N> {
         {
             return Err(OpenError::DuplicateId);
         }
+        let shortcut = self.next_shortcut(self.active);
         let slot = self.windows.get_mut(self.len).ok_or(OpenError::Full)?;
         *slot = Some(Window {
             id,
             workspace: self.active,
+            shortcut,
             x,
             y,
             surface,
         });
         self.len += 1;
         Ok(())
+    }
+
+    fn next_shortcut(&self, workspace: Workspace) -> u8 {
+        let mut occupied = 0u16;
+        for window in self.windows[..self.len].iter().flatten() {
+            if window.workspace == workspace {
+                occupied |= 1 << window.shortcut;
+            }
+        }
+        (1..=9)
+            .find(|number| occupied & (1 << number) == 0)
+            .unwrap_or(0)
+    }
+
+    pub fn focused_shortcut(&self) -> Option<u8> {
+        let shortcut = self.windows[self.focused_index()?]?.shortcut;
+        (shortcut != 0).then_some(shortcut)
+    }
+
+    pub fn focus_shortcut(&mut self, number: u8) -> bool {
+        if !(1..=9).contains(&number) {
+            return false;
+        }
+        let Some(window) = self.windows[..self.len]
+            .iter()
+            .flatten()
+            .find(|window| window.workspace == self.active && window.shortcut == number)
+        else {
+            return false;
+        };
+        self.focus(window.id)
     }
 
     fn focused_index(&self) -> Option<usize> {
@@ -108,8 +142,13 @@ impl<'a, const N: usize> Desktop<'a, N> {
 
     pub fn move_focused(&mut self, destination: Workspace) -> Option<u32> {
         let index = self.focused_index()?;
+        if destination == self.active {
+            return self.focused();
+        }
+        let shortcut = self.next_shortcut(destination);
         let window = self.windows[index].as_mut()?;
         window.workspace = destination;
+        window.shortcut = shortcut;
         let id = window.id;
         self.windows[index..self.len].rotate_left(1);
         Some(id)

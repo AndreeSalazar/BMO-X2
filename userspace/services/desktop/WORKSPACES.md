@@ -41,13 +41,16 @@ que usa Super con numeros para enfocar y Super+Shift para mover ventanas.
 
 | Atajo | Operacion |
 |---|---|
-| Super+1, Super+2, Super+3, Super+4 | Cambiar el espacio visible y restaurar su ultimo foco disponible. |
+| Ctrl+Super+1-4 | Cambiar el espacio visible y restaurar su ultimo foco. |
+| Super+1-9 | Enfocar la ventana numerada del espacio activo. |
 | Super+Shift+1, Super+Shift+2, Super+Shift+3, Super+Shift+4 | Mover la ventana activa al espacio indicado y conservar el espacio visible. |
 
 Cambiar de espacio conserva los procesos y las ventanas de los demas
 espacios. Si se cerro la ventana enfocada, se usa la siguiente ventana
-disponible de ese espacio. Los cuatro espacios forman el primer perfil
-de prueba.
+disponible de ese espacio. Cada espacio reserva hasta nueve atajos.
+Cambiar de foco o cerrar otra ventana conserva el numero. Una ventana
+que se mueve recibe el primer numero libre del destino. Si todos estan
+ocupados, la ventana se puede enfocar por su identificador.
 
 ## Entrada directa
 
@@ -58,7 +61,7 @@ La referencia esta en `Ultra_userspace/userland/src/entrada.rs` y
 el formato del evento y deja la politica de atajos en Ring 3.
 
 `Keyboard::handle` recibe el scancode y la mascara de modificadores
-asociada a ese evento. La fila superior usa los codigos 0x02 a 0x05.
+asociada a ese evento. La fila superior usa los codigos 0x02 a 0x0A.
 Al pulsar un atajo, el escritorio consume la pulsacion, su repeticion
 y la liberacion correspondiente, incluso si se suelta Super primero.
 Las otras combinaciones se devuelven para que el componente enfocado
@@ -86,7 +89,7 @@ rustc --edition=2024 --test -D warnings .\userspace\services\desktop\src\lib.rs 
 .\build\desktop\desktop-tests.exe
 ```
 
-Las nueve pruebas HOST verifican foco, movimiento, composicion,
+Las diez pruebas HOST verifican foco, movimiento, composicion,
 limites y atajos mediante eventos de entrada.
 
 ## Vista previa en Windows
@@ -96,12 +99,27 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\view-desktop.ps1
 ```
 
 La ventana usa el compositor Rust con dos superficies de muestra por
-espacio. Pulsa `1` a `4` o haz clic en el panel. El visor convierte
-esas acciones en eventos Super + numero para el mismo adaptador Rust.
-Asi la tecla Win queda disponible para los atajos del anfitrion.
-Se guarda una captura inicial junto al ejecutable temporal en
-`build/desktop`. La integracion del framebuffer y el teclado en QEMU
-continua en el hito de carga externa.
+espacio. Usa Ctrl+Alt+1-4 o haz clic en el panel para cambiar de espacio.
+Manten Alt para ver los numeros de las ventanas y pulsa Alt+1-9 para
+cambiar el foco. En este visor Alt representa Super y deja Win a
+Windows. El compositor reutiliza los buffers y dibuja por evento.
+
+## Telemetria
+
+El visor lee CPU y RAM de Windows una vez por segundo y las identifica
+como HOST. La CPU se calcula entre muestras de tiempos acumulados.
+La RAM usa el porcentaje fisico del anfitrion. El muestreo actualiza
+solo el texto del panel y los fallos de lectura se muestran como `--`.
+
+Ring 0 comprueba CPUID y el ciclo de marcos en perfiles de QEMU. Para
+publicar metricas al escritorio, primero necesita contadores del
+asignador integrado y tiempos activo e inactivo del planificador.
+La interfaz prevista es una capacidad de lectura por INVOKE con una
+instantanea versionada, un tiempo monotono y campos disponibles.
+El escritorio puede sumar componentes conforme el kernel los
+publique. La politica de muestreo y presentacion queda en Ring 3.
+El numero de operacion y el formato binario quedan pendientes de la
+primera prueba de la capacidad en QEMU.
 
 ## SBEF de prueba
 
@@ -117,7 +135,7 @@ rustup target add x86_64-unknown-none
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\build-desktop.ps1
 ```
 
-En el HOST de referencia salio `build/desktop/desktop.sbef` de 1379 bytes,
+En el HOST de referencia salio `build/desktop/desktop.sbef` de 1491 bytes,
 con regiones RX y R. La prueba de arranque actual de CASM carga su propio
 SBEF embebido. Queda cargar el ejecutable externo, conectar la capacidad
 de entrada al teclado de QEMU y presentar el cuadro en pantalla.

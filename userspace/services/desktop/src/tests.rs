@@ -2,6 +2,7 @@ use super::*;
 
 const SUPER: u8 = 0x20;
 const SHIFT: u8 = 0x01;
+const CTRL: u8 = 0x02;
 
 #[test]
 fn parent_event_keeps_raw_scancode_press_and_release() {
@@ -26,13 +27,13 @@ fn parent_event_keeps_raw_scancode_press_and_release() {
 }
 
 #[test]
-fn super_selects_each_workspace_and_captures_the_matching_release() {
+fn ctrl_super_selects_each_workspace_and_captures_the_matching_release() {
     let mut desktop = Desktop::<1>::new();
     let mut keyboard = Keyboard::default();
     for workspace in 1..=4 {
         let code = u64::from(workspace + 1);
         assert_eq!(
-            keyboard.handle(&mut desktop, 0x300 | code, SUPER | 0x10),
+            keyboard.handle(&mut desktop, 0x300 | code, SUPER | CTRL | 0x10),
             Ok(Some(KeyRoute::Consumed))
         );
         assert_eq!(desktop.active().number(), workspace);
@@ -69,7 +70,7 @@ fn super_shift_moves_once_even_when_the_digit_repeats() {
 fn ordinary_digits_and_unrelated_chords_are_forwarded() {
     let mut desktop = Desktop::<0>::new();
     let mut keyboard = Keyboard::default();
-    for modifiers in [0, SUPER | 0x02, SUPER | 0x04, SUPER | 0x08] {
+    for modifiers in [0, SUPER | 0x04, SUPER | 0x08] {
         let press = Ok(Some(KeyRoute::Forward(KeyEvent {
             scancode: 3,
             pressed: true,
@@ -92,6 +93,30 @@ fn ordinary_digits_and_unrelated_chords_are_forwarded() {
         })))
     );
     assert_eq!(desktop.active(), Workspace::FIRST);
+}
+
+#[test]
+fn super_focuses_stable_slots_within_the_active_workspace() {
+    let mut desktop = Desktop::<4>::new();
+    let mut keyboard = Keyboard::default();
+    let pixel = Surface::new(1, 1, &[1]).unwrap();
+    for id in [10, 20, 30] {
+        desktop.open(id, 0, 0, pixel).unwrap();
+    }
+    keyboard.handle(&mut desktop, 0x303, SUPER).unwrap();
+    assert_eq!(desktop.focused(), Some(20));
+    assert_eq!(desktop.close_focused(), Some(20));
+    assert!(!desktop.focus_shortcut(2));
+    keyboard.handle(&mut desktop, 0x304, SUPER).unwrap();
+    assert_eq!(desktop.focused_shortcut(), Some(3));
+    keyboard.handle(&mut desktop, 0x303, SUPER | CTRL).unwrap();
+    assert_eq!(desktop.active().number(), 1);
+    keyboard.handle(&mut desktop, 0x103, 0).unwrap();
+    keyboard.handle(&mut desktop, 0x303, SUPER | CTRL).unwrap();
+    assert_eq!(desktop.active().number(), 2);
+    assert_eq!(desktop.focused(), None);
+    desktop.switch(Workspace::FIRST);
+    assert_eq!(desktop.focused(), Some(30));
 }
 
 #[test]
