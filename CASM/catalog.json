@@ -915,6 +915,22 @@
       "tests": [
         "tests/test_splash.py"
       ]
+    },
+    {
+      "id": "ring0-fault",
+      "parent": "casm",
+      "kind": "profile",
+      "title": "Ring 0: excepcion controlada",
+      "status": "implemented",
+      "description": "IDT minima con puerta 6, UD2 y RIP guardado. Paquete de 162 bytes.",
+      "sources": [
+        "src/kernel/stop.c",
+        "stop_verify.py"
+      ],
+      "guards": [],
+      "tests": [
+        "tests/test_stop.py"
+      ]
     }
   ]
 }

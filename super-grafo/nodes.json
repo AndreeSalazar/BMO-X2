@@ -313,7 +313,7 @@
       "entrada": "CPU preparada y marcos de excepcion definidos.",
       "salida": "Diagnostico, terminacion del proceso o parada controlada segun origen.",
       "aceptacion": "#UD/#PF de Ring 3 terminan ese proceso; el kernel conserva control y evidencia.",
-      "falta": "IDT, entradas, pilas de excepcion, retorno e interrupciones de hardware."
+      "falta": "La primera puerta #UD ya tiene evidencia. Faltan otros vectores, pilas de emergencia, diagnostico y contencion de Ring 3."
     },
     {
       "id": "mm",
@@ -1565,7 +1565,7 @@
       "que": "Ordena la transferencia de Ultra_userspace por dependencia real.",
       "entrada": "Revision del padre, ABI y SBEF validados, requisitos de cada componente.",
       "salida": "Orden de traslado, compatibilidad y evidencia por componente.",
-      "aceptacion": "Cada pieza arranca en Ring 3 con sus capacidades y se prueba su fallo y recuperacion.",
+      "aceptacion": "El runtime Rust y un programa COBOL empaquetados en SBEF obtienen el mismo resultado por el ABI. Cada servicio prueba sus capacidades y recuperacion.",
       "falta": "Empezar por runtime una vez cerrada la base."
     },
     {
@@ -1774,6 +1774,23 @@
       "salida": "Tres cuadros de 256 por 256 y paquete de demostracion de 1279 bytes.",
       "aceptacion": "QEMU compara cada cuadro y confirma la parada de Ring 0.",
       "falta": "Integrar la escena con el diagnostico del kernel."
+    },
+    {
+      "id": "fault-ud",
+      "titulo": "Primera excepcion #UD",
+      "ruta": "kernel/arch/x86_64/exceptions/main.casm",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [
+        8500,
+        4375
+      ],
+      "que": "Instala una IDT minima y registra el vector y RIP de una excepcion controlada.",
+      "entrada": "Entrega x86-64 valida y memoria reservada por el puente.",
+      "salida": "Vector 6, RIP de UD2 y parada propia, o rechazo de entrega.",
+      "aceptacion": "QEMU coteja IDTR, puerta, marco en RAM y rechazo con RDI nulo.",
+      "falta": "Generalizar excepciones y diagnostico antes de aislar un proceso."
     }
   ],
   "relaciones": [
@@ -2730,6 +2747,16 @@
     {
       "de": "boot-splash-hd",
       "a": "splash-guardian",
+      "clase": "verificacion"
+    },
+    {
+      "de": "fault-ud",
+      "a": "x86_64-exceptions",
+      "clase": "plan"
+    },
+    {
+      "de": "fault-ud",
+      "a": "stop-verifier",
       "clase": "verificacion"
     }
   ]

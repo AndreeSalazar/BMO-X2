@@ -92,6 +92,26 @@ class Stop(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'STOP-EMISSION'):
             verify(self.source, self.hex, self.ir, context=True)
 
+    def test_fault_profile_checks_vector_limit_and_opcode(self):
+        source = ROOT/'kernel/arch/x86_64/exceptions/main.casm'
+        self.source.write_bytes(source.read_bytes())
+        cmd = [str(self.compiler), '--profile', 'ring0-fault-0.1',
+               str(self.source), str(self.hex), str(self.ir)]
+        self.assertEqual(subprocess.run(cmd, capture_output=True).returncode, 0)
+        packet, report = verify(self.source,self.hex,self.ir,fault=True)
+        self.assertEqual(packet[24+122:24+124], bytes.fromhex('0F 0B'))
+        self.assertEqual(len(packet), 162)
+        self.assertEqual(report['EntryBudget']['RemainingBytes'],349)
+        original = self.ir.read_text()
+        for old, new in [('"Vector":6','"Vector":7'),('"IdtLimit":111','"IdtLimit":95')]:
+            self.ir.write_text(original.replace(old,new))
+            with self.assertRaisesRegex(ValueError,'STOP-IR'):
+                verify(self.source,self.hex,self.ir,fault=True)
+        self.ir.write_text(original)
+        self.hex.write_text(self.hex.read_text().replace('0F 0B','90 90'))
+        with self.assertRaisesRegex(ValueError,'STOP-EMISSION'):
+            verify(self.source,self.hex,self.ir,fault=True)
+
     def test_all_byte_bits_and_ir_contract_reject(self):
         self.assertEqual(self.compile().returncode, 0)
         vector = bytes.fromhex(self.hex.read_text())

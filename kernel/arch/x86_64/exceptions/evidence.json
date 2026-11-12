@@ -1,0 +1,402 @@
+{
+  "schema": 1,
+  "evidence": "QEMU",
+  "runs": [
+    {
+      "qemu": {
+        "Passed": 2,
+        "Total": 2,
+        "Cases": [
+          {
+            "Case": "normal",
+            "Passed": true,
+            "BootServicesExited": true,
+            "PayloadReturned": false,
+            "OwnHalt": true,
+            "InstructionPointerOffset": 136,
+            "InterruptsMasked": true,
+            "Ring": 0,
+            "OwnFramebufferTextVerified": true,
+            "Context": "0xDE38000",
+            "PayloadSHA256": "120b2101b6dadcbdf971ede73304b61981baeca90988ba43bf7bd9b309b6d037",
+            "ContextAccepted": true,
+            "FaultHandled": true,
+            "FaultVector": 6,
+            "FaultRip": "0xE4AB07A",
+            "FaultOffset": 122,
+            "IdtBase": "0xDE4C000",
+            "IdtLimit": 111,
+            "StackFrameBytes": 40
+          },
+          {
+            "Case": "contexto",
+            "Passed": true,
+            "BootServicesExited": true,
+            "PayloadReturned": false,
+            "OwnHalt": true,
+            "InstructionPointerOffset": 136,
+            "InterruptsMasked": true,
+            "Ring": 0,
+            "OwnFramebufferTextVerified": true,
+            "Context": "0xDE38000",
+            "PayloadSHA256": "120b2101b6dadcbdf971ede73304b61981baeca90988ba43bf7bd9b309b6d037",
+            "ContextAccepted": false,
+            "FaultHandled": false,
+            "FaultInjection": "RDI=0 al entregar"
+          }
+        ],
+        "schema": 1,
+        "evidence": "QEMU",
+        "milestone": "Ring0 invalid opcode handler",
+        "physical_boot": false,
+        "autonomous_kernel": false,
+        "body_bytes": 138,
+        "packet_bytes": 162,
+        "bridge_bytes": 12288,
+        "run": "run-20261112-050626-35449389",
+        "packet_sha256": "18eb269d705ce0e228ccd8ae7bb7301fa49972509c85600c4569cfef3789b797",
+        "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+        "source_sha256": "4866f013ee7148a1e6d4200a3006012c003dd5904600ed061932a4f5250515b2",
+        "case_scope": "Own IDT and controlled #UD; null handoff rejection under QEMU"
+      },
+      "environment": {
+        "schema": 1,
+        "milestone": "Ring0 invalid opcode handler",
+        "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+        "accelerator": "tcg",
+        "cpu": "qemu64",
+        "ram_mib": 256,
+        "powershell": "7.6.9",
+        "cases": [
+          "normal",
+          "contexto"
+        ],
+        "bridge_sha256": "4287ad788cb7a75a74922f7f73e69363560c84501b9a73ba271d357f5f71469f",
+        "bridge_bytes": 12288,
+        "packet_sha256": "18eb269d705ce0e228ccd8ae7bb7301fa49972509c85600c4569cfef3789b797",
+        "inputs": {
+          "kernel/boot/bridge/cabecera.hex": "a9ad17e34a2a7c5ece9f0309bd40d4a8d81e1cf35db0b87c675af115c95264f1",
+          "kernel/boot/bridge/entrada.hex": "20a42e44122fe8cc719b15c7a5b4d1cb0c958dac7faa4f6adbba0d591e4339eb",
+          "kernel/boot/bridge/datos.hex": "45ed2b4b995e9dbbbb52a3e9cfaf464adc5cc28c7a4c1e9783baa22306f4d7b1",
+          "kernel/boot/bridge/fuente.hex": "82d4a1f3a4a1dd7fd4adb5523783ae1f921d2db94c30305b8206db49f5c95dc5"
+        },
+        "tools": {
+          "tools/boot/cpu_config.py": "b673fe5624ce130d01bd9898e0d4f77f1361965ae4bbd2ed86a5e55c826d7389",
+          "tools/boot/disk.ps1": "de5d0666e4387d6a0e8c4ecf2dc31220cf0edc15198faa2d721b535b7f4ee361",
+          "tools/boot/fault_capture.py": "8476a7b9c12ed44acb3d93f4c669e03b052617f7a2f576a0502de413c8c8f24b",
+          "tools/boot/image-support.ps1": "57d9862735dc904f20969fb56a31d9364c07f111c99e42e9cc8fe4384f2284fb",
+          "tools/boot/prepare.py": "db3940c7e79f311b981bc3594ca695c119e7480b820a9f166a078cf68c5c5199",
+          "tools/boot/probe.py": "371c008bcba8666a5923055c89abe4ffe5226821467235b0e1f92c444c119bad",
+          "tools/boot/publish.py": "2e70f9005c27e1778d2503c33c267bdbfaa4f7d1c83ec408d32827612d45a702",
+          "tools/boot/scope.py": "3bd9bfc771f0f7600c671fa2be4704aa2ccc910a110085b8dc2829f5cff5d980",
+          "tools/boot/splash_capture.py": "2bde5c5a374773269beefb4dc09a8b1ef8d2f8ae6b51ff458cdc2324b24c0df8",
+          "tools/boot/test_wake.py": "df889b3efe8bd530bc90bafbf8dc6f78269a763a728be0696faab12a5cd9a745",
+          "tools/boot/wake.py": "33a81e3a87cc1d76628d28030888e3db5de6109325fb4c4102f1c41251fb7be2"
+        },
+        "firmware": {
+          "edk2-x86_64-code.fd": "33090cc07675baa5190d9f1e84bf5176b33bcbfa9bacac522961150cdb6dbb2a",
+          "edk2-i386-vars.fd": "5d2ac383371b408398accee7ec27c8c09ea5b74a0de0ceea6513388b15be5d1e"
+        },
+        "scope": "VM snapshot images only; inherited UEFI bootstrap, CASM payload; no physical boot or autonomous kernel"
+      },
+      "verification": {
+        "Schema": 1,
+        "Verified": true,
+        "Target": "x86_64",
+        "ABI": "ring0-fault",
+        "Profile": "ring0-fault-0.1",
+        "BodyBytes": 138,
+        "PacketBytes": 162,
+        "Integers": [],
+        "EntryBudget": {
+          "HeaderBytes": 24,
+          "LimitExclusive": 512,
+          "RemainingBytes": 349
+        },
+        "Mapping": [
+          {
+            "Line": 2,
+            "Offset": 0,
+            "Bytes": 32,
+            "Kind": "handoff-guard"
+          },
+          {
+            "Line": 2,
+            "Offset": 32,
+            "Bytes": 21,
+            "Kind": "stack-idt-handler-addresses"
+          },
+          {
+            "Line": 2,
+            "Offset": 53,
+            "Bytes": 44,
+            "Kind": "idt-gate-6"
+          },
+          {
+            "Line": 2,
+            "Offset": 97,
+            "Bytes": 25,
+            "Kind": "lidt"
+          },
+          {
+            "Line": 2,
+            "Offset": 122,
+            "Bytes": 4,
+            "Kind": "ud2"
+          },
+          {
+            "Line": 2,
+            "Offset": 126,
+            "Bytes": 9,
+            "Kind": "record-fault"
+          },
+          {
+            "Line": 3,
+            "Offset": 135,
+            "Bytes": 3,
+            "Kind": "halt"
+          }
+        ],
+        "Scope": "Closed source grammar and exact emission; CPL0 required; QEMU evidence separate.",
+        "SourceSHA256": "4866f013ee7148a1e6d4200a3006012c003dd5904600ed061932a4f5250515b2",
+        "HexSHA256": "31c59b6d99e7fb2a29b24cda8695bfab0705a32a4356c068a142ab08363941a8",
+        "IRSHA256": "a70ae4bcc8caf49b26e65250475803cdad589fa6396357157151ada730a647c8",
+        "PacketSHA256": "18eb269d705ce0e228ccd8ae7bb7301fa49972509c85600c4569cfef3789b797"
+      },
+      "compiler": "clang version 23.1.2 (https://github.com/llvm/llvm-project 85ac560262434c9ccfc0c183ec22d4138ed647fb)",
+      "compiler_sha256": "08b9275610d62e062b351d9d6bef05f2f1f98b7549154702ff7bade9e08e68b2",
+      "observed": {
+        "normal": {
+          "registers": {
+            "RAX": "0000000000000006",
+            "RBP": "000000000de38000",
+            "RDI": "000000000de38000",
+            "RDX": "000000000e4ab07a",
+            "RIP": "000000000e4ab088",
+            "RSI": "000000000de57ff8",
+            "RSP": "000000000de4bfd8",
+            "RFL": "00000046",
+            "CS": "0038"
+          },
+          "idt": "IDT=     000000000de4c000 0000006f",
+          "idt_page_sha256": "6edb7780e67f9de426506830c97d699f644b0d5f8411af75085be423e97c068b",
+          "gate6_hex": "7E B0 38 00 00 8E 4A 0E 00 00 00 00 00 00 00 00",
+          "frame_hex": "7A B0 4A 0E 00 00 00 00 38 00 00 00 00 00 00 00 46 00 01 00 00 00 00 00 00 C0 E4 0D 00 00 00 00 30 00 00 00 00 00 00 00"
+        },
+        "contexto": {
+          "registers": {
+            "RAX": "0000000000000000",
+            "RBP": "000000000de38000",
+            "RDI": "0000000000000000",
+            "RDX": "0000000000000000",
+            "RIP": "000000000e4ab088",
+            "RSI": "000000000de57ff8",
+            "RSP": "000000000de57ff8",
+            "RFL": "00000087",
+            "CS": "0038"
+          },
+          "idt": "IDT=     000000000efa4018 00000fff",
+          "idt_page_sha256": "ad7facb2586fc6e966c004d7d1d16b024f5805ff7cb47c7a85dabd8b48892ca7"
+        }
+      }
+    },
+    {
+      "qemu": {
+        "Passed": 2,
+        "Total": 2,
+        "Cases": [
+          {
+            "Case": "normal",
+            "Passed": true,
+            "BootServicesExited": true,
+            "PayloadReturned": false,
+            "OwnHalt": true,
+            "InstructionPointerOffset": 136,
+            "InterruptsMasked": true,
+            "Ring": 0,
+            "OwnFramebufferTextVerified": true,
+            "Context": "0xE239000",
+            "PayloadSHA256": "120b2101b6dadcbdf971ede73304b61981baeca90988ba43bf7bd9b309b6d037",
+            "ContextAccepted": true,
+            "FaultHandled": true,
+            "FaultVector": 6,
+            "FaultRip": "0xE23807A",
+            "FaultOffset": 122,
+            "IdtBase": "0xE24D000",
+            "IdtLimit": 111,
+            "StackFrameBytes": 40
+          },
+          {
+            "Case": "contexto",
+            "Passed": true,
+            "BootServicesExited": true,
+            "PayloadReturned": false,
+            "OwnHalt": true,
+            "InstructionPointerOffset": 136,
+            "InterruptsMasked": true,
+            "Ring": 0,
+            "OwnFramebufferTextVerified": true,
+            "Context": "0xE239000",
+            "PayloadSHA256": "120b2101b6dadcbdf971ede73304b61981baeca90988ba43bf7bd9b309b6d037",
+            "ContextAccepted": false,
+            "FaultHandled": false,
+            "FaultInjection": "RDI=0 al entregar"
+          }
+        ],
+        "schema": 1,
+        "evidence": "QEMU",
+        "milestone": "Ring0 invalid opcode handler",
+        "physical_boot": false,
+        "autonomous_kernel": false,
+        "body_bytes": 138,
+        "packet_bytes": 162,
+        "bridge_bytes": 12288,
+        "run": "run-20261112-050634-20d65e0b",
+        "packet_sha256": "18eb269d705ce0e228ccd8ae7bb7301fa49972509c85600c4569cfef3789b797",
+        "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+        "source_sha256": "4866f013ee7148a1e6d4200a3006012c003dd5904600ed061932a4f5250515b2",
+        "case_scope": "Own IDT and controlled #UD; null handoff rejection under QEMU"
+      },
+      "environment": {
+        "schema": 1,
+        "milestone": "Ring0 invalid opcode handler",
+        "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+        "accelerator": "tcg",
+        "cpu": "Nehalem",
+        "ram_mib": 256,
+        "powershell": "7.6.9",
+        "cases": [
+          "normal",
+          "contexto"
+        ],
+        "bridge_sha256": "4287ad788cb7a75a74922f7f73e69363560c84501b9a73ba271d357f5f71469f",
+        "bridge_bytes": 12288,
+        "packet_sha256": "18eb269d705ce0e228ccd8ae7bb7301fa49972509c85600c4569cfef3789b797",
+        "inputs": {
+          "kernel/boot/bridge/cabecera.hex": "a9ad17e34a2a7c5ece9f0309bd40d4a8d81e1cf35db0b87c675af115c95264f1",
+          "kernel/boot/bridge/entrada.hex": "20a42e44122fe8cc719b15c7a5b4d1cb0c958dac7faa4f6adbba0d591e4339eb",
+          "kernel/boot/bridge/datos.hex": "45ed2b4b995e9dbbbb52a3e9cfaf464adc5cc28c7a4c1e9783baa22306f4d7b1",
+          "kernel/boot/bridge/fuente.hex": "82d4a1f3a4a1dd7fd4adb5523783ae1f921d2db94c30305b8206db49f5c95dc5"
+        },
+        "tools": {
+          "tools/boot/cpu_config.py": "b673fe5624ce130d01bd9898e0d4f77f1361965ae4bbd2ed86a5e55c826d7389",
+          "tools/boot/disk.ps1": "de5d0666e4387d6a0e8c4ecf2dc31220cf0edc15198faa2d721b535b7f4ee361",
+          "tools/boot/fault_capture.py": "8476a7b9c12ed44acb3d93f4c669e03b052617f7a2f576a0502de413c8c8f24b",
+          "tools/boot/image-support.ps1": "57d9862735dc904f20969fb56a31d9364c07f111c99e42e9cc8fe4384f2284fb",
+          "tools/boot/prepare.py": "db3940c7e79f311b981bc3594ca695c119e7480b820a9f166a078cf68c5c5199",
+          "tools/boot/probe.py": "371c008bcba8666a5923055c89abe4ffe5226821467235b0e1f92c444c119bad",
+          "tools/boot/publish.py": "2e70f9005c27e1778d2503c33c267bdbfaa4f7d1c83ec408d32827612d45a702",
+          "tools/boot/scope.py": "3bd9bfc771f0f7600c671fa2be4704aa2ccc910a110085b8dc2829f5cff5d980",
+          "tools/boot/splash_capture.py": "2bde5c5a374773269beefb4dc09a8b1ef8d2f8ae6b51ff458cdc2324b24c0df8",
+          "tools/boot/test_wake.py": "df889b3efe8bd530bc90bafbf8dc6f78269a763a728be0696faab12a5cd9a745",
+          "tools/boot/wake.py": "33a81e3a87cc1d76628d28030888e3db5de6109325fb4c4102f1c41251fb7be2"
+        },
+        "firmware": {
+          "edk2-x86_64-code.fd": "33090cc07675baa5190d9f1e84bf5176b33bcbfa9bacac522961150cdb6dbb2a",
+          "edk2-i386-vars.fd": "5d2ac383371b408398accee7ec27c8c09ea5b74a0de0ceea6513388b15be5d1e"
+        },
+        "scope": "VM snapshot images only; inherited UEFI bootstrap, CASM payload; no physical boot or autonomous kernel"
+      },
+      "verification": {
+        "Schema": 1,
+        "Verified": true,
+        "Target": "x86_64",
+        "ABI": "ring0-fault",
+        "Profile": "ring0-fault-0.1",
+        "BodyBytes": 138,
+        "PacketBytes": 162,
+        "Integers": [],
+        "EntryBudget": {
+          "HeaderBytes": 24,
+          "LimitExclusive": 512,
+          "RemainingBytes": 349
+        },
+        "Mapping": [
+          {
+            "Line": 2,
+            "Offset": 0,
+            "Bytes": 32,
+            "Kind": "handoff-guard"
+          },
+          {
+            "Line": 2,
+            "Offset": 32,
+            "Bytes": 21,
+            "Kind": "stack-idt-handler-addresses"
+          },
+          {
+            "Line": 2,
+            "Offset": 53,
+            "Bytes": 44,
+            "Kind": "idt-gate-6"
+          },
+          {
+            "Line": 2,
+            "Offset": 97,
+            "Bytes": 25,
+            "Kind": "lidt"
+          },
+          {
+            "Line": 2,
+            "Offset": 122,
+            "Bytes": 4,
+            "Kind": "ud2"
+          },
+          {
+            "Line": 2,
+            "Offset": 126,
+            "Bytes": 9,
+            "Kind": "record-fault"
+          },
+          {
+            "Line": 3,
+            "Offset": 135,
+            "Bytes": 3,
+            "Kind": "halt"
+          }
+        ],
+        "Scope": "Closed source grammar and exact emission; CPL0 required; QEMU evidence separate.",
+        "SourceSHA256": "4866f013ee7148a1e6d4200a3006012c003dd5904600ed061932a4f5250515b2",
+        "HexSHA256": "31c59b6d99e7fb2a29b24cda8695bfab0705a32a4356c068a142ab08363941a8",
+        "IRSHA256": "a70ae4bcc8caf49b26e65250475803cdad589fa6396357157151ada730a647c8",
+        "PacketSHA256": "18eb269d705ce0e228ccd8ae7bb7301fa49972509c85600c4569cfef3789b797"
+      },
+      "compiler": "clang version 23.1.2 (https://github.com/llvm/llvm-project 85ac560262434c9ccfc0c183ec22d4138ed647fb)",
+      "compiler_sha256": "f0856da74e3f6c2954617475e6f735d363f9e7044135e8d62ddbe8f041741473",
+      "observed": {
+        "normal": {
+          "registers": {
+            "RAX": "0000000000000006",
+            "RBP": "000000000e239000",
+            "RDI": "000000000e239000",
+            "RDX": "000000000e23807a",
+            "RIP": "000000000e238088",
+            "RSI": "000000000e258ff8",
+            "RSP": "000000000e24cfd8",
+            "RFL": "00000046",
+            "CS": "0038"
+          },
+          "idt": "IDT=     000000000e24d000 0000006f",
+          "idt_page_sha256": "7c8524f107b8f05268b265c7cfcf7f2f196d2fea1d5b2359df7ef063c39f1996",
+          "gate6_hex": "7E 80 38 00 00 8E 23 0E 00 00 00 00 00 00 00 00",
+          "frame_hex": "7A 80 23 0E 00 00 00 00 38 00 00 00 00 00 00 00 46 00 01 00 00 00 00 00 00 D0 24 0E 00 00 00 00 30 00 00 00 00 00 00 00"
+        },
+        "contexto": {
+          "registers": {
+            "RAX": "0000000000000000",
+            "RBP": "000000000e239000",
+            "RDI": "0000000000000000",
+            "RDX": "0000000000000000",
+            "RIP": "000000000e238088",
+            "RSI": "000000000e258ff8",
+            "RSP": "000000000e258ff8",
+            "RFL": "00000087",
+            "CS": "0038"
+          },
+          "idt": "IDT=     000000000f3a4018 00000fff",
+          "idt_page_sha256": "ad7facb2586fc6e966c004d7d1d16b024f5805ff7cb47c7a85dabd8b48892ca7"
+        }
+      }
+    }
+  ]
+}

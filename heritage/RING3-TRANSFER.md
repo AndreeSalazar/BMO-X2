@@ -19,3 +19,9 @@ operaciones del ABI, permisos, formato de entrada, cambios y evidencia.
 Los ejecutables BEF2 del padre requieren reempaquetado o una decision de
 compatibilidad probada antes de ejecutarse en BMO-X2. Una pieza que pide
 un mecanismo aun pendiente queda inventariada con su bloqueo.
+
+El emisor `toolchain/lang/cobol/emisor-x86_64` es una referencia HOST.
+Su primer caso de transferencia sera un programa COBOL pequeno,
+enlazado con el runtime y empaquetado como SBEF. El crate Rust de
+usuario y el programa COBOL deben obtener el mismo resultado de una
+operacion del ABI en Ring 3.

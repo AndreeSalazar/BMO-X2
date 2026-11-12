@@ -198,7 +198,7 @@ Entrada: CPU preparada y marcos de excepcion definidos.
 Salida: Diagnostico, terminacion del proceso o parada controlada segun origen.
 Depende de: CPU x86-64 (plan), Estado de CPU y cambio de contexto (plan), Pila inicial CASM (plan).
 Aceptacion: #UD/#PF de Ring 3 terminan ese proceso; el kernel conserva control y evidencia.
-Pendiente: IDT, entradas, pilas de excepcion, retorno e interrupciones de hardware.
+Pendiente: La primera puerta #UD ya tiene evidencia. Faltan otros vectores, pilas de emergencia, diagnostico y contencion de Ring 3.
 
 ## kernel/mm
 
@@ -989,7 +989,7 @@ Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
 Entrada: Revision del padre, ABI y SBEF validados, requisitos de cada componente.
 Salida: Orden de traslado, compatibilidad y evidencia por componente.
 Depende de: Cierre de la base Ring 0 (plan).
-Aceptacion: Cada pieza arranca en Ring 3 con sus capacidades y se prueba su fallo y recuperacion.
+Aceptacion: El runtime Rust y un programa COBOL empaquetados en SBEF obtienen el mismo resultado por el ABI. Cada servicio prueba sus capacidades y recuperacion.
 Pendiente: Empezar por runtime una vez cerrada la base.
 
 ## kernel/arch/x86_64/cpu/identify.casm
@@ -1124,6 +1124,17 @@ Depende de: Gato animado de arranque (verificacion), Guardian del HEX grafico (v
 Aceptacion: QEMU compara cada cuadro y confirma la parada de Ring 0.
 Pendiente: Integrar la escena con el diagnostico del kernel.
 
+## kernel/arch/x86_64/exceptions/main.casm
+
+Instala una IDT minima y registra el vector y RIP de una excepcion controlada.
+
+Estado: QEMU. Anillo: 0. Lenguaje: CASM.
+Entrada: Entrega x86-64 valida y memoria reservada por el puente.
+Salida: Vector 6, RIP de UD2 y parada propia, o rechazo de entrega.
+Depende de: Excepciones x86-64 (plan), Verificador independiente de parada (verificacion).
+Aceptacion: QEMU coteja IDTR, puerta, marco en RAM y rechazo con RDI nulo.
+Pendiente: Generalizar excepciones y diagnostico antes de aislar un proceso.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -1146,4 +1157,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-102 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+103 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

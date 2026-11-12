@@ -407,6 +407,14 @@
         240
       ],
       "motivo": "Dibuja la silueta de 64 celdas por lado con tres intensidades de ojos."
+    },
+    "kernel/arch/x86_64/exceptions/main.casm": {
+      "rgb": [
+        68,
+        210,
+        240
+      ],
+      "motivo": "Instala una IDT minima y registra el vector y RIP de una excepcion controlada."
     }
   },
   "direccion": "houdini",
@@ -910,6 +918,10 @@
     "kernel/boot/splash/hd/main.casm": [
       8500,
       4200
+    ],
+    "kernel/arch/x86_64/exceptions/main.casm": [
+      8500,
+      4375
     ]
   },
   "foco": "kernel/boot",

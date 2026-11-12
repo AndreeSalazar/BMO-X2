@@ -25,6 +25,13 @@ lee el SBEF como bytes binarios. GCC, Clang, Rust y otros toolchains pueden
 producir programas si el enlazador y el empaquetador entregan el SBEF
 acordado y el runtime usa el ABI de BMO-X2.
 
+El compilador corre durante el build. Por ejemplo, el emisor COBOL
+x86-64 de BMO-X puede ser un productor de codigo para el futuro
+empaquetador SBEF. El cargador de Ring 0 admite la imagen, configura
+paginas y pila, y entrega el punto de entrada a la CPU en CPL3.
+Las bibliotecas y el runtime de COBOL se enlazan para ese ABI. La
+prueba de compatibilidad exige un programa real y sus dependencias.
+
 ## Encabezado candidato
 
 - Prefijo identificable, version del formato y version del ABI por separado.
@@ -71,7 +78,8 @@ usados al mapear deben corresponder a la imagen validada.
    un vencimiento. Verificar capacidades, limites de argumentos,
    registros, retorno al usuario y aislamiento ante fallos.
 5. Ejecutar la misma peticion desde C con GCC y Clang y luego desde
-   Rust y C++. Comparar resultados y permisos en el mismo kernel.
+   Rust, C++ y un programa COBOL minimo del padre. Comparar resultados
+   y permisos en el mismo kernel.
 
 Congelar el encabezado y el ABI al cerrar esas pruebas. Publicar los
 offsets, permisos, registros, numeros de las dos puertas, codigos de

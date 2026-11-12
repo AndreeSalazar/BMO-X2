@@ -28,9 +28,18 @@ El cierre de la base permite empezar la transferencia del runtime. Cada
 servicio posterior requiere sus propias operaciones y recursos probados.
 [SBEF y ABI](../contracts/SBEF.md).
 
-La entrega 1 ya tiene una prueba de pila con contexto valido e invalido
-en QEMU. El siguiente criterio es instalar una IDT propia y observar
-una excepcion controlada. [Contexto y pila](../kernel/boot/context/STACK.md).
+La entrega 1 ya tiene una prueba de pila y una IDT minima que registra
+una excepcion controlada en QEMU. La entrega 2 empieza por validar el
+mapa de RAM y separar marcos libres, reservados y ocupados por el kernel.
+[Contexto y pila](../kernel/boot/context/STACK.md) y
+[primera excepcion](../kernel/arch/x86_64/exceptions/FAULT.md).
+
+Para dar paso al runtime de Ring 3 se exige un primer proceso aislado.
+El kernel debe poder cargar su SBEF, darle una pila y permisos propios,
+atender una peticion, despertarlo y recuperar sus recursos cuando sale
+o falla. La compatibilidad de aplicaciones se prueba por capacidad.
+Los controladores para escritorio, sonido y red pueden incorporarse
+segun los servicios de Ring 3 los necesiten.
 
 El [contrato Faggin](../contracts/FAGGIN.md) ordena la ruta desde reset
 en 16, 32 y 64 bits. Su entrega converge con la ruta UEFI en el mismo

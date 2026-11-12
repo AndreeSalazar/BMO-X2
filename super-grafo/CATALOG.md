@@ -106,6 +106,7 @@
 | [Faggin 32 bits](../kernel/boot/faggin/stage32) | diseno | 0 | Prepara segmentos, pila y paginacion inicial para modo largo. |
 | [Faggin 64 bits](../kernel/boot/faggin/stage64) | diseno | 0 | Entrega contexto x86-64 a la misma entrada que utiliza UEFI. |
 | [Gato de arranque de mayor resolucion](../kernel/boot/splash/hd/main.casm) | qemu | 0 | Dibuja la silueta de 64 celdas por lado con tres intensidades de ojos. |
+| [Primera excepcion #UD](../kernel/arch/x86_64/exceptions/main.casm) | qemu | 0 | Instala una IDT minima y registra el vector y RIP de una excepcion controlada. |
 
 ## Dependencias declaradas
 
@@ -302,5 +303,7 @@
 | faggin64 | boot-context | plan |
 | boot-splash-hd | boot-splash | verificacion |
 | boot-splash-hd | splash-guardian | verificacion |
+| fault-ud | x86_64-exceptions | plan |
+| fault-ud | stop-verifier | verificacion |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.
