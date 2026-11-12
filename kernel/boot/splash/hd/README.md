@@ -10,6 +10,16 @@ y un minimo de dos pixeles de origen por celda.
 .\bmo-x2.ps1 -Accion gato-hd
 ```
 
+Para abrir el ultimo ensayo aprobado del gato HD en una ventana,
+ejecutar desde la raiz en Windows PowerShell 5.1:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1
+```
+
+`-Run .\build\CASM\run-...` permite elegir otra prueba aprobada.
+La ventana usa una copia de las variables UEFI y un disco con snapshot.
+
 El cuerpo contiene 219 bytes de codigo, 12 de paleta y 1024 de mascaras.
 El paquete total mide 1279 bytes y cabe en la pagina de 4096 bytes que
 admite el puente. `-Accion gato` conserva el paquete de 508 bytes.
