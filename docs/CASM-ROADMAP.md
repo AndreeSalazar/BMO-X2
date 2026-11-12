@@ -42,6 +42,9 @@ memoria y aislamiento, carga de un SBEF minimo y dos puertas del ABI.
 El contrato se congela tras comparar lectores y ejecutar el mismo caso
 desde varios compiladores. [Plan de SBEF y ABI](../contracts/SBEF.md).
 
+El [plan de Ring 0](RING0-PLAN.md) ordena las familias del kernel, sus
+pruebas y el paso a la transferencia de Ring 3.
+
 ## Pruebas que acompanian cada ampliacion
 
 1. Fuente valida y fuente que debe rechazarse por una regla concreta.

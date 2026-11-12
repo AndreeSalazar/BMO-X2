@@ -167,6 +167,158 @@
         255
       ],
       "motivo": "Contrato propio SBEF y criterios para congelar el ABI."
+    },
+    "kernel/boot/context": {
+      "rgb": [
+        185,
+        130,
+        255
+      ],
+      "motivo": "Valida el contexto recibido y fija la pila inicial propia."
+    },
+    "kernel/arch/x86_64/context": {
+      "rgb": [
+        185,
+        130,
+        255
+      ],
+      "motivo": "Prepara descriptores, TSS y estado de CPU que debe preservarse."
+    },
+    "kernel/diagnostics": {
+      "rgb": [
+        185,
+        130,
+        255
+      ],
+      "motivo": "Registra fases, excepciones y causa de parada."
+    },
+    "kernel/mm/physical": {
+      "rgb": [
+        185,
+        130,
+        255
+      ],
+      "motivo": "Distingue memoria util, reservada y marcos asignados."
+    },
+    "kernel/mm/virtual": {
+      "rgb": [
+        185,
+        130,
+        255
+      ],
+      "motivo": "Establece espacios virtuales separados y permisos por pagina."
+    },
+    "kernel/mm/user": {
+      "rgb": [
+        185,
+        130,
+        255
+      ],
+      "motivo": "Valida rangos y copia datos entre anillos."
+    },
+    "kernel/process": {
+      "rgb": [
+        185,
+        130,
+        255
+      ],
+      "motivo": "Crea contexto de usuario, entra en Ring 3 y recoge recursos al terminar."
+    },
+    "kernel/loader": {
+      "rgb": [
+        185,
+        130,
+        255
+      ],
+      "motivo": "Admite y mapea una imagen SBEF bajo el contrato del proceso."
+    },
+    "kernel/syscalls/invoke": {
+      "rgb": [
+        185,
+        130,
+        255
+      ],
+      "motivo": "Despacha operaciones mediante capacidades del proceso activo."
+    },
+    "kernel/syscalls/wait": {
+      "rgb": [
+        185,
+        130,
+        255
+      ],
+      "motivo": "Duerme y despierta tareas por senal o vencimiento."
+    },
+    "kernel/security": {
+      "rgb": [
+        185,
+        130,
+        255
+      ],
+      "motivo": "Aplica procedencia y autoridad inicial a imagenes estructuralmente validas."
+    },
+    "kernel/drivers/bus": {
+      "rgb": [
+        185,
+        130,
+        255
+      ],
+      "motivo": "Descubre recursos de dispositivos y delimita su acceso y DMA."
+    },
+    "kernel/drivers/storage": {
+      "rgb": [
+        185,
+        130,
+        255
+      ],
+      "motivo": "Entrega bloques mediante un dispositivo acotado."
+    },
+    "kernel/storage": {
+      "rgb": [
+        185,
+        130,
+        255
+      ],
+      "motivo": "Fija la frontera de acceso a imagenes y archivos sobre bloques."
+    },
+    "kernel/drivers/io": {
+      "rgb": [
+        185,
+        130,
+        255
+      ],
+      "motivo": "Ofrece recursos de entrada y salida a servicios autorizados."
+    },
+    "kernel/drivers/network": {
+      "rgb": [
+        185,
+        130,
+        255
+      ],
+      "motivo": "Expone colas y buffers de un dispositivo a un servicio autorizado."
+    },
+    "kernel/arch/x86_64/smp": {
+      "rgb": [
+        185,
+        130,
+        255
+      ],
+      "motivo": "Extiende el contexto por CPU y coordina acceso concurrente."
+    },
+    "docs/RING0-PLAN.md": {
+      "rgb": [
+        100,
+        170,
+        255
+      ],
+      "motivo": "Define la evidencia necesaria para congelar SBEF y el ABI."
+    },
+    "heritage/RING3-TRANSFER.md": {
+      "rgb": [
+        100,
+        170,
+        255
+      ],
+      "motivo": "Ordena la transferencia de Ultra_userspace por dependencia real."
     }
   },
   "direccion": "houdini",
@@ -550,6 +702,82 @@
     "contracts/SBEF.md": [
       720,
       320
+    ],
+    "kernel/boot/context": [
+      6000,
+      3500
+    ],
+    "kernel/arch/x86_64/context": [
+      6390,
+      3500
+    ],
+    "kernel/diagnostics": [
+      6780,
+      3500
+    ],
+    "kernel/mm/physical": [
+      7170,
+      3500
+    ],
+    "kernel/mm/virtual": [
+      7560,
+      3500
+    ],
+    "kernel/mm/user": [
+      6000,
+      3675
+    ],
+    "kernel/process": [
+      6390,
+      3675
+    ],
+    "kernel/loader": [
+      6780,
+      3675
+    ],
+    "kernel/syscalls/invoke": [
+      7170,
+      3675
+    ],
+    "kernel/syscalls/wait": [
+      7560,
+      3675
+    ],
+    "kernel/security": [
+      6000,
+      3850
+    ],
+    "kernel/drivers/bus": [
+      6390,
+      3850
+    ],
+    "kernel/drivers/storage": [
+      6780,
+      3850
+    ],
+    "kernel/storage": [
+      7170,
+      3850
+    ],
+    "kernel/drivers/io": [
+      7560,
+      3850
+    ],
+    "kernel/drivers/network": [
+      6000,
+      4025
+    ],
+    "kernel/arch/x86_64/smp": [
+      6390,
+      4025
+    ],
+    "docs/RING0-PLAN.md": [
+      6780,
+      4025
+    ],
+    "heritage/RING3-TRANSFER.md": [
+      7170,
+      4025
     ]
   },
   "foco": "kernel/boot",

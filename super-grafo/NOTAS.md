@@ -185,7 +185,7 @@ Descubre capacidades CPU y prepara descriptores y estado privilegiado con limite
 Estado: DISENO. Anillo: 0. Lenguaje: CASM.
 Entrada: Contrato de arranque y operaciones privilegiadas CASM.
 Salida: Estado CPU apto para excepciones y aislamiento de Ring 3.
-Depende de: Arranque del kernel (plan).
+Depende de: Arranque del kernel (plan), Contexto de entrega (plan).
 Aceptacion: CPUID y limites observados en QEMU; no se confunde el perfil del Ryzen con todo x86-64.
 Pendiente: GDT/TSS, modos, registros de control y requisitos minimos del perfil inicial.
 
@@ -196,7 +196,7 @@ Contiene fallos de CPU y preserva el estado necesario para explicar quien fallo 
 Estado: DISENO. Anillo: 0. Lenguaje: CASM.
 Entrada: CPU preparada y marcos de excepcion definidos.
 Salida: Diagnostico, terminacion del proceso o parada controlada segun origen.
-Depende de: CPU x86-64 (plan).
+Depende de: CPU x86-64 (plan), Estado de CPU y cambio de contexto (plan).
 Aceptacion: #UD/#PF de Ring 3 terminan ese proceso; el kernel conserva control y evidencia.
 Pendiente: IDT, entradas, pilas de excepcion, retorno e interrupciones de hardware.
 
@@ -240,7 +240,7 @@ Permite ejecutar un programa Rust aislado usando el ABI concedido por CASM.
 Estado: DISENO. Anillo: 3. Lenguaje: Rust.
 Entrada: Imagen admitida, pila, datos y ABI BMO-X2.
 Salida: Entrada de usuario, llamadas y finalizacion/panico controlados.
-Depende de: Puerta CASM/Rust (plan), BEF2 y ABI de BMO-X (plan), SBEF y congelacion del ABI (plan).
+Depende de: Puerta CASM/Rust (plan), BEF2 y ABI de BMO-X (plan), SBEF y congelacion del ABI (plan), Plan de herencia Ring 3 (plan).
 Aceptacion: Programa no_std entra en Ring 3, recibe respuesta del kernel y falla de forma contenida.
 Pendiente: Target, entrada, enlace, wrappers del ABI y manejo de panico; aun no hay crate.
 
@@ -361,7 +361,7 @@ Gestiona ejecucion y espera con contexto y presupuesto definidos.
 Estado: DISENO. Anillo: 0. Lenguaje: CASM.
 Entrada: Tareas admitidas, memoria propia y fuente de tiempo.
 Salida: Cambio de contexto o espera con estado preservado.
-Depende de: Reloj y plazos (plan), Inicializacion del kernel (plan).
+Depende de: Reloj y plazos (plan), Inicializacion del kernel (plan), Proceso y ciclo de vida (plan).
 Aceptacion: Dos tareas no comparten contexto y una espera no gira en vacio; empezar por una CPU.
 Pendiente: Modelo de tarea, registros preservados y despertares; SMP queda para otra entrega.
 
@@ -783,6 +783,215 @@ Depende de: BEF2 y ABI de BMO-X (plan), Memoria y aislamiento (plan).
 Aceptacion: Dos lectores coinciden, QEMU prueba rechazo y aislamiento, y varios toolchains producen la misma peticion.
 Pendiente: Contexto y excepcion CASM, cargador SBEF, INVOKE y WAIT. Congelar al cerrar las pruebas.
 
+## kernel/boot/context
+
+Valida el contexto recibido y fija la pila inicial propia.
+
+Estado: DISENO. Anillo: 0. Lenguaje: CASM.
+Entrada: Modo largo, CPL0 y contexto del puente.
+Salida: Contexto comprobado y pila acotada.
+Depende de: Arranque del kernel (plan), Fuente de parada propia (plan).
+Aceptacion: QEMU acredita pila propia y rechazo de un contexto invalido.
+Pendiente: Versionar campos y emitir la primera validacion en CASM.
+
+## kernel/arch/x86_64/context
+
+Prepara descriptores, TSS y estado de CPU que debe preservarse.
+
+Estado: DISENO. Anillo: 0. Lenguaje: CASM.
+Entrada: Capacidades de CPU, pila y contrato de contexto.
+Salida: Marcos separados y estado preservado por tarea.
+Depende de: CPU x86-64 (plan), Contexto de entrega (plan).
+Aceptacion: QEMU comprueba pilas, registros y estado de CPU al cambiar de tarea.
+Pendiente: Definir marcos y probar primero una CPU.
+
+## kernel/diagnostics
+
+Registra fases, excepciones y causa de parada.
+
+Estado: DISENO. Anillo: 0. Lenguaje: CASM.
+Entrada: Fase de inicializacion o marco de excepcion.
+Salida: Registro acotado y decision de continuar, terminar proceso o parar.
+Depende de: Excepciones x86-64 (plan).
+Aceptacion: QEMU identifica excepcion, origen y fase sin depender del escritorio.
+Pendiente: Emitir captura de excepcion y salida minima.
+
+## kernel/mm/physical
+
+Distingue memoria util, reservada y marcos asignados.
+
+Estado: DISENO. Anillo: 0. Lenguaje: CASM.
+Entrada: Mapa de arranque con limites verificados.
+Salida: Asignacion y devolucion de marcos con propietario.
+Depende de: Memoria y aislamiento (plan), Contexto de entrega (plan).
+Aceptacion: No asigna una reserva, detecta doble devolucion y recupera marcos al salir.
+Pendiente: Definir unidad, limites y primera prueba de asignacion.
+
+## kernel/mm/virtual
+
+Establece espacios virtuales separados y permisos por pagina.
+
+Estado: DISENO. Anillo: 0. Lenguaje: CASM.
+Entrada: Marcos fisicos, rangos y permiso solicitado.
+Salida: Paginas de kernel y usuario con proteccion de escritura y ejecucion.
+Depende de: Memoria fisica (plan).
+Aceptacion: QEMU impide escritura de codigo y ejecucion de datos.
+Pendiente: Construir tablas y medir marcos usados.
+
+## kernel/mm/user
+
+Valida rangos y copia datos entre anillos.
+
+Estado: DISENO. Anillo: 0. Lenguaje: CASM.
+Entrada: Espacio de usuario, direccion, longitud y permiso requerido.
+Salida: Copia acotada o error estable, con vida del rango controlada.
+Depende de: Espacios y permisos (plan), Excepciones x86-64 (plan).
+Aceptacion: Un rango ajeno, desbordado o con pagina ausente se rechaza.
+Pendiente: Probar limites de pagina y limpieza del proceso.
+
+## kernel/process
+
+Crea contexto de usuario, entra en Ring 3 y recoge recursos al terminar.
+
+Estado: DISENO. Anillo: 0. Lenguaje: CASM.
+Entrada: Espacio aislado, imagen de prueba y pila.
+Salida: Proceso con identidad y salida observable.
+Depende de: Estado de CPU y cambio de contexto (plan), Memoria de usuario (plan), Inicializacion del kernel (plan).
+Aceptacion: QEMU observa CPL3, retorno y fallo contenido, con recursos recuperados.
+Pendiente: Demostrar primero una imagen fija de prueba.
+
+## kernel/loader
+
+Admite y mapea una imagen SBEF bajo el contrato del proceso.
+
+Estado: DISENO. Anillo: 0. Lenguaje: CASM.
+Entrada: Bytes del ejecutable, limites, perfil SBEF y estado de CPU.
+Salida: Imagen mapeada con entrada y permisos comprobados o motivo de rechazo.
+Depende de: SBEF y congelacion del ABI (plan), Proceso y ciclo de vida (plan).
+Aceptacion: El lector independiente y CASM coinciden en el vector de oro y rechazos, con QEMU en Ring 3.
+Pendiente: Implementar primero la imagen estatica minima.
+
+## kernel/syscalls/invoke
+
+Despacha operaciones mediante capacidades del proceso activo.
+
+Estado: DISENO. Anillo: 0. Lenguaje: CASM.
+Entrada: Registros del ABI, handle, operacion y argumentos.
+Salida: Estado y valor o rechazo acotado.
+Depende de: Puerta CASM/Rust (plan), Proceso y ciclo de vida (plan), Memoria de usuario (plan).
+Aceptacion: Operaciones autorizadas y denegadas dan el resultado esperado sin afectar otro proceso.
+Pendiente: Fijar una operacion observable antes de ampliar familias.
+
+## kernel/syscalls/wait
+
+Duerme y despierta tareas por senal o vencimiento.
+
+Estado: DISENO. Anillo: 0. Lenguaje: CASM.
+Entrada: Objeto esperable, secuencia y plazo.
+Salida: Despertar, vencimiento o error con contexto preservado.
+Depende de: Puerta CASM/Rust (plan), Planificacion (plan), Comunicacion entre procesos (plan), Proceso y ciclo de vida (plan).
+Aceptacion: QEMU observa senal y plazo, sin espera activa ni perdida de un aviso concurrente.
+Pendiente: Probar primero dos tareas en una CPU.
+
+## kernel/security
+
+Aplica procedencia y autoridad inicial a imagenes estructuralmente validas.
+
+Estado: DISENO. Anillo: 0. Lenguaje: CASM.
+Entrada: Imagen validada y politica de confianza.
+Salida: Decision de ejecucion y capacidades iniciales acotadas.
+Depende de: Cargador SBEF (plan), Capacidades (plan).
+Aceptacion: Cambiar imagen o permiso invalida la admision correspondiente.
+Pendiente: Definir confianza de produccion, integridad y revocacion.
+
+## kernel/drivers/bus
+
+Descubre recursos de dispositivos y delimita su acceso y DMA.
+
+Estado: DISENO. Anillo: 0. Lenguaje: CASM.
+Entrada: Perfil de plataforma y recursos descubiertos.
+Salida: Recursos con propietario y transferencia controlada.
+Depende de: Frontera de dispositivos (plan), Espacios y permisos (plan).
+Aceptacion: Un dispositivo de prueba queda limitado a sus recursos y ventanas DMA.
+Pendiente: Elegir primer dispositivo y politica segun hardware medido.
+
+## kernel/drivers/storage
+
+Entrega bloques mediante un dispositivo acotado.
+
+Estado: DISENO. Anillo: 0. Lenguaje: CASM.
+Entrada: Dispositivo de bloques, rangos y capacidad.
+Salida: Lecturas y errores de dispositivo reproducibles.
+Depende de: Buses, recursos y DMA (plan).
+Aceptacion: Lectura valida y fuera de rango en un disco virtual con imagen de prueba.
+Pendiente: Separar los bloques del sistema de archivos.
+
+## kernel/storage
+
+Fija la frontera de acceso a imagenes y archivos sobre bloques.
+
+Estado: DISENO. Anillo: 0. Lenguaje: CASM.
+Entrada: Bloques, espacio de nombres y capacidad de directorio.
+Salida: Acceso limitado a datos o imagen de proceso.
+Depende de: Bloques y almacenamiento (plan), Capacidades (plan).
+Aceptacion: Un servicio puede leer una imagen y rechaza una ruta fuera de su autoridad.
+Pendiente: Elegir que mecanismo queda en CASM y que politica va a Ring 3.
+
+## kernel/drivers/io
+
+Ofrece recursos de entrada y salida a servicios autorizados.
+
+Estado: DISENO. Anillo: 0. Lenguaje: CASM.
+Entrada: Dispositivos descubiertos, buffers y eventos.
+Salida: Canales y ventanas de aparato acotados.
+Depende de: Buses, recursos y DMA (plan), Comunicacion entre procesos (plan).
+Aceptacion: Pruebas de acceso, revocacion y fallo de servicio por dispositivo admitido.
+Pendiente: Priorizar entrada y pantalla segun el primer servicio.
+
+## kernel/drivers/network
+
+Expone colas y buffers de un dispositivo a un servicio autorizado.
+
+Estado: DISENO. Anillo: 0. Lenguaje: CASM.
+Entrada: Dispositivo, memoria asignada y permisos.
+Salida: Transporte acotado de tramas para Ring 3.
+Depende de: Buses, recursos y DMA (plan), Comunicacion entre procesos (plan).
+Aceptacion: Prueba de envio, recepcion y aislamiento con dispositivo virtual.
+Pendiente: Elegir dispositivo y dejar protocolos en el servicio.
+
+## kernel/arch/x86_64/smp
+
+Extiende el contexto por CPU y coordina acceso concurrente.
+
+Estado: DISENO. Anillo: 0. Lenguaje: CASM.
+Entrada: Base estable de una CPU, topologia y requisitos del equipo.
+Salida: CPU adicionales, sincronizacion y registro por CPU.
+Depende de: Planificacion (plan), Estado de CPU y cambio de contexto (plan), Espacios y permisos (plan).
+Aceptacion: QEMU con varias CPU conserva estado y permisos antes de probar metal.
+Pendiente: Definir invariantes de sincronizacion y perfil de hardware.
+
+## docs/RING0-PLAN.md
+
+Define la evidencia necesaria para congelar SBEF y el ABI.
+
+Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
+Entrada: Emision CASM, aislamiento, cargador, capacidades y dos puertas.
+Salida: Contrato congelable con casos de oro, rechazos y medidas.
+Depende de: Presupuesto de la entrada Ring 0 (plan), Diagnostico y recuperacion (plan), Cargador SBEF (plan), Puerta INVOKE (plan), Puerta WAIT (plan), Politica de admision (plan).
+Aceptacion: QEMU prueba carga, aislamiento, INVOKE y WAIT y coinciden varios toolchains.
+Pendiente: Cerrar primero contexto, pila y excepcion.
+
+## heritage/RING3-TRANSFER.md
+
+Ordena la transferencia de Ultra_userspace por dependencia real.
+
+Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
+Entrada: Revision del padre, ABI y SBEF validados, requisitos de cada componente.
+Salida: Orden de traslado, compatibilidad y evidencia por componente.
+Depende de: Cierre de la base Ring 0 (plan).
+Aceptacion: Cada pieza arranca en Ring 3 con sus capacidades y se prueba su fallo y recuperacion.
+Pendiente: Empezar por runtime una vez cerrada la base.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -805,4 +1014,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-71 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+90 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

@@ -3,6 +3,8 @@
 Hijo de BMO-X: reconstruir el kernel x86-64 con CASM en Ring 0, Rust en
 Ring 3 y SUPER GRAFO como mesa de trabajo. Autor: Eddi Salazar, Lima, Peru.
 
+[Plan de Ring 0](docs/RING0-PLAN.md) y [orden de herencia de Ring 3](heritage/RING3-TRANSFER.md).
+
 **Base del primer commit, 04-11-2026:** CASM con procedencia, 35 nodos y una
 primera entrada propia compilada y verificada en host. Todavia no hay un
 kernel BMO-X2 arrancable. [Estado y evidencia](docs/STATUS.md).

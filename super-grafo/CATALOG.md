@@ -75,6 +75,25 @@
 | [BEF2 y ABI de BMO-X](../contracts/ABI-BEF2.md) | diseno | contrato | Conserva el formato y las dos puertas del padre como referencia para SBEF. |
 | [Presupuesto de la entrada Ring 0](../CASM/entry_budget.py) | host | host | Acota el paquete binario de la entrada a menos de 512 bytes. |
 | [SBEF y congelacion del ABI](../contracts/SBEF.md) | diseno | contrato | Define la evolucion de BEF2 para admitir programas x86-64 en BMO-X2. |
+| [Contexto de entrega](../kernel/boot/context) | diseno | 0 | Valida el contexto recibido y fija la pila inicial propia. |
+| [Estado de CPU y cambio de contexto](../kernel/arch/x86_64/context) | diseno | 0 | Prepara descriptores, TSS y estado de CPU que debe preservarse. |
+| [Diagnostico y recuperacion](../kernel/diagnostics) | diseno | 0 | Registra fases, excepciones y causa de parada. |
+| [Memoria fisica](../kernel/mm/physical) | diseno | 0 | Distingue memoria util, reservada y marcos asignados. |
+| [Espacios y permisos](../kernel/mm/virtual) | diseno | 0 | Establece espacios virtuales separados y permisos por pagina. |
+| [Memoria de usuario](../kernel/mm/user) | diseno | 0 | Valida rangos y copia datos entre anillos. |
+| [Proceso y ciclo de vida](../kernel/process) | diseno | 0 | Crea contexto de usuario, entra en Ring 3 y recoge recursos al terminar. |
+| [Cargador SBEF](../kernel/loader) | diseno | 0 | Admite y mapea una imagen SBEF bajo el contrato del proceso. |
+| [Puerta INVOKE](../kernel/syscalls/invoke) | diseno | 0 | Despacha operaciones mediante capacidades del proceso activo. |
+| [Puerta WAIT](../kernel/syscalls/wait) | diseno | 0 | Duerme y despierta tareas por senal o vencimiento. |
+| [Politica de admision](../kernel/security) | diseno | 0 | Aplica procedencia y autoridad inicial a imagenes estructuralmente validas. |
+| [Buses, recursos y DMA](../kernel/drivers/bus) | diseno | 0 | Descubre recursos de dispositivos y delimita su acceso y DMA. |
+| [Bloques y almacenamiento](../kernel/drivers/storage) | diseno | 0 | Entrega bloques mediante un dispositivo acotado. |
+| [Acceso a archivos](../kernel/storage) | diseno | 0 | Fija la frontera de acceso a imagenes y archivos sobre bloques. |
+| [Entrada, pantalla y audio](../kernel/drivers/io) | diseno | 0 | Ofrece recursos de entrada y salida a servicios autorizados. |
+| [Dispositivos de red](../kernel/drivers/network) | diseno | 0 | Expone colas y buffers de un dispositivo a un servicio autorizado. |
+| [Multiprocesador y perfil fisico](../kernel/arch/x86_64/smp) | diseno | 0 | Extiende el contexto por CPU y coordina acceso concurrente. |
+| [Cierre de la base Ring 0](../docs/RING0-PLAN.md) | diseno | contrato | Define la evidencia necesaria para congelar SBEF y el ABI. |
+| [Plan de herencia Ring 3](../heritage/RING3-TRANSFER.md) | diseno | contrato | Ordena la transferencia de Ultra_userspace por dependencia real. |
 
 ## Dependencias declaradas
 
@@ -205,5 +224,52 @@
 | sbef | abi-bef2 | plan |
 | sbef | mm | plan |
 | rust-runtime | sbef | plan |
+| boot-context | boot | plan |
+| boot-context | stop-source | plan |
+| cpu-state | x86_64-cpu | plan |
+| cpu-state | boot-context | plan |
+| kernel-diagnostics | x86_64-exceptions | plan |
+| physical-memory | mm | plan |
+| physical-memory | boot-context | plan |
+| virtual-memory | physical-memory | plan |
+| user-memory | virtual-memory | plan |
+| user-memory | x86_64-exceptions | plan |
+| process | cpu-state | plan |
+| process | user-memory | plan |
+| process | init | plan |
+| sbef-loader | sbef | plan |
+| sbef-loader | process | plan |
+| invoke | syscalls | plan |
+| invoke | process | plan |
+| invoke | user-memory | plan |
+| wait | syscalls | plan |
+| wait | sched | plan |
+| wait | ipc | plan |
+| wait | process | plan |
+| image-policy | sbef-loader | plan |
+| image-policy | capabilities | plan |
+| device-bus | drivers | plan |
+| device-bus | virtual-memory | plan |
+| device-storage | device-bus | plan |
+| file-access | device-storage | plan |
+| file-access | capabilities | plan |
+| device-io | device-bus | plan |
+| device-io | ipc | plan |
+| device-network | device-bus | plan |
+| device-network | ipc | plan |
+| multiprocessor | sched | plan |
+| multiprocessor | cpu-state | plan |
+| multiprocessor | virtual-memory | plan |
+| ring0-base-gate | entry-budget | plan |
+| ring0-base-gate | kernel-diagnostics | plan |
+| ring0-base-gate | sbef-loader | plan |
+| ring0-base-gate | invoke | plan |
+| ring0-base-gate | wait | plan |
+| ring0-base-gate | image-policy | plan |
+| ring3-transfer | ring0-base-gate | plan |
+| x86_64-cpu | boot-context | plan |
+| x86_64-exceptions | cpu-state | plan |
+| sched | process | plan |
+| rust-runtime | ring3-transfer | plan |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.
