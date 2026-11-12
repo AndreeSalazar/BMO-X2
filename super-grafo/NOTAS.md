@@ -1318,7 +1318,7 @@ Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-Li
 Estado: HOST. Anillo: 3. Lenguaje: Rust.
 Entrada: Eventos de entrada, superficies de clientes y capacidad de pantalla.
 Salida: Cuadro en RAM, espacio activo, foco y movimiento de ventanas.
-Depende de: Supervisor Rust de Ring 3 (plan).
+Depende de: Supervisor Rust de Ring 3 (plan), Mezcla y controles de audio (plan).
 Aceptacion: HOST verifica cuatro espacios, atajos estables, foco y composicion. El visor muestra CPU y RAM de Windows.
 Pendiente: Arrancar el SBEF externo y conectar pantalla, entrada y la capacidad de telemetria de Ring 0.
 
@@ -1343,6 +1343,17 @@ Salida: Cuatro comprobaciones HOST, tabla ELF y doom-fixed.sbef.
 Depende de: Contrato minimo del cargador SBEF (plan), Empaquetador ELF64 a SBEF (generacion).
 Aceptacion: HOST ejecuta los casos y el importador admite el segmento RX.
 Pendiente: Verificar GCC ELF, ejecutar el SBEF externo y portar video, teclado, reloj y WAD.
+
+## userspace/services/audio
+
+Mezcla PCM estereo de hasta dieciseis fuentes con ganancia acotada.
+
+Estado: HOST. Anillo: 3. Lenguaje: Rust.
+Entrada: Bloques PCM, ganancias por canal y volumen general.
+Salida: PCM mezclado, picos por canal y contador de saturacion.
+Depende de: Entrada, pantalla y audio (plan), Prestamo y revocacion DMA (plan).
+Aceptacion: HOST verifica balance, silencio, recorte y limite de fuentes.
+Pendiente: Conectar salida QEMU, DMA, panel y fuentes de DOOM.
 
 ## kernel/drivers/bus/DMA.md
 
@@ -1377,4 +1388,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-123 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+124 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

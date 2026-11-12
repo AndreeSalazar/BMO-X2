@@ -36,12 +36,13 @@ La ejecucion del SBEF en QEMU queda pendiente.
 
 1. Cargar el SBEF externo en QEMU y comprobar el portal ABI desde CPL3.
 2. Presentar el framebuffer del escritorio Rust y entregar eventos de
-   teclado al espacio activo. Probar los cuatro atajos Super + numero.
+   teclado al espacio activo. Probar Ctrl + Super + numero para espacios.
 3. Adaptar las funciones DoomGeneric de dibujo, teclado y reloj a esos
    servicios. Dar al juego memoria de trabajo y lectura de un WAD externo.
 4. Compilar el motor completo en C, enlazarlo como ELF64 y empaquetarlo.
    Verificar en QEMU la lectura del WAD y un cuadro que responda al teclado.
-   El sonido puede integrarse despues.
+5. Conectar efectos y musica a fuentes independientes del
+   [servicio de audio](../../services/audio/AUDIO.md).
 
 [Fuente DoomGeneric fijada](https://github.com/ozkl/doomgeneric/tree/dcb7a8dbc7a16ce3dda29382ac9aae9d77d21284) |
 [Cargador SBEF](../../../contracts/SBEF-LOADER.md) |

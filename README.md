@@ -64,7 +64,7 @@ indican capacidad configurada. La RAM residente del kernel integrado
 queda por medir.
 
 En HOST, CASM conserva el resultado de 333 casos diferenciales
-frente a la base. SUPER GRAFO registra 123 nodos, 230 relaciones
+frente a la base. SUPER GRAFO registra 124 nodos, 233 relaciones
 y 57 elementos del catalogo CASM.
 [Medidas CASM](CASM/CONTROL-PERFORMANCE-ELEGANCE.md) |
 [Estado del compilador](CASM/STATUS-BMO-X2.md) |
@@ -98,6 +98,8 @@ de los cuatro espacios usando el compositor Rust.
 
 La [sonda DOOM](userspace/apps/doom/README.md) ejecuta cuatro casos de
 aritmetica original en HOST y empaqueta el ELF64 como SBEF ABI 1.
+El [mezclador de audio Rust](userspace/services/audio/AUDIO.md) prueba
+PCM, volumen y medicion en HOST. La salida virtual y USB quedan pendientes.
 
 ## Siguientes entregas
 

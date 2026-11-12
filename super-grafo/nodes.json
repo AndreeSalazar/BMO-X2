@@ -2061,6 +2061,20 @@
       "falta": "Verificar GCC ELF, ejecutar el SBEF externo y portar video, teclado, reloj y WAD."
     },
     {
+      "id": "audio-mixer",
+      "titulo": "Mezcla y controles de audio",
+      "ruta": "userspace/services/audio",
+      "estado": "host",
+      "anillo": "3",
+      "lenguaje": "Rust",
+      "posicion": [12000, 4200],
+      "que": "Mezcla PCM estereo de hasta dieciseis fuentes con ganancia acotada.",
+      "entrada": "Bloques PCM, ganancias por canal y volumen general.",
+      "salida": "PCM mezclado, picos por canal y contador de saturacion.",
+      "aceptacion": "HOST verifica balance, silencio, recorte y limite de fuentes.",
+      "falta": "Conectar salida QEMU, DMA, panel y fuentes de DOOM."
+    },
+    {
       "id": "dma-lease",
       "titulo": "Prestamo y revocacion DMA",
       "ruta": "kernel/drivers/bus/DMA.md",
@@ -3225,6 +3239,21 @@
       "de": "doom-fixed-probe",
       "a": "sbef-host-pack",
       "clase": "generacion"
+    },
+    {
+      "de": "audio-mixer",
+      "a": "device-io",
+      "clase": "plan"
+    },
+    {
+      "de": "audio-mixer",
+      "a": "dma-lease",
+      "clase": "plan"
+    },
+    {
+      "de": "desktop-workspaces",
+      "a": "audio-mixer",
+      "clase": "plan"
     }
   ]
 }
