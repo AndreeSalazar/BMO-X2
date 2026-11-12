@@ -15,7 +15,7 @@ sys.path.insert(0,str(ROOT/'tools'))
 from genesis import check as genesis_check
 sys.path.insert(0,str(ROOT/'CASM'))
 from stop_verify import check as stop_check, CPU_PROFILE, CONTEXT_PROFILE, FAULT_PROFILE, MEMORY_PROFILE, CYCLE_PROFILE, PAGING_PROFILE
-from stop_verify import ABI_PROBE_PROFILE, USER_FAULT_PROFILE
+from stop_verify import ABI_PROBE_PROFILE, HOT_UNMAP_PROFILE, USER_FAULT_PROFILE
 from sbef_host.format import inspect as inspect_sbef
 from splash_verify import check as splash_check, PROFILE as SPLASH_PROFILE, HD_PROFILE
 
@@ -30,6 +30,7 @@ def check(run):
     if profile == CYCLE_PROFILE: return stop_check(run, cycle=True)
     if profile == PAGING_PROFILE: return stop_check(run, paging=True)
     if profile == USER_FAULT_PROFILE: return stop_check(run, user_fault=True)
+    if profile == HOT_UNMAP_PROFILE: return stop_check(run, hot_unmap=True)
     if profile == ABI_PROBE_PROFILE:
         verified = stop_check(run, abi_probe=True)
         image = inspect_sbef((run/'INICIO.X86').read_bytes()[24+1071:])
@@ -72,7 +73,7 @@ def main():
     parser.add_argument('--powershell',type=Path,help='Use the same PowerShell executable as the calling build')
     parser.add_argument('--cases',nargs='+',choices=CASES+['contexto', *MUTATIONS],default=CASES)
     parser.add_argument('--cpu', choices=['qemu64', 'Nehalem'], default='qemu64')
-    parser.add_argument('--profile',choices=['metal64-0.2','ring0-stop-0.1',CPU_PROFILE,CONTEXT_PROFILE,FAULT_PROFILE,MEMORY_PROFILE,CYCLE_PROFILE,PAGING_PROFILE,USER_FAULT_PROFILE,ABI_PROBE_PROFILE,SPLASH_PROFILE,HD_PROFILE],default='metal64-0.2')
+    parser.add_argument('--profile',choices=['metal64-0.2','ring0-stop-0.1',CPU_PROFILE,CONTEXT_PROFILE,FAULT_PROFILE,MEMORY_PROFILE,CYCLE_PROFILE,PAGING_PROFILE,USER_FAULT_PROFILE,ABI_PROBE_PROFILE,HOT_UNMAP_PROFILE,SPLASH_PROFILE,HD_PROFILE],default='metal64-0.2')
     args=parser.parse_args();run=workspace(args.run)
     identify=args.profile==CPU_PROFILE
     stack=args.profile==CONTEXT_PROFILE
@@ -82,18 +83,19 @@ def main():
     paging=args.profile==PAGING_PROFILE
     user_fault=args.profile==USER_FAULT_PROFILE
     abi_probe=args.profile==ABI_PROBE_PROFILE
+    hot_unmap=args.profile==HOT_UNMAP_PROFILE
     splash=args.profile in (SPLASH_PROFILE,HD_PROFILE)
     stop=args.profile!='metal64-0.2'
     frozen_profile=(run/'profile.txt').read_text(encoding='utf-8-sig').strip() if (run/'profile.txt').exists() else 'metal64-0.2'
     if frozen_profile!=args.profile: raise ValueError('Perfil distinto al run congelado')
     if identify and args.cases != ['normal']: raise ValueError('La identificacion requiere el caso normal')
     if splash and args.cases != ['normal']: raise ValueError('El splash requiere el caso normal')
-    checks_handoff = stack or fault or memory_probe or cycle or paging or user_fault or abi_probe
+    checks_handoff = stack or fault or memory_probe or cycle or paging or user_fault or abi_probe or hot_unmap
     expected_cases = ['normal', 'contexto', *MUTATIONS] if abi_probe else ['normal', 'contexto']
     if checks_handoff and args.cases != expected_cases: raise ValueError('Casos distintos del contrato de la prueba')
     if not abi_probe and set(args.cases).intersection(MUTATIONS): raise ValueError('La mutacion SBEF requiere el perfil ABI')
     if not checks_handoff and 'contexto' in args.cases: raise ValueError('El caso contexto exige una prueba de entrega')
-    milestone='SBEF ABI 1 syscall probe' if abi_probe else 'Ring3 protection fault and cleanup' if user_fault else 'Ring0 own page tables' if paging else 'Ring0 physical frame lifecycle' if cycle else 'Ring0 physical frame' if memory_probe else 'Ring0 invalid opcode handler' if fault else 'Ring0 cat splash' if splash else 'Ring0 handoff and stack' if stack else 'Ring0 CPU identification' if identify else ('Ring0 stop S1' if stop else 'Genesis G1')
+    milestone='Ring3 live page revocation' if hot_unmap else 'SBEF ABI 1 syscall probe' if abi_probe else 'Ring3 protection fault and cleanup' if user_fault else 'Ring0 own page tables' if paging else 'Ring0 physical frame lifecycle' if cycle else 'Ring0 physical frame' if memory_probe else 'Ring0 invalid opcode handler' if fault else 'Ring0 cat splash' if splash else 'Ring0 handoff and stack' if stack else 'Ring0 CPU identification' if identify else ('Ring0 stop S1' if stop else 'Genesis G1')
     ram_mib=1024 if splash else 256
     verified = check(run)
     if (run/'qemu-run.json').exists(): raise ValueError('Run ya preparado; compilar un run nuevo para otra ejecucion')
@@ -137,6 +139,8 @@ def main():
         probe_flags.append('--user-fault')
     if abi_probe:
         probe_flags.append('--abi-probe')
+    if hot_unmap:
+        probe_flags.append('--hot-unmap')
     if splash:
         probe_flags.append('--splash')
     if args.profile == HD_PROFILE:
@@ -148,7 +152,8 @@ def main():
         data.update(schema=1,evidence='QEMU',milestone=milestone,physical_boot=False,autonomous_kernel=False,
                     body_bytes=len(packet.read_bytes())-24,packet_bytes=packet.stat().st_size,bridge_bytes=len(image),run=run.name,packet_sha256=sha(packet),
                     qemu=version,source_sha256=sha(run/'source.casm'),
-                    case_scope='Fixed SBEF ABI 1, INVOKE echo, invalid capability and WAIT reserved status' if abi_probe else
+                    case_scope='Single CPU live page revocation, resumed access and fault journal' if hot_unmap else
+                    'Fixed SBEF ABI 1, INVOKE echo, invalid capability and WAIT reserved status' if abi_probe else
                     'Fixed CPL3 program, supervisor page fault and cleanup of two reserved pages' if user_fault else
                     'Own CR3, supervisor mapping and user read-only NX alias under QEMU' if paging else
                     'Single frame ownership, scrub and reuse under QEMU' if cycle else

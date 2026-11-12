@@ -1,0 +1,169 @@
+{
+  "schema": 1,
+  "reviewed_date": "2026-11-12",
+  "profile": "ring0-hot-unmap-0.1",
+  "source_sha256": "8a58a5b39405b44fbd01d6f174112c345e303d803c2077ea1024f2a73f3436c7",
+  "vector_sha256": "9b431caa033f8e6f45d2960fdd8a2519782f76e49fdcee2012a661f30b4e819c",
+  "body_bytes": 930,
+  "packet_bytes": 954,
+  "runs": [
+    {
+      "run": "run-20261112-130502-d9e57caa",
+      "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+      "cpu": "qemu64",
+      "ram_mib": 256,
+      "powershell": "7.6.9",
+      "firmware": {
+        "edk2-x86_64-code.fd": "33090cc07675baa5190d9f1e84bf5176b33bcbfa9bacac522961150cdb6dbb2a",
+        "edk2-i386-vars.fd": "5d2ac383371b408398accee7ec27c8c09ea5b74a0de0ceea6513388b15be5d1e"
+      },
+      "bridge_sha256": "4287ad788cb7a75a74922f7f73e69363560c84501b9a73ba271d357f5f71469f",
+      "packet_sha256": "8508e74b8508d89105179ce00c5f52385c8b129630a28be4987fe5bb8df72f63",
+      "capture_sha256": "a890c68ad01a7680bbcb9efea3ed5e5ca61b088c18d17291639f9e562ecec879",
+      "guardian_sha256": "84b0034f4c12f47c4335cbf3e97ee0d5ffedd0d83075623e47818fd3ef6c4223",
+      "cases": [
+        {
+          "Case": "normal",
+          "Passed": true,
+          "BootServicesExited": true,
+          "PayloadReturned": false,
+          "OwnHalt": true,
+          "InstructionPointerOffset": 866,
+          "InterruptsMasked": true,
+          "Ring": 0,
+          "OwnFramebufferTextVerified": true,
+          "Context": "0xDE38000",
+          "PayloadSHA256": "e04753d1dcfc8d4412b0578e28991b241e93d38f0619ceda7b6c5ef8edf53925",
+          "ContextAccepted": true,
+          "UserCPL": 3,
+          "UserFaultHandled": true,
+          "FaultVector": 14,
+          "FaultErrorCode": 4,
+          "FaultAddress": "0x40002000",
+          "SavedUserRIP": "0x4000001A",
+          "SavedUserRSP": "0x40001FF8",
+          "KernelFaultRSP": "0xDE52FD0",
+          "ActiveCR3": "0xDE4B000",
+          "FrameBytes": 36864,
+          "ReclaimedPages": 3,
+          "ScrubbedBytes": 12288,
+          "ResumedUser": true,
+          "RevokedAddress": "0x40002000",
+          "FaultJournal": [
+            {
+              "Vector": 14,
+              "Error": 5,
+              "RIP": "0x40000018",
+              "CR2": "0x100000",
+              "Reason": "supervisor-page"
+            },
+            {
+              "Vector": 14,
+              "Error": 4,
+              "RIP": "0x4000001A",
+              "CR2": "0x40002000",
+              "Reason": "revoked-page-not-present"
+            }
+          ]
+        },
+        {
+          "Case": "contexto",
+          "Passed": true,
+          "BootServicesExited": true,
+          "PayloadReturned": false,
+          "OwnHalt": true,
+          "InstructionPointerOffset": 866,
+          "InterruptsMasked": true,
+          "Ring": 0,
+          "OwnFramebufferTextVerified": true,
+          "Context": "0xDE38000",
+          "PayloadSHA256": "e04753d1dcfc8d4412b0578e28991b241e93d38f0619ceda7b6c5ef8edf53925",
+          "ContextAccepted": false,
+          "UserFaultHandled": false,
+          "ReclaimedPages": 0,
+          "FaultInjection": "RDI=0 al entregar",
+          "ActiveCR3": "0xF801000"
+        }
+      ]
+    },
+    {
+      "run": "run-20261112-130510-abbe4cb2",
+      "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+      "cpu": "Nehalem",
+      "ram_mib": 256,
+      "powershell": "7.6.9",
+      "firmware": {
+        "edk2-x86_64-code.fd": "33090cc07675baa5190d9f1e84bf5176b33bcbfa9bacac522961150cdb6dbb2a",
+        "edk2-i386-vars.fd": "5d2ac383371b408398accee7ec27c8c09ea5b74a0de0ceea6513388b15be5d1e"
+      },
+      "bridge_sha256": "4287ad788cb7a75a74922f7f73e69363560c84501b9a73ba271d357f5f71469f",
+      "packet_sha256": "8508e74b8508d89105179ce00c5f52385c8b129630a28be4987fe5bb8df72f63",
+      "capture_sha256": "a890c68ad01a7680bbcb9efea3ed5e5ca61b088c18d17291639f9e562ecec879",
+      "guardian_sha256": "84b0034f4c12f47c4335cbf3e97ee0d5ffedd0d83075623e47818fd3ef6c4223",
+      "cases": [
+        {
+          "Case": "normal",
+          "Passed": true,
+          "BootServicesExited": true,
+          "PayloadReturned": false,
+          "OwnHalt": true,
+          "InstructionPointerOffset": 866,
+          "InterruptsMasked": true,
+          "Ring": 0,
+          "OwnFramebufferTextVerified": true,
+          "Context": "0xE239000",
+          "PayloadSHA256": "e04753d1dcfc8d4412b0578e28991b241e93d38f0619ceda7b6c5ef8edf53925",
+          "ContextAccepted": true,
+          "UserCPL": 3,
+          "UserFaultHandled": true,
+          "FaultVector": 14,
+          "FaultErrorCode": 4,
+          "FaultAddress": "0x40002000",
+          "SavedUserRIP": "0x4000001A",
+          "SavedUserRSP": "0x40001FF8",
+          "KernelFaultRSP": "0xE253FD0",
+          "ActiveCR3": "0xE24C000",
+          "FrameBytes": 36864,
+          "ReclaimedPages": 3,
+          "ScrubbedBytes": 12288,
+          "ResumedUser": true,
+          "RevokedAddress": "0x40002000",
+          "FaultJournal": [
+            {
+              "Vector": 14,
+              "Error": 5,
+              "RIP": "0x40000018",
+              "CR2": "0x100000",
+              "Reason": "supervisor-page"
+            },
+            {
+              "Vector": 14,
+              "Error": 4,
+              "RIP": "0x4000001A",
+              "CR2": "0x40002000",
+              "Reason": "revoked-page-not-present"
+            }
+          ]
+        },
+        {
+          "Case": "contexto",
+          "Passed": true,
+          "BootServicesExited": true,
+          "PayloadReturned": false,
+          "OwnHalt": true,
+          "InstructionPointerOffset": 866,
+          "InterruptsMasked": true,
+          "Ring": 0,
+          "OwnFramebufferTextVerified": true,
+          "Context": "0xE239000",
+          "PayloadSHA256": "e04753d1dcfc8d4412b0578e28991b241e93d38f0619ceda7b6c5ef8edf53925",
+          "ContextAccepted": false,
+          "UserFaultHandled": false,
+          "ReclaimedPages": 0,
+          "FaultInjection": "RDI=0 al entregar",
+          "ActiveCR3": "0xFC01000"
+        }
+      ]
+    }
+  ]
+}

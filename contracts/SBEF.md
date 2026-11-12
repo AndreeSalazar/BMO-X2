@@ -38,6 +38,8 @@ ELF64 estatico -> SBEF. El [ABI 1](ABI.md) y la admision CASM ya se
 ejercitan en QEMU con un SBEF embebido de una region. El cargador de
 imagenes externas y el bloqueo de WAIT siguen pendientes.
 
+[Responsabilidades del cargador y del gestor de memoria](SBEF-LOADER.md).
+
 ## Encabezado candidato
 
 - Prefijo identificable, version del formato y version del ABI por separado.

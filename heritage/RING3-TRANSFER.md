@@ -5,6 +5,13 @@ Estado en BMO-X2: DISENO. Inventario de BMO-X en
 La transferencia comienza despues del cierre de la base Ring 0.
 Las pruebas del cierre usan programas minimos con stubs de prueba.
 [Plan Ring 0](../docs/RING0-PLAN.md).
+[Inventario de crates y dependencias declaradas](RING3-CRATES.md).
+
+El orden inicial es adaptar `bmo-userland` y `bmo-rt` al ABI de
+BMO-X2, revisar bibliotecas segun dependencias transitivas y validar
+Director e input con sus capacidades de servicio. El inventario separa
+los productores de toolchain de la carga de usuario. Su columna de
+ABI directo orienta la revision antes de compilar cada crate.
 
 | Orden | Origen en BMO-X | Que debe probar BMO-X2 |
 |---|---|---|

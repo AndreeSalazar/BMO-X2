@@ -27,6 +27,7 @@
     "src/casm.h",
     "src/frontend/internal.h",
     "src/kernel/stop.h",
+    "src/kernel/hot_unmap_bytes.h",
     "src/kernel/splash.h",
     "src/kernel/splash_bytes.h"
   ]

@@ -1,5 +1,6 @@
 /* Deliberately closed grammar, independent of the metal64 program model. */
 #include "stop.h"
+#include "hot_unmap_bytes.h"
 #include "../frontend/internal.h"
 #include <stdio.h>
 #include <string.h>
@@ -244,6 +245,7 @@ int casm_stop(const unsigned char *source, size_t length, const char *hex, const
     if (profile != KERNEL_STOP) {
         operation_line = line;
         const char *operation = profile == KERNEL_CPU ? "cpu_identify" :
+                                profile == KERNEL_HOT_UNMAP ? "boot_hot_unmap" :
                                 profile == KERNEL_ABI_PROBE ? "boot_abi_probe" :
                                 profile == KERNEL_USER_FAULT ? "boot_user_fault" :
                                 profile == KERNEL_PAGING ? "boot_paging" :
@@ -259,7 +261,8 @@ int casm_stop(const unsigned char *source, size_t length, const char *hex, const
     if (!out) return 0;
     /* CLI; HLT; JMP rel8 -3 to HLT. No return or inherited service call. */
     /* CPUID leaf zero returns the vendor and highest basic leaf in registers. */
-    ok = fputs(profile == KERNEL_ABI_PROBE ? abi_probe_hex :
+    ok = fputs(profile == KERNEL_HOT_UNMAP ? hot_unmap_hex :
+               profile == KERNEL_ABI_PROBE ? abi_probe_hex :
                profile == KERNEL_USER_FAULT ? user_fault_hex : profile == KERNEL_PAGING ? paging_hex :
                profile == KERNEL_FRAME_CYCLE ? frame_cycle_hex : profile == KERNEL_MEMORY ? memory_hex :
                profile == KERNEL_FAULT ? fault_hex : profile == KERNEL_CONTEXT ? context_hex :
@@ -268,7 +271,13 @@ int casm_stop(const unsigned char *source, size_t length, const char *hex, const
     if (!ok) return 0;
     out = fopen(ir, "wb");
     if (!out) return 0;
-    if (profile == KERNEL_ABI_PROBE) {
+    if (profile == KERNEL_HOT_UNMAP) {
+        ok = fprintf(out, "{\n\"Schema\":13,\"Target\":\"x86_64\",\"ABI\":\"ring0-hot-unmap\","
+            "\"Profile\":\"ring0-hot-unmap-0.1\",\"Entry\":\"kernel_main\",\"RequiredCPL\":0,"
+            "\"Revocation\":{\"Line\":%u,\"Address\":1073750016,\"PageBytes\":4096,"
+            "\"FaultHandler\":555,\"JournalOffset\":29440,\"JournalRecords\":2},"
+            "\"Terminal\":{\"Line\":%u,\"Offset\":865},\"BodyBytes\":930\n}\n", operation_line, line) >= 0;
+    } else if (profile == KERNEL_ABI_PROBE) {
         ok = fprintf(out, "{\n\"Schema\":12,\"Target\":\"x86_64\",\"ABI\":\"ring0-abi-probe\","
             "\"Profile\":\"ring0-abi-probe-0.1\",\"Entry\":\"kernel_main\",\"RequiredCPL\":0,"
             "\"SBEF\":{\"Line\":%u,\"Offset\":1071,\"Bytes\":168,\"AbiVersion\":1},"
@@ -318,7 +327,8 @@ int casm_stop(const unsigned char *source, size_t length, const char *hex, const
         "\"Terminal\":{\"Line\":%u,\"Offset\":0},\"BodyBytes\":4\n}\n", line) >= 0;
     }
     if (fclose(out)) ok = 0;
-    if (ok) puts(profile == KERNEL_ABI_PROBE ? "GREEN [RING0-ABI-PROBE] 1239 body bytes; unverified HEX and IR written."
+    if (ok) puts(profile == KERNEL_HOT_UNMAP ? "GREEN [RING0-HOT-UNMAP] 930 body bytes; unverified HEX and IR written."
+             : profile == KERNEL_ABI_PROBE ? "GREEN [RING0-ABI-PROBE] 1239 body bytes; unverified HEX and IR written."
              : profile == KERNEL_USER_FAULT ? "GREEN [RING0-USER-FAULT] 716 body bytes; unverified HEX and IR written."
              : profile == KERNEL_PAGING ? "GREEN [RING0-PAGING] 473 body bytes; unverified HEX and IR written."
              : profile == KERNEL_FRAME_CYCLE ? "GREEN [RING0-FRAME-CYCLE] 474 body bytes; unverified HEX and IR written."

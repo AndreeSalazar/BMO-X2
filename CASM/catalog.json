@@ -1011,6 +1011,23 @@
       "tests": [
         "tests/test_stop.py"
       ]
+    },
+    {
+      "id": "ring0-hot-unmap",
+      "parent": "casm",
+      "kind": "profile",
+      "title": "Ring 0: revocacion en caliente y diario de fallos",
+      "status": "implemented",
+      "description": "Revoca una pagina de usuario, reanuda CPL3 y registra el fallo de pagina ausente.",
+      "sources": [
+        "src/kernel/stop.c",
+        "src/kernel/hot_unmap_bytes.h",
+        "stop_verify.py"
+      ],
+      "guards": [],
+      "tests": [
+        "tests/test_stop.py"
+      ]
     }
   ]
 }

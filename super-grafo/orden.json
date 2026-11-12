@@ -1,5 +1,13 @@
 {
   "tintes": {
+    "kernel/mm/virtual/revoke/main.casm": {
+      "rgb": [90, 220, 255],
+      "motivo": "Ring 0: revoca una pagina activa y conserva los fallos de CPU."
+    },
+    "heritage/RING3-CRATES.md": {
+      "rgb": [170, 177, 195],
+      "motivo": "Inventario del padre: rutas Cargo, familia y dependencias."
+    },
     "kernel/syscalls/main.casm": {
       "rgb": [90, 220, 255],
       "motivo": "Ring 0: admite SBEF fijo y atiende SYSCALL desde CPL3."
@@ -1018,6 +1026,18 @@
     "tools/abi_toolchain.py": [
       10500,
       4025
+    ],
+    "kernel/mm/virtual/revoke/main.casm": [
+      11000,
+      3850
+    ],
+    "contracts/SBEF-LOADER.md": [
+      11000,
+      4025
+    ],
+    "heritage/RING3-CRATES.md": [
+      11000,
+      4200
     ]
   },
   "foco": "kernel/boot",

@@ -5,7 +5,7 @@ import struct
 from cpu_config import register
 
 
-def user_fault_evidence(memory, snapshot, context, code, reject, *, abi_probe=False):
+def user_fault_evidence(memory, snapshot, context, code, reject, *, abi_probe=False, hot_unmap=False):
     base = context + 0x13000
     descriptors = base + 0x7000
     supplied, root, status, old, marker, cr3, rsp = (
@@ -15,10 +15,19 @@ def user_fault_evidence(memory, snapshot, context, code, reject, *, abi_probe=Fa
             raise ValueError('USER-FAULT-QEMU: entrega invalida cambio el contexto')
         return dict(ContextAccepted=False, UserFaultHandled=False, ReclaimedPages=0,
                     FaultInjection='RDI=0 al entregar', ActiveCR3=f'0x{cr3:X}')
+    if hot_unmap:
+        journal_bytes = memory(descriptors + 0x300, 72, 'fault-journal')
+        journal = list(struct.iter_unpack('<QQQQ', journal_bytes[:64]))
+        stage = struct.unpack_from('<Q', journal_bytes, 64)[0]
+        if status != 2 or stage != 2:
+            raw = ', '.join(f'vector={v} error={e} rip=0x{ip:X} cr2=0x{addr:X}'
+                            for v, e, ip, addr in journal if v)
+            raise ValueError(f'HOT-UNMAP-QEMU: fase {stage}; {raw or "sin registro de #PF"}')
     if (supplied, root, status, marker, cr3, rsp) != (
-            context, base, 1, 0x2133524553554d42, base, descriptors + 4096 - 48):
+            context, base, 2 if hot_unmap else 1, 0x2133524553554d42, base, descriptors + 4096 - 48):
         raise ValueError('USER-FAULT-QEMU: el manejador no termino en la pila de Ring 0')
-    if cr3 == old or register(snapshot, 'CR2') != 0x100000 or register(snapshot, 'CS') != 8:
+    fault_address = 0x40002000 if hot_unmap else 0x100000
+    if cr3 == old or register(snapshot, 'CR2') != fault_address or register(snapshot, 'CS') != 8:
         raise ValueError('USER-FAULT-QEMU: CR3, CR2 o CS inesperado')
     if not register(snapshot, 'CR0') & 0x10000 or not register(snapshot, 'EFER') & 0x800:
         raise ValueError('USER-FAULT-QEMU: faltan WP o NXE')
@@ -30,7 +39,7 @@ def user_fault_evidence(memory, snapshot, context, code, reject, *, abi_probe=Fa
         raise ValueError('USER-FAULT-QEMU: TSS inesperada')
 
     page = memory(descriptors, 4096, 'user-fault-descriptors')
-    handler = code + (770 if abi_probe else 536)
+    handler = code + (555 if hot_unmap else 770 if abi_probe else 536)
     gate = struct.pack('<HHBBHII', handler & 0xffff, 8, 0, 0x8e,
                        (handler >> 16) & 0xffff, handler >> 32, 0)
     if page[0x200:0x2f0] != bytes(14 * 16) + gate:
@@ -38,8 +47,8 @@ def user_fault_evidence(memory, snapshot, context, code, reject, *, abi_probe=Fa
     if struct.unpack_from('<Q', page, 0x104)[0] != descriptors + 4096:
         raise ValueError('USER-FAULT-QEMU: RSP0 de la TSS distinto')
     error, rip, cs, flags, user_rsp, ss = struct.unpack_from('<QQQQQQ', page, 4096 - 48)
-    user_ip = 0x40000064 if abi_probe else 0x40000010
-    if (error, rip, cs, user_rsp, ss) != (5, user_ip, 0x23, 0x40001ff8, 0x1b) or flags & 0x3200:
+    user_ip = 0x4000001a if hot_unmap else 0x40000064 if abi_probe else 0x40000010
+    if (error, rip, cs, user_rsp, ss) != (4 if hot_unmap else 5, user_ip, 0x23, 0x40001ff8, 0x1b) or flags & 0x3200:
         raise ValueError('USER-FAULT-QEMU: marco hardware de CPL3 distinto')
 
     tables = memory(base, 5 * 4096, 'user-fault-tables')
@@ -53,10 +62,20 @@ def user_fault_evidence(memory, snapshot, context, code, reject, *, abi_probe=Fa
     if memory(base + 0x5000, 8192, 'user-fault-erased-pages') != bytes(8192):
         raise ValueError('USER-FAULT-QEMU: codigo o pila de usuario conserva datos')
     result = dict(ContextAccepted=True, UserCPL=cs & 3, UserFaultHandled=True,
-                FaultVector=14, FaultErrorCode=error, FaultAddress='0x100000',
+                FaultVector=14, FaultErrorCode=error, FaultAddress=f'0x{fault_address:X}',
                 SavedUserRIP=f'0x{rip:X}', SavedUserRSP=f'0x{user_rsp:X}',
                 KernelFaultRSP=f'0x{rsp:X}', ActiveCR3=f'0x{cr3:X}',
                 FrameBytes=32768, ReclaimedPages=2, ScrubbedBytes=8192)
+    if hot_unmap:
+        if journal != [(14, 5, 0x40000018, 0x100000), (14, 4, rip, fault_address)]:
+            raise ValueError('HOT-UNMAP-QEMU: diario de fallos inesperado')
+        if memory(base + 0x8000, 4096, 'revoked-data-page') != bytes(4096):
+            raise ValueError('HOT-UNMAP-QEMU: el marco de datos conserva bytes')
+        reasons = ('supervisor-page', 'revoked-page-not-present')
+        result.update(FrameBytes=36864, ReclaimedPages=3, ScrubbedBytes=12288,
+                      ResumedUser=True, RevokedAddress=f'0x{fault_address:X}',
+                      FaultJournal=[dict(Vector=v, Error=e, RIP=f'0x{ip:X}', CR2=f'0x{addr:X}', Reason=reason)
+                                    for (v, e, ip, addr), reason in zip(journal, reasons)])
     if abi_probe:
         calls = struct.unpack_from('<Q', page, 0x310)[0]
         if calls != 3 or not register(snapshot, 'EFER') & 1:

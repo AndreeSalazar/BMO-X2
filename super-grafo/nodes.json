@@ -1960,6 +1960,48 @@
       "salida": "SBEF para ELF o inventario de un objeto COFF MSVC.",
       "aceptacion": "Clang produce SBEF ABI 1; MSVC verifica declaraciones en COFF.",
       "falta": "Ejecutar GCC ELF y cargar los clientes en QEMU."
+    },
+    {
+      "id": "hot-unmap",
+      "titulo": "Revocacion en caliente y diario de fallos",
+      "ruta": "kernel/mm/virtual/revoke/main.casm",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [11000, 3850],
+      "que": "Retira una pagina, invalida la traduccion y reanuda CPL3.",
+      "entrada": "Pagina de datos usada desde CPL3 y un fallo de proteccion.",
+      "salida": "Dos registros de fallo y tres marcos de usuario borrados.",
+      "aceptacion": "QEMU distingue supervisor de pagina revocada y coteja la memoria.",
+      "falta": "Integrar propietarios, referencias compartidas y confirmacion SMP."
+    },
+    {
+      "id": "sbef-loader-boundary",
+      "titulo": "Contrato minimo del cargador SBEF",
+      "ruta": "contracts/SBEF-LOADER.md",
+      "estado": "diseno",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
+      "posicion": [11000, 4025],
+      "que": "Separa admision, plan de carga, memoria y diagnostico.",
+      "entrada": "SBEF y ABI, limites del proceso y copia inmutable.",
+      "salida": "Plan de rangos y permisos o rechazo con ubicacion.",
+      "aceptacion": "Una imagen externa llega a CPL3; un fallo revierte reservas parciales.",
+      "falta": "Aplicar el contrato a un SBEF producido por LLVM."
+    },
+    {
+      "id": "ring3-crate-inventory",
+      "titulo": "Inventario de crates de BMO-X",
+      "ruta": "heritage/RING3-CRATES.md",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "inventario",
+      "posicion": [11000, 4200],
+      "que": "Agrupa crates del padre por familia y dependencias declaradas.",
+      "entrada": "Manifiestos Cargo del commit fijado de BMO-X.",
+      "salida": "Inventario de transferencia y dependencias directas del ABI.",
+      "aceptacion": "Regenerar el inventario desde Git y obtener el mismo documento.",
+      "falta": "Validar cierre transitivo, build y pruebas de capacidades."
     }
   ],
   "relaciones": [
@@ -3052,6 +3094,26 @@
       "de": "abi-toolchains",
       "a": "sbef-host-pack",
       "clase": "generacion"
+    },
+    {
+      "de": "hot-unmap",
+      "a": "user-protection-fault",
+      "clase": "plan"
+    },
+    {
+      "de": "virtual-memory",
+      "a": "hot-unmap",
+      "clase": "verificacion"
+    },
+    {
+      "de": "sbef-loader",
+      "a": "sbef-loader-boundary",
+      "clase": "plan"
+    },
+    {
+      "de": "userspace-supervisor",
+      "a": "ring3-crate-inventory",
+      "clase": "plan"
     }
   ]
 }

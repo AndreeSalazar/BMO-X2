@@ -17,6 +17,7 @@ Esos documentos conservan la fecha, el entorno y el alcance de su trabajo.
 | ring0-paging 0.1 | `src/kernel/stop.c`, `stop_verify.py` | 473 bytes seleccionan seis marcos, instalan CR3 y leen un alias de datos. QEMU verifica las tablas y permisos. | Ejecucion CPL3 y excepciones de pagina. |
 | ring0-user-fault 0.1 | `src/kernel/stop.c`, `stop_verify.py` | 716 bytes entran a CPL3, capturan #PF y limpian dos paginas. | Planificador, cargador SBEF y ejecucion de un segundo proceso. |
 | ring0-abi-probe 0.1 | `src/kernel/stop.c`, `stop_verify.py` | 1239 bytes admiten una imagen SBEF fija y prueban SYSCALL y rechazo de capacidad. | Carga SBEF general y espera real. |
+| ring0-hot-unmap 0.1 | `src/kernel/hot_unmap_bytes.h`, `stop_verify.py` | 930 bytes revocan una pagina, reanudan CPL3 y guardan dos fallos en un diario fijo. | Revocacion SMP, marcos compartidos y DMA. |
 | Native 0.1 | `native/` | Compilador CASM, funciones, bucles, buffers, guardas; autocompilacion documentada en Linux. | Autocompilacion nueva en Windows o dentro de BMO-X2. |
 | Native freestanding | `native/freestanding.py` | Adaptador sin servicios Linux, con permisos y trampas declarados. | Imagen EFI ni kernel; sigue necesitando cargador y manejador #UD. |
 | metal64 0.3 | `traspaso/` | Parche de investigacion con RDTSC y trampas. | Verificador completo: NO se ha aplicado al compilador de esta copia. |
@@ -34,7 +35,7 @@ simbolos, enteros y parser, con tipos y almacenamiento en `src/model/`.
 `sources.json` alimenta las construcciones Windows y Linux e incluye las
 cabeceras en la vigencia de la cache. [Fronteras del frontend](src/frontend/README.md).
 
-`catalog.json` organiza 56 elementos jerarquicos. El build valida el catalogo
+`catalog.json` organiza 57 elementos jerarquicos. El build valida el catalogo
 y genera la tabla de tipos desde el, contrastada con la tabla independiente
 del verificador. SUPER GRAFO ahora lee la jerarquia y los modulos completos;
 la consulta `casm` expone tipos, IR, codificaciones, reglas y bytes por linea.

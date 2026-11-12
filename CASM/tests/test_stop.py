@@ -228,6 +228,27 @@ class Stop(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'STOP-EMISSION'):
                 verify(self.source, self.hex, self.ir, abi_probe=True)
 
+    def test_hot_unmap_rejects_changed_invalidation_and_journal(self):
+        self.source.write_bytes((ROOT/'kernel/mm/virtual/revoke/main.casm').read_bytes())
+        cmd = [str(self.compiler), '--profile', 'ring0-hot-unmap-0.1',
+               str(self.source), str(self.hex), str(self.ir)]
+        self.assertEqual(subprocess.run(cmd, capture_output=True).returncode, 0)
+        packet, report = verify(self.source, self.hex, self.ir, hot_unmap=True)
+        self.assertEqual(len(packet), 954)
+        self.assertEqual(report['BridgePacketLimitBytes'], 4096)
+        body = packet[24:]
+        changed = bytearray(body)
+        changed[body.index(bytes.fromhex('0F 01 39'), 686, 745)] = 0x90
+        self.hex.write_text(changed.hex(' '))
+        with self.assertRaisesRegex(ValueError, 'STOP-EMISSION'):
+            verify(self.source, self.hex, self.ir, hot_unmap=True)
+        self.hex.write_text(body.hex(' '))
+        ir = json.loads(self.ir.read_text())
+        ir['Revocation']['JournalRecords'] = 3
+        self.ir.write_text(json.dumps(ir))
+        with self.assertRaisesRegex(ValueError, 'STOP-IR'):
+            verify(self.source, self.hex, self.ir, hot_unmap=True)
+
     def test_all_byte_bits_and_ir_contract_reject(self):
         self.assertEqual(self.compile().returncode, 0)
         vector = bytes.fromhex(self.hex.read_text())

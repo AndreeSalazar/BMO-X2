@@ -23,7 +23,7 @@
     },
     {
       "path": "CASM/src/main.c",
-      "reason": "Dispatch closed Ring 0 profiles, including the SBEF ABI 1 probe. Preserve default metal64 grammar and emission."
+      "reason": "Dispatch closed Ring 0 profiles, including live page revocation. Preserve default metal64 grammar and emission."
     }
   ]
 }

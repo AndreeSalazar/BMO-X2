@@ -119,6 +119,9 @@
 | [Supervisor Rust de Ring 3](../userspace/supervisor) | diseno | 3 | Ordena, configura y recupera servicios desde CPL3. |
 | [SBEF ABI 1 y llamadas desde CPL3](../kernel/syscalls/main.casm) | qemu | 0 | Valida SBEF embebido y ejecuta tres entradas SYSCALL. |
 | [Banco de toolchains del ABI](../tools/abi_toolchain.py) | host | host | Construye un cliente comun y coteja los bytes de los stubs ELF. |
+| [Revocacion en caliente y diario de fallos](../kernel/mm/virtual/revoke/main.casm) | qemu | 0 | Retira una pagina, invalida la traduccion y reanuda CPL3. |
+| [Contrato minimo del cargador SBEF](../contracts/SBEF-LOADER.md) | diseno | contrato | Separa admision, plan de carga, memoria y diagnostico. |
+| [Inventario de crates de BMO-X](../heritage/RING3-CRATES.md) | host | host | Agrupa crates del padre por familia y dependencias declaradas. |
 
 ## Dependencias declaradas
 
@@ -342,5 +345,9 @@
 | sbef-loader | abi-probe | verificacion |
 | abi-probe | user-protection-fault | plan |
 | abi-toolchains | sbef-host-pack | generacion |
+| hot-unmap | user-protection-fault | plan |
+| virtual-memory | hot-unmap | verificacion |
+| sbef-loader | sbef-loader-boundary | plan |
+| userspace-supervisor | ring3-crate-inventory | plan |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

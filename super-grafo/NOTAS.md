@@ -834,7 +834,7 @@ Establece espacios virtuales separados y permisos por pagina.
 Estado: DISENO. Anillo: 0. Lenguaje: CASM.
 Entrada: Marcos fisicos, rangos y permiso solicitado.
 Salida: Paginas de kernel y usuario con proteccion de escritura y ejecucion.
-Depende de: Memoria fisica (plan), Tablas propias y alias de datos (plan).
+Depende de: Memoria fisica (plan), Tablas propias y alias de datos (plan), Revocacion en caliente y diario de fallos (verificacion).
 Aceptacion: QEMU impide escritura de codigo y ejecucion de datos.
 Pendiente: Probar fallos de permisos desde CPL3 y separar codigo RX de datos RW y NX.
 
@@ -867,7 +867,7 @@ Admite y mapea una imagen SBEF bajo el contrato del proceso.
 Estado: DISENO. Anillo: 0. Lenguaje: CASM.
 Entrada: Bytes del ejecutable, limites, perfil SBEF y estado de CPU.
 Salida: Imagen mapeada con entrada y permisos comprobados o motivo de rechazo.
-Depende de: SBEF y congelacion del ABI (plan), Proceso y ciclo de vida (plan), Empaquetador ELF64 a SBEF (verificacion), Lector SBEF de referencia (verificacion), SBEF ABI 1 y llamadas desde CPL3 (verificacion).
+Depende de: SBEF y congelacion del ABI (plan), Proceso y ciclo de vida (plan), Empaquetador ELF64 a SBEF (verificacion), Lector SBEF de referencia (verificacion), SBEF ABI 1 y llamadas desde CPL3 (verificacion), Contrato minimo del cargador SBEF (plan).
 Aceptacion: El lector independiente y CASM coinciden en el vector de oro y rechazos, con QEMU en Ring 3.
 Pendiente: Leer en CASM la imagen estatica emitida por el empaquetador HOST.
 
@@ -1241,7 +1241,7 @@ Ordena, configura y recupera servicios desde CPL3.
 Estado: DISENO. Anillo: 3. Lenguaje: Rust.
 Entrada: Proceso Rust admitido, runtime y capacidades concedidas.
 Salida: Servicios iniciados, vigilados y recuperados con autoridad acotada.
-Depende de: Servicios Rust (plan), Runtime minimo Rust (plan).
+Depende de: Servicios Rust (plan), Runtime minimo Rust (plan), Inventario de crates de BMO-X (plan).
 Aceptacion: Reinicia un servicio caido sin elevar privilegio ni heredar autoridad implicita.
 Pendiente: Implementar despues de arrancar SBEF y verificar INVOKE y WAIT.
 
@@ -1267,6 +1267,39 @@ Depende de: Empaquetador ELF64 a SBEF (generacion).
 Aceptacion: Clang produce SBEF ABI 1; MSVC verifica declaraciones en COFF.
 Pendiente: Ejecutar GCC ELF y cargar los clientes en QEMU.
 
+## kernel/mm/virtual/revoke/main.casm
+
+Retira una pagina, invalida la traduccion y reanuda CPL3.
+
+Estado: QEMU. Anillo: 0. Lenguaje: CASM.
+Entrada: Pagina de datos usada desde CPL3 y un fallo de proteccion.
+Salida: Dos registros de fallo y tres marcos de usuario borrados.
+Depende de: Fallo de proteccion desde CPL3 (plan).
+Aceptacion: QEMU distingue supervisor de pagina revocada y coteja la memoria.
+Pendiente: Integrar propietarios, referencias compartidas y confirmacion SMP.
+
+## contracts/SBEF-LOADER.md
+
+Separa admision, plan de carga, memoria y diagnostico.
+
+Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
+Entrada: SBEF y ABI, limites del proceso y copia inmutable.
+Salida: Plan de rangos y permisos o rechazo con ubicacion.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: Una imagen externa llega a CPL3; un fallo revierte reservas parciales.
+Pendiente: Aplicar el contrato a un SBEF producido por LLVM.
+
+## heritage/RING3-CRATES.md
+
+Agrupa crates del padre por familia y dependencias declaradas.
+
+Estado: HOST. Anillo: host. Lenguaje: inventario.
+Entrada: Manifiestos Cargo del commit fijado de BMO-X.
+Salida: Inventario de transferencia y dependencias directas del ABI.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: Regenerar el inventario desde Git y obtener el mismo documento.
+Pendiente: Validar cierre transitivo, build y pruebas de capacidades.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -1289,4 +1322,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-115 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+118 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

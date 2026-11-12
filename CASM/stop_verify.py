@@ -22,6 +22,8 @@ USER_FAULT_PROFILE = 'ring0-user-fault-0.1'
 USER_FAULT_ASSETS = MEMORY_ASSETS.parent/'user'
 ABI_PROBE_PROFILE = 'ring0-abi-probe-0.1'
 ABI_PROBE_ASSETS = MEMORY_ASSETS.parents[1]/'syscalls'
+HOT_UNMAP_PROFILE = 'ring0-hot-unmap-0.1'
+HOT_UNMAP_ASSETS = PAGING_ASSETS/'revoke'
 
 
 def require(ok, reason):
@@ -58,13 +60,13 @@ def no_duplicates(pairs):
     return result
 
 
-def verify(source_path, hex_path, ir_path, *, identify=False, context=False, fault=False, memory=False, cycle=False, paging=False, user_fault=False, abi_probe=False):
-    require(sum((identify,context,fault,memory,cycle,paging,user_fault,abi_probe)) <= 1, 'STOP-PROFILE-CONFLICT')
-    hex_limit = 4096 if abi_probe else 2304 if user_fault else 1536 if cycle or paging else 1024 if memory else 512 if fault else 256 if context else 128
+def verify(source_path, hex_path, ir_path, *, identify=False, context=False, fault=False, memory=False, cycle=False, paging=False, user_fault=False, abi_probe=False, hot_unmap=False):
+    require(sum((identify,context,fault,memory,cycle,paging,user_fault,abi_probe,hot_unmap)) <= 1, 'STOP-PROFILE-CONFLICT')
+    hex_limit = 4096 if abi_probe or hot_unmap else 2304 if user_fault else 1536 if cycle or paging else 1024 if memory else 512 if fault else 256 if context else 128
     for path, limit in [(source_path, 65536), (hex_path, hex_limit), (ir_path, 4096)]:
         require(path.stat().st_size <= limit, 'STOP-INPUT-SIZE')
     source = source_path.read_bytes()
-    operation = ('boot_abi_probe' if abi_probe else 'boot_user_fault' if user_fault else
+    operation = ('boot_hot_unmap' if hot_unmap else 'boot_abi_probe' if abi_probe else 'boot_user_fault' if user_fault else
                  'boot_paging' if paging else 'boot_frame_cycle' if cycle else
                  'boot_memory' if memory else 'boot_fault' if fault else 'boot_stack' if context else
                  'cpu_identify' if identify else None)
@@ -174,6 +176,19 @@ def verify(source_path, hex_path, ir_path, *, identify=False, context=False, fau
                     (416,618,'gdt-tss-idt'),(618,709,'syscall-msrs'),(709,770,'iretq-to-user'),
                     (770,839,'page-fault-handler'),(839,895,'unmap-and-scrub'),(895,898,'halt'),
                     (898,1039,'syscall-dispatch'),(1039,1071,'gdt-template'),(1071,1239,'embedded-sbef')]]
+    if hot_unmap:
+        expected = dict(Schema=13, Target='x86_64', ABI='ring0-hot-unmap', Profile=HOT_UNMAP_PROFILE,
+                        Entry='kernel_main', RequiredCPL=0,
+                        Revocation=dict(Line=operation_line, Address=0x40002000, PageBytes=4096,
+                                        FaultHandler=555, JournalOffset=0x7300, JournalRecords=2),
+                        Terminal=dict(Line=line, Offset=865), BodyBytes=930)
+        vector = bytes.fromhex((HOT_UNMAP_ASSETS/'expected.hex').read_text(encoding='ascii'))
+        require(len(vector) == 930 and vector[865:868] == b'\xf4\xeb\xfd', 'HOT-UNMAP-REFERENCE')
+        mapping = [(line if a == 865 else operation_line,a,b-a,kind) for a,b,kind in
+                   [(0,113,'handoff-guard'),(113,292,'user-mappings'),(292,494,'gdt-tss-idt'),
+                    (494,555,'iretq-to-user'),(555,686,'first-fault'),(686,745,'revoke-and-resume'),
+                    (745,809,'second-fault'),(809,865,'process-cleanup'),(865,868,'halt'),
+                    (868,900,'gdt-template'),(900,930,'user-program')]]
     require(json.dumps(ir, sort_keys=True) == json.dumps(expected, sort_keys=True), 'STOP-IR')
     tokens = hex_path.read_text(encoding='ascii').split()
     require(len(tokens) == len(vector) and all(re.fullmatch('[0-9A-Fa-f]{2}', t) for t in tokens), 'STOP-HEX')
@@ -185,7 +200,7 @@ def verify(source_path, hex_path, ir_path, *, identify=False, context=False, fau
                   BodyBytes=len(body), PacketBytes=len(packet), Integers=[],
                   Mapping=[dict(Line=ln, Offset=o, Bytes=n, Kind=k) for ln, o, n, k in mapping],
                   Scope='Closed source grammar and exact emission; CPL0 required; QEMU evidence separate.')
-    if user_fault or abi_probe:
+    if user_fault or abi_probe or hot_unmap:
         require(len(packet) <= 4096, 'BRIDGE-BUDGET')
         report['BridgePacketLimitBytes'] = 4096
     else:
@@ -196,12 +211,12 @@ def verify(source_path, hex_path, ir_path, *, identify=False, context=False, fau
     return packet, report
 
 
-def check(run, *, identify=False, context=False, fault=False, memory=False, cycle=False, paging=False, user_fault=False, abi_probe=False):
+def check(run, *, identify=False, context=False, fault=False, memory=False, cycle=False, paging=False, user_fault=False, abi_probe=False, hot_unmap=False):
     root = Path(__file__).resolve().parents[1]
     packet, report = verify(run/'source.casm', run/'program.hex', run/'program.ir.json',
                             identify=identify, context=context, fault=fault, memory=memory, cycle=cycle, paging=paging,
-                            user_fault=user_fault, abi_probe=abi_probe)
-    source = ABI_PROBE_ASSETS/'main.casm' if abi_probe else USER_FAULT_ASSETS/'main.casm' if user_fault else PAGING_ASSETS/'main.casm' if paging else CYCLE_ASSETS/'main.casm' if cycle else MEMORY_ASSETS/'main.casm' if memory else FAULT_ASSETS/'main.casm' if fault else root / ('kernel/boot/context/main.casm' if context else
+                            user_fault=user_fault, abi_probe=abi_probe, hot_unmap=hot_unmap)
+    source = HOT_UNMAP_ASSETS/'main.casm' if hot_unmap else ABI_PROBE_ASSETS/'main.casm' if abi_probe else USER_FAULT_ASSETS/'main.casm' if user_fault else PAGING_ASSETS/'main.casm' if paging else CYCLE_ASSETS/'main.casm' if cycle else MEMORY_ASSETS/'main.casm' if memory else FAULT_ASSETS/'main.casm' if fault else root / ('kernel/boot/context/main.casm' if context else
                      'kernel/arch/x86_64/cpu/identify.casm' if identify else 'kernel/boot/stop/main.casm')
     vector = source.with_suffix('.hex') if identify else source.with_name('expected.hex')
     require((run/'source.casm').read_bytes() == source.read_bytes(), 'STOP-CANONICAL-SOURCE')
@@ -225,16 +240,17 @@ def main():
     profile.add_argument('--paging', action='store_true')
     profile.add_argument('--user-fault', action='store_true')
     profile.add_argument('--abi-probe', action='store_true')
+    profile.add_argument('--hot-unmap', action='store_true')
     args = p.parse_args()
     outputs = [args.packet.resolve(), args.report.resolve()]
     require(len(set(outputs)) == 2 and not set(outputs).intersection(
             path.resolve() for path in [args.source, args.hex, args.ir, FAULT_ASSETS/'expected.hex',
                                         MEMORY_ASSETS/'expected.hex', CYCLE_ASSETS/'expected.hex',
                                         PAGING_ASSETS/'expected.hex', USER_FAULT_ASSETS/'expected.hex',
-                                        ABI_PROBE_ASSETS/'expected.hex']), 'STOP-OUTPUT-ALIAS')
+                                        ABI_PROBE_ASSETS/'expected.hex', HOT_UNMAP_ASSETS/'expected.hex']), 'STOP-OUTPUT-ALIAS')
     packet, report = verify(args.source, args.hex, args.ir, identify=args.identify, context=args.context,
                             fault=args.fault, memory=args.memory, cycle=args.frame_cycle, paging=args.paging,
-                            user_fault=args.user_fault, abi_probe=args.abi_probe)
+                            user_fault=args.user_fault, abi_probe=args.abi_probe, hot_unmap=args.hot_unmap)
     args.packet.write_bytes(packet)
     args.report.write_text(json.dumps(report, indent=2)+'\n', encoding='ascii', newline='\n')
     print(f'GREEN [STOP-VERIFY] {report["BodyBytes"]} body bytes; {len(packet)} packet bytes independently checked.')

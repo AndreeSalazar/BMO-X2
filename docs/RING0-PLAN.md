@@ -47,6 +47,11 @@ admision y ejecuta INVOKE sobre SYSCALL. El siguiente cierre exige una
 imagen externa producida por un toolchain y WAIT con senal y plazo.
 [ABI de BMO-X2](../contracts/ABI.md).
 
+La revocacion local ya tiene un ensayo separado: retira una pagina,
+invalida el TLB, borra su marco, reanuda CPL3 y registra el segundo
+fallo. Falta integrarla con propietarios, marcos compartidos y SMP.
+[Revocacion en caliente](../kernel/mm/virtual/revoke/HOT-UNMAP.md).
+
 Para dar paso al runtime de Ring 3 se exige un primer proceso aislado.
 El kernel debe poder cargar su SBEF, darle una pila y permisos propios,
 atender una peticion, despertarlo y recuperar sus recursos cuando sale

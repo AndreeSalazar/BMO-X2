@@ -36,15 +36,17 @@ parser.add_argument('--frame-cycle', action='store_true', help='Check ownership,
 parser.add_argument('--paging', action='store_true', help='Check the active page tables and read-only NX alias')
 parser.add_argument('--user-fault', action='store_true', help='Check CPL3 page fault and cleanup')
 parser.add_argument('--abi-probe', action='store_true', help='Check embedded SBEF and the SYSCALL prototype')
+parser.add_argument('--hot-unmap', action='store_true', help='Check live revocation and the fault journal')
 parser.add_argument('--splash',action='store_true',help='Capture the three logo frames')
 parser.add_argument('--splash-hd',action='store_true',help='Use the 64-cell logo layout')
 args = parser.parse_args()
 if not args.abi_probe and set(args.casos).intersection(MUTATIONS):
     parser.error('SBEF mutation cases require the ABI probe')
 memory_case = args.memory or args.frame_cycle or args.paging
-if any((args.identify,args.stack,args.splash,args.fault,memory_case,args.user_fault,args.abi_probe)) and not args.halt:
+user_case = args.user_fault or args.abi_probe or args.hot_unmap
+if any((args.identify,args.stack,args.splash,args.fault,memory_case,user_case)) and not args.halt:
     parser.error('The selected probe requires --halt')
-if (args.splash_hd and not args.splash) or ('contexto' in args.casos and not (args.stack or args.fault or memory_case or args.user_fault or args.abi_probe)) or sum((args.identify,args.stack,args.splash,args.fault,args.memory,args.frame_cycle,args.paging,args.user_fault,args.abi_probe)) > 1 or ((memory_case or args.user_fault or args.abi_probe) and args.ram_mib != 256):
+if (args.splash_hd and not args.splash) or ('contexto' in args.casos and not (args.stack or args.fault or memory_case or user_case)) or sum((args.identify,args.stack,args.splash,args.fault,args.memory,args.frame_cycle,args.paging,args.user_fault,args.abi_probe,args.hot_unmap)) > 1 or ((memory_case or user_case) and args.ram_mib != 256):
     parser.error('Invalid combination of payload and probe cases')
 ROOT = workspace(args.workspace)
 if args.splash:
@@ -199,7 +201,7 @@ def run(case):
             packet = mutated_packet(packet, case)
         code = struct.unpack_from('<Q', context, 8)[0]
         assert memory(code, len(packet) - 24, 'code') == packet[24:], 'No ejecuto la copia exacta del cuerpo propio'
-        halt_offset = splash_halt + 1 if args.splash else 896 if args.abi_probe else 662 if args.user_fault else 471 if args.paging else 426 if args.frame_cycle else 215 if args.memory else 136 if args.fault else 48 if args.stack else 6 if args.identify else 2
+        halt_offset = splash_halt + 1 if args.splash else 866 if args.hot_unmap else 896 if args.abi_probe else 662 if args.user_fault else 471 if args.paging else 426 if args.frame_cycle else 215 if args.memory else 136 if args.fault else 48 if args.stack else 6 if args.identify else 2
         if args.halt:
             terminal = 'FA 31 C0 0F A2 F4 EB FD' if args.identify else 'FA F4 EB FD'
             if args.splash:
@@ -216,6 +218,8 @@ def run(case):
                 assert len(packet) == 740 and packet[24+661:24+664] == bytes.fromhex('F4 EB FD'), 'Terminal de CPL3 distinto'
             elif args.abi_probe:
                 assert len(packet) == 1263 and packet[24+895:24+898] == bytes.fromhex('F4 EB FD'), 'Terminal ABI distinto'
+            elif args.hot_unmap:
+                assert len(packet) == 954 and packet[24+865:24+868] == bytes.fromhex('F4 EB FD'), 'Terminal de revocacion distinto'
             elif args.stack:
                 assert len(packet) == 74 and packet[24+47:] == bytes.fromhex('F4 EB FD'), 'Terminal de contexto distinto'
             else:
@@ -284,8 +288,9 @@ def run(case):
             assert memory(base + 0x5000, 8192, 'rejected-user-pages') == bytes(8192), 'CASM copio bytes rechazados'
             assert memory(base + 0x7310, 8, 'rejected-syscalls') == bytes(8), 'Se ejecuto una llamada de usuario'
             result.update(SbefAccepted=False, SyscallCount=0)
-        elif args.user_fault or args.abi_probe:
-            result.update(user_fault_evidence(memory,last_registers,captured,code,case=='contexto',abi_probe=args.abi_probe))
+        elif user_case:
+            result.update(user_fault_evidence(memory,last_registers,captured,code,case=='contexto',
+                                              abi_probe=args.abi_probe,hot_unmap=args.hot_unmap))
         if memory_case:
             if args.paging:
                 result.update(paging_evidence(memory,last_registers,regions,captured,code,case=='contexto'))
