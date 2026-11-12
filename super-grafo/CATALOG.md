@@ -72,8 +72,9 @@
 | [Verificador independiente de parada](../CASM/stop_verify.py) | host | host | Reconoce fuente, IR3 y bytes sin invocar el compilador. |
 | [Pruebas del perfil privilegiado](../CASM/tests/test_stop.py) | host | host | Prueba fronteras de gramatica, perfil, IR y emision. |
 | [Evidencia QEMU parada S1](../kernel/boot/stop/evidence/qemu.json) | qemu | host | Registra parada propia tras ExitBootServices y seis casos negativos. |
-| [BEF2 y ABI de Ring 3](../contracts/ABI-BEF2.md) | diseno | contrato | Distingue admision de imagen BEF2 y peticiones durante la ejecucion. |
+| [BEF2 y ABI de BMO-X](../contracts/ABI-BEF2.md) | diseno | contrato | Conserva el formato y las dos puertas del padre como referencia para SBEF. |
 | [Presupuesto de la entrada Ring 0](../CASM/entry_budget.py) | host | host | Acota el paquete binario de la entrada a menos de 512 bytes. |
+| [SBEF y congelacion del ABI](../contracts/SBEF.md) | diseno | contrato | Define la evolucion de BEF2 para admitir programas x86-64 en BMO-X2. |
 
 ## Dependencias declaradas
 
@@ -201,5 +202,8 @@
 | rust-runtime | abi-bef2 | plan |
 | stop-verifier | entry-budget | verificacion |
 | genesis-guardian | entry-budget | verificacion |
+| sbef | abi-bef2 | plan |
+| sbef | mm | plan |
+| rust-runtime | sbef | plan |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

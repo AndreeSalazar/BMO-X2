@@ -1179,7 +1179,7 @@
     },
     {
       "id": "abi-bef2",
-      "titulo": "BEF2 y ABI de Ring 3",
+      "titulo": "BEF2 y ABI de BMO-X",
       "ruta": "contracts/ABI-BEF2.md",
       "estado": "diseno",
       "anillo": "contrato",
@@ -1188,11 +1188,11 @@
         280,
         -400
       ],
-      "que": "Distingue admision de imagen BEF2 y peticiones durante la ejecucion.",
+      "que": "Conserva el formato y las dos puertas del padre como referencia para SBEF.",
       "entrada": "Contrato BEF2 y ABI de BMO-X. Programas x86-64 de Rust, C y C++.",
-      "salida": "Campos, productores, consumidores y pruebas de aceptacion para la frontera CASM/Ring 3.",
-      "aceptacion": "Un .bex minimo se admite en QEMU y las bibliotecas producen una peticion equivalente por el mismo ABI.",
-      "falta": "Contexto de CPU, memoria, cargador CASM y prueba QEMU de la primera peticion."
+      "salida": "Referencia de campos, permisos y peticiones del padre.",
+      "aceptacion": "La revision de origen y sus archivos quedan identificados.",
+      "falta": "Comparar las decisiones del formato propio con esta referencia."
     },
     {
       "id": "entry-budget",
@@ -1210,6 +1210,23 @@
       "salida": "Cabecera, limite exclusivo y margen en bytes.",
       "aceptacion": "511 bytes caben, 512 se rechazan. La parada ocupa 28 bytes, con 483 de margen.",
       "falta": "Medir el mismo presupuesto al ampliar la entrada con un contexto propio."
+    },
+    {
+      "id": "sbef",
+      "titulo": "SBEF y congelacion del ABI",
+      "ruta": "contracts/SBEF.md",
+      "estado": "diseno",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
+      "posicion": [
+        5460,
+        3500
+      ],
+      "que": "Define la evolucion de BEF2 para admitir programas x86-64 en BMO-X2.",
+      "entrada": "BEF2 de BMO-X, regiones del ejecutable y contrato de dos puertas.",
+      "salida": "Criterios del encabezado, admision, pruebas y versionado del ABI.",
+      "aceptacion": "Dos lectores coinciden, QEMU prueba rechazo y aislamiento, y varios toolchains producen la misma peticion.",
+      "falta": "Contexto y excepcion CASM, cargador SBEF, INVOKE y WAIT. Congelar al cerrar las pruebas."
     }
   ],
   "relaciones": [
@@ -1822,6 +1839,21 @@
       "de": "genesis-guardian",
       "a": "entry-budget",
       "clase": "verificacion"
+    },
+    {
+      "de": "sbef",
+      "a": "abi-bef2",
+      "clase": "plan"
+    },
+    {
+      "de": "sbef",
+      "a": "mm",
+      "clase": "plan"
+    },
+    {
+      "de": "rust-runtime",
+      "a": "sbef",
+      "clase": "plan"
     }
   ]
 }

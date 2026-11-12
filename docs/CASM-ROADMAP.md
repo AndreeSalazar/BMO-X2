@@ -37,6 +37,11 @@ que exige el siguiente hito; el primer recorrido esta en [FIRST-BOOT](FIRST-BOOT
 El parche 0.3 muestra una idea de runtime, pero le falta `verify_runtime`.
 Su mera aplicacion no cierra C3. Autocompilacion Linux tampoco cierra C10.
 
+El orden de integracion de Ring 0 es contexto y excepcion controlada,
+memoria y aislamiento, carga de un SBEF minimo y dos puertas del ABI.
+El contrato se congela tras comparar lectores y ejecutar el mismo caso
+desde varios compiladores. [Plan de SBEF y ABI](../contracts/SBEF.md).
+
 ## Pruebas que acompanian cada ampliacion
 
 1. Fuente valida y fuente que debe rechazarse por una regla concreta.

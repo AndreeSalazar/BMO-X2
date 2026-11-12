@@ -14,5 +14,6 @@ Estado: DISENO. Aun no hay ABI de BMO-X2 ejecutandose.
 El ABI de dos puertas de BMO-X es referencia de aprendizaje. Su adopcion o
 revision aqui exige una decision escrita; no copiar sus numeros sin contrato.
 
-La [frontera BEF2 y ABI](ABI-BEF2.md) registra la referencia de BMO-X y las
-pruebas de entrada y peticiones que debe superar BMO-X2.
+[SBEF](SBEF.md) registra el diseno del encabezado propio y los criterios
+para congelarlo junto con el ABI. [BEF2 y ABI de BMO-X](ABI-BEF2.md)
+conserva la referencia del padre.

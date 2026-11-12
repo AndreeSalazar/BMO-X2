@@ -159,6 +159,14 @@
         140
       ],
       "motivo": "Acota el paquete binario de la entrada a menos de 512 bytes."
+    },
+    "contracts/SBEF.md": {
+      "rgb": [
+        100,
+        170,
+        255
+      ],
+      "motivo": "Contrato propio SBEF y criterios para congelar el ABI."
     }
   },
   "direccion": "houdini",
@@ -538,6 +546,10 @@
     "CASM/entry_budget.py": [
       1080,
       640
+    ],
+    "contracts/SBEF.md": [
+      720,
+      320
     ]
   },
   "foco": "kernel/boot",

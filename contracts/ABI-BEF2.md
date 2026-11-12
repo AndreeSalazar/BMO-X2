@@ -1,5 +1,8 @@
 # BEF2 y el ABI entre Ring 3 y Ring 0
 
+Referencia de herencia. El diseno del encabezado propio de BMO-X2 y su
+orden de implementacion viven en [SBEF](SBEF.md).
+
 Estado en BMO-X2: DISENO. La referencia es BMO-X, revision
 `6076bdefefc67877419ca53633c6e40cb45fc92d`. Alli, el formato vive en
 `platform/abi/bmo-abi/src/bef2/`, su lector de admision en
