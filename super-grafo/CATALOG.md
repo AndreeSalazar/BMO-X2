@@ -123,7 +123,7 @@
 | [Contrato minimo del cargador SBEF](../contracts/SBEF-LOADER.md) | diseno | contrato | Separa admision, plan de carga, memoria y diagnostico. |
 | [Inventario de crates de BMO-X](../heritage/RING3-CRATES.md) | host | host | Agrupa crates del padre por familia y dependencias declaradas. |
 | [Reglas de jerarquia de Ring 3](../userspace/POLICY.md) | diseno | contrato | Separa runtime, supervisor, servicios y aplicaciones mediante capacidades. |
-| [Escritorio y espacios de trabajo](../userspace/services/desktop) | diseno | 3 | Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX. |
+| [Escritorio y espacios de trabajo](../userspace/services/desktop) | host | 3 | Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX. |
 | [Prestamo y revocacion DMA](../kernel/drivers/bus/DMA.md) | diseno | contrato | Acota los marcos visibles al dispositivo y controla su devolucion. |
 
 ## Dependencias declaradas

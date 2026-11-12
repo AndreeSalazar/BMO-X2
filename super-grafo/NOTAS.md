@@ -1315,12 +1315,12 @@ Pendiente: Probar procesos externos y aplicar la politica al primer servicio.
 
 Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX.
 
-Estado: DISENO. Anillo: 3. Lenguaje: Rust.
+Estado: HOST. Anillo: 3. Lenguaje: Rust.
 Entrada: Eventos de entrada, superficies de clientes y capacidad de pantalla.
 Salida: Cuadro presentado, espacio activo, foco y movimiento de ventanas.
 Depende de: Supervisor Rust de Ring 3 (plan).
-Aceptacion: Super con 1 a 4 cambia de espacio y conserva los clientes.
-Pendiente: Componer dos clientes en QEMU, presentar el cuadro y probar foco y movimiento.
+Aceptacion: HOST verifica cuatro espacios, foco, movimiento y pixels compuestos.
+Pendiente: Enlazar el SBEF, presentar el cuadro en QEMU y conectar Super con 1 a 4.
 
 ## kernel/drivers/bus/DMA.md
 

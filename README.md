@@ -88,6 +88,8 @@ Ring 0 conserva la autoridad sobre memoria, admision y operaciones
 privilegiadas. Las aplicaciones de C, C++ y otros lenguajes entran
 cuando su binario y runtime cumplen el mismo ABI y SBEF. Python
 requiere un interprete portado a Ring 3 que abra los scripts como datos.
+[El nucleo de escritorio](userspace/services/desktop/WORKSPACES.md) ya
+compone superficies y cambia el foco entre cuatro espacios en pruebas HOST.
 [Reglas de Ring 3](userspace/POLICY.md) |
 [Frontera de ejecucion](docs/RING-BOUNDARY.md)
 

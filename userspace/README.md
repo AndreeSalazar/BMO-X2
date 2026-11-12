@@ -16,10 +16,15 @@ Rust tambien puede enlazar bibliotecas maduras en C dentro de Ring 3.
 El componente Rust mantiene la politica del servicio y llama a C por
 una interfaz FFI con tipos, tamanos y propiedad de memoria definidos.
 Un wrapper revisa las precondiciones de la llamada. Una biblioteca
-enlazada comparte el espacio de memoria del proceso. Si necesita
-aislamiento de fallos, se ejecuta en otro proceso con capacidades
-acotadas y se comunica por IPC.
+enlazada comparte el espacio de memoria del proceso. El primer
+escritorio usa componentes enlazados y llamadas directas.
 [Interoperabilidad Rust y C](https://doc.rust-lang.org/nomicon/ffi.html)
+
+El nucleo de escritorio ya pasa sus pruebas HOST de foco y composicion.
+En el modelo de Meta-Kernel de BMO-X2, ese nucleo toma las decisiones de
+sesion y pantalla en CPL3. Ring 0 conserva la autoridad sobre las
+capacidades y los dispositivos.
+[Escritorio y prueba HOST](services/desktop/WORKSPACES.md)
 
 El runtime Rust de BMO-X es el candidato de herencia, con cuatro dependencias
 locales que deben auditarse. Las fuentes actuales exponen INVOKE y WAIT;

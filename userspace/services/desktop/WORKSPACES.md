@@ -8,10 +8,11 @@ eventos mediante las interfaces concedidas.
 ## Control de pantalla
 
 El compositor Rust decide que superficies se muestran, su orden,
-geometria y foco. Las aplicaciones entregan superficies por IPC y
-reciben eventos del escritorio. La presentacion pasa por una capacidad
-de pantalla concedida por Ring 0. El kernel controla los accesos al
-dispositivo, las interrupciones y los rangos DMA que correspondan.
+geometria y foco. El primer perfil enlaza los componentes en el mismo
+proceso. Entregan superficies prestadas y reciben acciones por llamadas
+directas. El compositor escribe un cuadro en un buffer de RAM.
+La presentacion en BMO-X2 usara una capacidad de pantalla de Ring 0.
+El kernel controla el dispositivo, las interrupciones y los rangos DMA.
 
 El primer perfil compone por software en QEMU, con dos superficies,
 entrada y los cuatro espacios. Despues se incorporan el panel, el
@@ -19,10 +20,18 @@ lanzador, las notificaciones, el fondo y la configuracion de pantalla.
 Ultra-LinuX aporta la interaccion y el diseno del escritorio. Las
 dependencias de sus componentes se revisan antes de portarlas.
 
-Un componente C reutilizado, como un rasterizador, puede recibir un
-buffer acotado a traves de una FFI. El compositor conserva el estado
-de sesion y la capacidad de presentar.
+Una biblioteca C puede enlazarse con el mismo proceso mediante un
+adaptador con ABI C. El compositor conserva la propiedad del buffer
+y la capacidad de presentar. La composicion inicial esta en Rust.
 [Frontera DMA](../../../kernel/drivers/bus/DMA.md)
+
+Del padre se toma la division entre decision de ventanas, recorte y
+presentacion. Director separa su escena del manejo de comandos en
+`Ultra_userspace/services/director/src/main.rs`. El lienzo de
+`platform/shared/bmo-dibujo/src/lienzo.rs` recorta en una frontera comun.
+`Ultra_userspace/userland/src/pantalla/mod.rs` documenta el dibujo
+sobre un buffer propio y la presentacion posterior. Esas rutas
+sirven como referencia para las interfaces de BMO-X2.
 
 ## Atajos
 
@@ -40,8 +49,20 @@ espacios. Si se cerro la ventana enfocada, se usa la siguiente ventana
 disponible de ese espacio. Los cuatro espacios forman el primer perfil
 de prueba.
 
-La primera comprobacion abre dos clientes, cambia el foco entre espacios
-y mueve una ventana. El test comprueba que ambos clientes siguen vivos
-y que volver a un espacio restaura el foco. El servicio queda en diseno.
-La politica de ventanas de Director se sustituye por este contrato. Las
-demas responsabilidades del padre se auditan como servicios por separado.
+## Comprobacion HOST
+
+El crate `bmo-x2-desktop` ya compone superficies opacas XRGB8888 en
+filas contiguas. Su estado y sus buffers se prestan por referencias
+de Rust. La capacidad maxima de ventanas la elige quien instancia
+el escritorio. Cambiar de espacio selecciona el foco de ese espacio.
+Mover una ventana conserva el espacio visible.
+
+```powershell
+New-Item -ItemType Directory -Force .\build\desktop | Out-Null
+rustc --edition=2024 --test -D warnings .\userspace\services\desktop\src\lib.rs -o .\build\desktop\desktop-tests.exe
+.\build\desktop\desktop-tests.exe
+```
+
+Las pruebas HOST verifican cuatro casos de foco, movimiento, composicion
+recortada y limites. Queda enlazar el proceso como SBEF, presentarlo en
+QEMU y conectar eventos de teclado a las acciones del escritorio.
