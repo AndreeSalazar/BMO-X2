@@ -90,6 +90,7 @@ cuando su binario y runtime cumplen el mismo ABI y SBEF. Python
 requiere un interprete portado a Ring 3 que abra los scripts como datos.
 [El nucleo de escritorio](userspace/services/desktop/WORKSPACES.md) ya
 compone superficies y procesa los atajos de cuatro espacios en pruebas HOST.
+Su ejecutable Rust freestanding ya se empaqueta como SBEF ABI 1.
 [Reglas de Ring 3](userspace/POLICY.md) |
 [Frontera de ejecucion](docs/RING-BOUNDARY.md)
 

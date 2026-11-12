@@ -1317,10 +1317,10 @@ Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-Li
 
 Estado: HOST. Anillo: 3. Lenguaje: Rust.
 Entrada: Eventos de entrada, superficies de clientes y capacidad de pantalla.
-Salida: Cuadro presentado, espacio activo, foco y movimiento de ventanas.
+Salida: Cuadro en RAM, espacio activo, foco y movimiento de ventanas.
 Depende de: Supervisor Rust de Ring 3 (plan).
 Aceptacion: HOST verifica cuatro espacios, foco, movimiento y pixels compuestos.
-Pendiente: Enlazar el SBEF, presentar el cuadro en QEMU y recibir la capacidad de entrada.
+Pendiente: Arrancar el SBEF externo, presentar el cuadro y recibir la capacidad de entrada.
 
 ## userspace/services/desktop/src/keyboard.rs
 

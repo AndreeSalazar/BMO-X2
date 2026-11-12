@@ -87,6 +87,23 @@ rustc --edition=2024 --test -D warnings .\userspace\services\desktop\src\lib.rs 
 ```
 
 Las nueve pruebas HOST verifican foco, movimiento, composicion,
-limites y atajos mediante eventos de entrada. Queda enlazar el
-proceso como SBEF, presentarlo en QEMU y conectar la capacidad
-de entrada al teclado real.
+limites y atajos mediante eventos de entrada.
+
+## SBEF de prueba
+
+El ejecutable de prueba usa el mismo crate, ejecuta dos cambios de
+espacio con eventos fijos, coteja los pixeles y llama al stub INVOKE
+del ABI 1. Su salida provisional es una trampa al retornar de la entrada.
+El script usa Rust freestanding con panico abortado, LLVM y el
+empaquetador SBEF. El linker conserva la comprobacion de secciones
+incompatibles y LTO elimina las tablas de desenrollado sobrantes.
+
+```powershell
+rustup target add x86_64-unknown-none
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\build-desktop.ps1
+```
+
+En el HOST de referencia salio `build/desktop/desktop.sbef` de 1379 bytes,
+con regiones RX y R. La prueba de arranque actual de CASM carga su propio
+SBEF embebido. Queda cargar el ejecutable externo, conectar la capacidad
+de entrada al teclado de QEMU y presentar el cuadro en pantalla.

@@ -2027,9 +2027,9 @@
       "posicion": [1480, 2200],
       "que": "Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX.",
       "entrada": "Eventos de entrada, superficies de clientes y capacidad de pantalla.",
-      "salida": "Cuadro presentado, espacio activo, foco y movimiento de ventanas.",
+      "salida": "Cuadro en RAM, espacio activo, foco y movimiento de ventanas.",
       "aceptacion": "HOST verifica cuatro espacios, foco, movimiento y pixels compuestos.",
-      "falta": "Enlazar el SBEF, presentar el cuadro en QEMU y recibir la capacidad de entrada.",
+      "falta": "Arrancar el SBEF externo, presentar el cuadro y recibir la capacidad de entrada.",
       "pagina": true
     },
     {
