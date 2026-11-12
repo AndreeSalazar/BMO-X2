@@ -33,6 +33,21 @@ rustc --edition=2024 --test -D warnings userspace/services/audio/src/lib.rs -o b
 .\build\audio\audio-tests.exe
 ```
 
+Para escuchar una prueba de 1,6 s en Windows y comprobar la
+configuracion HDA de QEMU:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\probe-audio.ps1 -Qemu 'C:\Program Files\qemu\qemu-system-x86_64.exe' -Play
+```
+
+La sonda mezcla bloques de 240 marcos y emite PCM estereo de 48 kHz y
+16 bits. Verifica cuatro tramos de 400 ms. Los picos izquierdo y
+derecho son (8000, 0), (0, 6000), (4000, 3000) y (0, 0).
+El WAV y el informe JSON quedan juntos en `build/audio/run-*`.
+`-Play` usa la salida de Windows. Con `-Qemu`, el monitor confirma
+el controlador PCI 8086:2668 y el codec `hda-output` con la CPU
+detenida. La captura de audio del invitado queda pendiente.
+
 ## Integracion
 
 1. **QEMU, salida virtual.** Empezar con Intel HDA y un codec de solo

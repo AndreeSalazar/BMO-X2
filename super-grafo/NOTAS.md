@@ -1352,8 +1352,8 @@ Estado: HOST. Anillo: 3. Lenguaje: Rust.
 Entrada: Bloques PCM, ganancias por canal y volumen general.
 Salida: PCM mezclado, picos por canal y contador de saturacion.
 Depende de: Entrada, pantalla y audio (plan), Prestamo y revocacion DMA (plan).
-Aceptacion: HOST verifica balance, silencio, recorte y limite de fuentes.
-Pendiente: Conectar salida QEMU, DMA, panel y fuentes de DOOM.
+Aceptacion: HOST verifica balance, silencio, recorte y picos WAV. El monitor QEMU enumera Intel HDA y su codec.
+Pendiente: Reproducir desde el invitado, conectar DMA, panel y fuentes de DOOM.
 
 ## kernel/drivers/bus/DMA.md
 

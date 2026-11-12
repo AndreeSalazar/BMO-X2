@@ -2071,8 +2071,8 @@
       "que": "Mezcla PCM estereo de hasta dieciseis fuentes con ganancia acotada.",
       "entrada": "Bloques PCM, ganancias por canal y volumen general.",
       "salida": "PCM mezclado, picos por canal y contador de saturacion.",
-      "aceptacion": "HOST verifica balance, silencio, recorte y limite de fuentes.",
-      "falta": "Conectar salida QEMU, DMA, panel y fuentes de DOOM."
+      "aceptacion": "HOST verifica balance, silencio, recorte y picos WAV. El monitor QEMU enumera Intel HDA y su codec.",
+      "falta": "Reproducir desde el invitado, conectar DMA, panel y fuentes de DOOM."
     },
     {
       "id": "dma-lease",
