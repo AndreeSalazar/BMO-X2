@@ -10,7 +10,16 @@ import sys
 
 from scope import ROOT, workspace
 sys.path.insert(0,str(ROOT/'tools'))
-from genesis import check
+from genesis import check as genesis_check
+sys.path.insert(0,str(ROOT/'CASM'))
+from stop_verify import check as stop_check
+
+
+def check(run):
+    profile = (run/'profile.txt').read_text(encoding='utf-8-sig').strip() if (run/'profile.txt').exists() else 'metal64-0.2'
+    if profile == 'ring0-stop-0.1': return stop_check(run)
+    if profile != 'metal64-0.2': raise ValueError('Perfil desconocido')
+    return genesis_check(run)
 
 CASES=['normal','firma','suma','entrada','ausente','excesivo','salida']
 
@@ -42,7 +51,12 @@ def main():
     parser.add_argument('--qemu',type=Path,default=Path('C:/Program Files/qemu/qemu-system-x86_64.exe'))
     parser.add_argument('--powershell',type=Path,help='Use the same PowerShell executable as the calling build')
     parser.add_argument('--cases',nargs='+',choices=CASES,default=CASES)
+    parser.add_argument('--profile',choices=['metal64-0.2','ring0-stop-0.1'],default='metal64-0.2')
     args=parser.parse_args();run=workspace(args.run)
+    stop=args.profile=='ring0-stop-0.1'
+    frozen_profile=(run/'profile.txt').read_text(encoding='utf-8-sig').strip() if (run/'profile.txt').exists() else 'metal64-0.2'
+    if frozen_profile!=args.profile: raise ValueError('Perfil distinto al run congelado')
+    milestone='Ring0 stop S1' if stop else 'Genesis G1'
     check(run)
     if (run/'qemu-run.json').exists(): raise ValueError('Run ya preparado; compilar un run nuevo para otra ejecucion')
     qemu=args.qemu.resolve();share=qemu.parent/'share'
@@ -58,7 +72,7 @@ def main():
     shell=str(args.powershell.resolve()) if args.powershell else (shutil.which('pwsh') or shutil.which('powershell.exe'))
     if not shell or not Path(shell).is_file(): raise ValueError('Falta PowerShell 5.1 o 7')
     shell_version=subprocess.check_output([shell,'-NoProfile','-NonInteractive','-Command','$PSVersionTable.PSVersion.ToString()'],text=True).strip()
-    record=dict(schema=1,milestone='Genesis G1',qemu=version,accelerator='tcg',cpu='qemu64',ram_mib=256,
+    record=dict(schema=1,milestone=milestone,qemu=version,accelerator='tcg',cpu='qemu64',ram_mib=256,
                 powershell=shell_version,
                 cases=args.cases,bridge_sha256=sha(efi),bridge_bytes=len(image),packet_sha256=sha(packet),
                 inputs={p.relative_to(ROOT).as_posix():sha(p) for p in paths},
@@ -70,12 +84,12 @@ def main():
     subprocess.run([shell,'-NoProfile','-NonInteractive','-File',str(scripts/'disk.ps1'),'-OutputRoot',str(run),'-Programa','INICIO.X86','-GPT'],check=True,cwd=run,timeout=60)
     for case in args.cases:
         subprocess.run([sys.executable,'-B',str(scripts/'prepare.py'),'--workspace',str(run),'--caso',case],check=True,cwd=run,timeout=30)
-    result=subprocess.run([sys.executable,'-B','-u',str(scripts/'probe.py'),'--workspace',str(run),'--qemu',str(qemu),'--casos',*args.cases],cwd=run,timeout=600)
+    result=subprocess.run([sys.executable,'-B','-u',str(scripts/'probe.py'),'--workspace',str(run),'--qemu',str(qemu),'--casos',*args.cases,*(['--halt'] if stop else [])],cwd=run,timeout=600)
     report=run/'build/puente-test-results.json'
     if report.is_file():
         data=json.loads(report.read_text(encoding='utf-8-sig'))
-        data.update(schema=1,evidence='QEMU',milestone='Genesis G1',physical_boot=False,autonomous_kernel=False,
-                    body_bytes=22,packet_bytes=46,bridge_bytes=len(image),run=run.name,packet_sha256=sha(packet),
+        data.update(schema=1,evidence='QEMU',milestone=milestone,physical_boot=False,autonomous_kernel=False,
+                    body_bytes=4 if stop else 22,packet_bytes=28 if stop else 46,bridge_bytes=len(image),run=run.name,packet_sha256=sha(packet),
                     qemu=version,source_sha256=sha(run/'source.casm'),case_scope='UEFI bootstrap and payload; rejects packages and injected stale MapKey, not arbitrary invalid kernel contexts')
         (run/'qemu-results.json').write_text(json.dumps(data,indent=2)+'\n',encoding='ascii',newline='\n')
         print(json.dumps(data,indent=2),flush=True)

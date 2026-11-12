@@ -10,11 +10,19 @@
     "src/frontend/parser.c",
     "src/model/types.c",
     "src/model/storage.c",
-    "src/emitter.c"
+    "src/emitter.c",
+    "src/kernel/stop.c"
   ],
-  "inputs": ["catalog.json", "catalog.py", "verify.py"],
+  "inputs": [
+    "catalog.json",
+    "catalog.py",
+    "verify.py",
+    "stop_verify.py",
+    "profiles/ring0-stop.json"
+  ],
   "headers": [
     "src/casm.h",
-    "src/frontend/internal.h"
+    "src/frontend/internal.h",
+    "src/kernel/stop.h"
   ]
 }

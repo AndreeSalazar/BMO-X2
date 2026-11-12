@@ -31,7 +31,7 @@ Lee una fuente acotada, invoca analisis y emision y comunica el rechazo.
 Estado: HEREDADO. Anillo: host. Lenguaje: C semilla.
 Entrada: Ruta fuente y rutas nuevas de HEX/IR.
 Salida: CasmProgram analizado y salida de emision sin publicar paquete.
-Depende de: Entrada y diagnosticos del frontend (codigo), Codificador x86-64 (codigo), IR y tipos metal64 (codigo).
+Depende de: Entrada y diagnosticos del frontend (codigo), Codificador x86-64 (codigo), IR y tipos metal64 (codigo), Frontend y emisor de parada (codigo).
 Aceptacion: Casos HOST-READ, SOURCE-SIZE, HOST-WRITE y HOST-MEMORY donde el SO permite probarlo.
 Pendiente: Portar el anfitrion del compilador propio cuando BMO-X2 tenga servicios de archivos.
 
@@ -673,6 +673,83 @@ Depende de: Rutas host compatibles 5.1 y 7 (verificacion).
 Aceptacion: Siete casos pasan en 5.1 y 7; despertar llega a QEMU con el mismo paquete.
 Pendiente: Mantener la prueba de versiones al ampliar las herramientas del anfitrion.
 
+## CASM/profiles/ring0-stop.json
+
+Define gramatica cerrada, entrada, efectos y bytes de ring0-stop-0.1.
+
+Estado: HOST. Anillo: host. Lenguaje: CASM especificacion.
+Entrada: Modo largo y CPL0 entregados por el cargador.
+Salida: Contrato versionado para fuente, IR3 y terminal de 4 bytes.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: Solo kernel_main con cpu_halt; el perfil no se mezcla con metal64.
+Pendiente: Ampliar contexto y excepciones con contrato y evidencia propios; no acredita kernel completo.
+
+## kernel/boot/stop/main.casm
+
+Ordena detener la CPU desde codigo propio.
+
+Estado: QEMU. Anillo: 0. Lenguaje: CASM.
+Entrada: Contrato ring0-stop-0.1.
+Salida: CLI HLT JMP sin retorno ni servicios heredados.
+Depende de: Contrato parada Ring 0 (codigo).
+Aceptacion: QEMU observa IF=0, HLT=1, CPL0 y RIP=entrada+2.
+Pendiente: Ampliar contexto y excepciones con contrato y evidencia propios; no acredita kernel completo.
+
+## CASM/src/kernel/stop.c
+
+Analiza el terminal cerrado y emite IR3 y bytes propios.
+
+Estado: HOST. Anillo: host. Lenguaje: C semilla.
+Entrada: Fuente ASCII acotada con perfil explicito.
+Salida: HEX de 4 bytes e IR con efectos y origen.
+Depende de: Contrato parada Ring 0 (codigo), Lexico (codigo).
+Aceptacion: Fuentes fuera de gramatica rechazan; metal64 conserva 333 casos.
+Pendiente: Ampliar contexto y excepciones con contrato y evidencia propios; no acredita kernel completo.
+
+## kernel/boot/stop/expected.hex
+
+Fija la referencia independiente FA F4 EB FD.
+
+Estado: HOST. Anillo: host. Lenguaje: vector x86-64.
+Entrada: Contrato CLI HLT JMP rel8 -3.
+Salida: Cuatro bytes de referencia.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: Emisor y verificador coinciden con el vector manual.
+Pendiente: Ampliar contexto y excepciones con contrato y evidencia propios; no acredita kernel completo.
+
+## CASM/stop_verify.py
+
+Reconoce fuente, IR3 y bytes sin invocar el compilador.
+
+Estado: HOST. Anillo: host. Lenguaje: Python control.
+Entrada: Fuente congelada, HEX e IR.
+Salida: Paquete FAGRAW64 de 28 bytes y mapa de tres instrucciones.
+Depende de: Contrato parada Ring 0 (verificacion), Vector manual de parada (verificacion).
+Aceptacion: Mutaciones de cada bit, campos IR y fuente rechazan sin publicar.
+Pendiente: Ampliar contexto y excepciones con contrato y evidencia propios; no acredita kernel completo.
+
+## CASM/tests/test_stop.py
+
+Prueba fronteras de gramatica, perfil, IR y emision.
+
+Estado: HOST. Anillo: host. Lenguaje: Python control.
+Entrada: Semilla construida desde sources.json.
+Salida: Cuatro grupos de pruebas con mutaciones y rechazos.
+Depende de: Frontend y emisor de parada (verificacion), Verificador independiente de parada (verificacion).
+Aceptacion: No se admite RET, servicio, instruccion extra ni perfil distinto.
+Pendiente: Ampliar contexto y excepciones con contrato y evidencia propios; no acredita kernel completo.
+
+## kernel/boot/stop/evidence/qemu.json
+
+Registra parada propia tras ExitBootServices y seis casos negativos.
+
+Estado: QEMU. Anillo: host. Lenguaje: evidencia.
+Entrada: Paquete verificado, puente heredado, QEMU y OVMF.
+Salida: Siete casos con huellas, registros y captura.
+Depende de: Fuente de parada propia (verificacion), Verificador independiente de parada (verificacion), Genesis: prueba aislada en QEMU (verificacion), Puente UEFI provisional (verificacion).
+Aceptacion: No retorno; cuerpo exacto; RIP propio; IF=0; Ring 0 y HLT observados.
+Pendiente: Ampliar contexto y excepciones con contrato y evidencia propios; no acredita kernel completo.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -695,4 +772,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-61 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+68 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

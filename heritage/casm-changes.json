@@ -1,10 +1,29 @@
 {
   "schema": 1,
   "changes": [
-    {"path":"CASM/test.py","reason":"Windows support with explicit Linux resource-limit skip; existing tests preserved"},
-    {"path":"CASM/src/casm.h","reason":"Compact bounded shared storage instead of maximum text buffers per item"},
-    {"path":"CASM/src/frontend.c","reason":"Real diagnostic dispatch and bounded parse entry; lexer, symbols, integers and grammar separated into modules"},
-    {"path":"CASM/bootstrap.py","reason":"Shared source manifest and checked catalogue generate the compiler type table before building"},
-    {"path":"CASM/compilar.sh","reason":"Freeze the exact catalogue beside source and toolchain for each Linux compilation"}
+    {
+      "path": "CASM/test.py",
+      "reason": "Windows support with explicit Linux resource-limit skip; existing tests preserved"
+    },
+    {
+      "path": "CASM/src/casm.h",
+      "reason": "Compact bounded shared storage instead of maximum text buffers per item"
+    },
+    {
+      "path": "CASM/src/frontend.c",
+      "reason": "Real diagnostic dispatch and bounded parse entry; lexer, symbols, integers and grammar separated into modules"
+    },
+    {
+      "path": "CASM/bootstrap.py",
+      "reason": "Shared source manifest and checked catalogue generate the compiler type table before building"
+    },
+    {
+      "path": "CASM/compilar.sh",
+      "reason": "Freeze the exact catalogue beside source and toolchain for each Linux compilation"
+    },
+    {
+      "path": "CASM/src/main.c",
+      "reason": "Explicit ring0-stop-0.1 dispatch; default metal64 grammar and emission preserved"
+    }
   ]
 }

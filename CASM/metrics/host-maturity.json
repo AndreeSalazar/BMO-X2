@@ -5,7 +5,7 @@
   "host": "win32",
   "toolchain": "clang version 23.1.2 (https://github.com/llvm/llvm-project 85ac560262434c9ccfc0c183ec22d4138ed647fb)",
   "measured_sources": {
-    "CASM/src/main.c": "ed2b2a6ebdef5290f457f47bed67cad1611d1c10af7b77d9c4b8a55ba49d2022",
+    "CASM/src/main.c": "3b8a4f3e0d52a83318741c6627eec81f64a4615052195af93c651ef9d52ff0b6",
     "CASM/src/frontend.c": "cbba598229fed23451e2d9b423dd2e595d69bc5685d58d01ed2fd8d364417247",
     "CASM/src/frontend/lexer.c": "8e777599d4aa3b3e3e63d3507d6443c4df3dab2d9a916d102198a19e46b5defb",
     "CASM/src/frontend/symbols.c": "829c285fac8c87ca58391d83cab0dc3d8aeab072a15591f38691350fe62c4b34",
@@ -14,12 +14,16 @@
     "CASM/src/model/types.c": "64345422c535b8769f9be55d81df8d7dc571552dec1632659491ba77f96a8242",
     "CASM/src/model/storage.c": "ec934bceac46264946cc38e226ca9c80216dd65dbcff5dfeb9202561ad8a862b",
     "CASM/src/emitter.c": "aab368c3e2cca626e7e7608b13fdb8d002032fca87e850f6656358b85dfcd0d3",
+    "CASM/src/kernel/stop.c": "c9146b57c7def294e34cfb518327e068884cecc8a935ad68cb596d3119b6adbf",
     "CASM/src/casm.h": "fe3caff2f593440d23e1608826c69aaa045f67d7d2e341c99594e1deb777d600",
     "CASM/src/frontend/internal.h": "552991f49e5bae03a18ed59ed36352bde73e9315b634d2cc2ac9ecbf40f63c9a",
-    "CASM/catalog.json": "e44999610f5476599e771c792f3d4cf3dfdef7dc067dce2d34a9400114408301",
+    "CASM/src/kernel/stop.h": "d627ed53720f76a8e86430db38efc340a86afab1ddb43d603d4c50ab4295df43",
+    "CASM/catalog.json": "11ad3d27da3a010c470b0006e64eab855be92e9df15016b5ea12832e7b15c457",
     "CASM/catalog.py": "fb40b91d8c0493121c9eb390e86b3f572814d70f0986221373e5b9980235eb89",
     "CASM/verify.py": "4387e66d01c4e5ce05f027d09d47e3a37229e24ce2d4d16341b170aefed5f5b1",
-    "CASM/sources.json": "5dd21ff5cbd6589f213d80b161a55f93642796b4c73c07eeed31956b405a1590"
+    "CASM/stop_verify.py": "963900d82a2ad05e342475e8d1d18a71e418323678b59bc38fb30dcc4640e588",
+    "CASM/profiles/ring0-stop.json": "c9f236e79bb1e84c701eaefa1a17a669a5a4a5c6aaaa5795afd8e0fdecafdc42",
+    "CASM/sources.json": "e8a8e9870f2e1511e2b95c8343119004680435e49fafd2a3001681fc8f9d84a3"
   },
   "baseline_program_bytes": 1077280,
   "program_bytes": 361648,
@@ -34,8 +38,8 @@
     "invariant_checks": 11
   },
   "baseline_executable_bytes": 180736,
-  "executable_bytes": 181248,
-  "compiler_sha256": "d852f4a9fdd71d27230bc5865c7b44206facae434aa89bd8003565566affffcc",
+  "executable_bytes": 182784,
+  "compiler_sha256": "1b8d5dd045f1c7d588e6acdc10c3fff4b7e9efb4d1815106a356fcbcf650bf6a",
   "differential_cases": 333,
   "accepted": 279,
   "rejected": 54,

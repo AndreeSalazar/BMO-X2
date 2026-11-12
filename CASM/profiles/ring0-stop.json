@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "profile": "ring0-stop-0.1",
+  "architecture": "x86-64",
+  "ir_schema": 3,
+  "entry": "kernel_main",
+  "required_cpl": 0,
+  "grammar": "void kernel_main(void) { cpu_halt(); }",
+  "effects": ["mask-interrupts", "halt"],
+  "body_bytes": 4,
+  "packet_bytes": 28,
+  "instructions": [
+    {"offset": 0, "hex": "FA", "instruction": "CLI"},
+    {"offset": 1, "hex": "F4", "instruction": "HLT"},
+    {"offset": 2, "hex": "EB FD", "instruction": "JMP rel8 -3 -> offset 1"}
+  ],
+  "evidence": "kernel/boot/stop/evidence/qemu.json",
+  "limits": "Closed terminal only; requires long mode and CPL0. No IDT, memory isolation, poweroff, physical boot or energy measurement. UEFI bridge remains inherited.",
+  "reference": "https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html"
+}

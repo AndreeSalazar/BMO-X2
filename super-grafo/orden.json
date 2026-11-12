@@ -87,6 +87,62 @@
         235
       ],
       "motivo": "Lectura: explica linea, offset, clase y bytes tras volver a verificar."
+    },
+    "CASM/profiles/ring0-stop.json": {
+      "rgb": [
+        90,
+        160,
+        255
+      ],
+      "motivo": "Define gramatica cerrada, entrada, efectos y bytes de ring0-stop-0.1."
+    },
+    "kernel/boot/stop/main.casm": {
+      "rgb": [
+        68,
+        210,
+        240
+      ],
+      "motivo": "Ordena detener la CPU desde codigo propio."
+    },
+    "CASM/src/kernel/stop.c": {
+      "rgb": [
+        185,
+        130,
+        255
+      ],
+      "motivo": "Analiza el terminal cerrado y emite IR3 y bytes propios."
+    },
+    "kernel/boot/stop/expected.hex": {
+      "rgb": [
+        240,
+        185,
+        70
+      ],
+      "motivo": "Fija la referencia independiente FA F4 EB FD."
+    },
+    "CASM/stop_verify.py": {
+      "rgb": [
+        90,
+        200,
+        140
+      ],
+      "motivo": "Reconoce fuente, IR3 y bytes sin invocar el compilador."
+    },
+    "CASM/tests/test_stop.py": {
+      "rgb": [
+        210,
+        220,
+        235
+      ],
+      "motivo": "Prueba fronteras de gramatica, perfil, IR y emision."
+    },
+    "kernel/boot/stop/evidence/qemu.json": {
+      "rgb": [
+        70,
+        220,
+        120
+      ],
+      "motivo": "Registra parada propia tras ExitBootServices y seis casos negativos."
     }
   },
   "direccion": "houdini",
@@ -430,6 +486,34 @@
     "userspace/services": [
       370.0,
       2200.0
+    ],
+    "CASM/profiles/ring0-stop.json": [
+      720,
+      0
+    ],
+    "kernel/boot/stop/main.casm": [
+      720,
+      160
+    ],
+    "CASM/src/kernel/stop.c": [
+      720,
+      320
+    ],
+    "kernel/boot/stop/expected.hex": [
+      720,
+      480
+    ],
+    "CASM/stop_verify.py": [
+      720,
+      640
+    ],
+    "CASM/tests/test_stop.py": [
+      720,
+      800
+    ],
+    "kernel/boot/stop/evidence/qemu.json": [
+      720,
+      960
     ]
   },
   "foco": "kernel/boot",
@@ -439,6 +523,10 @@
     "kernel",
     "kernel/boot",
     "kernel/boot/genesis",
-    "tools"
+    "tools",
+    "kernel/boot/stop",
+    "kernel/boot/stop/evidence",
+    "CASM/src/kernel",
+    "CASM/profiles"
   ]
 }

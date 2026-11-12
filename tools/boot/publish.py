@@ -14,10 +14,14 @@ def publish(run):
     environment=json.loads((run/'qemu-run.json').read_text(encoding='ascii'))
     if report['Passed']!=7 or report['Total']!=7 or {c['Case'] for c in report['Cases']}!=set(CASES) or not all(c['Passed'] for c in report['Cases']):
         raise ValueError('QEMU-EVIDENCE: faltan casos aprobados')
+    stop=(run/'profile.txt').exists() and (run/'profile.txt').read_text(encoding='utf-8-sig').strip()=='ring0-stop-0.1'
     normal=next(c for c in report['Cases'] if c['Case']=='normal')
-    if not normal['BootServicesExited'] or not normal['PayloadReturned'] or normal['Ring']!=0 or not normal['OwnFramebufferTextVerified']:
+    if not normal['BootServicesExited'] or normal['PayloadReturned'] != (not stop) or normal['Ring']!=0 or not normal['OwnFramebufferTextVerified']:
         raise ValueError('QEMU-EVIDENCE: ejecucion normal incompleta')
-    if report['packet_sha256']!=sha(run/'INICIO.X86') or report['source_sha256']!=sha(ROOT/'kernel/boot/genesis/main.casm'):
+    if stop and not (normal.get('OwnHalt') and normal.get('InterruptsMasked') and normal.get('InstructionPointerOffset')==2):
+        raise ValueError('QEMU-EVIDENCE: parada propia incompleta')
+    source_dir='stop' if stop else 'genesis'
+    if report['packet_sha256']!=sha(run/'INICIO.X86') or report['source_sha256']!=sha(ROOT/f'kernel/boot/{source_dir}/main.casm'):
         raise ValueError('QEMU-EVIDENCE: fuente o paquete distintos')
     if (run/'build/puente-normal-code.bin').read_bytes()!=(run/'INICIO.X86').read_bytes()[24:]:
         raise ValueError('QEMU-EVIDENCE: bytes cargados distintos')
@@ -25,7 +29,7 @@ def publish(run):
         for path,digest in environment[group].items():
             file=(ROOT/path).resolve()
             if not file.is_relative_to(ROOT) or sha(file)!=digest: raise ValueError(f'QEMU-EVIDENCE: cambio la entrada {path}')
-    target=ROOT/'kernel/boot/genesis/evidence';target.mkdir(parents=True,exist_ok=True)
+    target=ROOT/f'kernel/boot/{source_dir}/evidence';target.mkdir(parents=True,exist_ok=True)
     files=[(run/'qemu-results.json','qemu.json'),(run/'qemu-run.json','environment.json'),
            (run/'build/puente-normal.png','normal.png'),(run/'build/puente-normal-registers.txt','registers.txt')]
     entries=[]

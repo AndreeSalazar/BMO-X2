@@ -9,12 +9,19 @@ from verify import verify
 
 
 def render(run):
-    packet, report = verify(run/'source.casm', run/'program.hex', run/'program.ir.json')
+    profile = (run/'profile.txt').read_text(encoding='utf-8-sig').strip() if (run/'profile.txt').exists() else 'metal64-0.2'
+    if profile == 'ring0-stop-0.1':
+        from stop_verify import verify as selected_verify
+    elif profile == 'metal64-0.2':
+        selected_verify = verify
+    else:
+        raise ValueError('Perfil desconocido')
+    packet, report = selected_verify(run/'source.casm', run/'program.hex', run/'program.ir.json')
     actual = run/'INICIO.X86'
     if actual.stat().st_size != len(packet) or actual.read_bytes() != packet:
         raise ValueError('PACKET-MISMATCH')
     lines = ['# Lectura del HEX comprobado', '',
-             'Perfil: x86-64 / metal64-0.2. Comprobacion HOST; no ejecucion ni acreditacion Ring 0.', '',
+             f'Perfil: x86-64 / {profile}. Comprobacion HOST; ejecucion QEMU documentada por separado.', '',
              f'Cuerpo: {report["BodyBytes"]} bytes. Paquete: {report["PacketBytes"]} bytes.',
              f'SHA-256 del paquete: `{report["PacketSHA256"]}`.', '',
              '| Linea | Offset cuerpo | Offset paquete | Clase | Bytes |',

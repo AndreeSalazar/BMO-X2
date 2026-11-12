@@ -1,9 +1,10 @@
 # BMO-X2: herramientas host y SUPER GRAFO. No despliega a discos.
 [CmdletBinding()]
 param(
-    [ValidateSet('abrir','resumen','consultar','mapa','comprobar','medir','compilar','genesis','despertar','leer-hex','preparar-grafo')]
+    [ValidateSet('abrir','resumen','consultar','mapa','comprobar','medir','compilar','genesis','despertar','parada','leer-hex','preparar-grafo')]
     [string]$Accion = 'resumen',
     [string]$Source,
+    [ValidateSet("metal64-0.2","ring0-stop-0.1")][string]$Profile = "metal64-0.2",
     [string]$Run,
     [string]$Python,
     [string]$Compiler,
@@ -40,6 +41,10 @@ if ($Accion -in @('abrir','resumen','consultar','mapa')) {
     }
 }
 switch ($Accion) {
+    'parada' {
+        Invoke-ProjectPython 'comprobar'
+        & (Join-Path $projectRoot 'tools/host.ps1') -Accion compilar -Source (Join-Path $projectRoot 'kernel/boot/stop/main.casm') -Python $Python -Compiler $Compiler -Profile ring0-stop-0.1 -Wake
+    }
     'despertar' {
         Invoke-ProjectPython 'comprobar'
         & (Join-Path $projectRoot 'tools/host.ps1') -Accion compilar -Source (Join-Path $projectRoot 'kernel/boot/genesis/main.casm') -Python $Python -Compiler $Compiler -Genesis -Wake
@@ -64,7 +69,7 @@ switch ($Accion) {
     }
     'compilar' {
         Invoke-ProjectPython 'comprobar'
-        & (Join-Path $projectRoot 'tools/host.ps1') -Accion compilar -Source $Source -Python $Python -Compiler $Compiler
+        & (Join-Path $projectRoot 'tools/host.ps1') -Accion compilar -Source $Source -Profile $Profile -Python $Python -Compiler $Compiler
     }
     'medir' {
         Invoke-ProjectPython 'comprobar'

@@ -17,6 +17,7 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--workspace',required=True,type=Path)
 parser.add_argument('--casos', nargs='+', choices=['normal','firma','suma','entrada','ausente','excesivo','salida'], default=['normal'])
 parser.add_argument('--qemu', default='C:/Program Files/qemu/qemu-system-x86_64.exe')
+parser.add_argument('--halt',action='store_true',help='Expect the own 4-byte terminal instead of a payload return')
 args = parser.parse_args()
 ROOT = workspace(args.workspace)
 if not __debug__:
@@ -117,7 +118,7 @@ def run(case):
                     candidate = memory(address, 0xb0, 'context')
                     if candidate[:8] == b'METAL64!':
                         ebs, returned, failed = (struct.unpack_from('<I', candidate, p)[0] for p in (0x78, 0x98, 0x9c))
-                        if (failed == 1 or ((returned or failed == 2) and 'HLT=1' in last_registers)):
+                        if (failed == 1 or ((returned or failed == 2 or (args.halt and case == 'normal' and ebs == 1)) and 'HLT=1' in last_registers)):
                             context = candidate
                             captured = address
                             break
@@ -140,11 +141,16 @@ def run(case):
             expected = 'no se pudo leer' if case == 'ausente' else 'paquete FAGRAW64 invalido'
             assert expected in reason, f'Rechazo distinto del esperado: {reason}'
             return dict(Case=case, Passed=True, BootServicesExited=False, PayloadReturned=False, Reason=reason)
-        assert (ebs, returned, failed) == (1, 1, 0), 'No hubo salida y retorno correcto'
+        assert (ebs, returned, failed) == (1, 0 if args.halt else 1, 0), 'Estado final distinto del contrato'
         assert 'CPL=0' in last_registers and 'HLT=1' in last_registers, 'No se detuvo en nivel 0'
         packet = (ROOT / 'build/Puente_Metal/METAL/INICIO.X86').read_bytes()
         code = struct.unpack_from('<Q', context, 8)[0]
         assert memory(code, len(packet) - 24, 'code') == packet[24:], 'No ejecuto la copia exacta del cuerpo propio'
+        if args.halt:
+            assert packet[24:] == bytes.fromhex('FA F4 EB FD'), 'Terminal distinto'
+            rip = int(re.search(r'RIP=([0-9a-fA-F]+)', last_registers)[1], 16)
+            flags = int(re.search(r'RFL=([0-9a-fA-F]+)', last_registers)[1], 16)
+            assert rip == code + 2 and not flags & 0x200, 'No se detuvo en HLT propio con IF=0'
         size, stride = struct.unpack_from('<Q', context, 0x50)[0], struct.unpack_from('<Q', context, 0x60)[0]
         descriptors = memory(captured + 0x1000, size, 'map')
         assert stride >= 40 and size % stride == 0, 'Mapa de memoria invalido'
@@ -156,7 +162,8 @@ def run(case):
         pixels = memory(framebuffer, scan * 48 * 4, 'pixels')
         expected = bytearray(len(pixels))
         font = (ROOT / 'build/Puente_Metal/EFI/BOOT/BOOTX64.EFI').read_bytes()[0x2000:0x2800]
-        for row, text in enumerate(('METAL64: BootServices cerrados.', 'GENESIS', 'Programa propio retorno. CPU detenida.')):
+        texts = ('METAL64: BootServices cerrados.',) if args.halt else ('METAL64: BootServices cerrados.', 'GENESIS', 'Programa propio retorno. CPU detenida.')
+        for row, text in enumerate(texts):
             for col, character in enumerate(text):
                 for y in range(16):
                     bits = font[ord(character) * 16 + y]
@@ -165,7 +172,8 @@ def run(case):
                             offset = ((row * 16 + y) * scan + col * 8 + x) * 4
                             expected[offset:offset + 4] = b'\xff\xff\xff\0'
         assert pixels == expected, 'Framebuffer distinto del texto propio esperado'
-        return dict(Case=case, Passed=True, BootServicesExited=True, PayloadReturned=True,
+        return dict(Case=case, Passed=True, BootServicesExited=True, PayloadReturned=not args.halt, OwnHalt=args.halt,
+                    InstructionPointerOffset=2 if args.halt else None, InterruptsMasked=True if args.halt else None,
                     Ring=0, OwnFramebufferTextVerified=True, Context=f'0x{captured:X}',
                     PayloadSHA256=hashlib.sha256(packet[24:]).hexdigest())
     finally:

@@ -16,3 +16,4 @@ kernel/boot/bridge/LEEME.md -text whitespace=cr-at-eol
 kernel/boot/genesis/evidence/registers.txt -text -diff
 # A stored patch contains significant context prefixes; keep its exact bytes.
 CASM/traspaso/*.patch whitespace=-blank-at-eol,cr-at-eol
+kernel/boot/stop/evidence/registers.txt -text -diff

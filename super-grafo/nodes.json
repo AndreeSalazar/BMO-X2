@@ -1057,6 +1057,125 @@
       "salida": "Rutas relativas iguales entre versiones y evidencia de siete casos.",
       "aceptacion": "Siete casos pasan en 5.1 y 7; despertar llega a QEMU con el mismo paquete.",
       "falta": "Mantener la prueba de versiones al ampliar las herramientas del anfitrion."
+    },
+    {
+      "id": "stop-contract",
+      "titulo": "Contrato parada Ring 0",
+      "ruta": "CASM/profiles/ring0-stop.json",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "CASM especificacion",
+      "posicion": [
+        2500,
+        3500
+      ],
+      "que": "Define gramatica cerrada, entrada, efectos y bytes de ring0-stop-0.1.",
+      "entrada": "Modo largo y CPL0 entregados por el cargador.",
+      "salida": "Contrato versionado para fuente, IR3 y terminal de 4 bytes.",
+      "aceptacion": "Solo kernel_main con cpu_halt; el perfil no se mezcla con metal64.",
+      "falta": "Ampliar contexto y excepciones con contrato y evidencia propios; no acredita kernel completo."
+    },
+    {
+      "id": "stop-source",
+      "titulo": "Fuente de parada propia",
+      "ruta": "kernel/boot/stop/main.casm",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [
+        2870,
+        3500
+      ],
+      "que": "Ordena detener la CPU desde codigo propio.",
+      "entrada": "Contrato ring0-stop-0.1.",
+      "salida": "CLI HLT JMP sin retorno ni servicios heredados.",
+      "aceptacion": "QEMU observa IF=0, HLT=1, CPL0 y RIP=entrada+2.",
+      "falta": "Ampliar contexto y excepciones con contrato y evidencia propios; no acredita kernel completo."
+    },
+    {
+      "id": "stop-compiler",
+      "titulo": "Frontend y emisor de parada",
+      "ruta": "CASM/src/kernel/stop.c",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "C semilla",
+      "posicion": [
+        3240,
+        3500
+      ],
+      "que": "Analiza el terminal cerrado y emite IR3 y bytes propios.",
+      "entrada": "Fuente ASCII acotada con perfil explicito.",
+      "salida": "HEX de 4 bytes e IR con efectos y origen.",
+      "aceptacion": "Fuentes fuera de gramatica rechazan; metal64 conserva 333 casos.",
+      "falta": "Ampliar contexto y excepciones con contrato y evidencia propios; no acredita kernel completo."
+    },
+    {
+      "id": "stop-vector",
+      "titulo": "Vector manual de parada",
+      "ruta": "kernel/boot/stop/expected.hex",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "vector x86-64",
+      "posicion": [
+        3610,
+        3500
+      ],
+      "que": "Fija la referencia independiente FA F4 EB FD.",
+      "entrada": "Contrato CLI HLT JMP rel8 -3.",
+      "salida": "Cuatro bytes de referencia.",
+      "aceptacion": "Emisor y verificador coinciden con el vector manual.",
+      "falta": "Ampliar contexto y excepciones con contrato y evidencia propios; no acredita kernel completo."
+    },
+    {
+      "id": "stop-verifier",
+      "titulo": "Verificador independiente de parada",
+      "ruta": "CASM/stop_verify.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python control",
+      "posicion": [
+        3980,
+        3500
+      ],
+      "que": "Reconoce fuente, IR3 y bytes sin invocar el compilador.",
+      "entrada": "Fuente congelada, HEX e IR.",
+      "salida": "Paquete FAGRAW64 de 28 bytes y mapa de tres instrucciones.",
+      "aceptacion": "Mutaciones de cada bit, campos IR y fuente rechazan sin publicar.",
+      "falta": "Ampliar contexto y excepciones con contrato y evidencia propios; no acredita kernel completo."
+    },
+    {
+      "id": "stop-tests",
+      "titulo": "Pruebas del perfil privilegiado",
+      "ruta": "CASM/tests/test_stop.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python control",
+      "posicion": [
+        4350,
+        3500
+      ],
+      "que": "Prueba fronteras de gramatica, perfil, IR y emision.",
+      "entrada": "Semilla construida desde sources.json.",
+      "salida": "Cuatro grupos de pruebas con mutaciones y rechazos.",
+      "aceptacion": "No se admite RET, servicio, instruccion extra ni perfil distinto.",
+      "falta": "Ampliar contexto y excepciones con contrato y evidencia propios; no acredita kernel completo."
+    },
+    {
+      "id": "stop-qemu",
+      "titulo": "Evidencia QEMU parada S1",
+      "ruta": "kernel/boot/stop/evidence/qemu.json",
+      "estado": "qemu",
+      "anillo": "host",
+      "lenguaje": "evidencia",
+      "posicion": [
+        4720,
+        3500
+      ],
+      "que": "Registra parada propia tras ExitBootServices y seis casos negativos.",
+      "entrada": "Paquete verificado, puente heredado, QEMU y OVMF.",
+      "salida": "Siete casos con huellas, registros y captura.",
+      "aceptacion": "No retorno; cuerpo exacto; RIP propio; IF=0; Ring 0 y HLT observados.",
+      "falta": "Ampliar contexto y excepciones con contrato y evidencia propios; no acredita kernel completo."
     }
   ],
   "relaciones": [
@@ -1583,6 +1702,66 @@
     {
       "de": "host-path-tests",
       "a": "host-paths",
+      "clase": "verificacion"
+    },
+    {
+      "de": "stop-source",
+      "a": "stop-contract",
+      "clase": "codigo"
+    },
+    {
+      "de": "stop-compiler",
+      "a": "stop-contract",
+      "clase": "codigo"
+    },
+    {
+      "de": "stop-compiler",
+      "a": "lexer",
+      "clase": "codigo"
+    },
+    {
+      "de": "compiler-entry",
+      "a": "stop-compiler",
+      "clase": "codigo"
+    },
+    {
+      "de": "stop-verifier",
+      "a": "stop-contract",
+      "clase": "verificacion"
+    },
+    {
+      "de": "stop-verifier",
+      "a": "stop-vector",
+      "clase": "verificacion"
+    },
+    {
+      "de": "stop-tests",
+      "a": "stop-compiler",
+      "clase": "verificacion"
+    },
+    {
+      "de": "stop-tests",
+      "a": "stop-verifier",
+      "clase": "verificacion"
+    },
+    {
+      "de": "stop-qemu",
+      "a": "stop-source",
+      "clase": "verificacion"
+    },
+    {
+      "de": "stop-qemu",
+      "a": "stop-verifier",
+      "clase": "verificacion"
+    },
+    {
+      "de": "stop-qemu",
+      "a": "qemu-runner",
+      "clase": "verificacion"
+    },
+    {
+      "de": "stop-qemu",
+      "a": "boot-bridge",
       "clase": "verificacion"
     }
   ]

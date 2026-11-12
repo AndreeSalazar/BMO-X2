@@ -65,6 +65,13 @@
 | [Genesis: evidencia de ejecucion](../kernel/boot/genesis/evidence/qemu.json) | qemu | host | Siete casos observados en QEMU: cuerpo cargado exacto, texto, CPL=0, retorno y rechazos. |
 | [Rutas host compatibles 5.1 y 7](../tools/paths.ps1) | host | host | Forma nombres relativos para registrar huellas; rechaza rutas externas sin usar GetRelativePath de .NET Core. |
 | [Regresion de rutas y versiones host](../tools/tests/paths.ps1) | host | host | Comprueba nombres con espacios, normalizacion y rechazos de rutas externas en Windows PowerShell 5.1 y PowerShell 7. |
+| [Contrato parada Ring 0](../CASM/profiles/ring0-stop.json) | host | host | Define gramatica cerrada, entrada, efectos y bytes de ring0-stop-0.1. |
+| [Fuente de parada propia](../kernel/boot/stop/main.casm) | qemu | 0 | Ordena detener la CPU desde codigo propio. |
+| [Frontend y emisor de parada](../CASM/src/kernel/stop.c) | host | host | Analiza el terminal cerrado y emite IR3 y bytes propios. |
+| [Vector manual de parada](../kernel/boot/stop/expected.hex) | host | host | Fija la referencia independiente FA F4 EB FD. |
+| [Verificador independiente de parada](../CASM/stop_verify.py) | host | host | Reconoce fuente, IR3 y bytes sin invocar el compilador. |
+| [Pruebas del perfil privilegiado](../CASM/tests/test_stop.py) | host | host | Prueba fronteras de gramatica, perfil, IR y emision. |
+| [Evidencia QEMU parada S1](../kernel/boot/stop/evidence/qemu.json) | qemu | host | Registra parada propia tras ExitBootServices y seis casos negativos. |
 
 ## Dependencias declaradas
 
@@ -175,5 +182,17 @@
 | genesis-source | boot-bridge | plan |
 | tools | host-paths | codigo |
 | host-path-tests | host-paths | verificacion |
+| stop-source | stop-contract | codigo |
+| stop-compiler | stop-contract | codigo |
+| stop-compiler | lexer | codigo |
+| compiler-entry | stop-compiler | codigo |
+| stop-verifier | stop-contract | verificacion |
+| stop-verifier | stop-vector | verificacion |
+| stop-tests | stop-compiler | verificacion |
+| stop-tests | stop-verifier | verificacion |
+| stop-qemu | stop-source | verificacion |
+| stop-qemu | stop-verifier | verificacion |
+| stop-qemu | qemu-runner | verificacion |
+| stop-qemu | boot-bridge | verificacion |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

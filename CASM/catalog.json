@@ -832,6 +832,23 @@
       ],
       "guards": [],
       "tests": []
+    },
+    {
+      "id": "ring0-stop",
+      "parent": "casm",
+      "kind": "profile",
+      "title": "Ring 0: parada propia S1",
+      "status": "implemented",
+      "description": "Perfil cerrado ring0-stop-0.1; 4 bytes CLI HLT JMP; IR3 y verificador propios. No amplia metal64.",
+      "sources": [
+        "profiles/ring0-stop.json",
+        "src/kernel/stop.c",
+        "stop_verify.py"
+      ],
+      "guards": [],
+      "tests": [
+        "tests/test_stop.py"
+      ]
     }
   ]
 }

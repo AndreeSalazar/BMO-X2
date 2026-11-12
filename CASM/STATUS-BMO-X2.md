@@ -6,6 +6,7 @@ Esos documentos conservan la fecha, el entorno y el alcance de su trabajo.
 | Perfil | Fuentes | Lo disponible | Lo que no acredita |
 |---|---|---|---|
 | metal64 0.2 | `src/`, `verify.py`, `test.py` | Semilla C11, enteros constantes exactos, HEX e IR, paquete FAGRAW64 comprobado. | Kernel completo, variables de ejecucion, MMIO o cambios de privilegio. |
+| ring0-stop 0.1 | `src/kernel/stop.c`, `stop_verify.py` | Parada propia de 4 bytes; IR3 cerrada; siete casos QEMU en Ring 0. | Kernel completo, interrupciones generales, arranque autonomo o ahorro energetico medido. |
 | Native 0.1 | `native/` | Compilador CASM, funciones, bucles, buffers, guardas; autocompilacion documentada en Linux. | Autocompilacion nueva en Windows o dentro de BMO-X2. |
 | Native freestanding | `native/freestanding.py` | Adaptador sin servicios Linux, con permisos y trampas declarados. | Imagen EFI ni kernel; sigue necesitando cargador y manejador #UD. |
 | metal64 0.3 | `traspaso/` | Parche de investigacion con RDTSC y trampas. | Verificador completo: NO se ha aplicado al compilador de esta copia. |
@@ -23,7 +24,7 @@ simbolos, enteros y parser, con tipos y almacenamiento en `src/model/`.
 `sources.json` alimenta las construcciones Windows y Linux e incluye las
 cabeceras en la vigencia de la cache. [Fronteras del frontend](src/frontend/README.md).
 
-`catalog.json` organiza 45 elementos jerarquicos. El build valida el catalogo
+`catalog.json` organiza 46 elementos jerarquicos. El build valida el catalogo
 y genera la tabla de tipos desde el, contrastada con la tabla independiente
 del verificador. SUPER GRAFO ahora lee la jerarquia y los modulos completos;
 la consulta `casm` expone tipos, IR, codificaciones, reglas y bytes por linea.
@@ -53,3 +54,6 @@ Ver [criterios y reproduccion](CONTROL-PERFORMANCE-ELEGANCE.md).
 Consultar [RUTA-CASM](../docs/CASM-ROADMAP.md) para el alcance de CASM destinado
 al kernel. Completo significa suficiente para el contrato x86-64 de BMO-X2,
 con sus rechazos y pruebas; no compatibilidad total con C ni toda instruccion x86.
+
+S1: ver [parada propia](../kernel/boot/stop/README.md). El ejecutable HOST
+crece con el perfil nuevo; las medidas vigentes estan en `metrics/host-maturity.json`.

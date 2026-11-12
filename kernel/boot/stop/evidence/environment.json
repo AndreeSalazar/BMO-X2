@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "milestone": "Ring0 stop S1",
+  "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+  "accelerator": "tcg",
+  "cpu": "qemu64",
+  "ram_mib": 256,
+  "powershell": "5.1.26100.6584",
+  "cases": [
+    "normal",
+    "firma",
+    "suma",
+    "entrada",
+    "ausente",
+    "excesivo",
+    "salida"
+  ],
+  "bridge_sha256": "4287ad788cb7a75a74922f7f73e69363560c84501b9a73ba271d357f5f71469f",
+  "bridge_bytes": 12288,
+  "packet_sha256": "4f4b9cabeba2386efdc905a6a8aea40eb75a484a66142fd0fd3cfd50f6cb1a60",
+  "inputs": {
+    "kernel/boot/bridge/cabecera.hex": "a9ad17e34a2a7c5ece9f0309bd40d4a8d81e1cf35db0b87c675af115c95264f1",
+    "kernel/boot/bridge/entrada.hex": "20a42e44122fe8cc719b15c7a5b4d1cb0c958dac7faa4f6adbba0d591e4339eb",
+    "kernel/boot/bridge/datos.hex": "45ed2b4b995e9dbbbb52a3e9cfaf464adc5cc28c7a4c1e9783baa22306f4d7b1",
+    "kernel/boot/bridge/fuente.hex": "82d4a1f3a4a1dd7fd4adb5523783ae1f921d2db94c30305b8206db49f5c95dc5"
+  },
+  "tools": {
+    "tools/boot/disk.ps1": "de5d0666e4387d6a0e8c4ecf2dc31220cf0edc15198faa2d721b535b7f4ee361",
+    "tools/boot/image-support.ps1": "57d9862735dc904f20969fb56a31d9364c07f111c99e42e9cc8fe4384f2284fb",
+    "tools/boot/prepare.py": "0b8a4a36f32f14709668c4892996612220f9ac52730712d8e10f228b0d046935",
+    "tools/boot/probe.py": "4babc7fc19db438e5fe8668b286f1ecc711ce66d71e72b8d75e7e8f4b2b0abda",
+    "tools/boot/publish.py": "2e70f9005c27e1778d2503c33c267bdbfaa4f7d1c83ec408d32827612d45a702",
+    "tools/boot/scope.py": "3bd9bfc771f0f7600c671fa2be4704aa2ccc910a110085b8dc2829f5cff5d980",
+    "tools/boot/test_wake.py": "7ec867b33486b1d0802dda6bf0068e8b8c73f2dbf4c7dced78d0c305345e9670",
+    "tools/boot/wake.py": "b2f8c7737c7663def6d527a84dd14080d6957c2d96648909bcae74045f28c1a3"
+  },
+  "firmware": {
+    "edk2-x86_64-code.fd": "33090cc07675baa5190d9f1e84bf5176b33bcbfa9bacac522961150cdb6dbb2a",
+    "edk2-i386-vars.fd": "5d2ac383371b408398accee7ec27c8c09ea5b74a0de0ceea6513388b15be5d1e"
+  },
+  "scope": "VM snapshot images only; inherited UEFI bootstrap, CASM payload; no physical boot or autonomous kernel"
+}

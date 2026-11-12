@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "run": "run-20261111-231708-dd585ed9",
+  "evidence": "QEMU",
+  "files": [
+    {
+      "path": "qemu.json",
+      "bytes": 2198,
+      "sha256": "52b1cf289c06c28661a059a66e05698bb70abd0d81ed5f7a410787f8daf5ae0f"
+    },
+    {
+      "path": "environment.json",
+      "bytes": 2088,
+      "sha256": "bb2bd4e19493fa406cd062cf93fa9600cde470021d497897eb88bb220a37c565"
+    },
+    {
+      "path": "normal.png",
+      "bytes": 3510,
+      "sha256": "f1e687ad9de5054256f532f3cc1b2ec16f4c9eb239452309f31e7be9cfbb8e7a"
+    },
+    {
+      "path": "registers.txt",
+      "bytes": 2155,
+      "sha256": "14ebc9354294e23ea3b65611209c0f3d2af4cffa6a9a5f364269f4865caa9a50"
+    }
+  ],
+  "physical_boot": false
+}
