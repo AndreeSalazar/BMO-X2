@@ -113,7 +113,10 @@
 | [Propiedad y devolucion de un marco](../kernel/mm/physical/lifecycle/main.casm) | qemu | 0 | Asigna, protege la propiedad, borra y reasigna un marco de 4 KiB. |
 | [Tablas propias y alias de datos](../kernel/mm/virtual/main.casm) | qemu | 0 | Instala CR3 propio y separa el mapa supervisor de un alias de usuario. |
 | [Fallo de proteccion desde CPL3](../kernel/mm/user/main.casm) | qemu | 0 | Ejecuta un programa fijo en CPL3 y captura el acceso prohibido en Ring 0. |
-| [Empaquetador ELF64 a SBEF](../tools/sbef.py) | host | host | Convierte segmentos de un ELF64 estatico a regiones SBEF comprobadas. |
+| [Empaquetador ELF64 a SBEF](../tools/sbef_host/elf.py) | host | host | Convierte segmentos de un ELF64 estatico a regiones SBEF comprobadas. |
+| [Lector SBEF de referencia](../tools/sbef_host/format.py) | host | host | Valida la imagen SBEF y localiza el campo rechazado. |
+| [Inspeccion PE32+](../tools/sbef_host/pe.py) | host | host | Expone secciones y directorios PE que requieren adaptacion de ABI. |
+| [Supervisor Rust de Ring 3](../userspace/supervisor) | diseno | 3 | Ordena, configura y recupera servicios desde CPL3. |
 
 ## Dependencias declaradas
 
@@ -224,7 +227,7 @@
 | genesis-source | boot-bridge | plan |
 | tools | host-paths | codigo |
 | host-path-tests | host-paths | verificacion |
-| stop-source | stop-contract | codigo |
+| stop-source | stop-contract | verificacion |
 | stop-compiler | stop-contract | codigo |
 | stop-compiler | lexer | codigo |
 | compiler-entry | stop-compiler | codigo |
@@ -299,7 +302,7 @@
 | boot-stack | boot-context | codigo |
 | boot-stack | stop-verifier | verificacion |
 | x86_64-exceptions | boot-stack | plan |
-| boot-splash | boot-bridge | codigo |
+| boot-splash | boot-bridge | plan |
 | boot-splash | splash-guardian | verificacion |
 | splash-guardian | entry-budget | verificacion |
 | splash-qemu | boot-splash | verificacion |
@@ -328,5 +331,9 @@
 | user-protection-fault | fault-ud | plan |
 | sbef-host-pack | sbef | codigo |
 | sbef-loader | sbef-host-pack | verificacion |
+| sbef-host-pack | sbef-host-reader | verificacion |
+| sbef-loader | sbef-host-reader | verificacion |
+| userspace-supervisor | rust-services | plan |
+| userspace-supervisor | rust-runtime | plan |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

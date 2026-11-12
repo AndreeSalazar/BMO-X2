@@ -691,7 +691,7 @@ Ordena detener la CPU desde codigo propio.
 Estado: QEMU. Anillo: 0. Lenguaje: CASM.
 Entrada: Contrato ring0-stop-0.1.
 Salida: CLI HLT JMP sin retorno ni servicios heredados.
-Depende de: Contrato parada Ring 0 (codigo).
+Depende de: Contrato parada Ring 0 (verificacion).
 Aceptacion: QEMU observa IF=0, HLT=1, CPL0 y RIP=entrada+2.
 Pendiente: Ampliar contexto y excepciones con contrato y evidencia propios; no acredita kernel completo.
 
@@ -867,7 +867,7 @@ Admite y mapea una imagen SBEF bajo el contrato del proceso.
 Estado: DISENO. Anillo: 0. Lenguaje: CASM.
 Entrada: Bytes del ejecutable, limites, perfil SBEF y estado de CPU.
 Salida: Imagen mapeada con entrada y permisos comprobados o motivo de rechazo.
-Depende de: SBEF y congelacion del ABI (plan), Proceso y ciclo de vida (plan), Empaquetador ELF64 a SBEF (verificacion).
+Depende de: SBEF y congelacion del ABI (plan), Proceso y ciclo de vida (plan), Empaquetador ELF64 a SBEF (verificacion), Lector SBEF de referencia (verificacion).
 Aceptacion: El lector independiente y CASM coinciden en el vector de oro y rechazos, con QEMU en Ring 3.
 Pendiente: Leer en CASM la imagen estatica emitida por el empaquetador HOST.
 
@@ -1043,7 +1043,7 @@ Dibuja y anima el gato en el framebuffer entregado al Ring 0.
 Estado: QEMU. Anillo: 0. Lenguaje: CASM.
 Entrada: Fuente de 32 filas y framebuffer valido tras ExitBootServices.
 Salida: Tres cuadros y parada propia en un paquete de 508 bytes.
-Depende de: Puente UEFI provisional (codigo), Guardian del HEX grafico (verificacion).
+Depende de: Puente UEFI provisional (plan), Guardian del HEX grafico (verificacion).
 Aceptacion: QEMU verifica 3 cuadros pixel por pixel y parada en CPL0.
 Pendiente: Integrar el diagnostico grafico despues de validar tablas y excepciones.
 
@@ -1201,16 +1201,49 @@ Depende de: Tablas propias y alias de datos (plan), Primera excepcion #UD (plan)
 Aceptacion: QEMU comprueba CPL3, CR2, error 5, pila de Ring 0 y memoria a cero.
 Pendiente: Reutilizar los marcos con el asignador general y ejecutar un segundo proceso.
 
-## tools/sbef.py
+## tools/sbef_host/elf.py
 
 Convierte segmentos de un ELF64 estatico a regiones SBEF comprobadas.
 
 Estado: HOST. Anillo: host. Lenguaje: Python control.
 Entrada: Ejecutable x86-64 freestanding y contrato binario provisional.
 Salida: Cabecera, tabla de regiones y bytes de la imagen SBEF.
-Depende de: SBEF y congelacion del ABI (codigo).
+Depende de: SBEF y congelacion del ABI (codigo), Lector SBEF de referencia (verificacion).
 Aceptacion: Vector fijo y rechazos de truncado, solape, permisos y entrada; pruebas C y C++.
 Pendiente: Probar Rust ELF y cotejar la admision contra el cargador CASM.
+
+## tools/sbef_host/format.py
+
+Valida la imagen SBEF y localiza el campo rechazado.
+
+Estado: HOST. Anillo: host. Lenguaje: Python control.
+Entrada: Bytes SBEF y contrato provisional.
+Salida: Regiones admitidas o codigo, campo, offset e indice.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: Coteja el vector y rechaza permisos, truncado y solapes.
+Pendiente: Compartir vectores de admision y diagnostico con CASM.
+
+## tools/sbef_host/pe.py
+
+Expone secciones y directorios PE que requieren adaptacion de ABI.
+
+Estado: HOST. Anillo: host. Lenguaje: Python control.
+Entrada: Ejecutable PE32+ x86-64.
+Salida: Inventario HOST y motivos que impiden empaquetar.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: Muestra importaciones, TLS y reubicaciones cuando estan declarados.
+Pendiente: Implementar y probar un perfil PE freestanding para conversion.
+
+## userspace/supervisor
+
+Ordena, configura y recupera servicios desde CPL3.
+
+Estado: DISENO. Anillo: 3. Lenguaje: Rust.
+Entrada: Proceso Rust admitido, runtime y capacidades concedidas.
+Salida: Servicios iniciados, vigilados y recuperados con autoridad acotada.
+Depende de: Servicios Rust (plan), Runtime minimo Rust (plan).
+Aceptacion: Reinicia un servicio caido sin elevar privilegio ni heredar autoridad implicita.
+Pendiente: Implementar despues de arrancar SBEF y verificar INVOKE y WAIT.
 
 ## CASM
 
@@ -1234,4 +1267,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-110 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+113 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

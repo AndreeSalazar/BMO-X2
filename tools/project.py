@@ -39,11 +39,11 @@ def validate(data, paths=True):
     nodes, edges = data['nodos'], data['relaciones']
     require(isinstance(nodes, list) and 0 < len(nodes) <= 128, 'Cantidad de nodos fuera de limite')
     require(isinstance(edges, list) and len(edges) <= 512, 'Cantidad de relaciones fuera de limite')
-    ids, routes, locations = set(), set(), set()
+    ids, routes, locations = {}, set(), set()
     for n in nodes:
         require(n['id'] not in ids, f"ID repetido: {n['id']}")
         require(n['ruta'] not in routes, f"Ruta repetida: {n['ruta']}")
-        ids.add(n['id']); routes.add(n['ruta'])
+        ids[n['id']] = n['anillo']; routes.add(n['ruta'])
         path = within(n['ruta'])
         if paths:
             require(path.exists(), f"Nodo sin ruta real: {n['ruta']}")
@@ -51,8 +51,10 @@ def validate(data, paths=True):
         require(n['anillo'] in {'host', '0', '3', 'contrato'}, f"Anillo desconocido: {n['id']}")
         if n['anillo'] == '0':
             require(n['lenguaje'] == 'CASM', f"Ring 0 requiere CASM: {n['id']}")
+            require(n['ruta'].startswith('kernel/'), f"Ring 0 vive en kernel/: {n['id']}")
         if n['anillo'] == '3':
             require(n['lenguaje'] == 'Rust', f"Ring 3 requiere Rust: {n['id']}")
+            require(n['ruta'].startswith('userspace/'), f"Ring 3 vive en userspace/: {n['id']}")
         for field in ('que', 'entrada', 'salida', 'aceptacion', 'falta'):
             require(isinstance(n[field], str) and n[field].strip(), f"Falta {field}: {n['id']}")
         position = tuple(n['posicion'])
@@ -66,6 +68,9 @@ def validate(data, paths=True):
         require(edge['de'] in ids and edge['a'] in ids, 'Relacion a nodo inexistente')
         require(edge['clase'] in KINDS, 'Clase de relacion desconocida')
         require(edge['de'] != edge['a'], 'Dependencia de si mismo')
+        if ids[edge['de']] == '0' and edge['clase'] == 'codigo':
+            require(ids[edge['a']] in {'0', 'contrato'},
+                    f"Codigo de Ring 0 depende de HOST o Ring 3: {edge['de']} -> {edge['a']}")
         key = (edge['de'], edge['a'], edge['clase'])
         require(key not in pairs, 'Relacion repetida')
         pairs.add(key); graph[edge['de']].append(edge['a'])
@@ -123,6 +128,13 @@ def rejection_tests(data):
     mutation = copy.deepcopy(data); mutation['nodos'][0]['estado'] = 'terminado'; bad_cases.append(mutation)
     mutation = copy.deepcopy(data); mutation['relaciones'][0]['a'] = 'no-existe'; bad_cases.append(mutation)
     mutation = copy.deepcopy(data); mutation['nodos'][0]['anillo'] = '0'; mutation['nodos'][0]['lenguaje'] = 'Rust'; bad_cases.append(mutation)
+    mutation = copy.deepcopy(data)
+    next(n for n in mutation['nodos'] if n['id'] == 'rust-services')['ruta'] = 'tools/sbef_host'
+    bad_cases.append(mutation)
+    for target in ('rust-runtime', 'sbef-host-pack'):
+        mutation = copy.deepcopy(data)
+        mutation['relaciones'].append({'de': 'sbef-loader', 'a': target, 'clase': 'codigo'})
+        bad_cases.append(mutation)
     mutation = copy.deepcopy(data)
     edge = mutation['relaciones'][0]
     mutation['relaciones'].append({'de': edge['a'], 'a': edge['de'], 'clase': 'plan'})

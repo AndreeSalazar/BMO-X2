@@ -4,7 +4,7 @@
       "rgb": [90, 220, 255],
       "motivo": "Ring 0: recibe #PF desde CPL3 y limpia las paginas del proceso."
     },
-    "tools/sbef.py": {
+    "tools/sbef_host/elf.py": {
       "rgb": [90, 200, 140],
       "motivo": "Puente HOST: empaqueta y comprueba imagenes SBEF."
     },
@@ -987,9 +987,21 @@
       9500,
       3850
     ],
-    "tools/sbef.py": [
+    "tools/sbef_host/elf.py": [
       10000,
       3850
+    ],
+    "tools/sbef_host/format.py": [
+      10000,
+      4025
+    ],
+    "tools/sbef_host/pe.py": [
+      10000,
+      4200
+    ],
+    "userspace/supervisor": [
+      1110,
+      2200
     ]
   },
   "foco": "kernel/boot",

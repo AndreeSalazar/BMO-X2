@@ -4,6 +4,7 @@ Hijo de BMO-X: reconstruir el kernel x86-64 con CASM en Ring 0, Rust en
 Ring 3 y SUPER GRAFO como mesa de trabajo. Autor: Eddi Salazar, Lima, Peru.
 
 [Plan de Ring 0](docs/RING0-PLAN.md) y [orden de herencia de Ring 3](heritage/RING3-TRANSFER.md).
+[Frontera de ejecucion y organizacion](docs/RING-BOUNDARY.md).
 
 **Base del primer commit, 04-11-2026:** CASM con procedencia, 35 nodos y una
 primera entrada propia compilada y verificada en host. Todavia no hay un
@@ -41,10 +42,12 @@ BMO-X2/
     time/  sched/  ipc/          tiempo, ejecucion y comunicacion
     drivers/                    mecanismos de dispositivos
   userspace/                    Ring 3 en Rust
+    supervisor/                 inicio y recuperacion de servicios en CPL3
     runtime/  services/  apps/
   contracts/                    frontera entre las piezas
   heritage/                     procedencia y lecciones de BMO-X
   tools/                        construccion y comprobacion
+    sbef_host/                  inspeccion y conversion HOST de binarios
   super-grafo/                  nodos, notas, posiciones y mapa
 ```
 

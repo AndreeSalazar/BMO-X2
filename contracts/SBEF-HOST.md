@@ -14,6 +14,8 @@ $llvm = Join-Path $env:ProgramFiles 'LLVM/bin'
 & "$llvm/ld.lld.exe" -static -T userspace/sbef.ld app.o -o app.elf
 python -B tools/sbef.py pack app.elf app.sbef
 python -B tools/sbef.py inspect app.sbef
+python -B tools/sbef.py probe app.elf
+python -B tools/sbef.py probe app.exe
 ```
 
 Ejecutar los comandos desde la raiz de BMO-X2. En C++ declarar
@@ -37,6 +39,14 @@ void _start(void) {
 
 El ejemplo usa una trampa como final de la prueba de build. La salida
 ordenada del proceso se definira en el ABI de Ring 3.
+
+`probe` muestra si la entrada ELF64 cumple el perfil y que regiones
+tendria su SBEF. Para PE32+ muestra el punto de entrada, las secciones,
+los permisos y directorios relevantes como importaciones, TLS y
+reubicaciones. Los PE quedan en inventario mientras se define su
+adaptacion de ABI. `--json-errors` antes de la accion devuelve por
+stderr codigo, campo y offset de archivo, con indice de region
+cuando corresponde. El archivo se escribe solo despues de admitirlo.
 
 ## Contrato binario provisional
 

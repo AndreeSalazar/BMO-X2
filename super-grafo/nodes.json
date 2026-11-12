@@ -1879,7 +1879,7 @@
     {
       "id": "sbef-host-pack",
       "titulo": "Empaquetador ELF64 a SBEF",
-      "ruta": "tools/sbef.py",
+      "ruta": "tools/sbef_host/elf.py",
       "estado": "host",
       "anillo": "host",
       "lenguaje": "Python control",
@@ -1889,6 +1889,49 @@
       "salida": "Cabecera, tabla de regiones y bytes de la imagen SBEF.",
       "aceptacion": "Vector fijo y rechazos de truncado, solape, permisos y entrada; pruebas C y C++.",
       "falta": "Probar Rust ELF y cotejar la admision contra el cargador CASM."
+    },
+    {
+      "id": "sbef-host-reader",
+      "titulo": "Lector SBEF de referencia",
+      "ruta": "tools/sbef_host/format.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python control",
+      "posicion": [10000, 4025],
+      "que": "Valida la imagen SBEF y localiza el campo rechazado.",
+      "entrada": "Bytes SBEF y contrato provisional.",
+      "salida": "Regiones admitidas o codigo, campo, offset e indice.",
+      "aceptacion": "Coteja el vector y rechaza permisos, truncado y solapes.",
+      "falta": "Compartir vectores de admision y diagnostico con CASM."
+    },
+    {
+      "id": "sbef-host-pe",
+      "titulo": "Inspeccion PE32+",
+      "ruta": "tools/sbef_host/pe.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python control",
+      "posicion": [10000, 4200],
+      "que": "Expone secciones y directorios PE que requieren adaptacion de ABI.",
+      "entrada": "Ejecutable PE32+ x86-64.",
+      "salida": "Inventario HOST y motivos que impiden empaquetar.",
+      "aceptacion": "Muestra importaciones, TLS y reubicaciones cuando estan declarados.",
+      "falta": "Implementar y probar un perfil PE freestanding para conversion."
+    },
+    {
+      "id": "userspace-supervisor",
+      "titulo": "Supervisor Rust de Ring 3",
+      "ruta": "userspace/supervisor",
+      "estado": "diseno",
+      "anillo": "3",
+      "lenguaje": "Rust",
+      "posicion": [1110, 2200],
+      "que": "Ordena, configura y recupera servicios desde CPL3.",
+      "entrada": "Proceso Rust admitido, runtime y capacidades concedidas.",
+      "salida": "Servicios iniciados, vigilados y recuperados con autoridad acotada.",
+      "aceptacion": "Reinicia un servicio caido sin elevar privilegio ni heredar autoridad implicita.",
+      "falta": "Implementar despues de arrancar SBEF y verificar INVOKE y WAIT.",
+      "pagina": true
     }
   ],
   "relaciones": [
@@ -2420,7 +2463,7 @@
     {
       "de": "stop-source",
       "a": "stop-contract",
-      "clase": "codigo"
+      "clase": "verificacion"
     },
     {
       "de": "stop-compiler",
@@ -2795,7 +2838,7 @@
     {
       "de": "boot-splash",
       "a": "boot-bridge",
-      "clase": "codigo"
+      "clase": "plan"
     },
     {
       "de": "boot-splash",
@@ -2936,6 +2979,26 @@
       "de": "sbef-loader",
       "a": "sbef-host-pack",
       "clase": "verificacion"
+    },
+    {
+      "de": "sbef-host-pack",
+      "a": "sbef-host-reader",
+      "clase": "verificacion"
+    },
+    {
+      "de": "sbef-loader",
+      "a": "sbef-host-reader",
+      "clase": "verificacion"
+    },
+    {
+      "de": "userspace-supervisor",
+      "a": "rust-services",
+      "clase": "plan"
+    },
+    {
+      "de": "userspace-supervisor",
+      "a": "rust-runtime",
+      "clase": "plan"
     }
   ]
 }
