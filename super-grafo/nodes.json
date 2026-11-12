@@ -2025,11 +2025,11 @@
       "anillo": "3",
       "lenguaje": "Rust",
       "posicion": [1480, 2200],
-      "que": "Gestiona ventanas y cuatro espacios con atajos inspirados en Ultra-LinuX.",
-      "entrada": "Eventos de entrada, clientes y capacidades de pantalla.",
-      "salida": "Espacio activo, foco y movimiento de ventanas.",
+      "que": "Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX.",
+      "entrada": "Eventos de entrada, superficies de clientes y capacidad de pantalla.",
+      "salida": "Cuadro presentado, espacio activo, foco y movimiento de ventanas.",
       "aceptacion": "Super con 1 a 4 cambia de espacio y conserva los clientes.",
-      "falta": "Ejecutar dos clientes en Ring 3 y probar foco y movimiento.",
+      "falta": "Componer dos clientes en QEMU, presentar el cuadro y probar foco y movimiento.",
       "pagina": true
     },
     {

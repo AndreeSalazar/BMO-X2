@@ -5,6 +5,27 @@ foco. El supervisor de sesion inicia y recupera el servicio. El
 planificador de Ring 0 administra CPU y el subsistema de entrada entrega
 eventos mediante las interfaces concedidas.
 
+## Control de pantalla
+
+El compositor Rust decide que superficies se muestran, su orden,
+geometria y foco. Las aplicaciones entregan superficies por IPC y
+reciben eventos del escritorio. La presentacion pasa por una capacidad
+de pantalla concedida por Ring 0. El kernel controla los accesos al
+dispositivo, las interrupciones y los rangos DMA que correspondan.
+
+El primer perfil compone por software en QEMU, con dos superficies,
+entrada y los cuatro espacios. Despues se incorporan el panel, el
+lanzador, las notificaciones, el fondo y la configuracion de pantalla.
+Ultra-LinuX aporta la interaccion y el diseno del escritorio. Las
+dependencias de sus componentes se revisan antes de portarlas.
+
+Un componente C reutilizado, como un rasterizador, puede recibir un
+buffer acotado a traves de una FFI. El compositor conserva el estado
+de sesion y la capacidad de presentar.
+[Frontera DMA](../../../kernel/drivers/bus/DMA.md)
+
+## Atajos
+
 El perfil inicial ofrece cuatro espacios numerados. La referencia de
 Ultra-LinuX es `src/rootfs/desktop/hyprland.lua`, revision `7c275c1`,
 que usa Super con numeros para enfocar y Super+Shift para mover ventanas.

@@ -1313,14 +1313,14 @@ Pendiente: Probar procesos externos y aplicar la politica al primer servicio.
 
 ## userspace/services/desktop
 
-Gestiona ventanas y cuatro espacios con atajos inspirados en Ultra-LinuX.
+Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX.
 
 Estado: DISENO. Anillo: 3. Lenguaje: Rust.
-Entrada: Eventos de entrada, clientes y capacidades de pantalla.
-Salida: Espacio activo, foco y movimiento de ventanas.
+Entrada: Eventos de entrada, superficies de clientes y capacidad de pantalla.
+Salida: Cuadro presentado, espacio activo, foco y movimiento de ventanas.
 Depende de: Supervisor Rust de Ring 3 (plan).
 Aceptacion: Super con 1 a 4 cambia de espacio y conserva los clientes.
-Pendiente: Ejecutar dos clientes en Ring 3 y probar foco y movimiento.
+Pendiente: Componer dos clientes en QEMU, presentar el cuadro y probar foco y movimiento.
 
 ## kernel/drivers/bus/DMA.md
 
