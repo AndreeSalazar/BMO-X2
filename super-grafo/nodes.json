@@ -2021,15 +2021,15 @@
       "id": "desktop-workspaces",
       "titulo": "Escritorio y espacios de trabajo",
       "ruta": "userspace/services/desktop",
-      "estado": "host",
+      "estado": "qemu",
       "anillo": "3",
       "lenguaje": "Rust",
       "posicion": [1480, 2200],
       "que": "Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX.",
       "entrada": "Eventos de entrada, superficies de clientes y capacidad de pantalla.",
       "salida": "Cuadro en RAM, espacio activo, foco y movimiento de ventanas.",
-      "aceptacion": "HOST verifica cuatro espacios, atajos estables, foco y composicion. El visor muestra CPU y RAM de Windows.",
-      "falta": "Arrancar el SBEF externo y conectar pantalla, entrada y la capacidad de telemetria de Ring 0.",
+      "aceptacion": "HOST verifica atajos y foco. QEMU verifica 4096 pixeles de dos superficies compuestas en CPL3.",
+      "falta": "Arrancar el SBEF externo y conectar presentacion continua, teclado y telemetria de Ring 0.",
       "pagina": true
     },
     {

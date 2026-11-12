@@ -86,5 +86,7 @@ def user_fault_evidence(memory, snapshot, context, code, reject, *, abi_probe=Fa
         result.update(AbiVersion=1, EmbeddedSbefBytes=doom['sbef_bytes'] if doom else 168, SyscallCount=calls,
                       InvokeEcho=True, InvalidCapabilityRejected=True, WaitStatus=-4)
     if doom:
-        result.update(DoomFixedArithmetic=True, SbefSHA256=doom['sbef_sha256'])
+        result['SbefSHA256'] = doom['sbef_sha256']
+        if not doom['desktop']:
+            result['DoomFixedArithmetic'] = True
     return result

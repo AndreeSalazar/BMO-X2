@@ -10,7 +10,7 @@ from sbef_host.format import inspect
 from sbef_probe_cases import SBEF_OFFSET
 
 
-def make_packet(reference, image):
+def make_packet(reference, image, desktop_present=None):
     report = inspect(image)
     regions = report['Regions']
     if report['AbiVersion'] != 1 or len(regions) != 1:
@@ -22,6 +22,8 @@ def make_packet(reference, image):
             '0x40000000', 64, size, 'RX') or len(image) + SBEF_OFFSET > 4096:
         raise ValueError('DOOM excede la disposicion de la sonda CASM')
     completion = bytes.fromhex('bc0020004048b8424d55534552332150bb000010008b0b0f0b')
+    if desktop_present is not None:
+        completion = bytes.fromhex('4989ff') + completion
     payload = image[64:]
     marker = payload.find(completion)
     if marker < 0 or payload.count(completion) != 1:
@@ -41,10 +43,20 @@ def make_packet(reference, image):
         if packet[at:at + len(expected)] != expected:
             raise ValueError(f'Cambio el vector CASM en {offset}')
         packet[at:at + len(expected)] = new
+    if desktop_present is not None:
+        at = 24 + 889
+        if packet[at:at + 6] != bytes.fromhex('41bc01000000'):
+            raise ValueError('Cambio el terminal de salida ABI')
+        packet[at:at+6] = b'\xe9' + struct.pack('<i', len(packet) - at - 5) + b'\x90'
+        packet.extend(desktop_present)
+        packet.extend(b'\xe9' + struct.pack('<i', 24 + 895 - len(packet) - 5))
+    if len(packet) > 4096:
+        raise ValueError('El paquete de prueba excede el limite del puente')
     struct.pack_into('<I', packet, 8, len(packet) - 24)
     struct.pack_into('<I', packet, 16, sum(packet[24:]))
     return bytes(packet), dict(fault_rip=fault_rip, sbef_bytes=len(image),
-                               sbef_sha256=hashlib.sha256(image).hexdigest())
+                               sbef_sha256=hashlib.sha256(image).hexdigest(),
+                               desktop=desktop_present is not None)
 
 
 def prepend_intro(packet, splash):

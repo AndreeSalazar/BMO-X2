@@ -137,5 +137,23 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\build-desktop.ps
 
 En el HOST de referencia salio `build/desktop/desktop.sbef` de 1491 bytes,
 con regiones RX y R. La prueba de arranque actual de CASM carga su propio
-SBEF embebido. Queda cargar el ejecutable externo, conectar la capacidad
-de entrada al teclado de QEMU y presentar el cuadro en pantalla.
+SBEF embebido. Queda cargar el ejecutable externo, conectar el teclado
+de QEMU y presentar cuadros de forma continua.
+
+## Primer cuadro en QEMU
+
+El perfil de prueba usa un SBEF Rust de 1552 bytes embebido en el
+paquete de arranque. Despues de la intro HD, el compositor en CPL3
+cambia entre dos espacios con eventos fijos y produce dos colores.
+El presentador del ensayo copia esos colores al framebuffer al
+terminar. QEMU verifica 4096 pixeles y el borrado de las paginas de
+usuario. El cargador externo y la presentacion continua con teclado
+real quedan pendientes.
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1 -Profile desktop-intro -Wait
+```
+
+Para generar el ensayo, ejecuta `tools/build-desktop.ps1 -Guest`
+con `-AbiRun` apuntando al run de `bmo-x2.ps1 -Accion abi` y
+`-IntroRun` al de `bmo-x2.ps1 -Accion gato-hd`.

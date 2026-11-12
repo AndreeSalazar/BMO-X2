@@ -1,9 +1,14 @@
 [CmdletBinding()]
 param(
     [string]$Llvm = (Join-Path $env:ProgramFiles 'LLVM/bin'),
-    [string]$Python
+    [string]$Python,
+    [switch]$Guest,
+    [string]$AbiRun,
+    [string]$IntroRun
 )
 $ErrorActionPreference = 'Stop'
+if ($AbiRun -and -not $Guest) { throw '-AbiRun requiere -Guest.' }
+if ($IntroRun -and -not $AbiRun) { throw '-IntroRun requiere -AbiRun.' }
 $root = Split-Path $PSScriptRoot
 if (-not $Python) {
     $command = Get-Command python -ErrorAction SilentlyContinue
@@ -20,6 +25,12 @@ $elf = Join-Path $build.FullName 'desktop.elf'
 $image = Join-Path $build.FullName 'desktop.sbef'
 $linker = Join-Path $Llvm 'ld.lld.exe'
 $linkScript = Join-Path $root 'userspace/sbef.ld'
+$guestFlags = @()
+if ($Guest) {
+    $linkScript = Join-Path $PSScriptRoot 'desktop/guest.ld'
+    $elf = Join-Path $build.FullName 'desktop-guest.elf'
+    $image = Join-Path $build.FullName 'desktop-guest.sbef'
+}
 $flags = @('--edition=2024', '--target', $target, '-D', 'warnings', '-C', 'panic=abort',
            '-C', 'opt-level=s', '-C', 'relocation-model=static', '-C', 'force-unwind-tables=no')
 & rustc @flags --crate-name bmo_x2_desktop --crate-type rlib (Join-Path $desktop 'src/lib.rs') -o $library
@@ -28,8 +39,26 @@ if ($LASTEXITCODE -ne 0) { throw 'Fallo el build Rust. Verifica rustup target ad
 if ($LASTEXITCODE -ne 0) { throw 'Fallo el stub ABI.' }
 $linkFlags = @('-C', "linker=$linker", '-C', 'linker-flavor=ld', '-C', 'lto=fat',
                '-C', "link-arg=-T$linkScript", '-C', "link-arg=$portal")
-& rustc @flags @linkFlags --crate-name desktop_probe --extern "bmo_x2_desktop=$library" (Join-Path $desktop 'src/bin/desktop_probe.rs') -o $elf
+if ($Guest) {
+    $complete = Join-Path $build.FullName 'desktop-complete.o'
+    $present = Join-Path $build.FullName 'desktop-present.o'
+    $presentBin = Join-Path $build.FullName 'desktop-present.bin'
+    foreach ($unit in @(@{ Name='guest_complete.S'; Output=$complete }, @{ Name='guest_present.S'; Output=$present })) {
+        & (Join-Path $Llvm 'clang.exe') --target=x86_64-unknown-none-elf -c (Join-Path $PSScriptRoot "desktop/$($unit.Name)") -o $unit.Output
+        if ($LASTEXITCODE -ne 0) { throw 'Fallo un stub de la sonda grafica.' }
+    }
+    & (Join-Path $Llvm 'llvm-objcopy.exe') -O binary --only-section=.text $present $presentBin
+    if ($LASTEXITCODE -ne 0) { throw 'Fallo la extraccion del presentador.' }
+    $guestFlags = @('--cfg','qemu_desktop','-C',"link-arg=$complete")
+}
+& rustc @flags @linkFlags @guestFlags --crate-name desktop_probe --extern "bmo_x2_desktop=$library" (Join-Path $desktop 'src/bin/desktop_probe.rs') -o $elf
 if ($LASTEXITCODE -ne 0) { throw 'Fallo el enlace ELF del escritorio.' }
 & $Python -B (Join-Path $root 'tools/sbef.py') pack $elf $image --abi 1
 if ($LASTEXITCODE -ne 0) { throw 'Fallo la admision HOST del escritorio.' }
 Write-Output "SBEF: $image"
+if ($AbiRun) {
+    $introArguments = @()
+    if ($IntroRun) { $introArguments = @('--intro', $IntroRun) }
+    & $Python -B (Join-Path $PSScriptRoot 'boot/doom_qemu.py') $AbiRun $image --desktop-present $presentBin @introArguments
+    if ($LASTEXITCODE -ne 0) { throw 'Fallo la sonda grafica en QEMU.' }
+}

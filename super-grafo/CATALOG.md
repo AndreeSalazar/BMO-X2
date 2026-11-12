@@ -123,7 +123,7 @@
 | [Contrato minimo del cargador SBEF](../contracts/SBEF-LOADER.md) | diseno | contrato | Separa admision, plan de carga, memoria y diagnostico. |
 | [Inventario de crates de BMO-X](../heritage/RING3-CRATES.md) | host | host | Agrupa crates del padre por familia y dependencias declaradas. |
 | [Reglas de jerarquia de Ring 3](../userspace/POLICY.md) | diseno | contrato | Separa runtime, supervisor, servicios y aplicaciones mediante capacidades. |
-| [Escritorio y espacios de trabajo](../userspace/services/desktop) | host | 3 | Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX. |
+| [Escritorio y espacios de trabajo](../userspace/services/desktop) | qemu | 3 | Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX. |
 | [Teclado y atajos del escritorio](../userspace/services/desktop/src/keyboard.rs) | host | 3 | Convierte eventos de BMO-X en cambios de espacio, foco numerado y movimiento de ventanas. |
 | [Sonda DOOM C a SBEF](../tools/build-doom-probe.ps1) | qemu | host | Compila la aritmetica original de DoomGeneric y empaqueta un cliente ELF64. |
 | [Mezcla y controles de audio](../userspace/services/audio) | host | 3 | Mezcla PCM estereo de hasta dieciseis fuentes con ganancia acotada. |

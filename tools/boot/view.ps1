@@ -2,7 +2,7 @@
 [CmdletBinding()]
 param(
     [string]$Run,
-    [ValidateSet('gato-hd','doom-intro')][string]$Profile,
+    [ValidateSet('gato-hd','doom-intro','desktop-intro')][string]$Profile,
     [switch]$Wait,
     [string]$Qemu = (Join-Path $env:ProgramFiles 'qemu/qemu-system-x86_64.exe')
 )
@@ -12,7 +12,11 @@ $runs = (Resolve-Path (Join-Path $root 'build/CASM')).Path
 if ($Run -and $Profile) { throw 'Indica -Run o -Profile.' }
 if (-not $Run) {
     if (-not $Profile) { $Profile = 'gato-hd' }
-    $expectedProfile = if ($Profile -eq 'doom-intro') { 'doom-abi-fixture' } else { 'ring0-splash-hd-0.1' }
+    $expectedProfile = switch ($Profile) {
+        'doom-intro' { 'doom-abi-fixture' }
+        'desktop-intro' { 'desktop-abi-fixture' }
+        default { 'ring0-splash-hd-0.1' }
+    }
     foreach ($candidate in (Get-ChildItem -LiteralPath $runs -Directory -Filter 'run-*' | Sort-Object LastWriteTime -Descending)) {
         $profile = Join-Path $candidate.FullName 'profile.txt'
         $result = Join-Path $candidate.FullName 'qemu-results.json'
@@ -21,7 +25,8 @@ if (-not $Run) {
             (Test-Path -LiteralPath $result -PathType Leaf)) {
             $report = Get-Content -LiteralPath $result -Raw | ConvertFrom-Json
             if ($report.run -eq $candidate.Name -and $report.Total -gt 0 -and $report.Passed -eq $report.Total -and
-                ($Profile -ne 'doom-intro' -or @($report.Cases[0].FramesVerified).Count -eq 3)) {
+                ($Profile -eq 'gato-hd' -or @($report.Cases[0].FramesVerified).Count -eq 3) -and
+                ($Profile -ne 'desktop-intro' -or $report.Cases[0].DesktopPixelsVerified -gt 0)) {
                 $Run = $candidate.FullName
                 break
             }

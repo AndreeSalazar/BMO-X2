@@ -17,6 +17,7 @@ def main():
     parser.add_argument('reference', type=Path)
     parser.add_argument('sbef', type=Path)
     parser.add_argument('--intro', type=Path)
+    parser.add_argument('--desktop-present', type=Path)
     parser.add_argument('--qemu', default='C:/Program Files/qemu/qemu-system-x86_64.exe')
     args = parser.parse_args()
     reference = workspace(args.reference)
@@ -25,7 +26,8 @@ def main():
     check(reference)
     base_packet = (reference / 'INICIO.X86').read_bytes()
     sbef = args.sbef.read_bytes()
-    packet, _ = make_packet(base_packet, sbef)
+    present = args.desktop_present.read_bytes() if args.desktop_present else None
+    packet, _ = make_packet(base_packet, sbef, present)
     if args.intro:
         intro = workspace(args.intro)
         if (intro / 'profile.txt').read_text(encoding='utf-8-sig').strip() != 'ring0-splash-hd-0.1':
@@ -34,15 +36,18 @@ def main():
         splash = (intro / 'INICIO.X86').read_bytes()
         packet, _ = prepend_intro(packet, splash)
 
-    run = reference.parent / f'run-doom-{uuid.uuid4().hex[:12]}'
+    application = 'desktop' if args.desktop_present else 'doom'
+    run = reference.parent / f'run-{application}-{uuid.uuid4().hex[:12]}'
     run.mkdir()
     (run / 'reference.x86').write_bytes(base_packet)
-    (run / 'doom-fixed.sbef').write_bytes(sbef)
+    (run / f'{application}.sbef').write_bytes(sbef)
+    if present is not None:
+        (run / 'desktop-present.bin').write_bytes(present)
     if args.intro:
         (run / 'intro.x86').write_bytes(splash)
         shutil.copyfile(intro / 'source.casm', run / 'intro.casm')
     (run / 'INICIO.X86').write_bytes(packet)
-    (run / 'profile.txt').write_text('doom-abi-fixture\n', encoding='ascii')
+    (run / 'profile.txt').write_text(f'{application}-abi-fixture\n', encoding='ascii')
     bridge = ROOT / 'kernel/boot/bridge'
     efi = run / 'build/Puente_Metal/EFI/BOOT/BOOTX64.EFI'
     efi.parent.mkdir(parents=True)
@@ -61,9 +66,8 @@ def main():
                     '--qemu', qemu, '--halt', '--abi-probe', '--doom-fixture'],
                    check=True, cwd=run, timeout=70)
     report = json.loads((run / 'build/puente-test-results.json').read_text(encoding='utf-8'))
-    report.update(run=run.name, evidence='QEMU',
-                  milestone='HD intro then DoomGeneric fixed arithmetic in CPL3' if args.intro
-                  else 'DoomGeneric fixed arithmetic in CPL3')
+    milestone = 'Rust desktop composition in CPL3' if present is not None else 'DoomGeneric fixed arithmetic in CPL3'
+    report.update(run=run.name, evidence='QEMU', milestone=f'HD intro then {milestone}' if args.intro else milestone)
     (run / 'qemu-results.json').write_text(json.dumps(report, indent=2) + '\n', encoding='ascii')
     (run / 'qemu-run.json').write_text(json.dumps(dict(cpu='qemu64', ram_mib=256)) + '\n', encoding='ascii')
     print(f'Run: {run}')

@@ -58,7 +58,12 @@ intro_rows = None
 if args.doom_fixture:
     from doom_fixture import make_packet, prepend_intro
     reference = (ROOT / 'reference.x86').read_bytes()
-    expected, doom = make_packet(reference, (ROOT / 'doom-fixed.sbef').read_bytes())
+    present_path = ROOT / 'desktop-present.bin'
+    present = present_path.read_bytes() if present_path.is_file() else None
+    image_path = ROOT / ('desktop.sbef' if present is not None else 'doom.sbef')
+    if not image_path.is_file() and present is None:
+        image_path = ROOT / 'doom-fixed.sbef'
+    expected, doom = make_packet(reference, image_path.read_bytes(), present)
     if (ROOT / 'intro.x86').is_file():
         expected, intro_size = prepend_intro(expected, (ROOT / 'intro.x86').read_bytes())
         sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'CASM'))
@@ -66,6 +71,7 @@ if args.doom_fixture:
         intro_rows, _, _ = read_rows((ROOT / 'intro.casm').read_bytes(), hd=True)
     if (ROOT / 'build/Puente_Metal/METAL/INICIO.X86').read_bytes() != expected:
         raise ValueError('Paquete DOOM distinto del vector esperado')
+    doom['packet_bytes'] = len(expected)
 if args.splash:
     if args.casos != ['normal']:
         parser.error('The splash probe requires the normal case')
@@ -235,7 +241,7 @@ def run(case):
             elif args.user_fault:
                 assert len(packet) == 740 and packet[24+661:24+664] == bytes.fromhex('F4 EB FD'), 'Terminal de CPL3 distinto'
             elif args.abi_probe:
-                expected_size = intro_size + SBEF_OFFSET + doom['sbef_bytes'] if doom else 1263
+                expected_size = doom['packet_bytes'] if doom else 1263
                 terminal_offset = 24 + intro_size + 895
                 assert len(packet) == expected_size and packet[terminal_offset:terminal_offset+3] == bytes.fromhex('F4 EB FD'), 'Terminal ABI distinto'
             elif args.hot_unmap:
@@ -325,6 +331,13 @@ def run(case):
             assert frames == {1, 2}, 'Faltan cuadros completos de la intro'
             compare_frame(memory, context, intro_rows, 3)
             result['FramesVerified'] = [1, 2, 3]
+        if doom and doom['desktop']:
+            order = struct.unpack_from('<I', context, 0x2c)[0]
+            colors = [(0x82, 0x5c, 0xff), (0xff, 0xd8, 0x5a)]
+            row = b''.join(bytes((*(color[::-1] if order else color), 0)) * 64 for color in colors)
+            region = memory(framebuffer + (64*scan+16)*4, (31*scan+128)*4, 'desktop')
+            assert all(region[y*scan*4:y*scan*4+512] == row for y in range(32)), 'Pixeles Rust distintos'
+            result['DesktopPixelsVerified'] = 128 * 32
         return result
     finally:
         if process.poll() is None:
