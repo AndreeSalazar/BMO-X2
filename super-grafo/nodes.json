@@ -2029,8 +2029,22 @@
       "entrada": "Eventos de entrada, superficies de clientes y capacidad de pantalla.",
       "salida": "Cuadro presentado, espacio activo, foco y movimiento de ventanas.",
       "aceptacion": "HOST verifica cuatro espacios, foco, movimiento y pixels compuestos.",
-      "falta": "Enlazar el SBEF, presentar el cuadro en QEMU y conectar Super con 1 a 4.",
+      "falta": "Enlazar el SBEF, presentar el cuadro en QEMU y recibir la capacidad de entrada.",
       "pagina": true
+    },
+    {
+      "id": "desktop-keyboard",
+      "titulo": "Teclado y atajos del escritorio",
+      "ruta": "userspace/services/desktop/src/keyboard.rs",
+      "estado": "host",
+      "anillo": "3",
+      "lenguaje": "Rust",
+      "posicion": [1850, 2200],
+      "que": "Convierte el evento crudo de BMO-X en acciones directas del escritorio.",
+      "entrada": "Scancode normalizado, flanco y modificadores asociados al evento.",
+      "salida": "Atajo consumido o evento para el componente enfocado.",
+      "aceptacion": "HOST verifica cambio de espacio, movimiento, repeticion, liberacion y reenvio.",
+      "falta": "Conectar la capacidad de entrada y probar teclado real en QEMU."
     },
     {
       "id": "dma-lease",
@@ -3176,6 +3190,16 @@
     {
       "de": "dma-lease",
       "a": "hot-unmap",
+      "clase": "plan"
+    },
+    {
+      "de": "desktop-keyboard",
+      "a": "desktop-workspaces",
+      "clase": "codigo"
+    },
+    {
+      "de": "desktop-keyboard",
+      "a": "device-io",
       "clase": "plan"
     }
   ]

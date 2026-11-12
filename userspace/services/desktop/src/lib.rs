@@ -1,8 +1,10 @@
 #![no_std]
 #![forbid(unsafe_code)]
 
+mod keyboard;
 mod surface;
 
+pub use keyboard::{KeyEvent, KeyRoute, Keyboard, MalformedKeyEvent};
 pub use surface::{Frame, Surface};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

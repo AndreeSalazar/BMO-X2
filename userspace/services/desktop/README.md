@@ -11,4 +11,4 @@ Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-Li
 - Entrada: Eventos de entrada, superficies de clientes y capacidad de pantalla.
 - Salida: Cuadro presentado, espacio activo, foco y movimiento de ventanas.
 - Aceptacion: HOST verifica cuatro espacios, foco, movimiento y pixels compuestos.
-- Pendiente: Enlazar el SBEF, presentar el cuadro en QEMU y conectar Super con 1 a 4.
+- Pendiente: Enlazar el SBEF, presentar el cuadro en QEMU y recibir la capacidad de entrada.

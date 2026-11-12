@@ -1320,7 +1320,18 @@ Entrada: Eventos de entrada, superficies de clientes y capacidad de pantalla.
 Salida: Cuadro presentado, espacio activo, foco y movimiento de ventanas.
 Depende de: Supervisor Rust de Ring 3 (plan).
 Aceptacion: HOST verifica cuatro espacios, foco, movimiento y pixels compuestos.
-Pendiente: Enlazar el SBEF, presentar el cuadro en QEMU y conectar Super con 1 a 4.
+Pendiente: Enlazar el SBEF, presentar el cuadro en QEMU y recibir la capacidad de entrada.
+
+## userspace/services/desktop/src/keyboard.rs
+
+Convierte el evento crudo de BMO-X en acciones directas del escritorio.
+
+Estado: HOST. Anillo: 3. Lenguaje: Rust.
+Entrada: Scancode normalizado, flanco y modificadores asociados al evento.
+Salida: Atajo consumido o evento para el componente enfocado.
+Depende de: Escritorio y espacios de trabajo (codigo), Entrada, pantalla y audio (plan).
+Aceptacion: HOST verifica cambio de espacio, movimiento, repeticion, liberacion y reenvio.
+Pendiente: Conectar la capacidad de entrada y probar teclado real en QEMU.
 
 ## kernel/drivers/bus/DMA.md
 
@@ -1355,4 +1366,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-121 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+122 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

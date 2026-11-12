@@ -49,6 +49,29 @@ espacios. Si se cerro la ventana enfocada, se usa la siguiente ventana
 disponible de ese espacio. Los cuatro espacios forman el primer perfil
 de prueba.
 
+## Entrada directa
+
+BMO-X entrega por separado caracteres y eventos crudos de tecla. El
+compositor del padre reclama directamente la capacidad de entrada.
+La referencia esta en `Ultra_userspace/userland/src/entrada.rs` y
+`platform/abi/bmo-abi/src/syscalls/surface/entrada.rs`. BMO-X2 toma
+el formato del evento y deja la politica de atajos en Ring 3.
+
+`Keyboard::handle` recibe el scancode y la mascara de modificadores
+asociada a ese evento. La fila superior usa los codigos 0x02 a 0x05.
+Al pulsar un atajo, el escritorio consume la pulsacion, su repeticion
+y la liberacion correspondiente, incluso si se suelta Super primero.
+Las otras combinaciones se devuelven para que el componente enfocado
+pueda recibirlas. El adaptador rechaza eventos con bits reservados o
+sin marca de presencia. Al reemplazar la fuente de entrada se puede
+reiniciar el estado local del teclado.
+
+La conexion prevista es una capacidad de entrada concedida al
+compositor, seguida de llamadas directas a su nucleo Rust. La
+mascara se debe asociar al evento al producirlo. La consulta de
+modificadores de BMO-X devuelve el estado del momento y sirve de
+referencia para el formato de bits.
+
 ## Comprobacion HOST
 
 El crate `bmo-x2-desktop` ya compone superficies opacas XRGB8888 en
@@ -63,6 +86,7 @@ rustc --edition=2024 --test -D warnings .\userspace\services\desktop\src\lib.rs 
 .\build\desktop\desktop-tests.exe
 ```
 
-Las pruebas HOST verifican cuatro casos de foco, movimiento, composicion
-recortada y limites. Queda enlazar el proceso como SBEF, presentarlo en
-QEMU y conectar eventos de teclado a las acciones del escritorio.
+Las nueve pruebas HOST verifican foco, movimiento, composicion,
+limites y atajos mediante eventos de entrada. Queda enlazar el
+proceso como SBEF, presentarlo en QEMU y conectar la capacidad
+de entrada al teclado real.

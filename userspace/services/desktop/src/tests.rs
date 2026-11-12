@@ -1,5 +1,114 @@
 use super::*;
 
+const SUPER: u8 = 0x20;
+const SHIFT: u8 = 0x01;
+
+#[test]
+fn parent_event_keeps_raw_scancode_press_and_release() {
+    assert_eq!(KeyEvent::from_bmo_x(0), Ok(None));
+    assert_eq!(
+        KeyEvent::from_bmo_x(0x302),
+        Ok(Some(KeyEvent {
+            scancode: 2,
+            pressed: true
+        }))
+    );
+    assert_eq!(
+        KeyEvent::from_bmo_x(0x102),
+        Ok(Some(KeyEvent {
+            scancode: 2,
+            pressed: false
+        }))
+    );
+    for invalid in [0x02, 0x202, 0x300, 0x702, u64::MAX] {
+        assert_eq!(KeyEvent::from_bmo_x(invalid), Err(MalformedKeyEvent));
+    }
+}
+
+#[test]
+fn super_selects_each_workspace_and_captures_the_matching_release() {
+    let mut desktop = Desktop::<1>::new();
+    let mut keyboard = Keyboard::default();
+    for workspace in 1..=4 {
+        let code = u64::from(workspace + 1);
+        assert_eq!(
+            keyboard.handle(&mut desktop, 0x300 | code, SUPER | 0x10),
+            Ok(Some(KeyRoute::Consumed))
+        );
+        assert_eq!(desktop.active().number(), workspace);
+        assert_eq!(
+            keyboard.handle(&mut desktop, 0x100 | code, 0),
+            Ok(Some(KeyRoute::Consumed))
+        );
+    }
+}
+
+#[test]
+fn super_shift_moves_once_even_when_the_digit_repeats() {
+    let mut desktop = Desktop::<2>::new();
+    let mut keyboard = Keyboard::default();
+    let pixel = Surface::new(1, 1, &[1]).unwrap();
+    desktop.open(10, 0, 0, pixel).unwrap();
+    desktop.open(20, 0, 0, pixel).unwrap();
+    assert_eq!(
+        keyboard.handle(&mut desktop, 0x303, SUPER | SHIFT),
+        Ok(Some(KeyRoute::Consumed))
+    );
+    assert_eq!(desktop.active(), Workspace::FIRST);
+    assert_eq!(desktop.focused(), Some(10));
+    assert_eq!(
+        keyboard.handle(&mut desktop, 0x303, SUPER | SHIFT),
+        Ok(Some(KeyRoute::Consumed))
+    );
+    assert_eq!(desktop.focused(), Some(10));
+    desktop.switch(Workspace::new(2).unwrap());
+    assert_eq!(desktop.focused(), Some(20));
+}
+
+#[test]
+fn ordinary_digits_and_unrelated_chords_are_forwarded() {
+    let mut desktop = Desktop::<0>::new();
+    let mut keyboard = Keyboard::default();
+    for modifiers in [0, SUPER | 0x02, SUPER | 0x04, SUPER | 0x08] {
+        let press = Ok(Some(KeyRoute::Forward(KeyEvent {
+            scancode: 3,
+            pressed: true,
+        })));
+        assert_eq!(keyboard.handle(&mut desktop, 0x303, modifiers), press);
+        assert_eq!(keyboard.handle(&mut desktop, 0x303, SUPER), press);
+        assert_eq!(
+            keyboard.handle(&mut desktop, 0x103, 0),
+            Ok(Some(KeyRoute::Forward(KeyEvent {
+                scancode: 3,
+                pressed: false
+            })))
+        );
+    }
+    assert_eq!(
+        keyboard.handle(&mut desktop, 0x34f, SUPER),
+        Ok(Some(KeyRoute::Forward(KeyEvent {
+            scancode: 0x4f,
+            pressed: true
+        })))
+    );
+    assert_eq!(desktop.active(), Workspace::FIRST);
+}
+
+#[test]
+fn replacing_input_discards_stale_key_capture() {
+    let mut desktop = Desktop::<0>::new();
+    let mut keyboard = Keyboard::default();
+    keyboard.handle(&mut desktop, 0x304, SUPER).unwrap();
+    keyboard.reset();
+    assert_eq!(
+        keyboard.handle(&mut desktop, 0x304, 0),
+        Ok(Some(KeyRoute::Forward(KeyEvent {
+            scancode: 4,
+            pressed: true
+        })))
+    );
+}
+
 #[test]
 fn switching_restores_focus_and_composes_only_the_active_workspace() {
     let mut desktop = Desktop::<3>::new();

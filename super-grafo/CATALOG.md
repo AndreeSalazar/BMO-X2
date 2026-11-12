@@ -124,6 +124,7 @@
 | [Inventario de crates de BMO-X](../heritage/RING3-CRATES.md) | host | host | Agrupa crates del padre por familia y dependencias declaradas. |
 | [Reglas de jerarquia de Ring 3](../userspace/POLICY.md) | diseno | contrato | Separa runtime, supervisor, servicios y aplicaciones mediante capacidades. |
 | [Escritorio y espacios de trabajo](../userspace/services/desktop) | host | 3 | Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX. |
+| [Teclado y atajos del escritorio](../userspace/services/desktop/src/keyboard.rs) | host | 3 | Convierte el evento crudo de BMO-X en acciones directas del escritorio. |
 | [Prestamo y revocacion DMA](../kernel/drivers/bus/DMA.md) | diseno | contrato | Acota los marcos visibles al dispositivo y controla su devolucion. |
 
 ## Dependencias declaradas
@@ -356,5 +357,7 @@
 | desktop-workspaces | userspace-supervisor | plan |
 | device-bus | dma-lease | plan |
 | dma-lease | hot-unmap | plan |
+| desktop-keyboard | desktop-workspaces | codigo |
+| desktop-keyboard | device-io | plan |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

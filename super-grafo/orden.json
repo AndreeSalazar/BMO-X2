@@ -1,5 +1,9 @@
 {
   "tintes": {
+    "userspace/services/desktop/src/keyboard.rs": {
+      "rgb": [90, 200, 140],
+      "motivo": "Ring 3: traduce eventos crudos a acciones de espacio y foco."
+    },
     "userspace/services/desktop": {
       "rgb": [90, 200, 140],
       "motivo": "Ring 3: ventanas, foco y espacios de trabajo."
@@ -1053,6 +1057,10 @@
     ],
     "userspace/services/desktop": [
       1480,
+      2200
+    ],
+    "userspace/services/desktop/src/keyboard.rs": [
+      1850,
       2200
     ],
     "kernel/drivers/bus/DMA.md": [

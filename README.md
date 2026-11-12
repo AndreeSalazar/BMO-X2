@@ -64,7 +64,7 @@ indican capacidad configurada. La RAM residente del kernel integrado
 queda por medir.
 
 En HOST, CASM conserva el resultado de 333 casos diferenciales
-frente a la base. SUPER GRAFO registra 121 nodos, 226 relaciones
+frente a la base. SUPER GRAFO registra 122 nodos, 228 relaciones
 y 57 elementos del catalogo CASM.
 [Medidas CASM](CASM/CONTROL-PERFORMANCE-ELEGANCE.md) |
 [Estado del compilador](CASM/STATUS-BMO-X2.md) |
@@ -89,7 +89,7 @@ privilegiadas. Las aplicaciones de C, C++ y otros lenguajes entran
 cuando su binario y runtime cumplen el mismo ABI y SBEF. Python
 requiere un interprete portado a Ring 3 que abra los scripts como datos.
 [El nucleo de escritorio](userspace/services/desktop/WORKSPACES.md) ya
-compone superficies y cambia el foco entre cuatro espacios en pruebas HOST.
+compone superficies y procesa los atajos de cuatro espacios en pruebas HOST.
 [Reglas de Ring 3](userspace/POLICY.md) |
 [Frontera de ejecucion](docs/RING-BOUNDARY.md)
 
