@@ -1,5 +1,13 @@
 {
   "tintes": {
+    "userspace/services/desktop": {
+      "rgb": [90, 200, 140],
+      "motivo": "Ring 3: ventanas, foco y espacios de trabajo."
+    },
+    "kernel/drivers/bus/DMA.md": {
+      "rgb": [255, 194, 79],
+      "motivo": "Contrato de dispositivo: revocar antes de devolver memoria."
+    },
     "kernel/mm/virtual/revoke/main.casm": {
       "rgb": [90, 220, 255],
       "motivo": "Ring 0: revoca una pagina activa y conserva los fallos de CPU."
@@ -1038,6 +1046,18 @@
     "heritage/RING3-CRATES.md": [
       11000,
       4200
+    ],
+    "userspace/POLICY.md": [
+      1110,
+      2375
+    ],
+    "userspace/services/desktop": [
+      1480,
+      2200
+    ],
+    "kernel/drivers/bus/DMA.md": [
+      11500,
+      4025
     ]
   },
   "foco": "kernel/boot",

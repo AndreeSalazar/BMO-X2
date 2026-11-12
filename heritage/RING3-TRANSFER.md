@@ -9,7 +9,9 @@ Las pruebas del cierre usan programas minimos con stubs de prueba.
 
 El orden inicial es adaptar `bmo-userland` y `bmo-rt` al ABI de
 BMO-X2, revisar bibliotecas segun dependencias transitivas y validar
-Director e input con sus capacidades de servicio. El inventario separa
+input con sus capacidades de servicio. La politica de ventanas de
+Director se reemplaza por un [servicio de escritorio](../userspace/services/desktop/WORKSPACES.md)
+inspirado en Ultra-LinuX. El inventario separa
 los productores de toolchain de la carga de usuario. Su columna de
 ABI directo orienta la revision antes de compilar cada crate.
 

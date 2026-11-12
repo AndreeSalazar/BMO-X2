@@ -911,7 +911,7 @@ Descubre recursos de dispositivos y delimita su acceso y DMA.
 Estado: DISENO. Anillo: 0. Lenguaje: CASM.
 Entrada: Perfil de plataforma y recursos descubiertos.
 Salida: Recursos con propietario y transferencia controlada.
-Depende de: Frontera de dispositivos (plan), Espacios y permisos (plan).
+Depende de: Frontera de dispositivos (plan), Espacios y permisos (plan), Prestamo y revocacion DMA (plan).
 Aceptacion: Un dispositivo de prueba queda limitado a sus recursos y ventanas DMA.
 Pendiente: Elegir primer dispositivo y politica segun hardware medido.
 
@@ -1241,7 +1241,7 @@ Ordena, configura y recupera servicios desde CPL3.
 Estado: DISENO. Anillo: 3. Lenguaje: Rust.
 Entrada: Proceso Rust admitido, runtime y capacidades concedidas.
 Salida: Servicios iniciados, vigilados y recuperados con autoridad acotada.
-Depende de: Servicios Rust (plan), Runtime minimo Rust (plan), Inventario de crates de BMO-X (plan).
+Depende de: Servicios Rust (plan), Runtime minimo Rust (plan), Inventario de crates de BMO-X (plan), Reglas de jerarquia de Ring 3 (plan).
 Aceptacion: Reinicia un servicio caido sin elevar privilegio ni heredar autoridad implicita.
 Pendiente: Implementar despues de arrancar SBEF y verificar INVOKE y WAIT.
 
@@ -1300,6 +1300,39 @@ Depende de: contrato propio sin dependencias en este catalogo.
 Aceptacion: Regenerar el inventario desde Git y obtener el mismo documento.
 Pendiente: Validar cierre transitivo, build y pruebas de capacidades.
 
+## userspace/POLICY.md
+
+Separa runtime, supervisor, servicios y aplicaciones mediante capacidades.
+
+Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
+Entrada: SBEF admitido, ABI, dependencias y autoridad explicita.
+Salida: Orden de arranque y criterios de admision de componentes.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: Un cliente y un interprete actuan solo con capacidades concedidas.
+Pendiente: Probar procesos externos y aplicar la politica al primer servicio.
+
+## userspace/services/desktop
+
+Gestiona ventanas y cuatro espacios con atajos inspirados en Ultra-LinuX.
+
+Estado: DISENO. Anillo: 3. Lenguaje: Rust.
+Entrada: Eventos de entrada, clientes y capacidades de pantalla.
+Salida: Espacio activo, foco y movimiento de ventanas.
+Depende de: Supervisor Rust de Ring 3 (plan).
+Aceptacion: Super con 1 a 4 cambia de espacio y conserva los clientes.
+Pendiente: Ejecutar dos clientes en Ring 3 y probar foco y movimiento.
+
+## kernel/drivers/bus/DMA.md
+
+Acota los marcos visibles al dispositivo y controla su devolucion.
+
+Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
+Entrada: Dominio IOMMU, dispositivo, capacidad y rango.
+Salida: Transferencia autorizada o rechazo con fase de diagnostico.
+Depende de: Revocacion en caliente y diario de fallos (plan).
+Aceptacion: QEMU limita DMA al buffer y retiene el marco si falta confirmacion.
+Pendiente: Implementar la cola y probar el primer dispositivo virtual.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -1322,4 +1355,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-118 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+121 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

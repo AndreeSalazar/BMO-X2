@@ -21,6 +21,11 @@ de ejecutar. Un archivo de datos permanece bajo el servicio que lo
 consume. El kernel valida rangos y capacidades cuando ese servicio
 solicita acceso a memoria, archivos o dispositivos.
 
+El proceso entra en CPL3 tras la admision. El kernel interviene
+en operaciones protegidas y excepciones. Los formatos de scripts
+y datos se interpretan en el proceso o servicio de Ring 3.
+[Reglas de Ring 3](../userspace/POLICY.md).
+
 SUPER GRAFO comprueba que los nodos CASM de Ring 0 viven en `kernel/`,
 los nodos de Ring 3 en `userspace/` y las relaciones de codigo que
 salen de Ring 0 apuntan a Ring 0 o a un contrato. Las relaciones de

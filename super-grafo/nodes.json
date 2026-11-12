@@ -2002,6 +2002,49 @@
       "salida": "Inventario de transferencia y dependencias directas del ABI.",
       "aceptacion": "Regenerar el inventario desde Git y obtener el mismo documento.",
       "falta": "Validar cierre transitivo, build y pruebas de capacidades."
+    },
+    {
+      "id": "ring3-policy",
+      "titulo": "Reglas de jerarquia de Ring 3",
+      "ruta": "userspace/POLICY.md",
+      "estado": "diseno",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
+      "posicion": [1110, 2375],
+      "que": "Separa runtime, supervisor, servicios y aplicaciones mediante capacidades.",
+      "entrada": "SBEF admitido, ABI, dependencias y autoridad explicita.",
+      "salida": "Orden de arranque y criterios de admision de componentes.",
+      "aceptacion": "Un cliente y un interprete actuan solo con capacidades concedidas.",
+      "falta": "Probar procesos externos y aplicar la politica al primer servicio."
+    },
+    {
+      "id": "desktop-workspaces",
+      "titulo": "Escritorio y espacios de trabajo",
+      "ruta": "userspace/services/desktop",
+      "estado": "diseno",
+      "anillo": "3",
+      "lenguaje": "Rust",
+      "posicion": [1480, 2200],
+      "que": "Gestiona ventanas y cuatro espacios con atajos inspirados en Ultra-LinuX.",
+      "entrada": "Eventos de entrada, clientes y capacidades de pantalla.",
+      "salida": "Espacio activo, foco y movimiento de ventanas.",
+      "aceptacion": "Super con 1 a 4 cambia de espacio y conserva los clientes.",
+      "falta": "Ejecutar dos clientes en Ring 3 y probar foco y movimiento.",
+      "pagina": true
+    },
+    {
+      "id": "dma-lease",
+      "titulo": "Prestamo y revocacion DMA",
+      "ruta": "kernel/drivers/bus/DMA.md",
+      "estado": "diseno",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
+      "posicion": [11500, 4025],
+      "que": "Acota los marcos visibles al dispositivo y controla su devolucion.",
+      "entrada": "Dominio IOMMU, dispositivo, capacidad y rango.",
+      "salida": "Transferencia autorizada o rechazo con fase de diagnostico.",
+      "aceptacion": "QEMU limita DMA al buffer y retiene el marco si falta confirmacion.",
+      "falta": "Implementar la cola y probar el primer dispositivo virtual."
     }
   ],
   "relaciones": [
@@ -3113,6 +3156,26 @@
     {
       "de": "userspace-supervisor",
       "a": "ring3-crate-inventory",
+      "clase": "plan"
+    },
+    {
+      "de": "userspace-supervisor",
+      "a": "ring3-policy",
+      "clase": "plan"
+    },
+    {
+      "de": "desktop-workspaces",
+      "a": "userspace-supervisor",
+      "clase": "plan"
+    },
+    {
+      "de": "device-bus",
+      "a": "dma-lease",
+      "clase": "plan"
+    },
+    {
+      "de": "dma-lease",
+      "a": "hot-unmap",
       "clase": "plan"
     }
   ]

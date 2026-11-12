@@ -122,6 +122,9 @@
 | [Revocacion en caliente y diario de fallos](../kernel/mm/virtual/revoke/main.casm) | qemu | 0 | Retira una pagina, invalida la traduccion y reanuda CPL3. |
 | [Contrato minimo del cargador SBEF](../contracts/SBEF-LOADER.md) | diseno | contrato | Separa admision, plan de carga, memoria y diagnostico. |
 | [Inventario de crates de BMO-X](../heritage/RING3-CRATES.md) | host | host | Agrupa crates del padre por familia y dependencias declaradas. |
+| [Reglas de jerarquia de Ring 3](../userspace/POLICY.md) | diseno | contrato | Separa runtime, supervisor, servicios y aplicaciones mediante capacidades. |
+| [Escritorio y espacios de trabajo](../userspace/services/desktop) | diseno | 3 | Gestiona ventanas y cuatro espacios con atajos inspirados en Ultra-LinuX. |
+| [Prestamo y revocacion DMA](../kernel/drivers/bus/DMA.md) | diseno | contrato | Acota los marcos visibles al dispositivo y controla su devolucion. |
 
 ## Dependencias declaradas
 
@@ -349,5 +352,9 @@
 | virtual-memory | hot-unmap | verificacion |
 | sbef-loader | sbef-loader-boundary | plan |
 | userspace-supervisor | ring3-crate-inventory | plan |
+| userspace-supervisor | ring3-policy | plan |
+| desktop-workspaces | userspace-supervisor | plan |
+| device-bus | dma-lease | plan |
+| dma-lease | hot-unmap | plan |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.
