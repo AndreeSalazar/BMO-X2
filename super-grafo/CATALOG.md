@@ -97,6 +97,7 @@
 | [Identificacion CPUID](../kernel/arch/x86_64/cpu/identify.casm) | qemu | 0 | Descubre fabricante y hoja basica maxima con CPUID hoja 0. |
 | [Guardian del perfil observado](../tools/boot/cpu_config.py) | host | host | Contrasta imagen y resultado antes de publicar profile.config. |
 | [Dos perfiles de CPU en QEMU](../kernel/arch/x86_64/cpu/evidence.json) | qemu | host | Vincula dos perfiles observados al mismo paquete verificado. |
+| [Pila inicial CASM](../kernel/boot/context/main.casm) | qemu | 0 | Comprueba la entrega y activa una pagina de pila en una reserva del puente. |
 
 ## Dependencias declaradas
 
@@ -279,5 +280,8 @@
 | cpu-profile-guardian | cpu-identification | verificacion |
 | cpu-profile-guardian | qemu-runner | verificacion |
 | cpu-profile-qemu | cpu-profile-guardian | verificacion |
+| boot-stack | boot-context | codigo |
+| boot-stack | stop-verifier | verificacion |
+| x86_64-exceptions | boot-stack | plan |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

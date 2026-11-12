@@ -9,6 +9,7 @@ from entry_budget import entry_budget
 
 PROFILE = 'ring0-stop-0.1'
 CPU_PROFILE = 'ring0-cpu-0.1'
+CONTEXT_PROFILE = 'ring0-context-0.1'
 
 
 def require(ok, reason):
@@ -16,7 +17,7 @@ def require(ok, reason):
         raise ValueError(reason)
 
 
-def source_lines(source, identify):
+def source_lines(source, operation):
     require(len(source) <= 65536 and all(0 < c < 128 for c in source), 'STOP-SOURCE-ASCII-SIZE')
     text = source.decode('ascii')
     tokens = []
@@ -31,10 +32,10 @@ def source_lines(source, identify):
         tokens.append((value, text.count('\n', 0, match.start()) + 1))
     require(position == len(text), 'STOP-SOURCE-TOKEN')
     prefix = ['void', 'kernel_main', '(', 'void', ')', '{']
-    if identify:
-        prefix += ['cpu_identify', '(', ')', ';']
+    if operation:
+        prefix += [operation, '(', ')', ';']
     require([v for v, line in tokens] == prefix + ['cpu_halt', '(', ')', ';', '}'], 'STOP-SOURCE-GRAMMAR')
-    return tokens[len(prefix)][1], tokens[6][1] if identify else None
+    return tokens[len(prefix)][1], tokens[6][1] if operation else None
 
 
 def no_duplicates(pairs):
@@ -45,11 +46,12 @@ def no_duplicates(pairs):
     return result
 
 
-def verify(source_path, hex_path, ir_path, *, identify=False):
-    for path, limit in [(source_path, 65536), (hex_path, 128), (ir_path, 4096)]:
+def verify(source_path, hex_path, ir_path, *, identify=False, context=False):
+    require(not (identify and context), 'STOP-PROFILE-CONFLICT')
+    for path, limit in [(source_path, 65536), (hex_path, 256 if context else 128), (ir_path, 4096)]:
         require(path.stat().st_size <= limit, 'STOP-INPUT-SIZE')
     source = source_path.read_bytes()
-    line, identification_line = source_lines(source, identify)
+    line, operation_line = source_lines(source, 'boot_stack' if context else 'cpu_identify' if identify else None)
     ir = json.loads(ir_path.read_text(encoding='ascii'), object_pairs_hook=no_duplicates)
     expected = dict(Schema=3, Target='x86_64', ABI='ring0-stop', Profile=PROFILE,
                     Entry='kernel_main', RequiredCPL=0, Effects=['mask-interrupts', 'halt'],
@@ -59,11 +61,32 @@ def verify(source_path, hex_path, ir_path, *, identify=False):
     if identify:
         expected = dict(Schema=4, Target='x86_64', ABI='ring0-cpu', Profile=CPU_PROFILE,
                         Entry='kernel_main', RequiredCPL=0,
-                        Identification=dict(Line=identification_line, Offset=1, Leaf=0),
+                        Identification=dict(Line=operation_line, Offset=1, Leaf=0),
                         Terminal=dict(Line=line, Offset=5), BodyBytes=8)
         vector = bytes.fromhex('FA 31 C0 0F A2 F4 EB FD')
-        mapping = [(identification_line, 0, 1, 'cli'), (identification_line, 1, 2, 'xor-eax'),
-                   (identification_line, 3, 2, 'cpuid'), (line, 5, 1, 'hlt'), (line, 6, 2, 'jmp-hlt')]
+        mapping = [(operation_line, 0, 1, 'cli'), (operation_line, 1, 2, 'xor-eax'),
+                   (operation_line, 3, 2, 'cpuid'), (line, 5, 1, 'hlt'), (line, 6, 2, 'jmp-hlt')]
+    if context:
+        expected = dict(Schema=5, Target='x86_64', ABI='ring0-context', Profile=CONTEXT_PROFILE,
+                        Entry='kernel_main', RequiredCPL=0,
+                        Stack=dict(Line=operation_line, Low=0x13000, Top=0x14000),
+                        Terminal=dict(Line=line, Offset=47), BodyBytes=50)
+        sections = [
+            ('cli', 'FA'), ('save-rsp-in-rsi', '48 89 E6'), ('clear-status', '31 C0'),
+            ('compare-rdi-rbp', '48 39 EF'), ('reject-pointer', '75 24'),
+            ('load-context-signature', '48 B9 4D 45 54 41 4C 36 34 21'),
+            ('compare-signature', '48 39 0F'), ('reject-signature', '75 15'),
+            ('compare-exit-boot-services', '83 7F 78 01'), ('reject-boot-state', '75 0F'),
+            ('select-stack-top', '48 8D A7 00 40 01 00'), ('push-marker', '68 42 4D 4F 32'),
+            ('pop-marker-to-rdx', '5A'), ('accept-status', 'FF C0'),
+            ('hlt', 'F4'), ('jmp-hlt', 'EB FD'),
+        ]
+        vector, mapping = b'', []
+        for kind, hex_bytes in sections:
+            instruction = bytes.fromhex(hex_bytes)
+            mapping.append((line if kind in ('hlt', 'jmp-hlt') else operation_line,
+                            len(vector), len(instruction), kind))
+            vector += instruction
     require(json.dumps(ir, sort_keys=True) == json.dumps(expected, sort_keys=True), 'STOP-IR')
     tokens = hex_path.read_text(encoding='ascii').split()
     require(len(tokens) == len(vector) and all(re.fullmatch('[0-9A-Fa-f]{2}', t) for t in tokens), 'STOP-HEX')
@@ -82,10 +105,12 @@ def verify(source_path, hex_path, ir_path, *, identify=False):
     return packet, report
 
 
-def check(run, *, identify=False):
+def check(run, *, identify=False, context=False):
     root = Path(__file__).resolve().parents[1]
-    packet, report = verify(run/'source.casm', run/'program.hex', run/'program.ir.json', identify=identify)
-    source = root / ('kernel/arch/x86_64/cpu/identify.casm' if identify else 'kernel/boot/stop/main.casm')
+    packet, report = verify(run/'source.casm', run/'program.hex', run/'program.ir.json',
+                            identify=identify, context=context)
+    source = root / ('kernel/boot/context/main.casm' if context else
+                     'kernel/arch/x86_64/cpu/identify.casm' if identify else 'kernel/boot/stop/main.casm')
     vector = source.with_suffix('.hex') if identify else source.with_name('expected.hex')
     require((run/'source.casm').read_bytes() == source.read_bytes(), 'STOP-CANONICAL-SOURCE')
     require(bytes.fromhex(vector.read_text()) == packet[24:], 'STOP-MANUAL-VECTOR')
@@ -99,12 +124,14 @@ def main():
         p.add_argument(name, type=Path)
     p.add_argument('--packet', required=True, type=Path)
     p.add_argument('--report', required=True, type=Path)
-    p.add_argument('--identify', action='store_true')
+    profile = p.add_mutually_exclusive_group()
+    profile.add_argument('--identify', action='store_true')
+    profile.add_argument('--context', action='store_true')
     args = p.parse_args()
     outputs = [args.packet.resolve(), args.report.resolve()]
     require(len(set(outputs)) == 2 and not set(outputs).intersection(
             path.resolve() for path in [args.source, args.hex, args.ir]), 'STOP-OUTPUT-ALIAS')
-    packet, report = verify(args.source, args.hex, args.ir, identify=args.identify)
+    packet, report = verify(args.source, args.hex, args.ir, identify=args.identify, context=args.context)
     args.packet.write_bytes(packet)
     args.report.write_text(json.dumps(report, indent=2)+'\n', encoding='ascii', newline='\n')
     print(f'GREEN [STOP-VERIFY] {report["BodyBytes"]} body bytes; {len(packet)} packet bytes independently checked.')

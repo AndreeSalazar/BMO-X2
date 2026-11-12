@@ -196,7 +196,7 @@ Contiene fallos de CPU y preserva el estado necesario para explicar quien fallo 
 Estado: DISENO. Anillo: 0. Lenguaje: CASM.
 Entrada: CPU preparada y marcos de excepcion definidos.
 Salida: Diagnostico, terminacion del proceso o parada controlada segun origen.
-Depende de: CPU x86-64 (plan), Estado de CPU y cambio de contexto (plan).
+Depende de: CPU x86-64 (plan), Estado de CPU y cambio de contexto (plan), Pila inicial CASM (plan).
 Aceptacion: #UD/#PF de Ring 3 terminan ese proceso; el kernel conserva control y evidencia.
 Pendiente: IDT, entradas, pilas de excepcion, retorno e interrupciones de hardware.
 
@@ -792,7 +792,7 @@ Entrada: Modo largo, CPL0 y contexto del puente.
 Salida: Contexto comprobado y pila acotada.
 Depende de: Arranque del kernel (plan), Fuente de parada propia (plan).
 Aceptacion: QEMU acredita pila propia y rechazo de un contexto invalido.
-Pendiente: Versionar campos y emitir la primera validacion en CASM.
+Pendiente: El perfil de pila ya prueba la entrega valida y RDI nulo. Faltan contrato propio de mapeos y guardas de pila.
 
 ## kernel/arch/x86_64/context
 
@@ -1025,6 +1025,17 @@ Depende de: Guardian del perfil observado (verificacion).
 Aceptacion: Mismo paquete con fabricante y hoja basica maxima distintos segun la CPU invitada.
 Pendiente: Probar deteccion y aplicacion de perfil en hardware despues de completar el arranque.
 
+## kernel/boot/context/main.casm
+
+Comprueba la entrega y activa una pagina de pila en una reserva del puente.
+
+Estado: QEMU. Anillo: 0. Lenguaje: CASM.
+Entrada: RDI, RBP, reserva del puente y ExitBootServices completado.
+Salida: RSP alineado y resultado de la comprobacion. Rechazo sin cambiar de pila.
+Depende de: Contexto de entrega (codigo), Verificador independiente de parada (verificacion).
+Aceptacion: QEMU observa PUSH y POP en la pagina propia y rechazo con RDI nulo.
+Pendiente: Usar un contexto propio con permisos y pagina de guarda. Instalar IDT para la primera excepcion.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -1047,4 +1058,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-93 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+94 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

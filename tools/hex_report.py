@@ -10,9 +10,9 @@ from verify import verify
 
 def render(run):
     profile = (run/'profile.txt').read_text(encoding='utf-8-sig').strip() if (run/'profile.txt').exists() else 'metal64-0.2'
-    if profile in ('ring0-stop-0.1', 'ring0-cpu-0.1'):
+    if profile in ('ring0-stop-0.1', 'ring0-cpu-0.1', 'ring0-context-0.1'):
         from stop_verify import verify as selected_verify
-        options = {'identify': profile == 'ring0-cpu-0.1'}
+        options = {'identify': profile == 'ring0-cpu-0.1', 'context': profile == 'ring0-context-0.1'}
     elif profile == 'metal64-0.2':
         selected_verify = verify
         options = {}

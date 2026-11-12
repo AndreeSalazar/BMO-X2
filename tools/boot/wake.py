@@ -13,13 +13,14 @@ from cpu_config import write_config
 sys.path.insert(0,str(ROOT/'tools'))
 from genesis import check as genesis_check
 sys.path.insert(0,str(ROOT/'CASM'))
-from stop_verify import check as stop_check, CPU_PROFILE
+from stop_verify import check as stop_check, CPU_PROFILE, CONTEXT_PROFILE
 
 
 def check(run):
     profile = (run/'profile.txt').read_text(encoding='utf-8-sig').strip() if (run/'profile.txt').exists() else 'metal64-0.2'
     if profile == 'ring0-stop-0.1': return stop_check(run)
     if profile == CPU_PROFILE: return stop_check(run, identify=True)
+    if profile == CONTEXT_PROFILE: return stop_check(run, context=True)
     if profile != 'metal64-0.2': raise ValueError('Perfil desconocido')
     return genesis_check(run)
 
@@ -52,16 +53,19 @@ def main():
     parser.add_argument('run',type=Path)
     parser.add_argument('--qemu',type=Path,default=Path('C:/Program Files/qemu/qemu-system-x86_64.exe'))
     parser.add_argument('--powershell',type=Path,help='Use the same PowerShell executable as the calling build')
-    parser.add_argument('--cases',nargs='+',choices=CASES,default=CASES)
+    parser.add_argument('--cases',nargs='+',choices=CASES+['contexto'],default=CASES)
     parser.add_argument('--cpu', choices=['qemu64', 'Nehalem'], default='qemu64')
-    parser.add_argument('--profile',choices=['metal64-0.2','ring0-stop-0.1',CPU_PROFILE],default='metal64-0.2')
+    parser.add_argument('--profile',choices=['metal64-0.2','ring0-stop-0.1',CPU_PROFILE,CONTEXT_PROFILE],default='metal64-0.2')
     args=parser.parse_args();run=workspace(args.run)
     identify=args.profile==CPU_PROFILE
+    stack=args.profile==CONTEXT_PROFILE
     stop=args.profile!='metal64-0.2'
     frozen_profile=(run/'profile.txt').read_text(encoding='utf-8-sig').strip() if (run/'profile.txt').exists() else 'metal64-0.2'
     if frozen_profile!=args.profile: raise ValueError('Perfil distinto al run congelado')
     if identify and args.cases != ['normal']: raise ValueError('La identificacion requiere el caso normal')
-    milestone='Ring0 CPU identification' if identify else ('Ring0 stop S1' if stop else 'Genesis G1')
+    if stack and args.cases != ['normal','contexto']: raise ValueError('La prueba de pila exige contexto valido e invalido')
+    if not stack and 'contexto' in args.cases: raise ValueError('El caso contexto exige el perfil de pila')
+    milestone='Ring0 handoff and stack' if stack else 'Ring0 CPU identification' if identify else ('Ring0 stop S1' if stop else 'Genesis G1')
     verified = check(run)
     if (run/'qemu-run.json').exists(): raise ValueError('Run ya preparado; compilar un run nuevo para otra ejecucion')
     qemu=args.qemu.resolve();share=qemu.parent/'share'
@@ -90,6 +94,8 @@ def main():
     for case in args.cases:
         subprocess.run([sys.executable,'-B',str(scripts/'prepare.py'),'--workspace',str(run),'--caso',case],check=True,cwd=run,timeout=30)
     probe_flags = ['--halt', '--identify'] if identify else (['--halt'] if stop else [])
+    if stack:
+        probe_flags.append('--stack')
     result=subprocess.run([sys.executable,'-B','-u',str(scripts/'probe.py'),'--workspace',str(run),'--qemu',str(qemu),'--cpu',args.cpu,'--casos',*args.cases,*probe_flags],cwd=run,timeout=600)
     report=run/'build/puente-test-results.json'
     if report.is_file():
@@ -97,7 +103,8 @@ def main():
         data.update(schema=1,evidence='QEMU',milestone=milestone,physical_boot=False,autonomous_kernel=False,
                     body_bytes=len(packet.read_bytes())-24,packet_bytes=packet.stat().st_size,bridge_bytes=len(image),run=run.name,packet_sha256=sha(packet),
                     qemu=version,source_sha256=sha(run/'source.casm'),
-                    case_scope='CPUID leaf 0 and own halt under QEMU' if identify else
+                    case_scope='Stack selection and rejection of null RDI under QEMU' if stack else
+                    'CPUID leaf 0 and own halt under QEMU' if identify else
                     'UEFI bootstrap and payload; rejects packages and injected stale MapKey, not arbitrary invalid kernel contexts')
         (run/'qemu-results.json').write_text(json.dumps(data,indent=2)+'\n',encoding='ascii',newline='\n')
         print(json.dumps(data,indent=2),flush=True)

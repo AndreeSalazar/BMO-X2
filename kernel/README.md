@@ -12,5 +12,7 @@
 
 QEMU ya ejecuta Genesis, la parada propia y la sonda CPUID emitida por
 CASM. La sonda genera un perfil observado a traves del banco de arranque.
-La pila propia, las excepciones y los demas mecanismos siguen en diseno.
-[Sonda de CPU](arch/x86_64/cpu/PROFILE.md) y [plan de Ring 0](../docs/RING0-PLAN.md).
+La entrada de contexto ya selecciona una pila dentro de la reserva del
+puente y rechaza una entrega nula. El manejo de excepciones sigue en
+diseno. [Sonda de CPU](arch/x86_64/cpu/PROFILE.md),
+[pila inicial](boot/context/STACK.md) y [plan de Ring 0](../docs/RING0-PLAN.md).

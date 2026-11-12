@@ -1,0 +1,256 @@
+{
+  "schema": 1,
+  "evidence": "QEMU",
+  "runs": [
+    {
+      "qemu": {
+        "Passed": 2,
+        "Total": 2,
+        "Cases": [
+          {
+            "Case": "normal",
+            "Passed": true,
+            "BootServicesExited": true,
+            "PayloadReturned": false,
+            "OwnHalt": true,
+            "InstructionPointerOffset": 48,
+            "InterruptsMasked": true,
+            "Ring": 0,
+            "OwnFramebufferTextVerified": true,
+            "Context": "0xDE38000",
+            "PayloadSHA256": "7821e337532b3ee4204b49f03b91dacf503ce5cbbec66df05882a8780b26b79a",
+            "ContextAccepted": true,
+            "StackBefore": "0xDE57FF8",
+            "StackAfter": "0xDE4C000",
+            "StackPageTouched": true,
+            "FaultInjection": null
+          },
+          {
+            "Case": "contexto",
+            "Passed": true,
+            "BootServicesExited": true,
+            "PayloadReturned": false,
+            "OwnHalt": true,
+            "InstructionPointerOffset": 48,
+            "InterruptsMasked": true,
+            "Ring": 0,
+            "OwnFramebufferTextVerified": true,
+            "Context": "0xDE38000",
+            "PayloadSHA256": "7821e337532b3ee4204b49f03b91dacf503ce5cbbec66df05882a8780b26b79a",
+            "ContextAccepted": false,
+            "StackBefore": "0xDE57FF8",
+            "StackAfter": "0xDE57FF8",
+            "StackPageTouched": false,
+            "FaultInjection": "RDI=0 al entregar"
+          }
+        ],
+        "schema": 1,
+        "evidence": "QEMU",
+        "milestone": "Ring0 handoff and stack",
+        "physical_boot": false,
+        "autonomous_kernel": false,
+        "body_bytes": 50,
+        "packet_bytes": 74,
+        "bridge_bytes": 12288,
+        "run": "run-20261112-043226-a75dc5f4",
+        "packet_sha256": "b1494d213602377590565a96a4a6a0dc2b40122892b474db3673109dc9406b2e",
+        "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+        "source_sha256": "9a622a5c16dafe7c22ad1aebb5f067a179cd4bdd5f5d0df4dd0b50ea4ae1e9a5",
+        "case_scope": "Stack selection and rejection of null RDI under QEMU"
+      },
+      "environment": {
+        "schema": 1,
+        "milestone": "Ring0 handoff and stack",
+        "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+        "accelerator": "tcg",
+        "cpu": "qemu64",
+        "ram_mib": 256,
+        "powershell": "7.6.9",
+        "cases": [
+          "normal",
+          "contexto"
+        ],
+        "bridge_sha256": "4287ad788cb7a75a74922f7f73e69363560c84501b9a73ba271d357f5f71469f",
+        "bridge_bytes": 12288,
+        "packet_sha256": "b1494d213602377590565a96a4a6a0dc2b40122892b474db3673109dc9406b2e",
+        "inputs": {
+          "kernel/boot/bridge/cabecera.hex": "a9ad17e34a2a7c5ece9f0309bd40d4a8d81e1cf35db0b87c675af115c95264f1",
+          "kernel/boot/bridge/entrada.hex": "20a42e44122fe8cc719b15c7a5b4d1cb0c958dac7faa4f6adbba0d591e4339eb",
+          "kernel/boot/bridge/datos.hex": "45ed2b4b995e9dbbbb52a3e9cfaf464adc5cc28c7a4c1e9783baa22306f4d7b1",
+          "kernel/boot/bridge/fuente.hex": "82d4a1f3a4a1dd7fd4adb5523783ae1f921d2db94c30305b8206db49f5c95dc5"
+        },
+        "tools": {
+          "tools/boot/cpu_config.py": "b673fe5624ce130d01bd9898e0d4f77f1361965ae4bbd2ed86a5e55c826d7389",
+          "tools/boot/disk.ps1": "de5d0666e4387d6a0e8c4ecf2dc31220cf0edc15198faa2d721b535b7f4ee361",
+          "tools/boot/image-support.ps1": "57d9862735dc904f20969fb56a31d9364c07f111c99e42e9cc8fe4384f2284fb",
+          "tools/boot/prepare.py": "db3940c7e79f311b981bc3594ca695c119e7480b820a9f166a078cf68c5c5199",
+          "tools/boot/probe.py": "53e5be13189a1b314e2a1f189b3fbd0d4ff94ca3e6031c4a75d7848006e3182a",
+          "tools/boot/publish.py": "2e70f9005c27e1778d2503c33c267bdbfaa4f7d1c83ec408d32827612d45a702",
+          "tools/boot/scope.py": "3bd9bfc771f0f7600c671fa2be4704aa2ccc910a110085b8dc2829f5cff5d980",
+          "tools/boot/test_wake.py": "df889b3efe8bd530bc90bafbf8dc6f78269a763a728be0696faab12a5cd9a745",
+          "tools/boot/wake.py": "36864bcdbc8a9da7c98dd7bb8c729259d5ffe07af7b903446306711341fad141"
+        },
+        "firmware": {
+          "edk2-x86_64-code.fd": "33090cc07675baa5190d9f1e84bf5176b33bcbfa9bacac522961150cdb6dbb2a",
+          "edk2-i386-vars.fd": "5d2ac383371b408398accee7ec27c8c09ea5b74a0de0ceea6513388b15be5d1e"
+        },
+        "scope": "VM snapshot images only; inherited UEFI bootstrap, CASM payload; no physical boot or autonomous kernel"
+      },
+      "compiler": "clang version 23.1.2 (https://github.com/llvm/llvm-project 85ac560262434c9ccfc0c183ec22d4138ed647fb)",
+      "compiler_sha256": "763c4fe0b7a0737e73baf5b3e4ea8fbb398efd37884479ce41faf1e1645fe56f",
+      "observed": {
+        "normal": {
+          "registers": {
+            "RAX": "0000000000000001",
+            "RBP": "000000000de38000",
+            "RDI": "000000000de38000",
+            "RDX": "00000000324f4d42",
+            "RIP": "000000000e4ab030",
+            "RSI": "000000000de57ff8",
+            "RSP": "000000000de4c000",
+            "RFL": "00000002"
+          },
+          "stack_page_sha256": "1a1e52c80ee752bbda37605dcc080975a629516761b53eb7a55e95781604d52e"
+        },
+        "contexto": {
+          "registers": {
+            "RAX": "0000000000000000",
+            "RBP": "000000000de38000",
+            "RDI": "0000000000000000",
+            "RDX": "0000000000000000",
+            "RIP": "000000000e4ab030",
+            "RSI": "000000000de57ff8",
+            "RSP": "000000000de57ff8",
+            "RFL": "00000087"
+          },
+          "stack_page_sha256": "ad7facb2586fc6e966c004d7d1d16b024f5805ff7cb47c7a85dabd8b48892ca7"
+        }
+      }
+    },
+    {
+      "qemu": {
+        "Passed": 2,
+        "Total": 2,
+        "Cases": [
+          {
+            "Case": "normal",
+            "Passed": true,
+            "BootServicesExited": true,
+            "PayloadReturned": false,
+            "OwnHalt": true,
+            "InstructionPointerOffset": 48,
+            "InterruptsMasked": true,
+            "Ring": 0,
+            "OwnFramebufferTextVerified": true,
+            "Context": "0xE239000",
+            "PayloadSHA256": "7821e337532b3ee4204b49f03b91dacf503ce5cbbec66df05882a8780b26b79a",
+            "ContextAccepted": true,
+            "StackBefore": "0xE258FF8",
+            "StackAfter": "0xE24D000",
+            "StackPageTouched": true,
+            "FaultInjection": null
+          },
+          {
+            "Case": "contexto",
+            "Passed": true,
+            "BootServicesExited": true,
+            "PayloadReturned": false,
+            "OwnHalt": true,
+            "InstructionPointerOffset": 48,
+            "InterruptsMasked": true,
+            "Ring": 0,
+            "OwnFramebufferTextVerified": true,
+            "Context": "0xE239000",
+            "PayloadSHA256": "7821e337532b3ee4204b49f03b91dacf503ce5cbbec66df05882a8780b26b79a",
+            "ContextAccepted": false,
+            "StackBefore": "0xE258FF8",
+            "StackAfter": "0xE258FF8",
+            "StackPageTouched": false,
+            "FaultInjection": "RDI=0 al entregar"
+          }
+        ],
+        "schema": 1,
+        "evidence": "QEMU",
+        "milestone": "Ring0 handoff and stack",
+        "physical_boot": false,
+        "autonomous_kernel": false,
+        "body_bytes": 50,
+        "packet_bytes": 74,
+        "bridge_bytes": 12288,
+        "run": "run-20261112-043238-3373623f",
+        "packet_sha256": "b1494d213602377590565a96a4a6a0dc2b40122892b474db3673109dc9406b2e",
+        "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+        "source_sha256": "9a622a5c16dafe7c22ad1aebb5f067a179cd4bdd5f5d0df4dd0b50ea4ae1e9a5",
+        "case_scope": "Stack selection and rejection of null RDI under QEMU"
+      },
+      "environment": {
+        "schema": 1,
+        "milestone": "Ring0 handoff and stack",
+        "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+        "accelerator": "tcg",
+        "cpu": "Nehalem",
+        "ram_mib": 256,
+        "powershell": "7.6.9",
+        "cases": [
+          "normal",
+          "contexto"
+        ],
+        "bridge_sha256": "4287ad788cb7a75a74922f7f73e69363560c84501b9a73ba271d357f5f71469f",
+        "bridge_bytes": 12288,
+        "packet_sha256": "b1494d213602377590565a96a4a6a0dc2b40122892b474db3673109dc9406b2e",
+        "inputs": {
+          "kernel/boot/bridge/cabecera.hex": "a9ad17e34a2a7c5ece9f0309bd40d4a8d81e1cf35db0b87c675af115c95264f1",
+          "kernel/boot/bridge/entrada.hex": "20a42e44122fe8cc719b15c7a5b4d1cb0c958dac7faa4f6adbba0d591e4339eb",
+          "kernel/boot/bridge/datos.hex": "45ed2b4b995e9dbbbb52a3e9cfaf464adc5cc28c7a4c1e9783baa22306f4d7b1",
+          "kernel/boot/bridge/fuente.hex": "82d4a1f3a4a1dd7fd4adb5523783ae1f921d2db94c30305b8206db49f5c95dc5"
+        },
+        "tools": {
+          "tools/boot/cpu_config.py": "b673fe5624ce130d01bd9898e0d4f77f1361965ae4bbd2ed86a5e55c826d7389",
+          "tools/boot/disk.ps1": "de5d0666e4387d6a0e8c4ecf2dc31220cf0edc15198faa2d721b535b7f4ee361",
+          "tools/boot/image-support.ps1": "57d9862735dc904f20969fb56a31d9364c07f111c99e42e9cc8fe4384f2284fb",
+          "tools/boot/prepare.py": "db3940c7e79f311b981bc3594ca695c119e7480b820a9f166a078cf68c5c5199",
+          "tools/boot/probe.py": "53e5be13189a1b314e2a1f189b3fbd0d4ff94ca3e6031c4a75d7848006e3182a",
+          "tools/boot/publish.py": "2e70f9005c27e1778d2503c33c267bdbfaa4f7d1c83ec408d32827612d45a702",
+          "tools/boot/scope.py": "3bd9bfc771f0f7600c671fa2be4704aa2ccc910a110085b8dc2829f5cff5d980",
+          "tools/boot/test_wake.py": "df889b3efe8bd530bc90bafbf8dc6f78269a763a728be0696faab12a5cd9a745",
+          "tools/boot/wake.py": "36864bcdbc8a9da7c98dd7bb8c729259d5ffe07af7b903446306711341fad141"
+        },
+        "firmware": {
+          "edk2-x86_64-code.fd": "33090cc07675baa5190d9f1e84bf5176b33bcbfa9bacac522961150cdb6dbb2a",
+          "edk2-i386-vars.fd": "5d2ac383371b408398accee7ec27c8c09ea5b74a0de0ceea6513388b15be5d1e"
+        },
+        "scope": "VM snapshot images only; inherited UEFI bootstrap, CASM payload; no physical boot or autonomous kernel"
+      },
+      "compiler": "clang version 23.1.2 (https://github.com/llvm/llvm-project 85ac560262434c9ccfc0c183ec22d4138ed647fb)",
+      "compiler_sha256": "53654a7e885d8456d75b7c501abb564f945fba1f3b7c68cc0d5a7ed16bbf68ee",
+      "observed": {
+        "normal": {
+          "registers": {
+            "RAX": "0000000000000001",
+            "RBP": "000000000e239000",
+            "RDI": "000000000e239000",
+            "RDX": "00000000324f4d42",
+            "RIP": "000000000e238030",
+            "RSI": "000000000e258ff8",
+            "RSP": "000000000e24d000",
+            "RFL": "00000002"
+          },
+          "stack_page_sha256": "1a1e52c80ee752bbda37605dcc080975a629516761b53eb7a55e95781604d52e"
+        },
+        "contexto": {
+          "registers": {
+            "RAX": "0000000000000000",
+            "RBP": "000000000e239000",
+            "RDI": "0000000000000000",
+            "RDX": "0000000000000000",
+            "RIP": "000000000e238030",
+            "RSI": "000000000e258ff8",
+            "RSP": "000000000e258ff8",
+            "RFL": "00000087"
+          },
+          "stack_page_sha256": "ad7facb2586fc6e966c004d7d1d16b024f5805ff7cb47c7a85dabd8b48892ca7"
+        }
+      }
+    }
+  ]
+}

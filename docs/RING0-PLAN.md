@@ -28,6 +28,10 @@ El cierre de la base permite empezar la transferencia del runtime. Cada
 servicio posterior requiere sus propias operaciones y recursos probados.
 [SBEF y ABI](../contracts/SBEF.md).
 
+La entrega 1 ya tiene una prueba de pila con contexto valido e invalido
+en QEMU. El siguiente criterio es instalar una IDT propia y observar
+una excepcion controlada. [Contexto y pila](../kernel/boot/context/STACK.md).
+
 ## Referencia del padre
 
 Inventario de `Ultra_kernel_x86-64/kernel/src/ring0/` de BMO-X en

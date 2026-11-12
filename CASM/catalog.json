@@ -865,6 +865,22 @@
       "tests": [
         "tests/test_stop.py"
       ]
+    },
+    {
+      "id": "ring0-context",
+      "parent": "casm",
+      "kind": "profile",
+      "title": "Ring 0: contexto y pila inicial",
+      "status": "implemented",
+      "description": "Perfil cerrado con comprobacion del contexto, pagina de pila y parada. 50 bytes de cuerpo, IR5.",
+      "sources": [
+        "src/kernel/stop.c",
+        "stop_verify.py"
+      ],
+      "guards": [],
+      "tests": [
+        "tests/test_stop.py"
+      ]
     }
   ]
 }

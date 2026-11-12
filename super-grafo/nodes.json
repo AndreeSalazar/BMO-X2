@@ -1243,7 +1243,7 @@
       "entrada": "Modo largo, CPL0 y contexto del puente.",
       "salida": "Contexto comprobado y pila acotada.",
       "aceptacion": "QEMU acredita pila propia y rechazo de un contexto invalido.",
-      "falta": "Versionar campos y emitir la primera validacion en CASM.",
+      "falta": "El perfil de pila ya prueba la entrega valida y RDI nulo. Faltan contrato propio de mapeos y guardas de pila.",
       "pagina": true
     },
     {
@@ -1618,6 +1618,23 @@
       "salida": "Huella del paquete, registros, informes y configuraciones de ambos modelos.",
       "aceptacion": "Mismo paquete con fabricante y hoja basica maxima distintos segun la CPU invitada.",
       "falta": "Probar deteccion y aplicacion de perfil en hardware despues de completar el arranque."
+    },
+    {
+      "id": "boot-stack",
+      "titulo": "Pila inicial CASM",
+      "ruta": "kernel/boot/context/main.casm",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [
+        8000,
+        4025
+      ],
+      "que": "Comprueba la entrega y activa una pagina de pila en una reserva del puente.",
+      "entrada": "RDI, RBP, reserva del puente y ExitBootServices completado.",
+      "salida": "RSP alineado y resultado de la comprobacion. Rechazo sin cambiar de pila.",
+      "aceptacion": "QEMU observa PUSH y POP en la pagina propia y rechazo con RDI nulo.",
+      "falta": "Usar un contexto propio con permisos y pagina de guarda. Instalar IDT para la primera excepcion."
     }
   ],
   "relaciones": [
@@ -2505,6 +2522,21 @@
       "de": "cpu-profile-qemu",
       "a": "cpu-profile-guardian",
       "clase": "verificacion"
+    },
+    {
+      "de": "boot-stack",
+      "a": "boot-context",
+      "clase": "codigo"
+    },
+    {
+      "de": "boot-stack",
+      "a": "stop-verifier",
+      "clase": "verificacion"
+    },
+    {
+      "de": "x86_64-exceptions",
+      "a": "boot-stack",
+      "clase": "plan"
     }
   ]
 }

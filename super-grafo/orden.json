@@ -335,6 +335,14 @@
         140
       ],
       "motivo": "Contrasta imagen y resultado antes de publicar profile.config."
+    },
+    "kernel/boot/context/main.casm": {
+      "rgb": [
+        68,
+        210,
+        240
+      ],
+      "motivo": "Comprueba la entrega y activa una pagina de pila en una reserva del puente."
     }
   },
   "direccion": "houdini",
@@ -802,6 +810,10 @@
     "tools/boot/cpu_config.py": [
       8000,
       3675
+    ],
+    "kernel/boot/context/main.casm": [
+      8000,
+      4025
     ]
   },
   "foco": "kernel/boot",

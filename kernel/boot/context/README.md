@@ -11,4 +11,4 @@ Valida el contexto recibido y fija la pila inicial propia.
 - Entrada: Modo largo, CPL0 y contexto del puente.
 - Salida: Contexto comprobado y pila acotada.
 - Aceptacion: QEMU acredita pila propia y rechazo de un contexto invalido.
-- Pendiente: Versionar campos y emitir la primera validacion en CASM.
+- Pendiente: El perfil de pila ya prueba la entrega valida y RDI nulo. Faltan contrato propio de mapeos y guardas de pila.

@@ -12,18 +12,21 @@ import subprocess
 import threading
 import time
 from scope import workspace
-from cpu_config import identify
+from cpu_config import identify, register
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--workspace',required=True,type=Path)
-parser.add_argument('--casos', nargs='+', choices=['normal','firma','suma','entrada','ausente','excesivo','salida'], default=['normal'])
+parser.add_argument('--casos', nargs='+', choices=['normal','firma','suma','entrada','ausente','excesivo','salida','contexto'], default=['normal'])
 parser.add_argument('--qemu', default='C:/Program Files/qemu/qemu-system-x86_64.exe')
 parser.add_argument('--cpu', choices=['qemu64', 'Nehalem'], default='qemu64')
 parser.add_argument('--halt',action='store_true',help='Expect the own terminal instead of a payload return')
 parser.add_argument('--identify',action='store_true',help='Collect CPUID leaf 0 at the terminal')
+parser.add_argument('--stack',action='store_true',help='Check the selected stack and handoff status')
 args = parser.parse_args()
-if args.identify and not args.halt:
-    parser.error('--identify requires --halt')
+if (args.identify or args.stack) and not args.halt:
+    parser.error('--identify and --stack require --halt')
+if ('contexto' in args.casos and not args.stack) or (args.identify and args.stack):
+    parser.error('Invalid combination of payload and probe cases')
 ROOT = workspace(args.workspace)
 if not __debug__:
     raise RuntimeError('La prueba requiere comprobaciones assert activas; quitar PYTHONOPTIMIZE')
@@ -43,6 +46,7 @@ results = []
 
 
 def run(case):
+    payload_case = case in ('normal', 'contexto')
     image = ROOT / 'build' / f'puente-{case}.img'
     before = hashlib.sha256(image.read_bytes()).hexdigest()
     prefix = ROOT / 'build' / f'puente-{case}'
@@ -103,7 +107,7 @@ def run(case):
                 raise RuntimeError('QEMU termino: ' + process.stderr.read()[-1000:])
             last_registers = command('human-monitor-command', {'command-line': 'info registers'})
             match = re.search(r'RBP=([0-9a-fA-F]+)', last_registers)
-            if saved_context_address is None and case not in ('normal', 'salida'):
+            if saved_context_address is None and not payload_case and case != 'salida':
                 serial = Path(str(prefix) + '-serial.log').read_text(encoding='utf-8', errors='replace')
                 if 'Pulse una tecla para volver.' in serial:
                     # Dentro de ReadKeyStroke el compilador de UEFI puede usar RBP.
@@ -123,7 +127,7 @@ def run(case):
                     candidate = memory(address, 0xb0, 'context')
                     if candidate[:8] == b'METAL64!':
                         ebs, returned, failed = (struct.unpack_from('<I', candidate, p)[0] for p in (0x78, 0x98, 0x9c))
-                        if (failed == 1 or ((returned or failed == 2 or (args.halt and case == 'normal' and ebs == 1)) and 'HLT=1' in last_registers)):
+                        if (failed == 1 or ((returned or failed == 2 or (args.halt and payload_case and ebs == 1)) and 'HLT=1' in last_registers)):
                             context = candidate
                             captured = address
                             break
@@ -139,7 +143,7 @@ def run(case):
             assert 'HLT=1' in last_registers, 'No se detuvo tras agotar reintentos'
             return dict(Case=case, Passed=True, FaultInjection='MapKey cero en copia de prueba',
                         BootServicesExited=False, PayloadReturned=False, BoundedRetries=3)
-        if case != 'normal':
+        if not payload_case:
             assert (ebs, returned, failed) == (0, 0, 1), 'El paquete rechazado salio de UEFI o ejecuto el programa'
             reason_pointer = struct.unpack_from('<Q', context, 0xa0)[0]
             reason = memory(reason_pointer, 128, 'reason').decode('utf-16-le').split('\0', 1)[0]
@@ -151,10 +155,13 @@ def run(case):
         packet = (ROOT / 'build/Puente_Metal/METAL/INICIO.X86').read_bytes()
         code = struct.unpack_from('<Q', context, 8)[0]
         assert memory(code, len(packet) - 24, 'code') == packet[24:], 'No ejecuto la copia exacta del cuerpo propio'
-        halt_offset = 6 if args.identify else 2
+        halt_offset = 48 if args.stack else 6 if args.identify else 2
         if args.halt:
             terminal = 'FA 31 C0 0F A2 F4 EB FD' if args.identify else 'FA F4 EB FD'
-            assert packet[24:] == bytes.fromhex(terminal), 'Terminal distinto'
+            if args.stack:
+                assert len(packet) == 74 and packet[24+47:] == bytes.fromhex('F4 EB FD'), 'Terminal de contexto distinto'
+            else:
+                assert packet[24:] == bytes.fromhex(terminal), 'Terminal distinto'
             rip = int(re.search(r'RIP=([0-9a-fA-F]+)', last_registers)[1], 16)
             flags = int(re.search(r'RFL=([0-9a-fA-F]+)', last_registers)[1], 16)
             assert rip == code + halt_offset and not flags & 0x200, 'No se detuvo en HLT propio con IF=0'
@@ -164,6 +171,21 @@ def run(case):
         regions = [struct.unpack_from('<I4xQQQQ', descriptors, off) for off in range(0, size, stride)]
         assert any(kind == 1 and base <= code and code + 4096 <= base + pages * 4096 for kind, base, virt, pages, attr in regions)
         assert any(kind == 2 and base <= captured and captured + 0x20000 <= base + pages * 4096 for kind, base, virt, pages, attr in regions)
+        stack_result = {}
+        if args.stack:
+            low, top = captured + 0x13000, captured + 0x14000
+            old, new, supplied, status = (register(last_registers, n) for n in ('RSI', 'RSP', 'RDI', 'RAX'))
+            assert old == captured + 0x1fff8, 'Pila del puente fuera del contrato'
+            page = memory(low, top - low, 'own-stack')
+            if case == 'contexto':
+                assert (supplied, status, new) == (0, 0, old) and page == bytes(4096), 'Se acepto contexto invalido'
+            else:
+                assert (supplied, status, new) == (captured, 1, top) and new % 16 == 0, 'Pila propia invalida'
+                assert register(last_registers, 'RDX') == 0x324F4D42, 'POP no recupero la marca'
+                assert page == bytes(4088) + struct.pack('<Q', 0x324F4D42), 'Escritura inesperada en la pila'
+            stack_result = dict(ContextAccepted=status == 1, StackBefore=f'0x{old:X}',
+                                StackAfter=f'0x{new:X}', StackPageTouched=case == 'normal',
+                                FaultInjection='RDI=0 al entregar' if case == 'contexto' else None)
         framebuffer = struct.unpack_from('<Q', context, 0x10)[0]
         scan = struct.unpack_from('<I', context, 0x28)[0]
         pixels = memory(framebuffer, scan * 48 * 4, 'pixels')
@@ -182,7 +204,7 @@ def run(case):
         result = dict(Case=case, Passed=True, BootServicesExited=True, PayloadReturned=not args.halt, OwnHalt=args.halt,
                     InstructionPointerOffset=halt_offset if args.halt else None, InterruptsMasked=True if args.halt else None,
                     Ring=0, OwnFramebufferTextVerified=True, Context=f'0x{captured:X}',
-                    PayloadSHA256=hashlib.sha256(packet[24:]).hexdigest())
+                    PayloadSHA256=hashlib.sha256(packet[24:]).hexdigest(), **stack_result)
         if args.identify:
             result['CPUIdentification'] = identify(last_registers)
         return result

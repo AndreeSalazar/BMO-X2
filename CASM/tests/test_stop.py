@@ -74,6 +74,24 @@ class Stop(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'STOP-EMISSION'):
             verify(self.source, self.hex, self.ir, identify=True)
 
+    def test_stack_profile_rejects_changed_stack_top_and_branch(self):
+        source = ROOT/'kernel/boot/context/main.casm'
+        self.source.write_bytes(source.read_bytes())
+        cmd = [str(self.compiler), '--profile', 'ring0-context-0.1',
+               str(self.source), str(self.hex), str(self.ir)]
+        self.assertEqual(subprocess.run(cmd, capture_output=True).returncode, 0)
+        packet, report = verify(self.source, self.hex, self.ir, context=True)
+        self.assertEqual(packet[24:], bytes.fromhex(source.with_name('expected.hex').read_text()))
+        self.assertEqual(report['EntryBudget']['RemainingBytes'], 437)
+        ir = self.ir.read_text()
+        self.ir.write_text(ir.replace('"Top":81920', '"Top":131072'))
+        with self.assertRaisesRegex(ValueError, 'STOP-IR'):
+            verify(self.source, self.hex, self.ir, context=True)
+        self.ir.write_text(ir)
+        self.hex.write_text(self.hex.read_text().replace('75 24', '75 23'))
+        with self.assertRaisesRegex(ValueError, 'STOP-EMISSION'):
+            verify(self.source, self.hex, self.ir, context=True)
+
     def test_all_byte_bits_and_ir_contract_reject(self):
         self.assertEqual(self.compile().returncode, 0)
         vector = bytes.fromhex(self.hex.read_text())

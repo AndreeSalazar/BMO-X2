@@ -12,7 +12,7 @@ from scope import workspace
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--workspace',required=True,type=Path)
-parser.add_argument('--caso', choices=['normal', 'firma', 'suma', 'ausente', 'excesivo', 'entrada', 'salida'], default='normal')
+parser.add_argument('--caso', choices=['normal', 'firma', 'suma', 'ausente', 'excesivo', 'entrada', 'salida', 'contexto'], default='normal')
 parser.add_argument('--profile',choices=['hello','flappy-preview'],default='hello')
 args = parser.parse_args()
 root = workspace(args.workspace)
@@ -29,6 +29,11 @@ if args.caso == 'salida':
     if efi[0xc90:0xc94] != bytes.fromhex('488b5558'):
         raise ValueError('Cambio el contrato de la inyeccion MapKey')
     efi = efi[:0xc90] + bytes.fromhex('31d29090') + efi[0xc94:]
+if args.caso == 'contexto':
+    # Solo la copia QEMU. Mantener RBP y entregar RDI=0 al payload.
+    if efi[0xe4a:0xe50] != bytes.fromhex('48 89 EF FF 55 70'):
+        raise ValueError('Cambio el punto de entrega RDI')
+    efi = efi[:0xe4a] + bytes.fromhex('31 FF 90') + efi[0xe4d:]
 
 with output.open('r+b') as disk:
     def read(offset, size):

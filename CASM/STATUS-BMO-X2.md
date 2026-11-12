@@ -8,6 +8,7 @@ Esos documentos conservan la fecha, el entorno y el alcance de su trabajo.
 | metal64 0.2 | `src/`, `verify.py`, `test.py` | Semilla C11, enteros constantes exactos, HEX e IR, paquete FAGRAW64 comprobado. | Kernel completo, variables de ejecucion, MMIO o cambios de privilegio. |
 | ring0-stop 0.1 | `src/kernel/stop.c`, `stop_verify.py` | Parada propia de 4 bytes; IR3 cerrada; siete casos QEMU en Ring 0. | Kernel completo, interrupciones generales, arranque autonomo o ahorro energetico medido. |
 | ring0-cpu 0.1 | `src/kernel/stop.c`, `stop_verify.py` | Sonda CPUID hoja 0 de 8 bytes, IR4 y perfil observado en QEMU. | Aplicar configuracion de CPU, memoria o dispositivos. |
+| ring0-context 0.1 | `src/kernel/stop.c`, `stop_verify.py` | Entrada de 50 bytes con IR5. QEMU observa la pila elegida y el rechazo de RDI nulo. | Tablas de memoria propias, pagina de guarda o manejo de excepciones. |
 | Native 0.1 | `native/` | Compilador CASM, funciones, bucles, buffers, guardas; autocompilacion documentada en Linux. | Autocompilacion nueva en Windows o dentro de BMO-X2. |
 | Native freestanding | `native/freestanding.py` | Adaptador sin servicios Linux, con permisos y trampas declarados. | Imagen EFI ni kernel; sigue necesitando cargador y manejador #UD. |
 | metal64 0.3 | `traspaso/` | Parche de investigacion con RDTSC y trampas. | Verificador completo: NO se ha aplicado al compilador de esta copia. |
@@ -25,7 +26,7 @@ simbolos, enteros y parser, con tipos y almacenamiento en `src/model/`.
 `sources.json` alimenta las construcciones Windows y Linux e incluye las
 cabeceras en la vigencia de la cache. [Fronteras del frontend](src/frontend/README.md).
 
-`catalog.json` organiza 47 elementos jerarquicos. El build valida el catalogo
+`catalog.json` organiza 48 elementos jerarquicos. El build valida el catalogo
 y genera la tabla de tipos desde el, contrastada con la tabla independiente
 del verificador. SUPER GRAFO ahora lee la jerarquia y los modulos completos;
 la consulta `casm` expone tipos, IR, codificaciones, reglas y bytes por linea.
