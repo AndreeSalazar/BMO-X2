@@ -91,6 +91,8 @@ requiere un interprete portado a Ring 3 que abra los scripts como datos.
 [El nucleo de escritorio](userspace/services/desktop/WORKSPACES.md) ya
 compone superficies y procesa los atajos de cuatro espacios en pruebas HOST.
 Su ejecutable Rust freestanding ya se empaqueta como SBEF ABI 1.
+En Windows, `tools/view-desktop.ps1` abre una vista previa interactiva
+de los cuatro espacios usando el compositor Rust.
 [Reglas de Ring 3](userspace/POLICY.md) |
 [Frontera de ejecucion](docs/RING-BOUNDARY.md)
 

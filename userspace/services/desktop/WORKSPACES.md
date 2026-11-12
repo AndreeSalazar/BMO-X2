@@ -89,6 +89,20 @@ rustc --edition=2024 --test -D warnings .\userspace\services\desktop\src\lib.rs 
 Las nueve pruebas HOST verifican foco, movimiento, composicion,
 limites y atajos mediante eventos de entrada.
 
+## Vista previa en Windows
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\view-desktop.ps1
+```
+
+La ventana usa el compositor Rust con dos superficies de muestra por
+espacio. Pulsa `1` a `4` o haz clic en el panel. El visor convierte
+esas acciones en eventos Super + numero para el mismo adaptador Rust.
+Asi la tecla Win queda disponible para los atajos del anfitrion.
+Se guarda una captura inicial junto al ejecutable temporal en
+`build/desktop`. La integracion del framebuffer y el teclado en QEMU
+continua en el hito de carga externa.
+
 ## SBEF de prueba
 
 El ejecutable de prueba usa el mismo crate, ejecuta dos cambios de
