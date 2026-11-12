@@ -1,6 +1,7 @@
 # SBEF (Super BEF)
 
-Estado de BMO-X2: DISENO. SBEF es la evolucion propia de BEF2 de BMO-X.
+Estado de BMO-X2: prototipo HOST de empaquetado y lectura. SBEF es la
+evolucion propia de BEF2 de BMO-X.
 BEF2 aporta el modelo de regiones con permisos fijos, un indice de anexos
 y una puerta de admision acotada. Su cabecera y su ABI se documentan en la
 [referencia del padre](ABI-BEF2.md).
@@ -31,6 +32,10 @@ empaquetador SBEF. El cargador de Ring 0 admite la imagen, configura
 paginas y pila, y entrega el punto de entrada a la CPU en CPL3.
 Las bibliotecas y el runtime de COBOL se enlazan para ese ABI. La
 prueba de compatibilidad exige un programa real y sus dependencias.
+
+El [perfil provisional](SBEF-HOST.md) implementa el puente de build
+ELF64 estatico -> SBEF. El cargador CASM y el ABI de las dos llamadas
+siguen pendientes. La prueba CPL3 usa su propio programa fijo.
 
 ## Encabezado candidato
 

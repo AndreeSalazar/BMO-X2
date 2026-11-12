@@ -979,6 +979,22 @@
       "tests": [
         "tests/test_stop.py"
       ]
+    },
+    {
+      "id": "ring0-user-fault",
+      "parent": "casm",
+      "kind": "profile",
+      "title": "Ring 0: fallo de proteccion desde CPL3",
+      "status": "implemented",
+      "description": "Entra por IRETQ, captura #PF en la pila de la TSS y limpia dos paginas de usuario.",
+      "sources": [
+        "src/kernel/stop.c",
+        "stop_verify.py"
+      ],
+      "guards": [],
+      "tests": [
+        "tests/test_stop.py"
+      ]
     }
   ]
 }

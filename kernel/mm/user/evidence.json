@@ -1,0 +1,146 @@
+{
+  "schema": 1,
+  "reviewed_date": "2026-11-12",
+  "profile": "ring0-user-fault-0.1",
+  "source_sha256": "6275e436c0e3ca415a1d4d650f68062ff0d38541724fb45af394399de5f72e59",
+  "vector_sha256": "2a1765a4e627992ca2636f7cf2cae74e36c4b2138a8545ffc518c7b888d2dd71",
+  "body_bytes": 716,
+  "packet_bytes": 740,
+  "bridge_bytes": 12288,
+  "runs": [
+    {
+      "run": "run-20261112-122258-e51faa25",
+      "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+      "cpu": "qemu64",
+      "ram_mib": 256,
+      "powershell": "5.1.26100.6584",
+      "firmware": {
+        "edk2-x86_64-code.fd": "33090cc07675baa5190d9f1e84bf5176b33bcbfa9bacac522961150cdb6dbb2a",
+        "edk2-i386-vars.fd": "5d2ac383371b408398accee7ec27c8c09ea5b74a0de0ceea6513388b15be5d1e"
+      },
+      "compiler_sha256": "bd4c3d6f06303efe9acfcf388171171a7c8f8bb8b8ed365c739323b1618eb7c6",
+      "bridge_sha256": "4287ad788cb7a75a74922f7f73e69363560c84501b9a73ba271d357f5f71469f",
+      "packet_sha256": "63aa03eb8353bc670c839676a5a059f466f2c55df6e474a567e65b117eecdc65",
+      "probe_sha256": "b553345956065d928e6486865b7970c0c251edfa1759e788c214205611006474",
+      "guardian_sha256": "a4127e52913d5d1cd8884ef492c92a32df26220822f47e6abe83c54f8aa63bfc",
+      "capture_sha256": {
+        "user-fault-descriptors": "0c60fe02a9b15d96bb26a32bb243ed0241cb026fa760a92b16dc251704f3f834",
+        "user-fault-tables": "638b12bdeba37578998233efeaaf65f474a5d88ae2dbdc0e47298ad4b3ec2f65",
+        "user-fault-erased-pages": "9f1dcbc35c350d6027f98be0f5c8b43b42ca52b7604459c0c42be3aa88913d47"
+      },
+      "cases": [
+        {
+          "Case": "normal",
+          "Passed": true,
+          "BootServicesExited": true,
+          "PayloadReturned": false,
+          "OwnHalt": true,
+          "InstructionPointerOffset": 662,
+          "InterruptsMasked": true,
+          "Ring": 0,
+          "OwnFramebufferTextVerified": true,
+          "Context": "0xDE38000",
+          "PayloadSHA256": "d770540683d019e1bd4cfb8f8921b429488306c63c5dddf409e66a36eb64dc3e",
+          "ContextAccepted": true,
+          "UserCPL": 3,
+          "UserFaultHandled": true,
+          "FaultVector": 14,
+          "FaultErrorCode": 5,
+          "FaultAddress": "0x100000",
+          "SavedUserRIP": "0x40000010",
+          "SavedUserRSP": "0x40001FF8",
+          "KernelFaultRSP": "0xDE52FD0",
+          "ActiveCR3": "0xDE4B000",
+          "FrameBytes": 32768,
+          "ReclaimedPages": 2,
+          "ScrubbedBytes": 8192
+        },
+        {
+          "Case": "contexto",
+          "Passed": true,
+          "BootServicesExited": true,
+          "PayloadReturned": false,
+          "OwnHalt": true,
+          "InstructionPointerOffset": 662,
+          "InterruptsMasked": true,
+          "Ring": 0,
+          "OwnFramebufferTextVerified": true,
+          "Context": "0xDE38000",
+          "PayloadSHA256": "d770540683d019e1bd4cfb8f8921b429488306c63c5dddf409e66a36eb64dc3e",
+          "ContextAccepted": false,
+          "UserFaultHandled": false,
+          "ReclaimedPages": 0,
+          "FaultInjection": "RDI=0 al entregar",
+          "ActiveCR3": "0xF801000"
+        }
+      ]
+    },
+    {
+      "run": "run-20261112-122248-7854ac02",
+      "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+      "cpu": "Nehalem",
+      "ram_mib": 256,
+      "powershell": "7.6.9",
+      "firmware": {
+        "edk2-x86_64-code.fd": "33090cc07675baa5190d9f1e84bf5176b33bcbfa9bacac522961150cdb6dbb2a",
+        "edk2-i386-vars.fd": "5d2ac383371b408398accee7ec27c8c09ea5b74a0de0ceea6513388b15be5d1e"
+      },
+      "compiler_sha256": "a8c5c8afbd06691d5bc64ef52043d5409eb960e26058ba399b3ff75c62e580b0",
+      "bridge_sha256": "4287ad788cb7a75a74922f7f73e69363560c84501b9a73ba271d357f5f71469f",
+      "packet_sha256": "63aa03eb8353bc670c839676a5a059f466f2c55df6e474a567e65b117eecdc65",
+      "probe_sha256": "b553345956065d928e6486865b7970c0c251edfa1759e788c214205611006474",
+      "guardian_sha256": "a4127e52913d5d1cd8884ef492c92a32df26220822f47e6abe83c54f8aa63bfc",
+      "capture_sha256": {
+        "user-fault-descriptors": "85ce7d0247aa7eed7b6a454809b0dea29e625e4380ccfd8f735b15a92fa475f4",
+        "user-fault-tables": "1bd6297c3c3691d042b5a6b676079b133f46f8d072650a55a7797a6965c69888",
+        "user-fault-erased-pages": "9f1dcbc35c350d6027f98be0f5c8b43b42ca52b7604459c0c42be3aa88913d47"
+      },
+      "cases": [
+        {
+          "Case": "normal",
+          "Passed": true,
+          "BootServicesExited": true,
+          "PayloadReturned": false,
+          "OwnHalt": true,
+          "InstructionPointerOffset": 662,
+          "InterruptsMasked": true,
+          "Ring": 0,
+          "OwnFramebufferTextVerified": true,
+          "Context": "0xE239000",
+          "PayloadSHA256": "d770540683d019e1bd4cfb8f8921b429488306c63c5dddf409e66a36eb64dc3e",
+          "ContextAccepted": true,
+          "UserCPL": 3,
+          "UserFaultHandled": true,
+          "FaultVector": 14,
+          "FaultErrorCode": 5,
+          "FaultAddress": "0x100000",
+          "SavedUserRIP": "0x40000010",
+          "SavedUserRSP": "0x40001FF8",
+          "KernelFaultRSP": "0xE253FD0",
+          "ActiveCR3": "0xE24C000",
+          "FrameBytes": 32768,
+          "ReclaimedPages": 2,
+          "ScrubbedBytes": 8192
+        },
+        {
+          "Case": "contexto",
+          "Passed": true,
+          "BootServicesExited": true,
+          "PayloadReturned": false,
+          "OwnHalt": true,
+          "InstructionPointerOffset": 662,
+          "InterruptsMasked": true,
+          "Ring": 0,
+          "OwnFramebufferTextVerified": true,
+          "Context": "0xE239000",
+          "PayloadSHA256": "d770540683d019e1bd4cfb8f8921b429488306c63c5dddf409e66a36eb64dc3e",
+          "ContextAccepted": false,
+          "UserFaultHandled": false,
+          "ReclaimedPages": 0,
+          "FaultInjection": "RDI=0 al entregar",
+          "ActiveCR3": "0xFC01000"
+        }
+      ]
+    }
+  ]
+}

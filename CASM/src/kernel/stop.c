@@ -110,6 +110,51 @@ static const char paging_hex[] =
     /* Halt after recording the result. */
     "F4 EB FD\n";
 
+static const char user_fault_hex[] =
+    /* Guard the handoff and require four-level paging with NX. */
+    "FA 45 31 DB 45 31 E4 45 31 F6 41 0F 20 DD 48 39 EF 75 59 48 B9 4D 45 54 "
+    "41 4C 36 34 21 48 39 4D 00 75 49 83 7D 78 01 75 43 48 8D 85 00 00 02 00 "
+    "48 3D 00 00 00 10 77 34 48 81 7D 08 00 F0 FF 0F 77 2A 41 0F 20 E7 41 F7 "
+    "C7 00 10 22 00 75 1D B8 00 00 00 80 0F A2 3D 01 00 00 80 72 0F B8 01 00 "
+    "00 80 0F A2 0F BA E2 14 73 02 EB 05 E9 24 02 00 00\n"
+    /* Build supervisor and user mappings and copy the fixed user program. */
+    "4C 8D 9D 00 30 01 00 4D 8D 93 00 70 00 00 4C 89 DF 31 C0 B9 00 10 00 00 "
+    "FC F3 48 AB 49 8D 83 07 10 00 00 49 89 03 49 8D 83 03 20 00 00 49 89 83 "
+    "00 10 00 00 49 8D 83 07 30 00 00 49 89 83 08 10 00 00 49 8D 83 07 40 00 "
+    "00 49 89 83 00 30 00 00 49 8D 83 05 50 00 00 49 89 83 00 40 00 00 49 8D "
+    "83 07 60 00 00 48 0F BA E8 3F 49 89 83 08 40 00 00 49 8D BB 00 20 00 00 "
+    "B8 83 00 00 00 B9 80 00 00 00 48 AB 05 00 00 20 00 E2 F7 49 8D BB 00 50 "
+    "00 00 48 8D 35 AE 01 00 00 B9 14 00 00 00 F3 A4\n"
+    /* Install GDT, TSS and the page-fault gate. */
+    "48 8D 35 80 01 00 00 49 8D 7A 08 B9 04 00 00 00 F3 48 A5 49 8D 82 00 01 "
+    "00 00 66 41 C7 42 28 67 00 66 41 89 42 2A 48 C1 E8 10 41 88 42 2C 41 C6 "
+    "42 2D 89 C1 E8 08 41 88 42 2F 49 8D 82 00 10 00 00 49 89 82 04 01 00 00 "
+    "66 41 C7 82 66 01 00 00 68 00 66 41 C7 82 80 00 00 00 37 00 4D 89 92 82 "
+    "00 00 00 41 0F 01 92 80 00 00 00 66 B8 28 00 0F 00 D8 48 8D 15 8E 00 00 "
+    "00 66 41 89 92 E0 02 00 00 66 41 C7 82 E2 02 00 00 08 00 41 C6 82 E5 02 "
+    "00 00 8E 48 C1 EA 10 66 41 89 92 E6 02 00 00 48 C1 EA 10 41 89 92 E8 02 "
+    "00 00 49 8D 82 00 02 00 00 66 41 C7 82 90 00 00 00 EF 00 49 89 82 92 00 "
+    "00 00 41 0F 01 9A 90 00 00 00\n"
+    /* Load CR3 and enter CPL3 with IRETQ. */
+    "B9 80 00 00 C0 0F 32 0D 00 08 00 00 0F 30 0F 20 C0 48 0F BA E8 10 0F 22 "
+    "C0 41 81 E7 7F FF FF FF 41 0F 22 E7 41 0F 22 DB 48 89 EF 6A 1B 68 00 20 "
+    "00 40 6A 02 6A 23 68 00 00 00 40 48 CF\n"
+    /* Validate the hardware fault on the trusted Ring 0 stack. */
+    "45 31 E4 4C 8D 9C 24 30 80 FF FF 49 8D AB 00 D0 FE FF 48 83 3C 24 05 75 "
+    "64 48 81 7C 24 08 10 00 00 40 75 59 0F 20 D0 48 3D 00 00 10 00 75 4E 4D "
+    "8B B3 F8 6F 00 00 48 B8 42 4D 55 53 45 52 33 21 49 39 C6 75 38\n"
+    /* Remove user mappings, invalidate translations and erase the two pages. */
+    "31 C0 49 89 83 00 40 00 00 49 89 83 08 40 00 00 B9 00 00 00 40 0F 01 39 "
+    "0F 01 B9 00 10 00 00 49 8D BB 00 50 00 00 B9 00 04 00 00 FC F3 48 AB 48 "
+    "89 EF 41 BC 01 00 00 00\n"
+    /* Halt in Ring 0. */
+    "F4 EB FD\n"
+    /* Four GDT segments. */
+    "FF FF 00 00 00 9B AF 00 FF FF 00 00 00 93 CF 00 FF FF 00 00 00 F3 CF 00 "
+    "FF FF 00 00 00 FB AF 00\n"
+    /* Fixed user program: push a marker and attempt a supervisor read. */
+    "48 B8 42 4D 55 53 45 52 33 21 50 BB 00 00 10 00 8B 0B 0F 0B\n";
+
 int casm_stop(const unsigned char *source, size_t length, const char *hex, const char *ir, KernelProfile profile) {
     Parser p = {0};
     size_t i;
@@ -128,6 +173,7 @@ int casm_stop(const unsigned char *source, size_t length, const char *hex, const
     if (profile != KERNEL_STOP) {
         operation_line = line;
         const char *operation = profile == KERNEL_CPU ? "cpu_identify" :
+                                profile == KERNEL_USER_FAULT ? "boot_user_fault" :
                                 profile == KERNEL_PAGING ? "boot_paging" :
                                 profile == KERNEL_FRAME_CYCLE ? "boot_frame_cycle" :
                                 profile == KERNEL_FAULT ? "boot_fault" : profile == KERNEL_MEMORY ? "boot_memory" : "boot_stack";
@@ -141,7 +187,7 @@ int casm_stop(const unsigned char *source, size_t length, const char *hex, const
     if (!out) return 0;
     /* CLI; HLT; JMP rel8 -3 to HLT. No return or inherited service call. */
     /* CPUID leaf zero returns the vendor and highest basic leaf in registers. */
-    ok = fputs(profile == KERNEL_PAGING ? paging_hex :
+    ok = fputs(profile == KERNEL_USER_FAULT ? user_fault_hex : profile == KERNEL_PAGING ? paging_hex :
                profile == KERNEL_FRAME_CYCLE ? frame_cycle_hex : profile == KERNEL_MEMORY ? memory_hex :
                profile == KERNEL_FAULT ? fault_hex : profile == KERNEL_CONTEXT ? context_hex :
                profile == KERNEL_CPU ? "FA 31 C0 0F A2 F4 EB FD\n" : "FA F4 EB FD\n", out) >= 0;
@@ -149,7 +195,13 @@ int casm_stop(const unsigned char *source, size_t length, const char *hex, const
     if (!ok) return 0;
     out = fopen(ir, "wb");
     if (!out) return 0;
-    if (profile == KERNEL_PAGING) {
+    if (profile == KERNEL_USER_FAULT) {
+        ok = fprintf(out, "{\n\"Schema\":11,\"Target\":\"x86_64\",\"ABI\":\"ring0-user-fault\","
+            "\"Profile\":\"ring0-user-fault-0.1\",\"Entry\":\"kernel_main\",\"RequiredCPL\":0,"
+            "\"Process\":{\"Line\":%u,\"Entry\":1073741824,\"StackTop\":1073750016,\"FaultAddress\":1048576,"
+            "\"ErrorCode\":5,\"Handler\":536,\"ReclaimedPages\":2},"
+            "\"Terminal\":{\"Line\":%u,\"Offset\":661},\"BodyBytes\":716\n}\n", operation_line, line) >= 0;
+    } else if (profile == KERNEL_PAGING) {
         ok = fprintf(out, "{\n\"Schema\":10,\"Target\":\"x86_64\",\"ABI\":\"ring0-paging\","
             "\"Profile\":\"ring0-paging-0.1\",\"Entry\":\"kernel_main\",\"RequiredCPL\":0,"
             "\"Paging\":{\"Line\":%u,\"TableFrames\":5,\"DataFrames\":1,\"PageBytes\":4096,"
@@ -187,7 +239,8 @@ int casm_stop(const unsigned char *source, size_t length, const char *hex, const
         "\"Terminal\":{\"Line\":%u,\"Offset\":0},\"BodyBytes\":4\n}\n", line) >= 0;
     }
     if (fclose(out)) ok = 0;
-    if (ok) puts(profile == KERNEL_PAGING ? "GREEN [RING0-PAGING] 473 body bytes; unverified HEX and IR written."
+    if (ok) puts(profile == KERNEL_USER_FAULT ? "GREEN [RING0-USER-FAULT] 716 body bytes; unverified HEX and IR written."
+             : profile == KERNEL_PAGING ? "GREEN [RING0-PAGING] 473 body bytes; unverified HEX and IR written."
              : profile == KERNEL_FRAME_CYCLE ? "GREEN [RING0-FRAME-CYCLE] 474 body bytes; unverified HEX and IR written."
              : profile == KERNEL_MEMORY ? "GREEN [RING0-MEMORY] 217 body bytes; unverified HEX and IR written."
              : profile == KERNEL_FAULT ? "GREEN [RING0-FAULT] 138 body bytes; unverified HEX and IR written."

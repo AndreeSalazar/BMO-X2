@@ -112,6 +112,8 @@
 | [Pesos del build QEMU](../tools/boot/weights.py) | host | host | Mide artefactos en disco y lee la RAM configurada de cada VM. |
 | [Propiedad y devolucion de un marco](../kernel/mm/physical/lifecycle/main.casm) | qemu | 0 | Asigna, protege la propiedad, borra y reasigna un marco de 4 KiB. |
 | [Tablas propias y alias de datos](../kernel/mm/virtual/main.casm) | qemu | 0 | Instala CR3 propio y separa el mapa supervisor de un alias de usuario. |
+| [Fallo de proteccion desde CPL3](../kernel/mm/user/main.casm) | qemu | 0 | Ejecuta un programa fijo en CPL3 y captura el acceso prohibido en Ring 0. |
+| [Empaquetador ELF64 a SBEF](../tools/sbef.py) | host | host | Convierte segmentos de un ELF64 estatico a regiones SBEF comprobadas. |
 
 ## Dependencias declaradas
 
@@ -321,5 +323,10 @@
 | virtual-memory | own-page-tables | plan |
 | own-page-tables | ram-frame | codigo |
 | own-page-tables | stop-verifier | verificacion |
+| process | user-protection-fault | plan |
+| user-protection-fault | own-page-tables | plan |
+| user-protection-fault | fault-ud | plan |
+| sbef-host-pack | sbef | codigo |
+| sbef-loader | sbef-host-pack | verificacion |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

@@ -18,6 +18,8 @@ CYCLE_PROFILE = 'ring0-frame-cycle-0.1'
 CYCLE_ASSETS = MEMORY_ASSETS/'lifecycle'
 PAGING_PROFILE = 'ring0-paging-0.1'
 PAGING_ASSETS = MEMORY_ASSETS.parent/'virtual'
+USER_FAULT_PROFILE = 'ring0-user-fault-0.1'
+USER_FAULT_ASSETS = MEMORY_ASSETS.parent/'user'
 
 
 def require(ok, reason):
@@ -54,12 +56,15 @@ def no_duplicates(pairs):
     return result
 
 
-def verify(source_path, hex_path, ir_path, *, identify=False, context=False, fault=False, memory=False, cycle=False, paging=False):
-    require(sum((identify,context,fault,memory,cycle,paging)) <= 1, 'STOP-PROFILE-CONFLICT')
-    for path, limit in [(source_path, 65536), (hex_path, 1536 if cycle or paging else 1024 if memory else 512 if fault else 256 if context else 128), (ir_path, 4096)]:
+def verify(source_path, hex_path, ir_path, *, identify=False, context=False, fault=False, memory=False, cycle=False, paging=False, user_fault=False):
+    require(sum((identify,context,fault,memory,cycle,paging,user_fault)) <= 1, 'STOP-PROFILE-CONFLICT')
+    hex_limit = 2304 if user_fault else 1536 if cycle or paging else 1024 if memory else 512 if fault else 256 if context else 128
+    for path, limit in [(source_path, 65536), (hex_path, hex_limit), (ir_path, 4096)]:
         require(path.stat().st_size <= limit, 'STOP-INPUT-SIZE')
     source = source_path.read_bytes()
-    operation = 'boot_paging' if paging else 'boot_frame_cycle' if cycle else 'boot_memory' if memory else 'boot_fault' if fault else 'boot_stack' if context else 'cpu_identify' if identify else None
+    operation = ('boot_user_fault' if user_fault else 'boot_paging' if paging else 'boot_frame_cycle' if cycle else
+                 'boot_memory' if memory else 'boot_fault' if fault else 'boot_stack' if context else
+                 'cpu_identify' if identify else None)
     line, operation_line = source_lines(source, operation)
     ir = json.loads(ir_path.read_text(encoding='ascii'), object_pairs_hook=no_duplicates)
     expected = dict(Schema=3, Target='x86_64', ABI='ring0-stop', Profile=PROFILE,
@@ -140,6 +145,19 @@ def verify(source_path, hex_path, ir_path, *, identify=False, context=False, fau
                    [(0,113,'handoff-and-cpu-guard'),(113,190,'map-geometry'),(190,284,'select-six-frames'),
                     (284,389,'link-page-tables'),(389,415,'map-identity-and-seed'),(415,470,'activate-and-read'),
                     (470,473,'halt')]]
+    if user_fault:
+        expected = dict(Schema=11, Target='x86_64', ABI='ring0-user-fault', Profile=USER_FAULT_PROFILE,
+                        Entry='kernel_main', RequiredCPL=0,
+                        Process=dict(Line=operation_line, Entry=0x40000000, StackTop=0x40002000,
+                                     FaultAddress=0x100000, ErrorCode=5, Handler=536, ReclaimedPages=2),
+                        Terminal=dict(Line=line, Offset=661), BodyBytes=716)
+        vector = bytes.fromhex((USER_FAULT_ASSETS/'expected.hex').read_text(encoding='ascii'))
+        require(len(vector) == 716 and vector[661:664] == b'\xf4\xeb\xfd', 'USER-FAULT-REFERENCE')
+        mapping = [(line if a == 661 else operation_line,a,b-a,kind) for a,b,kind in
+                   [(0,113,'handoff-and-cpu-guard'),(113,273,'map-and-copy-user-program'),
+                    (273,475,'gdt-tss-idt'),(475,536,'iretq-to-user'),(536,605,'page-fault-handler'),
+                    (605,661,'unmap-and-scrub-user-pages'),(661,664,'halt'),
+                    (664,696,'gdt-template'),(696,716,'user-program')]]
     require(json.dumps(ir, sort_keys=True) == json.dumps(expected, sort_keys=True), 'STOP-IR')
     tokens = hex_path.read_text(encoding='ascii').split()
     require(len(tokens) == len(vector) and all(re.fullmatch('[0-9A-Fa-f]{2}', t) for t in tokens), 'STOP-HEX')
@@ -149,20 +167,25 @@ def verify(source_path, hex_path, ir_path, *, identify=False, context=False, fau
     packet = b'FAGRAW64' + struct.pack('<IIII', len(body), 0, sum(body), 0) + body
     report = dict(Schema=1, Verified=True, Target='x86_64', ABI=expected['ABI'], Profile=expected['Profile'],
                   BodyBytes=len(body), PacketBytes=len(packet), Integers=[],
-                  EntryBudget=entry_budget(len(body), len(packet)),
                   Mapping=[dict(Line=ln, Offset=o, Bytes=n, Kind=k) for ln, o, n, k in mapping],
                   Scope='Closed source grammar and exact emission; CPL0 required; QEMU evidence separate.')
+    if user_fault:
+        require(len(packet) <= 4096, 'USER-FAULT-BRIDGE-BUDGET')
+        report['BridgePacketLimitBytes'] = 4096
+    else:
+        report['EntryBudget'] = entry_budget(len(body), len(packet))
     for key, data in [('Source', source), ('Hex', hex_path.read_bytes()),
                       ('IR', ir_path.read_bytes()), ('Packet', packet)]:
         report[key + 'SHA256'] = hashlib.sha256(data).hexdigest()
     return packet, report
 
 
-def check(run, *, identify=False, context=False, fault=False, memory=False, cycle=False, paging=False):
+def check(run, *, identify=False, context=False, fault=False, memory=False, cycle=False, paging=False, user_fault=False):
     root = Path(__file__).resolve().parents[1]
     packet, report = verify(run/'source.casm', run/'program.hex', run/'program.ir.json',
-                            identify=identify, context=context, fault=fault, memory=memory, cycle=cycle, paging=paging)
-    source = PAGING_ASSETS/'main.casm' if paging else CYCLE_ASSETS/'main.casm' if cycle else MEMORY_ASSETS/'main.casm' if memory else FAULT_ASSETS/'main.casm' if fault else root / ('kernel/boot/context/main.casm' if context else
+                            identify=identify, context=context, fault=fault, memory=memory, cycle=cycle, paging=paging,
+                            user_fault=user_fault)
+    source = USER_FAULT_ASSETS/'main.casm' if user_fault else PAGING_ASSETS/'main.casm' if paging else CYCLE_ASSETS/'main.casm' if cycle else MEMORY_ASSETS/'main.casm' if memory else FAULT_ASSETS/'main.casm' if fault else root / ('kernel/boot/context/main.casm' if context else
                      'kernel/arch/x86_64/cpu/identify.casm' if identify else 'kernel/boot/stop/main.casm')
     vector = source.with_suffix('.hex') if identify else source.with_name('expected.hex')
     require((run/'source.casm').read_bytes() == source.read_bytes(), 'STOP-CANONICAL-SOURCE')
@@ -184,14 +207,16 @@ def main():
     profile.add_argument('--memory', action='store_true')
     profile.add_argument('--frame-cycle', action='store_true')
     profile.add_argument('--paging', action='store_true')
+    profile.add_argument('--user-fault', action='store_true')
     args = p.parse_args()
     outputs = [args.packet.resolve(), args.report.resolve()]
     require(len(set(outputs)) == 2 and not set(outputs).intersection(
             path.resolve() for path in [args.source, args.hex, args.ir, FAULT_ASSETS/'expected.hex',
                                         MEMORY_ASSETS/'expected.hex', CYCLE_ASSETS/'expected.hex',
-                                        PAGING_ASSETS/'expected.hex']), 'STOP-OUTPUT-ALIAS')
+                                        PAGING_ASSETS/'expected.hex', USER_FAULT_ASSETS/'expected.hex']), 'STOP-OUTPUT-ALIAS')
     packet, report = verify(args.source, args.hex, args.ir, identify=args.identify, context=args.context,
-                            fault=args.fault, memory=args.memory, cycle=args.frame_cycle, paging=args.paging)
+                            fault=args.fault, memory=args.memory, cycle=args.frame_cycle, paging=args.paging,
+                            user_fault=args.user_fault)
     args.packet.write_bytes(packet)
     args.report.write_text(json.dumps(report, indent=2)+'\n', encoding='ascii', newline='\n')
     print(f'GREEN [STOP-VERIFY] {report["BodyBytes"]} body bytes; {len(packet)} packet bytes independently checked.')

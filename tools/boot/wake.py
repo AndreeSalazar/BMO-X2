@@ -14,6 +14,7 @@ sys.path.insert(0,str(ROOT/'tools'))
 from genesis import check as genesis_check
 sys.path.insert(0,str(ROOT/'CASM'))
 from stop_verify import check as stop_check, CPU_PROFILE, CONTEXT_PROFILE, FAULT_PROFILE, MEMORY_PROFILE, CYCLE_PROFILE, PAGING_PROFILE
+from stop_verify import USER_FAULT_PROFILE
 from splash_verify import check as splash_check, PROFILE as SPLASH_PROFILE, HD_PROFILE
 
 
@@ -26,6 +27,7 @@ def check(run):
     if profile == MEMORY_PROFILE: return stop_check(run, memory=True)
     if profile == CYCLE_PROFILE: return stop_check(run, cycle=True)
     if profile == PAGING_PROFILE: return stop_check(run, paging=True)
+    if profile == USER_FAULT_PROFILE: return stop_check(run, user_fault=True)
     if profile == SPLASH_PROFILE: return splash_check(run)
     if profile == HD_PROFILE: return splash_check(run, hd=True)
     if profile != 'metal64-0.2': raise ValueError('Perfil desconocido')
@@ -62,7 +64,7 @@ def main():
     parser.add_argument('--powershell',type=Path,help='Use the same PowerShell executable as the calling build')
     parser.add_argument('--cases',nargs='+',choices=CASES+['contexto'],default=CASES)
     parser.add_argument('--cpu', choices=['qemu64', 'Nehalem'], default='qemu64')
-    parser.add_argument('--profile',choices=['metal64-0.2','ring0-stop-0.1',CPU_PROFILE,CONTEXT_PROFILE,FAULT_PROFILE,MEMORY_PROFILE,CYCLE_PROFILE,PAGING_PROFILE,SPLASH_PROFILE,HD_PROFILE],default='metal64-0.2')
+    parser.add_argument('--profile',choices=['metal64-0.2','ring0-stop-0.1',CPU_PROFILE,CONTEXT_PROFILE,FAULT_PROFILE,MEMORY_PROFILE,CYCLE_PROFILE,PAGING_PROFILE,USER_FAULT_PROFILE,SPLASH_PROFILE,HD_PROFILE],default='metal64-0.2')
     args=parser.parse_args();run=workspace(args.run)
     identify=args.profile==CPU_PROFILE
     stack=args.profile==CONTEXT_PROFILE
@@ -70,16 +72,17 @@ def main():
     memory_probe=args.profile==MEMORY_PROFILE
     cycle=args.profile==CYCLE_PROFILE
     paging=args.profile==PAGING_PROFILE
+    user_fault=args.profile==USER_FAULT_PROFILE
     splash=args.profile in (SPLASH_PROFILE,HD_PROFILE)
     stop=args.profile!='metal64-0.2'
     frozen_profile=(run/'profile.txt').read_text(encoding='utf-8-sig').strip() if (run/'profile.txt').exists() else 'metal64-0.2'
     if frozen_profile!=args.profile: raise ValueError('Perfil distinto al run congelado')
     if identify and args.cases != ['normal']: raise ValueError('La identificacion requiere el caso normal')
     if splash and args.cases != ['normal']: raise ValueError('El splash requiere el caso normal')
-    checks_handoff = stack or fault or memory_probe or cycle or paging
+    checks_handoff = stack or fault or memory_probe or cycle or paging or user_fault
     if checks_handoff and args.cases != ['normal','contexto']: raise ValueError('La prueba exige contexto valido e invalido')
     if not checks_handoff and 'contexto' in args.cases: raise ValueError('El caso contexto exige una prueba de entrega')
-    milestone='Ring0 own page tables' if paging else 'Ring0 physical frame lifecycle' if cycle else 'Ring0 physical frame' if memory_probe else 'Ring0 invalid opcode handler' if fault else 'Ring0 cat splash' if splash else 'Ring0 handoff and stack' if stack else 'Ring0 CPU identification' if identify else ('Ring0 stop S1' if stop else 'Genesis G1')
+    milestone='Ring3 protection fault and cleanup' if user_fault else 'Ring0 own page tables' if paging else 'Ring0 physical frame lifecycle' if cycle else 'Ring0 physical frame' if memory_probe else 'Ring0 invalid opcode handler' if fault else 'Ring0 cat splash' if splash else 'Ring0 handoff and stack' if stack else 'Ring0 CPU identification' if identify else ('Ring0 stop S1' if stop else 'Genesis G1')
     ram_mib=1024 if splash else 256
     verified = check(run)
     if (run/'qemu-run.json').exists(): raise ValueError('Run ya preparado; compilar un run nuevo para otra ejecucion')
@@ -119,6 +122,8 @@ def main():
         probe_flags.append('--frame-cycle')
     if paging:
         probe_flags.append('--paging')
+    if user_fault:
+        probe_flags.append('--user-fault')
     if splash:
         probe_flags.append('--splash')
     if args.profile == HD_PROFILE:
@@ -130,7 +135,8 @@ def main():
         data.update(schema=1,evidence='QEMU',milestone=milestone,physical_boot=False,autonomous_kernel=False,
                     body_bytes=len(packet.read_bytes())-24,packet_bytes=packet.stat().st_size,bridge_bytes=len(image),run=run.name,packet_sha256=sha(packet),
                     qemu=version,source_sha256=sha(run/'source.casm'),
-                    case_scope='Own CR3, supervisor mapping and user read-only NX alias under QEMU' if paging else
+                    case_scope='Fixed CPL3 program, supervisor page fault and cleanup of two reserved pages' if user_fault else
+                    'Own CR3, supervisor mapping and user read-only NX alias under QEMU' if paging else
                     'Single frame ownership, scrub and reuse under QEMU' if cycle else
                     'Physical frame marker and null handoff rejection under QEMU' if memory_probe else
                     'Own IDT and controlled #UD; null handoff rejection under QEMU' if fault else

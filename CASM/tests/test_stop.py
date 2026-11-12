@@ -186,6 +186,31 @@ class Stop(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'STOP-EMISSION'):
                 verify(self.source, self.hex, self.ir, paging=True)
 
+    def test_user_fault_requires_iret_and_page_teardown(self):
+        source = ROOT/'kernel/mm/user/main.casm'
+        self.source.write_bytes(source.read_bytes())
+        cmd = [str(self.compiler), '--profile', 'ring0-user-fault-0.1',
+               str(self.source), str(self.hex), str(self.ir)]
+        self.assertEqual(subprocess.run(cmd, capture_output=True).returncode, 0)
+        packet, report = verify(self.source, self.hex, self.ir, user_fault=True)
+        self.assertEqual(len(packet), 740)
+        self.assertEqual(report['BridgePacketLimitBytes'], 4096)
+        ir = json.loads(self.ir.read_text())
+        ir['Process']['ErrorCode'] = 4
+        self.ir.write_text(json.dumps(ir))
+        with self.assertRaisesRegex(ValueError, 'STOP-IR'):
+            verify(self.source, self.hex, self.ir, user_fault=True)
+        ir['Process']['ErrorCode'] = 5
+        self.ir.write_text(json.dumps(ir))
+        body = packet[24:]
+        for opcode in ('48 CF', '0F 01 39', 'F3 48 AB'):
+            start = 605 if opcode == 'F3 48 AB' else 0
+            changed = bytearray(body)
+            changed[body.index(bytes.fromhex(opcode), start)] = 0x90
+            self.hex.write_text(changed.hex(' '))
+            with self.assertRaisesRegex(ValueError, 'STOP-EMISSION'):
+                verify(self.source, self.hex, self.ir, user_fault=True)
+
     def test_all_byte_bits_and_ir_contract_reject(self):
         self.assertEqual(self.compile().returncode, 0)
         vector = bytes.fromhex(self.hex.read_text())

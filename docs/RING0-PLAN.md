@@ -33,12 +33,14 @@ una excepcion controlada en QEMU. La entrega 2 ya prueba el ciclo de
 propiedad, devolucion, borrado y reutilizacion de un marco de 4 KiB.
 CASM ya selecciona seis marcos contiguos del mapa UEFI, activa tablas
 propias y comprueba un alias de usuario de solo lectura y sin ejecucion
-desde CPL0. Faltan el asignador general y el ensayo CPL3 con captura de
-fallo de pagina y recuperacion de recursos.
+desde CPL0. Un ensayo separado ya entra a CPL3, captura el fallo de
+proteccion y desmapea y borra las dos paginas del programa de prueba.
+Faltan el asignador general y la reutilizacion en un segundo proceso.
 [Contexto y pila](../kernel/boot/context/STACK.md) y
 [primera excepcion](../kernel/arch/x86_64/exceptions/FAULT.md).
 [Ciclo de un marco](../kernel/mm/physical/lifecycle/CYCLE.md) y
 [tablas propias](../kernel/mm/virtual/PAGING.md).
+[Fallo desde CPL3](../kernel/mm/user/USER-FAULT.md).
 
 Para dar paso al runtime de Ring 3 se exige un primer proceso aislado.
 El kernel debe poder cargar su SBEF, darle una pila y permisos propios,

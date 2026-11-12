@@ -781,7 +781,7 @@ Entrada: BEF2 de BMO-X, regiones del ejecutable y contrato de dos puertas.
 Salida: Criterios del encabezado, admision, pruebas y versionado del ABI.
 Depende de: BEF2 y ABI de BMO-X (plan), Memoria y aislamiento (plan).
 Aceptacion: Dos lectores coinciden, QEMU prueba rechazo y aislamiento, y varios toolchains producen la misma peticion.
-Pendiente: Contexto y excepcion CASM, cargador SBEF, INVOKE y WAIT. Congelar al cerrar las pruebas.
+Pendiente: Cotejar cargador CASM con el prototipo HOST y probar INVOKE y WAIT antes de congelar.
 
 ## kernel/boot/context
 
@@ -847,7 +847,7 @@ Entrada: Espacio de usuario, direccion, longitud y permiso requerido.
 Salida: Copia acotada o error estable, con vida del rango controlada.
 Depende de: Espacios y permisos (plan), Excepciones x86-64 (plan).
 Aceptacion: Un rango ajeno, desbordado o con pagina ausente se rechaza.
-Pendiente: Probar limites de pagina y limpieza del proceso.
+Pendiente: Probar copia entre anillos y devolver paginas al asignador general.
 
 ## kernel/process
 
@@ -856,9 +856,9 @@ Crea contexto de usuario, entra en Ring 3 y recoge recursos al terminar.
 Estado: DISENO. Anillo: 0. Lenguaje: CASM.
 Entrada: Espacio aislado, imagen de prueba y pila.
 Salida: Proceso con identidad y salida observable.
-Depende de: Estado de CPU y cambio de contexto (plan), Memoria de usuario (plan), Inicializacion del kernel (plan).
+Depende de: Estado de CPU y cambio de contexto (plan), Memoria de usuario (plan), Inicializacion del kernel (plan), Fallo de proteccion desde CPL3 (plan).
 Aceptacion: QEMU observa CPL3, retorno y fallo contenido, con recursos recuperados.
-Pendiente: Demostrar primero una imagen fija de prueba.
+Pendiente: Arrancar una imagen SBEF y reutilizar recursos en un segundo proceso.
 
 ## kernel/loader
 
@@ -867,9 +867,9 @@ Admite y mapea una imagen SBEF bajo el contrato del proceso.
 Estado: DISENO. Anillo: 0. Lenguaje: CASM.
 Entrada: Bytes del ejecutable, limites, perfil SBEF y estado de CPU.
 Salida: Imagen mapeada con entrada y permisos comprobados o motivo de rechazo.
-Depende de: SBEF y congelacion del ABI (plan), Proceso y ciclo de vida (plan).
+Depende de: SBEF y congelacion del ABI (plan), Proceso y ciclo de vida (plan), Empaquetador ELF64 a SBEF (verificacion).
 Aceptacion: El lector independiente y CASM coinciden en el vector de oro y rechazos, con QEMU en Ring 3.
-Pendiente: Implementar primero la imagen estatica minima.
+Pendiente: Leer en CASM la imagen estatica emitida por el empaquetador HOST.
 
 ## kernel/syscalls/invoke
 
@@ -1188,7 +1188,29 @@ Entrada: Mapa UEFI y seis marcos convencionales contiguos.
 Salida: Cinco tablas y una pagina de datos de solo lectura y NX.
 Depende de: Primer marco de RAM (codigo), Verificador independiente de parada (verificacion).
 Aceptacion: QEMU coteja las entradas, CR3 activo, NX, WP y la lectura por el alias.
-Pendiente: Ejecutar en CPL3 y capturar un fallo de pagina con pila de Ring 0.
+Pendiente: Generalizar los espacios por proceso y sus permisos.
+
+## kernel/mm/user/main.casm
+
+Ejecuta un programa fijo en CPL3 y captura el acceso prohibido en Ring 0.
+
+Estado: QEMU. Anillo: 0. Lenguaje: CASM.
+Entrada: Tablas, GDT, TSS, puerta 14 y programa de prueba.
+Salida: Marco hardware de #PF y dos paginas de usuario desmapeadas y borradas.
+Depende de: Tablas propias y alias de datos (plan), Primera excepcion #UD (plan).
+Aceptacion: QEMU comprueba CPL3, CR2, error 5, pila de Ring 0 y memoria a cero.
+Pendiente: Reutilizar los marcos con el asignador general y ejecutar un segundo proceso.
+
+## tools/sbef.py
+
+Convierte segmentos de un ELF64 estatico a regiones SBEF comprobadas.
+
+Estado: HOST. Anillo: host. Lenguaje: Python control.
+Entrada: Ejecutable x86-64 freestanding y contrato binario provisional.
+Salida: Cabecera, tabla de regiones y bytes de la imagen SBEF.
+Depende de: SBEF y congelacion del ABI (codigo).
+Aceptacion: Vector fijo y rechazos de truncado, solape, permisos y entrada; pruebas C y C++.
+Pendiente: Probar Rust ELF y cotejar la admision contra el cargador CASM.
 
 ## CASM
 
@@ -1212,4 +1234,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-108 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+110 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

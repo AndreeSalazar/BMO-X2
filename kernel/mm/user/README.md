@@ -11,4 +11,4 @@ Valida rangos y copia datos entre anillos.
 - Entrada: Espacio de usuario, direccion, longitud y permiso requerido.
 - Salida: Copia acotada o error estable, con vida del rango controlada.
 - Aceptacion: Un rango ajeno, desbordado o con pagina ausente se rechaza.
-- Pendiente: Probar limites de pagina y limpieza del proceso.
+- Pendiente: Probar copia entre anillos y devolver paginas al asignador general.

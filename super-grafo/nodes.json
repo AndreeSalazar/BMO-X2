@@ -1226,7 +1226,7 @@
       "entrada": "BEF2 de BMO-X, regiones del ejecutable y contrato de dos puertas.",
       "salida": "Criterios del encabezado, admision, pruebas y versionado del ABI.",
       "aceptacion": "Dos lectores coinciden, QEMU prueba rechazo y aislamiento, y varios toolchains producen la misma peticion.",
-      "falta": "Contexto y excepcion CASM, cargador SBEF, INVOKE y WAIT. Congelar al cerrar las pruebas."
+      "falta": "Cotejar cargador CASM con el prototipo HOST y probar INVOKE y WAIT antes de congelar."
     },
     {
       "id": "boot-context",
@@ -1333,7 +1333,7 @@
       "entrada": "Espacio de usuario, direccion, longitud y permiso requerido.",
       "salida": "Copia acotada o error estable, con vida del rango controlada.",
       "aceptacion": "Un rango ajeno, desbordado o con pagina ausente se rechaza.",
-      "falta": "Probar limites de pagina y limpieza del proceso.",
+      "falta": "Probar copia entre anillos y devolver paginas al asignador general.",
       "pagina": true
     },
     {
@@ -1351,7 +1351,7 @@
       "entrada": "Espacio aislado, imagen de prueba y pila.",
       "salida": "Proceso con identidad y salida observable.",
       "aceptacion": "QEMU observa CPL3, retorno y fallo contenido, con recursos recuperados.",
-      "falta": "Demostrar primero una imagen fija de prueba.",
+      "falta": "Arrancar una imagen SBEF y reutilizar recursos en un segundo proceso.",
       "pagina": true
     },
     {
@@ -1369,7 +1369,7 @@
       "entrada": "Bytes del ejecutable, limites, perfil SBEF y estado de CPU.",
       "salida": "Imagen mapeada con entrada y permisos comprobados o motivo de rechazo.",
       "aceptacion": "El lector independiente y CASM coinciden en el vector de oro y rechazos, con QEMU en Ring 3.",
-      "falta": "Implementar primero la imagen estatica minima.",
+      "falta": "Leer en CASM la imagen estatica emitida por el empaquetador HOST.",
       "pagina": true
     },
     {
@@ -1860,7 +1860,35 @@
       "entrada": "Mapa UEFI y seis marcos convencionales contiguos.",
       "salida": "Cinco tablas y una pagina de datos de solo lectura y NX.",
       "aceptacion": "QEMU coteja las entradas, CR3 activo, NX, WP y la lectura por el alias.",
-      "falta": "Ejecutar en CPL3 y capturar un fallo de pagina con pila de Ring 0."
+      "falta": "Generalizar los espacios por proceso y sus permisos."
+    },
+    {
+      "id": "user-protection-fault",
+      "titulo": "Fallo de proteccion desde CPL3",
+      "ruta": "kernel/mm/user/main.casm",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [9500, 3850],
+      "que": "Ejecuta un programa fijo en CPL3 y captura el acceso prohibido en Ring 0.",
+      "entrada": "Tablas, GDT, TSS, puerta 14 y programa de prueba.",
+      "salida": "Marco hardware de #PF y dos paginas de usuario desmapeadas y borradas.",
+      "aceptacion": "QEMU comprueba CPL3, CR2, error 5, pila de Ring 0 y memoria a cero.",
+      "falta": "Reutilizar los marcos con el asignador general y ejecutar un segundo proceso."
+    },
+    {
+      "id": "sbef-host-pack",
+      "titulo": "Empaquetador ELF64 a SBEF",
+      "ruta": "tools/sbef.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python control",
+      "posicion": [10000, 3850],
+      "que": "Convierte segmentos de un ELF64 estatico a regiones SBEF comprobadas.",
+      "entrada": "Ejecutable x86-64 freestanding y contrato binario provisional.",
+      "salida": "Cabecera, tabla de regiones y bytes de la imagen SBEF.",
+      "aceptacion": "Vector fijo y rechazos de truncado, solape, permisos y entrada; pruebas C y C++.",
+      "falta": "Probar Rust ELF y cotejar la admision contra el cargador CASM."
     }
   ],
   "relaciones": [
@@ -2882,6 +2910,31 @@
     {
       "de": "own-page-tables",
       "a": "stop-verifier",
+      "clase": "verificacion"
+    },
+    {
+      "de": "process",
+      "a": "user-protection-fault",
+      "clase": "plan"
+    },
+    {
+      "de": "user-protection-fault",
+      "a": "own-page-tables",
+      "clase": "plan"
+    },
+    {
+      "de": "user-protection-fault",
+      "a": "fault-ud",
+      "clase": "plan"
+    },
+    {
+      "de": "sbef-host-pack",
+      "a": "sbef",
+      "clase": "codigo"
+    },
+    {
+      "de": "sbef-loader",
+      "a": "sbef-host-pack",
       "clase": "verificacion"
     }
   ]

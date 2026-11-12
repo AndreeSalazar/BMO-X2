@@ -11,4 +11,4 @@ Admite y mapea una imagen SBEF bajo el contrato del proceso.
 - Entrada: Bytes del ejecutable, limites, perfil SBEF y estado de CPU.
 - Salida: Imagen mapeada con entrada y permisos comprobados o motivo de rechazo.
 - Aceptacion: El lector independiente y CASM coinciden en el vector de oro y rechazos, con QEMU en Ring 3.
-- Pendiente: Implementar primero la imagen estatica minima.
+- Pendiente: Leer en CASM la imagen estatica emitida por el empaquetador HOST.
