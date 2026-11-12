@@ -1176,6 +1176,23 @@
       "salida": "Siete casos con huellas, registros y captura.",
       "aceptacion": "No retorno; cuerpo exacto; RIP propio; IF=0; Ring 0 y HLT observados.",
       "falta": "Ampliar contexto y excepciones con contrato y evidencia propios; no acredita kernel completo."
+    },
+    {
+      "id": "abi-bef2",
+      "titulo": "BEF2 y ABI de Ring 3",
+      "ruta": "contracts/ABI-BEF2.md",
+      "estado": "diseno",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
+      "posicion": [
+        280,
+        -400
+      ],
+      "que": "Distingue admision de imagen BEF2 y peticiones durante la ejecucion.",
+      "entrada": "Contrato BEF2 y ABI de BMO-X. Programas x86-64 de Rust, C y C++.",
+      "salida": "Campos, productores, consumidores y pruebas de aceptacion para la frontera CASM/Ring 3.",
+      "aceptacion": "Un .bex minimo se admite en QEMU y las bibliotecas producen una peticion equivalente por el mismo ABI.",
+      "falta": "Contexto de CPU, memoria, cargador CASM y prueba QEMU de la primera peticion."
     }
   ],
   "relaciones": [
@@ -1763,6 +1780,21 @@
       "de": "stop-qemu",
       "a": "boot-bridge",
       "clase": "verificacion"
+    },
+    {
+      "de": "abi-bef2",
+      "a": "contracts",
+      "clase": "plan"
+    },
+    {
+      "de": "syscalls",
+      "a": "abi-bef2",
+      "clase": "plan"
+    },
+    {
+      "de": "rust-runtime",
+      "a": "abi-bef2",
+      "clase": "plan"
     }
   ]
 }

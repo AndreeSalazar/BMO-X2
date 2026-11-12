@@ -72,6 +72,7 @@
 | [Verificador independiente de parada](../CASM/stop_verify.py) | host | host | Reconoce fuente, IR3 y bytes sin invocar el compilador. |
 | [Pruebas del perfil privilegiado](../CASM/tests/test_stop.py) | host | host | Prueba fronteras de gramatica, perfil, IR y emision. |
 | [Evidencia QEMU parada S1](../kernel/boot/stop/evidence/qemu.json) | qemu | host | Registra parada propia tras ExitBootServices y seis casos negativos. |
+| [BEF2 y ABI de Ring 3](../contracts/ABI-BEF2.md) | diseno | contrato | Distingue admision de imagen BEF2 y peticiones durante la ejecucion. |
 
 ## Dependencias declaradas
 
@@ -194,5 +195,8 @@
 | stop-qemu | stop-verifier | verificacion |
 | stop-qemu | qemu-runner | verificacion |
 | stop-qemu | boot-bridge | verificacion |
+| abi-bef2 | contracts | plan |
+| syscalls | abi-bef2 | plan |
+| rust-runtime | abi-bef2 | plan |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

@@ -229,7 +229,7 @@ Recibe operaciones de Ring 3 y comprueba el contrato antes de tocar recursos.
 Estado: DISENO. Anillo: 0. Lenguaje: CASM.
 Entrada: ABI versionado, registros, capability y buffers declarados.
 Salida: Respuesta definida y retorno seguro a Ring 3.
-Depende de: Capacidades (plan), Excepciones x86-64 (plan).
+Depende de: Capacidades (plan), Excepciones x86-64 (plan), BEF2 y ABI de Ring 3 (plan).
 Aceptacion: Solicitud valida devuelve resultado; puntero/capacidad invalidos no comprometen al kernel.
 Pendiente: Convencion de llamada, entradas/salidas, estados y primera operacion observable.
 
@@ -240,7 +240,7 @@ Permite ejecutar un programa Rust aislado usando el ABI concedido por CASM.
 Estado: DISENO. Anillo: 3. Lenguaje: Rust.
 Entrada: Imagen admitida, pila, datos y ABI BMO-X2.
 Salida: Entrada de usuario, llamadas y finalizacion/panico controlados.
-Depende de: Puerta CASM/Rust (plan).
+Depende de: Puerta CASM/Rust (plan), BEF2 y ABI de Ring 3 (plan).
 Aceptacion: Programa no_std entra en Ring 3, recibe respuesta del kernel y falla de forma contenida.
 Pendiente: Target, entrada, enlace, wrappers del ABI y manejo de panico; aun no hay crate.
 
@@ -750,6 +750,17 @@ Depende de: Fuente de parada propia (verificacion), Verificador independiente de
 Aceptacion: No retorno; cuerpo exacto; RIP propio; IF=0; Ring 0 y HLT observados.
 Pendiente: Ampliar contexto y excepciones con contrato y evidencia propios; no acredita kernel completo.
 
+## contracts/ABI-BEF2.md
+
+Distingue admision de imagen BEF2 y peticiones durante la ejecucion.
+
+Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
+Entrada: Contrato BEF2 y ABI de BMO-X. Programas x86-64 de Rust, C y C++.
+Salida: Campos, productores, consumidores y pruebas de aceptacion para la frontera CASM/Ring 3.
+Depende de: Contratos de BMO-X2 (plan).
+Aceptacion: Un .bex minimo se admite en QEMU y las bibliotecas producen una peticion equivalente por el mismo ABI.
+Pendiente: Contexto de CPU, memoria, cargador CASM y prueba QEMU de la primera peticion.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -772,4 +783,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-68 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+69 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

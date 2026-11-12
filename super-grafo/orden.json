@@ -143,6 +143,14 @@
         120
       ],
       "motivo": "Registra parada propia tras ExitBootServices y seis casos negativos."
+    },
+    "contracts/ABI-BEF2.md": {
+      "rgb": [
+        100,
+        170,
+        255
+      ],
+      "motivo": "Contrato de admision BEF2 y peticiones ABI en diseno."
     }
   },
   "direccion": "houdini",
@@ -514,6 +522,10 @@
     "kernel/boot/stop/evidence/qemu.json": [
       720,
       960
+    ],
+    "contracts/ABI-BEF2.md": [
+      360,
+      320
     ]
   },
   "foco": "kernel/boot",

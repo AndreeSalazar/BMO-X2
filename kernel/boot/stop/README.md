@@ -51,3 +51,8 @@ perfil, fuente, desplazamiento o instruccion diferente. Los colores guardados
 en `super-grafo/orden.json` indican responsabilidades; la evidencia QEMU tiene
 su nodo propio. Proximo contrato: contexto y diagnostico propios con una
 excepcion controlada antes de habilitar interrupciones.
+
+En Windows, el Taller ofrece **Generar HEX de parada Ring 0** al abrir el
+espacio BMO-X2. El boton usa `pwsh.exe` de PowerShell 7 y guarda una nueva
+compilacion verificada en `build/CASM`. La accion `parada` ejecuta QEMU por
+separado.
