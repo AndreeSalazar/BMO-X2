@@ -125,6 +125,7 @@
 | [Reglas de jerarquia de Ring 3](../userspace/POLICY.md) | diseno | contrato | Separa runtime, supervisor, servicios y aplicaciones mediante capacidades. |
 | [Escritorio y espacios de trabajo](../userspace/services/desktop) | host | 3 | Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX. |
 | [Teclado y atajos del escritorio](../userspace/services/desktop/src/keyboard.rs) | host | 3 | Convierte el evento crudo de BMO-X en acciones directas del escritorio. |
+| [Sonda DOOM C a SBEF](../tools/build-doom-probe.ps1) | host | host | Compila la aritmetica original de DoomGeneric y empaqueta un cliente ELF64. |
 | [Prestamo y revocacion DMA](../kernel/drivers/bus/DMA.md) | diseno | contrato | Acota los marcos visibles al dispositivo y controla su devolucion. |
 
 ## Dependencias declaradas
@@ -359,5 +360,7 @@
 | dma-lease | hot-unmap | plan |
 | desktop-keyboard | desktop-workspaces | codigo |
 | desktop-keyboard | device-io | plan |
+| doom-fixed-probe | sbef-loader-boundary | plan |
+| doom-fixed-probe | sbef-host-pack | generacion |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

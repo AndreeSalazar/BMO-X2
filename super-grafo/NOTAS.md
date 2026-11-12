@@ -1333,6 +1333,17 @@ Depende de: Escritorio y espacios de trabajo (codigo), Entrada, pantalla y audio
 Aceptacion: HOST verifica cambio de espacio, movimiento, repeticion, liberacion y reenvio.
 Pendiente: Conectar la capacidad de entrada y probar teclado real en QEMU.
 
+## tools/build-doom-probe.ps1
+
+Compila la aritmetica original de DoomGeneric y empaqueta un cliente ELF64.
+
+Estado: HOST. Anillo: host. Lenguaje: PowerShell y C.
+Entrada: m_fixed.c fijado, toolchain x86-64 ELF y portal ABI 1.
+Salida: Cuatro comprobaciones HOST, tabla ELF y doom-fixed.sbef.
+Depende de: Contrato minimo del cargador SBEF (plan), Empaquetador ELF64 a SBEF (generacion).
+Aceptacion: HOST ejecuta los casos y el importador admite el segmento RX.
+Pendiente: Verificar GCC ELF, ejecutar el SBEF externo y portar video, teclado, reloj y WAD.
+
 ## kernel/drivers/bus/DMA.md
 
 Acota los marcos visibles al dispositivo y controla su devolucion.
@@ -1366,4 +1377,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-122 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+123 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

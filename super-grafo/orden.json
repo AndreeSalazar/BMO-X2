@@ -1,5 +1,9 @@
 {
   "tintes": {
+    "tools/build-doom-probe.ps1": {
+      "rgb": [90, 200, 140],
+      "motivo": "HOST: aritmetica original de DOOM y extraccion ELF64 a SBEF."
+    },
     "userspace/services/desktop/src/keyboard.rs": {
       "rgb": [90, 200, 140],
       "motivo": "Ring 3: traduce eventos crudos a acciones de espacio y foco."
@@ -1062,6 +1066,10 @@
     "userspace/services/desktop/src/keyboard.rs": [
       1850,
       2200
+    ],
+    "tools/build-doom-probe.ps1": [
+      11500,
+      4200
     ],
     "kernel/drivers/bus/DMA.md": [
       11500,

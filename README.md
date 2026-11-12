@@ -64,7 +64,7 @@ indican capacidad configurada. La RAM residente del kernel integrado
 queda por medir.
 
 En HOST, CASM conserva el resultado de 333 casos diferenciales
-frente a la base. SUPER GRAFO registra 122 nodos, 228 relaciones
+frente a la base. SUPER GRAFO registra 123 nodos, 230 relaciones
 y 57 elementos del catalogo CASM.
 [Medidas CASM](CASM/CONTROL-PERFORMANCE-ELEGANCE.md) |
 [Estado del compilador](CASM/STATUS-BMO-X2.md) |
@@ -94,15 +94,18 @@ Su ejecutable Rust freestanding ya se empaqueta como SBEF ABI 1.
 [Reglas de Ring 3](userspace/POLICY.md) |
 [Frontera de ejecucion](docs/RING-BOUNDARY.md)
 
+La [sonda DOOM](userspace/apps/doom/README.md) ejecuta cuatro casos de
+aritmetica original en HOST y empaqueta el ELF64 como SBEF ABI 1.
+
 ## Siguientes entregas
 
 1. **Carga externa.** El cargador CASM valida un SBEF producido por el
    toolchain, mapea sus regiones con permisos y ejecuta la entrada.
    Se prueba una imagen admitida y los rechazos comparados con el lector HOST.
-2. **Primer Rust en Ring 3.** Un cliente `no_std` usa el ABI propio y
-   pasa por el mismo cargador. Queda preparar el target ELF freestanding,
-   comprobar INVOKE y la salida, y recuperar los recursos del proceso.
-   Despues se adapta el runtime del padre antes de incorporar servicios.
+2. **Escritorio Rust en Ring 3.** El ELF freestanding ya se empaqueta en
+   HOST. En QEMU queda comprobar INVOKE, presentar el cuadro compuesto,
+   conectar el teclado a los cuatro espacios y recuperar los recursos
+   al cerrar el proceso.
 3. **Ciclo de vida y ABI.** WAIT debe bloquear y despertar por senal o
    plazo. Se prueba reutilizar marcos en un segundo proceso antes de
    fijar el ABI. SMP y DMA requieren confirmacion de revocacion antes
