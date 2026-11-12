@@ -63,22 +63,63 @@ verifica los tres cuadros del gato y la ejecucion del SBEF en la
 misma VM. El perfil HD y el perfil ABI de referencia conservan sus
 vectores. La copia combinada termina en la parada del ensayo.
 
-Abre el run DOOM aprobado con:
+Para repetir en pantalla el ultimo arranque aprobado con intro:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1 -Run <ruta-del-run-doom>
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1 -Profile doom-intro -Wait
+```
+
+El visor espera el titulo de la ventana SDL, intenta darle foco y
+publica la ruta del registro serie del invitado. `-Wait` devuelve la
+terminal al cerrar QEMU. Para elegir un ensayo exacto, sustituye
+`-Profile doom-intro` por `-Run <ruta-del-run-doom>`.
+El perfil usa TCG, VGA emulada y SDL con OpenGL desactivado.
+
+Para recompilar toda la secuencia y abrir el resultado en PowerShell 5.1:
+
+```powershell
+Set-Location 'C:\Users\Salazar\Documents\BMO-X2'
+$ps51 = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+$gcc = (Resolve-Path .\build\tools\gcc-15.2.0\bin\x86_64-elf-gcc.exe).Path
+
+& $ps51 -NoProfile -ExecutionPolicy Bypass -File .\bmo-x2.ps1 -Accion gato-hd
+if ($LASTEXITCODE) { throw 'Fallo el gato HD' }
+& $ps51 -NoProfile -ExecutionPolicy Bypass -File .\bmo-x2.ps1 -Accion abi
+if ($LASTEXITCODE) { throw 'Fallo el perfil ABI' }
+
+function Find-BootRun([string]$Profile) {
+    Get-ChildItem .\build\CASM -Directory -Filter 'run-*' |
+        Sort-Object LastWriteTime -Descending |
+        Where-Object {
+            $path = Join-Path $_.FullName 'profile.txt'
+            (Test-Path -LiteralPath $path) -and (Get-Content -LiteralPath $path) -eq $Profile
+        } | Select-Object -First 1 -ExpandProperty FullName
+}
+$intro = Find-BootRun 'ring0-splash-hd-0.1'
+$abi = Find-BootRun 'ring0-abi-probe-0.1'
+& $ps51 -NoProfile -ExecutionPolicy Bypass -File .\tools\build-doom-probe.ps1 -Gcc $gcc -AbiRun $abi -IntroRun $intro
+if ($LASTEXITCODE) { throw 'Fallo la sonda DOOM' }
+& $ps51 -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1 -Profile doom-intro -Wait
 ```
 
 ## Del escritorio al primer cuadro de DOOM
 
-1. Cargar el SBEF externo en QEMU y comprobar el portal ABI desde CPL3.
-2. Presentar el framebuffer del escritorio Rust y entregar eventos de
-   teclado al espacio activo. Probar Ctrl + Super + numero para espacios.
-3. Adaptar las funciones DoomGeneric de dibujo, teclado y reloj a esos
-   servicios. Dar al juego memoria de trabajo y lectura de un WAD externo.
-4. Compilar el motor completo en C, enlazarlo como ELF64 y empaquetarlo.
-   Verificar en QEMU la lectura del WAD y un cuadro que responda al teclado.
-5. Conectar efectos y musica a fuentes independientes del
+1. **Cargador CASM.** Recibir un SBEF como archivo independiente del
+   paquete de arranque. Validar y mapear varias regiones RX, R y RW/NX,
+   inicializar BSS y pila, entrar a CPL3 y recuperar los marcos al salir.
+   Probar una imagen Rust y rechazos de tamanos y permisos.
+2. **Pantalla y teclado.** Ring 0 concede presentacion e input.
+   Ring 3 compone sobre un buffer en RAM y presenta por el framebuffer
+   lineal. La prueba cambia de espacio con Ctrl + Super + numero y
+   verifica que la ventana enfocada recibe teclas.
+3. **Runtime del juego.** Portar las funciones DoomGeneric a las
+   capacidades de pantalla, teclado y reloj monotono. Dar al motor
+   memoria de trabajo, libc minima y acceso de lectura a un WAD.
+4. **Partida en QEMU.** Compilar el motor completo en C con GCC,
+   empaquetarlo como SBEF y verificar el primer mapa y una tecla que
+   cambie un cuadro. DOOM rasteriza en CPU. Medir el tiempo por cuadro
+   y la memoria del proceso antes de ajustar la composicion.
+5. **Audio.** Conectar efectos y musica a fuentes independientes del
    [servicio de audio](../../services/audio/AUDIO.md).
 
 [Fuente DoomGeneric fijada](https://github.com/ozkl/doomgeneric/tree/dcb7a8dbc7a16ce3dda29382ac9aae9d77d21284) |
