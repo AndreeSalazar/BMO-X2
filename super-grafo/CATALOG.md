@@ -94,6 +94,9 @@
 | [Multiprocesador y perfil fisico](../kernel/arch/x86_64/smp) | diseno | 0 | Extiende el contexto por CPU y coordina acceso concurrente. |
 | [Cierre de la base Ring 0](../docs/RING0-PLAN.md) | diseno | contrato | Define la evidencia necesaria para congelar SBEF y el ABI. |
 | [Plan de herencia Ring 3](../heritage/RING3-TRANSFER.md) | diseno | contrato | Ordena la transferencia de Ultra_userspace por dependencia real. |
+| [Identificacion CPUID](../kernel/arch/x86_64/cpu/identify.casm) | qemu | 0 | Descubre fabricante y hoja basica maxima con CPUID hoja 0. |
+| [Guardian del perfil observado](../tools/boot/cpu_config.py) | host | host | Contrasta imagen y resultado antes de publicar profile.config. |
+| [Dos perfiles de CPU en QEMU](../kernel/arch/x86_64/cpu/evidence.json) | qemu | host | Vincula dos perfiles observados al mismo paquete verificado. |
 
 ## Dependencias declaradas
 
@@ -271,5 +274,10 @@
 | x86_64-exceptions | cpu-state | plan |
 | sched | process | plan |
 | rust-runtime | ring3-transfer | plan |
+| cpu-identification | x86_64-cpu | codigo |
+| cpu-identification | stop-verifier | verificacion |
+| cpu-profile-guardian | cpu-identification | verificacion |
+| cpu-profile-guardian | qemu-runner | verificacion |
+| cpu-profile-qemu | cpu-profile-guardian | verificacion |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

@@ -4,9 +4,19 @@ import tempfile
 import unittest
 from wake import assemble, ROOT
 from scope import workspace
+from cpu_config import identify
 
 
 class Wake(unittest.TestCase):
+    def test_cpu_profile_uses_observed_register_order_and_rejects_invalid_values(self):
+        snapshot = 'RAX=00000001 RBX=68747541 RCX=444D4163 RDX=69746E65'
+        self.assertEqual(identify(snapshot), dict(Vendor='AuthenticAMD', MaxBasicLeaf=1))
+        for invalid in (snapshot.replace('RDX', 'R8'), snapshot + ' RAX=01',
+                        snapshot.replace('68747541', '00647541'),
+                        snapshot.replace('00000001', '100000001')):
+            with self.assertRaisesRegex(ValueError, 'CPU-CONFIG'):
+                identify(invalid)
+
     def test_bridge_is_exactly_the_imported_hex(self):
         files=[ROOT/'kernel/boot/bridge'/n for n in ['cabecera.hex','entrada.hex','datos.hex','fuente.hex']]
         image=assemble(files)

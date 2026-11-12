@@ -12,13 +12,18 @@ import subprocess
 import threading
 import time
 from scope import workspace
+from cpu_config import identify
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--workspace',required=True,type=Path)
 parser.add_argument('--casos', nargs='+', choices=['normal','firma','suma','entrada','ausente','excesivo','salida'], default=['normal'])
 parser.add_argument('--qemu', default='C:/Program Files/qemu/qemu-system-x86_64.exe')
-parser.add_argument('--halt',action='store_true',help='Expect the own 4-byte terminal instead of a payload return')
+parser.add_argument('--cpu', choices=['qemu64', 'Nehalem'], default='qemu64')
+parser.add_argument('--halt',action='store_true',help='Expect the own terminal instead of a payload return')
+parser.add_argument('--identify',action='store_true',help='Collect CPUID leaf 0 at the terminal')
 args = parser.parse_args()
+if args.identify and not args.halt:
+    parser.error('--identify requires --halt')
 ROOT = workspace(args.workspace)
 if not __debug__:
     raise RuntimeError('La prueba requiere comprobaciones assert activas; quitar PYTHONOPTIMIZE')
@@ -44,7 +49,7 @@ def run(case):
     variables = Path(str(prefix) + '-vars.fd')
     shutil.copyfile(share / 'edk2-i386-vars.fd', variables)
     process = subprocess.Popen([
-        str(qemu), '-machine', 'pc', '-cpu', 'qemu64', '-accel', 'tcg', '-m', '256M', '-smp', '1',
+        str(qemu), '-machine', 'pc', '-cpu', args.cpu, '-accel', 'tcg', '-m', '256M', '-smp', '1',
         '-drive', f'if=pflash,format=raw,unit=0,readonly=on,file={share / "edk2-x86_64-code.fd"}',
         '-drive', f'if=pflash,format=raw,unit=1,file={variables}',
         '-drive', f'file={image},format=raw,if=ide,snapshot=on',
@@ -146,11 +151,13 @@ def run(case):
         packet = (ROOT / 'build/Puente_Metal/METAL/INICIO.X86').read_bytes()
         code = struct.unpack_from('<Q', context, 8)[0]
         assert memory(code, len(packet) - 24, 'code') == packet[24:], 'No ejecuto la copia exacta del cuerpo propio'
+        halt_offset = 6 if args.identify else 2
         if args.halt:
-            assert packet[24:] == bytes.fromhex('FA F4 EB FD'), 'Terminal distinto'
+            terminal = 'FA 31 C0 0F A2 F4 EB FD' if args.identify else 'FA F4 EB FD'
+            assert packet[24:] == bytes.fromhex(terminal), 'Terminal distinto'
             rip = int(re.search(r'RIP=([0-9a-fA-F]+)', last_registers)[1], 16)
             flags = int(re.search(r'RFL=([0-9a-fA-F]+)', last_registers)[1], 16)
-            assert rip == code + 2 and not flags & 0x200, 'No se detuvo en HLT propio con IF=0'
+            assert rip == code + halt_offset and not flags & 0x200, 'No se detuvo en HLT propio con IF=0'
         size, stride = struct.unpack_from('<Q', context, 0x50)[0], struct.unpack_from('<Q', context, 0x60)[0]
         descriptors = memory(captured + 0x1000, size, 'map')
         assert stride >= 40 and size % stride == 0, 'Mapa de memoria invalido'
@@ -172,10 +179,13 @@ def run(case):
                             offset = ((row * 16 + y) * scan + col * 8 + x) * 4
                             expected[offset:offset + 4] = b'\xff\xff\xff\0'
         assert pixels == expected, 'Framebuffer distinto del texto propio esperado'
-        return dict(Case=case, Passed=True, BootServicesExited=True, PayloadReturned=not args.halt, OwnHalt=args.halt,
-                    InstructionPointerOffset=2 if args.halt else None, InterruptsMasked=True if args.halt else None,
+        result = dict(Case=case, Passed=True, BootServicesExited=True, PayloadReturned=not args.halt, OwnHalt=args.halt,
+                    InstructionPointerOffset=halt_offset if args.halt else None, InterruptsMasked=True if args.halt else None,
                     Ring=0, OwnFramebufferTextVerified=True, Context=f'0x{captured:X}',
                     PayloadSHA256=hashlib.sha256(packet[24:]).hexdigest())
+        if args.identify:
+            result['CPUIdentification'] = identify(last_registers)
+        return result
     finally:
         if process.poll() is None:
             try:

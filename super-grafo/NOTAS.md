@@ -992,6 +992,39 @@ Depende de: Cierre de la base Ring 0 (plan).
 Aceptacion: Cada pieza arranca en Ring 3 con sus capacidades y se prueba su fallo y recuperacion.
 Pendiente: Empezar por runtime una vez cerrada la base.
 
+## kernel/arch/x86_64/cpu/identify.casm
+
+Descubre fabricante y hoja basica maxima con CPUID hoja 0.
+
+Estado: QEMU. Anillo: 0. Lenguaje: CASM.
+Entrada: CPU x86-64 en modo largo y CPL0 tras el puente.
+Salida: Registros CPUID preservados en la parada de 8 bytes.
+Depende de: CPU x86-64 (codigo), Verificador independiente de parada (verificacion).
+Aceptacion: Dos modelos QEMU ejecutan el mismo HEX y reportan sus valores propios.
+Pendiente: Ampliar hojas segun lo que necesita la inicializacion.
+
+## tools/boot/cpu_config.py
+
+Contrasta imagen y resultado antes de publicar profile.config.
+
+Estado: HOST. Anillo: host. Lenguaje: Python control.
+Entrada: Paquete, evidencia QEMU y registros de la CPU invitada.
+Salida: Configuracion acotada y vinculada al paquete.
+Depende de: Identificacion CPUID (verificacion), Genesis: prueba aislada en QEMU (verificacion).
+Aceptacion: Rechaza registros ausentes, valores invalidos y resultados que no coinciden.
+Pendiente: El kernel debe consumir capacidades validadas antes de aplicar opciones.
+
+## kernel/arch/x86_64/cpu/evidence.json
+
+Vincula dos perfiles observados al mismo paquete verificado.
+
+Estado: QEMU. Anillo: host. Lenguaje: evidencia.
+Entrada: Ejecuciones QEMU con qemu64 y Nehalem.
+Salida: Huella del paquete, registros, informes y configuraciones de ambos modelos.
+Depende de: Guardian del perfil observado (verificacion).
+Aceptacion: Mismo paquete con fabricante y hoja basica maxima distintos segun la CPU invitada.
+Pendiente: Probar deteccion y aplicacion de perfil en hardware despues de completar el arranque.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -1014,4 +1047,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-90 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+93 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

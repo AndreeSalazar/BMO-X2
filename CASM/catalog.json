@@ -849,6 +849,22 @@
       "tests": [
         "tests/test_stop.py"
       ]
+    },
+    {
+      "id": "ring0-cpu",
+      "parent": "casm",
+      "kind": "profile",
+      "title": "Ring 0: identificacion de CPU",
+      "status": "implemented",
+      "description": "Perfil cerrado CPUID hoja 0, IR4 y 8 bytes. El banco guarda el perfil observado.",
+      "sources": [
+        "src/kernel/stop.c",
+        "stop_verify.py"
+      ],
+      "guards": [],
+      "tests": [
+        "tests/test_stop.py"
+      ]
     }
   ]
 }

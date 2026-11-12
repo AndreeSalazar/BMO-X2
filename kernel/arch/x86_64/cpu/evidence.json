@@ -1,0 +1,298 @@
+{
+  "schema": 1,
+  "evidence": "QEMU",
+  "runs": [
+    {
+      "qemu": {
+        "Passed": 1,
+        "Total": 1,
+        "Cases": [
+          {
+            "Case": "normal",
+            "Passed": true,
+            "BootServicesExited": true,
+            "PayloadReturned": false,
+            "OwnHalt": true,
+            "InstructionPointerOffset": 6,
+            "InterruptsMasked": true,
+            "Ring": 0,
+            "OwnFramebufferTextVerified": true,
+            "Context": "0xDE38000",
+            "PayloadSHA256": "71e4e3115311de3eb65c2251d6e587af576a4e39d30cf7586342f20203b19264",
+            "CPUIdentification": {
+              "Vendor": "AuthenticAMD",
+              "MaxBasicLeaf": 13
+            }
+          }
+        ],
+        "schema": 1,
+        "evidence": "QEMU",
+        "milestone": "Ring0 CPU identification",
+        "physical_boot": false,
+        "autonomous_kernel": false,
+        "body_bytes": 8,
+        "packet_bytes": 32,
+        "bridge_bytes": 12288,
+        "run": "run-20261112-041841-d6d9d22f",
+        "packet_sha256": "0e3ad6d4620bee89068062a0d488f5108d93d5bbf4a103ef53558cac237c59a4",
+        "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+        "source_sha256": "54a91aa80ed18e50862c50c3a169f35c4c023dddb402105854f404dc4a1194e1",
+        "case_scope": "CPUID leaf 0 and own halt under QEMU"
+      },
+      "environment": {
+        "schema": 1,
+        "milestone": "Ring0 CPU identification",
+        "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+        "accelerator": "tcg",
+        "cpu": "qemu64",
+        "ram_mib": 256,
+        "powershell": "7.6.9",
+        "cases": [
+          "normal"
+        ],
+        "bridge_sha256": "4287ad788cb7a75a74922f7f73e69363560c84501b9a73ba271d357f5f71469f",
+        "bridge_bytes": 12288,
+        "packet_sha256": "0e3ad6d4620bee89068062a0d488f5108d93d5bbf4a103ef53558cac237c59a4",
+        "inputs": {
+          "kernel/boot/bridge/cabecera.hex": "a9ad17e34a2a7c5ece9f0309bd40d4a8d81e1cf35db0b87c675af115c95264f1",
+          "kernel/boot/bridge/entrada.hex": "20a42e44122fe8cc719b15c7a5b4d1cb0c958dac7faa4f6adbba0d591e4339eb",
+          "kernel/boot/bridge/datos.hex": "45ed2b4b995e9dbbbb52a3e9cfaf464adc5cc28c7a4c1e9783baa22306f4d7b1",
+          "kernel/boot/bridge/fuente.hex": "82d4a1f3a4a1dd7fd4adb5523783ae1f921d2db94c30305b8206db49f5c95dc5"
+        },
+        "tools": {
+          "tools/boot/cpu_config.py": "b673fe5624ce130d01bd9898e0d4f77f1361965ae4bbd2ed86a5e55c826d7389",
+          "tools/boot/disk.ps1": "de5d0666e4387d6a0e8c4ecf2dc31220cf0edc15198faa2d721b535b7f4ee361",
+          "tools/boot/image-support.ps1": "57d9862735dc904f20969fb56a31d9364c07f111c99e42e9cc8fe4384f2284fb",
+          "tools/boot/prepare.py": "0b8a4a36f32f14709668c4892996612220f9ac52730712d8e10f228b0d046935",
+          "tools/boot/probe.py": "03896e847f9eb5c29a5b1903447bfacd4117b036c3aacd5bc662967617046a05",
+          "tools/boot/publish.py": "2e70f9005c27e1778d2503c33c267bdbfaa4f7d1c83ec408d32827612d45a702",
+          "tools/boot/scope.py": "3bd9bfc771f0f7600c671fa2be4704aa2ccc910a110085b8dc2829f5cff5d980",
+          "tools/boot/test_wake.py": "df889b3efe8bd530bc90bafbf8dc6f78269a763a728be0696faab12a5cd9a745",
+          "tools/boot/wake.py": "4b0c5bc53b3a1f3dd8d1fd3a384b685c49cff91faa487b5eb2a99b50518688c5"
+        },
+        "firmware": {
+          "edk2-x86_64-code.fd": "33090cc07675baa5190d9f1e84bf5176b33bcbfa9bacac522961150cdb6dbb2a",
+          "edk2-i386-vars.fd": "5d2ac383371b408398accee7ec27c8c09ea5b74a0de0ceea6513388b15be5d1e"
+        },
+        "scope": "VM snapshot images only; inherited UEFI bootstrap, CASM payload; no physical boot or autonomous kernel"
+      },
+      "verified": {
+        "Schema": 1,
+        "Verified": true,
+        "Target": "x86_64",
+        "ABI": "ring0-cpu",
+        "Profile": "ring0-cpu-0.1",
+        "BodyBytes": 8,
+        "PacketBytes": 32,
+        "Integers": [],
+        "EntryBudget": {
+          "HeaderBytes": 24,
+          "LimitExclusive": 512,
+          "RemainingBytes": 479
+        },
+        "Mapping": [
+          {
+            "Line": 2,
+            "Offset": 0,
+            "Bytes": 1,
+            "Kind": "cli"
+          },
+          {
+            "Line": 2,
+            "Offset": 1,
+            "Bytes": 2,
+            "Kind": "xor-eax"
+          },
+          {
+            "Line": 2,
+            "Offset": 3,
+            "Bytes": 2,
+            "Kind": "cpuid"
+          },
+          {
+            "Line": 3,
+            "Offset": 5,
+            "Bytes": 1,
+            "Kind": "hlt"
+          },
+          {
+            "Line": 3,
+            "Offset": 6,
+            "Bytes": 2,
+            "Kind": "jmp-hlt"
+          }
+        ],
+        "Scope": "Closed source grammar and exact emission; CPL0 required; QEMU evidence separate.",
+        "SourceSHA256": "54a91aa80ed18e50862c50c3a169f35c4c023dddb402105854f404dc4a1194e1",
+        "HexSHA256": "319a66ea88c362e996a2baf2bfffee6a7345038351dd16d400e30aac803bab10",
+        "IRSHA256": "03392e85333c49069cd4f8fdb8a34d8a872c17571b4a7785b5c106fb0cb80848",
+        "PacketSHA256": "0e3ad6d4620bee89068062a0d488f5108d93d5bbf4a103ef53558cac237c59a4"
+      },
+      "compiler": "clang version 23.1.2 (https://github.com/llvm/llvm-project 85ac560262434c9ccfc0c183ec22d4138ed647fb)",
+      "compiler_sha256": "69f60acf424b61ea2b0f4991923ef0dae5681a07e4341a8c493f16b4e0855572",
+      "registers": {
+        "RAX": "000000000000000d",
+        "RBX": "0000000068747541",
+        "RCX": "00000000444d4163",
+        "RDX": "0000000069746e65",
+        "RIP": "000000000e4ab006",
+        "RFL": "00000046"
+      },
+      "config": [
+        "PROFILE_SCHEMA=1",
+        "PROFILE_SOURCE=QEMU_CPUID_LEAF_0",
+        "TARGET=x86_64",
+        "CPU_VENDOR=\"AuthenticAMD\"",
+        "CPU_MAX_BASIC_LEAF=0x0000000D",
+        "PACKET_SHA256=0e3ad6d4620bee89068062a0d488f5108d93d5bbf4a103ef53558cac237c59a4"
+      ],
+      "config_sha256": "c33f12b93840018083be0c194463ee3eab1e2d1135103bc2b5b723834f476ad4"
+    },
+    {
+      "qemu": {
+        "Passed": 1,
+        "Total": 1,
+        "Cases": [
+          {
+            "Case": "normal",
+            "Passed": true,
+            "BootServicesExited": true,
+            "PayloadReturned": false,
+            "OwnHalt": true,
+            "InstructionPointerOffset": 6,
+            "InterruptsMasked": true,
+            "Ring": 0,
+            "OwnFramebufferTextVerified": true,
+            "Context": "0xE239000",
+            "PayloadSHA256": "71e4e3115311de3eb65c2251d6e587af576a4e39d30cf7586342f20203b19264",
+            "CPUIdentification": {
+              "Vendor": "GenuineIntel",
+              "MaxBasicLeaf": 11
+            }
+          }
+        ],
+        "schema": 1,
+        "evidence": "QEMU",
+        "milestone": "Ring0 CPU identification",
+        "physical_boot": false,
+        "autonomous_kernel": false,
+        "body_bytes": 8,
+        "packet_bytes": 32,
+        "bridge_bytes": 12288,
+        "run": "run-20261112-041847-c85827ff",
+        "packet_sha256": "0e3ad6d4620bee89068062a0d488f5108d93d5bbf4a103ef53558cac237c59a4",
+        "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+        "source_sha256": "54a91aa80ed18e50862c50c3a169f35c4c023dddb402105854f404dc4a1194e1",
+        "case_scope": "CPUID leaf 0 and own halt under QEMU"
+      },
+      "environment": {
+        "schema": 1,
+        "milestone": "Ring0 CPU identification",
+        "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+        "accelerator": "tcg",
+        "cpu": "Nehalem",
+        "ram_mib": 256,
+        "powershell": "7.6.9",
+        "cases": [
+          "normal"
+        ],
+        "bridge_sha256": "4287ad788cb7a75a74922f7f73e69363560c84501b9a73ba271d357f5f71469f",
+        "bridge_bytes": 12288,
+        "packet_sha256": "0e3ad6d4620bee89068062a0d488f5108d93d5bbf4a103ef53558cac237c59a4",
+        "inputs": {
+          "kernel/boot/bridge/cabecera.hex": "a9ad17e34a2a7c5ece9f0309bd40d4a8d81e1cf35db0b87c675af115c95264f1",
+          "kernel/boot/bridge/entrada.hex": "20a42e44122fe8cc719b15c7a5b4d1cb0c958dac7faa4f6adbba0d591e4339eb",
+          "kernel/boot/bridge/datos.hex": "45ed2b4b995e9dbbbb52a3e9cfaf464adc5cc28c7a4c1e9783baa22306f4d7b1",
+          "kernel/boot/bridge/fuente.hex": "82d4a1f3a4a1dd7fd4adb5523783ae1f921d2db94c30305b8206db49f5c95dc5"
+        },
+        "tools": {
+          "tools/boot/cpu_config.py": "b673fe5624ce130d01bd9898e0d4f77f1361965ae4bbd2ed86a5e55c826d7389",
+          "tools/boot/disk.ps1": "de5d0666e4387d6a0e8c4ecf2dc31220cf0edc15198faa2d721b535b7f4ee361",
+          "tools/boot/image-support.ps1": "57d9862735dc904f20969fb56a31d9364c07f111c99e42e9cc8fe4384f2284fb",
+          "tools/boot/prepare.py": "0b8a4a36f32f14709668c4892996612220f9ac52730712d8e10f228b0d046935",
+          "tools/boot/probe.py": "03896e847f9eb5c29a5b1903447bfacd4117b036c3aacd5bc662967617046a05",
+          "tools/boot/publish.py": "2e70f9005c27e1778d2503c33c267bdbfaa4f7d1c83ec408d32827612d45a702",
+          "tools/boot/scope.py": "3bd9bfc771f0f7600c671fa2be4704aa2ccc910a110085b8dc2829f5cff5d980",
+          "tools/boot/test_wake.py": "df889b3efe8bd530bc90bafbf8dc6f78269a763a728be0696faab12a5cd9a745",
+          "tools/boot/wake.py": "4b0c5bc53b3a1f3dd8d1fd3a384b685c49cff91faa487b5eb2a99b50518688c5"
+        },
+        "firmware": {
+          "edk2-x86_64-code.fd": "33090cc07675baa5190d9f1e84bf5176b33bcbfa9bacac522961150cdb6dbb2a",
+          "edk2-i386-vars.fd": "5d2ac383371b408398accee7ec27c8c09ea5b74a0de0ceea6513388b15be5d1e"
+        },
+        "scope": "VM snapshot images only; inherited UEFI bootstrap, CASM payload; no physical boot or autonomous kernel"
+      },
+      "verified": {
+        "Schema": 1,
+        "Verified": true,
+        "Target": "x86_64",
+        "ABI": "ring0-cpu",
+        "Profile": "ring0-cpu-0.1",
+        "BodyBytes": 8,
+        "PacketBytes": 32,
+        "Integers": [],
+        "EntryBudget": {
+          "HeaderBytes": 24,
+          "LimitExclusive": 512,
+          "RemainingBytes": 479
+        },
+        "Mapping": [
+          {
+            "Line": 2,
+            "Offset": 0,
+            "Bytes": 1,
+            "Kind": "cli"
+          },
+          {
+            "Line": 2,
+            "Offset": 1,
+            "Bytes": 2,
+            "Kind": "xor-eax"
+          },
+          {
+            "Line": 2,
+            "Offset": 3,
+            "Bytes": 2,
+            "Kind": "cpuid"
+          },
+          {
+            "Line": 3,
+            "Offset": 5,
+            "Bytes": 1,
+            "Kind": "hlt"
+          },
+          {
+            "Line": 3,
+            "Offset": 6,
+            "Bytes": 2,
+            "Kind": "jmp-hlt"
+          }
+        ],
+        "Scope": "Closed source grammar and exact emission; CPL0 required; QEMU evidence separate.",
+        "SourceSHA256": "54a91aa80ed18e50862c50c3a169f35c4c023dddb402105854f404dc4a1194e1",
+        "HexSHA256": "319a66ea88c362e996a2baf2bfffee6a7345038351dd16d400e30aac803bab10",
+        "IRSHA256": "03392e85333c49069cd4f8fdb8a34d8a872c17571b4a7785b5c106fb0cb80848",
+        "PacketSHA256": "0e3ad6d4620bee89068062a0d488f5108d93d5bbf4a103ef53558cac237c59a4"
+      },
+      "compiler": "clang version 23.1.2 (https://github.com/llvm/llvm-project 85ac560262434c9ccfc0c183ec22d4138ed647fb)",
+      "compiler_sha256": "a180c822b32a81bbb2eac223ba00ca572868a5a51636684d24d16c7c8b6900cd",
+      "registers": {
+        "RAX": "000000000000000b",
+        "RBX": "00000000756e6547",
+        "RCX": "000000006c65746e",
+        "RDX": "0000000049656e69",
+        "RIP": "000000000e238006",
+        "RFL": "00000046"
+      },
+      "config": [
+        "PROFILE_SCHEMA=1",
+        "PROFILE_SOURCE=QEMU_CPUID_LEAF_0",
+        "TARGET=x86_64",
+        "CPU_VENDOR=\"GenuineIntel\"",
+        "CPU_MAX_BASIC_LEAF=0x0000000B",
+        "PACKET_SHA256=0e3ad6d4620bee89068062a0d488f5108d93d5bbf4a103ef53558cac237c59a4"
+      ],
+      "config_sha256": "6ff480e895dbfbfa93396dbcafe2043a4992faf57a6013638f8d403285065837"
+    }
+  ]
+}

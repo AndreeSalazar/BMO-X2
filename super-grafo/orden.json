@@ -319,6 +319,22 @@
         255
       ],
       "motivo": "Ordena la transferencia de Ultra_userspace por dependencia real."
+    },
+    "kernel/arch/x86_64/cpu/identify.casm": {
+      "rgb": [
+        68,
+        210,
+        240
+      ],
+      "motivo": "Descubre fabricante y hoja basica maxima con CPUID hoja 0."
+    },
+    "tools/boot/cpu_config.py": {
+      "rgb": [
+        90,
+        200,
+        140
+      ],
+      "motivo": "Contrasta imagen y resultado antes de publicar profile.config."
     }
   },
   "direccion": "houdini",
@@ -778,6 +794,14 @@
     "heritage/RING3-TRANSFER.md": [
       7170,
       4025
+    ],
+    "kernel/arch/x86_64/cpu/identify.casm": [
+      8000,
+      3500
+    ],
+    "tools/boot/cpu_config.py": [
+      8000,
+      3675
     ]
   },
   "foco": "kernel/boot",

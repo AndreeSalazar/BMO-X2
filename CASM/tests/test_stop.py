@@ -54,6 +54,26 @@ class Stop(unittest.TestCase):
         self.source.write_bytes(original)
         self.assertNotEqual(self.compile(False).returncode, 0)
 
+    def test_cpu_profile_requires_exact_leaf_and_bytes(self):
+        source = ROOT/'kernel/arch/x86_64/cpu/identify.casm'
+        self.source.write_bytes(source.read_bytes())
+        cmd = [str(self.compiler), '--profile', 'ring0-cpu-0.1',
+               str(self.source), str(self.hex), str(self.ir)]
+        self.assertEqual(subprocess.run(cmd, capture_output=True).returncode, 0)
+        packet, report = verify(self.source, self.hex, self.ir, identify=True)
+        self.assertEqual(packet[24:], bytes.fromhex(source.with_suffix('.hex').read_text()))
+        self.assertEqual(report['EntryBudget']['RemainingBytes'], 479)
+        with self.assertRaises(ValueError):
+            verify(self.source, self.hex, self.ir)
+        original = self.ir.read_text()
+        self.ir.write_text(original.replace('"Leaf":0', '"Leaf":1'))
+        with self.assertRaisesRegex(ValueError, 'STOP-IR'):
+            verify(self.source, self.hex, self.ir, identify=True)
+        self.ir.write_text(original)
+        self.hex.write_text('FA 31 C0 0F A3 F4 EB FD')
+        with self.assertRaisesRegex(ValueError, 'STOP-EMISSION'):
+            verify(self.source, self.hex, self.ir, identify=True)
+
     def test_all_byte_bits_and_ir_contract_reject(self):
         self.assertEqual(self.compile().returncode, 0)
         vector = bytes.fromhex(self.hex.read_text())

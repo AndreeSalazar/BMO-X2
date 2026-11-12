@@ -10,7 +10,7 @@
     {"id":"data-layout","status":"required","need":"Records, fixed arrays, sizes and alignment for hardware structures","evidence":"No general kernel data-layout contract implemented yet"},
     {"id":"memory-access","status":"required","need":"Addresses, access widths, regions, lifetimes and permissions","evidence":"Native checked buffers are a reference; they are not general kernel pointers"},
     {"id":"mmio","status":"required","need":"Explicit volatile device reads/writes and ordering","evidence":"No kernel MMIO language contract implemented"},
-    {"id":"privileged-cpu","status":"required","need":"CPUID, control registers, MSRs, ports and declared CPU preconditions","evidence":"Only add an encoding after a milestone requires it and it has an independent byte vector"},
+    {"id":"privileged-cpu","status":"partial","need":"CPUID, control registers, MSRs, ports and declared CPU preconditions","evidence":"CPUID leaf zero and CLI/HLT verified in QEMU; control registers, MSRs and device ports remain pending"},
     {"id":"exceptions","status":"required","need":"Descriptor tables, entry frames, stack alignment and exception return","evidence":"No IDT/TSS entry implementation in BMO-X2"},
     {"id":"privilege-transition","status":"required","need":"Enter Ring 3 and return through a checked, versioned syscall ABI","evidence":"No BMO-X2 transition or syscall implementation"},
     {"id":"atomics","status":"required","need":"Defined atomics, barriers and synchronization before concurrency","evidence":"Single-CPU bring-up first; no SMP claim"},

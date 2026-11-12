@@ -23,7 +23,7 @@
     },
     {
       "path": "CASM/src/main.c",
-      "reason": "Explicit ring0-stop-0.1 dispatch; default metal64 grammar and emission preserved"
+      "reason": "Explicit closed Ring 0 profiles for halt and CPU identification. Default metal64 grammar and emission preserved."
     }
   ]
 }

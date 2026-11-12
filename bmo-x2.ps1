@@ -1,13 +1,14 @@
 # BMO-X2: herramientas host y SUPER GRAFO. No despliega a discos.
 [CmdletBinding()]
 param(
-    [ValidateSet('abrir','resumen','consultar','mapa','comprobar','medir','compilar','genesis','despertar','parada','leer-hex','preparar-grafo')]
+    [ValidateSet('abrir','resumen','consultar','mapa','comprobar','medir','compilar','genesis','despertar','parada','detectar','leer-hex','preparar-grafo')]
     [string]$Accion = 'resumen',
     [string]$Source,
-    [ValidateSet("metal64-0.2","ring0-stop-0.1")][string]$Profile = "metal64-0.2",
+    [ValidateSet("metal64-0.2","ring0-stop-0.1","ring0-cpu-0.1")][string]$Profile = "metal64-0.2",
     [string]$Run,
     [string]$Python,
     [string]$Compiler,
+    [ValidateSet('qemu64','Nehalem')][string]$Cpu = 'qemu64',
     [string]$SuperGrafo,
     [string]$Consulta = 'resumen',
     [string]$Argumentos
@@ -41,6 +42,10 @@ if ($Accion -in @('abrir','resumen','consultar','mapa')) {
     }
 }
 switch ($Accion) {
+    'detectar' {
+        Invoke-ProjectPython 'comprobar'
+        & (Join-Path $projectRoot 'tools/host.ps1') -Accion compilar -Source (Join-Path $projectRoot 'kernel/arch/x86_64/cpu/identify.casm') -Python $Python -Compiler $Compiler -Profile ring0-cpu-0.1 -Wake -Cpu $Cpu
+    }
     'parada' {
         Invoke-ProjectPython 'comprobar'
         & (Join-Path $projectRoot 'tools/host.ps1') -Accion compilar -Source (Join-Path $projectRoot 'kernel/boot/stop/main.casm') -Python $Python -Compiler $Compiler -Profile ring0-stop-0.1 -Wake

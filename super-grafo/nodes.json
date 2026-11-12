@@ -1567,6 +1567,57 @@
       "salida": "Orden de traslado, compatibilidad y evidencia por componente.",
       "aceptacion": "Cada pieza arranca en Ring 3 con sus capacidades y se prueba su fallo y recuperacion.",
       "falta": "Empezar por runtime una vez cerrada la base."
+    },
+    {
+      "id": "cpu-identification",
+      "titulo": "Identificacion CPUID",
+      "ruta": "kernel/arch/x86_64/cpu/identify.casm",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [
+        8000,
+        3500
+      ],
+      "que": "Descubre fabricante y hoja basica maxima con CPUID hoja 0.",
+      "entrada": "CPU x86-64 en modo largo y CPL0 tras el puente.",
+      "salida": "Registros CPUID preservados en la parada de 8 bytes.",
+      "aceptacion": "Dos modelos QEMU ejecutan el mismo HEX y reportan sus valores propios.",
+      "falta": "Ampliar hojas segun lo que necesita la inicializacion."
+    },
+    {
+      "id": "cpu-profile-guardian",
+      "titulo": "Guardian del perfil observado",
+      "ruta": "tools/boot/cpu_config.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python control",
+      "posicion": [
+        8000,
+        3675
+      ],
+      "que": "Contrasta imagen y resultado antes de publicar profile.config.",
+      "entrada": "Paquete, evidencia QEMU y registros de la CPU invitada.",
+      "salida": "Configuracion acotada y vinculada al paquete.",
+      "aceptacion": "Rechaza registros ausentes, valores invalidos y resultados que no coinciden.",
+      "falta": "El kernel debe consumir capacidades validadas antes de aplicar opciones."
+    },
+    {
+      "id": "cpu-profile-qemu",
+      "titulo": "Dos perfiles de CPU en QEMU",
+      "ruta": "kernel/arch/x86_64/cpu/evidence.json",
+      "estado": "qemu",
+      "anillo": "host",
+      "lenguaje": "evidencia",
+      "posicion": [
+        8000,
+        3850
+      ],
+      "que": "Vincula dos perfiles observados al mismo paquete verificado.",
+      "entrada": "Ejecuciones QEMU con qemu64 y Nehalem.",
+      "salida": "Huella del paquete, registros, informes y configuraciones de ambos modelos.",
+      "aceptacion": "Mismo paquete con fabricante y hoja basica maxima distintos segun la CPU invitada.",
+      "falta": "Probar deteccion y aplicacion de perfil en hardware despues de completar el arranque."
     }
   ],
   "relaciones": [
@@ -2429,6 +2480,31 @@
       "de": "rust-runtime",
       "a": "ring3-transfer",
       "clase": "plan"
+    },
+    {
+      "de": "cpu-identification",
+      "a": "x86_64-cpu",
+      "clase": "codigo"
+    },
+    {
+      "de": "cpu-identification",
+      "a": "stop-verifier",
+      "clase": "verificacion"
+    },
+    {
+      "de": "cpu-profile-guardian",
+      "a": "cpu-identification",
+      "clase": "verificacion"
+    },
+    {
+      "de": "cpu-profile-guardian",
+      "a": "qemu-runner",
+      "clase": "verificacion"
+    },
+    {
+      "de": "cpu-profile-qemu",
+      "a": "cpu-profile-guardian",
+      "clase": "verificacion"
     }
   ]
 }

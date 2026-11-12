@@ -10,13 +10,15 @@ from verify import verify
 
 def render(run):
     profile = (run/'profile.txt').read_text(encoding='utf-8-sig').strip() if (run/'profile.txt').exists() else 'metal64-0.2'
-    if profile == 'ring0-stop-0.1':
+    if profile in ('ring0-stop-0.1', 'ring0-cpu-0.1'):
         from stop_verify import verify as selected_verify
+        options = {'identify': profile == 'ring0-cpu-0.1'}
     elif profile == 'metal64-0.2':
         selected_verify = verify
+        options = {}
     else:
         raise ValueError('Perfil desconocido')
-    packet, report = selected_verify(run/'source.casm', run/'program.hex', run/'program.ir.json')
+    packet, report = selected_verify(run/'source.casm', run/'program.hex', run/'program.ir.json', **options)
     actual = run/'INICIO.X86'
     if actual.stat().st_size != len(packet) or actual.read_bytes() != packet:
         raise ValueError('PACKET-MISMATCH')

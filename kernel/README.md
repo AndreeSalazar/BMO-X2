@@ -1,16 +1,16 @@
 # Kernel: Ring 0 en CASM
 
-Estado: DISENO. Los subnodos fijan responsabilidades y pruebas; no contienen
-todavia implementacion de kernel. Se construyen despues de ampliar CASM con
-las operaciones y contratos que necesitan. Rust no se enlaza a este Ring 0.
+| Carpeta | Responsabilidad |
+|---|---|
+| `boot/` | Entrada acotada, contexto de entrega y evidencia del puente. |
+| `arch/x86_64/` | Identificacion de CPU, contexto, excepciones e interrupciones. |
+| `init/`, `diagnostics/` | Orden de fases y registro de fallos. |
+| `mm/`, `process/`, `loader/` | Memoria, aislamiento y carga SBEF. |
+| `capabilities/`, `syscalls/`, `security/` | Autoridad, puertas y admision. |
+| `time/`, `sched/`, `ipc/` | Reloj, ejecucion y comunicacion. |
+| `drivers/`, `storage/` | Dispositivos, bloques y acceso a archivos. |
 
-La primera fuente propia es `boot/entry.casm`: sonda metal64 de emision HOST,
-con servicio de salida del cargador. No equivale a un kernel arrancado.
-
-Orden: boot -> arch/x86_64 -> exceptions/mm -> capabilities -> syscalls.
-`init/` ordenara las fases; `time/`, `sched/`, `ipc/` y `drivers/` tienen sus
-fronteras reservadas para crecer cuando el recorrido minimo los necesite.
-
-El primer hito de ejecucion es la entrada CASM observada en QEMU, con una
-parada controlada. Despues vienen excepciones e aislamiento de un proceso Rust.
-Ver [FIRST-BOOT](../docs/FIRST-BOOT.md).
+QEMU ya ejecuta Genesis, la parada propia y la sonda CPUID emitida por
+CASM. La sonda genera un perfil observado a traves del banco de arranque.
+La pila propia, las excepciones y los demas mecanismos siguen en diseno.
+[Sonda de CPU](arch/x86_64/cpu/PROFILE.md) y [plan de Ring 0](../docs/RING0-PLAN.md).
