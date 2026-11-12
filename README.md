@@ -1,134 +1,140 @@
 # BMO-X2
 
-Hijo de BMO-X: reconstruir el kernel x86-64 con CASM en Ring 0, Rust en
-Ring 3 y SUPER GRAFO como mesa de trabajo. Autor: Eddi Salazar, Lima, Peru.
+Hijo de BMO-X. Kernel x86-64 escrito en CASM, runtime y servicios propios
+de Ring 3 en Rust, y SUPER GRAFO como mesa de trabajo.
+Autor: Eddi Salazar, Lima, Peru.
 
-[Plan de Ring 0](docs/RING0-PLAN.md) y [orden de herencia de Ring 3](heritage/RING3-TRANSFER.md).
-[Frontera de ejecucion y organizacion](docs/RING-BOUNDARY.md).
+BMO-X2 arranca perfiles de prueba independientes en QEMU/OVMF. Ya hay
+evidencia de ejecucion en Ring 0 y Ring 3, admision de un SBEF embebido,
+una llamada INVOKE y revocacion de paginas. La siguiente integracion
+es cargar un SBEF externo y ejecutar el primer cliente Rust.
 
-**Base del primer commit, 04-11-2026:** CASM con procedencia, 35 nodos y una
-primera entrada propia compilada y verificada en host. Todavia no hay un
-kernel BMO-X2 arrancable. [Estado y evidencia](docs/STATUS.md).
+## Probar en QEMU
 
-**Avance revisado el 05-11-2026:** frontend metal64 separado en modulos reales,
-61 nodos y 105 relaciones. El modelo HOST baja 66,43 % conservando la emision
-y los rechazos en 333 casos. [CONTROL, RENDIMIENTO y ELEGANCIA](CASM/CONTROL-PERFORMANCE-ELEGANCE.md)
-explica la medida, su coste y lo que aun falta para Ring 0.
-
-**Listas y jerarquia conectadas:** 61 nodos de proyecto y 105 relaciones;
-el catalogo CASM tiene 45 elementos propios. Su lista genera los ocho tipos
-del compilador. SUPER GRAFO permite explorar tipos, sintaxis, IR, codificaciones,
-reglas y mapa fuente -> bytes. [Entrar al catalogo](CASM/CATALOG.md).
-
-## Una base combinada, tres responsabilidades
-
-```text
-BMO-X2/
-  CASM/                         lenguaje, emisor y verificador del anfitrion
-    src/frontend/               lexer, symbols, integers y parser
-    src/model/                  tipos y almacenamiento compartido acotado
-    sources.json                lista comun de construccion Windows/Linux
-    tests/  metrics/             pruebas y medidas reproducibles del anfitrion
-    native/                     experiencia de autocompilacion en CASM
-    x86_64/                     perfil estrategico requerido por el kernel
-    contracts/                  precision de HEX, IR y comprobacion
-  kernel/                       Ring 0 propio, escrito desde cero en CASM
-    boot/entry.casm             primera sonda de emision; aun sin arranque
-    arch/x86_64/                CPU, exceptions e interrupts
-    init/                       orden de inicializacion
-    mm/                         memoria y aislamiento
-    capabilities/               autoridad concedida
-    syscalls/                   puerta a Ring 3
-    time/  sched/  ipc/          tiempo, ejecucion y comunicacion
-    drivers/                    mecanismos de dispositivos
-  userspace/                    Ring 3 en Rust
-    supervisor/                 inicio y recuperacion de servicios en CPL3
-    runtime/  services/  apps/
-  contracts/                    frontera entre las piezas
-  heritage/                     procedencia y lecciones de BMO-X
-  tools/                        construccion y comprobacion
-    sbef_host/                  inspeccion y conversion HOST de binarios
-  super-grafo/                  nodos, notas, posiciones y mapa
-```
-
-La inspiracion Linux se toma como separacion de subsistemas. La base de CPU,
-el lenguaje CASM, la puerta y sus capacidades tienen contratos propios. Los
-nodos aun no implementados contienen su responsabilidad y prueba de cierre.
-
-## Entrar al proyecto
-
-**Genesis G0:** `bmo-x2.ps1 -Accion genesis` construye y verifica una sonda de
-22 bytes de cuerpo / 46 de paquete, compara su vector manual y aplica el flujo
-vertical y los colores con motivo. Ver [Genesis](kernel/boot/genesis/README.md).
-El cargador queda fuera de esa medida; todavia no es un arranque autonomo.
-
-**Genesis G1:** `bmo-x2.ps1 -Accion despertar` ejecuta siete casos bajo
-QEMU/OVMF. Se observaron los 22 bytes cargados exactos, texto GENESIS,
-retorno y CPL=0. Se conserva la evidencia en `kernel/boot/genesis/evidence/`.
-El puente heredado de TALK-CPU ocupa 12288 bytes y sigue siendo provisional.
-
-`BMO-X2.sg-workspace` fija la raiz portable, la vista Grafo y el Taller CASM.
-`-Accion abrir` lo pasa a SUPER GRAFO sin confundir opciones con carpetas.
-El menu **Espacio de trabajo** permite establecer, guardar y abrir espacios.
-Al salir se conserva una sesion local con vista, panel y pestanas guardadas;
-sin argumentos SUPER GRAFO reabre el ultimo destino valido. Las posiciones
-siguen en `super-grafo/orden.json`. No se restauran procesos ni texto sin guardar.
+Desde la raiz de BMO-X2, con QEMU, Clang y Python disponibles:
 
 ```powershell
-.\bmo-x2.ps1 -Accion abrir       # SUPER GRAFO, con la organizacion del proyecto
-.\bmo-x2.ps1 -Accion resumen     # consulta real a SUPER GRAFO
-.\bmo-x2.ps1 -Accion consultar -Consulta nota -Argumentos '{"ruta":"CASM/x86_64"}'
-.\bmo-x2.ps1 -Accion mapa        # regenera mapa, notas y posiciones
-.\bmo-x2.ps1 -Accion comprobar   # contratos de nodos + banco CASM metal64
-.\bmo-x2.ps1 -Accion medir       # base d2575a8 frente al compilador reorganizado
-.\bmo-x2.ps1 -Accion compilar    # ejemplo -> .hex + IR -> verificacion -> paquete
-.\bmo-x2.ps1 -Accion compilar -Source .\kernel\boot\entry.casm
-.\bmo-x2.ps1 -Accion preparar-grafo # construye SG local si el ejecutable esta anticuado
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\bmo-x2.ps1 -Accion gato-hd
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1
 ```
 
-Los ejecutables de SUPER GRAFO, Clang y Python son herramientas del anfitrion.
-La entrada de construccion admite Windows PowerShell 5.1 y PowerShell 7.
-El build registra sus versiones de PowerShell y CLR. `despertar` usa la misma
-version para preparar su imagen virtual; no exige PowerShell 7 al usuario de 5.1.
-Se pueden indicar sus rutas con `-SuperGrafo`, `-Compiler` y `-Python`.
-La copia actual de SG se construye en `build/tools/super-grafo`, desde
-las fuentes del proyecto vecino, en modo offline y sin modificarlas.
-Si existe el cache local anterior al cambio de nombres, se reutiliza como
-alternativa. Los ejecutables y resultados de build no forman parte del commit.
+El primer comando compila el perfil y verifica tres cuadros sin ventana.
+El segundo abre el ultimo ensayo aprobado en una ventana QEMU y lo deja
+visible. Se puede indicar `-Run .\build\CASM\run-...` para abrir otra
+prueba aprobada. El visor usa un snapshot del disco virtual y una copia
+de las variables UEFI.
 
-## Donde vive cada cosa
+![Cuadro final del gato de arranque en QEMU](kernel/boot/splash/hd/evidence/frame-3.png)
 
-| Nodo | Trabajo |
+El puente UEFI entrega el framebuffer al perfil CASM tras cerrar
+Boot Services. El gato se dibuja como una silueta de 64 por 64 celdas,
+ampliadas a 256 por 256 pixeles. Se muestran tres cuadros y la CPU
+queda detenida en el ultimo. El escritorio y los atajos de espacios
+de trabajo pertenecen al servicio de Ring 3 previsto.
+[Detalle grafico](kernel/boot/splash/hd/README.md) |
+[Diseno del escritorio](userspace/services/desktop/WORKSPACES.md)
+
+## Avances comprobados
+
+Los pesos de la tabla son bytes de cuerpo y de paquete binario
+FAGRAW64. La cabecera mide 24 bytes. El limite de menos de 512 bytes
+se aplica a los perfiles de entrada compacta. Las demostraciones mas
+grandes usan el limite de 4096 bytes del puente.
+
+| Accion | Cuerpo / paquete | Resultado en QEMU |
+|---|---:|---|
+| `despertar` | 22 / 46 B | Genesis sale de Boot Services, escribe en pantalla y retorna. [Evidencia](kernel/boot/genesis/evidence/qemu.json) |
+| `parada` | 4 / 28 B | Detencion propia en CPL0. [Evidencia](kernel/boot/stop/evidence/qemu.json) |
+| `detectar` | 8 / 32 B | CPUID hoja 0 y perfil de CPU observado. |
+| `pila` | 50 / 74 B | Seleccion de pila y rechazo de contexto nulo. [Evidencia](kernel/boot/context/evidence.json) |
+| `excepcion` | 138 / 162 B | IDT minima y captura de #UD. [Guia](kernel/arch/x86_64/exceptions/FAULT.md) |
+| `memoria` | 217 / 241 B | Seleccion y prueba de un marco de 4 KiB. [Evidencia](kernel/mm/physical/evidence.json) |
+| `marcos` | 474 / 498 B | Propiedad, agotamiento, devolucion, borrado y reutilizacion de un marco. [Evidencia](kernel/mm/physical/lifecycle/evidence.json) |
+| `paginacion` | 473 / 497 B | CR3 propio y alias de usuario de solo lectura y NX. [Evidencia](kernel/mm/virtual/evidence.json) |
+| `aislamiento` | 716 / 740 B | Ejecucion en CPL3, #PF de proteccion y borrado de 8 KiB. [Evidencia](kernel/mm/user/evidence.json) |
+| `abi` | 1239 / 1263 B | SBEF embebido, INVOKE por SYSCALL y rechazos de ABI ajeno y W+X. WAIT responde -4. [Evidencia](kernel/syscalls/evidence.json) |
+| `revocar` | 930 / 954 B | Revoca una pagina, reanuda CPL3 y registra el siguiente #PF. [Evidencia](kernel/mm/virtual/revoke/evidence.json) |
+| `gato` / `gato-hd` | 484 / 508 B y 1255 / 1279 B | Tres cuadros verificados. [Evidencia HD](kernel/boot/splash/hd/evidence/qemu.json) |
+
+`-Accion pesos` informa los bytes de codigo, HEX de texto, paquete,
+imagenes y ejecucion completa. Las VM usan 256 MiB en las pruebas
+del kernel y 1024 MiB en las del gato. La prueba de revocacion usa
+36 KiB dentro de la reserva del puente. Los valores de la VM
+indican capacidad configurada. La RAM residente del kernel integrado
+queda por medir.
+
+En HOST, CASM conserva el resultado de 333 casos diferenciales
+frente a la base. SUPER GRAFO registra 121 nodos, 226 relaciones
+y 57 elementos del catalogo CASM.
+[Medidas CASM](CASM/CONTROL-PERFORMANCE-ELEGANCE.md) |
+[Estado del compilador](CASM/STATUS-BMO-X2.md) |
+[Catalogo de nodos](super-grafo/CATALOG.md)
+
+## Responsabilidades
+
+| Lugar | Trabajo |
 |---|---|
-| [CASM](CASM/STATUS-BMO-X2.md) | Lenguaje propio, emisor x86-64, HEX exacto y verificadores. |
-| [kernel](kernel/README.md) | Futuro Ring 0 en CASM: arranque, CPU, excepciones, memoria, capacidades y puerta. |
-| [userspace](userspace/README.md) | Futuro Ring 3 en Rust: runtime, servicios y aplicaciones. |
-| [contracts](contracts/README.md) | Frontera versionada entre capas; todavia sin ABI de BMO-X2 implementado. |
-| [heritage](heritage/README.md) | Procedencia de CASM y aprendizajes que se toman de BMO-X. |
-| [super-grafo](super-grafo/README.md) | Nodos, notas, posiciones y mapa consultable. |
-| [tools](tools/README.md) | Comprobar la estructura, construir y verificar sin escribir discos. |
+| [CASM](CASM/STATUS-BMO-X2.md) | Fuente, IR, emision x86-64, HEX exacto y verificacion independiente. |
+| [kernel](kernel/README.md) | Ring 0 en CASM. Arranque, CPU, memoria, aislamiento, admision SBEF y capacidades. |
+| [userspace](userspace/README.md) | Rust como lenguaje principal del runtime, supervisor, servicios y escritorio de Ring 3. |
+| [contracts](contracts/README.md) | ABI, SBEF y fronteras de arranque y ejecucion. |
+| [heritage](heritage/README.md) | Procedencia y revision de 110 paquetes Cargo del padre. |
+| [tools](tools/README.md) | Build, empaquetado SBEF, diagnostico y pruebas HOST y QEMU. |
+| [super-grafo](super-grafo/README.md) | Nodos, dependencias, evidencia y criterios de cierre. |
 
-Primero leer [la ruta de CASM](docs/CASM-ROADMAP.md) y el
-[catalogo de nodos](super-grafo/CATALOG.md). Cada nodo declara que existe,
-que falta, de quien depende y con que prueba se acepta.
-El alcance inicial esta en [FIRST-BOOT](docs/FIRST-BOOT.md). Las 16 necesidades
-del lenguaje para el kernel estan en [requirements.json](CASM/x86_64/requirements.json).
+Rust llevara la base propia de Ring 3. El supervisor decide como
+arrancar y recuperar servicios con las capacidades que reciba.
+Ring 0 conserva la autoridad sobre memoria, admision y operaciones
+privilegiadas. Las aplicaciones de C, C++ y otros lenguajes entran
+cuando su binario y runtime cumplen el mismo ABI y SBEF. Python
+requiere un interprete portado a Ring 3 que abra los scripts como datos.
+[Reglas de Ring 3](userspace/POLICY.md) |
+[Frontera de ejecucion](docs/RING-BOUNDARY.md)
 
-## Las decisiones de esta reconstruccion
+## Siguientes entregas
 
-- Solo destino x86-64: corresponde al hardware y a la evidencia disponibles.
-  Otra arquitectura requiere un proyecto y pruebas propios.
-- CASM emite sus propios bytes. Clang/GCC pueden construir una semilla del
-  anfitrion; no generan los bytes del programa CASM.
-- El `.hex` es representacion exacta de bytes, no una garantia por si mismo.
-  Fuente congelada, IR, bytes, comprobacion independiente y huellas viajan juntos.
-- Ring 0 se construye en CASM; Rust se reserva a Ring 3. El arranque y las
-  entradas privilegiadas que CASM aun no puede expresar son trabajo pendiente.
-- Se distingue HEREDADO, HOST y DISENO. Una prueba host no acredita QEMU ni metal.
-- La organizacion por nodos sigue responsabilidades reales. No se crean crates
-  Rust vacios para aparentar que el compilador CASM ya esta implementado en ellos.
+1. **Carga externa.** El cargador CASM valida un SBEF producido por el
+   toolchain, mapea sus regiones con permisos y ejecuta la entrada.
+   Se prueba una imagen admitida y los rechazos comparados con el lector HOST.
+2. **Primer Rust en Ring 3.** Un cliente `no_std` usa el ABI propio y
+   pasa por el mismo cargador. Queda preparar el target ELF freestanding,
+   comprobar INVOKE y la salida, y recuperar los recursos del proceso.
+   Despues se adapta el runtime del padre antes de incorporar servicios.
+3. **Ciclo de vida y ABI.** WAIT debe bloquear y despertar por senal o
+   plazo. Se prueba reutilizar marcos en un segundo proceso antes de
+   fijar el ABI. SMP y DMA requieren confirmacion de revocacion antes
+   de reutilizar memoria compartida.
+4. **Arranque fisico de prueba.** El destino previsto es una particion
+   FAT32 dedicada junto a PERSONAL, con el puente UEFI y el paquete
+   CASM verificado. Queda preparar el espacio de forma segura y probar
+   el arranque en el firmware del equipo. La ruta propia desde reset
+   queda en el contrato Faggin.
 
-La base CASM importada conserva sus avisos y la copia de licencia en
-[heritage/COPYING-CASM](heritage/COPYING-CASM). BMO-X y los otros proyectos
-permanecen como referencias separadas. Las mejoras de SUPER GRAFO viven en
-su propio proyecto y su ejecutable de trabajo se construye dentro de `build/`.
+[Plan de Ring 0](docs/RING0-PLAN.md) |
+[ABI 1](contracts/ABI.md) |
+[Cargador SBEF](contracts/SBEF-LOADER.md) |
+[Inventario del padre](heritage/RING3-CRATES.md) |
+[Arranque Faggin](contracts/FAGGIN.md)
+
+## Trabajar en el repositorio
+
+```powershell
+.\bmo-x2.ps1 -Accion abrir
+.\bmo-x2.ps1 -Accion resumen
+.\bmo-x2.ps1 -Accion consultar -Consulta nota -Argumentos '{"ruta":"CASM/x86_64"}'
+.\bmo-x2.ps1 -Accion mapa
+.\bmo-x2.ps1 -Accion comprobar
+.\bmo-x2.ps1 -Accion medir
+.\bmo-x2.ps1 -Accion compilar -Source .\kernel\boot\entry.casm
+.\bmo-x2.ps1 -Accion preparar-grafo
+```
+
+El workspace `BMO-X2.sg-workspace` guarda la raiz portable, la vista
+Grafo y el Taller CASM. SUPER GRAFO conserva su sesion local y las
+posiciones versionadas en `super-grafo/orden.json`. Los ejecutables
+HOST y resultados reproducibles viven en `build/`. Se pueden indicar
+rutas de herramientas mediante `-Python`, `-Compiler` y `-SuperGrafo`.
+
+El [estado historico](docs/STATUS.md) conserva Genesis y las primeras
+medidas del compilador. [Ruta de CASM](docs/CASM-ROADMAP.md) |
+[Licencia de la base CASM](heritage/COPYING-CASM)

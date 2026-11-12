@@ -1,12 +1,16 @@
 # Userspace: Ring 3 en Rust
 
-Estado: DISENO. Runtime, servicios y aplicaciones se separan del kernel CASM.
-El [supervisor](supervisor/README.md) organizara el inicio, la configuracion
-y la recuperacion de los servicios con las capacidades que reciba.
+Rust es el lenguaje principal del runtime, el supervisor y los servicios
+propios de Ring 3. El [supervisor](supervisor/README.md) organizara el
+inicio, la configuracion y la recuperacion de los servicios con las
+capacidades que reciba. CASM conserva la autoridad de Ring 0.
 [Reglas de Ring 3](POLICY.md) y [espacios de trabajo](services/desktop/WORKSPACES.md).
-No se han creado crates vacios ni se da por disponible `std` del anfitrion.
-El runtime minimo requerira un target x86-64 propio, entrada, pila, panico y
-ABI de capacidades antes de abrir una ventana o reutilizar servicios mayores.
+
+El primer hito de Rust es un cliente `no_std` para x86-64 que arranque
+desde SBEF, haga INVOKE y termine de forma que el kernel recupere sus
+recursos. Luego se adapta el runtime del padre y se prueba un servicio.
+Las aplicaciones C y C++ pueden usar el ABI y el empaquetado SBEF.
+Otros lenguajes necesitan sus runtimes portados al mismo entorno.
 
 El runtime Rust de BMO-X es el candidato de herencia, con cuatro dependencias
 locales que deben auditarse. Las fuentes actuales exponen INVOKE y WAIT;
