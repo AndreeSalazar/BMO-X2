@@ -13,6 +13,9 @@ def render(run):
     if profile in ('ring0-stop-0.1', 'ring0-cpu-0.1', 'ring0-context-0.1'):
         from stop_verify import verify as selected_verify
         options = {'identify': profile == 'ring0-cpu-0.1', 'context': profile == 'ring0-context-0.1'}
+    elif profile == 'ring0-splash-0.1':
+        from splash_verify import verify as selected_verify
+        options = {}
     elif profile == 'metal64-0.2':
         selected_verify = verify
         options = {}
@@ -44,7 +47,7 @@ def render(run):
             preview += f' ... ({size-64} bytes omitidos)'
         lines.append(f'| {row["Line"]} | {start} | {start+24} | {row["Kind"]} | `{preview}` |')
     lines.extend(['', 'Cada offset se mide en bytes. La cabecera ocupa 24 bytes.',
-                  'La comprobacion contrasta emision e IR; la semantica de la fuente depende del frontend.',
+                  'La comprobacion contrasta el perfil, la emision y la IR.',
                   'La precision del HEX no configura el privilegio del procesador.', ''])
     return '\n'.join(lines)
 

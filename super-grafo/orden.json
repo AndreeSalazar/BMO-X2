@@ -343,6 +343,30 @@
         240
       ],
       "motivo": "Comprueba la entrega y activa una pagina de pila en una reserva del puente."
+    },
+    "kernel/boot/splash/main.casm": {
+      "rgb": [
+        68,
+        210,
+        240
+      ],
+      "motivo": "Dibuja y anima el gato en el framebuffer entregado al Ring 0."
+    },
+    "CASM/splash_verify.py": {
+      "rgb": [
+        90,
+        200,
+        140
+      ],
+      "motivo": "Reconstruye mascara y verifica el renderer, IR y presupuesto."
+    },
+    "kernel/boot/splash/evidence/qemu.json": {
+      "rgb": [
+        90,
+        200,
+        140
+      ],
+      "motivo": "Tres cuadros observados y vinculados al HEX exacto."
     }
   },
   "direccion": "houdini",
@@ -814,6 +838,18 @@
     "kernel/boot/context/main.casm": [
       8000,
       4025
+    ],
+    "kernel/boot/splash/main.casm": [
+      8000,
+      4200
+    ],
+    "CASM/splash_verify.py": [
+      8000,
+      4375
+    ],
+    "kernel/boot/splash/evidence/qemu.json": [
+      8000,
+      4550
     ]
   },
   "foco": "kernel/boot",

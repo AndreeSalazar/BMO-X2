@@ -1036,6 +1036,39 @@ Depende de: Contexto de entrega (codigo), Verificador independiente de parada (v
 Aceptacion: QEMU observa PUSH y POP en la pagina propia y rechazo con RDI nulo.
 Pendiente: Usar un contexto propio con permisos y pagina de guarda. Instalar IDT para la primera excepcion.
 
+## kernel/boot/splash/main.casm
+
+Dibuja y anima el gato en el framebuffer entregado al Ring 0.
+
+Estado: QEMU. Anillo: 0. Lenguaje: CASM.
+Entrada: Fuente de 32 filas y framebuffer valido tras ExitBootServices.
+Salida: Tres cuadros y parada propia en un paquete de 508 bytes.
+Depende de: Puente UEFI provisional (codigo), Guardian del HEX grafico (verificacion).
+Aceptacion: QEMU verifica 3 cuadros pixel por pixel y parada en CPL0.
+Pendiente: Integrar el diagnostico grafico despues de validar tablas y excepciones.
+
+## CASM/splash_verify.py
+
+Reconstruye mascara y verifica el renderer, IR y presupuesto.
+
+Estado: HOST. Anillo: host. Lenguaje: Python control.
+Entrada: Fuente congelada, HEX, IR y vector del renderer.
+Salida: Paquete FAGRAW64 de 508 bytes y mapa de codigo y datos.
+Depende de: Presupuesto de la entrada Ring 0 (verificacion).
+Aceptacion: Rechaza ancho incorrecto, instrucciones y mascara alteradas.
+Pendiente: Ampliar solo con un contrato de dibujo y evidencia equivalente.
+
+## kernel/boot/splash/evidence/qemu.json
+
+Vincula la animacion observada al paquete exacto y al entorno QEMU.
+
+Estado: QEMU. Anillo: host. Lenguaje: evidencia.
+Entrada: Tres capturas del framebuffer, informe y paquete verificado.
+Salida: Huellas, registros de la prueba y repeticion visual.
+Depende de: Gato animado de arranque (verificacion).
+Aceptacion: Tres cuadros comparados pixel a pixel con 1024 MiB de RAM virtual.
+Pendiente: Integrar la escena con diagnostico del kernel antes de pruebas fisicas.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -1058,4 +1091,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-94 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+97 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

@@ -11,23 +11,33 @@ import struct
 import subprocess
 import threading
 import time
+import sys
 from scope import workspace
 from cpu_config import identify, register
+from splash_capture import compare_frame
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--workspace',required=True,type=Path)
 parser.add_argument('--casos', nargs='+', choices=['normal','firma','suma','entrada','ausente','excesivo','salida','contexto'], default=['normal'])
 parser.add_argument('--qemu', default='C:/Program Files/qemu/qemu-system-x86_64.exe')
 parser.add_argument('--cpu', choices=['qemu64', 'Nehalem'], default='qemu64')
+parser.add_argument('--ram-mib', type=int, choices=[256,1024], default=256)
 parser.add_argument('--halt',action='store_true',help='Expect the own terminal instead of a payload return')
 parser.add_argument('--identify',action='store_true',help='Collect CPUID leaf 0 at the terminal')
 parser.add_argument('--stack',action='store_true',help='Check the selected stack and handoff status')
+parser.add_argument('--splash',action='store_true',help='Capture the three logo frames')
 args = parser.parse_args()
-if (args.identify or args.stack) and not args.halt:
-    parser.error('--identify and --stack require --halt')
-if ('contexto' in args.casos and not args.stack) or (args.identify and args.stack):
+if (args.identify or args.stack or args.splash) and not args.halt:
+    parser.error('The selected probe requires --halt')
+if ('contexto' in args.casos and not args.stack) or sum((args.identify,args.stack,args.splash)) > 1:
     parser.error('Invalid combination of payload and probe cases')
 ROOT = workspace(args.workspace)
+if args.splash:
+    if args.casos != ['normal']:
+        parser.error('The splash probe requires the normal case')
+    sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'CASM'))
+    from splash_verify import read_rows
+    logo, _, _ = read_rows((ROOT/'source.casm').read_bytes())
 if not __debug__:
     raise RuntimeError('La prueba requiere comprobaciones assert activas; quitar PYTHONOPTIMIZE')
 # Evitar que dos ejecuciones mezclen capturas, contexto o resultados.
@@ -53,7 +63,7 @@ def run(case):
     variables = Path(str(prefix) + '-vars.fd')
     shutil.copyfile(share / 'edk2-i386-vars.fd', variables)
     process = subprocess.Popen([
-        str(qemu), '-machine', 'pc', '-cpu', args.cpu, '-accel', 'tcg', '-m', '256M', '-smp', '1',
+        str(qemu), '-machine', 'pc', '-cpu', args.cpu, '-accel', 'tcg', '-m', f'{args.ram_mib}M', '-smp', '1',
         '-drive', f'if=pflash,format=raw,unit=0,readonly=on,file={share / "edk2-x86_64-code.fd"}',
         '-drive', f'if=pflash,format=raw,unit=1,file={variables}',
         '-drive', f'file={image},format=raw,if=ide,snapshot=on',
@@ -96,6 +106,7 @@ def run(case):
         return path.read_bytes()
 
     captured = None
+    frames = set()
     try:
         command('qmp_capabilities')
         deadline = time.monotonic() + 45
@@ -123,10 +134,23 @@ def run(case):
                     Path(str(prefix) + '-scan.bin').unlink(missing_ok=True)
             if match or saved_context_address is not None:
                 address = saved_context_address if saved_context_address is not None else int(match[1], 16)
-                if 0x100000 <= address <= 256 * 1024 * 1024 - 0x20000:
+                if 0x100000 <= address <= args.ram_mib * 1024 * 1024 - 0x20000:
                     candidate = memory(address, 0xb0, 'context')
                     if candidate[:8] == b'METAL64!':
                         ebs, returned, failed = (struct.unpack_from('<I', candidate, p)[0] for p in (0x78, 0x98, 0x9c))
+                        if args.splash and ebs == 1 and 'CPL=0' in last_registers and 'HLT=0' in last_registers:
+                            frame = register(last_registers, 'R12')
+                            if frame in (1,2) and frame not in frames:
+                                command('stop')
+                                try:
+                                    stopped = command('human-monitor-command', {'command-line':'info registers'})
+                                    code_base = struct.unpack_from('<Q', candidate, 8)[0]
+                                    if register(stopped, 'R12') == frame and 0xb3 <= register(stopped,'RIP')-code_base < 0xcd:
+                                        compare_frame(memory,candidate,logo,frame)
+                                        command('screendump', {'filename':str(prefix)+f'-frame-{frame}.png','format':'png'})
+                                        frames.add(frame)
+                                finally:
+                                    command('cont')
                         if (failed == 1 or ((returned or failed == 2 or (args.halt and payload_case and ebs == 1)) and 'HLT=1' in last_registers)):
                             context = candidate
                             captured = address
@@ -155,10 +179,12 @@ def run(case):
         packet = (ROOT / 'build/Puente_Metal/METAL/INICIO.X86').read_bytes()
         code = struct.unpack_from('<Q', context, 8)[0]
         assert memory(code, len(packet) - 24, 'code') == packet[24:], 'No ejecuto la copia exacta del cuerpo propio'
-        halt_offset = 48 if args.stack else 6 if args.identify else 2
+        halt_offset = 214 if args.splash else 48 if args.stack else 6 if args.identify else 2
         if args.halt:
             terminal = 'FA 31 C0 0F A2 F4 EB FD' if args.identify else 'FA F4 EB FD'
-            if args.stack:
+            if args.splash:
+                assert len(packet) == 508 and packet[24+213:24+216] == bytes.fromhex('F4 EB FD'), 'Terminal de splash distinto'
+            elif args.stack:
                 assert len(packet) == 74 and packet[24+47:] == bytes.fromhex('F4 EB FD'), 'Terminal de contexto distinto'
             else:
                 assert packet[24:] == bytes.fromhex(terminal), 'Terminal distinto'
@@ -207,6 +233,10 @@ def run(case):
                     PayloadSHA256=hashlib.sha256(packet[24:]).hexdigest(), **stack_result)
         if args.identify:
             result['CPUIdentification'] = identify(last_registers)
+        if args.splash:
+            assert register(last_registers, 'R12') == 3 and frames == {1,2}, 'Faltan cuadros completos'
+            compare_frame(memory,context,logo,3)
+            result['FramesVerified'] = [1,2,3]
         return result
     finally:
         if process.poll() is None:

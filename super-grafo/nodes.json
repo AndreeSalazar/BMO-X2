@@ -1635,6 +1635,57 @@
       "salida": "RSP alineado y resultado de la comprobacion. Rechazo sin cambiar de pila.",
       "aceptacion": "QEMU observa PUSH y POP en la pagina propia y rechazo con RDI nulo.",
       "falta": "Usar un contexto propio con permisos y pagina de guarda. Instalar IDT para la primera excepcion."
+    },
+    {
+      "id": "boot-splash",
+      "titulo": "Gato animado de arranque",
+      "ruta": "kernel/boot/splash/main.casm",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [
+        8000,
+        4200
+      ],
+      "que": "Dibuja y anima el gato en el framebuffer entregado al Ring 0.",
+      "entrada": "Fuente de 32 filas y framebuffer valido tras ExitBootServices.",
+      "salida": "Tres cuadros y parada propia en un paquete de 508 bytes.",
+      "aceptacion": "QEMU verifica 3 cuadros pixel por pixel y parada en CPL0.",
+      "falta": "Integrar el diagnostico grafico despues de validar tablas y excepciones."
+    },
+    {
+      "id": "splash-guardian",
+      "titulo": "Guardian del HEX grafico",
+      "ruta": "CASM/splash_verify.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python control",
+      "posicion": [
+        8000,
+        4375
+      ],
+      "que": "Reconstruye mascara y verifica el renderer, IR y presupuesto.",
+      "entrada": "Fuente congelada, HEX, IR y vector del renderer.",
+      "salida": "Paquete FAGRAW64 de 508 bytes y mapa de codigo y datos.",
+      "aceptacion": "Rechaza ancho incorrecto, instrucciones y mascara alteradas.",
+      "falta": "Ampliar solo con un contrato de dibujo y evidencia equivalente."
+    },
+    {
+      "id": "splash-qemu",
+      "titulo": "Evidencia de los tres cuadros",
+      "ruta": "kernel/boot/splash/evidence/qemu.json",
+      "estado": "qemu",
+      "anillo": "host",
+      "lenguaje": "evidencia",
+      "posicion": [
+        8000,
+        4550
+      ],
+      "que": "Vincula la animacion observada al paquete exacto y al entorno QEMU.",
+      "entrada": "Tres capturas del framebuffer, informe y paquete verificado.",
+      "salida": "Huellas, registros de la prueba y repeticion visual.",
+      "aceptacion": "Tres cuadros comparados pixel a pixel con 1024 MiB de RAM virtual.",
+      "falta": "Integrar la escena con diagnostico del kernel antes de pruebas fisicas."
     }
   ],
   "relaciones": [
@@ -2537,6 +2588,26 @@
       "de": "x86_64-exceptions",
       "a": "boot-stack",
       "clase": "plan"
+    },
+    {
+      "de": "boot-splash",
+      "a": "boot-bridge",
+      "clase": "codigo"
+    },
+    {
+      "de": "boot-splash",
+      "a": "splash-guardian",
+      "clase": "verificacion"
+    },
+    {
+      "de": "splash-guardian",
+      "a": "entry-budget",
+      "clase": "verificacion"
+    },
+    {
+      "de": "splash-qemu",
+      "a": "boot-splash",
+      "clase": "verificacion"
     }
   ]
 }

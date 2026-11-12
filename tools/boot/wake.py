@@ -14,6 +14,7 @@ sys.path.insert(0,str(ROOT/'tools'))
 from genesis import check as genesis_check
 sys.path.insert(0,str(ROOT/'CASM'))
 from stop_verify import check as stop_check, CPU_PROFILE, CONTEXT_PROFILE
+from splash_verify import check as splash_check, PROFILE as SPLASH_PROFILE
 
 
 def check(run):
@@ -21,6 +22,7 @@ def check(run):
     if profile == 'ring0-stop-0.1': return stop_check(run)
     if profile == CPU_PROFILE: return stop_check(run, identify=True)
     if profile == CONTEXT_PROFILE: return stop_check(run, context=True)
+    if profile == SPLASH_PROFILE: return splash_check(run)
     if profile != 'metal64-0.2': raise ValueError('Perfil desconocido')
     return genesis_check(run)
 
@@ -55,17 +57,20 @@ def main():
     parser.add_argument('--powershell',type=Path,help='Use the same PowerShell executable as the calling build')
     parser.add_argument('--cases',nargs='+',choices=CASES+['contexto'],default=CASES)
     parser.add_argument('--cpu', choices=['qemu64', 'Nehalem'], default='qemu64')
-    parser.add_argument('--profile',choices=['metal64-0.2','ring0-stop-0.1',CPU_PROFILE,CONTEXT_PROFILE],default='metal64-0.2')
+    parser.add_argument('--profile',choices=['metal64-0.2','ring0-stop-0.1',CPU_PROFILE,CONTEXT_PROFILE,SPLASH_PROFILE],default='metal64-0.2')
     args=parser.parse_args();run=workspace(args.run)
     identify=args.profile==CPU_PROFILE
     stack=args.profile==CONTEXT_PROFILE
+    splash=args.profile==SPLASH_PROFILE
     stop=args.profile!='metal64-0.2'
     frozen_profile=(run/'profile.txt').read_text(encoding='utf-8-sig').strip() if (run/'profile.txt').exists() else 'metal64-0.2'
     if frozen_profile!=args.profile: raise ValueError('Perfil distinto al run congelado')
     if identify and args.cases != ['normal']: raise ValueError('La identificacion requiere el caso normal')
+    if splash and args.cases != ['normal']: raise ValueError('El splash requiere el caso normal')
     if stack and args.cases != ['normal','contexto']: raise ValueError('La prueba de pila exige contexto valido e invalido')
     if not stack and 'contexto' in args.cases: raise ValueError('El caso contexto exige el perfil de pila')
-    milestone='Ring0 handoff and stack' if stack else 'Ring0 CPU identification' if identify else ('Ring0 stop S1' if stop else 'Genesis G1')
+    milestone='Ring0 cat splash' if splash else 'Ring0 handoff and stack' if stack else 'Ring0 CPU identification' if identify else ('Ring0 stop S1' if stop else 'Genesis G1')
+    ram_mib=1024 if splash else 256
     verified = check(run)
     if (run/'qemu-run.json').exists(): raise ValueError('Run ya preparado; compilar un run nuevo para otra ejecucion')
     qemu=args.qemu.resolve();share=qemu.parent/'share'
@@ -81,7 +86,7 @@ def main():
     shell=str(args.powershell.resolve()) if args.powershell else (shutil.which('pwsh') or shutil.which('powershell.exe'))
     if not shell or not Path(shell).is_file(): raise ValueError('Falta PowerShell 5.1 o 7')
     shell_version=subprocess.check_output([shell,'-NoProfile','-NonInteractive','-Command','$PSVersionTable.PSVersion.ToString()'],text=True).strip()
-    record=dict(schema=1,milestone=milestone,qemu=version,accelerator='tcg',cpu=args.cpu,ram_mib=256,
+    record=dict(schema=1,milestone=milestone,qemu=version,accelerator='tcg',cpu=args.cpu,ram_mib=ram_mib,
                 powershell=shell_version,
                 cases=args.cases,bridge_sha256=sha(efi),bridge_bytes=len(image),packet_sha256=sha(packet),
                 inputs={p.relative_to(ROOT).as_posix():sha(p) for p in paths},
@@ -96,14 +101,17 @@ def main():
     probe_flags = ['--halt', '--identify'] if identify else (['--halt'] if stop else [])
     if stack:
         probe_flags.append('--stack')
-    result=subprocess.run([sys.executable,'-B','-u',str(scripts/'probe.py'),'--workspace',str(run),'--qemu',str(qemu),'--cpu',args.cpu,'--casos',*args.cases,*probe_flags],cwd=run,timeout=600)
+    if splash:
+        probe_flags.append('--splash')
+    result=subprocess.run([sys.executable,'-B','-u',str(scripts/'probe.py'),'--workspace',str(run),'--qemu',str(qemu),'--cpu',args.cpu,'--ram-mib',str(ram_mib),'--casos',*args.cases,*probe_flags],cwd=run,timeout=600)
     report=run/'build/puente-test-results.json'
     if report.is_file():
         data=json.loads(report.read_text(encoding='utf-8-sig'))
         data.update(schema=1,evidence='QEMU',milestone=milestone,physical_boot=False,autonomous_kernel=False,
                     body_bytes=len(packet.read_bytes())-24,packet_bytes=packet.stat().st_size,bridge_bytes=len(image),run=run.name,packet_sha256=sha(packet),
                     qemu=version,source_sha256=sha(run/'source.casm'),
-                    case_scope='Stack selection and rejection of null RDI under QEMU' if stack else
+                    case_scope='Three verified framebuffer frames in Ring 0 under QEMU' if splash else
+                    'Stack selection and rejection of null RDI under QEMU' if stack else
                     'CPUID leaf 0 and own halt under QEMU' if identify else
                     'UEFI bootstrap and payload; rejects packages and injected stale MapKey, not arbitrary invalid kernel contexts')
         (run/'qemu-results.json').write_text(json.dumps(data,indent=2)+'\n',encoding='ascii',newline='\n')

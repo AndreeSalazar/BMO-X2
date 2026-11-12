@@ -881,6 +881,23 @@
       "tests": [
         "tests/test_stop.py"
       ]
+    },
+    {
+      "id": "ring0-splash",
+      "parent": "casm",
+      "kind": "profile",
+      "title": "Ring 0: gato animado",
+      "status": "implemented",
+      "description": "Perfil cerrado con 32 filas de logo, renderer x86-64, 3 cuadros e IR6.",
+      "sources": [
+        "src/kernel/splash.c",
+        "src/kernel/splash_bytes.h",
+        "splash_verify.py"
+      ],
+      "guards": [],
+      "tests": [
+        "tests/test_splash.py"
+      ]
     }
   ]
 }

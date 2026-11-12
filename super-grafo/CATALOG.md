@@ -98,6 +98,9 @@
 | [Guardian del perfil observado](../tools/boot/cpu_config.py) | host | host | Contrasta imagen y resultado antes de publicar profile.config. |
 | [Dos perfiles de CPU en QEMU](../kernel/arch/x86_64/cpu/evidence.json) | qemu | host | Vincula dos perfiles observados al mismo paquete verificado. |
 | [Pila inicial CASM](../kernel/boot/context/main.casm) | qemu | 0 | Comprueba la entrega y activa una pagina de pila en una reserva del puente. |
+| [Gato animado de arranque](../kernel/boot/splash/main.casm) | qemu | 0 | Dibuja y anima el gato en el framebuffer entregado al Ring 0. |
+| [Guardian del HEX grafico](../CASM/splash_verify.py) | host | host | Reconstruye mascara y verifica el renderer, IR y presupuesto. |
+| [Evidencia de los tres cuadros](../kernel/boot/splash/evidence/qemu.json) | qemu | host | Vincula la animacion observada al paquete exacto y al entorno QEMU. |
 
 ## Dependencias declaradas
 
@@ -283,5 +286,9 @@
 | boot-stack | boot-context | codigo |
 | boot-stack | stop-verifier | verificacion |
 | x86_64-exceptions | boot-stack | plan |
+| boot-splash | boot-bridge | codigo |
+| boot-splash | splash-guardian | verificacion |
+| splash-guardian | entry-budget | verificacion |
+| splash-qemu | boot-splash | verificacion |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

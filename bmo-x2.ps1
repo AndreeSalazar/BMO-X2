@@ -1,10 +1,10 @@
 # BMO-X2: herramientas host y SUPER GRAFO. No despliega a discos.
 [CmdletBinding()]
 param(
-    [ValidateSet('abrir','resumen','consultar','mapa','comprobar','medir','compilar','genesis','despertar','parada','detectar','pila','leer-hex','preparar-grafo')]
+    [ValidateSet('abrir','resumen','consultar','mapa','comprobar','medir','compilar','genesis','despertar','parada','detectar','pila','gato','leer-hex','preparar-grafo')]
     [string]$Accion = 'resumen',
     [string]$Source,
-    [ValidateSet("metal64-0.2","ring0-stop-0.1","ring0-cpu-0.1","ring0-context-0.1")][string]$Profile = "metal64-0.2",
+    [ValidateSet("metal64-0.2","ring0-stop-0.1","ring0-cpu-0.1","ring0-context-0.1","ring0-splash-0.1")][string]$Profile = "metal64-0.2",
     [string]$Run,
     [string]$Python,
     [string]$Compiler,
@@ -42,6 +42,10 @@ if ($Accion -in @('abrir','resumen','consultar','mapa')) {
     }
 }
 switch ($Accion) {
+    'gato' {
+        Invoke-ProjectPython 'comprobar'
+        & (Join-Path $projectRoot 'tools/host.ps1') -Accion compilar -Source (Join-Path $projectRoot 'kernel/boot/splash/main.casm') -Python $Python -Compiler $Compiler -Profile ring0-splash-0.1 -Wake -Cpu $Cpu
+    }
     'pila' {
         Invoke-ProjectPython 'comprobar'
         & (Join-Path $projectRoot 'tools/host.ps1') -Accion compilar -Source (Join-Path $projectRoot 'kernel/boot/context/main.casm') -Python $Python -Compiler $Compiler -Profile ring0-context-0.1 -Wake -Cpu $Cpu
