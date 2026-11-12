@@ -8,7 +8,7 @@ Recibe una maquina y una imagen bajo un contrato de entrega verificable.
 
 ## Contrato del nodo
 
-- Entrada: Estado x86-64, memoria y framebuffer entregados por una cadena de arranque especificada.
-- Salida: Entrada del kernel CASM, diagnostico y estado de fallo controlado.
-- Aceptacion: QEMU muestra entrada real y rechaza contexto/imagen incompatibles; se conserva recuperacion.
-- Pendiente: Elegir la cadena de carga y contexto; entry.casm es solo una sonda compilada y verificada en host.
+- Entrada: Modo largo y CPL0 entregados por el puente UEFI, con un paquete de entrada CASM verificado.
+- Salida: Primera entrada propia bajo 512 bytes, seguida por inicializacion y diagnostico del kernel.
+- Aceptacion: Paquete menor de 512 bytes con cabecera incluida. QEMU confirma llegada y efecto en Ring 0.
+- Pendiente: Genesis y la parada propia tienen evidencia QEMU. Sigue el contexto propio y una excepcion controlada.

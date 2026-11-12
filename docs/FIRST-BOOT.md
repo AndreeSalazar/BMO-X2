@@ -40,6 +40,20 @@ anteriores de TALK-CPU no se suman como evidencia del hijo.
 Antes de llamarlo kernel autonomo, sustituir los servicios provisionales del
 cargador por mecanismos propios con sus contratos y pruebas.
 
+### Presupuesto de la entrada Ring 0
+
+La entrada minima propia vive en [kernel/boot/stop](../kernel/boot/stop/README.md).
+CASM emite el cuerpo x86-64 en `program.hex` y su IR en `program.ir.json`.
+El verificador reconstruye los bytes y aplica el limite antes de publicar
+`INICIO.X86`. El limite es estricto, con un maximo de 511 bytes para
+el paquete. La cabecera de 24 bytes deja hasta 487 para codigo y datos.
+La entrada actual usa 4 bytes de cuerpo y 28 de paquete, con 483 de margen.
+
+El puente UEFI heredado de 12288 bytes pertenece a la cadena de carga.
+El presupuesto mide el paquete binario de la entrada, mientras que
+`HEX.md` registra aparte el tamano de la representacion de texto.
+Las etapas posteriores del kernel tendran su propio presupuesto.
+
 ## M2: excepciones y aislamiento
 
 CPU y excepciones primero; despues paginas y permisos. Un #UD controlado debe

@@ -26,6 +26,11 @@ El paquete FAGRAW64 ocupa 28 bytes: 24 de cabecera y 4 de codigo. El puente
 UEFI heredado ocupa otros 12288 bytes; firmware, disco, paginas y contexto no
 estan incluidos en ese presupuesto.
 
+El verificador exige un paquete de menos de 512 bytes antes de publicarlo.
+El maximo utilizable es 511 bytes, con hasta 487 de cuerpo. Esta entrada
+deja 483 bytes de margen. El informe `HEX.md` muestra el margen y el tamano
+del archivo HEX de texto por separado.
+
 ```powershell
 .\bmo-x2.ps1 -Accion parada
 .\bmo-x2.ps1 -Accion compilar -Profile ring0-stop-0.1 -Source kernel/boot/stop/main.casm

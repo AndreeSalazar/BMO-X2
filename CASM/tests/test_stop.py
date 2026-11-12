@@ -32,6 +32,8 @@ class Stop(unittest.TestCase):
         packet, report = verify(self.source, self.hex, self.ir)
         self.assertEqual(packet[24:], bytes.fromhex((ROOT/'kernel/boot/stop/expected.hex').read_text()))
         self.assertEqual(len(packet), 28)
+        self.assertEqual(report['EntryBudget'],
+                         dict(HeaderBytes=24, LimitExclusive=512, RemainingBytes=483))
         self.assertEqual(report['Mapping'][0]['Line'], 4)
         with self.assertRaises(ValueError): legacy_verify(self.source, self.hex, self.ir)
 

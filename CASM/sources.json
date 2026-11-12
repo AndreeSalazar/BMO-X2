@@ -18,6 +18,7 @@
     "catalog.py",
     "verify.py",
     "stop_verify.py",
+    "entry_budget.py",
     "profiles/ring0-stop.json"
   ],
   "headers": [

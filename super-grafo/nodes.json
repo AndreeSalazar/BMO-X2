@@ -274,10 +274,10 @@
         1400
       ],
       "que": "Recibe una maquina y una imagen bajo un contrato de entrega verificable.",
-      "entrada": "Estado x86-64, memoria y framebuffer entregados por una cadena de arranque especificada.",
-      "salida": "Entrada del kernel CASM, diagnostico y estado de fallo controlado.",
-      "aceptacion": "QEMU muestra entrada real y rechaza contexto/imagen incompatibles; se conserva recuperacion.",
-      "falta": "Elegir la cadena de carga y contexto; entry.casm es solo una sonda compilada y verificada en host."
+      "entrada": "Modo largo y CPL0 entregados por el puente UEFI, con un paquete de entrada CASM verificado.",
+      "salida": "Primera entrada propia bajo 512 bytes, seguida por inicializacion y diagnostico del kernel.",
+      "aceptacion": "Paquete menor de 512 bytes con cabecera incluida. QEMU confirma llegada y efecto en Ring 0.",
+      "falta": "Genesis y la parada propia tienen evidencia QEMU. Sigue el contexto propio y una excepcion controlada."
     },
     {
       "id": "x86_64-cpu",
@@ -1193,6 +1193,23 @@
       "salida": "Campos, productores, consumidores y pruebas de aceptacion para la frontera CASM/Ring 3.",
       "aceptacion": "Un .bex minimo se admite en QEMU y las bibliotecas producen una peticion equivalente por el mismo ABI.",
       "falta": "Contexto de CPU, memoria, cargador CASM y prueba QEMU de la primera peticion."
+    },
+    {
+      "id": "entry-budget",
+      "titulo": "Presupuesto de la entrada Ring 0",
+      "ruta": "CASM/entry_budget.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python control",
+      "posicion": [
+        5090,
+        3500
+      ],
+      "que": "Acota el paquete binario de la entrada a menos de 512 bytes.",
+      "entrada": "Tamano verificado del cuerpo y del paquete FAGRAW64.",
+      "salida": "Cabecera, limite exclusivo y margen en bytes.",
+      "aceptacion": "511 bytes caben, 512 se rechazan. La parada ocupa 28 bytes, con 483 de margen.",
+      "falta": "Medir el mismo presupuesto al ampliar la entrada con un contexto propio."
     }
   ],
   "relaciones": [
@@ -1795,6 +1812,16 @@
       "de": "rust-runtime",
       "a": "abi-bef2",
       "clase": "plan"
+    },
+    {
+      "de": "stop-verifier",
+      "a": "entry-budget",
+      "clase": "verificacion"
+    },
+    {
+      "de": "genesis-guardian",
+      "a": "entry-budget",
+      "clase": "verificacion"
     }
   ]
 }

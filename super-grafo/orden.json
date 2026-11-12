@@ -151,6 +151,14 @@
         255
       ],
       "motivo": "Contrato de admision BEF2 y peticiones ABI en diseno."
+    },
+    "CASM/entry_budget.py": {
+      "rgb": [
+        90,
+        200,
+        140
+      ],
+      "motivo": "Acota el paquete binario de la entrada a menos de 512 bytes."
     }
   },
   "direccion": "houdini",
@@ -526,6 +534,10 @@
     "contracts/ABI-BEF2.md": [
       360,
       320
+    ],
+    "CASM/entry_budget.py": [
+      1080,
+      640
     ]
   },
   "foco": "kernel/boot",

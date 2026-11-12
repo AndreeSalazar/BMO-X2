@@ -73,6 +73,7 @@
 | [Pruebas del perfil privilegiado](../CASM/tests/test_stop.py) | host | host | Prueba fronteras de gramatica, perfil, IR y emision. |
 | [Evidencia QEMU parada S1](../kernel/boot/stop/evidence/qemu.json) | qemu | host | Registra parada propia tras ExitBootServices y seis casos negativos. |
 | [BEF2 y ABI de Ring 3](../contracts/ABI-BEF2.md) | diseno | contrato | Distingue admision de imagen BEF2 y peticiones durante la ejecucion. |
+| [Presupuesto de la entrada Ring 0](../CASM/entry_budget.py) | host | host | Acota el paquete binario de la entrada a menos de 512 bytes. |
 
 ## Dependencias declaradas
 
@@ -198,5 +199,7 @@
 | abi-bef2 | contracts | plan |
 | syscalls | abi-bef2 | plan |
 | rust-runtime | abi-bef2 | plan |
+| stop-verifier | entry-budget | verificacion |
+| genesis-guardian | entry-budget | verificacion |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

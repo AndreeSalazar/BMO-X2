@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import re
 import struct
+from entry_budget import entry_budget
 
 PROFILE = 'ring0-stop-0.1'
 
@@ -58,7 +59,8 @@ def verify(source_path, hex_path, ir_path):
     require(body == bytes([250, 244, 235, 253]), 'STOP-EMISSION')
     packet = b'FAGRAW64' + struct.pack('<IIII', 4, 0, sum(body), 0) + body
     report = dict(Schema=1, Verified=True, Target='x86_64', ABI='ring0-stop', Profile=PROFILE,
-                  BodyBytes=4, PacketBytes=28, Integers=[],
+                  BodyBytes=len(body), PacketBytes=len(packet), Integers=[],
+                  EntryBudget=entry_budget(len(body), len(packet)),
                   Mapping=[dict(Line=line, Offset=o, Bytes=n, Kind=k) for o, n, k in
                            [(0, 1, 'cli'), (1, 1, 'hlt'), (2, 2, 'jmp-hlt')]],
                   Scope='Closed source grammar and exact emission; CPL0 required; QEMU evidence separate.')

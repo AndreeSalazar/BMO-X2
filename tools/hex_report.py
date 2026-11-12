@@ -23,9 +23,16 @@ def render(run):
     lines = ['# Lectura del HEX comprobado', '',
              f'Perfil: x86-64 / {profile}. Comprobacion HOST; ejecucion QEMU documentada por separado.', '',
              f'Cuerpo: {report["BodyBytes"]} bytes. Paquete: {report["PacketBytes"]} bytes.',
-             f'SHA-256 del paquete: `{report["PacketSHA256"]}`.', '',
-             '| Linea | Offset cuerpo | Offset paquete | Clase | Bytes |',
-             '|---|---|---|---|---|']
+             f'SHA-256 del paquete: `{report["PacketSHA256"]}`.', '']
+    if budget := report.get('EntryBudget'):
+        lines.extend([
+            f'Presupuesto de entrada: paquete < {budget["LimitExclusive"]} bytes.',
+            f'Cabecera: {budget["HeaderBytes"]} bytes. Margen utilizable: {budget["RemainingBytes"]} bytes.',
+            f'Archivo HEX de texto: {(run/"program.hex").stat().st_size} bytes.',
+            '',
+        ])
+    lines.extend(['| Linea | Offset cuerpo | Offset paquete | Clase | Bytes |',
+                  '|---|---|---|---|---|'])
     body = packet[24:]
     for row in report['Mapping']:
         start, size = row['Offset'], row['Bytes']

@@ -5,7 +5,7 @@
   "accelerator": "tcg",
   "cpu": "qemu64",
   "ram_mib": 256,
-  "powershell": "5.1.26100.6584",
+  "powershell": "7.6.9",
   "cases": [
     "normal",
     "firma",

@@ -172,11 +172,11 @@ Pendiente: MMIO/volatile, CR/MSR, puertos, atomicos, descriptores, entradas de e
 Recibe una maquina y una imagen bajo un contrato de entrega verificable.
 
 Estado: DISENO. Anillo: 0. Lenguaje: CASM.
-Entrada: Estado x86-64, memoria y framebuffer entregados por una cadena de arranque especificada.
-Salida: Entrada del kernel CASM, diagnostico y estado de fallo controlado.
+Entrada: Modo largo y CPL0 entregados por el puente UEFI, con un paquete de entrada CASM verificado.
+Salida: Primera entrada propia bajo 512 bytes, seguida por inicializacion y diagnostico del kernel.
 Depende de: CASM para el metal privilegiado (plan), Contratos de BMO-X2 (plan), Primera entrada CASM (plan).
-Aceptacion: QEMU muestra entrada real y rechaza contexto/imagen incompatibles; se conserva recuperacion.
-Pendiente: Elegir la cadena de carga y contexto; entry.casm es solo una sonda compilada y verificada en host.
+Aceptacion: Paquete menor de 512 bytes con cabecera incluida. QEMU confirma llegada y efecto en Ring 0.
+Pendiente: Genesis y la parada propia tienen evidencia QEMU. Sigue el contexto propio y una excepcion controlada.
 
 ## kernel/arch/x86_64/cpu
 
@@ -603,7 +603,7 @@ Exige fuente congelada exacta, verificacion independiente, vector manual y paque
 Estado: HOST. Anillo: host. Lenguaje: contrato.
 Entrada: Perfil metal64-0.2 y contratos de Genesis.
 Salida: Fuente, vector o evidencia HOST del recorrido Genesis.
-Depende de: Genesis: vector manual (verificacion), Genesis: fuente CASM (verificacion), Verificador metal64 (verificacion).
+Depende de: Genesis: vector manual (verificacion), Genesis: fuente CASM (verificacion), Verificador metal64 (verificacion), Presupuesto de la entrada Ring 0 (verificacion).
 Aceptacion: 22 bytes de cuerpo, 46 de paquete; negativos rechazan alteraciones. Colores y motivos se conservan al guardar.
 Pendiente: QEMU ya tiene evidencia; siguen pendientes mecanismos propios del kernel y prueba fisica.
 
@@ -724,7 +724,7 @@ Reconoce fuente, IR3 y bytes sin invocar el compilador.
 Estado: HOST. Anillo: host. Lenguaje: Python control.
 Entrada: Fuente congelada, HEX e IR.
 Salida: Paquete FAGRAW64 de 28 bytes y mapa de tres instrucciones.
-Depende de: Contrato parada Ring 0 (verificacion), Vector manual de parada (verificacion).
+Depende de: Contrato parada Ring 0 (verificacion), Vector manual de parada (verificacion), Presupuesto de la entrada Ring 0 (verificacion).
 Aceptacion: Mutaciones de cada bit, campos IR y fuente rechazan sin publicar.
 Pendiente: Ampliar contexto y excepciones con contrato y evidencia propios; no acredita kernel completo.
 
@@ -761,6 +761,17 @@ Depende de: Contratos de BMO-X2 (plan).
 Aceptacion: Un .bex minimo se admite en QEMU y las bibliotecas producen una peticion equivalente por el mismo ABI.
 Pendiente: Contexto de CPU, memoria, cargador CASM y prueba QEMU de la primera peticion.
 
+## CASM/entry_budget.py
+
+Acota el paquete binario de la entrada a menos de 512 bytes.
+
+Estado: HOST. Anillo: host. Lenguaje: Python control.
+Entrada: Tamano verificado del cuerpo y del paquete FAGRAW64.
+Salida: Cabecera, limite exclusivo y margen en bytes.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: 511 bytes caben, 512 se rechazan. La parada ocupa 28 bytes, con 483 de margen.
+Pendiente: Medir el mismo presupuesto al ampliar la entrada con un contexto propio.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -783,4 +794,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-69 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+70 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

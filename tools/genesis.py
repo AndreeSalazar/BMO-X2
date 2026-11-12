@@ -8,11 +8,14 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'CASM'))
 from verify import verify
+from entry_budget import entry_budget
 
 
 def budget(body_bytes, packet_bytes):
-    if not 0 < body_bytes < 512 or not 24 < packet_bytes < 512 or packet_bytes != body_bytes + 24:
-        raise ValueError('GENESIS-BUDGET')
+    try:
+        entry_budget(body_bytes, packet_bytes)
+    except ValueError as error:
+        raise ValueError(f'GENESIS-BUDGET: {error}') from error
 
 
 def check(run):
