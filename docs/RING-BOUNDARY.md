@@ -35,6 +35,6 @@ integrada se mediran por separado el kernel, sus tablas, pilas y
 metadatos, y las paginas del supervisor y sus servicios. Los
 importadores se ejecutan en HOST y se contabilizan alli.
 
-El cargador CASM SBEF, el supervisor Rust y las syscalls INVOKE y WAIT
-siguen en el plan. La prueba QEMU de CPL3 ejecuta un programa fijo.
+El ensayo CASM ya admite un SBEF embebido y ejecuta INVOKE. Quedan la
+carga de imagenes externas, WAIT con bloqueo real y el supervisor Rust.
 [Plan de Ring 0](RING0-PLAN.md) | [Perfil SBEF HOST](../contracts/SBEF-HOST.md)

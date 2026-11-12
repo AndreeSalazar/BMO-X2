@@ -1,0 +1,4 @@
+void kernel_main(void) {
+    boot_abi_probe();
+    cpu_halt();
+}

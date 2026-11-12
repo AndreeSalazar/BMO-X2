@@ -9,7 +9,7 @@ ELF_HEADER = struct.Struct("<16sHHIQQQIHHHHHH")
 ELF_PROGRAM = struct.Struct("<IIQQQQQQ")
 
 
-def pack_elf(elf):
+def pack_elf(elf, *, abi=0):
     if not ELF_HEADER.size <= len(elf) <= MAX_ELF:
         raise Rejection('ELF-SIZE', min(len(elf), MAX_ELF), 'file')
     ident, kind, machine, version, entry, table, _, flags, header_size, ph_size, count, *_ = ELF_HEADER.unpack_from(elf)
@@ -65,6 +65,6 @@ def pack_elf(elf):
         table.extend(REGION.pack(address, cursor, filesz, memsz, perms, 0))
         payload.extend(elf[offset:offset+filesz])
         cursor += filesz
-    image = HEADER.pack(b'SBEF', 1, 0, MACHINE, len(segments), size, entry, 0, 0) + table + payload
+    image = HEADER.pack(b'SBEF', 1, abi, MACHINE, len(segments), size, entry, 0, 0) + table + payload
     inspect(image)
     return image

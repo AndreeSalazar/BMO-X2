@@ -9,10 +9,11 @@ import struct
 import uuid
 import zlib
 from scope import workspace
+from sbef_probe_cases import MUTATIONS, mutated_packet
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--workspace',required=True,type=Path)
-parser.add_argument('--caso', choices=['normal', 'firma', 'suma', 'ausente', 'excesivo', 'entrada', 'salida', 'contexto'], default='normal')
+parser.add_argument('--caso', choices=['normal', 'firma', 'suma', 'ausente', 'excesivo', 'entrada', 'salida', 'contexto', *MUTATIONS], default='normal')
 parser.add_argument('--profile',choices=['hello','flappy-preview'],default='hello')
 args = parser.parse_args()
 root = workspace(args.workspace)
@@ -114,6 +115,20 @@ with output.open('r+b') as disk:
         changed = bytearray(read(packet_offset, cluster_bytes))
         changed[delta] ^= 0x80
         write(packet_offset, changed)
+    elif args.caso in MUTATIONS:
+        packet = mutated_packet((build/'Puente_Metal/METAL/INICIO.X86').read_bytes(), args.caso)
+        if struct.unpack_from('<I', directory, packet_pos + 28)[0] != len(packet):
+            raise ValueError('ABI-PROBE: tamano FAT32 del paquete distinto')
+        cluster = packet_cluster
+        seen = set()
+        for start in range(0, len(packet), cluster_bytes):
+            if cluster in seen:
+                raise ValueError('ABI-PROBE: cadena FAT32 ciclica')
+            seen.add(cluster)
+            write(cluster_offset(cluster), packet[start:start+cluster_bytes])
+            cluster = struct.unpack_from('<I', fat, cluster * 4)[0] & 0x0fffffff
+        if cluster < 0x0ffffff8:
+            raise ValueError('ABI-PROBE: cadena FAT32 excede el paquete')
     elif args.caso == 'excesivo':
         oversized = (build / 'Puente_Metal/METAL/INICIO.X86').read_bytes().ljust(4097, b'\0')
         chain = allocate((len(oversized) + cluster_bytes - 1) // cluster_bytes)

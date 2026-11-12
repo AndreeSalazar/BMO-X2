@@ -33,6 +33,9 @@ class Sbef(unittest.TestCase):
         info = sbef.inspect(image)
         self.assertEqual(info['Entry'], '0x40000000')
         self.assertEqual(info['Regions'][1]['MemoryBytes'], 8192)
+        versioned = sbef.pack_elf(self.elf, abi=1)
+        self.assertEqual(versioned, image[:6] + b'\x01\x00' + image[8:])
+        self.assertEqual(sbef.inspect(versioned)['AbiVersion'], 1)
 
     def test_reject_dynamic_elf_and_bad_program_headers(self):
         for offset, code, value in [(16, '<H', 3), (64, '<I', 3), (68, '<I', 7),
@@ -48,7 +51,7 @@ class Sbef(unittest.TestCase):
         for length in range(len(image)):
             with self.assertRaises(ValueError):
                 sbef.inspect(image[:length])
-        for offset, code, value in [(6, '<H', 1), (16, '<Q', 0x40001000), (40, '<I', 0xffffffff),
+        for offset, code, value in [(6, '<H', 2), (16, '<Q', 0x40001000), (40, '<I', 0xffffffff),
                                     (52, '<I', 7), (64, '<Q', 0x40000000), (80, '<I', 0xffffffff)]:
             with self.subTest(offset=offset):
                 changed = bytearray(image)

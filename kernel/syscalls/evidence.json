@@ -1,0 +1,238 @@
+{
+  "schema": 1,
+  "reviewed_date": "2026-11-12",
+  "profile": "ring0-abi-probe-0.1",
+  "source_sha256": "8c678084915695590470a7c1cf6872be5d0186229b809f1cbe59504584106f87",
+  "vector_sha256": "569460ea8687934632bcf6a9374673ed55bf8558317fbbe7e5982695cf8745bc",
+  "body_bytes": 1239,
+  "packet_bytes": 1263,
+  "embedded_sbef_bytes": 168,
+  "host_builds": {
+    "ClangSbef": {
+      "Bytes": 215,
+      "SHA256": "1819dd1b9f0a90784c5d310cb324c3cc21c48fb3114b05b0c1060be45e7cec2d"
+    },
+    "MsvcCoff": {
+      "Bytes": 1315,
+      "SHA256": "45010fcec017217abbb37d2580344bba7189132ad630b19f20e577e024b5a3a5"
+    }
+  },
+  "runs": [
+    {
+      "run": "run-20261112-124554-0ebd76cb",
+      "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+      "cpu": "qemu64",
+      "ram_mib": 256,
+      "powershell": "7.6.9",
+      "firmware": {
+        "edk2-x86_64-code.fd": "33090cc07675baa5190d9f1e84bf5176b33bcbfa9bacac522961150cdb6dbb2a",
+        "edk2-i386-vars.fd": "5d2ac383371b408398accee7ec27c8c09ea5b74a0de0ceea6513388b15be5d1e"
+      },
+      "compiler_sha256": "912ad305136b5043b102790a7f57a0cd49a23acb5a3e0d1d926deb46fce2e8a0",
+      "bridge_sha256": "4287ad788cb7a75a74922f7f73e69363560c84501b9a73ba271d357f5f71469f",
+      "packet_sha256": "9d855ddfcc00a4afcb9501cecae2b04108a50ce0328c248631fe83416da6bdf6",
+      "probe_sha256": "4a7a24ff060001c804e8686cb858ea25768f82da168921f935d45fdabe59198a",
+      "cases": [
+        {
+          "Case": "normal",
+          "Passed": true,
+          "BootServicesExited": true,
+          "PayloadReturned": false,
+          "OwnHalt": true,
+          "InstructionPointerOffset": 896,
+          "InterruptsMasked": true,
+          "Ring": 0,
+          "OwnFramebufferTextVerified": true,
+          "Context": "0xDE38000",
+          "PayloadSHA256": "1905f019e4d16caacc770d4d8acc81b8f15a6611a79473437d13adf515fca0c1",
+          "ContextAccepted": true,
+          "UserCPL": 3,
+          "UserFaultHandled": true,
+          "FaultVector": 14,
+          "FaultErrorCode": 5,
+          "FaultAddress": "0x100000",
+          "SavedUserRIP": "0x40000064",
+          "SavedUserRSP": "0x40001FF8",
+          "KernelFaultRSP": "0xDE52FD0",
+          "ActiveCR3": "0xDE4B000",
+          "FrameBytes": 32768,
+          "ReclaimedPages": 2,
+          "ScrubbedBytes": 8192,
+          "AbiVersion": 1,
+          "EmbeddedSbefBytes": 168,
+          "SyscallCount": 3,
+          "InvokeEcho": true,
+          "InvalidCapabilityRejected": true,
+          "WaitStatus": -4
+        },
+        {
+          "Case": "contexto",
+          "Passed": true,
+          "BootServicesExited": true,
+          "PayloadReturned": false,
+          "OwnHalt": true,
+          "InstructionPointerOffset": 896,
+          "InterruptsMasked": true,
+          "Ring": 0,
+          "OwnFramebufferTextVerified": true,
+          "Context": "0xDE38000",
+          "PayloadSHA256": "1905f019e4d16caacc770d4d8acc81b8f15a6611a79473437d13adf515fca0c1",
+          "ContextAccepted": false,
+          "UserFaultHandled": false,
+          "ReclaimedPages": 0,
+          "FaultInjection": "RDI=0 al entregar",
+          "ActiveCR3": "0xF801000"
+        },
+        {
+          "Case": "sbef-abi",
+          "Passed": true,
+          "BootServicesExited": true,
+          "PayloadReturned": false,
+          "OwnHalt": true,
+          "InstructionPointerOffset": 896,
+          "InterruptsMasked": true,
+          "Ring": 0,
+          "OwnFramebufferTextVerified": true,
+          "Context": "0xDE38000",
+          "PayloadSHA256": "0fb3be4740c7a7094db086094d81a8bc9f46eb40573ffc3121a1de460ff4c946",
+          "HostDiagnostic": {
+            "Code": "SBEF-HEADER",
+            "Offset": 6,
+            "Field": "abi_version"
+          },
+          "SbefAccepted": false,
+          "SyscallCount": 0
+        },
+        {
+          "Case": "sbef-permisos",
+          "Passed": true,
+          "BootServicesExited": true,
+          "PayloadReturned": false,
+          "OwnHalt": true,
+          "InstructionPointerOffset": 896,
+          "InterruptsMasked": true,
+          "Ring": 0,
+          "OwnFramebufferTextVerified": true,
+          "Context": "0xDE38000",
+          "PayloadSHA256": "35f81e00b900dc7ae0701d0303984f490013a0c2b74d88a34bb1c08382b125cd",
+          "HostDiagnostic": {
+            "Code": "SBEF-PERMISSIONS",
+            "Offset": 52,
+            "Field": "permissions",
+            "RegionIndex": 0
+          },
+          "SbefAccepted": false,
+          "SyscallCount": 0
+        }
+      ]
+    },
+    {
+      "run": "run-20261112-124950-3118da3f",
+      "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+      "cpu": "Nehalem",
+      "ram_mib": 256,
+      "powershell": "7.6.9",
+      "firmware": {
+        "edk2-x86_64-code.fd": "33090cc07675baa5190d9f1e84bf5176b33bcbfa9bacac522961150cdb6dbb2a",
+        "edk2-i386-vars.fd": "5d2ac383371b408398accee7ec27c8c09ea5b74a0de0ceea6513388b15be5d1e"
+      },
+      "compiler_sha256": "39280df90bbb5e6a166fd95e08c3dde7c81feb362cb21784252d74af3144c455",
+      "bridge_sha256": "4287ad788cb7a75a74922f7f73e69363560c84501b9a73ba271d357f5f71469f",
+      "packet_sha256": "9d855ddfcc00a4afcb9501cecae2b04108a50ce0328c248631fe83416da6bdf6",
+      "probe_sha256": "4a7a24ff060001c804e8686cb858ea25768f82da168921f935d45fdabe59198a",
+      "cases": [
+        {
+          "Case": "normal",
+          "Passed": true,
+          "BootServicesExited": true,
+          "PayloadReturned": false,
+          "OwnHalt": true,
+          "InstructionPointerOffset": 896,
+          "InterruptsMasked": true,
+          "Ring": 0,
+          "OwnFramebufferTextVerified": true,
+          "Context": "0xE239000",
+          "PayloadSHA256": "1905f019e4d16caacc770d4d8acc81b8f15a6611a79473437d13adf515fca0c1",
+          "ContextAccepted": true,
+          "UserCPL": 3,
+          "UserFaultHandled": true,
+          "FaultVector": 14,
+          "FaultErrorCode": 5,
+          "FaultAddress": "0x100000",
+          "SavedUserRIP": "0x40000064",
+          "SavedUserRSP": "0x40001FF8",
+          "KernelFaultRSP": "0xE253FD0",
+          "ActiveCR3": "0xE24C000",
+          "FrameBytes": 32768,
+          "ReclaimedPages": 2,
+          "ScrubbedBytes": 8192,
+          "AbiVersion": 1,
+          "EmbeddedSbefBytes": 168,
+          "SyscallCount": 3,
+          "InvokeEcho": true,
+          "InvalidCapabilityRejected": true,
+          "WaitStatus": -4
+        },
+        {
+          "Case": "contexto",
+          "Passed": true,
+          "BootServicesExited": true,
+          "PayloadReturned": false,
+          "OwnHalt": true,
+          "InstructionPointerOffset": 896,
+          "InterruptsMasked": true,
+          "Ring": 0,
+          "OwnFramebufferTextVerified": true,
+          "Context": "0xE239000",
+          "PayloadSHA256": "1905f019e4d16caacc770d4d8acc81b8f15a6611a79473437d13adf515fca0c1",
+          "ContextAccepted": false,
+          "UserFaultHandled": false,
+          "ReclaimedPages": 0,
+          "FaultInjection": "RDI=0 al entregar",
+          "ActiveCR3": "0xFC01000"
+        },
+        {
+          "Case": "sbef-abi",
+          "Passed": true,
+          "BootServicesExited": true,
+          "PayloadReturned": false,
+          "OwnHalt": true,
+          "InstructionPointerOffset": 896,
+          "InterruptsMasked": true,
+          "Ring": 0,
+          "OwnFramebufferTextVerified": true,
+          "Context": "0xE239000",
+          "PayloadSHA256": "0fb3be4740c7a7094db086094d81a8bc9f46eb40573ffc3121a1de460ff4c946",
+          "HostDiagnostic": {
+            "Code": "SBEF-HEADER",
+            "Offset": 6,
+            "Field": "abi_version"
+          },
+          "SbefAccepted": false,
+          "SyscallCount": 0
+        },
+        {
+          "Case": "sbef-permisos",
+          "Passed": true,
+          "BootServicesExited": true,
+          "PayloadReturned": false,
+          "OwnHalt": true,
+          "InstructionPointerOffset": 896,
+          "InterruptsMasked": true,
+          "Ring": 0,
+          "OwnFramebufferTextVerified": true,
+          "Context": "0xE239000",
+          "PayloadSHA256": "35f81e00b900dc7ae0701d0303984f490013a0c2b74d88a34bb1c08382b125cd",
+          "HostDiagnostic": {
+            "Code": "SBEF-PERMISSIONS",
+            "Offset": 52,
+            "Field": "permissions",
+            "RegionIndex": 0
+          },
+          "SbefAccepted": false,
+          "SyscallCount": 0
+        }
+      ]
+    }
+  ]
+}

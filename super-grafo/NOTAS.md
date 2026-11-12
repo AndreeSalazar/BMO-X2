@@ -867,7 +867,7 @@ Admite y mapea una imagen SBEF bajo el contrato del proceso.
 Estado: DISENO. Anillo: 0. Lenguaje: CASM.
 Entrada: Bytes del ejecutable, limites, perfil SBEF y estado de CPU.
 Salida: Imagen mapeada con entrada y permisos comprobados o motivo de rechazo.
-Depende de: SBEF y congelacion del ABI (plan), Proceso y ciclo de vida (plan), Empaquetador ELF64 a SBEF (verificacion), Lector SBEF de referencia (verificacion).
+Depende de: SBEF y congelacion del ABI (plan), Proceso y ciclo de vida (plan), Empaquetador ELF64 a SBEF (verificacion), Lector SBEF de referencia (verificacion), SBEF ABI 1 y llamadas desde CPL3 (verificacion).
 Aceptacion: El lector independiente y CASM coinciden en el vector de oro y rechazos, con QEMU en Ring 3.
 Pendiente: Leer en CASM la imagen estatica emitida por el empaquetador HOST.
 
@@ -878,9 +878,9 @@ Despacha operaciones mediante capacidades del proceso activo.
 Estado: DISENO. Anillo: 0. Lenguaje: CASM.
 Entrada: Registros del ABI, handle, operacion y argumentos.
 Salida: Estado y valor o rechazo acotado.
-Depende de: Puerta CASM/Rust (plan), Proceso y ciclo de vida (plan), Memoria de usuario (plan).
+Depende de: Puerta CASM/Rust (plan), Proceso y ciclo de vida (plan), Memoria de usuario (plan), SBEF ABI 1 y llamadas desde CPL3 (verificacion).
 Aceptacion: Operaciones autorizadas y denegadas dan el resultado esperado sin afectar otro proceso.
-Pendiente: Fijar una operacion observable antes de ampliar familias.
+Pendiente: Generalizar capacidades por proceso y probar una operacion con buffer.
 
 ## kernel/syscalls/wait
 
@@ -889,9 +889,9 @@ Duerme y despierta tareas por senal o vencimiento.
 Estado: DISENO. Anillo: 0. Lenguaje: CASM.
 Entrada: Objeto esperable, secuencia y plazo.
 Salida: Despertar, vencimiento o error con contexto preservado.
-Depende de: Puerta CASM/Rust (plan), Planificacion (plan), Comunicacion entre procesos (plan), Proceso y ciclo de vida (plan).
+Depende de: Puerta CASM/Rust (plan), Planificacion (plan), Comunicacion entre procesos (plan), Proceso y ciclo de vida (plan), SBEF ABI 1 y llamadas desde CPL3 (verificacion).
 Aceptacion: QEMU observa senal y plazo, sin espera activa ni perdida de un aviso concurrente.
-Pendiente: Probar primero dos tareas en una CPU.
+Pendiente: El numero ya responde -4 en QEMU. Probar bloqueo, senal y plazo con dos tareas.
 
 ## kernel/security
 
@@ -1245,6 +1245,28 @@ Depende de: Servicios Rust (plan), Runtime minimo Rust (plan).
 Aceptacion: Reinicia un servicio caido sin elevar privilegio ni heredar autoridad implicita.
 Pendiente: Implementar despues de arrancar SBEF y verificar INVOKE y WAIT.
 
+## kernel/syscalls/main.casm
+
+Valida SBEF embebido y ejecuta tres entradas SYSCALL.
+
+Estado: QEMU. Anillo: 0. Lenguaje: CASM.
+Entrada: Una region SBEF RX, contexto y CPU con SYSCALL.
+Salida: Echo, capacidad rechazada, estado WAIT y limpieza de usuario.
+Depende de: Fallo de proteccion desde CPL3 (plan).
+Aceptacion: QEMU ejecuta CPL3 y rechaza ABI ajeno o W+X antes de copiar.
+Pendiente: Cargar imagen externa y probar WAIT con senal y plazo.
+
+## tools/abi_toolchain.py
+
+Construye un cliente comun y coteja los bytes de los stubs ELF.
+
+Estado: HOST. Anillo: host. Lenguaje: Python control.
+Entrada: Cliente C, cabecera ABI 1, compilador y vector HEX.
+Salida: SBEF para ELF o inventario de un objeto COFF MSVC.
+Depende de: Empaquetador ELF64 a SBEF (generacion).
+Aceptacion: Clang produce SBEF ABI 1; MSVC verifica declaraciones en COFF.
+Pendiente: Ejecutar GCC ELF y cargar los clientes en QEMU.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -1267,4 +1289,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-113 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+115 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

@@ -1,0 +1,57 @@
+# ABI 1 de BMO-X2, candidato
+
+El campo ABI del SBEF selecciona el contrato del proceso. La version
+1 usa dos numeros de puerta propios sobre SYSCALL x86-64. INVOKE
+recibe una capacidad del proceso y una operacion sobre ella. WAIT
+recibe un objeto esperable, su secuencia observada y un plazo.
+
+| Registro | INVOKE (0) | WAIT (1) |
+|---|---|---|
+| RAX | 0 | 1 |
+| RDI | Capacidad | Capacidad |
+| RSI | Operacion | Secuencia observada |
+| RDX | Argumento 0 | Plazo monotono en ns |
+| R10 | Argumento 1 | Cero |
+| R8 | Argumento 2 | Cero |
+| R9 | Cero | Cero |
+
+RAX devuelve estado firmado y RDX un valor de 64 bits. RDX queda
+a cero en errores. RCX y R11 quedan volatiles. El kernel cambia a
+una pila de confianza antes de guardar el marco y devuelve por
+IRETQ en este perfil. El cliente ELF recibe RSP alineado a 16 en
+la entrada. Su stub `_start` llama a `bmo_main` con la convencion
+de funciones del toolchain. La prueba restaura RFLAGS a 2; queda
+pendiente definir la politica de interrupciones del proceso real.
+
+| Estado | Significado |
+|---:|---|
+| 0 | Operacion completada |
+| -1 | Numero de puerta desconocido |
+| -2 | Capacidad invalida |
+| -3 | Argumentos invalidos |
+| -4 | Mecanismo pendiente |
+| -5 | Operacion desconocida |
+
+El primer INVOKE usa la capacidad de prueba 1 y operacion ECHO 1.
+Devuelve el argumento 0 sin copiar memoria de usuario. WAIT reconoce
+el numero 1 y devuelve -4. Su semantica candidata compara la
+secuencia y espera un cambio o el plazo; falta implementar el
+bloqueo, la senal, el vencimiento y las carreras de ambos.
+
+## Reproduccion
+
+```powershell
+.\bmo-x2.ps1 -Accion abi
+.\bmo-x2.ps1 -Accion abi -Cpu Nehalem
+$llvm = Join-Path $env:ProgramFiles 'LLVM/bin'
+python -B tools/abi_toolchain.py clang --cc "$llvm/clang.exe" --ld "$llvm/ld.lld.exe" --objcopy "$llvm/llvm-objcopy.exe"
+```
+
+En un entorno con GCC x86-64 ELF y LLVM binutils, ejecutar
+`python3 -B tools/abi_toolchain.py gcc`. En una consola de Visual
+Studio x64, `python -B tools/abi_toolchain.py msvc` prueba el
+encabezado y produce COFF para inventario. El adaptador ELF y el
+COFF usan convenciones de llamada de funciones distintas. El COFF
+queda pendiente de su propio adaptador y perfil de importacion.
+
+[SBEF HOST](SBEF-HOST.md) | [Ensayo QEMU](../kernel/syscalls/ABI-PROBE.md)

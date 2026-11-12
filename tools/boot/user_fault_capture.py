@@ -5,7 +5,7 @@ import struct
 from cpu_config import register
 
 
-def user_fault_evidence(memory, snapshot, context, code, reject):
+def user_fault_evidence(memory, snapshot, context, code, reject, *, abi_probe=False):
     base = context + 0x13000
     descriptors = base + 0x7000
     supplied, root, status, old, marker, cr3, rsp = (
@@ -30,7 +30,7 @@ def user_fault_evidence(memory, snapshot, context, code, reject):
         raise ValueError('USER-FAULT-QEMU: TSS inesperada')
 
     page = memory(descriptors, 4096, 'user-fault-descriptors')
-    handler = code + 536
+    handler = code + (770 if abi_probe else 536)
     gate = struct.pack('<HHBBHII', handler & 0xffff, 8, 0, 0x8e,
                        (handler >> 16) & 0xffff, handler >> 32, 0)
     if page[0x200:0x2f0] != bytes(14 * 16) + gate:
@@ -38,7 +38,8 @@ def user_fault_evidence(memory, snapshot, context, code, reject):
     if struct.unpack_from('<Q', page, 0x104)[0] != descriptors + 4096:
         raise ValueError('USER-FAULT-QEMU: RSP0 de la TSS distinto')
     error, rip, cs, flags, user_rsp, ss = struct.unpack_from('<QQQQQQ', page, 4096 - 48)
-    if (error, rip, cs, user_rsp, ss) != (5, 0x40000010, 0x23, 0x40001ff8, 0x1b) or flags & 0x3200:
+    user_ip = 0x40000064 if abi_probe else 0x40000010
+    if (error, rip, cs, user_rsp, ss) != (5, user_ip, 0x23, 0x40001ff8, 0x1b) or flags & 0x3200:
         raise ValueError('USER-FAULT-QEMU: marco hardware de CPL3 distinto')
 
     tables = memory(base, 5 * 4096, 'user-fault-tables')
@@ -51,8 +52,15 @@ def user_fault_evidence(memory, snapshot, context, code, reject):
             raise ValueError(f'USER-FAULT-QEMU: entrada final {index} distinta')
     if memory(base + 0x5000, 8192, 'user-fault-erased-pages') != bytes(8192):
         raise ValueError('USER-FAULT-QEMU: codigo o pila de usuario conserva datos')
-    return dict(ContextAccepted=True, UserCPL=cs & 3, UserFaultHandled=True,
+    result = dict(ContextAccepted=True, UserCPL=cs & 3, UserFaultHandled=True,
                 FaultVector=14, FaultErrorCode=error, FaultAddress='0x100000',
                 SavedUserRIP=f'0x{rip:X}', SavedUserRSP=f'0x{user_rsp:X}',
                 KernelFaultRSP=f'0x{rsp:X}', ActiveCR3=f'0x{cr3:X}',
                 FrameBytes=32768, ReclaimedPages=2, ScrubbedBytes=8192)
+    if abi_probe:
+        calls = struct.unpack_from('<Q', page, 0x310)[0]
+        if calls != 3 or not register(snapshot, 'EFER') & 1:
+            raise ValueError('ABI-PROBE-QEMU: llamadas o EFER.SCE distintos')
+        result.update(AbiVersion=1, EmbeddedSbefBytes=168, SyscallCount=calls,
+                      InvokeEcho=True, InvalidCapabilityRejected=True, WaitStatus=-4)
+    return result

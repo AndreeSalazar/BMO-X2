@@ -1387,7 +1387,7 @@
       "entrada": "Registros del ABI, handle, operacion y argumentos.",
       "salida": "Estado y valor o rechazo acotado.",
       "aceptacion": "Operaciones autorizadas y denegadas dan el resultado esperado sin afectar otro proceso.",
-      "falta": "Fijar una operacion observable antes de ampliar familias.",
+      "falta": "Generalizar capacidades por proceso y probar una operacion con buffer.",
       "pagina": true
     },
     {
@@ -1405,7 +1405,7 @@
       "entrada": "Objeto esperable, secuencia y plazo.",
       "salida": "Despertar, vencimiento o error con contexto preservado.",
       "aceptacion": "QEMU observa senal y plazo, sin espera activa ni perdida de un aviso concurrente.",
-      "falta": "Probar primero dos tareas en una CPU.",
+      "falta": "El numero ya responde -4 en QEMU. Probar bloqueo, senal y plazo con dos tareas.",
       "pagina": true
     },
     {
@@ -1932,6 +1932,34 @@
       "aceptacion": "Reinicia un servicio caido sin elevar privilegio ni heredar autoridad implicita.",
       "falta": "Implementar despues de arrancar SBEF y verificar INVOKE y WAIT.",
       "pagina": true
+    },
+    {
+      "id": "abi-probe",
+      "titulo": "SBEF ABI 1 y llamadas desde CPL3",
+      "ruta": "kernel/syscalls/main.casm",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [10500, 3850],
+      "que": "Valida SBEF embebido y ejecuta tres entradas SYSCALL.",
+      "entrada": "Una region SBEF RX, contexto y CPU con SYSCALL.",
+      "salida": "Echo, capacidad rechazada, estado WAIT y limpieza de usuario.",
+      "aceptacion": "QEMU ejecuta CPL3 y rechaza ABI ajeno o W+X antes de copiar.",
+      "falta": "Cargar imagen externa y probar WAIT con senal y plazo."
+    },
+    {
+      "id": "abi-toolchains",
+      "titulo": "Banco de toolchains del ABI",
+      "ruta": "tools/abi_toolchain.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python control",
+      "posicion": [10500, 4025],
+      "que": "Construye un cliente comun y coteja los bytes de los stubs ELF.",
+      "entrada": "Cliente C, cabecera ABI 1, compilador y vector HEX.",
+      "salida": "SBEF para ELF o inventario de un objeto COFF MSVC.",
+      "aceptacion": "Clang produce SBEF ABI 1; MSVC verifica declaraciones en COFF.",
+      "falta": "Ejecutar GCC ELF y cargar los clientes en QEMU."
     }
   ],
   "relaciones": [
@@ -2999,6 +3027,31 @@
       "de": "userspace-supervisor",
       "a": "rust-runtime",
       "clase": "plan"
+    },
+    {
+      "de": "invoke",
+      "a": "abi-probe",
+      "clase": "verificacion"
+    },
+    {
+      "de": "wait",
+      "a": "abi-probe",
+      "clase": "verificacion"
+    },
+    {
+      "de": "sbef-loader",
+      "a": "abi-probe",
+      "clase": "verificacion"
+    },
+    {
+      "de": "abi-probe",
+      "a": "user-protection-fault",
+      "clase": "plan"
+    },
+    {
+      "de": "abi-toolchains",
+      "a": "sbef-host-pack",
+      "clase": "generacion"
     }
   ]
 }

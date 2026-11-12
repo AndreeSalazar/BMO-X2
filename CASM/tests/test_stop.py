@@ -211,6 +211,23 @@ class Stop(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'STOP-EMISSION'):
                 verify(self.source, self.hex, self.ir, user_fault=True)
 
+    def test_abi_probe_rejects_changed_syscall_and_embedded_abi(self):
+        self.source.write_bytes((ROOT/'kernel/syscalls/main.casm').read_bytes())
+        cmd = [str(self.compiler), '--profile', 'ring0-abi-probe-0.1',
+               str(self.source), str(self.hex), str(self.ir)]
+        self.assertEqual(subprocess.run(cmd, capture_output=True).returncode, 0)
+        packet, report = verify(self.source, self.hex, self.ir, abi_probe=True)
+        self.assertEqual(len(packet), 1263)
+        self.assertEqual(report['BridgePacketLimitBytes'], 4096)
+        body = packet[24:]
+        self.assertEqual(body[1071:1079], b'SBEF\x01\x00\x01\x00')
+        for offset in (1077, body.index(b'\x0f\x05', 1135)):
+            changed = bytearray(body)
+            changed[offset] ^= 1
+            self.hex.write_text(changed.hex(' '))
+            with self.assertRaisesRegex(ValueError, 'STOP-EMISSION'):
+                verify(self.source, self.hex, self.ir, abi_probe=True)
+
     def test_all_byte_bits_and_ir_contract_reject(self):
         self.assertEqual(self.compile().returncode, 0)
         vector = bytes.fromhex(self.hex.read_text())

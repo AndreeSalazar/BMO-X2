@@ -34,8 +34,9 @@ Las bibliotecas y el runtime de COBOL se enlazan para ese ABI. La
 prueba de compatibilidad exige un programa real y sus dependencias.
 
 El [perfil provisional](SBEF-HOST.md) implementa el puente de build
-ELF64 estatico -> SBEF. El cargador CASM y el ABI de las dos llamadas
-siguen pendientes. La prueba CPL3 usa su propio programa fijo.
+ELF64 estatico -> SBEF. El [ABI 1](ABI.md) y la admision CASM ya se
+ejercitan en QEMU con un SBEF embebido de una region. El cargador de
+imagenes externas y el bloqueo de WAIT siguen pendientes.
 
 ## Encabezado candidato
 

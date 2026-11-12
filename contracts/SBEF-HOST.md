@@ -13,6 +13,7 @@ $llvm = Join-Path $env:ProgramFiles 'LLVM/bin'
 & "$llvm/clang.exe" --target=x86_64-unknown-none-elf -ffreestanding -fno-pic -fno-pie -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables -O2 -c app.c -o app.o
 & "$llvm/ld.lld.exe" -static -T userspace/sbef.ld app.o -o app.elf
 python -B tools/sbef.py pack app.elf app.sbef
+python -B tools/sbef.py pack app.elf app-abi1.sbef --abi 1
 python -B tools/sbef.py inspect app.sbef
 python -B tools/sbef.py probe app.elf
 python -B tools/sbef.py probe app.exe
@@ -57,7 +58,7 @@ de 32 bytes y el contenido de los segmentos concatenado.
 |---:|---|---|
 | 0 | Firma ASCII SBEF | 4 bytes |
 | 4 | Version de formato 1 | u16 |
-| 6 | Version provisional de ABI 0 | u16 |
+| 6 | Version de ABI (0 de build, 1 candidato de llamadas) | u16 |
 | 8 | Arquitectura x86-64, 62 | u16 |
 | 10 | Cantidad de regiones | u16 |
 | 12 | Tamano del archivo | u32 |
@@ -74,5 +75,6 @@ a los bytes de archivo se inicializa a cero. El prototipo usa la ventana
 
 El lector HOST rechaza cabeceras truncadas, permisos W+X, rangos fuera
 de la ventana, solapes virtuales a nivel de pagina, huecos en el archivo
-y puntos de entrada fuera de codigo. La proxima prueba debe producir
-los mismos rechazos y arrancar una imagen aceptada desde el cargador CASM.
+y puntos de entrada fuera de codigo. El [ensayo ABI 1](../kernel/syscalls/ABI-PROBE.md)
+arranca una imagen embebida fija y verifica dos rechazos. Queda probar
+una imagen externa producida por los toolchains.

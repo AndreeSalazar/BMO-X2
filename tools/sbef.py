@@ -18,6 +18,7 @@ def main():
     pack = commands.add_parser('pack')
     pack.add_argument('input', type=Path)
     pack.add_argument('output', type=Path)
+    pack.add_argument('--abi', type=int, choices=[0, 1], default=0)
     commands.add_parser('inspect').add_argument('input', type=Path)
     commands.add_parser('probe').add_argument('input', type=Path)
     args = parser.parse_args()
@@ -52,7 +53,7 @@ def run(args):
             return inventory
         blocker = inventory['Blockers'][0]
         raise Rejection(blocker['Code'], blocker['Offset'], blocker['Field'])
-    image = pack_elf(data)
+    image = pack_elf(data, abi=getattr(args, 'abi', 0))
     report = inspect(image)
     if args.action == 'probe':
         return dict(SourceFormat='ELF64', CanPack=True, SBEF=report)

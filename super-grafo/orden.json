@@ -1,5 +1,13 @@
 {
   "tintes": {
+    "kernel/syscalls/main.casm": {
+      "rgb": [90, 220, 255],
+      "motivo": "Ring 0: admite SBEF fijo y atiende SYSCALL desde CPL3."
+    },
+    "tools/abi_toolchain.py": {
+      "rgb": [90, 200, 140],
+      "motivo": "HOST: coteja los stubs y empaqueta el cliente ABI 1."
+    },
     "kernel/mm/user/main.casm": {
       "rgb": [90, 220, 255],
       "motivo": "Ring 0: recibe #PF desde CPL3 y limpia las paginas del proceso."
@@ -1002,6 +1010,14 @@
     "userspace/supervisor": [
       1110,
       2200
+    ],
+    "kernel/syscalls/main.casm": [
+      10500,
+      3850
+    ],
+    "tools/abi_toolchain.py": [
+      10500,
+      4025
     ]
   },
   "foco": "kernel/boot",

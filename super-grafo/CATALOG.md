@@ -117,6 +117,8 @@
 | [Lector SBEF de referencia](../tools/sbef_host/format.py) | host | host | Valida la imagen SBEF y localiza el campo rechazado. |
 | [Inspeccion PE32+](../tools/sbef_host/pe.py) | host | host | Expone secciones y directorios PE que requieren adaptacion de ABI. |
 | [Supervisor Rust de Ring 3](../userspace/supervisor) | diseno | 3 | Ordena, configura y recupera servicios desde CPL3. |
+| [SBEF ABI 1 y llamadas desde CPL3](../kernel/syscalls/main.casm) | qemu | 0 | Valida SBEF embebido y ejecuta tres entradas SYSCALL. |
+| [Banco de toolchains del ABI](../tools/abi_toolchain.py) | host | host | Construye un cliente comun y coteja los bytes de los stubs ELF. |
 
 ## Dependencias declaradas
 
@@ -335,5 +337,10 @@
 | sbef-loader | sbef-host-reader | verificacion |
 | userspace-supervisor | rust-services | plan |
 | userspace-supervisor | rust-runtime | plan |
+| invoke | abi-probe | verificacion |
+| wait | abi-probe | verificacion |
+| sbef-loader | abi-probe | verificacion |
+| abi-probe | user-protection-fault | plan |
+| abi-toolchains | sbef-host-pack | generacion |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

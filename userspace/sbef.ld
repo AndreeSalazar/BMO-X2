@@ -12,7 +12,7 @@ SECTIONS {
     .text : ALIGN(4096) { *(.text .text.*) } :text
     .rodata : ALIGN(4096) { *(.rodata .rodata.*) } :rodata
     .data : ALIGN(4096) { *(.data .data.*) } :data
-    .bss : { *(.bss .bss.*) *(COMMON) } :data
+    .bss : ALIGN(4096) { *(.bss .bss.*) *(COMMON) } :data
     .unsupported : {
         *(.preinit_array* .init_array* .fini_array* .ctors* .dtors*)
         *(.tdata* .tbss* .eh_frame* .gcc_except_table*)

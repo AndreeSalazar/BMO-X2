@@ -18,10 +18,11 @@ int main(int argc, char **argv) {
     int frame_cycle = explicit_profile && !strcmp(argv[2], "ring0-frame-cycle-0.1");
     int paging = explicit_profile && !strcmp(argv[2], "ring0-paging-0.1");
     int user_fault = explicit_profile && !strcmp(argv[2], "ring0-user-fault-0.1");
+    int abi_probe = explicit_profile && !strcmp(argv[2], "ring0-abi-probe-0.1");
     int fault = explicit_profile && !strcmp(argv[2], "ring0-fault-0.1");
     int splash_hd = explicit_profile && !strcmp(argv[2], "ring0-splash-hd-0.1");
     int splash = splash_hd || (explicit_profile && !strcmp(argv[2], "ring0-splash-0.1"));
-    int stop = identify || context || fault || memory || frame_cycle || paging || user_fault ||
+    int stop = identify || context || fault || memory || frame_cycle || paging || user_fault || abi_probe ||
                (explicit_profile && !strcmp(argv[2], "ring0-stop-0.1"));
     if (stop || splash) { argc -= 2; argv += 2; }
     if (argc != 4) {
@@ -42,7 +43,8 @@ int main(int argc, char **argv) {
     if (!ok) fprintf(stderr, "RED [SOURCE-SIZE] Source exceeds 65536 bytes or cannot be read.\n");
     if (ok && splash) ok = casm_splash(source, length, argv[2], argv[3], splash_hd);
     else if (ok && stop) ok = casm_stop(source, length, argv[2], argv[3],
-                                    user_fault ? KERNEL_USER_FAULT : paging ? KERNEL_PAGING : frame_cycle ? KERNEL_FRAME_CYCLE :
+                                    abi_probe ? KERNEL_ABI_PROBE : user_fault ? KERNEL_USER_FAULT :
+                                    paging ? KERNEL_PAGING : frame_cycle ? KERNEL_FRAME_CYCLE :
                                     memory ? KERNEL_MEMORY : fault ? KERNEL_FAULT :
                                     context ? KERNEL_CONTEXT : identify ? KERNEL_CPU : KERNEL_STOP);
     else {

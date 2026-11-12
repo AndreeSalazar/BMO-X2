@@ -19,10 +19,11 @@ from fault_capture import fault_evidence
 from memory_capture import memory_evidence
 from paging_capture import paging_evidence
 from user_fault_capture import user_fault_evidence
+from sbef_probe_cases import MUTATIONS, SBEF_OFFSET, mutated_packet
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--workspace',required=True,type=Path)
-parser.add_argument('--casos', nargs='+', choices=['normal','firma','suma','entrada','ausente','excesivo','salida','contexto'], default=['normal'])
+parser.add_argument('--casos', nargs='+', choices=['normal','firma','suma','entrada','ausente','excesivo','salida','contexto', *MUTATIONS], default=['normal'])
 parser.add_argument('--qemu', default='C:/Program Files/qemu/qemu-system-x86_64.exe')
 parser.add_argument('--cpu', choices=['qemu64', 'Nehalem'], default='qemu64')
 parser.add_argument('--ram-mib', type=int, choices=[256,1024], default=256)
@@ -34,13 +35,16 @@ parser.add_argument('--memory', action='store_true', help='Check the conventiona
 parser.add_argument('--frame-cycle', action='store_true', help='Check ownership, release and scrub of a physical frame')
 parser.add_argument('--paging', action='store_true', help='Check the active page tables and read-only NX alias')
 parser.add_argument('--user-fault', action='store_true', help='Check CPL3 page fault and cleanup')
+parser.add_argument('--abi-probe', action='store_true', help='Check embedded SBEF and the SYSCALL prototype')
 parser.add_argument('--splash',action='store_true',help='Capture the three logo frames')
 parser.add_argument('--splash-hd',action='store_true',help='Use the 64-cell logo layout')
 args = parser.parse_args()
+if not args.abi_probe and set(args.casos).intersection(MUTATIONS):
+    parser.error('SBEF mutation cases require the ABI probe')
 memory_case = args.memory or args.frame_cycle or args.paging
-if any((args.identify,args.stack,args.splash,args.fault,memory_case,args.user_fault)) and not args.halt:
+if any((args.identify,args.stack,args.splash,args.fault,memory_case,args.user_fault,args.abi_probe)) and not args.halt:
     parser.error('The selected probe requires --halt')
-if (args.splash_hd and not args.splash) or ('contexto' in args.casos and not (args.stack or args.fault or memory_case or args.user_fault)) or sum((args.identify,args.stack,args.splash,args.fault,args.memory,args.frame_cycle,args.paging,args.user_fault)) > 1 or ((memory_case or args.user_fault) and args.ram_mib != 256):
+if (args.splash_hd and not args.splash) or ('contexto' in args.casos and not (args.stack or args.fault or memory_case or args.user_fault or args.abi_probe)) or sum((args.identify,args.stack,args.splash,args.fault,args.memory,args.frame_cycle,args.paging,args.user_fault,args.abi_probe)) > 1 or ((memory_case or args.user_fault or args.abi_probe) and args.ram_mib != 256):
     parser.error('Invalid combination of payload and probe cases')
 ROOT = workspace(args.workspace)
 if args.splash:
@@ -70,7 +74,7 @@ results = []
 
 
 def run(case):
-    payload_case = case in ('normal', 'contexto')
+    payload_case = case in ('normal', 'contexto', *MUTATIONS)
     image = ROOT / 'build' / f'puente-{case}.img'
     before = hashlib.sha256(image.read_bytes()).hexdigest()
     prefix = ROOT / 'build' / f'puente-{case}'
@@ -191,9 +195,11 @@ def run(case):
         assert (ebs, returned, failed) == (1, 0 if args.halt else 1, 0), 'Estado final distinto del contrato'
         assert 'CPL=0' in last_registers and 'HLT=1' in last_registers, 'No se detuvo en nivel 0'
         packet = (ROOT / 'build/Puente_Metal/METAL/INICIO.X86').read_bytes()
+        if case in MUTATIONS:
+            packet = mutated_packet(packet, case)
         code = struct.unpack_from('<Q', context, 8)[0]
         assert memory(code, len(packet) - 24, 'code') == packet[24:], 'No ejecuto la copia exacta del cuerpo propio'
-        halt_offset = splash_halt + 1 if args.splash else 662 if args.user_fault else 471 if args.paging else 426 if args.frame_cycle else 215 if args.memory else 136 if args.fault else 48 if args.stack else 6 if args.identify else 2
+        halt_offset = splash_halt + 1 if args.splash else 896 if args.abi_probe else 662 if args.user_fault else 471 if args.paging else 426 if args.frame_cycle else 215 if args.memory else 136 if args.fault else 48 if args.stack else 6 if args.identify else 2
         if args.halt:
             terminal = 'FA 31 C0 0F A2 F4 EB FD' if args.identify else 'FA F4 EB FD'
             if args.splash:
@@ -208,6 +214,8 @@ def run(case):
                 assert len(packet) == 497 and packet[24+470:] == bytes.fromhex('F4 EB FD'), 'Terminal de paginacion distinto'
             elif args.user_fault:
                 assert len(packet) == 740 and packet[24+661:24+664] == bytes.fromhex('F4 EB FD'), 'Terminal de CPL3 distinto'
+            elif args.abi_probe:
+                assert len(packet) == 1263 and packet[24+895:24+898] == bytes.fromhex('F4 EB FD'), 'Terminal ABI distinto'
             elif args.stack:
                 assert len(packet) == 74 and packet[24+47:] == bytes.fromhex('F4 EB FD'), 'Terminal de contexto distinto'
             else:
@@ -261,8 +269,23 @@ def run(case):
             result['CPUIdentification'] = identify(last_registers)
         if args.fault:
             result.update(fault_evidence(memory,last_registers,captured,code,case=='contexto'))
-        if args.user_fault:
-            result.update(user_fault_evidence(memory,last_registers,captured,code,case=='contexto'))
+        if case in MUTATIONS:
+            sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+            from sbef_host.diagnostics import Rejection
+            from sbef_host.format import inspect
+            try:
+                inspect(packet[SBEF_OFFSET:])
+            except Rejection as error:
+                result['HostDiagnostic'] = error.report()
+            else:
+                raise ValueError('ABI-PROBE: el lector HOST admitio el SBEF mutado')
+            base = captured + 0x13000
+            assert register(last_registers, 'R12') == 0 and register(last_registers, 'R13') == register(last_registers, 'CR3'), 'CASM activo un SBEF rechazado'
+            assert memory(base + 0x5000, 8192, 'rejected-user-pages') == bytes(8192), 'CASM copio bytes rechazados'
+            assert memory(base + 0x7310, 8, 'rejected-syscalls') == bytes(8), 'Se ejecuto una llamada de usuario'
+            result.update(SbefAccepted=False, SyscallCount=0)
+        elif args.user_fault or args.abi_probe:
+            result.update(user_fault_evidence(memory,last_registers,captured,code,case=='contexto',abi_probe=args.abi_probe))
         if memory_case:
             if args.paging:
                 result.update(paging_evidence(memory,last_registers,regions,captured,code,case=='contexto'))

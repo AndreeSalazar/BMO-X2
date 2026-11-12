@@ -995,6 +995,22 @@
       "tests": [
         "tests/test_stop.py"
       ]
+    },
+    {
+      "id": "ring0-abi-probe",
+      "parent": "casm",
+      "kind": "profile",
+      "title": "Ring 0: SBEF y puerta ABI 1",
+      "status": "implemented",
+      "description": "Admite un SBEF fijo, atiende INVOKE por SYSCALL y prueba rechazos en QEMU.",
+      "sources": [
+        "src/kernel/stop.c",
+        "stop_verify.py"
+      ],
+      "guards": [],
+      "tests": [
+        "tests/test_stop.py"
+      ]
     }
   ]
 }

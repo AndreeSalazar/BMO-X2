@@ -42,6 +42,11 @@ Faltan el asignador general y la reutilizacion en un segundo proceso.
 [tablas propias](../kernel/mm/virtual/PAGING.md).
 [Fallo desde CPL3](../kernel/mm/user/USER-FAULT.md).
 
+El ensayo ABI 1 ya admite un SBEF embebido, verifica dos rechazos de
+admision y ejecuta INVOKE sobre SYSCALL. El siguiente cierre exige una
+imagen externa producida por un toolchain y WAIT con senal y plazo.
+[ABI de BMO-X2](../contracts/ABI.md).
+
 Para dar paso al runtime de Ring 3 se exige un primer proceso aislado.
 El kernel debe poder cargar su SBEF, darle una pila y permisos propios,
 atender una peticion, despertarlo y recuperar sus recursos cuando sale

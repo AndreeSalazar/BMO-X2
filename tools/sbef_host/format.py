@@ -20,10 +20,12 @@ def inspect(image):
     magic, version, abi, machine, count, size, entry, flags, reserved = HEADER.unpack_from(image)
     for value, expected, offset, field in [
             (magic, b'SBEF', 0, 'signature'), (version, 1, 4, 'format_version'),
-            (abi, 0, 6, 'abi_version'), (machine, MACHINE, 8, 'architecture'),
+            (machine, MACHINE, 8, 'architecture'),
             (flags, 0, 24, 'flags'), (reserved, 0, 28, 'reserved')]:
         if value != expected:
             raise Rejection('SBEF-HEADER', offset, field)
+    if abi not in (0, 1):
+        raise Rejection('SBEF-HEADER', 6, 'abi_version')
     cursor = HEADER.size + count * REGION.size
     if not 1 <= count <= MAX_REGIONS or cursor > len(image):
         raise Rejection('SBEF-TABLE', 10, 'region_count')
