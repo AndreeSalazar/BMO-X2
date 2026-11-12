@@ -161,6 +161,31 @@ class Stop(unittest.TestCase):
         self.source.write_bytes(self.source.read_bytes().replace(b'boot_frame_cycle', b'boot_memory'))
         self.assertNotEqual(subprocess.run(cmd, capture_output=True).returncode, 0)
 
+    def test_paging_rejects_changed_alias_permissions_and_cr3(self):
+        source = ROOT/'kernel/mm/virtual/main.casm'
+        self.source.write_bytes(source.read_bytes())
+        cmd = [str(self.compiler), '--profile', 'ring0-paging-0.1',
+               str(self.source), str(self.hex), str(self.ir)]
+        self.assertEqual(subprocess.run(cmd, capture_output=True).returncode, 0)
+        packet, report = verify(self.source, self.hex, self.ir, paging=True)
+        self.assertEqual(len(packet), 497)
+        self.assertEqual(report['EntryBudget']['RemainingBytes'], 14)
+        ir = json.loads(self.ir.read_text())
+        for key, value in [('AliasUserReadOnlyNX', False), ('TableFrames', 4), ('Alias', 0)]:
+            changed = copy.deepcopy(ir)
+            changed['Paging'][key] = value
+            self.ir.write_text(json.dumps(changed))
+            with self.assertRaisesRegex(ValueError, 'STOP-IR'):
+                verify(self.source, self.hex, self.ir, paging=True)
+        self.ir.write_text(json.dumps(ir))
+        body = packet[24:]
+        for opcode, index, value in [('49 8D 83 05 50 00 00', 3, 7), ('41 0F 22 DB', 3, 0xd8)]:
+            changed = bytearray(body)
+            changed[body.index(bytes.fromhex(opcode)) + index] = value
+            self.hex.write_text(changed.hex(' '))
+            with self.assertRaisesRegex(ValueError, 'STOP-EMISSION'):
+                verify(self.source, self.hex, self.ir, paging=True)
+
     def test_all_byte_bits_and_ir_contract_reject(self):
         self.assertEqual(self.compile().returncode, 0)
         vector = bytes.fromhex(self.hex.read_text())

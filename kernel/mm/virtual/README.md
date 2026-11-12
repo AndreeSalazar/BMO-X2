@@ -11,4 +11,4 @@ Establece espacios virtuales separados y permisos por pagina.
 - Entrada: Marcos fisicos, rangos y permiso solicitado.
 - Salida: Paginas de kernel y usuario con proteccion de escritura y ejecucion.
 - Aceptacion: QEMU impide escritura de codigo y ejecucion de datos.
-- Pendiente: Construir tablas y medir marcos usados.
+- Pendiente: Probar fallos de permisos desde CPL3 y separar codigo RX de datos RW y NX.

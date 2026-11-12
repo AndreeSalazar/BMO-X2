@@ -17,6 +17,7 @@ from cpu_config import identify, register
 from splash_capture import compare_frame
 from fault_capture import fault_evidence
 from memory_capture import memory_evidence
+from paging_capture import paging_evidence
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--workspace',required=True,type=Path)
@@ -30,13 +31,14 @@ parser.add_argument('--stack',action='store_true',help='Check the selected stack
 parser.add_argument('--fault',action='store_true',help='Check the own #UD gate and exception frame')
 parser.add_argument('--memory', action='store_true', help='Check the conventional memory frame')
 parser.add_argument('--frame-cycle', action='store_true', help='Check ownership, release and scrub of a physical frame')
+parser.add_argument('--paging', action='store_true', help='Check the active page tables and read-only NX alias')
 parser.add_argument('--splash',action='store_true',help='Capture the three logo frames')
 parser.add_argument('--splash-hd',action='store_true',help='Use the 64-cell logo layout')
 args = parser.parse_args()
-memory_case = args.memory or args.frame_cycle
+memory_case = args.memory or args.frame_cycle or args.paging
 if any((args.identify,args.stack,args.splash,args.fault,memory_case)) and not args.halt:
     parser.error('The selected probe requires --halt')
-if (args.splash_hd and not args.splash) or ('contexto' in args.casos and not (args.stack or args.fault or memory_case)) or sum((args.identify,args.stack,args.splash,args.fault,args.memory,args.frame_cycle)) > 1 or (memory_case and args.ram_mib != 256):
+if (args.splash_hd and not args.splash) or ('contexto' in args.casos and not (args.stack or args.fault or memory_case)) or sum((args.identify,args.stack,args.splash,args.fault,args.memory,args.frame_cycle,args.paging)) > 1 or (memory_case and args.ram_mib != 256):
     parser.error('Invalid combination of payload and probe cases')
 ROOT = workspace(args.workspace)
 if args.splash:
@@ -189,7 +191,7 @@ def run(case):
         packet = (ROOT / 'build/Puente_Metal/METAL/INICIO.X86').read_bytes()
         code = struct.unpack_from('<Q', context, 8)[0]
         assert memory(code, len(packet) - 24, 'code') == packet[24:], 'No ejecuto la copia exacta del cuerpo propio'
-        halt_offset = splash_halt + 1 if args.splash else 426 if args.frame_cycle else 215 if args.memory else 136 if args.fault else 48 if args.stack else 6 if args.identify else 2
+        halt_offset = splash_halt + 1 if args.splash else 471 if args.paging else 426 if args.frame_cycle else 215 if args.memory else 136 if args.fault else 48 if args.stack else 6 if args.identify else 2
         if args.halt:
             terminal = 'FA 31 C0 0F A2 F4 EB FD' if args.identify else 'FA F4 EB FD'
             if args.splash:
@@ -200,6 +202,8 @@ def run(case):
                 assert len(packet) == 241 and packet[24+214:] == bytes.fromhex('F4 EB FD'), 'Terminal de memoria distinto'
             elif args.frame_cycle:
                 assert len(packet) == 498 and packet[24+425:24+428] == bytes.fromhex('F4 EB FD'), 'Terminal de ciclo distinto'
+            elif args.paging:
+                assert len(packet) == 497 and packet[24+470:] == bytes.fromhex('F4 EB FD'), 'Terminal de paginacion distinto'
             elif args.stack:
                 assert len(packet) == 74 and packet[24+47:] == bytes.fromhex('F4 EB FD'), 'Terminal de contexto distinto'
             else:
@@ -254,7 +258,10 @@ def run(case):
         if args.fault:
             result.update(fault_evidence(memory,last_registers,captured,code,case=='contexto'))
         if memory_case:
-            result.update(memory_evidence(memory,last_registers,regions,captured,code,case=='contexto',cycle=args.frame_cycle))
+            if args.paging:
+                result.update(paging_evidence(memory,last_registers,regions,captured,code,case=='contexto'))
+            else:
+                result.update(memory_evidence(memory,last_registers,regions,captured,code,case=='contexto',cycle=args.frame_cycle))
             result['MemoryMapBytes'] = size
         if args.splash:
             assert register(last_registers, 'R12') == 3 and frames == {1,2}, 'Faltan cuadros completos'

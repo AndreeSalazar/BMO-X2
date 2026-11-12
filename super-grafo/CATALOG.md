@@ -111,6 +111,7 @@
 | [Guardian QEMU del marco](../tools/boot/memory_capture.py) | host | host | Comprueba la primera direccion elegible, la marca fisica y el contexto. |
 | [Pesos del build QEMU](../tools/boot/weights.py) | host | host | Mide artefactos en disco y lee la RAM configurada de cada VM. |
 | [Propiedad y devolucion de un marco](../kernel/mm/physical/lifecycle/main.casm) | qemu | 0 | Asigna, protege la propiedad, borra y reasigna un marco de 4 KiB. |
+| [Tablas propias y alias de datos](../kernel/mm/virtual/main.casm) | qemu | 0 | Instala CR3 propio y separa el mapa supervisor de un alias de usuario. |
 
 ## Dependencias declaradas
 
@@ -317,5 +318,8 @@
 | physical-memory | ram-frame-cycle | plan |
 | ram-frame-cycle | ram-frame | codigo |
 | ram-frame-cycle | ram-qemu | verificacion |
+| virtual-memory | own-page-tables | plan |
+| own-page-tables | ram-frame | codigo |
+| own-page-tables | stop-verifier | verificacion |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

@@ -1315,7 +1315,7 @@
       "entrada": "Marcos fisicos, rangos y permiso solicitado.",
       "salida": "Paginas de kernel y usuario con proteccion de escritura y ejecucion.",
       "aceptacion": "QEMU impide escritura de codigo y ejecucion de datos.",
-      "falta": "Construir tablas y medir marcos usados.",
+      "falta": "Probar fallos de permisos desde CPL3 y separar codigo RX de datos RW y NX.",
       "pagina": true
     },
     {
@@ -1846,7 +1846,21 @@
       "entrada": "Mapa de arranque y dos propietarios de prueba.",
       "salida": "Estado de seis pasos, propietario final y marco limpio.",
       "aceptacion": "QEMU coteja agotamiento, devolucion ajena, doble devolucion y 4096 bytes borrados.",
-      "falta": "Administrar multiples marcos y conectarlos con permisos de pagina."
+      "falta": "Administrar devolucion y propiedad de multiples marcos."
+    },
+    {
+      "id": "own-page-tables",
+      "titulo": "Tablas propias y alias de datos",
+      "ruta": "kernel/mm/virtual/main.casm",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "CASM",
+      "posicion": [9500, 3675],
+      "que": "Instala CR3 propio y separa el mapa supervisor de un alias de usuario.",
+      "entrada": "Mapa UEFI y seis marcos convencionales contiguos.",
+      "salida": "Cinco tablas y una pagina de datos de solo lectura y NX.",
+      "aceptacion": "QEMU coteja las entradas, CR3 activo, NX, WP y la lectura por el alias.",
+      "falta": "Ejecutar en CPL3 y capturar un fallo de pagina con pila de Ring 0."
     }
   ],
   "relaciones": [
@@ -2853,6 +2867,21 @@
     {
       "de": "ram-frame-cycle",
       "a": "ram-qemu",
+      "clase": "verificacion"
+    },
+    {
+      "de": "virtual-memory",
+      "a": "own-page-tables",
+      "clase": "plan"
+    },
+    {
+      "de": "own-page-tables",
+      "a": "ram-frame",
+      "clase": "codigo"
+    },
+    {
+      "de": "own-page-tables",
+      "a": "stop-verifier",
       "clase": "verificacion"
     }
   ]

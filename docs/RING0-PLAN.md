@@ -31,12 +31,14 @@ servicio posterior requiere sus propias operaciones y recursos probados.
 La entrega 1 ya tiene una prueba de pila y una IDT minima que registra
 una excepcion controlada en QEMU. La entrega 2 ya prueba el ciclo de
 propiedad, devolucion, borrado y reutilizacion de un marco de 4 KiB.
-Falta gestionar multiples marcos reservados y activar tablas propias
-con permisos de usuario.
+CASM ya selecciona seis marcos contiguos del mapa UEFI, activa tablas
+propias y comprueba un alias de usuario de solo lectura y sin ejecucion
+desde CPL0. Faltan el asignador general y el ensayo CPL3 con captura de
+fallo de pagina y recuperacion de recursos.
 [Contexto y pila](../kernel/boot/context/STACK.md) y
 [primera excepcion](../kernel/arch/x86_64/exceptions/FAULT.md).
 [Ciclo de un marco](../kernel/mm/physical/lifecycle/CYCLE.md) y
-[prueba inicial y pesos](../kernel/mm/physical/FRAME.md).
+[tablas propias](../kernel/mm/virtual/PAGING.md).
 
 Para dar paso al runtime de Ring 3 se exige un primer proceso aislado.
 El kernel debe poder cargar su SBEF, darle una pila y permisos propios,

@@ -963,6 +963,22 @@
       "tests": [
         "tests/test_stop.py"
       ]
+    },
+    {
+      "id": "ring0-paging",
+      "parent": "casm",
+      "kind": "profile",
+      "title": "Ring 0: tablas de paginas propias",
+      "status": "implemented",
+      "description": "Activa CR3 propio, mapa supervisor y alias de usuario de lectura sin ejecucion. Paquete de 497 bytes.",
+      "sources": [
+        "src/kernel/stop.c",
+        "stop_verify.py"
+      ],
+      "guards": [],
+      "tests": [
+        "tests/test_stop.py"
+      ]
     }
   ]
 }

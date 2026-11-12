@@ -834,9 +834,9 @@ Establece espacios virtuales separados y permisos por pagina.
 Estado: DISENO. Anillo: 0. Lenguaje: CASM.
 Entrada: Marcos fisicos, rangos y permiso solicitado.
 Salida: Paginas de kernel y usuario con proteccion de escritura y ejecucion.
-Depende de: Memoria fisica (plan).
+Depende de: Memoria fisica (plan), Tablas propias y alias de datos (plan).
 Aceptacion: QEMU impide escritura de codigo y ejecucion de datos.
-Pendiente: Construir tablas y medir marcos usados.
+Pendiente: Probar fallos de permisos desde CPL3 y separar codigo RX de datos RW y NX.
 
 ## kernel/mm/user
 
@@ -1177,7 +1177,18 @@ Entrada: Mapa de arranque y dos propietarios de prueba.
 Salida: Estado de seis pasos, propietario final y marco limpio.
 Depende de: Primer marco de RAM (codigo), Guardian QEMU del marco (verificacion).
 Aceptacion: QEMU coteja agotamiento, devolucion ajena, doble devolucion y 4096 bytes borrados.
-Pendiente: Administrar multiples marcos y conectarlos con permisos de pagina.
+Pendiente: Administrar devolucion y propiedad de multiples marcos.
+
+## kernel/mm/virtual/main.casm
+
+Instala CR3 propio y separa el mapa supervisor de un alias de usuario.
+
+Estado: QEMU. Anillo: 0. Lenguaje: CASM.
+Entrada: Mapa UEFI y seis marcos convencionales contiguos.
+Salida: Cinco tablas y una pagina de datos de solo lectura y NX.
+Depende de: Primer marco de RAM (codigo), Verificador independiente de parada (verificacion).
+Aceptacion: QEMU coteja las entradas, CR3 activo, NX, WP y la lectura por el alias.
+Pendiente: Ejecutar en CPL3 y capturar un fallo de pagina con pila de Ring 0.
 
 ## CASM
 
@@ -1201,4 +1212,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-107 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+108 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

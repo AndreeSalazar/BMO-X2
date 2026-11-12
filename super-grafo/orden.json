@@ -1,5 +1,13 @@
 {
   "tintes": {
+    "kernel/mm/virtual/main.casm": {
+      "rgb": [90, 220, 255],
+      "motivo": "Ring 0: activa CR3 propio y comprueba el alias de datos."
+    },
+    "kernel/mm/virtual/expected.hex": {
+      "rgb": [255, 194, 79],
+      "motivo": "Vector independiente para las tablas y sus permisos."
+    },
     "kernel/mm/physical/lifecycle/main.casm": {
       "rgb": [90, 220, 255],
       "motivo": "Ring 0: prueba propiedad, devolucion y borrado de un marco."
@@ -962,6 +970,10 @@
     "kernel/mm/physical/lifecycle/main.casm": [
       9500,
       3500
+    ],
+    "kernel/mm/virtual/main.casm": [
+      9500,
+      3675
     ]
   },
   "foco": "kernel/boot",

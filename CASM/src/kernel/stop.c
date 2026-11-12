@@ -77,6 +77,39 @@ static const char frame_cycle_hex[] =
     /* Reject without changing ownership. */
     "F8 C3\n";
 
+static const char paging_hex[] =
+    /* Guard the handoff and CPU mode. */
+    "FA 45 31 DB 45 31 E4 41 0F 20 DD 48 39 EF 75 5C 48 B9 4D 45 54 41 4C 36 "
+    "34 21 48 39 4D 00 75 4C 83 7D 78 01 75 46 48 8D 85 00 00 02 00 48 3D 00 "
+    "00 00 10 77 37 4C 8B 75 08 49 81 FE 00 F0 FF 0F 77 2A 41 0F 20 E7 41 F7 "
+    "C7 00 10 22 00 75 1D B8 00 00 00 80 0F A2 3D 01 00 00 80 72 0F B8 01 00 "
+    "00 80 0F A2 0F BA E2 14 73 02 EB 05 E9 65 01 00 00\n"
+    /* Bound the firmware map geometry. */
+    "4C 8B 4D 60 49 83 F9 28 0F 82 57 01 00 00 49 81 F9 00 01 00 00 0F 87 4A "
+    "01 00 00 4C 8B 55 50 4D 39 CA 0F 82 3D 01 00 00 49 81 FA 00 00 01 00 0F "
+    "87 30 01 00 00 4C 89 D0 31 D2 49 F7 F1 48 85 D2 0F 85 1F 01 00 00 4C 8D "
+    "85 00 10 00 00\n"
+    /* Select six conventional frames outside the bridge reservations. */
+    "41 83 38 07 75 4B 49 83 78 18 06 72 44 49 8B 40 08 A9 FF 0F 00 00 75 39 "
+    "48 3D 00 00 10 00 72 31 48 3D 00 A0 FF 0F 77 29 48 8D 88 00 60 00 00 49 "
+    "8D 96 00 10 00 00 48 39 D0 73 05 4C 39 F1 77 11 48 8D 95 00 00 02 00 48 "
+    "39 D0 73 12 48 39 E9 76 0D 4D 01 C8 4D 29 CA 75 A7 E9 BA 00 00 00\n"
+    /* Clear frames and link the four paging levels. */
+    "49 89 C3 4C 89 DF 31 C0 B9 00 0C 00 00 FC F3 48 AB 49 8D 83 07 10 00 00 "
+    "49 89 03 49 8D 83 03 20 00 00 49 89 83 00 10 00 00 49 8D 83 07 30 00 00 "
+    "49 89 83 08 10 00 00 49 8D 83 07 40 00 00 49 89 83 00 30 00 00 49 8D 83 "
+    "05 50 00 00 48 0F BA E8 3F 49 89 83 00 40 00 00 49 8D BB 00 20 00 00 B8 "
+    "83 00 00 00 B9 80 00 00 00\n"
+    /* Map low memory for the supervisor and seed the data frame. */
+    "48 AB 05 00 00 20 00 E2 F7 48 BB 42 4D 50 41 47 45 30 21 49 89 9B 00 50 "
+    "00 00\n"
+    /* Enable NX and write protection, install CR3 and read the alias. */
+    "B9 80 00 00 C0 0F 32 0D 00 08 00 00 0F 30 0F 20 C0 48 0F BA E8 10 0F 22 "
+    "C0 41 81 E7 7F FF FF FF 41 0F 22 E7 41 0F 22 DB BF 00 00 00 40 48 39 1F "
+    "41 0F 94 C4 48 89 EF\n"
+    /* Halt after recording the result. */
+    "F4 EB FD\n";
+
 int casm_stop(const unsigned char *source, size_t length, const char *hex, const char *ir, KernelProfile profile) {
     Parser p = {0};
     size_t i;
@@ -95,6 +128,7 @@ int casm_stop(const unsigned char *source, size_t length, const char *hex, const
     if (profile != KERNEL_STOP) {
         operation_line = line;
         const char *operation = profile == KERNEL_CPU ? "cpu_identify" :
+                                profile == KERNEL_PAGING ? "boot_paging" :
                                 profile == KERNEL_FRAME_CYCLE ? "boot_frame_cycle" :
                                 profile == KERNEL_FAULT ? "boot_fault" : profile == KERNEL_MEMORY ? "boot_memory" : "boot_stack";
         if (!casm_word(&p, operation) || !casm_expect(&p, '(') ||
@@ -107,14 +141,21 @@ int casm_stop(const unsigned char *source, size_t length, const char *hex, const
     if (!out) return 0;
     /* CLI; HLT; JMP rel8 -3 to HLT. No return or inherited service call. */
     /* CPUID leaf zero returns the vendor and highest basic leaf in registers. */
-    ok = fputs(profile == KERNEL_FRAME_CYCLE ? frame_cycle_hex : profile == KERNEL_MEMORY ? memory_hex :
+    ok = fputs(profile == KERNEL_PAGING ? paging_hex :
+               profile == KERNEL_FRAME_CYCLE ? frame_cycle_hex : profile == KERNEL_MEMORY ? memory_hex :
                profile == KERNEL_FAULT ? fault_hex : profile == KERNEL_CONTEXT ? context_hex :
                profile == KERNEL_CPU ? "FA 31 C0 0F A2 F4 EB FD\n" : "FA F4 EB FD\n", out) >= 0;
     if (fclose(out)) ok = 0;
     if (!ok) return 0;
     out = fopen(ir, "wb");
     if (!out) return 0;
-    if (profile == KERNEL_FRAME_CYCLE) {
+    if (profile == KERNEL_PAGING) {
+        ok = fprintf(out, "{\n\"Schema\":10,\"Target\":\"x86_64\",\"ABI\":\"ring0-paging\","
+            "\"Profile\":\"ring0-paging-0.1\",\"Entry\":\"kernel_main\",\"RequiredCPL\":0,"
+            "\"Paging\":{\"Line\":%u,\"TableFrames\":5,\"DataFrames\":1,\"PageBytes\":4096,"
+            "\"IdentityLimitExclusive\":268435456,\"Alias\":1073741824,\"AliasUserReadOnlyNX\":true},"
+            "\"Terminal\":{\"Line\":%u,\"Offset\":470},\"BodyBytes\":473\n}\n", operation_line, line) >= 0;
+    } else if (profile == KERNEL_FRAME_CYCLE) {
         ok = fprintf(out, "{\n\"Schema\":9,\"Target\":\"x86_64\",\"ABI\":\"ring0-frame-cycle\","
             "\"Profile\":\"ring0-frame-cycle-0.1\",\"Entry\":\"kernel_main\",\"RequiredCPL\":0,"
             "\"Pool\":{\"Line\":%u,\"Capacity\":1,\"PageBytes\":4096,\"LimitExclusive\":268435456,\"ScrubOnRelease\":true},"
@@ -146,7 +187,8 @@ int casm_stop(const unsigned char *source, size_t length, const char *hex, const
         "\"Terminal\":{\"Line\":%u,\"Offset\":0},\"BodyBytes\":4\n}\n", line) >= 0;
     }
     if (fclose(out)) ok = 0;
-    if (ok) puts(profile == KERNEL_FRAME_CYCLE ? "GREEN [RING0-FRAME-CYCLE] 474 body bytes; unverified HEX and IR written."
+    if (ok) puts(profile == KERNEL_PAGING ? "GREEN [RING0-PAGING] 473 body bytes; unverified HEX and IR written."
+             : profile == KERNEL_FRAME_CYCLE ? "GREEN [RING0-FRAME-CYCLE] 474 body bytes; unverified HEX and IR written."
              : profile == KERNEL_MEMORY ? "GREEN [RING0-MEMORY] 217 body bytes; unverified HEX and IR written."
              : profile == KERNEL_FAULT ? "GREEN [RING0-FAULT] 138 body bytes; unverified HEX and IR written."
              : profile == KERNEL_CONTEXT ? "GREEN [RING0-CONTEXT] 50 body bytes; unverified HEX and IR written."
