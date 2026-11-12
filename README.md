@@ -96,8 +96,9 @@ de los cuatro espacios usando el compositor Rust.
 [Reglas de Ring 3](userspace/POLICY.md) |
 [Frontera de ejecucion](docs/RING-BOUNDARY.md)
 
-La [sonda DOOM](userspace/apps/doom/README.md) ejecuta cuatro casos de
-aritmetica original en HOST y empaqueta el ELF64 como SBEF ABI 1.
+La [sonda DOOM](userspace/apps/doom/README.md) compila aritmetica original
+con GCC, empaqueta el ELF64 como SBEF ABI 1 y verifica su ejecucion
+en CPL3 con QEMU.
 El [mezclador de audio Rust](userspace/services/audio/AUDIO.md) prueba
 PCM, volumen y medicion en HOST. La salida virtual y USB quedan pendientes.
 

@@ -3,7 +3,8 @@ param(
     [string]$DoomSource,
     [string]$Gcc,
     [string]$Llvm = (Join-Path $env:ProgramFiles 'LLVM/bin'),
-    [string]$Python
+    [string]$Python,
+    [string]$AbiRun
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -43,7 +44,7 @@ $cc = if ($Gcc) { $Gcc } else { $clang }
 $flags = @('-O2','-ffreestanding','-fno-pic','-fno-pie','-fno-stack-protector',
            '-fno-unwind-tables','-fno-asynchronous-unwind-tables',"-I$headers","-I$DoomSource")
 $objects = @()
-foreach ($unit in @($source, $probe, $runtime, (Join-Path $root 'userspace/runtime/abi/portal.S'))) {
+foreach ($unit in @($source, $probe, $runtime, (Join-Path $PSScriptRoot 'doom/complete.S'), (Join-Path $root 'userspace/runtime/abi/portal.S'))) {
     $obj = Join-Path $out ([IO.Path]::GetFileNameWithoutExtension($unit) + '.o')
     & $cc @target @flags -c $unit -o $obj
     if ($LASTEXITCODE -ne 0) { throw "Fallo el objeto ELF64 de $unit. Para -Gcc usa un GCC con destino x86-64 ELF." }
@@ -60,3 +61,7 @@ $segments | Set-Content -LiteralPath (Join-Path $out 'elf-segments.txt') -Encodi
 & $Python -B (Join-Path $root 'tools/sbef.py') pack $elf $sbef --abi 1
 if ($LASTEXITCODE -ne 0) { throw 'Fallo la admision HOST de SBEF.' }
 Write-Output "SBEF: $sbef"
+if ($AbiRun) {
+    & $Python -B (Join-Path $PSScriptRoot 'boot/doom_qemu.py') $AbiRun $sbef
+    if ($LASTEXITCODE -ne 0) { throw 'Fallo la ejecucion de la sonda DOOM en QEMU.' }
+}

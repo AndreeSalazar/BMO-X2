@@ -5,7 +5,8 @@ import struct
 from cpu_config import register
 
 
-def user_fault_evidence(memory, snapshot, context, code, reject, *, abi_probe=False, hot_unmap=False):
+def user_fault_evidence(memory, snapshot, context, code, reject, *, abi_probe=False, hot_unmap=False,
+                        doom=None):
     base = context + 0x13000
     descriptors = base + 0x7000
     supplied, root, status, old, marker, cr3, rsp = (
@@ -48,6 +49,8 @@ def user_fault_evidence(memory, snapshot, context, code, reject, *, abi_probe=Fa
         raise ValueError('USER-FAULT-QEMU: RSP0 de la TSS distinto')
     error, rip, cs, flags, user_rsp, ss = struct.unpack_from('<QQQQQQ', page, 4096 - 48)
     user_ip = 0x4000001a if hot_unmap else 0x40000064 if abi_probe else 0x40000010
+    if doom:
+        user_ip = doom['fault_rip']
     if (error, rip, cs, user_rsp, ss) != (4 if hot_unmap else 5, user_ip, 0x23, 0x40001ff8, 0x1b) or flags & 0x3200:
         raise ValueError('USER-FAULT-QEMU: marco hardware de CPL3 distinto')
 
@@ -80,6 +83,8 @@ def user_fault_evidence(memory, snapshot, context, code, reject, *, abi_probe=Fa
         calls = struct.unpack_from('<Q', page, 0x310)[0]
         if calls != 3 or not register(snapshot, 'EFER') & 1:
             raise ValueError('ABI-PROBE-QEMU: llamadas o EFER.SCE distintos')
-        result.update(AbiVersion=1, EmbeddedSbefBytes=168, SyscallCount=calls,
+        result.update(AbiVersion=1, EmbeddedSbefBytes=doom['sbef_bytes'] if doom else 168, SyscallCount=calls,
                       InvokeEcho=True, InvalidCapabilityRejected=True, WaitStatus=-4)
+    if doom:
+        result.update(DoomFixedArithmetic=True, SbefSHA256=doom['sbef_sha256'])
     return result

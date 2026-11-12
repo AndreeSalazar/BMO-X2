@@ -36,6 +36,7 @@ parser.add_argument('--frame-cycle', action='store_true', help='Check ownership,
 parser.add_argument('--paging', action='store_true', help='Check the active page tables and read-only NX alias')
 parser.add_argument('--user-fault', action='store_true', help='Check CPL3 page fault and cleanup')
 parser.add_argument('--abi-probe', action='store_true', help='Check embedded SBEF and the SYSCALL prototype')
+parser.add_argument('--doom-fixture', action='store_true', help='Verify the run-specific DOOM ABI fixture')
 parser.add_argument('--hot-unmap', action='store_true', help='Check live revocation and the fault journal')
 parser.add_argument('--splash',action='store_true',help='Capture the three logo frames')
 parser.add_argument('--splash-hd',action='store_true',help='Use the 64-cell logo layout')
@@ -49,6 +50,15 @@ if any((args.identify,args.stack,args.splash,args.fault,memory_case,user_case)) 
 if (args.splash_hd and not args.splash) or ('contexto' in args.casos and not (args.stack or args.fault or memory_case or user_case)) or sum((args.identify,args.stack,args.splash,args.fault,args.memory,args.frame_cycle,args.paging,args.user_fault,args.abi_probe,args.hot_unmap)) > 1 or ((memory_case or user_case) and args.ram_mib != 256):
     parser.error('Invalid combination of payload and probe cases')
 ROOT = workspace(args.workspace)
+if args.doom_fixture and (not args.abi_probe or args.casos != ['normal']):
+    parser.error('DOOM requires the normal ABI probe case')
+doom = None
+if args.doom_fixture:
+    from doom_fixture import make_packet
+    reference = (ROOT / 'reference.x86').read_bytes()
+    expected, doom = make_packet(reference, (ROOT / 'doom-fixed.sbef').read_bytes())
+    if (ROOT / 'build/Puente_Metal/METAL/INICIO.X86').read_bytes() != expected:
+        raise ValueError('Paquete DOOM distinto del vector esperado')
 if args.splash:
     if args.casos != ['normal']:
         parser.error('The splash probe requires the normal case')
@@ -217,7 +227,8 @@ def run(case):
             elif args.user_fault:
                 assert len(packet) == 740 and packet[24+661:24+664] == bytes.fromhex('F4 EB FD'), 'Terminal de CPL3 distinto'
             elif args.abi_probe:
-                assert len(packet) == 1263 and packet[24+895:24+898] == bytes.fromhex('F4 EB FD'), 'Terminal ABI distinto'
+                expected_size = SBEF_OFFSET + doom['sbef_bytes'] if doom else 1263
+                assert len(packet) == expected_size and packet[24+895:24+898] == bytes.fromhex('F4 EB FD'), 'Terminal ABI distinto'
             elif args.hot_unmap:
                 assert len(packet) == 954 and packet[24+865:24+868] == bytes.fromhex('F4 EB FD'), 'Terminal de revocacion distinto'
             elif args.stack:
@@ -290,7 +301,7 @@ def run(case):
             result.update(SbefAccepted=False, SyscallCount=0)
         elif user_case:
             result.update(user_fault_evidence(memory,last_registers,captured,code,case=='contexto',
-                                              abi_probe=args.abi_probe,hot_unmap=args.hot_unmap))
+                                              abi_probe=args.abi_probe,hot_unmap=args.hot_unmap,doom=doom))
         if memory_case:
             if args.paging:
                 result.update(paging_evidence(memory,last_registers,regions,captured,code,case=='contexto'))

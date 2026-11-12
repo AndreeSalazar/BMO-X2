@@ -2050,15 +2050,15 @@
       "id": "doom-fixed-probe",
       "titulo": "Sonda DOOM C a SBEF",
       "ruta": "tools/build-doom-probe.ps1",
-      "estado": "host",
+      "estado": "qemu",
       "anillo": "host",
       "lenguaje": "PowerShell y C",
       "posicion": [11500, 4200],
       "que": "Compila la aritmetica original de DoomGeneric y empaqueta un cliente ELF64.",
       "entrada": "m_fixed.c fijado, toolchain x86-64 ELF y portal ABI 1.",
-      "salida": "Cuatro comprobaciones HOST, tabla ELF y doom-fixed.sbef.",
-      "aceptacion": "HOST ejecuta los casos y el importador admite el segmento RX.",
-      "falta": "Verificar GCC ELF, ejecutar el SBEF externo y portar video, teclado, reloj y WAD."
+      "salida": "Tabla ELF, doom-fixed.sbef e informe QEMU de ejecucion CPL3.",
+      "aceptacion": "GCC produce ELF64, HOST empaqueta y QEMU comprueba aritmetica, tres syscalls y borrado.",
+      "falta": "Cargador general de SBEF externo y port de video, teclado, reloj y WAD."
     },
     {
       "id": "audio-mixer",

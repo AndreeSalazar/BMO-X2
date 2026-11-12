@@ -1337,12 +1337,12 @@ Pendiente: Conectar la capacidad de entrada y probar teclado real en QEMU.
 
 Compila la aritmetica original de DoomGeneric y empaqueta un cliente ELF64.
 
-Estado: HOST. Anillo: host. Lenguaje: PowerShell y C.
+Estado: QEMU. Anillo: host. Lenguaje: PowerShell y C.
 Entrada: m_fixed.c fijado, toolchain x86-64 ELF y portal ABI 1.
-Salida: Cuatro comprobaciones HOST, tabla ELF y doom-fixed.sbef.
+Salida: Tabla ELF, doom-fixed.sbef e informe QEMU de ejecucion CPL3.
 Depende de: Contrato minimo del cargador SBEF (plan), Empaquetador ELF64 a SBEF (generacion).
-Aceptacion: HOST ejecuta los casos y el importador admite el segmento RX.
-Pendiente: Verificar GCC ELF, ejecutar el SBEF externo y portar video, teclado, reloj y WAD.
+Aceptacion: GCC produce ELF64, HOST empaqueta y QEMU comprueba aritmetica, tres syscalls y borrado.
+Pendiente: Cargador general de SBEF externo y port de video, teclado, reloj y WAD.
 
 ## userspace/services/audio
 

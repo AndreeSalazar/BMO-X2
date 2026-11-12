@@ -18,19 +18,42 @@ El script busca DoomGeneric en el BMO-X vecino y verifica la huella de
 Para otro checkout de ese commit, pasa `-DoomSource` con la ruta a la
 carpeta interna `doomgeneric` que contiene `m_fixed.c`.
 El argumento `-Gcc` admite la ruta de un GCC cuyo destino sea x86-64 ELF.
-La prueba nativa y el enlace siguen usando LLVM. La variante GCC queda
-pendiente de verificar.
+La prueba nativa y el enlace siguen usando LLVM. La prueba de invitado
+se verifico con GCC 15.2.0.
 
-| Salida en `build/doom-probe` | Resultado observado con Clang |
+| Salida en `build/doom-probe` | Resultado observado con GCC 15.2.0 para ELF |
 |---|---|
 | `doom-fixed-host.exe` | Cuatro casos de `FixedMul` y `FixedDiv`, incluida saturacion al dividir por cero. |
-| `doom-fixed.elf` | 5584 bytes. Un `PT_LOAD` RX de 451 bytes en offset `0x1000`. |
+| `doom-fixed.elf` | Un `PT_LOAD` RX de 452 bytes en offset `0x1000`. |
 | `elf-segments.txt` | Direccion virtual, permisos, alineacion y tamanos del segmento. |
-| `doom-fixed.sbef` | 515 bytes. Cabecera y tabla de 64 bytes, seguidas por el mismo contenido RX del ELF. |
+| `doom-fixed.sbef` | 516 bytes. Cabecera y tabla de 64 bytes, seguidas por el mismo contenido RX del ELF. |
 
 El contenido RX queda en la direccion virtual `0x40000000` y ocupa una
 pagina mapeada de 4096 bytes. Esa cifra cubre la region del binario.
-La ejecucion del SBEF en QEMU queda pendiente.
+
+## Prueba de invitado en QEMU
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\bmo-x2.ps1 -Accion abi
+$abi = Get-ChildItem .\build\CASM -Directory -Filter 'run-*' |
+    Sort-Object LastWriteTime -Descending |
+    Where-Object { (Test-Path (Join-Path $_.FullName 'profile.txt')) -and
+        (Get-Content (Join-Path $_.FullName 'profile.txt')) -eq 'ring0-abi-probe-0.1' } |
+    Select-Object -First 1
+$gcc = (Resolve-Path .\build\tools\gcc-15.2.0\bin\x86_64-elf-gcc.exe).Path
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\build-doom-probe.ps1 -Gcc $gcc -AbiRun $abi.FullName
+```
+
+Usa la ruta real de GCC si esta en otra carpeta. El ensayo crea una copia
+del perfil ABI verificado y ajusta cinco campos de su vector para admitir
+el SBEF de una sola region RX y comprobar su terminal. El paquete de
+arranque incorpora el SBEF byte por byte. El monitor coteja el cuerpo
+arrancado, tres entradas SYSCALL y el marco de CPL3. La marca final exige
+que las cuatro operaciones de DoomGeneric, ECHO, el rechazo de capacidad
+y el estado de WAIT hayan pasado. El kernel borra 8192 bytes de usuario.
+El run conserva el SBEF, el disco virtual, la captura y el JSON.
+
+El cargador general de SBEF externo y el motor jugable siguen pendientes.
 
 ## Del escritorio al primer cuadro de DOOM
 

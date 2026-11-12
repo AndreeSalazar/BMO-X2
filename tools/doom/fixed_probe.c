@@ -15,6 +15,8 @@ int main(void) {
 #else
 #include "../../userspace/runtime/abi/bmo_abi.h"
 
+extern _Noreturn void doom_probe_complete(void);
+
 void bmo_main(void) {
     if (doom_fixed_check()) {
         __builtin_trap();
@@ -23,5 +25,14 @@ void bmo_main(void) {
     if (reply.status != BMO_OK || reply.value != FRACUNIT * 3) {
         __builtin_trap();
     }
+    reply = bmo_invoke(0, BMO_OP_ECHO, 0, 0, 0);
+    if (reply.status != -2 || reply.value != 0) {
+        __builtin_trap();
+    }
+    reply = bmo_wait(1, 0, 0);
+    if (reply.status != -4 || reply.value != 0) {
+        __builtin_trap();
+    }
+    doom_probe_complete();
 }
 #endif
