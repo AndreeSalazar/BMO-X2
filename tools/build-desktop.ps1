@@ -3,10 +3,12 @@ param(
     [string]$Llvm = (Join-Path $env:ProgramFiles 'LLVM/bin'),
     [string]$Python,
     [switch]$Guest,
+    [switch]$Session,
     [string]$AbiRun,
     [string]$IntroRun
 )
 $ErrorActionPreference = 'Stop'
+if ($Session) { $Guest = $true }
 if ($AbiRun -and -not $Guest) { throw '-AbiRun requiere -Guest.' }
 if ($IntroRun -and -not $AbiRun) { throw '-IntroRun requiere -AbiRun.' }
 $root = Split-Path $PSScriptRoot
@@ -25,8 +27,24 @@ $elf = Join-Path $build.FullName 'desktop.elf'
 $image = Join-Path $build.FullName 'desktop.sbef'
 $linker = Join-Path $Llvm 'ld.lld.exe'
 $linkScript = Join-Path $root 'userspace/sbef.ld'
+$entrySource = Join-Path $desktop 'src/bin/desktop_probe.rs'
 $guestFlags = @()
-if ($Guest) {
+if ($Session) {
+    $linkScript = Join-Path $PSScriptRoot 'desktop/guest.ld'
+    $elf = Join-Path $build.FullName 'desktop-session.elf'
+    $image = Join-Path $build.FullName 'desktop-session.sbef'
+    $entrySource = Join-Path $PSScriptRoot 'desktop/session.rs'
+}
+$fixtureArguments = @()
+if ($Session) {
+    $gateObject = Join-Path $build.FullName 'session-gate.o'
+    $gateBin = Join-Path $build.FullName 'session-gate.bin'
+    & (Join-Path $Llvm 'clang.exe') --target=x86_64-unknown-none-elf -c (Join-Path $PSScriptRoot 'desktop/session_gate.S') -o $gateObject
+    if ($LASTEXITCODE -ne 0) { throw 'Fallo la puerta de sesion.' }
+    & (Join-Path $Llvm 'llvm-objcopy.exe') -O binary --only-section=.text $gateObject $gateBin
+    if ($LASTEXITCODE -ne 0) { throw 'Fallo la extraccion de la puerta de sesion.' }
+    $fixtureArguments = @('--session-gate', $gateBin)
+} elseif ($Guest) {
     $linkScript = Join-Path $PSScriptRoot 'desktop/guest.ld'
     $elf = Join-Path $build.FullName 'desktop-guest.elf'
     $image = Join-Path $build.FullName 'desktop-guest.sbef'
@@ -39,7 +57,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Fallo el build Rust. Verifica rustup target ad
 if ($LASTEXITCODE -ne 0) { throw 'Fallo el stub ABI.' }
 $linkFlags = @('-C', "linker=$linker", '-C', 'linker-flavor=ld', '-C', 'lto=fat',
                '-C', "link-arg=-T$linkScript", '-C', "link-arg=$portal")
-if ($Guest) {
+if ($Guest -and -not $Session) {
     $complete = Join-Path $build.FullName 'desktop-complete.o'
     $present = Join-Path $build.FullName 'desktop-present.o'
     $presentBin = Join-Path $build.FullName 'desktop-present.bin'
@@ -50,8 +68,9 @@ if ($Guest) {
     & (Join-Path $Llvm 'llvm-objcopy.exe') -O binary --only-section=.text $present $presentBin
     if ($LASTEXITCODE -ne 0) { throw 'Fallo la extraccion del presentador.' }
     $guestFlags = @('--cfg','qemu_desktop','-C',"link-arg=$complete")
+    $fixtureArguments = @('--desktop-present', $presentBin)
 }
-& rustc @flags @linkFlags @guestFlags --crate-name desktop_probe --extern "bmo_x2_desktop=$library" (Join-Path $desktop 'src/bin/desktop_probe.rs') -o $elf
+& rustc @flags @linkFlags @guestFlags --crate-name desktop_probe --extern "bmo_x2_desktop=$library" $entrySource -o $elf
 if ($LASTEXITCODE -ne 0) { throw 'Fallo el enlace ELF del escritorio.' }
 & $Python -B (Join-Path $root 'tools/sbef.py') pack $elf $image --abi 1
 if ($LASTEXITCODE -ne 0) { throw 'Fallo la admision HOST del escritorio.' }
@@ -59,6 +78,6 @@ Write-Output "SBEF: $image"
 if ($AbiRun) {
     $introArguments = @()
     if ($IntroRun) { $introArguments = @('--intro', $IntroRun) }
-    & $Python -B (Join-Path $PSScriptRoot 'boot/doom_qemu.py') $AbiRun $image --desktop-present $presentBin @introArguments
+    & $Python -B (Join-Path $PSScriptRoot 'boot/doom_qemu.py') $AbiRun $image @fixtureArguments @introArguments
     if ($LASTEXITCODE -ne 0) { throw 'Fallo la sonda grafica en QEMU.' }
 }

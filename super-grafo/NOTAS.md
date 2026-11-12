@@ -1319,8 +1319,8 @@ Estado: QEMU. Anillo: 3. Lenguaje: Rust.
 Entrada: Eventos de entrada, superficies de clientes y capacidad de pantalla.
 Salida: Cuadro en RAM, espacio activo, foco y movimiento de ventanas.
 Depende de: Supervisor Rust de Ring 3 (plan), Mezcla y controles de audio (plan).
-Aceptacion: HOST verifica atajos y foco. QEMU verifica 4096 pixeles de dos superficies compuestas en CPL3.
-Pendiente: Arrancar el SBEF externo y conectar presentacion continua, teclado y telemetria de Ring 0.
+Aceptacion: QEMU verifica una sesion CPL3 con cuatro espacios, teclado PS/2 y restauracion del foco.
+Pendiente: Arrancar el SBEF externo y conectar el compositor completo, entrada por eventos y telemetria de Ring 0.
 
 ## userspace/services/desktop/src/keyboard.rs
 

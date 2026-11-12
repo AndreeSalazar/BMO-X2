@@ -60,10 +60,12 @@ if args.doom_fixture:
     reference = (ROOT / 'reference.x86').read_bytes()
     present_path = ROOT / 'desktop-present.bin'
     present = present_path.read_bytes() if present_path.is_file() else None
-    image_path = ROOT / ('desktop.sbef' if present is not None else 'doom.sbef')
-    if not image_path.is_file() and present is None:
+    gate_path = ROOT / 'session-gate.bin'
+    gate = gate_path.read_bytes() if gate_path.is_file() else None
+    image_path = ROOT / ('desktop.sbef' if present is not None or gate is not None else 'doom.sbef')
+    if not image_path.is_file() and present is None and gate is None:
         image_path = ROOT / 'doom-fixed.sbef'
-    expected, doom = make_packet(reference, image_path.read_bytes(), present)
+    expected, doom = make_packet(reference, image_path.read_bytes(), present, gate)
     if (ROOT / 'intro.x86').is_file():
         expected, intro_size = prepend_intro(expected, (ROOT / 'intro.x86').read_bytes())
         sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'CASM'))
@@ -72,6 +74,7 @@ if args.doom_fixture:
     if (ROOT / 'build/Puente_Metal/METAL/INICIO.X86').read_bytes() != expected:
         raise ValueError('Paquete DOOM distinto del vector esperado')
     doom['packet_bytes'] = len(expected)
+    fixture_packet = expected
 if args.splash:
     if args.casos != ['normal']:
         parser.error('The splash probe requires the normal case')
@@ -152,6 +155,9 @@ def run(case):
     frames = set()
     try:
         command('qmp_capabilities')
+        if doom and doom['session']:
+            from desktop_session_capture import verify_session
+            return verify_session(command, memory, prefix, fixture_packet, intro_rows, doom)
         deadline = time.monotonic() + 45
         last_registers = ''
         context = None

@@ -10,7 +10,7 @@ from sbef_host.format import inspect
 from sbef_probe_cases import SBEF_OFFSET
 
 
-def make_packet(reference, image, desktop_present=None):
+def make_packet(reference, image, desktop_present=None, session_gate=None):
     report = inspect(image)
     regions = report['Regions']
     if report['AbiVersion'] != 1 or len(regions) != 1:
@@ -26,7 +26,7 @@ def make_packet(reference, image, desktop_present=None):
         completion = bytes.fromhex('4989ff') + completion
     payload = image[64:]
     marker = payload.find(completion)
-    if marker < 0 or payload.count(completion) != 1:
+    if session_gate is None and (marker < 0 or payload.count(completion) != 1):
         raise ValueError('Falta el terminal de comprobacion DOOM')
     fault_rip = 0x40000000 + marker + len(completion) - 4
     packet = bytearray(reference[:SBEF_OFFSET] + image)
@@ -50,13 +50,26 @@ def make_packet(reference, image, desktop_present=None):
         packet[at:at+6] = b'\xe9' + struct.pack('<i', len(packet) - at - 5) + b'\x90'
         packet.extend(desktop_present)
         packet.extend(b'\xe9' + struct.pack('<i', 24 + 895 - len(packet) - 5))
+    if session_gate is not None:
+        # Repoint LSTAR and save the bridge CR3/context before the first IRET.
+        at = 24 + 677
+        lstar = packet.index(bytes.fromhex('488d05d4000000'), at, at + 18)
+        struct.pack_into('<i', packet, lstar + 3, len(packet) - lstar - 7)
+        packet.extend(session_gate)
+        at = 24 + 709
+        original = bytes.fromhex('b9800000c0')
+        if packet[at:at+5] != original:
+            raise ValueError('Cambio la preparacion de EFER')
+        packet[at:at+5] = b'\xe9' + struct.pack('<i', len(packet) - at - 5)
+        packet.extend(bytes.fromhex('4d89aa180300004989aa20030000') + original)
+        packet.extend(b'\xe9' + struct.pack('<i', at + 5 - len(packet) - 5))
     if len(packet) > 4096:
         raise ValueError('El paquete de prueba excede el limite del puente')
     struct.pack_into('<I', packet, 8, len(packet) - 24)
     struct.pack_into('<I', packet, 16, sum(packet[24:]))
     return bytes(packet), dict(fault_rip=fault_rip, sbef_bytes=len(image),
                                sbef_sha256=hashlib.sha256(image).hexdigest(),
-                               desktop=desktop_present is not None)
+                               desktop=desktop_present is not None, session=session_gate is not None)
 
 
 def prepend_intro(packet, splash):

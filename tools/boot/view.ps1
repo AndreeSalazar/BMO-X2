@@ -2,7 +2,7 @@
 [CmdletBinding()]
 param(
     [string]$Run,
-    [ValidateSet('gato-hd','doom-intro','desktop-intro')][string]$Profile,
+    [ValidateSet('gato-hd','doom-intro','desktop-intro','desktop-session')][string]$Profile,
     [switch]$Wait,
     [string]$Qemu = (Join-Path $env:ProgramFiles 'qemu/qemu-system-x86_64.exe')
 )
@@ -15,17 +15,20 @@ if (-not $Run) {
     $expectedProfile = switch ($Profile) {
         'doom-intro' { 'doom-abi-fixture' }
         'desktop-intro' { 'desktop-abi-fixture' }
+        'desktop-session' { 'desktop-session' }
         default { 'ring0-splash-hd-0.1' }
     }
     foreach ($candidate in (Get-ChildItem -LiteralPath $runs -Directory -Filter 'run-*' | Sort-Object LastWriteTime -Descending)) {
-        $profile = Join-Path $candidate.FullName 'profile.txt'
+        $profileFile = Join-Path $candidate.FullName 'profile.txt'
         $result = Join-Path $candidate.FullName 'qemu-results.json'
-        if ((Test-Path -LiteralPath $profile -PathType Leaf) -and
-            (Get-Content -LiteralPath $profile -Raw).Trim() -eq $expectedProfile -and
+        if ((Test-Path -LiteralPath $profileFile -PathType Leaf) -and
+            (Get-Content -LiteralPath $profileFile -Raw).Trim() -eq $expectedProfile -and
             (Test-Path -LiteralPath $result -PathType Leaf)) {
             $report = Get-Content -LiteralPath $result -Raw | ConvertFrom-Json
             if ($report.run -eq $candidate.Name -and $report.Total -gt 0 -and $report.Passed -eq $report.Total -and
-                ($Profile -eq 'gato-hd' -or @($report.Cases[0].FramesVerified).Count -eq 3) -and
+                ($Profile -in @('gato-hd','desktop-session') -or @($report.Cases[0].FramesVerified).Count -eq 3) -and
+                ($Profile -ne 'desktop-session' -or ($report.Cases[0].DesktopSession -and
+                    @($report.Cases[0].IntroFramesObserved).Count -eq 2)) -and
                 ($Profile -ne 'desktop-intro' -or $report.Cases[0].DesktopPixelsVerified -gt 0)) {
                 $Run = $candidate.FullName
                 break

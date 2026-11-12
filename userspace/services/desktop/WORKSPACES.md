@@ -157,3 +157,24 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1 -P
 Para generar el ensayo, ejecuta `tools/build-desktop.ps1 -Guest`
 con `-AbiRun` apuntando al run de `bmo-x2.ps1 -Accion abi` y
 `-IntroRun` al de `bmo-x2.ps1 -Accion gato-hd`.
+
+## Sesion interactiva en QEMU
+
+El perfil de sesion arranca un SBEF Rust embebido de 1304 bytes despues
+de la intro. Dibuja un panel con cuatro espacios y dos ventanas de
+muestra. QEMU verifica el cambio con Ctrl+Super+1-4, el foco con
+Super+2 y su restauracion al volver. Las teclas 1-4 tambien cambian de
+espacio si Windows intercepta los atajos con Super.
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1 -Profile desktop-session -Wait
+```
+
+Para construir la sesion, usa `-Session -AbiRun <run-abi>
+-IntroRun <run-gato-hd>` con `tools/build-desktop.ps1`.
+El cliente de prueba usa un viewport de 640 por 400 y solicita
+rectangulos acotados a una puerta experimental. El arranque y la
+verificacion usan VGA emulada, con renderizado por CPU. La entrada
+PS/2 se consulta por sondeo. El cargador externo, la entrada por
+eventos, la integracion con el compositor completo y la telemetria
+siguen pendientes.

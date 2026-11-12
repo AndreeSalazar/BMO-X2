@@ -17,7 +17,9 @@ def main():
     parser.add_argument('reference', type=Path)
     parser.add_argument('sbef', type=Path)
     parser.add_argument('--intro', type=Path)
-    parser.add_argument('--desktop-present', type=Path)
+    variants = parser.add_mutually_exclusive_group()
+    variants.add_argument('--desktop-present', type=Path)
+    variants.add_argument('--session-gate', type=Path)
     parser.add_argument('--qemu', default='C:/Program Files/qemu/qemu-system-x86_64.exe')
     args = parser.parse_args()
     reference = workspace(args.reference)
@@ -27,7 +29,8 @@ def main():
     base_packet = (reference / 'INICIO.X86').read_bytes()
     sbef = args.sbef.read_bytes()
     present = args.desktop_present.read_bytes() if args.desktop_present else None
-    packet, _ = make_packet(base_packet, sbef, present)
+    gate = args.session_gate.read_bytes() if args.session_gate else None
+    packet, _ = make_packet(base_packet, sbef, present, gate)
     if args.intro:
         intro = workspace(args.intro)
         if (intro / 'profile.txt').read_text(encoding='utf-8-sig').strip() != 'ring0-splash-hd-0.1':
@@ -36,18 +39,21 @@ def main():
         splash = (intro / 'INICIO.X86').read_bytes()
         packet, _ = prepend_intro(packet, splash)
 
-    application = 'desktop' if args.desktop_present else 'doom'
+    application = 'desktop' if present is not None or gate is not None else 'doom'
     run = reference.parent / f'run-{application}-{uuid.uuid4().hex[:12]}'
     run.mkdir()
     (run / 'reference.x86').write_bytes(base_packet)
     (run / f'{application}.sbef').write_bytes(sbef)
     if present is not None:
         (run / 'desktop-present.bin').write_bytes(present)
+    if gate is not None:
+        (run / 'session-gate.bin').write_bytes(gate)
     if args.intro:
         (run / 'intro.x86').write_bytes(splash)
         shutil.copyfile(intro / 'source.casm', run / 'intro.casm')
     (run / 'INICIO.X86').write_bytes(packet)
-    (run / 'profile.txt').write_text(f'{application}-abi-fixture\n', encoding='ascii')
+    profile = 'desktop-session' if gate is not None else f'{application}-abi-fixture'
+    (run / 'profile.txt').write_text(f'{profile}\n', encoding='ascii')
     bridge = ROOT / 'kernel/boot/bridge'
     efi = run / 'build/Puente_Metal/EFI/BOOT/BOOTX64.EFI'
     efi.parent.mkdir(parents=True)
@@ -67,6 +73,8 @@ def main():
                    check=True, cwd=run, timeout=70)
     report = json.loads((run / 'build/puente-test-results.json').read_text(encoding='utf-8'))
     milestone = 'Rust desktop composition in CPL3' if present is not None else 'DoomGeneric fixed arithmetic in CPL3'
+    if gate is not None:
+        milestone = 'Interactive Rust desktop session in CPL3'
     report.update(run=run.name, evidence='QEMU', milestone=f'HD intro then {milestone}' if args.intro else milestone)
     (run / 'qemu-results.json').write_text(json.dumps(report, indent=2) + '\n', encoding='ascii')
     (run / 'qemu-run.json').write_text(json.dumps(dict(cpu='qemu64', ram_mib=256)) + '\n', encoding='ascii')

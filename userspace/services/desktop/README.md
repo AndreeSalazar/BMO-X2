@@ -10,5 +10,5 @@ Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-Li
 
 - Entrada: Eventos de entrada, superficies de clientes y capacidad de pantalla.
 - Salida: Cuadro en RAM, espacio activo, foco y movimiento de ventanas.
-- Aceptacion: HOST verifica atajos y foco. QEMU verifica 4096 pixeles de dos superficies compuestas en CPL3.
-- Pendiente: Arrancar el SBEF externo y conectar presentacion continua, teclado y telemetria de Ring 0.
+- Aceptacion: QEMU verifica una sesion CPL3 con cuatro espacios, teclado PS/2 y restauracion del foco.
+- Pendiente: Arrancar el SBEF externo y conectar el compositor completo, entrada por eventos y telemetria de Ring 0.
