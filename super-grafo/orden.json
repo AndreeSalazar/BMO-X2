@@ -1,5 +1,9 @@
 {
   "tintes": {
+    "docs/FIRST-BOOT.md": {
+      "rgb": [255, 194, 79],
+      "motivo": "Arranque fisico UEFI: preparacion, evidencia y retorno."
+    },
     "userspace/services/audio": {
       "rgb": [90, 200, 140],
       "motivo": "Ring 3: mezcla PCM, volumen y medidores por bloque."
@@ -551,6 +555,7 @@
   "rejilla": false,
   "bloqueada": true,
   "grafo": {
+    "docs/FIRST-BOOT.md": [2860, -1300],
     "": [
       -350.0,
       170.0

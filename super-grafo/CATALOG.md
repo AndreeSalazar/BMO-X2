@@ -61,6 +61,7 @@
 | [Genesis: guardian de bytes y tamano](../tools/genesis.py) | host | host | Exige fuente congelada exacta, verificacion independiente, vector manual y paquete menor de 512 bytes. |
 | [Genesis: colores y flujo vertical](../super-grafo/genesis.json) | host | host | Define posiciones y colores por responsabilidad, con un motivo visible por archivo. |
 | [Puente UEFI provisional](../kernel/boot/bridge) | heredado | host | Bootstrap HEX manual importado de TALK-CPU; recibe firmware y entrega contexto metal64 al payload CASM. |
+| [Primer arranque UEFI en hardware](../docs/FIRST-BOOT.md) | diseno | host | Ordena la prueba fisica del puente y la entrada CASM minima. |
 | [Genesis: prueba aislada en QEMU](../tools/boot/wake.py) | host | host | Prepara imagenes virtuales por run y registra entorno; nunca instala al PC. |
 | [Genesis: evidencia de ejecucion](../kernel/boot/genesis/evidence/qemu.json) | qemu | host | Siete casos observados en QEMU: cuerpo cargado exacto, texto, CPL=0, retorno y rechazos. |
 | [Rutas host compatibles 5.1 y 7](../tools/paths.ps1) | host | host | Forma nombres relativos para registrar huellas; rechaza rutas externas sin usar GetRelativePath de .NET Core. |
@@ -126,6 +127,7 @@
 | [Escritorio y espacios de trabajo](../userspace/services/desktop) | qemu | 3 | Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX. |
 | [Teclado y atajos del escritorio](../userspace/services/desktop/src/keyboard.rs) | host | 3 | Convierte eventos de BMO-X en cambios de espacio, foco numerado y movimiento de ventanas. |
 | [Sonda DOOM C a SBEF](../tools/build-doom-probe.ps1) | qemu | host | Compila la aritmetica original de DoomGeneric y empaqueta un cliente ELF64. |
+| [DoomGeneric E1M1 en Ring 3](../tools/build-doom-engine.ps1) | qemu | host | Enlaza DoomGeneric con el runtime C y presenta el juego por CPU. |
 | [Mezcla y controles de audio](../userspace/services/audio) | host | 3 | Mezcla PCM estereo de hasta dieciseis fuentes con ganancia acotada. |
 | [Prestamo y revocacion DMA](../kernel/drivers/bus/DMA.md) | diseno | contrato | Acota los marcos visibles al dispositivo y controla su devolucion. |
 
@@ -133,6 +135,9 @@
 
 | Quien usa | De quien depende | Clase |
 |---|---|---|
+| physical-boot | boot-bridge | plan |
+| physical-boot | qemu-runner | plan |
+| physical-boot | boot-context | plan |
 | compiler-entry | frontend | codigo |
 | compiler-entry | encoder-x86_64 | codigo |
 | compiler-entry | metal64-ir | codigo |
@@ -363,6 +368,8 @@
 | desktop-keyboard | device-io | plan |
 | doom-fixed-probe | sbef-loader-boundary | plan |
 | doom-fixed-probe | sbef-host-pack | generacion |
+| doom-engine | doom-fixed-probe | verificacion |
+| doom-engine | sbef-host-pack | generacion |
 | audio-mixer | device-io | plan |
 | audio-mixer | dma-lease | plan |
 | desktop-workspaces | audio-mixer | plan |

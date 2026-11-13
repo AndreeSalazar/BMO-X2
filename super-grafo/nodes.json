@@ -991,6 +991,20 @@
       "falta": "Arranque autonomo, excepciones y memoria propias; prueba fisica no realizada."
     },
     {
+      "id": "physical-boot",
+      "ruta": "docs/FIRST-BOOT.md",
+      "titulo": "Primer arranque UEFI en hardware",
+      "estado": "diseno",
+      "posicion": [2860, -1300],
+      "anillo": "host",
+      "lenguaje": "contrato",
+      "que": "Ordena la prueba fisica del puente y la entrada CASM minima.",
+      "entrada": "EFI y paquete verificados, imagen removible y perfil UEFI x86-64.",
+      "salida": "Evidencia del firmware, entrada en CPL0 y parada controlada.",
+      "aceptacion": "La misma imagen pasa QEMU y arranca en el equipo; se observa la parada y Windows vuelve a arrancar.",
+      "falta": "Preparar el medio removible y obtener evidencia en el equipo."
+    },
+    {
       "id": "qemu-runner",
       "ruta": "tools/boot/wake.py",
       "titulo": "Genesis: prueba aislada en QEMU",
@@ -2104,6 +2118,21 @@
     }
   ],
   "relaciones": [
+    {
+      "de": "physical-boot",
+      "a": "boot-bridge",
+      "clase": "plan"
+    },
+    {
+      "de": "physical-boot",
+      "a": "qemu-runner",
+      "clase": "plan"
+    },
+    {
+      "de": "physical-boot",
+      "a": "boot-context",
+      "clase": "plan"
+    },
     {
       "de": "compiler-entry",
       "a": "frontend",

@@ -42,9 +42,10 @@ Faltan el asignador general y la reutilizacion en un segundo proceso.
 [tablas propias](../kernel/mm/virtual/PAGING.md).
 [Fallo desde CPL3](../kernel/mm/user/USER-FAULT.md).
 
-El ensayo ABI 1 ya admite un SBEF embebido, verifica dos rechazos de
-admision y ejecuta INVOKE sobre SYSCALL. El siguiente cierre exige una
-imagen externa producida por un toolchain y WAIT con senal y plazo.
+El ensayo ABI 1 admite un SBEF embebido, verifica dos rechazos de
+admision y ejecuta INVOKE sobre SYSCALL. Las sondas posteriores de QEMU
+cargan SBEF externos y prueban WAIT con entrada y plazo. El cierre exige
+integrar esos mecanismos en el cargador y el ciclo de proceso propios.
 [ABI de BMO-X2](../contracts/ABI.md).
 
 La revocacion local ya tiene un ensayo separado: retira una pagina,

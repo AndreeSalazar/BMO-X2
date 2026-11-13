@@ -629,6 +629,17 @@ Depende de: contrato propio sin dependencias en este catalogo.
 Aceptacion: Siete casos pasan y las huellas corresponden a esta fuente y paquete.
 Pendiente: Arranque autonomo, excepciones y memoria propias; prueba fisica no realizada.
 
+## docs/FIRST-BOOT.md
+
+Ordena la prueba fisica del puente y la entrada CASM minima.
+
+Estado: DISENO. Anillo: host. Lenguaje: contrato.
+Entrada: EFI y paquete verificados, imagen removible y perfil UEFI x86-64.
+Salida: Evidencia del firmware, entrada en CPL0 y parada controlada.
+Depende de: Puente UEFI provisional (plan), Genesis: prueba aislada en QEMU (plan), Contexto de entrega (plan).
+Aceptacion: La misma imagen pasa QEMU y arranca en el equipo; se observa la parada y Windows vuelve a arrancar.
+Pendiente: Preparar el medio removible y obtener evidencia en el equipo.
+
 ## tools/boot/wake.py
 
 Prepara imagenes virtuales por run y registra entorno; nunca instala al PC.
@@ -1342,7 +1353,18 @@ Entrada: m_fixed.c fijado, toolchain x86-64 ELF y portal ABI 1.
 Salida: Tabla ELF, doom-fixed.sbef e informe QEMU de ejecucion CPL3.
 Depende de: Contrato minimo del cargador SBEF (plan), Empaquetador ELF64 a SBEF (generacion).
 Aceptacion: QEMU comprueba tres cuadros HD y despues el SBEF de GCC, tres syscalls y borrado.
-Pendiente: Motor de 80 unidades compilado por GCC. Faltan resolver 45 simbolos, mapear su memoria y probar el primer cuadro.
+Pendiente: Generalizar el cargador externo CASM fuera de las sondas.
+
+## tools/build-doom-engine.ps1
+
+Enlaza DoomGeneric con el runtime C y presenta el juego por CPU.
+
+Estado: QEMU. Anillo: host. Lenguaje: PowerShell y C.
+Entrada: 80 unidades GCC, ABI 1 experimental e IWAD local de solo lectura.
+Salida: ELF64 estatico, doom-engine.sbef y capturas de E1M1 en QEMU.
+Depende de: Sonda DOOM C a SBEF (verificacion), Empaquetador ELF64 a SBEF (generacion).
+Aceptacion: CPL3, mapa RX/R/RW con NX, menu y movimiento por teclado, y rechazo externo de W+X.
+Pendiente: Ventana de DIRECTOR, lectura de disco invitado, guardado, audio y puntero relativo.
 
 ## userspace/services/audio
 
@@ -1388,4 +1410,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-124 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+126 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

@@ -107,19 +107,18 @@ PCM, volumen y medicion en HOST. La salida virtual y USB quedan pendientes.
 1. **Carga externa.** El cargador CASM valida un SBEF producido por el
    toolchain, mapea sus regiones con permisos y ejecuta la entrada.
    Se prueba una imagen admitida y los rechazos comparados con el lector HOST.
-2. **Escritorio Rust en Ring 3.** El ELF freestanding ya se empaqueta en
-   HOST. En QEMU queda comprobar INVOKE, presentar el cuadro compuesto,
-   conectar el teclado a los cuatro espacios y recuperar los recursos
+2. **Escritorio Rust en Ring 3.** QEMU ya prueba la sesion interactiva con
+   composicion por CPU, teclado y espacios en el perfil de ensayo.
+   Queda integrarla con el cargador CASM propio y recuperar sus recursos
    al cerrar el proceso.
 3. **Ciclo de vida y ABI.** WAIT debe bloquear y despertar por senal o
    plazo. Se prueba reutilizar marcos en un segundo proceso antes de
    fijar el ABI. SMP y DMA requieren confirmacion de revocacion antes
    de reutilizar memoria compartida.
-4. **Arranque fisico de prueba.** El destino previsto es una particion
-   FAT32 dedicada junto a PERSONAL, con el puente UEFI y el paquete
-   CASM verificado. Queda preparar el espacio de forma segura y probar
-   el arranque en el firmware del equipo. La ruta propia desde reset
-   queda en el contrato Faggin.
+4. **Arranque fisico de prueba.** El primer hito es entrar en Ring 0
+   desde un medio UEFI removible y registrar una parada controlada.
+   La FAT32 dedicada junto a PERSONAL es un paso posterior.
+   [Orden y evidencia de arranque](docs/FIRST-BOOT.md).
 
 [Plan de Ring 0](docs/RING0-PLAN.md) |
 [ABI 1](contracts/ABI.md) |
