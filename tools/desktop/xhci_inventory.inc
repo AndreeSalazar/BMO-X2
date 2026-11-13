@@ -130,9 +130,18 @@ caps_map:
     invlpg (%rdi)
     mov (%rdi), %eax
     mov 4(%rdi), %edx
+    mov %eax, %gs:0x370
+    mov %edx, %gs:0x374
+    call xhci_handoff
     movq $0, 0x15400(%rbp)
     movq $0, 0x1e000(%rbp)
     invlpg (%rdi)
+    ret
+
+# Status: 0 unavailable, 1 no legacy capability, 2 owned, 3 timed out,
+# 4 malformed or outside this mapped page.
+xhci_handoff:
+    mov %gs:0x370, %eax
     cmp $0x20, %al
     jb caps_done
     test $3, %al
@@ -143,11 +152,57 @@ caps_map:
     jb caps_done
     cmp $0x200, %ecx
     jae caps_done
+    mov %gs:0x374, %edx
     test %dl, %dl
     jz caps_done
     test $0xff000000, %edx
     jz caps_done
-    mov %eax, %gs:0x370
-    mov %edx, %gs:0x374
+    mov 0x10(%rdi), %eax
+    shr $16, %eax
+    test %eax, %eax
+    jz legacy_absent
+    mov $64, %r8d
+legacy_next:
+    cmp $8, %eax
+    jb legacy_invalid
+    cmp $1022, %eax
+    ja legacy_invalid
+    mov (%rdi,%rax,4), %ecx
+    test %cl, %cl
+    jz legacy_invalid
+    cmp $0xff, %cl
+    je legacy_invalid
+    cmp $1, %cl
+    je legacy_claim
+    movzbl %ch, %ecx
+    test %ecx, %ecx
+    jz legacy_absent
+    add %ecx, %eax
+    dec %r8d
+    jnz legacy_next
+legacy_invalid:
+    movb $4, %gs:0x378
+    ret
+legacy_absent:
+    movb $1, %gs:0x378
+    ret
+legacy_claim:
+    # Enable writes only for the OS semaphore byte. Preserve the BIOS byte.
+    orq $2, 0x1e000(%rbp)
+    invlpg (%rdi)
+    lea (%rdi,%rax,4), %rsi
+    movzbl 3(%rsi), %edx
+    orb $1, 3(%rsi)
+    mov $100000, %ecx
+legacy_wait:
+    testb $1, 2(%rsi)
+    jz legacy_owned
+    pause
+    loop legacy_wait
+    mov %dl, 3(%rsi)
+    movb $3, %gs:0x378
+    ret
+legacy_owned:
+    movb $2, %gs:0x378
 caps_done:
     ret

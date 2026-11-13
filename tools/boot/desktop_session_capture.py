@@ -120,6 +120,8 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         words = actual.split(':', 1)[1].split()
         assert (caps, parameters) == tuple(int(word, 16) for word in words[:2])
         assert caps >> 16 and parameters & 0xff
+        handoff = memory(address + 0x1a378, 1, 'xhci-handoff')[0]
+        assert handoff in (1, 2), f'xHCI handoff state: {handoff}'
         assert memory(address + 0x15400, 8, 'xhci-alias-pde') == bytes(8)
         assert memory(address + 0x1e000, 8, 'xhci-alias-pte') == bytes(8)
         assert logical(24, 354, 0x232638), 'El escritorio no mostro el aviso de entrada USB'
@@ -273,5 +275,6 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 SettingsVerified=external_image is not None,
                 XhciInventoryVerified=desktop_media,
                 XhciReadOnlyMmioVerified=desktop_media,
+                XhciFirmwareHandoff=handoff if desktop_media else None,
                 PayloadSHA256=hashlib.sha256(packet[24:]).hexdigest(),
                 SbefSHA256=fixture['sbef_sha256'])

@@ -83,9 +83,23 @@ La prueba de cierre debe
 inyectar eventos por dispositivos USB en QEMU y luego repetir F2 y
 movimiento del puntero en el equipo.
 
+La sonda recorre las capacidades extendidas dentro de la pagina MMIO.
+Si encuentra USB Legacy Support, solicita la propiedad y limita el sondeo
+a 100000 lecturas. Si el firmware conserva su propiedad, revierte la
+peticion y registra el vencimiento. Este paso no activa DMA ni reinicia
+el controlador.
+
+El run `run-desktop-media-95951adfa9e3` aprobo el arranque y el rechazo
+de W+X. El controlador emulado no expone USB Legacy Support, asi que la
+prueba observo el estado 1. La cesion efectiva y el vencimiento quedan
+por comprobar. El paquete de arranque ocupa 4002 de los 4096 bytes
+aceptados por el puente. El transporte completo necesita una etapa
+separada del paquete inicial.
+
 Orden de cierre de xHCI: validar y mapear toda la ventana operativa de
-cada controlador, tomar posesion del firmware con plazo, reservar memoria
-DMA de las colas y activar el controlador. Despues enumerar los
+cada controlador, verificar el traspaso en el equipo y deshabilitar los
+SMI de legado tras obtener propiedad. Luego reservar memoria DMA de las
+colas y activar el controlador. Despues enumerar los
 perifericos, seleccionar HID boot y entregar transferencias de teclado
 y raton al decodificador Rust. BMO-X aporta la referencia del traspaso,
 los anillos y la reutilizacion de paginas. Medir memoria, latencia y
