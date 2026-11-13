@@ -23,5 +23,12 @@ Debe demostrar transferencia permitida, rechazo fuera del rango y
 retencion del buffer cuando la revocacion queda sin confirmar. El
 ensayo actual de revocacion de pagina cubre el TLB de una CPU.
 
+El puente del escritorio reserva cinco paginas contiguas de EfiLoaderData
+por debajo de 256 MiB y las entrega en los campos B8/C0 del contexto.
+El run `run-desktop-media-1c740af27864` comprueba 20480 bytes a cero,
+la cobertura por el mapa UEFI y la separacion del contexto y el codigo.
+La reserva permanece en blanco. Falta vincularla a las colas de xHCI
+y verificar la primera finalizacion de un comando del controlador.
+
 [Revocacion de pagina](../../mm/virtual/revoke/HOT-UNMAP.md) |
 [Referencia de DMA en Linux](https://docs.kernel.org/core-api/dma-api-howto.html)

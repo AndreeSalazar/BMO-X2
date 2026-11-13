@@ -106,6 +106,23 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
 
     wait_until(lambda: logical(216, 33, 0x0d0e17) and logical(52, 99, 0x5ad8ff) and sleeping())
     if desktop_media:
+        dma, pages = struct.unpack('<QQ', memory(address + 0xb8, 16, 'xhci-reservation'))
+        assert pages == 5 and 0x100000 <= dma <= 0x10000000 - pages * 4096 and dma % 4096 == 0
+        assert dma + pages * 4096 <= address or dma >= address + 0x20000
+        assert not dma <= code < dma + pages * 4096
+        length = struct.unpack_from('<Q', context, 0x50)[0]
+        stride = struct.unpack_from('<Q', context, 0x60)[0]
+        assert 40 <= stride <= 256 and 0 < length <= 65536 and length % stride == 0
+        descriptors = memory(address + 0x1000, length, 'xhci-memory-map')
+        covering = []
+        for offset in range(0, length, stride):
+            kind, start, _, count, _ = struct.unpack_from('<I4xQQQQ', descriptors, offset)
+            if start < dma + pages * 4096 and dma < start + count * 4096:
+                covering.append((kind, start, start + count * 4096))
+        assert len(covering) == 1
+        kind, start, end = covering[0]
+        assert kind == 2 and start <= dma and dma + pages * 4096 <= end
+        assert memory(dma, pages * 4096, 'xhci-reserved-pages') == bytes(pages * 4096)
         assert memory(address + 0x1a358, 5, 'xhci-inventory') == struct.pack('<IB', 1, 1)
         bdf, low, high = struct.unpack('<III', memory(address + 0x1a360, 12, 'xhci-pci'))
         devices = [device for bus in command('query-pci') for device in bus['devices']]
@@ -276,5 +293,6 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 XhciInventoryVerified=desktop_media,
                 XhciReadOnlyMmioVerified=desktop_media,
                 XhciFirmwareHandoff=handoff if desktop_media else None,
+                XhciReservedBytes=pages * 4096 if desktop_media else 0,
                 PayloadSHA256=hashlib.sha256(packet[24:]).hexdigest(),
                 SbefSHA256=fixture['sbef_sha256'])
