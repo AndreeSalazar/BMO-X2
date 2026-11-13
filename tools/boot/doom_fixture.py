@@ -73,6 +73,10 @@ def make_packet(reference, image, desktop_present=None, session_gate=None, exter
         packet.extend(bytes.fromhex('4d89aa180300004989aa20030000') + original)
         packet.extend(b'\xe9' + struct.pack('<i', at + 5 - len(packet) - 5))
     if external is not None:
+        stack = 24 + 754
+        if packet[stack:stack+5] != bytes.fromhex('6800200040'):
+            raise ValueError('Cambio la pila de usuario')
+        packet[stack:stack+5] = bytes.fromhex('6800300040')
         at = 24 + 260
         if packet[at:at+7] != bytes.fromhex('488d3524030000'):
             raise ValueError('Cambio la entrada del validador SBEF')

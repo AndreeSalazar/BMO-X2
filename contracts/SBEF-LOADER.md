@@ -21,7 +21,7 @@ como interpretar sus propios formatos de datos.
 El ensayo externo en QEMU entrega el SBEF como modulo aparte. El
 dispositivo loader de QEMU deposita longitud y bytes en 0x02000000
 en una VM con 256 MiB. Un validador provisional x86-64 ensamblado
-con LLVM comprueba ABI 1, una region RX de hasta una pagina, la
+con LLVM comprueba ABI 1, una region RX de hasta dos paginas, la
 entrada y los limites antes de copiar. QEMU comprueba el escritorio
 en CPL3 y el rechazo de W+X antes de copiar codigo o activar CR3.
 

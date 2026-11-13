@@ -8,7 +8,7 @@ external_sbef:
     add $8, %rsi
     cmp $64, %rdx
     jb reject
-    cmp $4160, %rdx
+    cmp $8256, %rdx
     ja reject
     movabs $0x0001000146454253, %rax
     cmp %rax, (%rsi)
@@ -36,7 +36,7 @@ external_sbef:
     mov 48(%rsi), %eax
     cmp %ecx, %eax
     jb reject
-    cmp $4096, %eax
+    cmp $8192, %eax
     ja reject
     mov 16(%rsi), %r12
     mov %r12, %rax
@@ -46,6 +46,20 @@ external_sbef:
     lea 0x5000(%r11), %rdi
     add $64, %rsi
     rep movsb
+    lea 0x7000(%r11), %rcx
+    sub %rdi, %rcx
+    xor %eax, %eax
+    rep stosb
+    # The old stack page becomes the second immutable code page.
+    lea 0x6005(%r11), %rax
+    mov %rax, 0x4008(%r11)
+    lea 0x8007(%r11), %rax
+    bts $63, %rax
+    mov %rax, 0x4010(%r11)
+    lea 0x8000(%r11), %rdi
+    xor %eax, %eax
+    mov $512, %ecx
+    rep stosq
     jmp exit
 reject:
     xor %r12d, %r12d

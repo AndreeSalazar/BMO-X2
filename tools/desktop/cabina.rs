@@ -5,37 +5,36 @@ const READ: u64 = 3;
 const INK: u32 = 0xe7efff;
 const PANEL: u32 = 0x232638;
 
-// 3x5 row-major glyphs for the console's fixed vocabulary.
+// Rasterized from BMO-X's bmo-letra. See CABINA-FONT.md for provenance.
+const CHARACTERS: &[u8] = b"0123456789ABCDEFGIKMNOPRSTUV";
+const ATLAS: &[u8; 1036] = include_bytes!("cabina_font.bin");
+const SHADES: [u32; 4] = [PANEL, 0x64697a, 0xa5acbc, INK];
+
 fn text(mut x: u64, y: u64, bytes: &[u8]) {
     for byte in bytes {
-        let glyph = match byte {
-            b'0'..=b'9' => [
-                0x7b6f, 0x749a, 0x73e7, 0x79e7, 0x49ed, 0x79cf, 0x7bcf, 0x4927, 0x7bef, 0x79ef,
-            ][usize::from(byte - b'0')],
-            b'A' => 0x5bef,
-            b'B' => 0x3aeb,
-            b'C' => 0x724f,
-            b'E' => 0x73cf,
-            b'F' => 0x13cf,
-            b'I' => 0x7497,
-            b'K' => 0x5aed,
-            b'M' => 0x5bfd,
-            b'N' => 0x5b7d,
-            b'O' => 0x7b6f,
-            b'P' => 0x13ef,
-            b'R' => 0x57ef,
-            b'S' => 0x79cf,
-            b'T' => 0x2497,
-            b'U' => 0x7b6d,
-            b'V' => 0x2b6d,
-            _ => 0,
+        let Some(index) = CHARACTERS.iter().position(|c| c == byte) else {
+            x += 4;
+            continue;
         };
-        for bit in 0..15 {
-            if glyph & (1 << bit) != 0 {
-                fill(x + bit % 3 * 2, y + bit / 3 * 2, 2, 2, INK);
+        let glyph = &ATLAS[index * 37..][..37];
+        for (row, mask) in glyph[1..].chunks_exact(3).enumerate() {
+            let mut bits = u32::from_le_bytes([mask[0], mask[1], mask[2], 0]);
+            let mut column = 0;
+            while bits != 0 {
+                let shade = bits & 3;
+                let mut width = 1;
+                bits >>= 2;
+                while bits != 0 && bits & 3 == shade {
+                    bits >>= 2;
+                    width += 1;
+                }
+                if shade != 0 {
+                    fill(x + column, y + row as u64, width, 1, SHADES[shade as usize]);
+                }
+                column += width;
             }
         }
-        x += 8;
+        x += u64::from(glyph[0]);
     }
 }
 

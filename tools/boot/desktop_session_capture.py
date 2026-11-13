@@ -1,5 +1,6 @@
 """Verify a live CPL3 session, framebuffer changes and QEMU keyboard input."""
 import hashlib
+from pathlib import Path
 import struct
 import time
 
@@ -80,7 +81,8 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
 
     def ring3():
         regs = registers()
-        return 'CPL=3' in regs and 0x40000000 <= register(regs, 'RIP') < 0x40001000
+        end = 0x40002000 if external_image is not None else 0x40001000
+        return 'CPL=3' in regs and 0x40000000 <= register(regs, 'RIP') < end
 
     def wait_stats():
         return struct.unpack('<II', memory(address + 0x1a340, 8, 'wait-stats'))
@@ -103,7 +105,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     if external_image is not None:
         assert external_image not in packet, 'SBEF externo embebido en el paquete'
         payload = external_image[64:]
-        assert memory(address + 0x18000, 4096, 'external-text') == payload.ljust(4096, b'\0')
+        assert memory(address + 0x18000, 8192, 'external-text') == payload.ljust(8192, b'\0')
     for digit, x, color in [('2', 272, 0xad92ff), ('3', 328, 0x6ee7b7), ('4', 384, 0xff7c98)]:
         key('ctrl', 'meta_l', digit)
         wait_until(lambda: logical(x, 33, color) and logical(52, 99, color))
@@ -152,17 +154,33 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     if external_image is not None:
         key('f2')
         wait_until(lambda: logical(24, 24, 0x232638))
-        glyphs = (0x7b6f, 0x749a, 0x73e7, 0x79e7, 0x49ed,
-                  0x79cf, 0x7bcf, 0x4927, 0x7bef, 0x79ef)
+        atlas = (Path(__file__).resolve().parents[1] / 'desktop/cabina_font.bin').read_bytes()
+        shades = (0x232638, 0x64697a, 0xa5acbc, 0xe7efff)
         for field, command_key in enumerate(('t', 'e', 'v')):
             key(command_key)
             selected, value = struct.unpack('<II', memory(address + 0x1a348, 8, 'cabina-read'))
             assert selected == field and value > 0, 'CABINA no consulto el contador esperado'
-            for index, char in enumerate(str(value)):
-                glyph = glyphs[int(char)]
-                for bit in range(15):
-                    assert logical(160 + index*8 + bit%3*2, 121 + bit//3*2,
-                                   0xe7efff if glyph & (1 << bit) else 0x232638), 'CABINA mostro otro valor'
+            expected = [[0] * 100 for _ in range(12)]
+            x = 0
+            for char in str(value):
+                offset = int(char) * 37
+                for y in range(12):
+                    start = offset + 1 + 3*y
+                    row = int.from_bytes(atlas[start:start+3], 'little')
+                    for column in range(12):
+                        shade = (row >> (2*column)) & 3
+                        if shade:
+                            expected[y][x + column] = shade
+                x += atlas[offset]
+            raw = memory(fb + (121*scale*pitch + 160*scale)*4,
+                         (11*scale*pitch + 100*scale)*4, 'cabina-digits')
+            for y, row in enumerate(expected):
+                for column, shade in enumerate(row):
+                    offset = (y*pitch + column)*scale*4
+                    color = shades[shade].to_bytes(4, 'little')
+                    if order == 0:
+                        color = color[:3][::-1] + b'\0'
+                    assert raw[offset:offset+4] == color, f'CABINA mostro otro valor en {column},{y}'
         command('screendump', {'filename': str(prefix)+'-cabina.png', 'format': 'png'})
         key('f2')
         wait_until(lambda: logical(52, 99, 0xad92ff) and logical(240, 168, 0xe7efff))
