@@ -107,6 +107,14 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     wait_until(lambda: logical(216, 33, 0x0d0e17) and logical(52, 99, 0x5ad8ff) and sleeping())
     if desktop_media:
         assert memory(address + 0x1a358, 5, 'xhci-inventory') == struct.pack('<IB', 1, 1)
+        bdf, low, high = struct.unpack('<III', memory(address + 0x1a360, 12, 'xhci-pci'))
+        devices = [device for bus in command('query-pci') for device in bus['devices']]
+        controller = next(device for device in devices if device['class_info']['class'] == 0x0c03)
+        assert bdf == (controller['bus'] << 8 | controller['slot'] << 3 | controller['function'])
+        bar = low & ~15
+        if low & 6 == 4:
+            bar |= high << 32
+        assert bar != 0 and bar == next(region['address'] for region in controller['regions'] if region['bar'] == 0)
         assert logical(24, 354, 0x232638), 'El escritorio no mostro el aviso de entrada USB'
     timeout_before = wait_stats()[1]
     wait_until(lambda: wait_stats()[1] > timeout_before)
@@ -220,6 +228,28 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         command('screendump', {'filename': str(prefix)+'-cabina.png', 'format': 'png'})
         key('f2')
         wait_until(lambda: logical(52, 99, 0xad92ff) and logical(240, 168, 0xe7efff))
+        assert logical(603, 359, 0xe7efff), 'Falta el icono de Configuracion'
+        key('f3')
+        wait_until(lambda: logical(40, 90, 0x5ad8ff))
+        key('2')
+        wait_until(lambda: logical(140, 90, 0x5ad8ff))
+        key('esc')
+        wait_until(lambda: logical(240, 168, 0xe7efff))
+        move(6, 0)
+        wait_until(lambda: logical(252, 168, 0xe7efff))
+        for _ in range(3):
+            move(58, 66)
+        wait_until(lambda: logical(600, 390, 0xe7efff))
+        move(0, -10)
+        wait_until(lambda: logical(600, 370, 0xe7efff))
+        for down in (True, False):
+            command('input-send-event', {'events': [{'type': 'btn', 'data': {'button': 'left', 'down': down}}]})
+        wait_until(lambda: logical(140, 90, 0x5ad8ff))
+        key('1')
+        wait_until(lambda: logical(40, 90, 0x5ad8ff))
+        command('screendump', {'filename': str(prefix)+'-settings.png', 'format': 'png'})
+        key('f3')
+        wait_until(lambda: logical(52, 99, 0xad92ff))
     command('screendump', {'filename': str(prefix)+'.png', 'format': 'png'})
     return dict(Case='normal', Passed=True, BootServicesExited=True, UserCPL=3,
                 IntroFramesObserved=sorted(frames), WorkspacesVerified=[1, 2, 3, 4],
@@ -233,6 +263,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 WritableNxRegionVerified=external_image is not None and count == 3,
                 UserDataAndBssVerified=external_image is not None and count == 3,
                 CabinaCommandsVerified=4 if external_image is not None else 0,
+                SettingsVerified=external_image is not None,
                 XhciInventoryVerified=desktop_media,
                 PayloadSHA256=hashlib.sha256(packet[24:]).hexdigest(),
                 SbefSHA256=fixture['sbef_sha256'])

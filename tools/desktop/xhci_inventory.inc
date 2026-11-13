@@ -17,6 +17,27 @@ inventory_next:
     shr $8, %eax
     cmp $0x0c0330, %eax
     jne inventory_advance
+    test %r8d, %r8d
+    jnz inventory_count
+    # Record the first function and its raw BAR0/BAR1. Reading never sizes
+    # the BAR, enables bus mastering or changes firmware ownership.
+    mov %ecx, %eax
+    and $0x00ffff00, %eax
+    shr $8, %eax
+    mov %eax, %gs:0x360
+    lea 8(%ecx), %eax
+    out %eax, %dx
+    add $4, %edx
+    in %dx, %eax
+    mov %eax, %gs:0x364
+    sub $4, %edx
+    lea 12(%ecx), %eax
+    out %eax, %dx
+    add $4, %edx
+    in %dx, %eax
+    mov %eax, %gs:0x368
+    sub $4, %edx
+inventory_count:
     inc %r8d
 inventory_advance:
     add $0x100, %ecx

@@ -15,7 +15,7 @@ const FIELDS: [(u8, &[u8], &[u8]); 3] = [
     (0x2f, b"V VENCIMIENTOS", b"ESPERAS SIN ENTRADA AL VENCER"),
 ];
 
-fn text(mut x: u64, y: u64, bytes: &[u8]) {
+pub(super) fn text(mut x: u64, y: u64, bytes: &[u8]) {
     for byte in bytes {
         let Some(index) = CHARACTERS.iter().position(|c| c == byte) else {
             x += 4;

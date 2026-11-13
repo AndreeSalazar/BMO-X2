@@ -68,6 +68,8 @@ ULTRA-LinuX usa `xhci_hcd` y la capa HID del kernel Linux en su perfil PC.
 
 El ensayo de BMO-X2 incorpora un inventario PCI xHCI de solo lectura
 con aviso visible en Ring 3. Detectar la clase PCI no habilita USB.
+El inventario registra el BDF y los BAR del primer controlador.
+QEMU los coteja con su inventario PCI independiente.
 El escritorio Rust ya traduce informes HID boot en pruebas HOST. Mantiene
 flancos y modificadores del teclado, deltas y botones del raton, y libera
 el estado al desconectar. Faltan el transporte xHCI, memoria DMA concedida
@@ -75,6 +77,14 @@ por Ring 0, transferencias con plazo y su entrega a este decodificador.
 La prueba de cierre debe
 inyectar eventos por dispositivos USB en QEMU y luego repetir F2 y
 movimiento del puntero en el equipo.
+
+Orden de cierre de xHCI: validar y mapear la ventana MMIO de cada
+controlador, tomar posesion del firmware con plazo, reservar memoria
+DMA de las colas y activar el controlador. Despues enumerar los
+perifericos, seleccionar HID boot y entregar transferencias de teclado
+y raton al decodificador Rust. BMO-X aporta la referencia del traspaso,
+los anillos y la reutilizacion de paginas. Medir memoria, latencia y
+actividad en reposo cuando haya informes USB reales.
 
 Por cada prueba guardar huellas, configuracion, bytes de entrada, memoria
 reservada y el ultimo punto observado. Registrar consola serie si el

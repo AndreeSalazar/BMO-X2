@@ -220,6 +220,15 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1 -P
 
 ### CABINA
 
+El engranaje de la esquina inferior derecha y F3 abren Configuracion.
+Pulsa 1 para velocidad normal del puntero o 2 para duplicar su
+desplazamiento. Esc o F3 vuelven al escritorio. El ajuste vive durante
+la sesion. La pantalla muestra el estado de entrada del perfil.
+
+QEMU verifica la apertura por teclado y clic, el desplazamiento doble
+y el regreso a la velocidad normal. La distribucion del teclado y la
+persistencia de preferencias quedan pendientes.
+
 F2 abre y cierra la consola Rust. Al abrir, la lista muestra los
 tres valores y su significado. T actualiza los ticks del PIT, E
 las esperas con entrada y V las esperas vencidas. R actualiza la lista.

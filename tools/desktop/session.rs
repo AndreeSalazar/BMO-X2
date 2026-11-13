@@ -5,6 +5,7 @@ use core::arch::asm;
 use core::panic::PanicInfo;
 
 mod cabina;
+mod settings;
 
 #[cfg(external_session)]
 use core::sync::atomic::{AtomicU32, Ordering::Relaxed};
@@ -106,6 +107,7 @@ fn paint(clip: Clip, space: usize, focus: usize, bar: bool) {
     }
     let accent = ACCENTS[space];
     clip.fill(0, 0, 640, 400, 0x0d0e17);
+    settings::icon(clip);
     if bar {
         clip.fill(0, 0, 640, 44, 0x161722);
         for i in 0..4 {
@@ -212,6 +214,9 @@ extern "C" fn bmo_main() -> ! {
     let mut command = cabina::Command::default();
     let mut bar = None;
     let mut f2_down = false;
+    let mut f3_down = false;
+    let mut settings_open = false;
+    let mut pointer_speed = 1;
     let pixel = (1u64 << 32) | (1u64 << 48);
     if invoke(INPUT, FILL, pixel, 0xffffff) != DENIED
         || invoke(DISPLAY, READ_INPUT, 0, 0) != DENIED
@@ -257,15 +262,22 @@ extern "C" fn bmo_main() -> ! {
                     }
                     let delta_x = i16::from(dx) - i16::from(flags & 0x10) * 16;
                     let delta_y = i16::from(byte) - i16::from(flags & 0x20) * 8;
-                    let next_x = (x + delta_x).clamp(0, 633);
-                    let next_y = (y - delta_y).clamp(0, 390);
+                    let next_x = (x + delta_x * pointer_speed).clamp(0, 633);
+                    let next_y = (y - delta_y * pointer_speed).clamp(0, 390);
                     let pressed = flags & 1 != 0;
-                    if console {
+                    if console || settings_open {
                         left = pressed;
                         continue;
                     }
                     let previous_focus = focus[space];
                     if pressed && !left {
+                        if settings::hit(next_x, next_y) {
+                            left = pressed;
+                            bar = None;
+                            settings_open = true;
+                            settings::show(pointer_speed, usb_pending);
+                            continue;
+                        }
                         if let Some(window) = window_at(next_x, next_y) {
                             focus[space] = window;
                         }
@@ -318,7 +330,7 @@ extern "C" fn bmo_main() -> ! {
         if key & 0x7f == 0x3c && !extended {
             let toggle = down && !f2_down;
             f2_down = down;
-            if !toggle {
+            if !toggle || settings_open {
                 continue;
             }
             console = !console;
@@ -331,6 +343,38 @@ extern "C" fn bmo_main() -> ! {
                 cursor(x, y);
                 if usb_pending {
                     cabina::usb_pending();
+                }
+            }
+            continue;
+        }
+        if !extended && key & 0x7f == 0x3d {
+            let toggle = down && !f3_down;
+            f3_down = down;
+            if toggle && !console {
+                settings_open = !settings_open;
+                bar = None;
+                if settings_open {
+                    settings::show(pointer_speed, usb_pending);
+                } else {
+                    paint(VIEWPORT, space, focus[space], false);
+                    cursor(x, y);
+                }
+            }
+            continue;
+        }
+        if settings_open {
+            if !extended && down {
+                match key {
+                    1 => {
+                        settings_open = false;
+                        paint(VIEWPORT, space, focus[space], false);
+                        cursor(x, y);
+                    }
+                    2 | 3 => {
+                        pointer_speed = i16::from(key - 1);
+                        settings::show(pointer_speed, usb_pending);
+                    }
+                    _ => {}
                 }
             }
             continue;
