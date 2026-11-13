@@ -160,7 +160,7 @@ con `-AbiRun` apuntando al run de `bmo-x2.ps1 -Accion abi` y
 
 ## Sesion interactiva en QEMU
 
-El perfil de sesion arranca un SBEF Rust embebido de 1864 bytes despues
+El perfil de sesion arranca un SBEF Rust embebido de 1976 bytes despues
 de la intro. Dibuja un panel con cuatro espacios y dos ventanas de
 muestra. QEMU verifica el cambio con Ctrl+Super+1-4, el foco con
 Super+2 y su restauracion al volver. Las teclas 1-4 tambien cambian de
@@ -180,7 +180,13 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1 -P
 Para construir la sesion, usa `-Session -AbiRun <run-abi>
 -IntroRun <run-gato>` con `tools/build-desktop.ps1`. Genera el run
 de la intro compacta con `bmo-x2.ps1 -Accion gato`. El paquete
-observado ocupa 3958 de los 4096 bytes del puente.
+observado ocupa 4087 de los 4096 bytes del puente.
+
+La puerta de prueba concede dos permisos fijos al cliente unico.
+Pantalla autoriza el dibujo y entrada autoriza la lectura PS/2.
+Antes de dibujar, la sesion comprueba en CPL3 que no puede usar
+pantalla para leer, entrada para dibujar, un identificador cero
+para dibujar ni una operacion fuera del contrato de entrada.
 El cliente de prueba usa un viewport de 640 por 400 y solicita
 rectangulos acotados a una puerta experimental. El arranque y la
 verificacion usan VGA emulada, con renderizado por CPU. La entrada

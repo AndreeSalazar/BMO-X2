@@ -6,12 +6,17 @@ use core::panic::PanicInfo;
 
 const ACCENTS: [u32; 4] = [0x5ad8ff, 0xad92ff, 0x6ee7b7, 0xff7c98];
 const DIGITS: [u16; 4] = [0x749a, 0x73e7, 0x79e7, 0x49ed];
+const DISPLAY: u64 = 1;
+const INPUT: u64 = 2;
+const FILL: u64 = 1;
+const READ_INPUT: u64 = 2;
+const DENIED: u32 = 257;
 
-fn invoke(operation: u64, rect: u64, color: u32) -> u32 {
+fn invoke(capability: u64, operation: u64, rect: u64, color: u32) -> u32 {
     let reply: u64;
     unsafe {
         asm!("syscall", inlateout("rax") 0u64 => reply,
-             inlateout("rdi") 1u64 => _, inlateout("rsi") operation => _,
+             inlateout("rdi") capability => _, inlateout("rsi") operation => _,
              inlateout("rdx") rect => _, inlateout("r10") u64::from(color) => _,
              lateout("rcx") _, lateout("r11") _, lateout("r8") _, lateout("r9") _);
     }
@@ -19,7 +24,7 @@ fn invoke(operation: u64, rect: u64, color: u32) -> u32 {
 }
 
 fn fill(x: u64, y: u64, w: u64, h: u64, color: u32) {
-    invoke(1, x | y << 16 | w << 32 | h << 48, color);
+    invoke(DISPLAY, FILL, x | y << 16 | w << 32 | h << 48, color);
 }
 
 fn digit(x: u64, y: u64, index: usize, color: u32) {
@@ -78,11 +83,18 @@ extern "C" fn bmo_main() -> ! {
     let (mut x, mut y) = (320i16, 200i16);
     let (mut flags, mut dx, mut index) = (0u8, 0u8, 0u8);
     let mut left = false;
-    invoke(3, 0, 0);
+    let pixel = (1u64 << 32) | (1u64 << 48);
+    if invoke(INPUT, FILL, pixel, 0xffffff) != DENIED
+        || invoke(DISPLAY, READ_INPUT, 0, 0) != DENIED
+        || invoke(0, FILL, pixel, 0xffffff) != DENIED
+        || invoke(INPUT, 3, 0, 0) != DENIED
+    {
+        panic!("session permissions");
+    }
     paint(space, focus[space]);
     cursor(x, y);
     loop {
-        let raw = invoke(2, 0, 0);
+        let raw = invoke(INPUT, READ_INPUT, 0, 0);
         if raw & 512 != 0 {
             let byte = raw as u8;
             match index {

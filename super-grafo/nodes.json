@@ -2028,7 +2028,7 @@
       "que": "Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX.",
       "entrada": "Eventos de entrada, superficies de clientes y capacidad de pantalla.",
       "salida": "Cuadro en RAM, espacio activo, foco y movimiento de ventanas.",
-      "aceptacion": "QEMU verifica cuatro espacios, teclado y raton PS/2, foco por clic y escala 2x en 1280x800.",
+      "aceptacion": "QEMU verifica cuatro espacios, raton, foco y cuatro rechazos de permisos de pantalla y entrada.",
       "falta": "Cargar SBEF externo, conectar el compositor, repintar solo el area del cursor y entregar entrada por eventos.",
       "pagina": true
     },

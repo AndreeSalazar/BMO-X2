@@ -13,13 +13,11 @@ session_gate:
     mov %gs:0x320, %rbp
     test %rax, %rax
     jne denied
-    cmp $1, %rdi
+    cmp $2, %rsi
+    je input
+    cmp $1, %rsi
     jne denied
-    cmp $2, %esi
-    je keyboard
-    cmp $3, %esi
-    je enable_mouse
-    cmp $1, %esi
+    cmp $1, %rdi
     jne denied
 
     # Fixed 640x400 viewport. Coordinates and size are packed in RDX.
@@ -101,7 +99,11 @@ row:
     mov %r11, %cr3
     xor %eax, %eax
     jmp finish
-keyboard:
+input:
+    cmp $2, %rdi
+    jne denied
+    cmpb $0, %gs:0x328
+    je enable_mouse
     xor %eax, %eax
     in $0x64, %al
     test $1, %al
@@ -126,8 +128,8 @@ enable_mouse:
     jc denied
     mov $0xf4, %al
     out %al, $0x60
-    xor %eax, %eax
-    jmp finish
+    movb $1, %gs:0x328
+    jmp empty
 writable:
     mov $65536, %ecx
 poll_write:

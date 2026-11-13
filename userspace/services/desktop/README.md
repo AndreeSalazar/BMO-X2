@@ -10,5 +10,5 @@ Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-Li
 
 - Entrada: Eventos de entrada, superficies de clientes y capacidad de pantalla.
 - Salida: Cuadro en RAM, espacio activo, foco y movimiento de ventanas.
-- Aceptacion: QEMU verifica cuatro espacios, teclado y raton PS/2, foco por clic y escala 2x en 1280x800.
+- Aceptacion: QEMU verifica cuatro espacios, raton, foco y cuatro rechazos de permisos de pantalla y entrada.
 - Pendiente: Cargar SBEF externo, conectar el compositor, repintar solo el area del cursor y entregar entrada por eventos.

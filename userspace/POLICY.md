@@ -44,3 +44,14 @@ de reutilizacion, adaptacion o trabajo pendiente.
 El [inventario del padre](../heritage/RING3-CRATES.md) registra los
 manifiestos revisados. La [politica de ventanas](services/desktop/WORKSPACES.md)
 se prueba con clientes pequenos antes de trasladar aplicaciones completas.
+## Autoridad por proceso
+
+El perfil de BMO-X2 se organiza por capacidades de alcance explicito.
+El supervisor inicia procesos en Ring 3 con los permisos que requiere
+cada servicio. La administracion se expresa mediante operaciones
+acotadas, sin una cuenta root ni un permiso universal.
+
+La sesion de QEMU separa los permisos de pantalla y entrada. Es un
+ensayo de un solo cliente con identificadores fijos. El cargador y el
+supervisor deberan asignar capacidades por proceso, limitar su
+delegacion y revocarlas al cerrar el recurso o el proceso.
