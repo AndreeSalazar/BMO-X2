@@ -55,11 +55,11 @@ desktop_media_read:
     test %rax, %rax
     js release
 #ifdef XHCI_COMMAND_PROBE
-    # The image builder fills this fixed 1536-byte code slot.
+    # Copy the EFI stage to the page between the packet buffer and page tables.
     .byte 0x48, 0x8d, 0x35
-    .long 0x2a00 - 0x2800 - (. - desktop_media_read) - 4
-    lea 0x200(%rbp), %rdi
-    mov $192, %ecx
+    .long 0x3000 - 0x2800 - (. - desktop_media_read) - 4
+    lea 0x12000(%rbp), %rdi
+    mov $512, %ecx
     cld
     rep movsq
 #endif

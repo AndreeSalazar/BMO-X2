@@ -238,24 +238,43 @@ ep0_packet:
     jne enum_done
     movb $1, %gs:0x383
     call read_device_descriptor
+    cmpb $1, %gs:0x384
+    jne enum_done
+    call read_keyboard_configuration
 enum_done:
     ret
 
 read_device_descriptor:
-    # GET_DESCRIPTOR(Device, 18) via Setup, Data IN and Status OUT.
-    movl $0x01000680, 0x4800(%r8)
-    movl $0x00120000, 0x4804(%r8)
-    movl $8, 0x4808(%r8)
-    movl $0x30841, 0x480c(%r8)
-    lea 0x4c00(%r8), %rax
-    mov %rax, 0x4810(%r8)
-    movl $18, 0x4818(%r8)
-    movl $0x10c01, 0x481c(%r8)
-    movl $0x1021, 0x482c(%r8)
+    lea 0x4800(%r8), %rbx
+    lea 0x4c00(%r8), %rdx
+    mov $0x01000680, %eax
+    mov $18, %ecx
+    call control_read
+    jne descriptor_done
+    cmpw $0x0112, 0x4c00(%r8)
+    jne descriptor_done
+    movb $1, %gs:0x384
+descriptor_done:
+    ret
+
+# RBX first TRB, EAX request dword, RDX destination, ECX exact length.
+control_read:
+    mov %eax, (%rbx)
+    mov %ecx, %eax
+    shl $16, %eax
+    mov %eax, 4(%rbx)
+    movl $8, 8(%rbx)
+    movl $0x30841, 12(%rbx)
+    mov %rdx, 16(%rbx)
+    mov %ecx, 24(%rbx)
+    movl $0x10c01, 28(%rbx)
+    movl $0x1021, 44(%rbx)
+    lea 32(%rbx), %rdx
+control_submit:
     lea 16(%rsi), %rsi
     lea 0x2100(%r8), %rax
     cmp %rax, %rsi
-    jae descriptor_done
+    jae control_failed
     movl $1, 4(%r10)
     mov $100000, %ecx
 descriptor_wait:
@@ -263,23 +282,195 @@ descriptor_wait:
     jnz descriptor_event
     pause
     loop descriptor_wait
-    ret
+    jmp control_failed
 descriptor_event:
     mov 12(%rsi), %eax
     and $0xfffffc00, %eax
     cmp $0x01018000, %eax    # transfer event, slot 1, endpoint 1
-    jne descriptor_done
+    jne control_failed
     cmpl $0x01000000, 8(%rsi)
-    jne descriptor_done
-    lea 0x4820(%r8), %rax
-    cmp %rax, (%rsi)
-    jne descriptor_done
-    cmpw $0x0112, 0x4c00(%r8)
-    jne descriptor_done
+    jne control_failed
+    cmp %rdx, (%rsi)
+    jne control_failed
     lea 24(%rsi), %rax
     mov %rax, 0x38(%r9)
-    movb $1, %gs:0x384
-descriptor_done:
+    ret
+control_failed:
+    or $1, %eax
+    ret
+
+read_keyboard_configuration:
+    lea 0x4830(%r8), %rbx
+    lea 0x4c20(%r8), %rdx
+    mov $0x02000680, %eax
+    mov $9, %ecx
+    call control_read
+    jne keyboard_done
+    cmpw $0x0209, 0x4c20(%r8)
+    jne keyboard_done
+    movzwl 0x4c22(%r8), %ecx
+    cmp $9, %ecx
+    jb keyboard_done
+    cmp $512, %ecx
+    ja keyboard_done
+    mov %ecx, %gs:0x38c
+    lea 0x4860(%r8), %rbx
+    lea 0x4c40(%r8), %rdx
+    mov $0x02000680, %eax
+    call control_read
+    jne keyboard_done
+    cmpw $0x0209, 0x4c40(%r8)
+    jne keyboard_done
+    mov %gs:0x38c, %edx
+    cmp %dx, 0x4c42(%r8)
+    jne keyboard_done
+    movzbl 0x4c45(%r8), %eax
+    test %eax, %eax
+    jz keyboard_done
+    mov %al, %gs:0x390
+    lea 0x4c49(%r8), %rbx
+    sub $9, %edx
+    xor %ecx, %ecx
+configuration_next:
+    cmp $2, %edx
+    jb keyboard_done
+    movzbl (%rbx), %eax
+    cmp $2, %eax
+    jb keyboard_done
+    cmp %edx, %eax
+    ja keyboard_done
+    cmpb $4, 1(%rbx)
+    jne configuration_endpoint
+    xor %ecx, %ecx
+    cmp $9, %eax
+    jb keyboard_done
+    cmpb $0, 3(%rbx)
+    jne configuration_advance
+    cmpb $3, 5(%rbx)
+    jne configuration_advance
+    cmpw $0x0101, 6(%rbx)
+    jne configuration_advance
+    mov 2(%rbx), %cl
+    or $0x100, %ecx
+    jmp configuration_advance
+configuration_endpoint:
+    test %ecx, %ecx
+    jz configuration_advance
+    cmpb $5, 1(%rbx)
+    jne configuration_advance
+    cmp $7, %eax
+    jb keyboard_done
+    movzbl 2(%rbx), %edi
+    and $0xf0, %edi
+    cmp $0x80, %edi
+    jne configuration_advance
+    testb $0x0f, 2(%rbx)
+    jz configuration_advance
+    mov 3(%rbx), %dil
+    and $3, %dil
+    cmp $3, %dil
+    jne configuration_advance
+    mov %cl, %gs:0x391
+    mov 2(%rbx), %al
+    mov %al, %gs:0x392
+    mov 6(%rbx), %al
+    mov %al, %gs:0x393
+    mov 4(%rbx), %ax
+    mov %ax, %gs:0x394
+    movb $1, %gs:0x385
+    lea 0x4890(%r8), %rbx
+    movzbl %gs:0x390, %eax
+    shl $16, %eax
+    or $0x0900, %eax             # SET_CONFIGURATION
+    xor %ecx, %ecx
+    call control_no_data
+    jne keyboard_done
+    movb $1, %gs:0x386
+    lea 0x48b0(%r8), %rbx
+    mov $0x0b21, %eax           # SET_PROTOCOL, value zero (boot)
+    movzbl %gs:0x391, %ecx
+    call control_no_data
+    jne keyboard_done
+    movb $1, %gs:0x387
+    call keyboard_first_report
+    jmp keyboard_done
+configuration_advance:
+    sub %eax, %edx
+    add %rax, %rbx
+    jmp configuration_next
+keyboard_done:
+    ret
+
+control_no_data:
+    mov %eax, (%rbx)
+    mov %ecx, 4(%rbx)
+    movl $8, 8(%rbx)
+    movl $0x841, 12(%rbx)
+    movl $0x11021, 28(%rbx)
+    lea 16(%rbx), %rdx
+    jmp control_submit
+
+keyboard_first_report:
+    # This probe covers the emulated high-speed boot keyboard, endpoint 1 IN.
+    cmpb $3, %gs:0x381
+    jne keyboard_report_done
+    cmpb $0x81, %gs:0x392
+    jne keyboard_report_done
+    cmpw $8, %gs:0x394
+    jne keyboard_report_done
+    movzbl %gs:0x393, %eax
+    dec %eax
+    cmp $15, %eax
+    ja keyboard_report_done
+    shl $16, %eax
+    mov %eax, 0x4080(%r8)
+    movl $0, 0x4000(%r8)
+    movl $9, 0x4004(%r8)
+    andl $0x07ffffff, 0x4020(%r8)
+    orl $0x18000000, 0x4020(%r8)
+    movl $0x0008003e, 0x4084(%r8)
+    lea 0x4901(%r8), %rax
+    mov %rax, 0x4088(%r8)
+    movl $0x00080008, 0x4090(%r8)
+    lea 0x4000(%r8), %rax
+    mov %rax, 0x1030(%r8)
+    movl $0x01003001, 0x103c(%r8)
+    movl $0, (%r10)
+    add $16, %rsi
+    lea 0x1030(%r8), %rdx
+    call enum_event
+    jne keyboard_report_done
+    cmpb $1, 15(%rsi)
+    jne keyboard_report_done
+    lea 0x4e80(%r8), %rax
+    mov %rax, 0x4900(%r8)
+    movl $8, 0x4908(%r8)
+    movl $0x421, 0x490c(%r8)
+    add $16, %rsi
+    movl $3, 4(%r10)
+    movb $1, %gs:0x396
+    # The harness injects the key only once the transfer is armed.
+    mov $160000000, %ecx
+keyboard_report_wait:
+    testb $1, 12(%rsi)
+    jnz keyboard_report_event
+    pause
+    loop keyboard_report_wait
+    ret
+keyboard_report_event:
+    mov 12(%rsi), %eax
+    and $0xfffffc00, %eax
+    cmp $0x01038000, %eax
+    jne keyboard_report_done
+    cmpl $0x01000000, 8(%rsi)
+    jne keyboard_report_done
+    lea 0x4900(%r8), %rax
+    cmp %rax, (%rsi)
+    jne keyboard_report_done
+    lea 24(%rsi), %rax
+    mov %rax, 0x38(%r9)
+    movb $1, %gs:0x397
+keyboard_report_done:
     ret
 
 # Find a command completion, allowing intervening port-change events.

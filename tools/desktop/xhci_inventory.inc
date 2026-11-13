@@ -134,8 +134,12 @@ caps_map:
     mov %edx, %gs:0x374
     call xhci_handoff
 #ifdef XHCI_COMMAND_PROBE
-    lea 0x200(%rbp), %rax
+    push %rbx
+    push %rdi
+    lea 0x12000(%rbp), %rax
     call *%rax
+    pop %rdi
+    pop %rbx
 #endif
     movq $0, 0x15400(%rbp)
     movq $0, 0x1e000(%rbp)

@@ -33,10 +33,14 @@ para un comando No Op y coteja el TRB de finalizacion. Comprueba parada,
 restauracion del registro PCI Command y retiro de las paginas MMIO.
 Con un usb-kbd emulado tambien restablece el puerto, asigna una ranura,
 direcciona el dispositivo y lee su descriptor de 18 bytes por EP0.
+La misma sonda lee la configuracion de 34 bytes, valida una interfaz
+HID boot, solicita SET_CONFIGURATION y SET_PROTOCOL y configura
+el endpoint 1 IN. QEMU inyecta F2 y coteja el informe de ocho bytes
+que xHCI escribe en memoria. El controlador se detiene al terminar.
 La etapa se guarda bajo `qemu-only`; usa el controlador virtual y no
-concede DMA a Ring 3. Faltan el dominio IOMMU, leer el descriptor de
-configuracion, seleccionar HID boot, configurar el endpoint de
-interrupcion y entregar informes del teclado y el raton a Ring 3.
+concede DMA a Ring 3. Faltan el dominio IOMMU, rearmar transferencias
+para pulsaciones y liberaciones, entregar informes a Ring 3 y
+enumerar el raton.
 
 [Revocacion de pagina](../../mm/virtual/revoke/HOT-UNMAP.md) |
 [Referencia de DMA en Linux](https://docs.kernel.org/core-api/dma-api-howto.html)

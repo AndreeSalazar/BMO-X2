@@ -104,6 +104,10 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                              'hold-time': 100})
         time.sleep(0.2)
 
+    command_probe = desktop_media and (prefix.parent.parent / 'xhci-command.txt').is_file()
+    if command_probe:
+        wait_until(lambda: memory(address + 0x1a396, 1, 'xhci-armed') == b'\x01')
+        key('f2')
     wait_until(lambda: logical(216, 33, 0x0d0e17) and logical(52, 99, 0x5ad8ff) and sleeping())
     if desktop_media:
         dma, pages = struct.unpack('<QQ', memory(address + 0xb8, 16, 'xhci-reservation'))
@@ -122,7 +126,6 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         assert len(covering) == 1
         kind, start, end = covering[0]
         assert kind == 2 and start <= dma and dma + pages * 4096 <= end
-        command_probe = (prefix.parent.parent / 'xhci-command.txt').is_file()
         reserved = memory(dma, pages * 4096, 'xhci-reserved-pages')
         if command_probe:
             status = memory(address + 0x1a379, 2, 'xhci-command-status')
@@ -135,9 +138,18 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
             port, speed, slot, addressed, descriptor_read = device_state
             assert port and speed in (1, 2, 3) and slot == addressed == descriptor_read == 1, device_state
             output_slot = struct.unpack_from('<I', reserved, 0x440c)[0]
-            assert (output_slot >> 27) & 0x1f == 2 and output_slot & 0xff
+            assert (output_slot >> 27) & 0x1f == 3 and output_slot & 0xff
             descriptor = reserved[0x4c00:0x4c12]
             assert descriptor[:2] == bytes([18, 1]) and descriptor[17] >= 1
+            assert memory(address + 0x1a385, 3, 'xhci-keyboard-state') == bytes([1, 1, 1])
+            total, config, interface, endpoint = struct.unpack(
+                '<IBBB', memory(address + 0x1a38c, 7, 'xhci-keyboard-config'))
+            data = reserved[0x4c40:0x4c40 + total]
+            assert len(data) == total and data[:5] == struct.pack('<BBHB', 9, 2, total, 1)
+            assert config == data[5] and endpoint & 0x80
+            assert memory(address + 0x1a397, 1, 'xhci-report-state') == b'\x01'
+            report = reserved[0x4e80:0x4e88]
+            assert report == bytes([0, 0, 0x3b, 0, 0, 0, 0, 0])
         else:
             assert reserved == bytes(pages * 4096)
         assert memory(address + 0x1a358, 5, 'xhci-inventory') == struct.pack('<IB', 1, 1)
@@ -173,7 +185,11 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                         XhciCommandCompleted=True, XhciUsbDeviceAddressed=True,
                         XhciUsbDeviceDescriptorRead=True, XhciPort=port, XhciSpeed=speed,
                         XhciSlot=slot, XhciControllerStopped=True,
-                        UsbDeviceDescriptor=descriptor.hex(), UsbInputVerified=False)
+                        UsbConfigurationBytes=total, UsbBootKeyboardInterface=interface,
+                        UsbKeyboardEndpoint=endpoint, UsbBootProtocolSelected=True,
+                        UsbDeviceDescriptor=descriptor.hex(), UsbF2Report=report.hex(),
+                        UsbKeyboardTransferVerified=True,
+                        UsbInputVerified=False)
     timeout_before = wait_stats()[1]
     wait_until(lambda: wait_stats()[1] > timeout_before)
     event_before = wait_stats()[0]

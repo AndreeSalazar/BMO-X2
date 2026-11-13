@@ -18,6 +18,12 @@ ELF, PE, crates, simbolos, importaciones y dependencias se resuelven
 en HOST o en herramientas de usuario. Los servicios de Ring 3 deciden
 como interpretar sus propios formatos de datos.
 
+El empaquetado en HOST normaliza la imagen y admite solo las regiones
+que permite el perfil. Ring 0 vuelve a validar la estructura y aplica
+los permisos al mapear. La admision no certifica la logica de las
+instrucciones. El aislamiento, las capacidades y la recuperacion tras
+fallos limitan lo que puede hacer el codigo una vez admitido.
+
 El ensayo externo en QEMU entrega el SBEF como modulo aparte. El
 dispositivo loader de QEMU deposita longitud y bytes en 0x02000000
 en una VM con 256 MiB. Un validador provisional x86-64 ensamblado
@@ -29,8 +35,9 @@ QEMU coteja los permisos, verifica las escrituras CPL3 en datos
 y BSS, y comprueba el rechazo W+X en el offset 116 antes de copiar
 o activar CR3.
 
-Quedan pendientes el transporte desde un archivo leido por BMO-X2,
-la integracion en CASM, los mapeos de tamano variable y la asignacion y
-revocacion por proceso. Este ensayo usa un cliente y dos permisos fijos.
+El perfil de escritorio lee `DESKTOP.SBF` desde FAT32 mediante UEFI y
+entrega sus bytes a este validador. El escritorio ya se observo en
+hardware. Quedan pendientes la integracion del cargador en CASM, los
+mapeos generales y la asignacion y revocacion por proceso.
 
 [Contrato binario](SBEF-HOST.md) | [Frontera de ejecucion](../docs/RING-BOUNDARY.md)
