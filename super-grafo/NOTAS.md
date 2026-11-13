@@ -638,7 +638,7 @@ Entrada: EFI y paquete verificados, ruta separada en FAT32 y perfil UEFI x86-64.
 Salida: Evidencia del firmware, entrada en CPL0 y parada controlada.
 Depende de: Puente UEFI provisional (plan), Genesis: prueba aislada en QEMU (plan), Contexto de entrega (plan).
 Aceptacion: El mismo EFI y paquete pasan QEMU y arrancan en el equipo; se observa la parada y Windows vuelve a arrancar.
-Pendiente: Variante separada verificada en QEMU y copiada a A:. Falta ejecutar desde el selector UEFI y registrar evidencia fisica.
+Pendiente: El propietario observo el gato en el equipo. Falta comprobar escritorio y F2 en hardware con SBEF cargado desde FAT32.
 
 ## tools/boot/wake.py
 

@@ -3,9 +3,16 @@
 # R11 is the private page-table reservation, R10 its descriptor page.
 .globl external_sbef
 external_sbef:
+#ifdef DESKTOP_MEDIA
+    mov 0xa8(%rbp), %rsi
+    mov 0xb0(%rbp), %rdx
+    test %rsi, %rsi
+    jz reject
+#else
     mov $0x2000000, %esi
     mov (%rsi), %rdx
     add $8, %rsi
+#endif
     cmp $64, %rdx
     jb reject
     cmp $16512, %rdx
@@ -157,6 +164,16 @@ reject_permissions:
 reject:
     xor %r12d, %r12d
     mov %rbp, %rdi
+#ifdef DESKTOP_MEDIA
+    lea rejected_message(%rip), %rsi
+    call *0x100(%rbp)
+stop:
     hlt
+    jmp stop
+rejected_message:
+    .asciz "BMO-X2: SBEF rechazado."
+#else
+    hlt
+#endif
 exit:
     # The packet builder appends the jump to the ABI fixture's GDT setup.

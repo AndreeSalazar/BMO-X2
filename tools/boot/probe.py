@@ -47,7 +47,7 @@ memory_case = args.memory or args.frame_cycle or args.paging
 user_case = args.user_fault or args.abi_probe or args.hot_unmap
 if any((args.identify,args.stack,args.splash,args.fault,memory_case,user_case)) and not args.halt:
     parser.error('The selected probe requires --halt')
-if (args.splash_hd and not args.splash) or ('contexto' in args.casos and not (args.stack or args.fault or memory_case or user_case)) or sum((args.identify,args.stack,args.splash,args.fault,args.memory,args.frame_cycle,args.paging,args.user_fault,args.abi_probe,args.hot_unmap)) > 1 or ((memory_case or user_case) and args.ram_mib != 256):
+if (args.splash_hd and not args.splash) or ('contexto' in args.casos and not (args.stack or args.fault or memory_case or user_case)) or sum((args.identify,args.stack,args.splash,args.fault,args.memory,args.frame_cycle,args.paging,args.user_fault,args.abi_probe,args.hot_unmap)) > 1 or ((memory_case or user_case) and args.ram_mib != 256 and not args.doom_fixture):
     parser.error('Invalid combination of payload and probe cases')
 ROOT = workspace(args.workspace)
 if args.doom_fixture and (not args.abi_probe or args.casos not in (['normal'], ['normal', 'external-permissions'])):
@@ -64,6 +64,7 @@ if args.doom_fixture:
     gate_path = ROOT / 'session-gate.bin'
     gate = gate_path.read_bytes() if gate_path.is_file() else None
     profile = (ROOT / 'profile.txt').read_text(encoding='ascii').strip()
+    desktop_media = profile == 'desktop-media'
     desktop_doom = profile == 'desktop-doom'
     doom_engine = profile == 'doom-engine' or desktop_doom
     doom_external = profile == 'doom-external' or doom_engine
@@ -115,13 +116,14 @@ results = []
 
 def run(case):
     payload_case = case in ('normal', 'contexto', *MUTATIONS)
-    image = ROOT / 'build' / f"puente-{'normal' if case == 'external-permissions' else case}.img"
+    disk_case = 'normal' if case == 'external-permissions' and not (args.doom_fixture and desktop_media) else case
+    image = ROOT / 'build' / f'puente-{disk_case}.img'
     before = hashlib.sha256(image.read_bytes()).hexdigest()
     prefix = ROOT / 'build' / f'puente-{case}'
     variables = Path(str(prefix) + '-vars.fd')
     shutil.copyfile(share / 'edk2-i386-vars.fd', variables)
     module = ROOT / ('sbef-rejected.bin' if case == 'external-permissions' else 'sbef-module.bin')
-    staging = ['-device', f'loader,file={module},addr=0x2000000,force-raw=on'] if external is not None else []
+    staging = ['-device', f'loader,file={module},addr=0x2000000,force-raw=on'] if external is not None and not desktop_media else []
     wad = ROOT / 'wad-module.bin'
     if wad.is_file():
         staging += ['-device', f'loader,file={wad},addr=0x3000000,force-raw=on']
@@ -374,6 +376,11 @@ def run(case):
             result['DesktopPixelsVerified'] = 128 * 32
         return result
     finally:
+        if args.doom_fixture and desktop_media and process.poll() is None:
+            try:
+                command('screendump', {'filename': str(prefix) + '-media-last.png', 'format': 'png'})
+            except (RuntimeError, TimeoutError, OSError, queue.Empty):
+                pass
         if process.poll() is None:
             try:
                 command('quit')

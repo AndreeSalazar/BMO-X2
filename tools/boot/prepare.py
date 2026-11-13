@@ -16,9 +16,12 @@ parser.add_argument('--workspace',required=True,type=Path)
 parser.add_argument('--caso', choices=['normal', 'firma', 'suma', 'ausente', 'excesivo', 'entrada', 'salida', 'contexto', *MUTATIONS], default='normal')
 parser.add_argument('--profile',choices=['hello','flappy-preview'],default='hello')
 parser.add_argument('--bmo-x2-folder', action='store_true', help='Use a separate payload folder in the virtual image')
+parser.add_argument('--desktop', type=Path, help='Add the desktop SBEF to the BMO-X2 folder')
 args = parser.parse_args()
 if args.bmo_x2_folder and (args.profile != 'hello' or args.caso != 'normal'):
     parser.error('--bmo-x2-folder requires the normal bridge case')
+if args.desktop and not args.bmo_x2_folder:
+    parser.error('--desktop requires --bmo-x2-folder')
 root = workspace(args.workspace)
 build = root / 'build'
 if args.profile=='flappy-preview' and args.caso!='normal':raise ValueError('Visual preview uses only the normal virtual image case')
@@ -141,6 +144,16 @@ with output.open('r+b') as disk:
         for n, cluster in enumerate(chain):
             write(cluster_offset(cluster), oversized[n * cluster_bytes:(n + 1) * cluster_bytes].ljust(cluster_bytes, b'\0'))
         directory[packet_pos:packet_pos + 32] = entry(b'INICIO  X86', 0x20, chain[0], len(oversized))
+    if args.desktop:
+        desktop = args.desktop.read_bytes()
+        if not 64 <= len(desktop) <= 16512:
+            raise ValueError('Tamano invalido del SBEF de escritorio')
+        desktop_chain = allocate((len(desktop) + cluster_bytes - 1) // cluster_bytes)
+        for n, cluster in enumerate(desktop_chain):
+            data = desktop[n * cluster_bytes:(n + 1) * cluster_bytes]
+            write(cluster_offset(cluster), data.ljust(cluster_bytes, b'\0'))
+        slot = next(i for i in range(0, len(directory), 32) if directory[i] == 0)
+        directory[slot:slot+32] = entry(b'DESKTOP SBF', 0x20, desktop_chain[0], len(desktop))
     write(metal_offset, directory)
 
     efi_dir, boot_dir = allocate(2)

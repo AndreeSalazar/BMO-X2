@@ -13,7 +13,7 @@ def verify_external_rejection(command, memory, image):
     while time.monotonic() < deadline:
         regs = command('human-monitor-command', {'command-line': 'info registers'})
         context = register(regs, 'RBP')
-        if 'HLT=1' in regs and 'CPL=0' in regs and 0x100000 <= context < 0xffe0000:
+        if 'HLT=1' in regs and 'CPL=0' in regs and 0x100000 <= context <= 0xffe0000:
             if memory(context, 8, 'rejected-context') == b'METAL64!':
                 assert register(regs, 'R12') == 0
                 assert register(regs, 'CR3') == register(regs, 'R13')

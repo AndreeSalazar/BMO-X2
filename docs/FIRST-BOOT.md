@@ -40,6 +40,26 @@ Para reproducir la preparacion en el proyecto, ejecutar
 `tools/boot/stage_bmo_x2.py` con Python y un run CASM del gato. El script
 crea archivos de prueba bajo `build/CASM`.
 
+### Variante de escritorio desde el volumen
+
+`tools/boot/stage_desktop_media.py` toma los runs ABI, gato corto y
+escritorio externo. Genera un EFI derivado que abre
+`\BMO-X2\DESKTOP.SBF` antes de ExitBootServices y entrega su direccion y
+longitud al validador de la sonda. Conserva un arranque con el gato y
+permite comprobar en QEMU la entrada CPL3, F2 y el rechazo de W+X sin
+depositar el SBEF con el cargador de QEMU.
+
+El escritorio de prueba usa framebuffer GOP y entrada PS/2. En el equipo
+se debe comprobar la presentacion y F2 por separado. El medio de prueba
+de escritorio incluye el SBEF Rust y tres archivos en total. DOOM con
+IWAD y el cargador CASM de produccion quedan pendientes.
+
+El run `run-desktop-media-65a35111cc51` aprobo los dos casos en QEMU con
+1024 MiB. Sus tres archivos se copiaron a las carpetas BMO-X2 de A:
+y se cotejaron sus huellas. El arranque anterior del gato se conserva
+en `previous-splash` dentro del run. Seleccionar la entrada UEFI BMO-X2
+y pulsar F2 al aparecer el escritorio.
+
 Por cada prueba guardar huellas, configuracion, bytes de entrada, memoria
 reservada y el ultimo punto observado. Registrar consola serie si el
 equipo la ofrece, o captura del diagnostico visible. Faggin mantiene su
