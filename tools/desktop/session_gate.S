@@ -15,6 +15,8 @@ session_gate:
     je wait_input
     test %rax, %rax
     jne denied
+    cmp $3, %rsi
+    je diagnostics
     cmp $2, %rsi
     je input
     cmp $1, %rsi
@@ -225,6 +227,21 @@ timer_irq:
     out %al, $0x20
     pop %rax
     iretq
+diagnostics:
+    cmp $3, %rdi
+    jne denied
+    cmp $2, %rdx
+    ja denied
+    test %rdx, %rdx
+    jz diagnostics_ticks
+    mov %gs:0x33c(,%rdx,4), %eax
+    jmp diagnostics_result
+diagnostics_ticks:
+    mov %gs:0x338, %eax
+diagnostics_result:
+    mov %edx, %gs:0x348
+    mov %eax, %gs:0x34c
+    jmp finish
 empty:
     mov $256, %eax
     jmp finish

@@ -4,6 +4,8 @@
 use core::arch::asm;
 use core::panic::PanicInfo;
 
+mod cabina;
+
 const ACCENTS: [u32; 4] = [0x5ad8ff, 0xad92ff, 0x6ee7b7, 0xff7c98];
 const DIGITS: [u16; 4] = [0x749a, 0x73e7, 0x79e7, 0x49ed];
 const DISPLAY: u64 = 1;
@@ -181,11 +183,15 @@ extern "C" fn bmo_main() -> ! {
     let mut pending_motion = 0;
     let (mut flags, mut dx, mut index) = (0u8, 0u8, 0u8);
     let mut left = false;
+    let mut console = false;
+    let mut f2_down = false;
     let pixel = (1u64 << 32) | (1u64 << 48);
     if invoke(INPUT, FILL, pixel, 0xffffff) != DENIED
         || invoke(DISPLAY, READ_INPUT, 0, 0) != DENIED
         || invoke(0, FILL, pixel, 0xffffff) != DENIED
         || invoke(INPUT, 3, 0, 0) != DENIED
+        || invoke(3, FILL, pixel, 0xffffff) != DENIED
+        || invoke(3, 3, 3, 0) != DENIED
     {
         panic!("session permissions");
     }
@@ -214,6 +220,10 @@ extern "C" fn bmo_main() -> ! {
                     let next_x = (x + delta_x).clamp(0, 633);
                     let next_y = (y - delta_y).clamp(0, 390);
                     let pressed = flags & 1 != 0;
+                    if console {
+                        left = pressed;
+                        continue;
+                    }
                     let previous_focus = focus[space];
                     if pressed && !left {
                         if let Some(window) = window_at(next_x, next_y) {
@@ -257,6 +267,27 @@ extern "C" fn bmo_main() -> ! {
         }
         let extended = core::mem::replace(&mut prefix, false);
         let down = key & 0x80 == 0;
+        if key & 0x7f == 0x3c && !extended {
+            let toggle = down && !f2_down;
+            f2_down = down;
+            if !toggle {
+                continue;
+            }
+            console = !console;
+            if console {
+                cabina::show();
+            } else {
+                paint(VIEWPORT, space, focus[space]);
+                cursor(x, y);
+            }
+            continue;
+        }
+        if console {
+            if down && !extended {
+                cabina::command(key);
+            }
+            continue;
+        }
         match key & 0x7f {
             0x1d => ctrl = down,
             0x5b | 0x5c if extended => super_key = down,

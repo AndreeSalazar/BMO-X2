@@ -149,6 +149,23 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     for down in (True, False):
         command('input-send-event', {'events': [{'type': 'btn', 'data': {'button': 'left', 'down': down}}]})
     wait_until(lambda: logical(52, 99, 0xad92ff) and logical(390, 147, 0x40465d))
+    if external_image is not None:
+        key('f2')
+        wait_until(lambda: logical(24, 24, 0x232638))
+        glyphs = (0x7b6f, 0x749a, 0x73e7, 0x79e7, 0x49ed,
+                  0x79cf, 0x7bcf, 0x4927, 0x7bef, 0x79ef)
+        for field, command_key in enumerate(('t', 'e', 'v')):
+            key(command_key)
+            selected, value = struct.unpack('<II', memory(address + 0x1a348, 8, 'cabina-read'))
+            assert selected == field and value > 0, 'CABINA no consulto el contador esperado'
+            for index, char in enumerate(str(value)):
+                glyph = glyphs[int(char)]
+                for bit in range(15):
+                    assert logical(160 + index*8 + bit%3*2, 121 + bit//3*2,
+                                   0xe7efff if glyph & (1 << bit) else 0x232638), 'CABINA mostro otro valor'
+        command('screendump', {'filename': str(prefix)+'-cabina.png', 'format': 'png'})
+        key('f2')
+        wait_until(lambda: logical(52, 99, 0xad92ff) and logical(240, 168, 0xe7efff))
     command('screendump', {'filename': str(prefix)+'.png', 'format': 'png'})
     return dict(Case='normal', Passed=True, BootServicesExited=True, UserCPL=3,
                 IntroFramesObserved=sorted(frames), WorkspacesVerified=[1, 2, 3, 4],
@@ -158,5 +175,6 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 PointerBurstEvents=48,
                 WaitHalted=True, WaitTimeoutVerified=True, WaitInputVerified=True,
                 ExternalSbef=external_image is not None,
+                CabinaCommandsVerified=3 if external_image is not None else 0,
                 PayloadSHA256=hashlib.sha256(packet[24:]).hexdigest(),
                 SbefSHA256=fixture['sbef_sha256'])
