@@ -31,10 +31,11 @@ def verify_session(command, memory, prefix, packet, intro, fixture):
                 code = struct.unpack_from('<Q', context, 8)[0]
                 rip = register(regs, 'RIP')
                 frame = register(regs, 'R12')
-                if intro and frame in (1, 2) and frame not in frames and 0xb6 <= rip-code < 0xd0:
+                low, high = (0xb6, 0xd0) if intro and len(intro) == 64 else (0xb3, 0xcd)
+                if intro and frame in (1, 2) and frame not in frames and low <= rip-code < high:
                     command('stop')
                     try:
-                        if 0xb6 <= register(registers(), 'RIP')-code < 0xd0:
+                        if low <= register(registers(), 'RIP')-code < high:
                             compare_frame(memory, context, intro, frame)
                             frames.add(frame)
                     finally:
@@ -50,12 +51,16 @@ def verify_session(command, memory, prefix, packet, intro, fixture):
     fb = struct.unpack_from('<Q', context, 0x10)[0]
     width, height = struct.unpack_from('<II', context, 0x20)
     pitch, order = struct.unpack_from('<II', context, 0x28)
+    scale = 2 if width >= 1280 and height >= 800 else 1
 
     def pixel(x, y, color):
         raw = color.to_bytes(4, 'little')
         if order == 0:
             raw = raw[:3][::-1] + b'\0'
         return memory(fb + (pitch*y+x)*4, 4, 'session-pixel') == raw
+
+    def logical(x, y, color):
+        return pixel(x*scale, y*scale, color)
 
     def ring3():
         regs = registers()
@@ -66,23 +71,32 @@ def verify_session(command, memory, prefix, packet, intro, fixture):
                              'hold-time': 100})
         time.sleep(0.2)
 
-    wait_until(lambda: pixel(216, 33, 0x5ad8ff) and pixel(52, 99, 0x5ad8ff) and ring3())
+    wait_until(lambda: logical(216, 33, 0x5ad8ff) and logical(52, 99, 0x5ad8ff) and ring3())
     assert pixel(width-1, height-1, 0x0d0e17), 'La intro no fue reemplazada'
     assert memory(code, len(packet)-24, 'session-code') == packet[24:]
     for digit, x, color in [('2', 272, 0xad92ff), ('3', 328, 0x6ee7b7), ('4', 384, 0xff7c98)]:
         key('ctrl', 'meta_l', digit)
-        wait_until(lambda: pixel(x, 33, color) and pixel(52, 99, color))
+        wait_until(lambda: logical(x, 33, color) and logical(52, 99, color))
     key('ctrl', 'meta_l', '2')
-    wait_until(lambda: pixel(272, 33, 0xad92ff))
+    wait_until(lambda: logical(272, 33, 0xad92ff))
     key('meta_l', '2')
-    wait_until(lambda: pixel(390, 147, 0xad92ff) and pixel(52, 99, 0x40465d))
+    wait_until(lambda: logical(390, 147, 0xad92ff) and logical(52, 99, 0x40465d))
     key('1')
-    wait_until(lambda: pixel(216, 33, 0x5ad8ff))
+    wait_until(lambda: logical(216, 33, 0x5ad8ff))
     key('2')
-    wait_until(lambda: pixel(390, 147, 0xad92ff) and ring3())
+    wait_until(lambda: logical(390, 147, 0xad92ff) and ring3())
+    command('input-send-event', {'events': [
+        {'type': 'rel', 'data': {'axis': 'x', 'value': -80}},
+        {'type': 'rel', 'data': {'axis': 'y', 'value': -32}},
+    ]})
+    wait_until(lambda: logical(240, 168, 0xe7efff) and not logical(320, 200, 0xe7efff))
+    for down in (True, False):
+        command('input-send-event', {'events': [{'type': 'btn', 'data': {'button': 'left', 'down': down}}]})
+    wait_until(lambda: logical(52, 99, 0xad92ff) and logical(390, 147, 0x40465d))
     command('screendump', {'filename': str(prefix)+'.png', 'format': 'png'})
     return dict(Case='normal', Passed=True, BootServicesExited=True, UserCPL=3,
                 IntroFramesObserved=sorted(frames), WorkspacesVerified=[1, 2, 3, 4],
                 KeyboardVerified=True, FocusRestored=True, DesktopSession=True, IntroReplaced=True,
+                MouseVerified=True, Framebuffer=[width, height], DesktopScale=scale,
                 PayloadSHA256=hashlib.sha256(packet[24:]).hexdigest(),
                 SbefSHA256=fixture['sbef_sha256'])

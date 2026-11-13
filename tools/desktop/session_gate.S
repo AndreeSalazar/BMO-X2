@@ -17,6 +17,8 @@ session_gate:
     jne denied
     cmp $2, %esi
     je keyboard
+    cmp $3, %esi
+    je enable_mouse
     cmp $1, %esi
     jne denied
 
@@ -56,11 +58,21 @@ session_gate:
     ja denied
     # A full viewport repaint also clears the surrounding boot image.
     cmp $640, %ecx
-    jne geometry_ready
+    jne scale
     cmp $400, %edx
-    jne geometry_ready
+    jne scale
     mov 0x20(%rbp), %ecx
     mov 0x24(%rbp), %edx
+    jmp geometry_ready
+scale:
+    cmpl $1280, 0x20(%rbp)
+    jb geometry_ready
+    cmpl $800, 0x24(%rbp)
+    jb geometry_ready
+    add %edi, %edi
+    add %esi, %esi
+    add %ecx, %ecx
+    add %edx, %edx
 geometry_ready:
     imul %r8, %rsi
     add %rdi, %rsi
@@ -90,13 +102,44 @@ row:
     xor %eax, %eax
     jmp finish
 keyboard:
+    xor %eax, %eax
     in $0x64, %al
-    and $0x21, %al
-    cmp $1, %al
-    jne empty
+    test $1, %al
+    jz empty
+    mov %eax, %edx
     xor %eax, %eax
     in $0x60, %al
+    test $0x20, %dl
+    jz finish
+    or $512, %eax
     jmp finish
+enable_mouse:
+    call writable
+    jc denied
+    mov $0xa8, %al
+    out %al, $0x64
+    call writable
+    jc denied
+    mov $0xd4, %al
+    out %al, $0x64
+    call writable
+    jc denied
+    mov $0xf4, %al
+    out %al, $0x60
+    xor %eax, %eax
+    jmp finish
+writable:
+    mov $65536, %ecx
+poll_write:
+    in $0x64, %al
+    test $2, %al
+    jz ready
+    loop poll_write
+    stc
+    ret
+ready:
+    clc
+    ret
 empty:
     mov $256, %eax
     jmp finish

@@ -53,6 +53,21 @@ fn paint(space: usize, focus: usize) {
     }
 }
 
+fn cursor(x: i16, y: i16) {
+    fill(x as u64, y as u64, 3, 10, 0xe7efff);
+    fill(x as u64, y as u64, 7, 3, 0xe7efff);
+}
+
+fn window_at(x: i16, y: i16) -> Option<usize> {
+    if (52..367).contains(&x) && (99..290).contains(&y) {
+        Some(0)
+    } else if (390..588).contains(&x) && (147..298).contains(&y) {
+        Some(1)
+    } else {
+        None
+    }
+}
+
 #[unsafe(no_mangle)]
 extern "C" fn bmo_main() -> ! {
     let mut space = 0;
@@ -60,9 +75,53 @@ extern "C" fn bmo_main() -> ! {
     let mut prefix = false;
     let mut ctrl = false;
     let mut super_key = false;
+    let (mut x, mut y) = (320i16, 200i16);
+    let (mut flags, mut dx, mut index) = (0u8, 0u8, 0u8);
+    let mut left = false;
+    invoke(3, 0, 0);
     paint(space, focus[space]);
+    cursor(x, y);
     loop {
         let raw = invoke(2, 0, 0);
+        if raw & 512 != 0 {
+            let byte = raw as u8;
+            match index {
+                0 if byte & 8 != 0 && byte != 0xfa => {
+                    flags = byte;
+                    index = 1;
+                }
+                1 => {
+                    dx = byte;
+                    index = 2;
+                }
+                2 => {
+                    index = 0;
+                    if flags & 0xc0 != 0 {
+                        continue;
+                    }
+                    let delta_x = i16::from(dx) - i16::from(flags & 0x10) * 16;
+                    let delta_y = i16::from(byte) - i16::from(flags & 0x20) * 8;
+                    let next_x = (x + delta_x).clamp(0, 633);
+                    let next_y = (y - delta_y).clamp(0, 390);
+                    let pressed = flags & 1 != 0;
+                    let previous_focus = focus[space];
+                    if pressed && !left {
+                        if let Some(window) = window_at(next_x, next_y) {
+                            focus[space] = window;
+                        }
+                    }
+                    left = pressed;
+                    if (next_x, next_y, focus[space]) != (x, y, previous_focus) {
+                        x = next_x;
+                        y = next_y;
+                        paint(space, focus[space]);
+                        cursor(x, y);
+                    }
+                }
+                _ => {}
+            }
+            continue;
+        }
         if raw >= 256 {
             for _ in 0..128 {
                 core::hint::spin_loop();
@@ -84,6 +143,7 @@ extern "C" fn bmo_main() -> ! {
                 if selected != space {
                     space = selected;
                     paint(space, focus[space]);
+                    cursor(x, y);
                 }
             }
             2..=3 if down && super_key && !extended => {
@@ -91,6 +151,7 @@ extern "C" fn bmo_main() -> ! {
                 if selected != focus[space] {
                     focus[space] = selected;
                     paint(space, selected);
+                    cursor(x, y);
                 }
             }
             _ => {}

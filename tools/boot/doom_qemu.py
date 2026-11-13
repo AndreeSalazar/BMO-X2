@@ -33,8 +33,8 @@ def main():
     packet, _ = make_packet(base_packet, sbef, present, gate)
     if args.intro:
         intro = workspace(args.intro)
-        if (intro / 'profile.txt').read_text(encoding='utf-8-sig').strip() != 'ring0-splash-hd-0.1':
-            raise ValueError('Se requiere un run CASM de gato HD')
+        if (intro / 'profile.txt').read_text(encoding='utf-8-sig').strip() not in ('ring0-splash-hd-0.1', 'ring0-splash-0.1'):
+            raise ValueError('Se requiere un run CASM del gato')
         check(intro)
         splash = (intro / 'INICIO.X86').read_bytes()
         packet, _ = prepend_intro(packet, splash)
@@ -75,7 +75,7 @@ def main():
     milestone = 'Rust desktop composition in CPL3' if present is not None else 'DoomGeneric fixed arithmetic in CPL3'
     if gate is not None:
         milestone = 'Interactive Rust desktop session in CPL3'
-    report.update(run=run.name, evidence='QEMU', milestone=f'HD intro then {milestone}' if args.intro else milestone)
+    report.update(run=run.name, evidence='QEMU', milestone=f'Cat intro then {milestone}' if args.intro else milestone)
     (run / 'qemu-results.json').write_text(json.dumps(report, indent=2) + '\n', encoding='ascii')
     (run / 'qemu-run.json').write_text(json.dumps(dict(cpu='qemu64', ram_mib=256)) + '\n', encoding='ascii')
     print(f'Run: {run}')

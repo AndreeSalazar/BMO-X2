@@ -1319,8 +1319,8 @@ Estado: QEMU. Anillo: 3. Lenguaje: Rust.
 Entrada: Eventos de entrada, superficies de clientes y capacidad de pantalla.
 Salida: Cuadro en RAM, espacio activo, foco y movimiento de ventanas.
 Depende de: Supervisor Rust de Ring 3 (plan), Mezcla y controles de audio (plan).
-Aceptacion: QEMU verifica una sesion CPL3 con cuatro espacios, teclado PS/2 y restauracion del foco.
-Pendiente: Arrancar el SBEF externo y conectar el compositor completo, entrada por eventos y telemetria de Ring 0.
+Aceptacion: QEMU verifica cuatro espacios, teclado y raton PS/2, foco por clic y escala 2x en 1280x800.
+Pendiente: Cargar SBEF externo, conectar el compositor, repintar solo el area del cursor y entregar entrada por eventos.
 
 ## userspace/services/desktop/src/keyboard.rs
 
@@ -1342,7 +1342,7 @@ Entrada: m_fixed.c fijado, toolchain x86-64 ELF y portal ABI 1.
 Salida: Tabla ELF, doom-fixed.sbef e informe QEMU de ejecucion CPL3.
 Depende de: Contrato minimo del cargador SBEF (plan), Empaquetador ELF64 a SBEF (generacion).
 Aceptacion: QEMU comprueba tres cuadros HD y despues el SBEF de GCC, tres syscalls y borrado.
-Pendiente: Cargador general de SBEF externo y port de video, teclado, reloj y WAD.
+Pendiente: Cargador SBEF externo, presentacion por bloques, entrada enfocada, reloj y lectura de WAD sin Director.
 
 ## userspace/services/audio
 

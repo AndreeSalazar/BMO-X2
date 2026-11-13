@@ -125,3 +125,23 @@ if ($LASTEXITCODE) { throw 'Fallo la sonda DOOM' }
 [Fuente DoomGeneric fijada](https://github.com/ozkl/doomgeneric/tree/dcb7a8dbc7a16ce3dda29382ac9aae9d77d21284) |
 [Cargador SBEF](../../../contracts/SBEF-LOADER.md) |
 [Escritorio](../../services/desktop/WORKSPACES.md)
+
+## Ruta directa sin Director
+
+| Orden | Entrega | Prueba de cierre |
+|---|---|---|
+| 1 | Ring 0 CASM carga SBEF independiente del paquete de arranque. | El mismo kernel ejecuta dos SBEF distintos con regiones RX, R y RW/NX, pila, BSS a cero y salida ordenada. |
+| 2 | Ring 0 concede presentacion por bloques, entrada enfocada, reloj monotono y lectura de un archivo. | Un cliente CPL3 presenta un cuadro por CPU, recibe teclas y deltas del raton, y lee bytes de un WAD. |
+| 3 | El adaptador C implementa `DG_Init`, `DG_DrawFrame`, `DG_GetKey`, `DG_GetTicksMs`, `DG_SleepMs` y `DG_SetWindowTitle`, con libc minima y arena de memoria en Ring 3. | GCC enlaza el motor completo en ELF64 estatico y HOST admite el SBEF. |
+| 4 | El lanzador inicia DOOM con una superficie propia y `doom1.wad` como datos. | QEMU alcanza E1M1 y comprueba un cuadro que cambia al enviar una tecla. |
+| 5 | La sesion Rust integra foco, captura relativa del puntero, configuracion y audio. | La ventana pierde y recupera la captura sin teclas ni botones pegados. Efectos y musica tienen volumen independiente. |
+
+El WAD local de BMO-externo queda separado del ejecutable. El raton de
+escritorio usa coordenadas para foco. El juego necesita deltas relativos
+y botones mientras tenga la captura. El adaptador del padre descartaba
+estos eventos en `DG_GetKey`; el port debe conectarlos al motor.
+
+El puente actual limita el paquete de arranque a 4096 bytes. El cargador
+de la etapa 1 desacopla ese presupuesto del codigo del juego. Antes de
+congelar el ABI, cotejar las restricciones del importador HOST (1 MiB
+de archivo y ventana virtual de 16 MiB) con el ELF del motor y su arena.

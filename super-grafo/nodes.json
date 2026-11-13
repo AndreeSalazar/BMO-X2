@@ -2028,8 +2028,8 @@
       "que": "Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX.",
       "entrada": "Eventos de entrada, superficies de clientes y capacidad de pantalla.",
       "salida": "Cuadro en RAM, espacio activo, foco y movimiento de ventanas.",
-      "aceptacion": "QEMU verifica una sesion CPL3 con cuatro espacios, teclado PS/2 y restauracion del foco.",
-      "falta": "Arrancar el SBEF externo y conectar el compositor completo, entrada por eventos y telemetria de Ring 0.",
+      "aceptacion": "QEMU verifica cuatro espacios, teclado y raton PS/2, foco por clic y escala 2x en 1280x800.",
+      "falta": "Cargar SBEF externo, conectar el compositor, repintar solo el area del cursor y entregar entrada por eventos.",
       "pagina": true
     },
     {
@@ -2058,7 +2058,7 @@
       "entrada": "m_fixed.c fijado, toolchain x86-64 ELF y portal ABI 1.",
       "salida": "Tabla ELF, doom-fixed.sbef e informe QEMU de ejecucion CPL3.",
       "aceptacion": "QEMU comprueba tres cuadros HD y despues el SBEF de GCC, tres syscalls y borrado.",
-      "falta": "Cargador general de SBEF externo y port de video, teclado, reloj y WAD."
+      "falta": "Cargador SBEF externo, presentacion por bloques, entrada enfocada, reloj y lectura de WAD sin Director."
     },
     {
       "id": "audio-mixer",

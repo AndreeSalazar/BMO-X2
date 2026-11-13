@@ -75,10 +75,14 @@ def make_packet(reference, image, desktop_present=None, session_gate=None):
 def prepend_intro(packet, splash):
     """Redirect the verified HD intro terminal into the separate ABI probe."""
     intro = bytearray(splash[24:])
-    terminal = 216
-    if len(intro) != 1255 or intro[terminal:terminal+3] != b'\xf4\xeb\xfd':
-        raise ValueError('Cambio el terminal del gato HD')
-    lea = bytes.fromhex('488d359d000000')
+    if len(intro) == 1255:
+        terminal, lea = 216, bytes.fromhex('488d359d000000')
+    elif len(intro) == 484:
+        terminal, lea = 213, bytes.fromhex('488d359a000000')
+    else:
+        raise ValueError('Tamano de intro desconocido')
+    if intro[terminal:terminal+3] != b'\xf4\xeb\xfd':
+        raise ValueError('Cambio el terminal del gato')
     site = intro.index(lea)
     intro[site+3] += 2  # The longer jump shifts the palette and mask by two bytes.
     intro[terminal:terminal+3] = b'\xe9' + struct.pack('<i', len(intro) - terminal)

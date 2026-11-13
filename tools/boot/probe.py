@@ -67,10 +67,11 @@ if args.doom_fixture:
         image_path = ROOT / 'doom-fixed.sbef'
     expected, doom = make_packet(reference, image_path.read_bytes(), present, gate)
     if (ROOT / 'intro.x86').is_file():
-        expected, intro_size = prepend_intro(expected, (ROOT / 'intro.x86').read_bytes())
+        splash = (ROOT / 'intro.x86').read_bytes()
+        expected, intro_size = prepend_intro(expected, splash)
         sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'CASM'))
         from splash_verify import read_rows
-        intro_rows, _, _ = read_rows((ROOT / 'intro.casm').read_bytes(), hd=True)
+        intro_rows, _, _ = read_rows((ROOT / 'intro.casm').read_bytes(), hd=len(splash) == 1279)
     if (ROOT / 'build/Puente_Metal/METAL/INICIO.X86').read_bytes() != expected:
         raise ValueError('Paquete DOOM distinto del vector esperado')
     doom['packet_bytes'] = len(expected)
@@ -194,7 +195,7 @@ def run(case):
                                 try:
                                     stopped = command('human-monitor-command', {'command-line':'info registers'})
                                     code_base = struct.unpack_from('<Q', candidate, 8)[0]
-                                    low, high = (0xb6, 0xd0) if intro_rows else (wait_low, wait_high)
+                                    low, high = ((0xb6, 0xd0) if len(intro_rows) == 64 else (0xb3, 0xcd)) if intro_rows else (wait_low, wait_high)
                                     if register(stopped, 'R12') == frame and low <= register(stopped,'RIP')-code_base < high:
                                         compare_frame(memory,candidate,intro_rows or logo,frame)
                                         command('screendump', {'filename':str(prefix)+f'-frame-{frame}.png','format':'png'})
