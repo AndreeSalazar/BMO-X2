@@ -10,17 +10,35 @@ pertenecen al perfil de la VM.
 
 | Orden | Entrega | Evidencia para avanzar |
 |---|---|---|
-| 1 | Preparar una imagen UEFI removible con el puente y la entrada CASM minima. | Verificar huellas del EFI, del HEX y del paquete; arrancar en QEMU desde la misma imagen y conservar el resultado. |
-| 2 | Arrancar esa imagen una vez desde el selector del firmware del equipo. | Registrar placa y version UEFI, modo de arranque, salida de BootServices, entrada CASM y parada observable. Volver a arrancar Windows por su entrada habitual. |
+| 1 | Preparar el EFI y la entrada CASM para un arranque aislado. | Verificar huellas del EFI, del HEX y del paquete; arrancar los mismos bytes en QEMU y conservar el resultado. |
+| 2 | Abrir el EFI desde el selector del firmware del equipo. | Registrar placa y version UEFI, modo de arranque, salida de BootServices, entrada CASM y parada observable. Volver a arrancar Windows por su entrada habitual. |
 | 3 | Probar los mecanismos de Ring 0 por separado en ese perfil. | Registrar CPU, mapa de RAM, framebuffer y diagnosticos; comprobar pila, excepcion controlada y memoria con permisos. Identificar cada controlador probado. |
 | 4 | Arrancar un cliente Rust minimo desde un SBEF externo con el cargador CASM propio. | El kernel mapea RX/R/RW con NX, atiende INVOKE y WAIT y recupera recursos cuando el cliente sale o falla. Repetir con el segundo cliente. |
 | 5 | Ampliar al escritorio y los aparatos. | DIRECTOR presenta por CPU y recibe entrada. Disco, audio y otros controladores obtienen evidencia por separado. |
 
-El estado del paso 1 es parcial: Genesis tiene evidencia QEMU con OVMF y
-una imagen virtual. Falta preparar la imagen removible de la prueba fisica.
-El primer ensayo usa el medio removible para evitar depender de la
-particion de Windows. La FAT32 dedicada junto a PERSONAL queda para
-despues de verificar el recorrido UEFI y confirmar el destino fisico.
+El ensayo puede usar un medio removible o un volumen FAT32 con una ruta
+EFI propia. Para este equipo se eligio el volumen A:. La FAT32 dedicada
+junto a PERSONAL queda para despues de verificar el recorrido UEFI.
+
+### Ensayo BMO-X2 en el volumen A:
+
+El volumen fijo FAT32 BMO contiene `\EFI\BMO-X2\BMO-X2.EFI` y
+`\BMO-X2\INICIO.X86`. El puente derivado conserva sus instrucciones y
+cambia tres cadenas UTF-16, incluida la ruta del paquete. OVMF verifica
+los tres cuadros de color del gato y HLT en CPL0 con este EFI y paquete.
+El run `run-bmo-x2-d296555d2da8` conserva las capturas y el manifiesto.
+Se cotejaron las huellas al copiar a A: y las de los EFI de ULTRA.
+
+Desde el explorador de archivos del firmware, seleccionar el volumen BMO
+y abrir `\EFI\BMO-X2\BMO-X2.EFI`. Si el firmware ofrece agregar una
+opcion, se puede etiquetar BMO-X2 y seleccionar ese archivo. El firmware
+puede bloquear el EFI sin firma con Secure Boot activo. El nombre y los
+colores de la animacion se ven dentro de BMO-X2; la lista UEFI depende
+del firmware. El ensayo fisico sigue pendiente.
+
+Para reproducir la preparacion en el proyecto, ejecutar
+`tools/boot/stage_bmo_x2.py` con Python y un run CASM del gato. El script
+crea archivos de prueba bajo `build/CASM`.
 
 Por cada prueba guardar huellas, configuracion, bytes de entrada, memoria
 reservada y el ultimo punto observado. Registrar consola serie si el

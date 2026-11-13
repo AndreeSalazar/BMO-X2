@@ -15,7 +15,10 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--workspace',required=True,type=Path)
 parser.add_argument('--caso', choices=['normal', 'firma', 'suma', 'ausente', 'excesivo', 'entrada', 'salida', 'contexto', *MUTATIONS], default='normal')
 parser.add_argument('--profile',choices=['hello','flappy-preview'],default='hello')
+parser.add_argument('--bmo-x2-folder', action='store_true', help='Use a separate payload folder in the virtual image')
 args = parser.parse_args()
+if args.bmo_x2_folder and (args.profile != 'hello' or args.caso != 'normal'):
+    parser.error('--bmo-x2-folder requires the normal bridge case')
 root = workspace(args.workspace)
 build = root / 'build'
 if args.profile=='flappy-preview' and args.caso!='normal':raise ValueError('Visual preview uses only the normal virtual image case')
@@ -101,6 +104,9 @@ with output.open('r+b') as disk:
 
     root_data = bytearray(read(cluster_offset(root_cluster), cluster_bytes))
     metal = next(root_data[p:p + 32] for p in range(0, cluster_bytes, 32) if root_data[p:p + 11] == b'METAL      ')
+    if args.bmo_x2_folder:
+        folder = root_data.index(metal)
+        root_data[folder:folder + 11] = b'BMO-X2     '
     metal_cluster = (struct.unpack_from('<H', metal, 20)[0] << 16) | struct.unpack_from('<H', metal, 26)[0]
     metal_offset = cluster_offset(metal_cluster)
     directory = bytearray(read(metal_offset, cluster_bytes))

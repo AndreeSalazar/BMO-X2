@@ -634,11 +634,11 @@ Pendiente: Arranque autonomo, excepciones y memoria propias; prueba fisica no re
 Ordena la prueba fisica del puente y la entrada CASM minima.
 
 Estado: DISENO. Anillo: host. Lenguaje: contrato.
-Entrada: EFI y paquete verificados, imagen removible y perfil UEFI x86-64.
+Entrada: EFI y paquete verificados, ruta separada en FAT32 y perfil UEFI x86-64.
 Salida: Evidencia del firmware, entrada en CPL0 y parada controlada.
 Depende de: Puente UEFI provisional (plan), Genesis: prueba aislada en QEMU (plan), Contexto de entrega (plan).
-Aceptacion: La misma imagen pasa QEMU y arranca en el equipo; se observa la parada y Windows vuelve a arrancar.
-Pendiente: Preparar el medio removible y obtener evidencia en el equipo.
+Aceptacion: El mismo EFI y paquete pasan QEMU y arrancan en el equipo; se observa la parada y Windows vuelve a arrancar.
+Pendiente: Variante separada verificada en QEMU y copiada a A:. Falta ejecutar desde el selector UEFI y registrar evidencia fisica.
 
 ## tools/boot/wake.py
 

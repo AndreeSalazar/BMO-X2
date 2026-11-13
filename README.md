@@ -116,7 +116,7 @@ PCM, volumen y medicion en HOST. La salida virtual y USB quedan pendientes.
    fijar el ABI. SMP y DMA requieren confirmacion de revocacion antes
    de reutilizar memoria compartida.
 4. **Arranque fisico de prueba.** El primer hito es entrar en Ring 0
-   desde un medio UEFI removible y registrar una parada controlada.
+   desde el EFI separado en el volumen A: y registrar una parada controlada.
    La FAT32 dedicada junto a PERSONAL es un paso posterior.
    [Orden y evidencia de arranque](docs/FIRST-BOOT.md).
 

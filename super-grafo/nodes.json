@@ -999,10 +999,10 @@
       "anillo": "host",
       "lenguaje": "contrato",
       "que": "Ordena la prueba fisica del puente y la entrada CASM minima.",
-      "entrada": "EFI y paquete verificados, imagen removible y perfil UEFI x86-64.",
+      "entrada": "EFI y paquete verificados, ruta separada en FAT32 y perfil UEFI x86-64.",
       "salida": "Evidencia del firmware, entrada en CPL0 y parada controlada.",
-      "aceptacion": "La misma imagen pasa QEMU y arranca en el equipo; se observa la parada y Windows vuelve a arrancar.",
-      "falta": "Preparar el medio removible y obtener evidencia en el equipo."
+      "aceptacion": "El mismo EFI y paquete pasan QEMU y arrancan en el equipo; se observa la parada y Windows vuelve a arrancar.",
+      "falta": "Variante separada verificada en QEMU y copiada a A:. Falta ejecutar desde el selector UEFI y registrar evidencia fisica."
     },
     {
       "id": "qemu-runner",
