@@ -21,12 +21,14 @@ como interpretar sus propios formatos de datos.
 El ensayo externo en QEMU entrega el SBEF como modulo aparte. El
 dispositivo loader de QEMU deposita longitud y bytes en 0x02000000
 en una VM con 256 MiB. Un validador provisional x86-64 ensamblado
-con LLVM comprueba ABI 1, una region RX de hasta dos paginas, la
-entrada y los limites antes de copiar. QEMU comprueba el escritorio
-en CPL3 y el rechazo de W+X antes de copiar codigo o activar CR3.
+con LLVM comprueba ABI 1, una region RX de hasta dos paginas y una
+region opcional de solo lectura y no ejecutable de una pagina.
+Valida ambas regiones y la entrada antes de copiar. QEMU coteja
+los bytes y los permisos de las paginas y verifica el rechazo W+X
+de la segunda region antes de copiar codigo o activar CR3.
 
 Quedan pendientes el transporte desde un archivo leido por BMO-X2,
-la integracion en CASM, las regiones multiples y la asignacion y
+la integracion en CASM, las regiones de datos RW con BSS y la asignacion y
 revocacion por proceso. Este ensayo usa un cliente y dos permisos fijos.
 
 [Contrato binario](SBEF-HOST.md) | [Frontera de ejecucion](../docs/RING-BOUNDARY.md)

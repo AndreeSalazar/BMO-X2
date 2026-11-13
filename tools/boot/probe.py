@@ -167,7 +167,7 @@ def run(case):
         if doom and doom['session']:
             from desktop_session_capture import verify_external_rejection, verify_session
             if case == 'external-permissions':
-                return verify_external_rejection(command, memory)
+                return verify_external_rejection(command, memory, external_image)
             if external is not None:
                 doom['sbef_sha256'] = hashlib.sha256(external_image).hexdigest()
             return verify_session(command, memory, prefix, fixture_packet, intro_rows, doom,

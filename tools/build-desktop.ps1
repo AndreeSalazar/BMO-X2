@@ -33,6 +33,7 @@ $entrySource = Join-Path $desktop 'src/bin/desktop_probe.rs'
 $guestFlags = @()
 if ($Session) {
     $linkScript = Join-Path $PSScriptRoot 'desktop/guest.ld'
+    if ($External) { $linkScript = Join-Path $PSScriptRoot 'desktop/external.ld' }
     $elf = Join-Path $build.FullName 'desktop-session.elf'
     $image = Join-Path $build.FullName 'desktop-session.sbef'
     $entrySource = Join-Path $PSScriptRoot 'desktop/session.rs'
