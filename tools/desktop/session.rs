@@ -47,6 +47,15 @@ struct Clip {
 }
 
 impl Clip {
+    fn intersect(self, other: Self) -> Self {
+        Self {
+            left: self.left.max(other.left),
+            top: self.top.max(other.top),
+            right: self.right.min(other.right),
+            bottom: self.bottom.min(other.bottom),
+        }
+    }
+
     fn fill(self, x: u64, y: u64, w: u64, h: u64, color: u32) {
         let left = x.max(self.left);
         let top = y.max(self.top);
@@ -75,6 +84,9 @@ fn digit(clip: Clip, x: u64, y: u64, index: usize, color: u32) {
 }
 
 fn paint(clip: Clip, space: usize, focus: usize) {
+    if clip.left >= clip.right || clip.top >= clip.bottom {
+        return;
+    }
     let accent = ACCENTS[space];
     clip.fill(0, 0, 640, 400, 0x0d0e17);
     clip.fill(0, 0, 640, 44, 0x161722);
@@ -101,6 +113,52 @@ fn cursor(x: i16, y: i16) {
     fill(x as u64, y as u64, 7, 3, 0xe7efff);
 }
 
+fn move_cursor(old: (i16, i16), new: (i16, i16), space: usize, focus: usize) {
+    if old == new {
+        return;
+    }
+    let (x, y) = (new.0 as u64, new.1 as u64);
+    let (old_x, old_y) = (old.0 as u64, old.1 as u64);
+    let old = Clip {
+        left: old_x,
+        top: old_y,
+        right: old_x + 7,
+        bottom: old_y + 10,
+    };
+    // Publish the new cursor first. Restore only the old area outside its L.
+    cursor(new.0, new.1);
+    for exposed in [
+        Clip {
+            bottom: y,
+            ..VIEWPORT
+        },
+        Clip {
+            top: y + 10,
+            ..VIEWPORT
+        },
+        Clip {
+            top: y,
+            bottom: y + 10,
+            right: x,
+            ..VIEWPORT
+        },
+        Clip {
+            top: y,
+            bottom: y + 10,
+            left: x + 7,
+            ..VIEWPORT
+        },
+        Clip {
+            left: x + 3,
+            top: y + 3,
+            right: x + 7,
+            bottom: y + 10,
+        },
+    ] {
+        paint(old.intersect(exposed), space, focus);
+    }
+}
+
 fn window_at(x: i16, y: i16) -> Option<usize> {
     if (52..367).contains(&x) && (99..290).contains(&y) {
         Some(0)
@@ -119,6 +177,8 @@ extern "C" fn bmo_main() -> ! {
     let mut ctrl = false;
     let mut super_key = false;
     let (mut x, mut y) = (320i16, 200i16);
+    let mut displayed = (x, y);
+    let mut pending_motion = 0;
     let (mut flags, mut dx, mut index) = (0u8, 0u8, 0u8);
     let mut left = false;
     let pixel = (1u64 << 32) | (1u64 << 48);
@@ -161,26 +221,30 @@ extern "C" fn bmo_main() -> ! {
                         }
                     }
                     left = pressed;
-                    if (next_x, next_y, focus[space]) != (x, y, previous_focus) {
-                        let clip = if focus[space] == previous_focus {
-                            Clip {
-                                left: x as u64,
-                                top: y as u64,
-                                right: x as u64 + 7,
-                                bottom: y as u64 + 10,
-                            }
-                        } else {
-                            VIEWPORT
-                        };
-                        paint(clip, space, focus[space]);
-                        x = next_x;
-                        y = next_y;
+                    x = next_x;
+                    y = next_y;
+                    if focus[space] != previous_focus {
+                        paint(VIEWPORT, space, focus[space]);
                         cursor(x, y);
+                        displayed = (x, y);
+                        pending_motion = 0;
+                    } else {
+                        pending_motion += 1;
+                        if pending_motion == 8 {
+                            move_cursor(displayed, (x, y), space, focus[space]);
+                            displayed = (x, y);
+                            pending_motion = 0;
+                        }
                     }
                 }
                 _ => {}
             }
             continue;
+        }
+        if pending_motion != 0 {
+            move_cursor(displayed, (x, y), space, focus[space]);
+            displayed = (x, y);
+            pending_motion = 0;
         }
         if raw >= 256 {
             wait_input(100);

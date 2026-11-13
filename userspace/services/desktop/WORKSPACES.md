@@ -161,7 +161,7 @@ con `-AbiRun` apuntando al run de `bmo-x2.ps1 -Accion abi` y
 ## Sesion interactiva en QEMU
 
 El perfil de sesion con modulo externo arranca un SBEF Rust de
-2136 bytes despues de la intro. Dibuja un panel con cuatro espacios y dos ventanas de
+2784 bytes despues de la intro. Dibuja un panel con cuatro espacios y dos ventanas de
 muestra. QEMU verifica el cambio con Ctrl+Super+1-4, el foco con
 Super+2 y su restauracion al volver. Las teclas 1-4 tambien cambian de
 espacio si Windows intercepta los atajos con Super.
@@ -170,11 +170,12 @@ El raton PS/2 mueve un puntero dibujado por software. El clic
 izquierdo enfoca una ventana. QEMU verifica el movimiento, la
 limpieza de la posicion anterior y el cambio de foco. El viewport
 logico de 640 por 400 se dibuja a escala 2x en 1280 por 800.
-Al mover el puntero, Ring 3 recompone solo su rectangulo anterior
-de 7 por 10 pixeles logicos y dibuja la nueva posicion. QEMU
-comprueba cinco movimientos sin repintado completo, incluido el
-paso sobre una linea de la ventana. Los cambios de foco y espacio
-siguen repintando el cuadro.
+Ring 3 agrupa hasta ocho reportes consecutivos del raton. Dibuja
+primero el cursor nuevo y recompone solo el area anterior que queda
+expuesta. QEMU comprueba cinco movimientos y una rafaga de 48 eventos
+sin repintado completo. Los cambios de foco y espacio siguen
+repintando el cuadro. Para sincronizar la presentacion con la
+pantalla queda un buffer de composicion y una entrega por cuadro.
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1 -Profile desktop-session -Wait

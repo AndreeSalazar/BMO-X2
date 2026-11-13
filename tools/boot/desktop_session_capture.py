@@ -138,6 +138,13 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     wait_until(lambda: logical(240, 157, 0xe7efff))
     move(0, 12)
     wait_until(lambda: logical(240, 168, 0xe7efff) and logical(240, 157, 0x353c53))
+    # Send a burst without waiting for a framebuffer update between events.
+    for _ in range(24):
+        move(6, 0)
+    wait_until(lambda: logical(384, 168, 0xe7efff) and logical(240, 168, 0x171825))
+    for _ in range(24):
+        move(-6, 0)
+    wait_until(lambda: logical(240, 168, 0xe7efff) and logical(384, 168, 0x0d0e17))
     assert full_repaints() == baseline, 'Mover el cursor repinto la pantalla completa'
     for down in (True, False):
         command('input-send-event', {'events': [{'type': 'btn', 'data': {'button': 'left', 'down': down}}]})
@@ -148,6 +155,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 KeyboardVerified=True, FocusRestored=True, DesktopSession=True, IntroReplaced=True,
                 MouseVerified=True, Framebuffer=[width, height], DesktopScale=scale,
                 PointerMovesVerified=5, FullRepaintsDuringPointerMoves=0,
+                PointerBurstEvents=48,
                 WaitHalted=True, WaitTimeoutVerified=True, WaitInputVerified=True,
                 ExternalSbef=external_image is not None,
                 PayloadSHA256=hashlib.sha256(packet[24:]).hexdigest(),
