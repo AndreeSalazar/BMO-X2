@@ -1282,12 +1282,12 @@ Pendiente: Cargar imagen externa y probar WAIT con senal y plazo.
 
 Construye un cliente comun y coteja los bytes de los stubs ELF.
 
-Estado: HOST. Anillo: host. Lenguaje: Python control.
+Estado: QEMU. Anillo: host. Lenguaje: Python control.
 Entrada: Cliente C, cabecera ABI 1, compilador y vector HEX.
 Salida: SBEF para ELF o inventario de un objeto COFF MSVC.
 Depende de: HOST: del ejecutable a SBEF (verificacion), Empaquetador ELF64 a SBEF (generacion).
-Aceptacion: GCC y Clang producen SBEF ABI 1 y conservan los 28 bytes del portal; MSVC verifica declaraciones en COFF.
-Pendiente: Ejecutar y comparar los clientes en QEMU y ampliar el banco a C++ y Rust.
+Aceptacion: GCC C, Clang C/C++ y Rust verifican INVOKE, WAIT y limpieza tras fallo en QEMU. MSVC se inspecciona como COFF.
+Pendiente: Probar el mismo ABI con el cargador externo general y admitir PE32+ freestanding.
 
 ## kernel/mm/virtual/revoke/main.casm
 

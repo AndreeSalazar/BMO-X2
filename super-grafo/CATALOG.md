@@ -120,7 +120,7 @@
 | [Inspeccion PE32+](../tools/host/importers/pe.py) | host | host | Expone secciones y directorios PE que requieren adaptacion de ABI. |
 | [Supervisor Rust de Ring 3](../userspace/supervisor) | diseno | 3 | Ordena, configura y recupera servicios desde CPL3. |
 | [SBEF ABI 1 y llamadas desde CPL3](../kernel/syscalls/main.casm) | qemu | 0 | Valida SBEF embebido y ejecuta tres entradas SYSCALL. |
-| [Banco de toolchains del ABI](../tools/host/toolchains/abi.py) | host | host | Construye un cliente comun y coteja los bytes de los stubs ELF. |
+| [Banco de toolchains del ABI](../tools/host/toolchains/abi.py) | qemu | host | Construye un cliente comun y coteja los bytes de los stubs ELF. |
 | [Revocacion en caliente y diario de fallos](../kernel/mm/virtual/revoke/main.casm) | qemu | 0 | Retira una pagina, invalida la traduccion y reanuda CPL3. |
 | [Contrato minimo del cargador SBEF](../contracts/SBEF-LOADER.md) | diseno | contrato | Separa admision, plan de carga, memoria y diagnostico. |
 | [Inventario de crates de BMO-X](../heritage/RING3-CRATES.md) | host | host | Agrupa crates del padre por familia y dependencias declaradas. |

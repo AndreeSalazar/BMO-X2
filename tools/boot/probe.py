@@ -70,12 +70,16 @@ if args.doom_fixture:
     doom_external = profile == 'doom-external' or doom_engine
     desktop_fixture = (present is not None or gate is not None) and not doom_external
     image_path = ROOT / ('desktop.sbef' if desktop_fixture else 'doom.sbef')
+    toolchain_client = profile.startswith('abi-') and profile.endswith('-abi-fixture')
+    if toolchain_client:
+        image_path = ROOT / f"{profile.removesuffix('-abi-fixture')}.sbef"
     if not image_path.is_file() and present is None and gate is None:
         image_path = ROOT / 'doom-fixed.sbef'
     external_path = ROOT / 'external-loader.bin'
     external = external_path.read_bytes() if external_path.is_file() else None
     external_image = image_path.read_bytes()
     expected, doom = make_packet(reference, external_image, present, gate, external, engine=doom_engine)
+    doom['toolchain_client'] = toolchain_client
     if (ROOT / 'intro.x86').is_file():
         splash = (ROOT / 'intro.x86').read_bytes()
         expected, intro_size = prepend_intro(expected, splash)

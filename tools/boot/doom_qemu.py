@@ -26,9 +26,12 @@ def main():
     profiles.add_argument('--doom-external', action='store_true')
     profiles.add_argument('--doom-engine', action='store_true')
     profiles.add_argument('--desktop-doom', action='store_true')
+    profiles.add_argument('--toolchain-client', choices=('gcc', 'clang', 'gcc-cpp', 'clang-cpp', 'rust'))
     parser.add_argument('--wad', type=Path)
     parser.add_argument('--qemu', default='C:/Program Files/qemu/qemu-system-x86_64.exe')
     args = parser.parse_args()
+    if args.toolchain_client and (args.session_gate or args.desktop_present or args.external_loader or args.intro):
+        parser.error('El cliente ABI usa el paquete CASM embebido')
     engine = args.doom_engine or args.desktop_doom
     doom = args.doom_external or engine
     if doom and not (args.external_loader and args.session_gate):
@@ -61,6 +64,8 @@ def main():
         packet, _ = prepend_intro(packet, splash)
 
     application = 'desktop' if (present is not None or gate is not None) and not doom else 'doom'
+    if args.toolchain_client:
+        application = f'abi-{args.toolchain_client}'
     run = reference.parent / f'run-{application}-{uuid.uuid4().hex[:12]}'
     run.mkdir()
     if args.wad:
@@ -121,6 +126,9 @@ def main():
         milestone = 'GCC DoomGeneric E1M1 and keyboard in CPL3 from an external SBEF'
     if args.desktop_doom:
         milestone = 'Rust desktop CABINA launches DoomGeneric E1M1 in CPL3'
+    if args.toolchain_client:
+        milestone = f'{args.toolchain_client.upper()} client exercises the CASM ABI in CPL3'
+        report['toolchain'] = args.toolchain_client
     report.update(run=run.name, evidence='QEMU', milestone=f'Cat intro then {milestone}' if args.intro else milestone)
     (run / 'qemu-results.json').write_text(json.dumps(report, indent=2) + '\n', encoding='ascii')
     (run / 'qemu-run.json').write_text(json.dumps(dict(cpu='qemu64', ram_mib=256)) + '\n', encoding='ascii')

@@ -20,12 +20,16 @@ describe las opciones. El [ABI](../../contracts/ABI.md) define las
 peticiones a Ring 0 y el [cargador](../../contracts/SBEF-LOADER.md)
 vuelve a validar el archivo que recibe.
 
-## Proximas pruebas
+## Banco x86-64
 
-1. Ejecutar el mismo cliente ABI de GCC y Clang en Ring 3 y comparar su
-   resultado. Las huellas identifican el build de cada productor.
-2. Ampliar el banco con clientes C++ y Rust para el mismo ABI. Cada
-   perfil debe declarar inicio y runtime propios.
-3. Definir y probar un PE32+ freestanding enlazado con MSVC. Los
-   binarios Windows con DLL, TLS o requisitos de Win32 necesitan
-   contratos adicionales. HOST expone esas dependencias en `probe`.
+Con `--abi-run`, el banco construye un cliente freestanding, genera
+SBEF ABI 1 y lo ejecuta en la sonda CASM de QEMU. Se comprueban
+INVOKE, el rechazo de capacidad, WAIT y el borrado de codigo y pila
+tras un fallo controlado desde CPL3. `--language cpp` usa el mismo
+cliente fuente y `--language rust` usa rustc con el mismo portal ABI.
+Cada run guarda la huella de su SBEF y el informe de QEMU.
+
+El banco embebe una region RX en el paquete de prueba. Falta repetir
+la comparacion con el cargador externo general y un segundo proceso.
+El perfil PE32+ freestanding de MSVC queda por implementar. HOST
+expone dependencias de DLL, TLS y otros directorios en `probe`.

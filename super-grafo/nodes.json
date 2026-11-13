@@ -1979,15 +1979,15 @@
       "id": "abi-toolchains",
       "titulo": "Banco de toolchains del ABI",
       "ruta": "tools/host/toolchains/abi.py",
-      "estado": "host",
+      "estado": "qemu",
       "anillo": "host",
       "lenguaje": "Python control",
       "posicion": [10500, 4025],
       "que": "Construye un cliente comun y coteja los bytes de los stubs ELF.",
       "entrada": "Cliente C, cabecera ABI 1, compilador y vector HEX.",
       "salida": "SBEF para ELF o inventario de un objeto COFF MSVC.",
-      "aceptacion": "GCC y Clang producen SBEF ABI 1 y conservan los 28 bytes del portal; MSVC verifica declaraciones en COFF.",
-      "falta": "Ejecutar y comparar los clientes en QEMU y ampliar el banco a C++ y Rust."
+      "aceptacion": "GCC C, Clang C/C++ y Rust verifican INVOKE, WAIT y limpieza tras fallo en QEMU. MSVC se inspecciona como COFF.",
+      "falta": "Probar el mismo ABI con el cargador externo general y admitir PE32+ freestanding."
     },
     {
       "id": "hot-unmap",

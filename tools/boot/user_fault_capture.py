@@ -87,6 +87,8 @@ def user_fault_evidence(memory, snapshot, context, code, reject, *, abi_probe=Fa
                       InvokeEcho=True, InvalidCapabilityRejected=True, WaitStatus=-4)
     if doom:
         result['SbefSHA256'] = doom['sbef_sha256']
-        if not doom['desktop']:
+        if doom.get('toolchain_client'):
+            result['CommonAbiClientVerified'] = True
+        elif not doom['desktop']:
             result['DoomFixedArithmetic'] = True
     return result
