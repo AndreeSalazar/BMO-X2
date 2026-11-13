@@ -23,10 +23,18 @@ def main():
     variants.add_argument('--session-gate', type=Path)
     parser.add_argument('--external-loader', type=Path)
     parser.add_argument('--doom-external', action='store_true')
+    parser.add_argument('--wad', type=Path)
     parser.add_argument('--qemu', default='C:/Program Files/qemu/qemu-system-x86_64.exe')
     args = parser.parse_args()
     if args.doom_external and not (args.external_loader and args.session_gate):
         parser.error('DOOM externo requiere cargador y puerta de sesion')
+    if args.wad and not args.doom_external:
+        parser.error('El WAD requiere la sonda DOOM externa')
+    if args.wad:
+        with args.wad.open('rb') as stream:
+            wad = stream.read(0x1000001)
+        if not 12 <= len(wad) <= 0x1000000 or wad[:4] != b'IWAD':
+            raise ValueError('Se requiere un IWAD de hasta 16 MiB')
     reference = workspace(args.reference)
     if (reference / 'profile.txt').read_text(encoding='utf-8-sig').strip() != 'ring0-abi-probe-0.1':
         raise ValueError('Se requiere un run CASM del perfil ABI')
@@ -48,6 +56,8 @@ def main():
     application = 'desktop' if (present is not None or gate is not None) and not args.doom_external else 'doom'
     run = reference.parent / f'run-{application}-{uuid.uuid4().hex[:12]}'
     run.mkdir()
+    if args.wad:
+        (run / 'wad-module.bin').write_bytes(struct.pack('<Q', len(wad)) + wad)
     (run / 'reference.x86').write_bytes(base_packet)
     (run / f'{application}.sbef').write_bytes(sbef)
     if present is not None:

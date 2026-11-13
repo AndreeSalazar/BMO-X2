@@ -119,6 +119,9 @@ def run(case):
     shutil.copyfile(share / 'edk2-i386-vars.fd', variables)
     module = ROOT / ('sbef-rejected.bin' if case == 'external-permissions' else 'sbef-module.bin')
     staging = ['-device', f'loader,file={module},addr=0x2000000,force-raw=on'] if external is not None else []
+    wad = ROOT / 'wad-module.bin'
+    if wad.is_file():
+        staging += ['-device', f'loader,file={wad},addr=0x3000000,force-raw=on']
     process = subprocess.Popen([
         str(qemu), '-machine', 'pc', '-cpu', args.cpu, '-accel', 'tcg', '-m', f'{args.ram_mib}M', '-smp', '1',
         '-drive', f'if=pflash,format=raw,unit=0,readonly=on,file={share / "edk2-x86_64-code.fd"}',
@@ -174,7 +177,7 @@ def run(case):
                 doom['sbef_sha256'] = hashlib.sha256(external_image).hexdigest()
             if doom_external:
                 from doom_external_capture import verify_doom_external
-                return verify_doom_external(command, memory, prefix, fixture_packet, external_image)
+                return verify_doom_external(command, memory, prefix, fixture_packet, external_image, wad)
             return verify_session(command, memory, prefix, fixture_packet, intro_rows, doom,
                                   external_image if external is not None else None)
         deadline = time.monotonic() + 45

@@ -6,7 +6,7 @@ import time
 from cpu_config import register
 
 
-def verify_doom_external(command, memory, prefix, packet, image):
+def verify_doom_external(command, memory, prefix, packet, image, wad):
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
         regs = command('human-monitor-command', {'command-line': 'info registers'})
@@ -32,9 +32,15 @@ def verify_doom_external(command, memory, prefix, packet, image):
             assert image not in packet and memory(code, len(packet)-24, 'doom-code') == packet[24:]
             assert memory(context + 0x1d000, 8, 'doom-data') == struct.pack('<II', 65536, 196608)
             command('screendump', {'filename': str(prefix)+'.png', 'format': 'png'})
-            return dict(Case='normal', Passed=True, UserCPL=3, ExternalSbef=True,
+            result = dict(Case='normal', Passed=True, UserCPL=3, ExternalSbef=True,
                         DoomFixedArithmetic=True, UserDataAndBssVerified=True,
                         DisplayPermissionRejected=True, DisplayPixelsVerified=size*rows,
                         SbefSHA256=hashlib.sha256(image).hexdigest())
+            if wad.is_file():
+                staged = wad.read_bytes()
+                assert memory(0x3000000, len(staged), 'doom-wad') == staged
+                result.update(WadDirectoryEntry='E1M1', WadReadBoundsChecked=True,
+                              WadPermissionChecked=True, WadSHA256=hashlib.sha256(staged[8:]).hexdigest())
+            return result
         time.sleep(0.04)
     raise ValueError('La sonda DOOM no presento su cuadro desde CPL3')

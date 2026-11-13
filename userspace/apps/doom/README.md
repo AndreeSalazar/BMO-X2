@@ -140,6 +140,18 @@ acepta la misma operacion con la capacidad de pantalla. La prueba
 coteja los 15360 pixeles del rectangulo verde. El motor completo,
 el WAD y la lectura desde disco quedan pendientes.
 
+### Leer el directorio del WAD en Ring 3
+
+Agrega `-Wad ..\BMO-externo\doom\doom1.wad` a la sonda externa.
+El SBEF resultante mide 896 bytes. QEMU entrega el IWAD como un
+segundo modulo separado. El invitado usa una capacidad de solo
+lectura para consultar palabras de 32 bits con limites de archivo.
+La sonda comprueba el rechazo de una capacidad ajena y un offset
+fuera de rango, lee el directorio y encuentra E1M1 antes de dibujar
+el rectangulo verde. Esta prueba lee el directorio desde RAM.
+Queda leer desde el disco del invitado, cargar los datos del mapa
+y conectar el motor completo.
+
 ### Entregas pendientes
 
 | Orden | Entrega | Prueba de cierre |

@@ -6,11 +6,13 @@ param(
     [string]$Python,
     [string]$AbiRun,
     [string]$IntroRun,
-    [switch]$External
+    [switch]$External,
+    [string]$Wad
 )
 $ErrorActionPreference = 'Stop'
 if ($IntroRun -and -not $AbiRun) { throw '-IntroRun requiere -AbiRun.' }
 if ($External -and (-not $Gcc -or -not $AbiRun)) { throw '-External requiere -Gcc y -AbiRun.' }
+if ($Wad -and -not $External) { throw '-Wad requiere -External.' }
 $root = Split-Path $PSScriptRoot
 if (-not $DoomSource) {
     $DoomSource = Join-Path (Split-Path $root) 'BMO/toolchain/lang/c/expansion/doom/fuentes/doomgeneric/doomgeneric'
@@ -49,6 +51,7 @@ $flags = @('-O2','-ffreestanding','-fno-pic','-fno-pie','-fno-stack-protector',
            '-fno-unwind-tables','-fno-asynchronous-unwind-tables',"-I$headers","-I$DoomSource")
 $objects = @()
 if ($External) { $flags += '-DBMO_EXTERNAL' }
+if ($Wad) { $flags += '-DBMO_WAD' }
 foreach ($unit in @($source, $probe, $runtime, (Join-Path $PSScriptRoot 'doom/complete.S'), (Join-Path $root 'userspace/runtime/abi/portal.S'))) {
     $obj = Join-Path $out ([IO.Path]::GetFileNameWithoutExtension($unit) + '.o')
     & $cc @target @flags -c $unit -o $obj
@@ -77,15 +80,18 @@ if ($AbiRun) {
     $fixture = @()
     if ($External) {
         $objcopy = Join-Path $Llvm 'llvm-objcopy.exe'
+        $wadFlags = @()
+        if ($Wad) { $wadFlags = @('-DDOOM_WAD') }
         foreach ($unit in @('desktop/session_gate', 'boot/external_sbef')) {
             $name = Split-Path $unit -Leaf
-            & $clang --target=x86_64-unknown-none-elf -c (Join-Path $PSScriptRoot "$unit.S") -o (Join-Path $out "$name.o")
+            & $clang --target=x86_64-unknown-none-elf @wadFlags -c (Join-Path $PSScriptRoot "$unit.S") -o (Join-Path $out "$name.o")
             if ($LASTEXITCODE -ne 0) { throw "Fallo el ensamblado de $unit." }
             & $objcopy -O binary --only-section=.text (Join-Path $out "$name.o") (Join-Path $out "$name.bin")
             if ($LASTEXITCODE -ne 0) { throw "Fallo la extraccion de $unit." }
         }
         $fixture = @('--doom-external','--session-gate',(Join-Path $out 'session_gate.bin'),
                      '--external-loader',(Join-Path $out 'external_sbef.bin'))
+        if ($Wad) { $fixture += @('--wad', (Resolve-Path -LiteralPath $Wad).Path) }
     }
     & $Python -B (Join-Path $PSScriptRoot 'boot/doom_qemu.py') $AbiRun $sbef @introArguments @fixture
     if ($LASTEXITCODE -ne 0) { throw 'Fallo la ejecucion de la sonda DOOM en QEMU.' }

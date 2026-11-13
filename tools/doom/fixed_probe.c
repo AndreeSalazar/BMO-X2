@@ -29,6 +29,34 @@ static const volatile fixed_t operands[] __attribute__((section(".rodata.doom"))
 static volatile fixed_t seed = FRACUNIT * 3;
 static volatile fixed_t result;
 
+#ifdef BMO_WAD
+static unsigned long read_wad(unsigned long offset) {
+    return invoke(4, 4, offset, 0);
+}
+
+static int find_e1m1(void) {
+    if (invoke(1, 4, 0, 0) != ~0ul || read_wad(~0ul) != ~0ul
+        || read_wad(0) != 0x44415749) {
+        return 0;
+    }
+    unsigned long count = read_wad(4);
+    unsigned long directory = read_wad(8);
+    if (count == 0 || count > 65536 || directory < 12 || directory > 0x1000000) {
+        return 0;
+    }
+    if (read_wad(directory + 16 * count - 4) == ~0ul) {
+        return 0;
+    }
+    for (unsigned long i = 0; i < count; ++i) {
+        unsigned long record = directory + 16 * i;
+        if (read_wad(record + 8) == 0x314d3145 && read_wad(record + 12) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+#endif
+
 void bmo_main(void) {
     if (doom_fixed_check() || result != 0) {
         __builtin_trap();
@@ -39,6 +67,11 @@ void bmo_main(void) {
     }
     seed = product / 3;
     result = product;
+#ifdef BMO_WAD
+    if (!find_e1m1()) {
+        __builtin_trap();
+    }
+#endif
     const unsigned long rect = 24ul | 32ul << 16 | 96ul << 32 | 40ul << 48;
     if (invoke(2, 1, rect, 0xff0000) != 257
         || invoke(1, 1, rect, 0x6ee7b7) != 0) {

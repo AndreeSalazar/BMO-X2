@@ -15,6 +15,10 @@ session_gate:
     je wait_input
     test %rax, %rax
     jne denied
+#ifdef DOOM_WAD
+    cmp $4, %rsi
+    je read_wad
+#endif
     cmp $3, %rsi
     je diagnostics
     cmp $2, %rsi
@@ -242,6 +246,25 @@ diagnostics_result:
     mov %edx, %gs:0x348
     mov %eax, %gs:0x34c
     jmp finish
+#ifdef DOOM_WAD
+read_wad:
+    cmp $4, %rdi
+    jne wad_denied
+    mov $0x3000000, %ecx
+    mov (%rcx), %eax
+    cmp $12, %eax
+    jb wad_denied
+    cmp $0x1000000, %eax
+    ja wad_denied
+    sub $4, %eax
+    cmp %rax, %rdx
+    ja wad_denied
+    mov 8(%rcx,%rdx), %eax
+    jmp finish
+wad_denied:
+    mov $-1, %rax
+    jmp finish
+#endif
 empty:
     mov $256, %eax
     jmp finish

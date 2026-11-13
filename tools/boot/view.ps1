@@ -86,6 +86,10 @@ if ($actualProfile -in @('desktop-external','doom-external')) {
         throw 'Falta el modulo SBEF externo del ensayo.'
     }
     $arguments += @('-device', ('"loader,file={0},addr=0x2000000,force-raw=on"' -f $module.FullName))
+    $wad = Join-Path $runDir.FullName 'wad-module.bin'
+    if (Test-Path -LiteralPath $wad -PathType Leaf) {
+        $arguments += @('-device', ('"loader,file={0},addr=0x3000000,force-raw=on"' -f $wad))
+    }
 }
 Write-Output "Arrancando $($runDir.Name) con TCG y framebuffer VGA sin OpenGL."
 $process = Start-Process -FilePath $Qemu -ArgumentList $arguments -WindowStyle Normal -PassThru `
