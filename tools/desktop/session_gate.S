@@ -15,6 +15,12 @@ session_gate:
     je wait_input
     test %rax, %rax
     jne denied
+#ifdef DOOM_ENGINE
+    cmp $6, %rsi
+    je present_frame
+    cmp $7, %rsi
+    je serial_byte
+#endif
 #ifdef DOOM_WAD
     cmp $4, %rsi
     je read_wad
@@ -113,8 +119,10 @@ row:
 input:
     cmp $2, %rdi
     jne denied
+#ifndef DOOM_ENGINE
     cmpb $0, %gs:0x328
     je enable_mouse
+#endif
     xor %eax, %eax
     in $0x64, %al
     test $1, %al
@@ -126,6 +134,7 @@ input:
     jz finish
     or $512, %eax
     jmp finish
+#ifndef DOOM_ENGINE
 enable_mouse:
     call writable
     jc denied
@@ -153,6 +162,7 @@ poll_write:
 ready:
     clc
     ret
+#endif
 
 # One-client QEMU profile: WAIT(input, 0, relative PIT ticks).
 # Timer IRQs are enabled only around HLT. Input stays in the PS/2 FIFO.
@@ -163,8 +173,10 @@ wait_input:
     jne denied
     cmp $100, %rdx
     ja denied
+#ifndef DOOM_ENGINE
     cmpb $1, %gs:0x328
     jne denied
+#endif
     cmpb $0, %gs:0x330
     jne timer_ready
     mov %rdx, %r9
@@ -210,19 +222,23 @@ timer_ready:
     mov %gs:0x338, %r8
     add %rdx, %r8
 wait_check:
+#ifndef DOOM_ENGINE
     in $0x64, %al
     test $1, %al
     jnz event_ready
+#endif
     cmp %r8, %gs:0x338
     jae wait_timeout
     sti
     hlt
     cli
     jmp wait_check
+#ifndef DOOM_ENGINE
 event_ready:
     incl %gs:0x340
     xor %eax, %eax
     jmp finish
+#endif
 wait_timeout:
     incl %gs:0x344
     jmp empty
@@ -248,6 +264,98 @@ diagnostics_result:
     mov %edx, %gs:0x348
     mov %eax, %gs:0x34c
     jmp finish
+#ifdef DOOM_ENGINE
+serial_byte:
+    cmp $5, %rdi
+    jne denied
+    cmp $255, %rdx
+    ja denied
+    mov %edx, %r8d
+    mov $0x3fd, %edx
+    mov $65536, %ecx
+serial_ready:
+    in %dx, %al
+    test $32, %al
+    jnz serial_out
+    loop serial_ready
+    jmp denied
+serial_out:
+    mov $0x3f8, %edx
+    mov %r8d, %eax
+    out %al, %dx
+    xor %eax, %eax
+    jmp finish
+
+present_frame:
+    cmp $1, %rdi
+    jne denied
+    cmp $0x40400000, %rdx
+    jb denied
+    cmp $(0x40e00000-320*200*4), %rdx
+    ja denied
+    test $3, %dl
+    jnz denied
+    cmpq $0, 0x10(%rbp)
+    je denied
+    mov 0x20(%rbp), %edi
+    mov 0x24(%rbp), %ecx
+    mov 0x28(%rbp), %r8d
+    cmp $640, %edi
+    jb denied
+    cmp $400, %ecx
+    jb denied
+    cmp $4096, %ecx
+    ja denied
+    cmp %edi, %r8d
+    jb denied
+    cmp $8192, %r8d
+    ja denied
+    cmpl $1, 0x2c(%rbp)
+    ja denied
+    sub $0x3c000000, %rdx
+    mov %rdx, %rsi
+    sub $640, %edi
+    sub $400, %ecx
+    shr %edi
+    shr %ecx
+    imul %r8, %rcx
+    add %rdi, %rcx
+    mov 0x10(%rbp), %r9
+    lea (%r9,%rcx,4), %r9
+    shl $2, %r8
+    mov %cr3, %r11
+    mov %gs:0x318, %rax
+    mov %rax, %cr3
+    cld
+    mov $200, %edx
+engine_row:
+    mov %r9, %rdi
+    mov $320, %ecx
+engine_pixel:
+    lodsl
+    cmpl $1, 0x2c(%rbp)
+    je engine_color
+    bswap %eax
+    shr $8, %eax
+engine_color:
+    stosl
+    stosl
+    loop engine_pixel
+    mov %rsi, %r10
+    mov %r9, %rsi
+    add %r8, %r9
+    mov %r9, %rdi
+    mov $640, %ecx
+    rep movsl
+    mov %r10, %rsi
+    add %r8, %r9
+    dec %edx
+    jnz engine_row
+    mov %r11, %cr3
+    incl %gs:0x354
+    xor %eax, %eax
+    jmp finish
+#endif
 #ifdef DOOM_WAD
 read_wad:
     call wad_header

@@ -13,7 +13,7 @@ from sbef_probe_cases import SBEF_OFFSET
 EXTERNAL_ADDRESS = 0x2000000
 
 
-def make_packet(reference, image, desktop_present=None, session_gate=None, external=None):
+def make_packet(reference, image, desktop_present=None, session_gate=None, external=None, *, engine=False):
     if external is not None:
         if session_gate is None:
             raise ValueError('El cargador externo requiere el perfil de sesion')
@@ -76,7 +76,7 @@ def make_packet(reference, image, desktop_present=None, session_gate=None, exter
         stack = 24 + 754
         if packet[stack:stack+5] != bytes.fromhex('6800200040'):
             raise ValueError('Cambio la pila de usuario')
-        packet[stack:stack+5] = bytes.fromhex('6800300040')
+        packet[stack:stack+5] = bytes.fromhex('6800000041' if engine else '6800300040')
         at = 24 + 260
         if packet[at:at+7] != bytes.fromhex('488d3524030000'):
             raise ValueError('Cambio la entrada del validador SBEF')

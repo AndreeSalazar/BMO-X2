@@ -21,7 +21,8 @@ static int equal(const char *left, const char *right) {
 }
 
 FILE *fopen(const char *name, const char *mode) {
-    if (wad_file.open || !equal(name, "doom1.wad") || !equal(mode, "rb")) {
+    if (wad_file.open || (!equal(name, "doom1.wad") && !equal(name, "./doom1.wad")) ||
+            (!equal(mode, "rb") && !equal(mode, "r"))) {
         return NULL;
     }
     unsigned long length = doom_invoke(4, 5, 0, 0);

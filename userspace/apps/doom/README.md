@@ -154,7 +154,7 @@ rectangulo verde confirma que termino la sonda. El adaptador de
 archivos tambien pasa en CPL3: abre el IWAD en solo lectura,
 comprueba cabecera y posicion, busca desde el final, detecta EOF
 y rechaza una posicion fuera del archivo. Queda leer desde el
-disco del invitado y conectar el motor completo.
+disco del invitado.
 
 ### Compilar el motor con GCC
 
@@ -162,20 +162,34 @@ disco del invitado y conectar el motor completo.
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\build-doom-engine.ps1
 ```
 
-El script usa las 80 unidades del Makefile de DoomGeneric,
-excluye el backend Xlib y enlaza el adaptador del WAD en
-`build/doom-engine/doom-engine.o`. Las cabeceras del perfil
-declaran las interfaces C. El inventario de simbolos sin resolver
-queda en `build/doom-engine/runtime-imports.txt`.
+El script compila 80 unidades de DoomGeneric con GCC 15.2. El objeto
+intermedio y su inventario de importaciones quedan en `build/doom-engine/`.
+El enlace estatico resuelve las 45 importaciones con el runtime C y los
+seis puntos de plataforma DG. HOST convierte el ELF64 a `doom-engine.sbef`
+con tres regiones RX, R/NX y RW/NX.
 
-Con GCC 15.2 se midieron 252146 bytes de codigo y constantes,
-80248 de datos inicializados y 271384 de BSS. Quedan 45 simbolos
-por resolver, incluidos el asignador, funciones de libc y los
-seis puntos DG de plataforma. El objeto ELF64 es relocatable y
-todavia requiere el enlace final para poder empaquetarse en SBEF.
-El motor pide ademas una arena de 6 MiB y un framebuffer
-de 640 por 400 a 32 bits (1024000 bytes). El cargador del ensayo
-debe pasar de paginas fijas a rangos del tamano de la imagen.
+### Jugar E1M1 en QEMU
+
+Desde BMO-X2, pasa las rutas de los runs CASM generados por las acciones
+`abi` y `gato`, y el IWAD local. La intro corta del gato deja sitio al
+cargador dentro del paquete de 4096 bytes.
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\build-doom-engine.ps1 -AbiRun $abiRun -IntroRun $introRun -Wad ..\BMO-externo\doom\doom1.wad
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1 -Profile doom-engine
+```
+
+E1M1 empieza directamente. Usa flechas para moverte, Ctrl para disparar,
+Espacio para abrir puertas y Esc para el menu. El framebuffer de
+320 x 200 (256000 bytes) se presenta por CPU en un rectangulo de 640 x 400.
+El perfil reserva 16 MiB fisicos para imagen y pila dentro de una VM de
+256 MiB, con una arena C de 8 MiB y una zona DOOM de 6 MiB dentro de ella.
+QEMU entrega el IWAD aparte como datos de solo lectura.
+
+La comprobacion guarda capturas de E1M1, menu y movimiento. Lee la tabla
+de paginas activa y exige el rechazo de W+X en el offset 116 antes de
+copiar codigo o cambiar CR3. El cargador y las operaciones extra de
+presentacion, teclado y diagnostico pertenecen al ensayo QEMU.
 
 ### Entregas pendientes
 
@@ -183,8 +197,7 @@ debe pasar de paginas fijas a rangos del tamano de la imagen.
 |---|---|---|
 | 1 | Ring 0 CASM carga SBEF independiente del paquete de arranque. | El mismo kernel ejecuta dos SBEF distintos con regiones RX, R y RW/NX, pila, BSS a cero y salida ordenada. |
 | 2 | Ring 0 concede presentacion por bloques, entrada enfocada, reloj monotono y lectura de un archivo. | Un cliente CPL3 presenta un cuadro por CPU, recibe teclas y deltas del raton, y lee bytes de un WAD. |
-| 3 | El adaptador C implementa `DG_Init`, `DG_DrawFrame`, `DG_GetKey`, `DG_GetTicksMs`, `DG_SleepMs` y `DG_SetWindowTitle`, con libc minima y arena de memoria en Ring 3. | GCC enlaza el motor completo en ELF64 estatico y HOST admite el SBEF. |
-| 4 | El lanzador inicia DOOM con una superficie propia y `doom1.wad` como datos. | QEMU alcanza E1M1 y comprueba un cuadro que cambia al enviar una tecla. |
+| 3 | Completar la integracion del lanzador y el almacenamiento. | DIRECTOR presenta DOOM en su propia ventana y el juego lee el IWAD desde el disco invitado y guarda partidas. |
 | 5 | La sesion Rust integra foco, captura relativa del puntero, configuracion y audio. | La ventana pierde y recupera la captura sin teclas ni botones pegados. Efectos y musica tienen volumen independiente. |
 
 El WAD local de BMO-externo queda separado del ejecutable. El raton de

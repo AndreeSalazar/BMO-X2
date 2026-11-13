@@ -2058,7 +2058,21 @@
       "entrada": "m_fixed.c fijado, toolchain x86-64 ELF y portal ABI 1.",
       "salida": "Tabla ELF, doom-fixed.sbef e informe QEMU de ejecucion CPL3.",
       "aceptacion": "QEMU comprueba tres cuadros HD y despues el SBEF de GCC, tres syscalls y borrado.",
-      "falta": "Motor de 80 unidades compilado por GCC. Faltan resolver 45 simbolos, mapear su memoria y probar el primer cuadro."
+      "falta": "Generalizar el cargador externo CASM fuera de las sondas."
+    },
+    {
+      "id": "doom-engine",
+      "titulo": "DoomGeneric E1M1 en Ring 3",
+      "ruta": "tools/build-doom-engine.ps1",
+      "estado": "qemu",
+      "anillo": "host",
+      "lenguaje": "PowerShell y C",
+      "posicion": [11500, 4500],
+      "que": "Enlaza DoomGeneric con el runtime C y presenta el juego por CPU.",
+      "entrada": "80 unidades GCC, ABI 1 experimental e IWAD local de solo lectura.",
+      "salida": "ELF64 estatico, doom-engine.sbef y capturas de E1M1 en QEMU.",
+      "aceptacion": "CPL3, mapa RX/R/RW con NX, menu y movimiento por teclado, y rechazo externo de W+X.",
+      "falta": "Ventana de DIRECTOR, lectura de disco invitado, guardado, audio y puntero relativo."
     },
     {
       "id": "audio-mixer",
@@ -3237,6 +3251,16 @@
     },
     {
       "de": "doom-fixed-probe",
+      "a": "sbef-host-pack",
+      "clase": "generacion"
+    },
+    {
+      "de": "doom-engine",
+      "a": "doom-fixed-probe",
+      "clase": "verificacion"
+    },
+    {
+      "de": "doom-engine",
       "a": "sbef-host-pack",
       "clase": "generacion"
     },

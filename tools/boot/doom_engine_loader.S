@@ -1,0 +1,139 @@
+.text
+# Private 256 MiB QEMU profile. Validate the complete module before mapping.
+.globl doom_engine_loader
+doom_engine_loader:
+    cld
+    mov $0x2000000, %esi
+    mov (%rsi), %rdx
+    add $8, %rsi
+    cmp $128, %rdx
+    jb reject
+    cmp $0x100000, %rdx
+    ja reject
+    movabs $0x0001000146454253, %rax
+    cmp %rax, (%rsi)
+    jne reject
+    cmpl $0x3003e, 8(%rsi)
+    jne reject
+    cmp %edx, 12(%rsi)
+    jne reject
+    cmpq $0, 24(%rsi)
+    jne reject
+    mov 16(%rsi), %r12
+    mov %r12, %rax
+    sub $0x40000000, %rax
+    mov 44(%rsi), %ecx
+    cmp %rcx, %rax
+    jae reject
+    lea 32(%rsi), %rdi
+    mov $128, %ecx
+    mov $0x40000000, %r8d
+check_region:
+    cmp %r8, (%rdi)
+    jne reject
+    cmp %ecx, 8(%rdi)
+    jne reject
+    cmpq $0, 24(%rdi)
+    jne reject
+    mov $0x200000, %r9d
+    mov $5, %eax
+    cmp $0x40000000, %r8d
+    je check_flags
+    mov $4, %eax
+    cmp $0x40200000, %r8d
+    je check_flags
+    mov $6, %eax
+    mov $0xa00000, %r9d
+check_flags:
+    cmp %eax, 20(%rdi)
+    jne reject_permissions
+    mov 16(%rdi), %eax
+    test %eax, %eax
+    jz reject
+    cmp %r9d, %eax
+    ja reject
+    mov 12(%rdi), %r9d
+    cmp %eax, %r9d
+    ja reject
+    add %r9d, %ecx
+    cmp %edx, %ecx
+    ja reject
+    add $32, %rdi
+    add $0x200000, %r8d
+    cmp $0x40600000, %r8d
+    jne check_region
+    cmp %edx, %ecx
+    jne reject
+
+    # Check the map geometry and require one conventional descriptor
+    # covering the entire private backing range.
+    lea 0x1000(%rbp), %rdi
+    mov 0x50(%rbp), %rcx
+    mov 0x60(%rbp), %r8
+    cmp $40, %r8
+    jb reject
+    cmp $256, %r8
+    ja reject
+    cmp $65536, %rcx
+    ja reject
+find_range:
+    cmp %r8, %rcx
+    jb reject
+    cmpl $7, (%rdi)
+    jne next_descriptor
+    mov 8(%rdi), %rax
+    cmp $0x4000000, %rax
+    ja next_descriptor
+    mov $0x5000000, %r9d
+    sub %rax, %r9
+    add $4095, %r9
+    shr $12, %r9
+    cmp %r9, 24(%rdi)
+    jae copy_image
+next_descriptor:
+    add %r8, %rdi
+    sub %r8, %rcx
+    jmp find_range
+
+copy_image:
+    mov $0x4000000, %edi
+    xor %eax, %eax
+    mov $0x200000, %ecx
+    rep stosq
+    lea 32(%rsi), %r8
+    mov %rsi, %r9
+    mov $0x4000000, %edx
+copy_region:
+    mov 8(%r8), %esi
+    add %r9, %rsi
+    mov %edx, %edi
+    mov 12(%r8), %ecx
+    rep movsb
+    add $32, %r8
+    add $0x200000, %edx
+    cmp $0x4600000, %edx
+    jne copy_region
+
+    lea 0x3000(%r11), %rdi
+    mov $0x4000085, %eax
+    stosq
+    mov $0x4200085, %eax
+    bts $63, %rax
+    stosq
+    or $2, %al
+    mov $6, %ecx
+map_writable:
+    add $0x200000, %rax
+    stosq
+    loop map_writable
+    jmp exit
+reject_permissions:
+    sub %rsi, %rdi
+    add $20, %edi
+    mov %edi, 0x350(%r10)
+reject:
+    xor %r12d, %r12d
+    mov %rbp, %rdi
+    hlt
+exit:
+    # The packet builder appends the jump to the CASM GDT setup.

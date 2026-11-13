@@ -2,7 +2,11 @@
 param(
     [string]$DoomSource,
     [string]$Gcc,
-    [string]$Llvm = (Join-Path $env:ProgramFiles 'LLVM/bin')
+    [string]$Llvm = (Join-Path $env:ProgramFiles 'LLVM/bin'),
+    [string]$Python,
+    [string]$AbiRun,
+    [string]$IntroRun,
+    [string]$Wad
 )
 
 $ErrorActionPreference = 'Stop'
@@ -21,7 +25,8 @@ $units = @($manifest -split '\s+' | Where-Object { $_ -match '^[a-z0-9_]+\.o$' -
 if ($units.Count -eq 0) { throw 'No se encontro la lista de objetos DoomGeneric.' }
 $flags = @('-m64','-Os','-ffreestanding','-fno-pic','-fno-pie','-fno-stack-protector',
            '-fno-unwind-tables','-fno-asynchronous-unwind-tables','-Werror=implicit-function-declaration',
-           '-DNORMALUNIX', "-I$headers", "-I$shims")
+           '-DNORMALUNIX', '-DDOOMGENERIC_RESX=320', '-DDOOMGENERIC_RESY=200',
+           "-I$headers", "-I$shims", "-I$DoomSource")
 $objects = foreach ($unit in $units) {
     $object = Join-Path $out $unit
     $source = Join-Path $DoomSource ([IO.Path]::ChangeExtension($unit, 'c'))
@@ -43,3 +48,35 @@ $pending | Set-Content -LiteralPath (Join-Path $out 'runtime-imports.txt') -Enco
 if ($LASTEXITCODE -ne 0) { throw 'Fallo la medicion del motor.' }
 Write-Output "Motor ELF64 relocatable: $($units.Count) unidades. Dependencias: $($pending.Count)."
 Write-Output "Inventario: $(Join-Path $out 'runtime-imports.txt')"
+if (-not $Python) {
+    $Python = Join-Path $env:USERPROFILE '.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe'
+}
+$platform = foreach ($unit in @('engine_memory','engine_format','engine_runtime','engine_platform')) {
+    $object = Join-Path $out "$unit.o"
+    & $Gcc @flags -mstackrealign -c (Join-Path $PSScriptRoot "doom/$unit.c") -o $object
+    if ($LASTEXITCODE -ne 0) { throw "Fallo GCC en $unit." }
+    $object
+}
+$elf = Join-Path $out 'doom-engine.elf'
+$sbef = Join-Path $out 'doom-engine.sbef'
+& (Join-Path $Llvm 'ld.lld.exe') -static -T (Join-Path $PSScriptRoot 'doom/engine.ld') $engine @platform -o $elf
+if ($LASTEXITCODE -ne 0) { throw 'Fallo el enlace final del motor.' }
+& $Python -B (Join-Path $PSScriptRoot 'sbef.py') pack $elf $sbef --abi 1
+if ($LASTEXITCODE -ne 0) { throw 'Fallo la admision HOST del motor.' }
+if ($AbiRun) {
+    if (-not $Wad) { throw '-AbiRun requiere -Wad.' }
+    foreach ($unit in @('desktop/session_gate', 'boot/doom_engine_loader')) {
+        $name = Split-Path $unit -Leaf
+        $object = Join-Path $out "$name.o"
+        & (Join-Path $Llvm 'clang.exe') --target=x86_64-unknown-none-elf -DDOOM_WAD -DDOOM_ENGINE -c (Join-Path $PSScriptRoot "$unit.S") -o $object
+        if ($LASTEXITCODE -ne 0) { throw "Fallo el ensamblado de $unit." }
+        & (Join-Path $Llvm 'llvm-objcopy.exe') -O binary --only-section=.text $object (Join-Path $out "$name.bin")
+        if ($LASTEXITCODE -ne 0) { throw "Fallo la extraccion de $unit." }
+    }
+    $intro = @()
+    if ($IntroRun) { $intro = @('--intro', $IntroRun) }
+    $fixture = @('--doom-engine','--session-gate',(Join-Path $out 'session_gate.bin'),
+                 '--external-loader',(Join-Path $out 'doom_engine_loader.bin'),'--wad',$Wad)
+    & $Python -B (Join-Path $PSScriptRoot 'boot/doom_qemu.py') $AbiRun $sbef @intro @fixture
+    if ($LASTEXITCODE -ne 0) { throw 'Fallo el arranque del motor en QEMU.' }
+}

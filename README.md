@@ -96,9 +96,9 @@ de los cuatro espacios usando el compositor Rust.
 [Reglas de Ring 3](userspace/POLICY.md) |
 [Frontera de ejecucion](docs/RING-BOUNDARY.md)
 
-La [sonda DOOM](userspace/apps/doom/README.md) compila aritmetica original
-con GCC, empaqueta el ELF64 como SBEF ABI 1 y verifica su ejecucion
-en CPL3 con QEMU.
+El [ensayo DOOM](userspace/apps/doom/README.md) compila DoomGeneric con GCC,
+empaqueta su ELF64 como SBEF ABI 1 y arranca E1M1 en CPL3 tras la intro
+del gato. QEMU comprueba el menu y el desplazamiento por teclado.
 El [mezclador de audio Rust](userspace/services/audio/AUDIO.md) prueba
 PCM, volumen y medicion en HOST. La salida virtual y USB quedan pendientes.
 

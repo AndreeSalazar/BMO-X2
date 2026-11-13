@@ -22,13 +22,16 @@ def main():
     variants.add_argument('--desktop-present', type=Path)
     variants.add_argument('--session-gate', type=Path)
     parser.add_argument('--external-loader', type=Path)
-    parser.add_argument('--doom-external', action='store_true')
+    profiles = parser.add_mutually_exclusive_group()
+    profiles.add_argument('--doom-external', action='store_true')
+    profiles.add_argument('--doom-engine', action='store_true')
     parser.add_argument('--wad', type=Path)
     parser.add_argument('--qemu', default='C:/Program Files/qemu/qemu-system-x86_64.exe')
     args = parser.parse_args()
-    if args.doom_external and not (args.external_loader and args.session_gate):
+    doom = args.doom_external or args.doom_engine
+    if doom and not (args.external_loader and args.session_gate):
         parser.error('DOOM externo requiere cargador y puerta de sesion')
-    if args.wad and not args.doom_external:
+    if args.wad and not doom:
         parser.error('El WAD requiere la sonda DOOM externa')
     if args.wad:
         with args.wad.open('rb') as stream:
@@ -44,7 +47,7 @@ def main():
     present = args.desktop_present.read_bytes() if args.desktop_present else None
     gate = args.session_gate.read_bytes() if args.session_gate else None
     external = args.external_loader.read_bytes() if args.external_loader else None
-    packet, _ = make_packet(base_packet, sbef, present, gate, external)
+    packet, _ = make_packet(base_packet, sbef, present, gate, external, engine=args.doom_engine)
     if args.intro:
         intro = workspace(args.intro)
         if (intro / 'profile.txt').read_text(encoding='utf-8-sig').strip() not in ('ring0-splash-hd-0.1', 'ring0-splash-0.1'):
@@ -53,7 +56,7 @@ def main():
         splash = (intro / 'INICIO.X86').read_bytes()
         packet, _ = prepend_intro(packet, splash)
 
-    application = 'desktop' if (present is not None or gate is not None) and not args.doom_external else 'doom'
+    application = 'desktop' if (present is not None or gate is not None) and not doom else 'doom'
     run = reference.parent / f'run-{application}-{uuid.uuid4().hex[:12]}'
     run.mkdir()
     if args.wad:
@@ -79,6 +82,8 @@ def main():
     profile = 'desktop-external' if external is not None else 'desktop-session' if gate is not None else f'{application}-abi-fixture'
     if args.doom_external:
         profile = 'doom-external'
+    if args.doom_engine:
+        profile = 'doom-engine'
     (run / 'profile.txt').write_text(f'{profile}\n', encoding='ascii')
     bridge = ROOT / 'kernel/boot/bridge'
     efi = run / 'build/Puente_Metal/EFI/BOOT/BOOTX64.EFI'
@@ -97,7 +102,7 @@ def main():
     extra = ['--casos', 'normal', 'external-permissions'] if external is not None else []
     subprocess.run([sys.executable, '-B', str(scripts / 'probe.py'), '--workspace', str(run),
                     '--qemu', qemu, '--halt', '--abi-probe', '--doom-fixture', *extra],
-                   check=True, cwd=run, timeout=70)
+                   check=True, cwd=run, timeout=100)
     report = json.loads((run / 'build/puente-test-results.json').read_text(encoding='utf-8'))
     milestone = 'Rust desktop composition in CPL3' if present is not None else 'DoomGeneric fixed arithmetic in CPL3'
     if gate is not None:
@@ -106,6 +111,8 @@ def main():
         milestone = 'External SBEF staged by QEMU and admitted in Ring 0'
     if args.doom_external:
         milestone = 'GCC DoomGeneric arithmetic and drawing from an external SBEF'
+    if args.doom_engine:
+        milestone = 'GCC DoomGeneric E1M1 and keyboard in CPL3 from an external SBEF'
     report.update(run=run.name, evidence='QEMU', milestone=f'Cat intro then {milestone}' if args.intro else milestone)
     (run / 'qemu-results.json').write_text(json.dumps(report, indent=2) + '\n', encoding='ascii')
     (run / 'qemu-run.json').write_text(json.dumps(dict(cpu='qemu64', ram_mib=256)) + '\n', encoding='ascii')
