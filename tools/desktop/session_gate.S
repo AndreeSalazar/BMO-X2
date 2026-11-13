@@ -18,6 +18,8 @@ session_gate:
 #ifdef DOOM_WAD
     cmp $4, %rsi
     je read_wad
+    cmp $5, %rsi
+    je wad_length
 #endif
     cmp $3, %rsi
     je diagnostics
@@ -248,19 +250,27 @@ diagnostics_result:
     jmp finish
 #ifdef DOOM_WAD
 read_wad:
-    cmp $4, %rdi
-    jne wad_denied
-    mov $0x3000000, %ecx
-    mov (%rcx), %eax
-    cmp $12, %eax
-    jb wad_denied
-    cmp $0x1000000, %eax
-    ja wad_denied
+    call wad_header
     sub $4, %eax
     cmp %rax, %rdx
     ja wad_denied
     mov 8(%rcx,%rdx), %eax
     jmp finish
+wad_length:
+    call wad_header
+    jmp finish
+wad_header:
+    cmp $4, %rdi
+    jne wad_header_denied
+    mov $0x3000000, %ecx
+    mov (%rcx), %eax
+    cmp $12, %eax
+    jb wad_header_denied
+    cmp $0x1000000, %eax
+    ja wad_header_denied
+    ret
+wad_header_denied:
+    pop %rcx
 wad_denied:
     mov $-1, %rax
     jmp finish

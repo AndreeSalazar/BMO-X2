@@ -143,15 +143,39 @@ el WAD y la lectura desde disco quedan pendientes.
 ### Leer el directorio del WAD en Ring 3
 
 Agrega `-Wad ..\BMO-externo\doom\doom1.wad` a la sonda externa.
-El SBEF resultante mide 2000 bytes. QEMU entrega el IWAD como un
+El SBEF resultante mide 3364 bytes. QEMU entrega el IWAD como un
 segundo modulo separado. El invitado usa una capacidad de solo
 lectura para consultar palabras de 32 bits con limites de archivo.
 La sonda comprueba el rechazo de una capacidad ajena y un offset
 fuera de rango, localiza E1M1 y lee VERTEXES y LINEDEFS. Ring 3
 proyecta el mapa y rasteriza las lineas por CPU. QEMU coteja el
 framebuffer con una referencia calculada desde el IWAD. El
-rectangulo verde confirma que termino la sonda. Queda leer desde
-el disco del invitado y conectar el motor completo.
+rectangulo verde confirma que termino la sonda. El adaptador de
+archivos tambien pasa en CPL3: abre el IWAD en solo lectura,
+comprueba cabecera y posicion, busca desde el final, detecta EOF
+y rechaza una posicion fuera del archivo. Queda leer desde el
+disco del invitado y conectar el motor completo.
+
+### Compilar el motor con GCC
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\build-doom-engine.ps1
+```
+
+El script usa las 80 unidades del Makefile de DoomGeneric,
+excluye el backend Xlib y enlaza el adaptador del WAD en
+`build/doom-engine/doom-engine.o`. Las cabeceras del perfil
+declaran las interfaces C. El inventario de simbolos sin resolver
+queda en `build/doom-engine/runtime-imports.txt`.
+
+Con GCC 15.2 se midieron 252146 bytes de codigo y constantes,
+80248 de datos inicializados y 271384 de BSS. Quedan 45 simbolos
+por resolver, incluidos el asignador, funciones de libc y los
+seis puntos DG de plataforma. El objeto ELF64 es relocatable y
+todavia requiere el enlace final para poder empaquetarse en SBEF.
+El motor pide ademas una arena de 6 MiB y un framebuffer
+de 640 por 400 a 32 bits (1024000 bytes). El cargador del ensayo
+debe pasar de paginas fijas a rangos del tamano de la imagen.
 
 ### Entregas pendientes
 

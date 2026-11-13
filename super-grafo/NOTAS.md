@@ -1342,7 +1342,7 @@ Entrada: m_fixed.c fijado, toolchain x86-64 ELF y portal ABI 1.
 Salida: Tabla ELF, doom-fixed.sbef e informe QEMU de ejecucion CPL3.
 Depende de: Contrato minimo del cargador SBEF (plan), Empaquetador ELF64 a SBEF (generacion).
 Aceptacion: QEMU comprueba tres cuadros HD y despues el SBEF de GCC, tres syscalls y borrado.
-Pendiente: Tras el plano E1M1 en QEMU, faltan lectura desde disco, presentacion por bloques, entrada, reloj y motor completo.
+Pendiente: Motor de 80 unidades compilado por GCC. Faltan resolver 45 simbolos, mapear su memoria y probar el primer cuadro.
 
 ## userspace/services/audio
 

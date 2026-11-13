@@ -12,6 +12,7 @@ SECTIONS {
     .rodata : { *(.rodata .rodata.*) } :rodata
     . = 0x40004000;
     .data : { *(.data .data.*) } :data
+    .bss.probe : { *(.bss.doom_result) } :data
     .bss : { *(.bss .bss.*) *(COMMON) } :data
     .unexpected : { *(.eh_frame*) } :NONE
     ASSERT(SIZEOF(.text) <= 8192, "External session text exceeds two pages")

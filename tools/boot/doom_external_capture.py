@@ -85,6 +85,7 @@ def verify_doom_external(command, memory, prefix, packet, image, wad):
                     start = y*pitch*4
                     assert raw[start:start+len(expected)] == expected, f'Plano E1M1 distinto en fila {y}'
                 result.update(WadDirectoryEntry='E1M1', WadReadBoundsChecked=True,
+                              WadStdioVerified=True,
                               WadPermissionChecked=True, WadSHA256=hashlib.sha256(staged[8:]).hexdigest(),
                               MapVertices=vertices, MapLines=lines, MapPixelsVerified=len(pixels)-96*40)
             return result

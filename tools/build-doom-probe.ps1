@@ -51,8 +51,12 @@ $flags = @('-O2','-ffreestanding','-fno-pic','-fno-pie','-fno-stack-protector',
            '-fno-unwind-tables','-fno-asynchronous-unwind-tables',"-I$headers","-I$DoomSource")
 $objects = @()
 if ($External) { $flags += '-DBMO_EXTERNAL' }
-if ($Wad) { $flags += '-DBMO_WAD' }
-foreach ($unit in @($source, $probe, $runtime, (Join-Path $PSScriptRoot 'doom/complete.S'), (Join-Path $root 'userspace/runtime/abi/portal.S'))) {
+$units = @($source, $probe, $runtime, (Join-Path $PSScriptRoot 'doom/complete.S'), (Join-Path $root 'userspace/runtime/abi/portal.S'))
+if ($Wad) {
+    $flags += @('-DBMO_WAD', "-I$(Join-Path $PSScriptRoot 'doom/engine_include')")
+    $units += Join-Path $PSScriptRoot 'doom/wad_stdio.c'
+}
+foreach ($unit in $units) {
     $obj = Join-Path $out ([IO.Path]::GetFileNameWithoutExtension($unit) + '.o')
     & $cc @target @flags -c $unit -o $obj
     if ($LASTEXITCODE -ne 0) { throw "Fallo el objeto ELF64 de $unit. Para -Gcc usa un GCC con destino x86-64 ELF." }
