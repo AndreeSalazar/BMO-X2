@@ -16,7 +16,17 @@ legible cuando exista una interfaz de consulta con capacidad.
 
 ELF, PE, crates, simbolos, importaciones y dependencias se resuelven
 en HOST o en herramientas de usuario. Los servicios de Ring 3 deciden
-como interpretar sus propios formatos de datos. El cargador CASM de
-SBEF externo sigue pendiente. El ensayo actual admite un SBEF embebido.
+como interpretar sus propios formatos de datos.
+
+El ensayo externo en QEMU entrega el SBEF como modulo aparte. El
+dispositivo loader de QEMU deposita longitud y bytes en 0x02000000
+en una VM con 256 MiB. Un validador provisional x86-64 ensamblado
+con LLVM comprueba ABI 1, una region RX de hasta una pagina, la
+entrada y los limites antes de copiar. QEMU comprueba el escritorio
+en CPL3 y el rechazo de W+X antes de copiar codigo o activar CR3.
+
+Quedan pendientes el transporte desde un archivo leido por BMO-X2,
+la integracion en CASM, las regiones multiples y la asignacion y
+revocacion por proceso. Este ensayo usa un cliente y dos permisos fijos.
 
 [Contrato binario](SBEF-HOST.md) | [Frontera de ejecucion](../docs/RING-BOUNDARY.md)

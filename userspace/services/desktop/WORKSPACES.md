@@ -193,3 +193,15 @@ verificacion usan VGA emulada, con renderizado por CPU. La entrada
 PS/2 se consulta por sondeo. El cargador externo, la entrada por
 eventos, la integracion con el compositor completo y la telemetria
 siguen pendientes.
+
+### SBEF separado en QEMU
+
+Agrega `-External` al build de sesion. QEMU carga el SBEF como modulo
+separado en RAM. El paquete con intro ocupa 2280 bytes y conserva la
+misma sesion. El validador de Ring 0 admite una region RX y QEMU
+comprueba un rechazo W+X. La lectura del archivo desde el disco del
+invitado sigue pendiente.
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1 -Profile desktop-external -Wait
+```

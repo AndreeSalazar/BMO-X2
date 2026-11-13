@@ -10,7 +10,16 @@ from sbef_host.format import inspect
 from sbef_probe_cases import SBEF_OFFSET
 
 
-def make_packet(reference, image, desktop_present=None, session_gate=None):
+EXTERNAL_ADDRESS = 0x2000000
+
+
+def make_packet(reference, image, desktop_present=None, session_gate=None, external=None):
+    if external is not None:
+        if session_gate is None:
+            raise ValueError('El cargador externo requiere el perfil de sesion')
+        # The guest validates the independent file. Use only the original
+        # frozen fixture to construct the kernel packet.
+        image = reference[SBEF_OFFSET:]
     report = inspect(image)
     regions = report['Regions']
     if report['AbiVersion'] != 1 or len(regions) != 1:
@@ -29,7 +38,7 @@ def make_packet(reference, image, desktop_present=None, session_gate=None):
     if session_gate is None and (marker < 0 or payload.count(completion) != 1):
         raise ValueError('Falta el terminal de comprobacion DOOM')
     fault_rip = 0x40000000 + marker + len(completion) - 4
-    packet = bytearray(reference[:SBEF_OFFSET] + image)
+    packet = bytearray(reference[:SBEF_OFFSET] + (image if external is None else b''))
     for offset, old, new in [
         (302, 'a8000000', struct.pack('<I', len(image))),
         (316, '00000040', struct.pack('<I', entry)),
@@ -63,6 +72,17 @@ def make_packet(reference, image, desktop_present=None, session_gate=None):
         packet[at:at+5] = b'\xe9' + struct.pack('<i', len(packet) - at - 5)
         packet.extend(bytes.fromhex('4d89aa180300004989aa20030000') + original)
         packet.extend(b'\xe9' + struct.pack('<i', at + 5 - len(packet) - 5))
+    if external is not None:
+        at = 24 + 260
+        if packet[at:at+7] != bytes.fromhex('488d3524030000'):
+            raise ValueError('Cambio la entrada del validador SBEF')
+        packet[at:at+7] = b'\xe9' + struct.pack('<i', len(packet) - at - 5) + b'\x90\x90'
+        at = 24 + 763
+        if packet[at:at+5] != bytes.fromhex('6800000040'):
+            raise ValueError('Cambio la entrada de usuario')
+        packet[at:at+5] = bytes.fromhex('4154909090')  # push r12; nop
+        packet.extend(external)
+        packet.extend(b'\xe9' + struct.pack('<i', 24 + 416 - len(packet) - 5))
     if len(packet) > 4096:
         raise ValueError('El paquete de prueba excede el limite del puente')
     struct.pack_into('<I', packet, 8, len(packet) - 24)

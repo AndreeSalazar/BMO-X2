@@ -2,7 +2,7 @@
 [CmdletBinding()]
 param(
     [string]$Run,
-    [ValidateSet('gato-hd','doom-intro','desktop-intro','desktop-session')][string]$Profile,
+    [ValidateSet('gato-hd','doom-intro','desktop-intro','desktop-session','desktop-external')][string]$Profile,
     [switch]$Wait,
     [string]$Qemu = (Join-Path $env:ProgramFiles 'qemu/qemu-system-x86_64.exe')
 )
@@ -16,6 +16,7 @@ if (-not $Run) {
         'doom-intro' { 'doom-abi-fixture' }
         'desktop-intro' { 'desktop-abi-fixture' }
         'desktop-session' { 'desktop-session' }
+        'desktop-external' { 'desktop-external' }
         default { 'ring0-splash-hd-0.1' }
     }
     foreach ($candidate in (Get-ChildItem -LiteralPath $runs -Directory -Filter 'run-*' | Sort-Object LastWriteTime -Descending)) {
@@ -26,7 +27,8 @@ if (-not $Run) {
             (Test-Path -LiteralPath $result -PathType Leaf)) {
             $report = Get-Content -LiteralPath $result -Raw | ConvertFrom-Json
             if ($report.run -eq $candidate.Name -and $report.Total -gt 0 -and $report.Passed -eq $report.Total -and
-                ($Profile -in @('gato-hd','desktop-session') -or @($report.Cases[0].FramesVerified).Count -eq 3) -and
+                ($Profile -in @('gato-hd','desktop-session','desktop-external') -or @($report.Cases[0].FramesVerified).Count -eq 3) -and
+                ($Profile -ne 'desktop-external' -or $report.Cases[0].ExternalSbef) -and
                 ($Profile -ne 'desktop-session' -or ($report.Cases[0].DesktopSession -and
                     @($report.Cases[0].IntroFramesObserved).Count -eq 2)) -and
                 ($Profile -ne 'desktop-intro' -or $report.Cases[0].DesktopPixelsVerified -gt 0)) {
@@ -44,6 +46,7 @@ if (-not ($runDir -is [IO.DirectoryInfo]) -or $runDir.Parent.FullName -ne $runs 
 }
 $report = Get-Content -LiteralPath (Join-Path $runDir.FullName 'qemu-results.json') -Raw | ConvertFrom-Json
 $config = Get-Content -LiteralPath (Join-Path $runDir.FullName 'qemu-run.json') -Raw | ConvertFrom-Json
+$actualProfile = (Get-Content -LiteralPath (Join-Path $runDir.FullName 'profile.txt') -Raw).Trim()
 if ($report.run -ne $runDir.Name -or $report.Total -lt 1 -or $report.Passed -ne $report.Total -or
     $config.cpu -notin @('qemu64','Nehalem') -or $config.ram_mib -notin @(256,1024)) {
     throw 'El run requiere un resultado QEMU aprobado y una configuracion conocida.'
@@ -77,6 +80,13 @@ $arguments = @(
     '-drive', ('"file={0},format=raw,if=ide,snapshot=on"' -f $disk.FullName),
     '-vga', 'std', '-display', 'sdl,gl=off', '-serial', ('"file:{0}"' -f $serial), '-monitor', 'none', '-no-reboot'
 )
+if ($actualProfile -eq 'desktop-external') {
+    $module = Get-Item -LiteralPath (Join-Path $runDir.FullName 'sbef-module.bin')
+    if (-not ($module -is [IO.FileInfo]) -or ($module.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+        throw 'Falta el modulo SBEF externo del ensayo.'
+    }
+    $arguments += @('-device', ('"loader,file={0},addr=0x2000000,force-raw=on"' -f $module.FullName))
+}
 Write-Output "Arrancando $($runDir.Name) con TCG y framebuffer VGA sin OpenGL."
 $process = Start-Process -FilePath $Qemu -ArgumentList $arguments -WindowStyle Normal -PassThru `
     -RedirectStandardOutput $stdout -RedirectStandardError $stderr

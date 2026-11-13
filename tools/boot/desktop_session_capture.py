@@ -7,7 +7,23 @@ from cpu_config import register
 from splash_capture import compare_frame
 
 
-def verify_session(command, memory, prefix, packet, intro, fixture):
+def verify_external_rejection(command, memory):
+    deadline = time.monotonic() + 20
+    while time.monotonic() < deadline:
+        regs = command('human-monitor-command', {'command-line': 'info registers'})
+        context = register(regs, 'RBP')
+        if 'HLT=1' in regs and 'CPL=0' in regs and 0x100000 <= context < 0xffe0000:
+            if memory(context, 8, 'rejected-context') == b'METAL64!':
+                assert register(regs, 'R12') == 0
+                assert register(regs, 'CR3') == register(regs, 'R13')
+                assert memory(context + 0x18000, 4096, 'rejected-text') == bytes(4096)
+                return dict(Case='external-permissions', Passed=True, SbefAccepted=False,
+                            UserCodeCopied=False, UserAddressSpaceActivated=False)
+        time.sleep(0.04)
+    raise ValueError(f'El cargador externo no rechazo W+X: {regs[:420]}')
+
+
+def verify_session(command, memory, prefix, packet, intro, fixture, external_image=None):
     def registers():
         return command('human-monitor-command', {'command-line': 'info registers'})
 
@@ -74,6 +90,10 @@ def verify_session(command, memory, prefix, packet, intro, fixture):
     wait_until(lambda: logical(216, 33, 0x5ad8ff) and logical(52, 99, 0x5ad8ff) and ring3())
     assert pixel(width-1, height-1, 0x0d0e17), 'La intro no fue reemplazada'
     assert memory(code, len(packet)-24, 'session-code') == packet[24:]
+    if external_image is not None:
+        assert external_image not in packet, 'SBEF externo embebido en el paquete'
+        payload = external_image[64:]
+        assert memory(address + 0x18000, 4096, 'external-text') == payload.ljust(4096, b'\0')
     for digit, x, color in [('2', 272, 0xad92ff), ('3', 328, 0x6ee7b7), ('4', 384, 0xff7c98)]:
         key('ctrl', 'meta_l', digit)
         wait_until(lambda: logical(x, 33, color) and logical(52, 99, color))
@@ -98,5 +118,6 @@ def verify_session(command, memory, prefix, packet, intro, fixture):
                 IntroFramesObserved=sorted(frames), WorkspacesVerified=[1, 2, 3, 4],
                 KeyboardVerified=True, FocusRestored=True, DesktopSession=True, IntroReplaced=True,
                 MouseVerified=True, Framebuffer=[width, height], DesktopScale=scale,
+                ExternalSbef=external_image is not None,
                 PayloadSHA256=hashlib.sha256(packet[24:]).hexdigest(),
                 SbefSHA256=fixture['sbef_sha256'])

@@ -23,7 +23,7 @@ from sbef_probe_cases import MUTATIONS, SBEF_OFFSET, mutated_packet
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--workspace',required=True,type=Path)
-parser.add_argument('--casos', nargs='+', choices=['normal','firma','suma','entrada','ausente','excesivo','salida','contexto', *MUTATIONS], default=['normal'])
+parser.add_argument('--casos', nargs='+', choices=['normal','firma','suma','entrada','ausente','excesivo','salida','contexto','external-permissions', *MUTATIONS], default=['normal'])
 parser.add_argument('--qemu', default='C:/Program Files/qemu/qemu-system-x86_64.exe')
 parser.add_argument('--cpu', choices=['qemu64', 'Nehalem'], default='qemu64')
 parser.add_argument('--ram-mib', type=int, choices=[256,1024], default=256)
@@ -50,11 +50,12 @@ if any((args.identify,args.stack,args.splash,args.fault,memory_case,user_case)) 
 if (args.splash_hd and not args.splash) or ('contexto' in args.casos and not (args.stack or args.fault or memory_case or user_case)) or sum((args.identify,args.stack,args.splash,args.fault,args.memory,args.frame_cycle,args.paging,args.user_fault,args.abi_probe,args.hot_unmap)) > 1 or ((memory_case or user_case) and args.ram_mib != 256):
     parser.error('Invalid combination of payload and probe cases')
 ROOT = workspace(args.workspace)
-if args.doom_fixture and (not args.abi_probe or args.casos != ['normal']):
+if args.doom_fixture and (not args.abi_probe or args.casos not in (['normal'], ['normal', 'external-permissions'])):
     parser.error('DOOM requires the normal ABI probe case')
 doom = None
 intro_size = 0
 intro_rows = None
+external = None
 if args.doom_fixture:
     from doom_fixture import make_packet, prepend_intro
     reference = (ROOT / 'reference.x86').read_bytes()
@@ -65,7 +66,10 @@ if args.doom_fixture:
     image_path = ROOT / ('desktop.sbef' if present is not None or gate is not None else 'doom.sbef')
     if not image_path.is_file() and present is None and gate is None:
         image_path = ROOT / 'doom-fixed.sbef'
-    expected, doom = make_packet(reference, image_path.read_bytes(), present, gate)
+    external_path = ROOT / 'external-loader.bin'
+    external = external_path.read_bytes() if external_path.is_file() else None
+    external_image = image_path.read_bytes()
+    expected, doom = make_packet(reference, external_image, present, gate, external)
     if (ROOT / 'intro.x86').is_file():
         splash = (ROOT / 'intro.x86').read_bytes()
         expected, intro_size = prepend_intro(expected, splash)
@@ -76,6 +80,8 @@ if args.doom_fixture:
         raise ValueError('Paquete DOOM distinto del vector esperado')
     doom['packet_bytes'] = len(expected)
     fixture_packet = expected
+if 'external-permissions' in args.casos and external is None:
+    parser.error('El rechazo externo requiere el cargador externo')
 if args.splash:
     if args.casos != ['normal']:
         parser.error('The splash probe requires the normal case')
@@ -104,11 +110,13 @@ results = []
 
 def run(case):
     payload_case = case in ('normal', 'contexto', *MUTATIONS)
-    image = ROOT / 'build' / f'puente-{case}.img'
+    image = ROOT / 'build' / f"puente-{'normal' if case == 'external-permissions' else case}.img"
     before = hashlib.sha256(image.read_bytes()).hexdigest()
     prefix = ROOT / 'build' / f'puente-{case}'
     variables = Path(str(prefix) + '-vars.fd')
     shutil.copyfile(share / 'edk2-i386-vars.fd', variables)
+    module = ROOT / ('sbef-rejected.bin' if case == 'external-permissions' else 'sbef-module.bin')
+    staging = ['-device', f'loader,file={module},addr=0x2000000,force-raw=on'] if external is not None else []
     process = subprocess.Popen([
         str(qemu), '-machine', 'pc', '-cpu', args.cpu, '-accel', 'tcg', '-m', f'{args.ram_mib}M', '-smp', '1',
         '-drive', f'if=pflash,format=raw,unit=0,readonly=on,file={share / "edk2-x86_64-code.fd"}',
@@ -116,7 +124,7 @@ def run(case):
         '-drive', f'file={image},format=raw,if=ide,snapshot=on',
         '-vga', 'std', '-display', 'none', '-serial', f'file:{prefix}-serial.log',
         '-qmp', 'stdio', '-monitor', 'none', '-no-reboot',
-        '-d', 'guest_errors,int', '-D', str(prefix) + '-cpu.log'],
+        '-d', 'guest_errors,int', '-D', str(prefix) + '-cpu.log', *staging],
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         text=True, encoding='utf-8', cwd=ROOT,
         creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0)
@@ -157,8 +165,13 @@ def run(case):
     try:
         command('qmp_capabilities')
         if doom and doom['session']:
-            from desktop_session_capture import verify_session
-            return verify_session(command, memory, prefix, fixture_packet, intro_rows, doom)
+            from desktop_session_capture import verify_external_rejection, verify_session
+            if case == 'external-permissions':
+                return verify_external_rejection(command, memory)
+            if external is not None:
+                doom['sbef_sha256'] = hashlib.sha256(external_image).hexdigest()
+            return verify_session(command, memory, prefix, fixture_packet, intro_rows, doom,
+                                  external_image if external is not None else None)
         deadline = time.monotonic() + 45
         last_registers = ''
         context = None

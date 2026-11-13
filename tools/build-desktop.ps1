@@ -4,11 +4,13 @@ param(
     [string]$Python,
     [switch]$Guest,
     [switch]$Session,
+    [switch]$External,
     [string]$AbiRun,
     [string]$IntroRun
 )
 $ErrorActionPreference = 'Stop'
 if ($Session) { $Guest = $true }
+if ($External -and (-not $Session -or -not $AbiRun)) { throw '-External requiere -Session y -AbiRun.' }
 if ($AbiRun -and -not $Guest) { throw '-AbiRun requiere -Guest.' }
 if ($IntroRun -and -not $AbiRun) { throw '-IntroRun requiere -AbiRun.' }
 $root = Split-Path $PSScriptRoot
@@ -45,6 +47,15 @@ if ($Session) {
     & (Join-Path $Llvm 'llvm-objcopy.exe') -O binary --only-section=.text $gateObject $gateBin
     if ($LASTEXITCODE -ne 0) { throw 'Fallo la extraccion de la puerta de sesion.' }
     $fixtureArguments = @('--session-gate', $gateBin)
+    if ($External) {
+        $loaderObject = Join-Path $build.FullName 'external-sbef.o'
+        $loaderBin = Join-Path $build.FullName 'external-sbef.bin'
+        & (Join-Path $Llvm 'clang.exe') --target=x86_64-unknown-none-elf -c (Join-Path $PSScriptRoot 'boot/external_sbef.S') -o $loaderObject
+        if ($LASTEXITCODE -ne 0) { throw 'Fallo el ensamblado del validador externo.' }
+        & (Join-Path $Llvm 'llvm-objcopy.exe') -O binary --only-section=.text $loaderObject $loaderBin
+        if ($LASTEXITCODE -ne 0) { throw 'Fallo la extraccion del validador externo.' }
+        $fixtureArguments += @('--external-loader', $loaderBin)
+    }
 } elseif ($Guest) {
     $linkScript = Join-Path $PSScriptRoot 'desktop/guest.ld'
     $elf = Join-Path $build.FullName 'desktop-guest.elf'
