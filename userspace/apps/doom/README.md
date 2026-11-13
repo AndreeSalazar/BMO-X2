@@ -128,6 +128,20 @@ if ($LASTEXITCODE) { throw 'Fallo la sonda DOOM' }
 
 ## Ruta directa sin Director
 
+### Prueba GCC con tres regiones SBEF
+
+Agrega `-External` al comando de la sonda con `-Gcc` y `-AbiRun`.
+GCC compila el codigo C del invitado y LLD enlaza un ELF64 estatico.
+El empaquetador HOST genera `build/doom-probe/doom-external.sbef`
+de 656 bytes. QEMU entrega el modulo separado en RAM. La CPU ejecuta
+la aritmetica original en CPL3, lee las constantes y modifica datos
+y BSS. INVOKE rechaza el dibujo con la capacidad de entrada y
+acepta la misma operacion con la capacidad de pantalla. La prueba
+coteja los 15360 pixeles del rectangulo verde. El motor completo,
+el WAD y la lectura desde disco quedan pendientes.
+
+### Entregas pendientes
+
 | Orden | Entrega | Prueba de cierre |
 |---|---|---|
 | 1 | Ring 0 CASM carga SBEF independiente del paquete de arranque. | El mismo kernel ejecuta dos SBEF distintos con regiones RX, R y RW/NX, pila, BSS a cero y salida ordenada. |

@@ -63,7 +63,9 @@ if args.doom_fixture:
     present = present_path.read_bytes() if present_path.is_file() else None
     gate_path = ROOT / 'session-gate.bin'
     gate = gate_path.read_bytes() if gate_path.is_file() else None
-    image_path = ROOT / ('desktop.sbef' if present is not None or gate is not None else 'doom.sbef')
+    doom_external = (ROOT / 'profile.txt').read_text(encoding='ascii').strip() == 'doom-external'
+    desktop_fixture = (present is not None or gate is not None) and not doom_external
+    image_path = ROOT / ('desktop.sbef' if desktop_fixture else 'doom.sbef')
     if not image_path.is_file() and present is None and gate is None:
         image_path = ROOT / 'doom-fixed.sbef'
     external_path = ROOT / 'external-loader.bin'
@@ -170,6 +172,9 @@ def run(case):
                 return verify_external_rejection(command, memory, external_image)
             if external is not None:
                 doom['sbef_sha256'] = hashlib.sha256(external_image).hexdigest()
+            if doom_external:
+                from doom_external_capture import verify_doom_external
+                return verify_doom_external(command, memory, prefix, fixture_packet, external_image)
             return verify_session(command, memory, prefix, fixture_packet, intro_rows, doom,
                                   external_image if external is not None else None)
         deadline = time.monotonic() + 45

@@ -5,10 +5,12 @@ param(
     [string]$Llvm = (Join-Path $env:ProgramFiles 'LLVM/bin'),
     [string]$Python,
     [string]$AbiRun,
-    [string]$IntroRun
+    [string]$IntroRun,
+    [switch]$External
 )
 $ErrorActionPreference = 'Stop'
 if ($IntroRun -and -not $AbiRun) { throw '-IntroRun requiere -AbiRun.' }
+if ($External -and (-not $Gcc -or -not $AbiRun)) { throw '-External requiere -Gcc y -AbiRun.' }
 $root = Split-Path $PSScriptRoot
 if (-not $DoomSource) {
     $DoomSource = Join-Path (Split-Path $root) 'BMO/toolchain/lang/c/expansion/doom/fuentes/doomgeneric/doomgeneric'
@@ -46,6 +48,7 @@ $cc = if ($Gcc) { $Gcc } else { $clang }
 $flags = @('-O2','-ffreestanding','-fno-pic','-fno-pie','-fno-stack-protector',
            '-fno-unwind-tables','-fno-asynchronous-unwind-tables',"-I$headers","-I$DoomSource")
 $objects = @()
+if ($External) { $flags += '-DBMO_EXTERNAL' }
 foreach ($unit in @($source, $probe, $runtime, (Join-Path $PSScriptRoot 'doom/complete.S'), (Join-Path $root 'userspace/runtime/abi/portal.S'))) {
     $obj = Join-Path $out ([IO.Path]::GetFileNameWithoutExtension($unit) + '.o')
     & $cc @target @flags -c $unit -o $obj
@@ -55,6 +58,11 @@ foreach ($unit in @($source, $probe, $runtime, (Join-Path $PSScriptRoot 'doom/co
 $elf = Join-Path $out 'doom-fixed.elf'
 $sbef = Join-Path $out 'doom-fixed.sbef'
 $linkScript = Join-Path $root 'userspace/sbef.ld'
+if ($External) {
+    $linkScript = Join-Path $PSScriptRoot 'desktop/external.ld'
+    $elf = Join-Path $out 'doom-external.elf'
+    $sbef = Join-Path $out 'doom-external.sbef'
+}
 & $linker -static -T $linkScript @objects -o $elf
 if ($LASTEXITCODE -ne 0) { throw 'Fallo el enlace ELF64 de DOOM.' }
 $segments = & $readobj --program-headers $elf
@@ -66,6 +74,19 @@ Write-Output "SBEF: $sbef"
 if ($AbiRun) {
     $introArguments = @()
     if ($IntroRun) { $introArguments = @('--intro', $IntroRun) }
-    & $Python -B (Join-Path $PSScriptRoot 'boot/doom_qemu.py') $AbiRun $sbef @introArguments
+    $fixture = @()
+    if ($External) {
+        $objcopy = Join-Path $Llvm 'llvm-objcopy.exe'
+        foreach ($unit in @('desktop/session_gate', 'boot/external_sbef')) {
+            $name = Split-Path $unit -Leaf
+            & $clang --target=x86_64-unknown-none-elf -c (Join-Path $PSScriptRoot "$unit.S") -o (Join-Path $out "$name.o")
+            if ($LASTEXITCODE -ne 0) { throw "Fallo el ensamblado de $unit." }
+            & $objcopy -O binary --only-section=.text (Join-Path $out "$name.o") (Join-Path $out "$name.bin")
+            if ($LASTEXITCODE -ne 0) { throw "Fallo la extraccion de $unit." }
+        }
+        $fixture = @('--doom-external','--session-gate',(Join-Path $out 'session_gate.bin'),
+                     '--external-loader',(Join-Path $out 'external_sbef.bin'))
+    }
+    & $Python -B (Join-Path $PSScriptRoot 'boot/doom_qemu.py') $AbiRun $sbef @introArguments @fixture
     if ($LASTEXITCODE -ne 0) { throw 'Fallo la ejecucion de la sonda DOOM en QEMU.' }
 }

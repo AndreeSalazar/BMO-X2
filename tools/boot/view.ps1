@@ -80,7 +80,7 @@ $arguments = @(
     '-drive', ('"file={0},format=raw,if=ide,snapshot=on"' -f $disk.FullName),
     '-vga', 'std', '-display', 'sdl,gl=off', '-serial', ('"file:{0}"' -f $serial), '-monitor', 'none', '-no-reboot'
 )
-if ($actualProfile -eq 'desktop-external') {
+if ($actualProfile -in @('desktop-external','doom-external')) {
     $module = Get-Item -LiteralPath (Join-Path $runDir.FullName 'sbef-module.bin')
     if (-not ($module -is [IO.FileInfo]) -or ($module.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
         throw 'Falta el modulo SBEF externo del ensayo.'

@@ -22,8 +22,11 @@ def main():
     variants.add_argument('--desktop-present', type=Path)
     variants.add_argument('--session-gate', type=Path)
     parser.add_argument('--external-loader', type=Path)
+    parser.add_argument('--doom-external', action='store_true')
     parser.add_argument('--qemu', default='C:/Program Files/qemu/qemu-system-x86_64.exe')
     args = parser.parse_args()
+    if args.doom_external and not (args.external_loader and args.session_gate):
+        parser.error('DOOM externo requiere cargador y puerta de sesion')
     reference = workspace(args.reference)
     if (reference / 'profile.txt').read_text(encoding='utf-8-sig').strip() != 'ring0-abi-probe-0.1':
         raise ValueError('Se requiere un run CASM del perfil ABI')
@@ -42,7 +45,7 @@ def main():
         splash = (intro / 'INICIO.X86').read_bytes()
         packet, _ = prepend_intro(packet, splash)
 
-    application = 'desktop' if present is not None or gate is not None else 'doom'
+    application = 'desktop' if (present is not None or gate is not None) and not args.doom_external else 'doom'
     run = reference.parent / f'run-{application}-{uuid.uuid4().hex[:12]}'
     run.mkdir()
     (run / 'reference.x86').write_bytes(base_packet)
@@ -64,6 +67,8 @@ def main():
         shutil.copyfile(intro / 'source.casm', run / 'intro.casm')
     (run / 'INICIO.X86').write_bytes(packet)
     profile = 'desktop-external' if external is not None else 'desktop-session' if gate is not None else f'{application}-abi-fixture'
+    if args.doom_external:
+        profile = 'doom-external'
     (run / 'profile.txt').write_text(f'{profile}\n', encoding='ascii')
     bridge = ROOT / 'kernel/boot/bridge'
     efi = run / 'build/Puente_Metal/EFI/BOOT/BOOTX64.EFI'
@@ -89,6 +94,8 @@ def main():
         milestone = 'Interactive Rust desktop session in CPL3'
     if external is not None:
         milestone = 'External SBEF staged by QEMU and admitted in Ring 0'
+    if args.doom_external:
+        milestone = 'GCC DoomGeneric arithmetic and drawing from an external SBEF'
     report.update(run=run.name, evidence='QEMU', milestone=f'Cat intro then {milestone}' if args.intro else milestone)
     (run / 'qemu-results.json').write_text(json.dumps(report, indent=2) + '\n', encoding='ascii')
     (run / 'qemu-run.json').write_text(json.dumps(dict(cpu='qemu64', ram_mib=256)) + '\n', encoding='ascii')
