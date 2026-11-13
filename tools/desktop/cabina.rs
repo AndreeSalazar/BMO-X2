@@ -6,9 +6,14 @@ const INK: u32 = 0xe7efff;
 const PANEL: u32 = 0x232638;
 
 // Rasterized from BMO-X's bmo-letra. See CABINA-FONT.md for provenance.
-const CHARACTERS: &[u8] = b"0123456789ABCDEFGIKMNOPRSTUV";
-const ATLAS: &[u8; 1036] = include_bytes!("cabina_font.bin");
+const CHARACTERS: &[u8] = b"0123456789ABCDEFGHIKLMNOPRSTUVYZJ";
+const ATLAS: &[u8; CHARACTERS.len() * 37] = include_bytes!("cabina_font.bin");
 const SHADES: [u32; 4] = [PANEL, 0x64697a, 0xa5acbc, INK];
+const FIELDS: [(u8, &[u8], &[u8]); 3] = [
+    (0x14, b"T TICKS", b"PULSOS DEL RELOJ PIT"),
+    (0x12, b"E EVENTOS", b"ESPERAS CON ENTRADA LISTA"),
+    (0x2f, b"V VENCIMIENTOS", b"ESPERAS SIN ENTRADA AL VENCER"),
+];
 
 fn text(mut x: u64, y: u64, bytes: &[u8]) {
     for byte in bytes {
@@ -40,20 +45,37 @@ fn text(mut x: u64, y: u64, bytes: &[u8]) {
 
 pub fn show() {
     fill(0, 0, 640, 400, 0x0d0e17);
-    fill(24, 24, 592, 142, PANEL);
-    text(40, 42, b"CABINA");
-    text(40, 67, b"T TICKS   E EVENTOS   V TIMEOUTS");
-    text(40, 89, b"F2 CERRAR");
+    fill(24, 24, 592, 194, PANEL);
+    text(40, 42, b"CABINA RING 0");
+    text(40, 68, b"CONTADOR");
+    text(168, 68, b"VALOR");
+    text(272, 68, b"SIGNIFICADO");
+    fill(40, 86, 560, 1, 0x40465d);
+    for (field, (_, label, description)) in FIELDS.iter().enumerate() {
+        let y = row(field);
+        text(40, y, label);
+        text(272, y, description);
+        refresh(field);
+    }
+    text(40, 188, b"R ACTUALIZAR TODO   F2 CERRAR");
 }
 
 pub fn command(scancode: u8) {
-    let (field, label): (u64, &[u8]) = match scancode {
-        0x14 => (0, b"TICKS"),
-        0x12 => (1, b"EVENTOS"),
-        0x2f => (2, b"TIMEOUTS"),
-        _ => return,
-    };
-    let mut value = invoke(DIAGNOSTICS, READ, field, 0);
+    if scancode == 0x13 {
+        for field in 0..FIELDS.len() {
+            refresh(field);
+        }
+    } else if let Some(field) = FIELDS.iter().position(|&(key, _, _)| key == scancode) {
+        refresh(field);
+    }
+}
+
+fn row(field: usize) -> u64 {
+    100 + field as u64 * 24
+}
+
+fn refresh(field: usize) {
+    let mut value = invoke(DIAGNOSTICS, READ, field as u64, 0);
     let mut digits = [b'0'; 10];
     let mut first = digits.len();
     loop {
@@ -64,7 +86,7 @@ pub fn command(scancode: u8) {
             break;
         }
     }
-    fill(40, 116, 400, 24, PANEL);
-    text(40, 121, label);
-    text(160, 121, &digits[first..]);
+    let y = row(field);
+    fill(168, y, 100, 12, PANEL);
+    text(168, y, &digits[first..]);
 }

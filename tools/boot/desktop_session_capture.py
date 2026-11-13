@@ -18,8 +18,11 @@ def verify_external_rejection(command, memory):
                 assert register(regs, 'R12') == 0
                 assert register(regs, 'CR3') == register(regs, 'R13')
                 assert memory(context + 0x18000, 4096, 'rejected-text') == bytes(4096)
+                offset = struct.unpack('<I', memory(context + 0x1a350, 4, 'rejected-field'))[0]
+                assert offset == 52, 'El kernel no indico el campo de permisos'
                 return dict(Case='external-permissions', Passed=True, SbefAccepted=False,
-                            UserCodeCopied=False, UserAddressSpaceActivated=False)
+                            UserCodeCopied=False, UserAddressSpaceActivated=False,
+                            RejectedField='permissions', RejectedOffset=offset)
         time.sleep(0.04)
     raise ValueError(f'El cargador externo no rechazo W+X: {regs[:420]}')
 
@@ -156,8 +159,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         wait_until(lambda: logical(24, 24, 0x232638))
         atlas = (Path(__file__).resolve().parents[1] / 'desktop/cabina_font.bin').read_bytes()
         shades = (0x232638, 0x64697a, 0xa5acbc, 0xe7efff)
-        for field, command_key in enumerate(('t', 'e', 'v')):
-            key(command_key)
+        def check_counter(field):
             selected, value = struct.unpack('<II', memory(address + 0x1a348, 8, 'cabina-read'))
             assert selected == field and value > 0, 'CABINA no consulto el contador esperado'
             expected = [[0] * 100 for _ in range(12)]
@@ -172,7 +174,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                         if shade:
                             expected[y][x + column] = shade
                 x += atlas[offset]
-            raw = memory(fb + (121*scale*pitch + 160*scale)*4,
+            raw = memory(fb + ((100 + 24*field)*scale*pitch + 168*scale)*4,
                          (11*scale*pitch + 100*scale)*4, 'cabina-digits')
             for y, row in enumerate(expected):
                 for column, shade in enumerate(row):
@@ -181,6 +183,13 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                     if order == 0:
                         color = color[:3][::-1] + b'\0'
                     assert raw[offset:offset+4] == color, f'CABINA mostro otro valor en {column},{y}'
+        wait_until(lambda: logical(40, 86, 0x40465d))
+        check_counter(2)
+        for field, command_key in enumerate(('t', 'e', 'v')):
+            key(command_key)
+            check_counter(field)
+        key('r')
+        check_counter(2)
         command('screendump', {'filename': str(prefix)+'-cabina.png', 'format': 'png'})
         key('f2')
         wait_until(lambda: logical(52, 99, 0xad92ff) and logical(240, 168, 0xe7efff))
@@ -193,6 +202,6 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 PointerBurstEvents=48,
                 WaitHalted=True, WaitTimeoutVerified=True, WaitInputVerified=True,
                 ExternalSbef=external_image is not None,
-                CabinaCommandsVerified=3 if external_image is not None else 0,
+                CabinaCommandsVerified=4 if external_image is not None else 0,
                 PayloadSHA256=hashlib.sha256(packet[24:]).hexdigest(),
                 SbefSHA256=fixture['sbef_sha256'])

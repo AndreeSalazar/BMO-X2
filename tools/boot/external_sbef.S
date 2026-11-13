@@ -24,7 +24,7 @@ external_sbef:
     cmpl $64, 40(%rsi)
     jne reject
     cmpl $5, 52(%rsi)
-    jne reject
+    jne reject_permissions
     cmpq $0, 56(%rsi)
     jne reject
     sub $64, %edx
@@ -61,6 +61,8 @@ external_sbef:
     mov $512, %ecx
     rep stosq
     jmp exit
+reject_permissions:
+    movl $52, 0x350(%r10)
 reject:
     xor %r12d, %r12d
     mov %rbp, %rdi

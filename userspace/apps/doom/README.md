@@ -145,3 +145,10 @@ El puente actual limita el paquete de arranque a 4096 bytes. El cargador
 de la etapa 1 desacopla ese presupuesto del codigo del juego. Antes de
 congelar el ABI, cotejar las restricciones del importador HOST (1 MiB
 de archivo y ventana virtual de 16 MiB) con el ELF del motor y su arena.
+
+El ensayo externo admite una region RX de hasta dos paginas desde
+un modulo que QEMU deposita en RAM. Cuando recibe W+X, Ring 0
+registra el offset 52 y QEMU verifica que el espacio de usuario
+queda sin activar. CABINA ya lista los contadores de WAIT. Mostrar
+los rechazos de carga dentro de una sesion requiere conservar el
+diagnostico de cada proceso y devolver el control al supervisor.
