@@ -21,6 +21,7 @@ def main():
     parser.add_argument('abi_run', type=Path)
     parser.add_argument('splash_run', type=Path)
     parser.add_argument('desktop_run', type=Path)
+    parser.add_argument('--xhci-command', action='store_true', help='Run the QEMU-only xHCI command probe')
     args = parser.parse_args()
     abi, splash, desktop = map(workspace, (args.abi_run, args.splash_run, args.desktop_run))
     for path, profile in ((abi, 'ring0-abi-probe-0.1'), (splash, SPLASH_PROFILE),
@@ -40,20 +41,29 @@ def main():
     for name in ('desktop_media_alloc', 'desktop_media_read', 'external_sbef', 'session_gate'):
         obj = run / f'{name}.o'
         source = scripts.parent / 'desktop/session_gate.S' if name == 'session_gate' else scripts / f'{name}.S'
-        subprocess.run([llvm / 'clang.exe', '--target=x86_64-unknown-none-elf', '-DDESKTOP_MEDIA',
+        flags = ['-DXHCI_COMMAND_PROBE'] if args.xhci_command else []
+        subprocess.run([llvm / 'clang.exe', '--target=x86_64-unknown-none-elf', '-DDESKTOP_MEDIA', *flags,
                         '-c', source, '-o', obj], check=True)
         subprocess.run([llvm / 'llvm-objcopy.exe', '-O', 'binary', '--only-section=.text',
                         obj, run / f'{name}.bin'], check=True)
+    if args.xhci_command:
+        obj = run / 'xhci-command.o'
+        subprocess.run([llvm / 'clang.exe', '--target=x86_64-unknown-none-elf', '-x', 'assembler',
+                        '-c', scripts.parent / 'desktop/xhci_command_probe.inc', '-o', obj], check=True)
+        subprocess.run([llvm / 'llvm-objcopy.exe', '-O', 'binary', '--only-section=.text',
+                        obj, run / 'xhci-command.bin'], check=True)
 
     reference = (abi / 'INICIO.X86').read_bytes()
     intro = (splash / 'INICIO.X86').read_bytes()
     gate = (run / 'session_gate.bin').read_bytes()
     loader = (run / 'external_sbef.bin').read_bytes()
     packet, _ = make_packet(reference, sbef, session_gate=gate, external=loader)
-    packet, _ = prepend_intro(packet, intro)
+    if not args.xhci_command:
+        packet, _ = prepend_intro(packet, intro)
+        (run / 'intro.x86').write_bytes(intro)
+        shutil.copyfile(splash / 'source.casm', run / 'intro.casm')
     for name, content in (('reference.x86', reference), ('desktop.sbef', sbef), ('session-gate.bin', gate),
-                          ('external-loader.bin', loader), ('intro.x86', intro), ('INICIO.X86', packet),
-                          ('intro.casm', (splash / 'source.casm').read_bytes()), ('profile.txt', b'desktop-media\n')):
+                          ('external-loader.bin', loader), ('INICIO.X86', packet), ('profile.txt', b'desktop-media\n')):
         (run / name).write_bytes(content)
 
     image = bridge_variant()
@@ -63,6 +73,11 @@ def main():
         raise ValueError('El lector ya no cabe en el puente')
     struct.pack_into('<i', image, site+1, extension-site-5)
     image[extension:extension+len(reader)] = reader
+    if args.xhci_command:
+        driver = (run / 'xhci-command.bin').read_bytes()
+        if any(image[0x2c00:]) or not 0 < len(driver) <= 1024:
+            raise ValueError('La sonda xHCI no cabe en su etapa EFI')
+        image[0x2c00:0x2c00+len(driver)] = driver
     allocator = (run / 'desktop_media_alloc.bin').read_bytes()
     if image[0x400:0x404] != bytes.fromhex('4883ec28') or len(allocator) > 0xf0:
         raise ValueError('Cambio la reserva de memoria del puente')
@@ -85,11 +100,13 @@ def main():
                         '--bmo-x2-folder', '--desktop', path], check=True, timeout=30)
         if case != 'normal':
             (run / 'build/puente-normal.img').replace(run / 'build/puente-external-permissions.img')
+    if args.xhci_command:
+        (run / 'xhci-command.txt').write_text('QEMU\n', encoding='ascii')
     subprocess.run([sys.executable, '-B', scripts / 'probe.py', '--workspace', run, '--halt',
                     '--abi-probe', '--doom-fixture', '--ram-mib', '1024', '--casos', 'normal', 'external-permissions'],
                    check=True, cwd=run, timeout=100)
 
-    media = run / 'media'
+    media = run / ('qemu-only' if args.xhci_command else 'media')
     files = {'EFI/BMO-X2/BMO-X2.EFI': efi, 'BMO-X2/INICIO.X86': payload,
              'BMO-X2/DESKTOP.SBF': run / 'desktop.sbef'}
     for name, src in files.items():

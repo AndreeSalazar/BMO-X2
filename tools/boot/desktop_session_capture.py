@@ -122,7 +122,17 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         assert len(covering) == 1
         kind, start, end = covering[0]
         assert kind == 2 and start <= dma and dma + pages * 4096 <= end
-        assert memory(dma, pages * 4096, 'xhci-reserved-pages') == bytes(pages * 4096)
+        command_probe = (prefix.parent.parent / 'xhci-command.txt').is_file()
+        reserved = memory(dma, pages * 4096, 'xhci-reserved-pages')
+        if command_probe:
+            status = memory(address + 0x1a379, 2, 'xhci-command-status')
+            assert status == b'\x01\x01', f'xHCI command/stop status: {status.hex()}'
+            original, restored = struct.unpack('<HH', memory(address + 0x1a37c, 4, 'xhci-pci-command'))
+            assert original == restored, 'El comando PCI no se restauro'
+            pointer, result, control = struct.unpack_from('<QII', reserved, 0x2000)
+            assert pointer == dma + 4096 and result >> 24 == 1 and (control >> 10) & 63 == 33
+        else:
+            assert reserved == bytes(pages * 4096)
         assert memory(address + 0x1a358, 5, 'xhci-inventory') == struct.pack('<IB', 1, 1)
         bdf, low, high = struct.unpack('<III', memory(address + 0x1a360, 12, 'xhci-pci'))
         devices = [device for bus in command('query-pci') for device in bus['devices']]
@@ -131,8 +141,15 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         bar = low & ~15
         if low & 6 == 4:
             bar |= high << 32
-        assert bar != 0 and bar == next(region['address'] for region in controller['regions'] if region['bar'] == 0)
+        region = next(region for region in controller['regions'] if region['bar'] == 0)
+        assert bar != 0 and bar == region['address']
+        if command_probe:
+            assert region['size'] >= 0x3000
         caps, parameters = struct.unpack('<II', memory(address + 0x1a370, 8, 'xhci-capabilities'))
+        if command_probe:
+            status_register = bar + (caps & 0xff) + 4
+            usb_status = command('human-monitor-command', {'command-line': f'xp /1wx {status_register:#x}'})
+            assert int(usb_status.split(':', 1)[1].split()[0], 16) & 1
         actual = command('human-monitor-command', {'command-line': f'xp /2wx {bar:#x}'})
         words = actual.split(':', 1)[1].split()
         assert (caps, parameters) == tuple(int(word, 16) for word in words[:2])
@@ -140,7 +157,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         handoff = memory(address + 0x1a378, 1, 'xhci-handoff')[0]
         assert handoff in (1, 2), f'xHCI handoff state: {handoff}'
         assert memory(address + 0x15400, 8, 'xhci-alias-pde') == bytes(8)
-        assert memory(address + 0x1e000, 8, 'xhci-alias-pte') == bytes(8)
+        assert memory(address + 0x1e000, 24, 'xhci-alias-pte') == bytes(24)
         assert logical(24, 354, 0x232638), 'El escritorio no mostro el aviso de entrada USB'
     timeout_before = wait_stats()[1]
     wait_until(lambda: wait_stats()[1] > timeout_before)
@@ -293,6 +310,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 XhciInventoryVerified=desktop_media,
                 XhciReadOnlyMmioVerified=desktop_media,
                 XhciFirmwareHandoff=handoff if desktop_media else None,
+                XhciCommandCompleted=desktop_media and command_probe,
                 XhciReservedBytes=pages * 4096 if desktop_media else 0,
                 PayloadSHA256=hashlib.sha256(packet[24:]).hexdigest(),
                 SbefSHA256=fixture['sbef_sha256'])

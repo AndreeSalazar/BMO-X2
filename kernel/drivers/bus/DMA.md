@@ -27,8 +27,13 @@ El puente del escritorio reserva cinco paginas contiguas de EfiLoaderData
 por debajo de 256 MiB y las entrega en los campos B8/C0 del contexto.
 El run `run-desktop-media-1c740af27864` comprueba 20480 bytes a cero,
 la cobertura por el mapa UEFI y la separacion del contexto y el codigo.
-La reserva permanece en blanco. Falta vincularla a las colas de xHCI
-y verificar la primera finalizacion de un comando del controlador.
+El perfil normal conserva la reserva en blanco. La variante
+`stage_desktop_media.py --xhci-command` usa esa reserva con qemu-xhci
+para un comando No Op y coteja el TRB de finalizacion. Comprueba parada,
+restauracion del registro PCI Command y retiro de las paginas MMIO.
+La etapa se guarda bajo `qemu-only`; usa el controlador virtual y no
+concede DMA a Ring 3. Faltan el dominio IOMMU, la enumeracion y las
+transferencias de teclado y raton.
 
 [Revocacion de pagina](../../mm/virtual/revoke/HOT-UNMAP.md) |
 [Referencia de DMA en Linux](https://docs.kernel.org/core-api/dma-api-howto.html)
