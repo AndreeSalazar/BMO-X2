@@ -5,6 +5,67 @@ const SHIFT: u8 = 0x01;
 const CTRL: u8 = 0x02;
 
 #[test]
+fn usb_reports_switch_workspaces_and_forward_f2() {
+    let mut source = usb_hid::BootKeyboard::default();
+    let mut keyboard = Keyboard::default();
+    let mut desktop = Desktop::<2>::new();
+    let mut f2 = 0;
+    let mut emit = |change: usb_hid::KeyChange| {
+        if !change.route(&mut keyboard, &mut desktop) && change.scancode == 0x3c {
+            f2 += 1;
+        }
+    };
+    let report = [0x09, 0, 0x1f, 0x3b, 0x3b, 0, 0, 0];
+    source.update(&report, &mut emit).unwrap();
+    source.update(&report, &mut emit).unwrap();
+    source.disconnect(emit);
+    assert_eq!(desktop.active().number(), 2);
+    assert_eq!(f2, 2);
+}
+
+#[test]
+fn usb_keyboard_preserves_held_keys_on_rollover_and_releases_on_disconnect() {
+    let mut source = usb_hid::BootKeyboard::default();
+    let mut pressed = 0;
+    let mut released = 0;
+    let mut emit = |change: usb_hid::KeyChange| {
+        assert!(change.extended);
+        assert_eq!(change.scancode, 0x48);
+        if change.pressed {
+            pressed += 1
+        } else {
+            released += 1
+        }
+    };
+    source
+        .update(&[0, 0, 0x52, 0, 0, 0, 0, 0], &mut emit)
+        .unwrap();
+    assert_eq!(
+        source.update(&[0, 0, 1, 1, 1, 1, 1, 1], &mut emit),
+        Err(usb_hid::ReportError::KeyboardStatus)
+    );
+    assert_eq!(
+        source.update(&[], &mut emit),
+        Err(usb_hid::ReportError::Length)
+    );
+    source.disconnect(emit);
+    assert_eq!((pressed, released), (1, 1));
+}
+
+#[test]
+fn usb_mouse_preserves_signed_motion_and_releases_buttons() {
+    let mut source = usb_hid::BootMouse::default();
+    let motion = source.update(&[1, 0xff, 0x80]).unwrap();
+    assert_eq!(
+        (motion.dx, motion.dy, motion.buttons, motion.changed_buttons),
+        (-1, -128, 1, 1)
+    );
+    assert_eq!(source.update(&[0, 0]), Err(usb_hid::ReportError::Length));
+    assert_eq!(source.disconnect().changed_buttons, 1);
+    assert_eq!(source.disconnect().changed_buttons, 0);
+}
+
+#[test]
 fn parent_event_keeps_raw_scancode_press_and_release() {
     assert_eq!(KeyEvent::from_bmo_x(0), Ok(None));
     assert_eq!(

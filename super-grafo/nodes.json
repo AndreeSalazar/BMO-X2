@@ -2061,6 +2061,20 @@
       "falta": "Conectar la capacidad de entrada y probar teclado real en QEMU."
     },
     {
+      "id": "desktop-usb-hid",
+      "titulo": "Teclado y raton USB HID boot",
+      "ruta": "userspace/services/desktop/src/usb_hid.rs",
+      "estado": "host",
+      "anillo": "3",
+      "lenguaje": "Rust",
+      "posicion": [2220, 2200],
+      "que": "Traduce informes USB boot en flancos de teclado, movimiento y botones del raton.",
+      "entrada": "Informes de endpoints HID con protocolo boot seleccionado.",
+      "salida": "Eventos para atajos, cliente enfocado y puntero.",
+      "aceptacion": "HOST comprueba Ctrl Super 2, F2, deltas con signo, rollover y liberacion al desconectar.",
+      "falta": "Conectar el transporte xHCI y probar perifericos USB en QEMU y hardware."
+    },
+    {
       "id": "doom-fixed-probe",
       "titulo": "Sonda DOOM C a SBEF",
       "ruta": "tools/build-doom-probe.ps1",
@@ -2118,6 +2132,16 @@
     }
   ],
   "relaciones": [
+    {
+      "de": "desktop-usb-hid",
+      "a": "desktop-keyboard",
+      "clase": "codigo"
+    },
+    {
+      "de": "desktop-usb-hid",
+      "a": "device-io",
+      "clase": "plan"
+    },
     {
       "de": "physical-boot",
       "a": "boot-bridge",

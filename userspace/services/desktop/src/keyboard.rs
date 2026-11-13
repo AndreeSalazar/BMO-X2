@@ -63,27 +63,36 @@ impl Keyboard {
         let Some(event) = KeyEvent::from_bmo_x(raw)? else {
             return Ok(None);
         };
-        let number = event.scancode - 1;
+        Ok(Some(self.route(desktop, event, modifiers)))
+    }
+
+    pub fn route<const N: usize>(
+        &mut self,
+        desktop: &mut Desktop<'_, N>,
+        event: KeyEvent,
+        modifiers: u8,
+    ) -> KeyRoute {
+        let number = event.scancode.saturating_sub(1);
         if !(1..=9).contains(&number) {
-            return Ok(Some(KeyRoute::Forward(event)));
+            return KeyRoute::Forward(event);
         }
         let bit = 1 << (number - 1);
         if !event.pressed {
             let was_captured = self.captured & bit != 0;
             self.down &= !bit;
             self.captured &= !bit;
-            return Ok(Some(if was_captured {
+            return if was_captured {
                 KeyRoute::Consumed
             } else {
                 KeyRoute::Forward(event)
-            }));
+            };
         }
         if self.down & bit != 0 {
-            return Ok(Some(if self.captured & bit != 0 {
+            return if self.captured & bit != 0 {
                 KeyRoute::Consumed
             } else {
                 KeyRoute::Forward(event)
-            }));
+            };
         }
         self.down |= bit;
         match (modifiers & !MOD_CAPS, Workspace::new(number)) {
@@ -94,10 +103,10 @@ impl Keyboard {
             (MOD_SUPER_SHIFT, Some(workspace)) => {
                 desktop.move_focused(workspace);
             }
-            _ => return Ok(Some(KeyRoute::Forward(event))),
+            _ => return KeyRoute::Forward(event),
         }
         self.captured |= bit;
-        Ok(Some(KeyRoute::Consumed))
+        KeyRoute::Consumed
     }
 
     /// Reset the local key state when the input source is replaced.

@@ -126,6 +126,7 @@
 | [Reglas de jerarquia de Ring 3](../userspace/POLICY.md) | diseno | contrato | Separa runtime, supervisor, servicios y aplicaciones mediante capacidades. |
 | [Escritorio y espacios de trabajo](../userspace/services/desktop) | qemu | 3 | Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX. |
 | [Teclado y atajos del escritorio](../userspace/services/desktop/src/keyboard.rs) | host | 3 | Convierte eventos de BMO-X en cambios de espacio, foco numerado y movimiento de ventanas. |
+| [Teclado y raton USB HID boot](../userspace/services/desktop/src/usb_hid.rs) | host | 3 | Traduce informes USB boot en flancos de teclado, movimiento y botones del raton. |
 | [Sonda DOOM C a SBEF](../tools/build-doom-probe.ps1) | qemu | host | Compila la aritmetica original de DoomGeneric y empaqueta un cliente ELF64. |
 | [DoomGeneric E1M1 en Ring 3](../tools/build-doom-engine.ps1) | qemu | host | Enlaza DoomGeneric con el runtime C y presenta el juego por CPU. |
 | [Mezcla y controles de audio](../userspace/services/audio) | host | 3 | Mezcla PCM estereo de hasta dieciseis fuentes con ganancia acotada. |
@@ -135,6 +136,8 @@
 
 | Quien usa | De quien depende | Clase |
 |---|---|---|
+| desktop-usb-hid | desktop-keyboard | codigo |
+| desktop-usb-hid | device-io | plan |
 | physical-boot | boot-bridge | plan |
 | physical-boot | qemu-runner | plan |
 | physical-boot | boot-context | plan |

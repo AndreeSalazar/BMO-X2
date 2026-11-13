@@ -1344,6 +1344,17 @@ Depende de: Escritorio y espacios de trabajo (codigo), Entrada, pantalla y audio
 Aceptacion: HOST verifica cambio de espacio, movimiento, repeticion, liberacion y reenvio.
 Pendiente: Conectar la capacidad de entrada y probar teclado real en QEMU.
 
+## userspace/services/desktop/src/usb_hid.rs
+
+Traduce informes USB boot en flancos de teclado, movimiento y botones del raton.
+
+Estado: HOST. Anillo: 3. Lenguaje: Rust.
+Entrada: Informes de endpoints HID con protocolo boot seleccionado.
+Salida: Eventos para atajos, cliente enfocado y puntero.
+Depende de: Teclado y atajos del escritorio (codigo), Entrada, pantalla y audio (plan).
+Aceptacion: HOST comprueba Ctrl Super 2, F2, deltas con signo, rollover y liberacion al desconectar.
+Pendiente: Conectar el transporte xHCI y probar perifericos USB en QEMU y hardware.
+
 ## tools/build-doom-probe.ps1
 
 Compila la aritmetica original de DoomGeneric y empaqueta un cliente ELF64.
@@ -1410,4 +1421,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-126 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+127 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

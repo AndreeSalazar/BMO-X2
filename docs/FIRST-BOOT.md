@@ -68,9 +68,11 @@ ULTRA-LinuX usa `xhci_hcd` y la capa HID del kernel Linux en su perfil PC.
 
 El ensayo de BMO-X2 incorpora un inventario PCI xHCI de solo lectura
 con aviso visible en Ring 3. Detectar la clase PCI no habilita USB.
-La siguiente entrega necesita el transporte xHCI, memoria DMA concedida
-por Ring 0, transferencias con plazo y un servicio Rust que traduzca los
-informes HID a eventos de teclado y puntero. La prueba de cierre debe
+El escritorio Rust ya traduce informes HID boot en pruebas HOST. Mantiene
+flancos y modificadores del teclado, deltas y botones del raton, y libera
+el estado al desconectar. Faltan el transporte xHCI, memoria DMA concedida
+por Ring 0, transferencias con plazo y su entrega a este decodificador.
+La prueba de cierre debe
 inyectar eventos por dispositivos USB en QEMU y luego repetir F2 y
 movimiento del puntero en el equipo.
 
