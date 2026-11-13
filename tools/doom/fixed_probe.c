@@ -30,11 +30,13 @@ static volatile fixed_t seed = FRACUNIT * 3;
 static volatile fixed_t result;
 
 #ifdef BMO_WAD
+#include <stdint.h>
+
 static unsigned long read_wad(unsigned long offset) {
     return invoke(4, 4, offset, 0);
 }
 
-static int find_e1m1(void) {
+static unsigned long find_e1m1(unsigned long *remaining) {
     if (invoke(1, 4, 0, 0) != ~0ul || read_wad(~0ul) != ~0ul
         || read_wad(0) != 0x44415749) {
         return 0;
@@ -50,10 +52,105 @@ static int find_e1m1(void) {
     for (unsigned long i = 0; i < count; ++i) {
         unsigned long record = directory + 16 * i;
         if (read_wad(record + 8) == 0x314d3145 && read_wad(record + 12) == 0) {
-            return 1;
+            *remaining = count - i - 1;
+            return record + 16;
         }
     }
     return 0;
+}
+
+typedef struct {
+    unsigned long start;
+    unsigned long size;
+} Lump;
+
+static Lump find_lump(unsigned long record, unsigned long count,
+                      unsigned long name_lo, unsigned long name_hi) {
+    for (unsigned long i = 0; i < count && i < 10; ++i, record += 16) {
+        if (read_wad(record + 8) == name_lo && read_wad(record + 12) == name_hi) {
+            unsigned long start = read_wad(record);
+            unsigned long size = read_wad(record + 4);
+            if (start >= 12 && start <= 0x1000000 && size >= 4 && size <= 0x1000000
+                && read_wad(start + size - 4) != ~0ul) {
+                return (Lump){start, size};
+            }
+            break;
+        }
+    }
+    return (Lump){0, 0};
+}
+
+static void fill(unsigned long x, unsigned long y, unsigned long w,
+                 unsigned long h, unsigned long color) {
+    if (invoke(1, 1, x | y << 16 | w << 32 | h << 48, color) != 0) {
+        __builtin_trap();
+    }
+}
+
+static void line(int x, int y, int end_x, int end_y) {
+    int dx = end_x >= x ? end_x - x : x - end_x;
+    int dy = end_y >= y ? y - end_y : end_y - y;
+    int sx = x < end_x ? 1 : -1;
+    int sy = y < end_y ? 1 : -1;
+    int error = dx + dy;
+    for (;;) {
+        fill(x, y, 1, 1, 0x6ee7b7);
+        if (x == end_x && y == end_y) {
+            break;
+        }
+        int twice = 2 * error;
+        if (twice >= dy) {
+            error += dy;
+            x += sx;
+        }
+        if (twice <= dx) {
+            error += dx;
+            y += sy;
+        }
+    }
+}
+
+static int draw_e1m1(void) {
+    unsigned long remaining;
+    unsigned long record = find_e1m1(&remaining);
+    if (!record) {
+        return 0;
+    }
+    Lump vertices = find_lump(record, remaining, 0x54524556, 0x53455845); /* VERTEXES */
+    Lump lines = find_lump(record, remaining, 0x454e494c, 0x53464544); /* LINEDEFS */
+    if (!vertices.size || vertices.size % 4 || vertices.size > 4096
+        || !lines.size || lines.size % 14 || lines.size > 14336) {
+        return 0;
+    }
+    int min_x = 32767, min_y = 32767, max_x = -32768, max_y = -32768;
+    for (unsigned long offset = 0; offset < vertices.size; offset += 4) {
+        unsigned long pair = read_wad(vertices.start + offset);
+        int x = (int16_t)pair, y = (int16_t)(pair >> 16);
+        if (x < min_x) min_x = x;
+        if (x > max_x) max_x = x;
+        if (y < min_y) min_y = y;
+        if (y > max_y) max_y = y;
+    }
+    int span_x = max_x - min_x, span_y = max_y - min_y;
+    int span = span_x > span_y ? span_x : span_y;
+    if (!span) {
+        return 0;
+    }
+    fill(0, 0, 640, 400, 0x0d0e17);
+    for (unsigned long offset = 0; offset < lines.size; offset += 14) {
+        unsigned long ends = read_wad(lines.start + offset);
+        unsigned long a = (ends & 0xffff) * 4, b = (ends >> 16) * 4;
+        if (a >= vertices.size || b >= vertices.size) {
+            return 0;
+        }
+        a = read_wad(vertices.start + a);
+        b = read_wad(vertices.start + b);
+        line(320 + ((int16_t)a * 2 - min_x - max_x) * 150 / span,
+             220 + (min_y + max_y - (int16_t)(a >> 16) * 2) * 150 / span,
+             320 + ((int16_t)b * 2 - min_x - max_x) * 150 / span,
+             220 + (min_y + max_y - (int16_t)(b >> 16) * 2) * 150 / span);
+    }
+    return 1;
 }
 #endif
 
@@ -68,7 +165,7 @@ void bmo_main(void) {
     seed = product / 3;
     result = product;
 #ifdef BMO_WAD
-    if (!find_e1m1()) {
+    if (!draw_e1m1()) {
         __builtin_trap();
     }
 #endif

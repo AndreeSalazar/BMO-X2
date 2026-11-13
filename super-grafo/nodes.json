@@ -2058,7 +2058,7 @@
       "entrada": "m_fixed.c fijado, toolchain x86-64 ELF y portal ABI 1.",
       "salida": "Tabla ELF, doom-fixed.sbef e informe QEMU de ejecucion CPL3.",
       "aceptacion": "QEMU comprueba tres cuadros HD y despues el SBEF de GCC, tres syscalls y borrado.",
-      "falta": "Cargador SBEF externo, presentacion por bloques, entrada enfocada, reloj y lectura de WAD sin Director."
+      "falta": "Tras el plano E1M1 en QEMU, faltan lectura desde disco, presentacion por bloques, entrada, reloj y motor completo."
     },
     {
       "id": "audio-mixer",
