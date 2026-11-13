@@ -59,6 +59,7 @@ session_gate:
     jne scale
     cmp $400, %edx
     jne scale
+    incl %gs:0x32c
     mov 0x20(%rbp), %ecx
     mov 0x24(%rbp), %edx
     jmp geometry_ready

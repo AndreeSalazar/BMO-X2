@@ -160,8 +160,8 @@ con `-AbiRun` apuntando al run de `bmo-x2.ps1 -Accion abi` y
 
 ## Sesion interactiva en QEMU
 
-El perfil de sesion arranca un SBEF Rust embebido de 1976 bytes despues
-de la intro. Dibuja un panel con cuatro espacios y dos ventanas de
+El perfil de sesion con modulo externo arranca un SBEF Rust de
+2128 bytes despues de la intro. Dibuja un panel con cuatro espacios y dos ventanas de
 muestra. QEMU verifica el cambio con Ctrl+Super+1-4, el foco con
 Super+2 y su restauracion al volver. Las teclas 1-4 tambien cambian de
 espacio si Windows intercepta los atajos con Super.
@@ -170,17 +170,21 @@ El raton PS/2 mueve un puntero dibujado por software. El clic
 izquierdo enfoca una ventana. QEMU verifica el movimiento, la
 limpieza de la posicion anterior y el cambio de foco. El viewport
 logico de 640 por 400 se dibuja a escala 2x en 1280 por 800.
-El prototipo redibuja al mover el puntero. Queda limitar el dano a
-los rectangulos anterior y nuevo antes de medir la latencia.
+Al mover el puntero, Ring 3 recompone solo su rectangulo anterior
+de 7 por 10 pixeles logicos y dibuja la nueva posicion. QEMU
+comprueba cinco movimientos sin repintado completo, incluido el
+paso sobre una linea de la ventana. Los cambios de foco y espacio
+siguen repintando el cuadro.
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1 -Profile desktop-session -Wait
 ```
 
-Para construir la sesion, usa `-Session -AbiRun <run-abi>
--IntroRun <run-gato>` con `tools/build-desktop.ps1`. Genera el run
-de la intro compacta con `bmo-x2.ps1 -Accion gato`. El paquete
-observado ocupa 4087 de los 4096 bytes del puente.
+Para construir la sesion con intro, usa `-Session -External
+-AbiRun <run-abi> -IntroRun <run-gato>` con
+`tools/build-desktop.ps1`. Genera el run de la intro compacta con
+`bmo-x2.ps1 -Accion gato`. El perfil embebido anterior con intro
+ocupaba 4087 de los 4096 bytes del puente.
 
 La puerta de prueba concede dos permisos fijos al cliente unico.
 Pantalla autoriza el dibujo y entrada autoriza la lectura PS/2.
@@ -197,7 +201,7 @@ siguen pendientes.
 ### SBEF separado en QEMU
 
 Agrega `-External` al build de sesion. QEMU carga el SBEF como modulo
-separado en RAM. El paquete con intro ocupa 2280 bytes y conserva la
+separado en RAM. El paquete con intro ocupa 2288 bytes y conserva la
 misma sesion. El validador de Ring 0 admite una region RX y QEMU
 comprueba un rechazo W+X. La lectura del archivo desde el disco del
 invitado sigue pendiente.

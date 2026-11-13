@@ -27,33 +27,60 @@ fn fill(x: u64, y: u64, w: u64, h: u64, color: u32) {
     invoke(DISPLAY, FILL, x | y << 16 | w << 32 | h << 48, color);
 }
 
-fn digit(x: u64, y: u64, index: usize, color: u32) {
-    let pattern = DIGITS[index];
-    for bit in 0..15 {
-        if pattern & (1 << bit) != 0 {
-            fill(x + bit % 3 * 3, y + bit / 3 * 3, 3, 3, color);
+#[derive(Clone, Copy)]
+struct Clip {
+    left: u64,
+    top: u64,
+    right: u64,
+    bottom: u64,
+}
+
+impl Clip {
+    fn fill(self, x: u64, y: u64, w: u64, h: u64, color: u32) {
+        let left = x.max(self.left);
+        let top = y.max(self.top);
+        let right = (x + w).min(self.right);
+        let bottom = (y + h).min(self.bottom);
+        if left < right && top < bottom {
+            fill(left, top, right - left, bottom - top, color);
         }
     }
 }
 
-fn paint(space: usize, focus: usize) {
+const VIEWPORT: Clip = Clip {
+    left: 0,
+    top: 0,
+    right: 640,
+    bottom: 400,
+};
+
+fn digit(clip: Clip, x: u64, y: u64, index: usize, color: u32) {
+    let pattern = DIGITS[index];
+    for bit in 0..15 {
+        if pattern & (1 << bit) != 0 {
+            clip.fill(x + bit % 3 * 3, y + bit / 3 * 3, 3, 3, color);
+        }
+    }
+}
+
+fn paint(clip: Clip, space: usize, focus: usize) {
     let accent = ACCENTS[space];
-    fill(0, 0, 640, 400, 0x0d0e17);
-    fill(0, 0, 640, 44, 0x161722);
+    clip.fill(0, 0, 640, 400, 0x0d0e17);
+    clip.fill(0, 0, 640, 44, 0x161722);
     for i in 0..4 {
         let x = 216 + i as u64 * 56;
         let color = if i == space { accent } else { 0x5d647b };
-        digit(x + 12, 10, i, color);
-        fill(x, 33, 32, 3, color);
+        digit(clip, x + 12, 10, i, color);
+        clip.fill(x, 33, 32, 3, color);
     }
     for (i, x, y, w, h) in [(0, 52, 99, 315, 191), (1, 390, 147, 198, 151)] {
         let border = if i == focus { accent } else { 0x40465d };
-        fill(x, y, w, h, border);
-        fill(x + 2, y + 2, w - 4, h - 4, 0x171825);
-        fill(x + 2, y + 2, w - 4, 28, 0x232638);
-        digit(x + 14, y + 9, i, border);
+        clip.fill(x, y, w, h, border);
+        clip.fill(x + 2, y + 2, w - 4, h - 4, 0x171825);
+        clip.fill(x + 2, y + 2, w - 4, 28, 0x232638);
+        digit(clip, x + 14, y + 9, i, border);
         for line in 0..3 {
-            fill(x + 20, y + 58 + line * 17, w - 65 - line * 17, 2, 0x353c53);
+            clip.fill(x + 20, y + 58 + line * 17, w - 65 - line * 17, 2, 0x353c53);
         }
     }
 }
@@ -91,7 +118,7 @@ extern "C" fn bmo_main() -> ! {
     {
         panic!("session permissions");
     }
-    paint(space, focus[space]);
+    paint(VIEWPORT, space, focus[space]);
     cursor(x, y);
     loop {
         let raw = invoke(INPUT, READ_INPUT, 0, 0);
@@ -124,9 +151,19 @@ extern "C" fn bmo_main() -> ! {
                     }
                     left = pressed;
                     if (next_x, next_y, focus[space]) != (x, y, previous_focus) {
+                        let clip = if focus[space] == previous_focus {
+                            Clip {
+                                left: x as u64,
+                                top: y as u64,
+                                right: x as u64 + 7,
+                                bottom: y as u64 + 10,
+                            }
+                        } else {
+                            VIEWPORT
+                        };
+                        paint(clip, space, focus[space]);
                         x = next_x;
                         y = next_y;
-                        paint(space, focus[space]);
                         cursor(x, y);
                     }
                 }
@@ -154,7 +191,7 @@ extern "C" fn bmo_main() -> ! {
                 let selected = usize::from(key - 2);
                 if selected != space {
                     space = selected;
-                    paint(space, focus[space]);
+                    paint(VIEWPORT, space, focus[space]);
                     cursor(x, y);
                 }
             }
@@ -162,7 +199,7 @@ extern "C" fn bmo_main() -> ! {
                 let selected = usize::from(key - 2);
                 if selected != focus[space] {
                     focus[space] = selected;
-                    paint(space, selected);
+                    paint(VIEWPORT, space, selected);
                     cursor(x, y);
                 }
             }

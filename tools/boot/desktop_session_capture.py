@@ -105,11 +105,29 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     wait_until(lambda: logical(216, 33, 0x5ad8ff))
     key('2')
     wait_until(lambda: logical(390, 147, 0xad92ff) and ring3())
-    command('input-send-event', {'events': [
-        {'type': 'rel', 'data': {'axis': 'x', 'value': -80}},
-        {'type': 'rel', 'data': {'axis': 'y', 'value': -32}},
-    ]})
-    wait_until(lambda: logical(240, 168, 0xe7efff) and not logical(320, 200, 0xe7efff))
+
+    def full_repaints():
+        return int.from_bytes(memory(address + 0x1a32c, 4, 'full-repaints'), 'little')
+
+    def move(dx, dy):
+        command('input-send-event', {'events': [
+            {'type': 'rel', 'data': {'axis': 'x', 'value': dx}},
+            {'type': 'rel', 'data': {'axis': 'y', 'value': dy}},
+        ]})
+
+    baseline = full_repaints()
+    assert baseline > 0, 'Contador de repintados sin inicializar'
+    move(-80, -32)
+    wait_until(lambda: logical(240, 168, 0xe7efff) and logical(320, 200, 0x171825))
+    move(4, 0)
+    wait_until(lambda: logical(244, 168, 0xe7efff) and logical(240, 168, 0x171825))
+    move(-4, 0)
+    wait_until(lambda: logical(240, 168, 0xe7efff) and logical(246, 173, 0x171825))
+    move(0, -12)
+    wait_until(lambda: logical(240, 157, 0xe7efff))
+    move(0, 12)
+    wait_until(lambda: logical(240, 168, 0xe7efff) and logical(240, 157, 0x353c53))
+    assert full_repaints() == baseline, 'Mover el cursor repinto la pantalla completa'
     for down in (True, False):
         command('input-send-event', {'events': [{'type': 'btn', 'data': {'button': 'left', 'down': down}}]})
     wait_until(lambda: logical(52, 99, 0xad92ff) and logical(390, 147, 0x40465d))
@@ -118,6 +136,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 IntroFramesObserved=sorted(frames), WorkspacesVerified=[1, 2, 3, 4],
                 KeyboardVerified=True, FocusRestored=True, DesktopSession=True, IntroReplaced=True,
                 MouseVerified=True, Framebuffer=[width, height], DesktopScale=scale,
+                PointerMovesVerified=5, FullRepaintsDuringPointerMoves=0,
                 ExternalSbef=external_image is not None,
                 PayloadSHA256=hashlib.sha256(packet[24:]).hexdigest(),
                 SbefSHA256=fixture['sbef_sha256'])

@@ -1320,7 +1320,7 @@ Entrada: Eventos de entrada, superficies de clientes y capacidad de pantalla.
 Salida: Cuadro en RAM, espacio activo, foco y movimiento de ventanas.
 Depende de: Supervisor Rust de Ring 3 (plan), Mezcla y controles de audio (plan).
 Aceptacion: QEMU verifica cuatro espacios, raton, foco y cuatro rechazos de permisos de pantalla y entrada.
-Pendiente: Cargar SBEF externo, conectar el compositor, repintar solo el area del cursor y entregar entrada por eventos.
+Pendiente: Leer SBEF desde disco, conectar el compositor completo y entregar entrada por eventos.
 
 ## userspace/services/desktop/src/keyboard.rs
 
