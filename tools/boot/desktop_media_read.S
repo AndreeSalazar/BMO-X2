@@ -55,11 +55,11 @@ desktop_media_read:
     test %rax, %rax
     js release
 #ifdef XHCI_COMMAND_PROBE
-    # The image builder fills this fixed 1024-byte code slot.
+    # The image builder fills this fixed 1536-byte code slot.
     .byte 0x48, 0x8d, 0x35
-    .long 0x2c00 - 0x2800 - (. - desktop_media_read) - 4
+    .long 0x2a00 - 0x2800 - (. - desktop_media_read) - 4
     lea 0x200(%rbp), %rdi
-    mov $128, %ecx
+    mov $192, %ecx
     cld
     rep movsq
 #endif

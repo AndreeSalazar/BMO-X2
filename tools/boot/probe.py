@@ -128,7 +128,9 @@ def run(case):
     if wad.is_file():
         staging += ['-device', f'loader,file={wad},addr=0x3000000,force-raw=on']
     if args.doom_fixture and desktop_media:
-        staging += ['-device', 'qemu-xhci']
+        staging += ['-device', 'qemu-xhci,id=bmo-xhci']
+        if (ROOT / 'xhci-command.txt').is_file():
+            staging += ['-device', 'usb-kbd,bus=bmo-xhci.0']
     process = subprocess.Popen([
         str(qemu), '-machine', 'pc', '-cpu', args.cpu, '-accel', 'tcg', '-m', f'{args.ram_mib}M', '-smp', '1',
         '-drive', f'if=pflash,format=raw,unit=0,readonly=on,file={share / "edk2-x86_64-code.fd"}',

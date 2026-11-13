@@ -131,6 +131,13 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
             assert original == restored, 'El comando PCI no se restauro'
             pointer, result, control = struct.unpack_from('<QII', reserved, 0x2000)
             assert pointer == dma + 4096 and result >> 24 == 1 and (control >> 10) & 63 == 33
+            device_state = tuple(memory(address + 0x1a380, 5, 'xhci-device'))
+            port, speed, slot, addressed, descriptor_read = device_state
+            assert port and speed in (1, 2, 3) and slot == addressed == descriptor_read == 1, device_state
+            output_slot = struct.unpack_from('<I', reserved, 0x440c)[0]
+            assert (output_slot >> 27) & 0x1f == 2 and output_slot & 0xff
+            descriptor = reserved[0x4c00:0x4c12]
+            assert descriptor[:2] == bytes([18, 1]) and descriptor[17] >= 1
         else:
             assert reserved == bytes(pages * 4096)
         assert memory(address + 0x1a358, 5, 'xhci-inventory') == struct.pack('<IB', 1, 1)
@@ -159,6 +166,14 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         assert memory(address + 0x15400, 8, 'xhci-alias-pde') == bytes(8)
         assert memory(address + 0x1e000, 24, 'xhci-alias-pte') == bytes(24)
         assert logical(24, 354, 0x232638), 'El escritorio no mostro el aviso de entrada USB'
+        if command_probe:
+            # QEMU directs keyboard input to usb-kbd. The xHCI probe stops
+            # the controller after EP0. PS/2 interaction has its own run.
+            return dict(Case='normal', Passed=True, UserCpl=3, DesktopSession=True,
+                        XhciCommandCompleted=True, XhciUsbDeviceAddressed=True,
+                        XhciUsbDeviceDescriptorRead=True, XhciPort=port, XhciSpeed=speed,
+                        XhciSlot=slot, XhciControllerStopped=True,
+                        UsbDeviceDescriptor=descriptor.hex(), UsbInputVerified=False)
     timeout_before = wait_stats()[1]
     wait_until(lambda: wait_stats()[1] > timeout_before)
     event_before = wait_stats()[0]

@@ -75,9 +75,9 @@ def main():
     image[extension:extension+len(reader)] = reader
     if args.xhci_command:
         driver = (run / 'xhci-command.bin').read_bytes()
-        if any(image[0x2c00:]) or not 0 < len(driver) <= 1024:
+        if any(image[0x2a00:]) or not 0 < len(driver) <= 1536:
             raise ValueError('La sonda xHCI no cabe en su etapa EFI')
-        image[0x2c00:0x2c00+len(driver)] = driver
+        image[0x2a00:0x2a00+len(driver)] = driver
     allocator = (run / 'desktop_media_alloc.bin').read_bytes()
     if image[0x400:0x404] != bytes.fromhex('4883ec28') or len(allocator) > 0xf0:
         raise ValueError('Cambio la reserva de memoria del puente')
