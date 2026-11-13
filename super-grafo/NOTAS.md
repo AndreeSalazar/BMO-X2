@@ -957,7 +957,7 @@ Entrada: Dispositivos descubiertos, buffers y eventos.
 Salida: Canales y ventanas de aparato acotados.
 Depende de: Buses, recursos y DMA (plan), Comunicacion entre procesos (plan).
 Aceptacion: Pruebas de acceso, revocacion y fallo de servicio por dispositivo admitido.
-Pendiente: El ensayo detecta PCI xHCI. Faltan MMIO y DMA acotados, transporte xHCI y eventos HID para teclado y raton.
+Pendiente: El ensayo verifica PCI xHCI y lectura temporal de capacidades MMIO. Faltan ventana operativa, DMA acotado y eventos HID.
 
 ## kernel/drivers/network
 

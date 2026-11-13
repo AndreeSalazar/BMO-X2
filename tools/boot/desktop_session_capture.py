@@ -115,6 +115,13 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         if low & 6 == 4:
             bar |= high << 32
         assert bar != 0 and bar == next(region['address'] for region in controller['regions'] if region['bar'] == 0)
+        caps, parameters = struct.unpack('<II', memory(address + 0x1a370, 8, 'xhci-capabilities'))
+        actual = command('human-monitor-command', {'command-line': f'xp /2wx {bar:#x}'})
+        words = actual.split(':', 1)[1].split()
+        assert (caps, parameters) == tuple(int(word, 16) for word in words[:2])
+        assert caps >> 16 and parameters & 0xff
+        assert memory(address + 0x15400, 8, 'xhci-alias-pde') == bytes(8)
+        assert memory(address + 0x1e000, 8, 'xhci-alias-pte') == bytes(8)
         assert logical(24, 354, 0x232638), 'El escritorio no mostro el aviso de entrada USB'
     timeout_before = wait_stats()[1]
     wait_until(lambda: wait_stats()[1] > timeout_before)
@@ -265,5 +272,6 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 CabinaCommandsVerified=4 if external_image is not None else 0,
                 SettingsVerified=external_image is not None,
                 XhciInventoryVerified=desktop_media,
+                XhciReadOnlyMmioVerified=desktop_media,
                 PayloadSHA256=hashlib.sha256(packet[24:]).hexdigest(),
                 SbefSHA256=fixture['sbef_sha256'])

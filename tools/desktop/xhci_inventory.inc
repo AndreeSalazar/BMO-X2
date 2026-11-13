@@ -37,6 +37,12 @@ inventory_next:
     in %dx, %eax
     mov %eax, %gs:0x368
     sub $4, %edx
+    lea -4(%ecx), %eax
+    out %eax, %dx
+    add $4, %edx
+    in %dx, %eax
+    mov %ax, %gs:0x36c
+    sub $4, %edx
 inventory_count:
     inc %r8d
 inventory_advance:
@@ -47,6 +53,101 @@ inventory_advance:
     out %eax, %dx
     mov %r8d, %gs:0x358
     movb $1, %gs:0x35c
+    test %r8d, %r8d
+    jz inventory_cached
+    call xhci_read_caps
 inventory_cached:
     mov %gs:0x358, %eax
     jmp finish
+
+# Use a temporary supervisor-only 4 KiB mapping in the private page tables.
+# Context page 0x1e is reserved here for the alias PT, below the boot stack.
+xhci_read_caps:
+    testw $2, %gs:0x36c
+    jz caps_done
+    mov %gs:0x364, %eax
+    mov %eax, %ecx
+    and $0x0f, %ecx
+    and $-16, %eax
+    cmp $4, %ecx
+    je caps_64
+    test %ecx, %ecx
+    jnz caps_done
+    jmp caps_address
+caps_64:
+    mov %gs:0x368, %edx
+    cmp $0xff, %edx
+    ja caps_done
+    shl $32, %rdx
+    or %rdx, %rax
+caps_address:
+    cmp $0x10000000, %rax
+    jb caps_done
+    test $0xfff, %eax
+    jnz caps_done
+    # Reject overlap with a firmware memory descriptor other than MMIO.
+    mov 0x60(%rbp), %r8
+    cmp $40, %r8
+    jb caps_done
+    cmp $256, %r8
+    ja caps_done
+    mov 0x50(%rbp), %rcx
+    cmp $65536, %rcx
+    ja caps_done
+    lea 0x1000(%rbp), %rsi
+caps_map_next:
+    test %rcx, %rcx
+    jz caps_map
+    cmp %r8, %rcx
+    jb caps_done
+    mov 8(%rsi), %rdx
+    cmp %rax, %rdx
+    ja caps_map_advance
+    mov %rax, %rdi
+    sub %rdx, %rdi
+    shr $12, %rdi
+    cmp 24(%rsi), %rdi
+    jae caps_map_advance
+    cmpl $11, (%rsi)
+    jne caps_done
+caps_map_advance:
+    add %r8, %rsi
+    sub %r8, %rcx
+    jmp caps_map_next
+caps_map:
+    lea 0x1e000(%rbp), %rdi
+    mov %rax, %r8
+    xor %eax, %eax
+    mov $512, %ecx
+    cld
+    rep stosq
+    lea 0x1e003(%rbp), %rax
+    mov %rax, 0x15400(%rbp)
+    or $0x19, %r8
+    bts $63, %r8
+    mov %r8, 0x1e000(%rbp)
+    mov $0x10000000, %edi
+    invlpg (%rdi)
+    mov (%rdi), %eax
+    mov 4(%rdi), %edx
+    movq $0, 0x15400(%rbp)
+    movq $0, 0x1e000(%rbp)
+    invlpg (%rdi)
+    cmp $0x20, %al
+    jb caps_done
+    test $3, %al
+    jnz caps_done
+    mov %eax, %ecx
+    shr $16, %ecx
+    cmp $0x96, %ecx
+    jb caps_done
+    cmp $0x200, %ecx
+    jae caps_done
+    test %dl, %dl
+    jz caps_done
+    test $0xff000000, %edx
+    jz caps_done
+    mov %eax, %gs:0x370
+    mov %edx, %gs:0x374
+caps_done:
+    ret
