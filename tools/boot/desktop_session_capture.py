@@ -20,9 +20,11 @@ def verify_external_rejection(command, memory, image):
                 assert memory(context + 0x18000, 8192, 'rejected-text') == bytes(8192)
                 offset = struct.unpack('<I', memory(context + 0x1a350, 4, 'rejected-field'))[0]
                 count = struct.unpack_from('<H', image, 10)[0]
-                assert offset == (84 if count == 2 else 52), 'El kernel no indico el campo de permisos'
-                if count == 2:
+                assert offset == 52 + 32*(count-1), 'El kernel no indico el campo de permisos'
+                if count >= 2:
                     assert memory(context + 0x1c000, 4096, 'rejected-rodata') == bytes(4096)
+                if count == 3:
+                    assert memory(context + 0x1d000, 4096, 'rejected-data') == bytes(4096)
                 return dict(Case='external-permissions', Passed=True, SbefAccepted=False,
                             UserCodeCopied=False, UserAddressSpaceActivated=False,
                             RejectedField='permissions', RejectedOffset=offset)
@@ -114,15 +116,22 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         offset, size = struct.unpack_from('<II', external_image, 40)
         payload = external_image[offset:offset+size]
         assert memory(address + 0x18000, 8192, 'external-text') == payload.ljust(8192, b'\0')
-        if count == 2:
+        if count >= 2:
             offset, size = struct.unpack_from('<II', external_image, 72)
             payload = external_image[offset:offset+size]
             assert memory(address + 0x1c000, 4096, 'external-rodata') == payload.ljust(4096, b'\0')
-            entries = struct.unpack('<QQQQ', memory(address + 0x17000, 32, 'external-pte'))
+            entries = struct.unpack('<QQQQQ', memory(address + 0x17000, 40, 'external-pte'))
             base = address + 0x13000
             assert tuple(entry & ~0x60 for entry in entries) == (
                 (base + 0x5000) | 5, (base + 0x6000) | 5,
-                (base + 0x8000) | (1 << 63) | 7, (base + 0x9000) | (1 << 63) | 5)
+                (base + 0x8000) | (1 << 63) | 7, (base + 0x9000) | (1 << 63) | 5,
+                (base + 0xa000) | (1 << 63) | 7 if count == 3 else 0)
+        if count == 3:
+            offset, file_size, memory_size = struct.unpack_from('<III', external_image, 104)
+            assert (file_size, memory_size) == (4, 8)
+            assert external_image[offset:offset+4] == struct.pack('<I', 0x424d4f32)
+            assert memory(address + 0x1d000, 4096, 'external-data') == (
+                struct.pack('<II', 0x52334441, 0x52334253).ljust(4096, b'\0'))
     for digit, x, color in [('2', 272, 0xad92ff), ('3', 328, 0x6ee7b7), ('4', 384, 0xff7c98)]:
         key('ctrl', 'meta_l', digit)
         wait_until(lambda: logical(x, 33, color) and logical(52, 99, color))
@@ -216,7 +225,9 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 PointerBurstEvents=48,
                 WaitHalted=True, WaitTimeoutVerified=True, WaitInputVerified=True,
                 ExternalSbef=external_image is not None,
-                ReadOnlyNxRegionVerified=external_image is not None and count == 2,
+                ReadOnlyNxRegionVerified=external_image is not None and count >= 2,
+                WritableNxRegionVerified=external_image is not None and count == 3,
+                UserDataAndBssVerified=external_image is not None and count == 3,
                 CabinaCommandsVerified=4 if external_image is not None else 0,
                 PayloadSHA256=hashlib.sha256(packet[24:]).hexdigest(),
                 SbefSHA256=fixture['sbef_sha256'])

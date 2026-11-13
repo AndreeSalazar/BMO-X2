@@ -1369,7 +1369,7 @@
       "entrada": "Bytes del ejecutable, limites, perfil SBEF y estado de CPU.",
       "salida": "Imagen mapeada con entrada y permisos comprobados o motivo de rechazo.",
       "aceptacion": "El lector independiente y CASM coinciden en el vector de oro y rechazos, con QEMU en Ring 3.",
-      "falta": "Trasladar a CASM la sonda QEMU de regiones RX y R/NX y agregar lectura del disco, RW/BSS y capacidades por proceso.",
+      "falta": "Trasladar a CASM la sonda QEMU de RX, R/NX y RW/NX con BSS, leer desde disco y asignar capacidades por proceso.",
       "pagina": true
     },
     {

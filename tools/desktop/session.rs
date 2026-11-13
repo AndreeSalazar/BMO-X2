@@ -6,6 +6,13 @@ use core::panic::PanicInfo;
 
 mod cabina;
 
+#[cfg(external_session)]
+use core::sync::atomic::{AtomicU32, Ordering::Relaxed};
+#[cfg(external_session)]
+static DATA_COOKIE: AtomicU32 = AtomicU32::new(0x424d4f32);
+#[cfg(external_session)]
+static BSS_COOKIE: AtomicU32 = AtomicU32::new(0);
+
 const ACCENTS: [u32; 4] = [0x5ad8ff, 0xad92ff, 0x6ee7b7, 0xff7c98];
 const DIGITS: [u16; 4] = [0x749a, 0x73e7, 0x79e7, 0x49ed];
 const DISPLAY: u64 = 1;
@@ -173,6 +180,14 @@ fn window_at(x: i16, y: i16) -> Option<usize> {
 
 #[unsafe(no_mangle)]
 extern "C" fn bmo_main() -> ! {
+    #[cfg(external_session)]
+    {
+        if DATA_COOKIE.load(Relaxed) != 0x424d4f32 || BSS_COOKIE.load(Relaxed) != 0 {
+            panic!("session data");
+        }
+        DATA_COOKIE.store(0x52334441, Relaxed);
+        BSS_COOKIE.store(0x52334253, Relaxed);
+    }
     let mut space = 0;
     let mut focus = [0; 4];
     let mut prefix = false;

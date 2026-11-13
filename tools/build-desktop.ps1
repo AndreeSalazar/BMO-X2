@@ -38,6 +38,7 @@ if ($Session) {
     $image = Join-Path $build.FullName 'desktop-session.sbef'
     $entrySource = Join-Path $PSScriptRoot 'desktop/session.rs'
     $guestFlags = @('-C','opt-level=z')
+    if ($External) { $guestFlags += @('--cfg','external_session') }
 }
 $fixtureArguments = @()
 if ($Session) {

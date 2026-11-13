@@ -8,7 +8,7 @@ external_sbef:
     add $8, %rsi
     cmp $64, %rdx
     jb reject
-    cmp $12384, %rdx
+    cmp $16512, %rdx
     ja reject
     movabs $0x0001000146454253, %rax
     cmp %rax, (%rsi)
@@ -17,7 +17,12 @@ external_sbef:
     cmp $0x1003e, %eax
     je one_region
     cmp $0x2003e, %eax
+    je two_regions
+    cmp $0x3003e, %eax
     jne reject
+    mov $128, %r8d
+    jmp header
+two_regions:
     mov $96, %r8d
     jmp header
 one_region:
@@ -54,6 +59,7 @@ header:
     cmp %rcx, %rax
     jae reject
     xor %r9d, %r9d
+    xor %r14d, %r14d
     cmp $64, %r8d
     je payload_checked
     cmpq $0x40003000, 64(%rsi)
@@ -74,6 +80,28 @@ header:
     cmp $4096, %eax
     ja reject
     sub %r9d, %edx
+    jb reject
+    cmp $128, %r8d
+    jne payload_checked
+    cmpq $0x40004000, 96(%rsi)
+    jne reject
+    lea (%rcx,%r8), %rax
+    add %r9d, %eax
+    cmp %eax, 104(%rsi)
+    jne reject
+    cmpl $6, 116(%rsi)
+    jne reject_data_permissions
+    cmpq $0, 120(%rsi)
+    jne reject
+    mov 108(%rsi), %r14d
+    mov 112(%rsi), %eax
+    test %eax, %eax
+    jz reject
+    cmp %r14d, %eax
+    jb reject
+    cmp $4096, %eax
+    ja reject
+    sub %r14d, %edx
 payload_checked:
     test %edx, %edx
     jne reject
@@ -105,7 +133,22 @@ payload_checked:
     lea 0x9005(%r11), %rax
     bts $63, %rax
     mov %rax, 0x4018(%r11)
+    cmp $128, %r8d
+    jne exit
+    lea 0xa000(%r11), %rdi
+    mov %r14d, %ecx
+    rep movsb
+    mov $4096, %ecx
+    sub %r14d, %ecx
+    xor %eax, %eax
+    rep stosb
+    lea 0xa007(%r11), %rax
+    bts $63, %rax
+    mov %rax, 0x4020(%r11)
     jmp exit
+reject_data_permissions:
+    movl $116, 0x350(%r10)
+    jmp reject
 reject_rodata_permissions:
     movl $84, 0x350(%r10)
     jmp reject

@@ -57,7 +57,7 @@ def main():
         (run / 'sbef-module.bin').write_bytes(staging)
         rejected = bytearray(staging)
         count = struct.unpack_from('<H', sbef, 10)[0]
-        struct.pack_into('<I', rejected, 8 + (84 if count == 2 else 52), 7)
+        struct.pack_into('<I', rejected, 8 + 52 + 32*(count-1), 7)
         (run / 'sbef-rejected.bin').write_bytes(rejected)
     if args.intro:
         (run / 'intro.x86').write_bytes(splash)

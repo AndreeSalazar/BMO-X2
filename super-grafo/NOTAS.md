@@ -869,7 +869,7 @@ Entrada: Bytes del ejecutable, limites, perfil SBEF y estado de CPU.
 Salida: Imagen mapeada con entrada y permisos comprobados o motivo de rechazo.
 Depende de: SBEF y congelacion del ABI (plan), Proceso y ciclo de vida (plan), Empaquetador ELF64 a SBEF (verificacion), Lector SBEF de referencia (verificacion), SBEF ABI 1 y llamadas desde CPL3 (verificacion), Contrato minimo del cargador SBEF (plan).
 Aceptacion: El lector independiente y CASM coinciden en el vector de oro y rechazos, con QEMU en Ring 3.
-Pendiente: Trasladar a CASM la sonda QEMU de regiones RX y R/NX y agregar lectura del disco, RW/BSS y capacidades por proceso.
+Pendiente: Trasladar a CASM la sonda QEMU de RX, R/NX y RW/NX con BSS, leer desde disco y asignar capacidades por proceso.
 
 ## kernel/syscalls/invoke
 

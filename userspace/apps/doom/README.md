@@ -146,9 +146,10 @@ de la etapa 1 desacopla ese presupuesto del codigo del juego. Antes de
 congelar el ABI, cotejar las restricciones del importador HOST (1 MiB
 de archivo y ventana virtual de 16 MiB) con el ELF del motor y su arena.
 
-El ensayo externo admite codigo RX de hasta dos paginas y una
-pagina de constantes R/NX desde un modulo que QEMU deposita en RAM.
-Cuando la segunda region recibe W+X, Ring 0 registra el offset 84
+El ensayo externo admite codigo RX de hasta dos paginas, una pagina
+de constantes R/NX y una de datos RW/NX con BSS a cero. QEMU
+deposita el modulo en RAM y verifica que Ring 3 modifica datos y BSS.
+Cuando la tercera region recibe W+X, Ring 0 registra el offset 116
 y QEMU verifica que el espacio de usuario
 queda sin activar. CABINA ya lista los contadores de WAIT. Mostrar
 los rechazos de carga dentro de una sesion requiere conservar el
