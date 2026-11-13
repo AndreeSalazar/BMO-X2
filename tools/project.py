@@ -129,7 +129,7 @@ def rejection_tests(data):
     mutation = copy.deepcopy(data); mutation['relaciones'][0]['a'] = 'no-existe'; bad_cases.append(mutation)
     mutation = copy.deepcopy(data); mutation['nodos'][0]['anillo'] = '0'; mutation['nodos'][0]['lenguaje'] = 'Rust'; bad_cases.append(mutation)
     mutation = copy.deepcopy(data)
-    next(n for n in mutation['nodos'] if n['id'] == 'rust-services')['ruta'] = 'tools/sbef_host'
+    next(n for n in mutation['nodos'] if n['id'] == 'rust-services')['ruta'] = 'tools/host'
     bad_cases.append(mutation)
     for target in ('rust-runtime', 'sbef-host-pack'):
         mutation = copy.deepcopy(data)

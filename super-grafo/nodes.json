@@ -1891,9 +1891,23 @@
       "falta": "Reutilizar los marcos con el asignador general y ejecutar un segundo proceso."
     },
     {
+      "id": "host-pipeline",
+      "titulo": "HOST: del ejecutable a SBEF",
+      "ruta": "tools/host",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python control",
+      "posicion": [9600, 4025],
+      "que": "Coordina la inspeccion, admision, diagnostico y publicacion de ejecutables x86-64.",
+      "entrada": "ELF64 o PE32+ enlazado y version de ABI.",
+      "salida": "SBEF admitido o un rechazo con campo y offset.",
+      "aceptacion": "El vector ELF conserva sus bytes y la CLI mantiene pack, inspect, probe y diagnosticos.",
+      "falta": "Ejecutar el cliente comun de varios productores y admitir PE32+ freestanding."
+    },
+    {
       "id": "sbef-host-pack",
       "titulo": "Empaquetador ELF64 a SBEF",
-      "ruta": "tools/sbef_host/elf.py",
+      "ruta": "tools/host/importers/elf.py",
       "estado": "host",
       "anillo": "host",
       "lenguaje": "Python control",
@@ -1902,12 +1916,12 @@
       "entrada": "Ejecutable x86-64 freestanding y contrato binario provisional.",
       "salida": "Cabecera, tabla de regiones y bytes de la imagen SBEF.",
       "aceptacion": "Vector fijo y rechazos de truncado, solape, permisos y entrada; pruebas C y C++.",
-      "falta": "Probar Rust ELF y cotejar la admision contra el cargador CASM."
+      "falta": "Cotejar la admision general contra el cargador CASM. El escritorio Rust ya usa ELF64 y SBEF."
     },
     {
       "id": "sbef-host-reader",
       "titulo": "Lector SBEF de referencia",
-      "ruta": "tools/sbef_host/format.py",
+      "ruta": "tools/host/sbef/format.py",
       "estado": "host",
       "anillo": "host",
       "lenguaje": "Python control",
@@ -1921,7 +1935,7 @@
     {
       "id": "sbef-host-pe",
       "titulo": "Inspeccion PE32+",
-      "ruta": "tools/sbef_host/pe.py",
+      "ruta": "tools/host/importers/pe.py",
       "estado": "host",
       "anillo": "host",
       "lenguaje": "Python control",
@@ -1964,7 +1978,7 @@
     {
       "id": "abi-toolchains",
       "titulo": "Banco de toolchains del ABI",
-      "ruta": "tools/abi_toolchain.py",
+      "ruta": "tools/host/toolchains/abi.py",
       "estado": "host",
       "anillo": "host",
       "lenguaje": "Python control",
@@ -1972,8 +1986,8 @@
       "que": "Construye un cliente comun y coteja los bytes de los stubs ELF.",
       "entrada": "Cliente C, cabecera ABI 1, compilador y vector HEX.",
       "salida": "SBEF para ELF o inventario de un objeto COFF MSVC.",
-      "aceptacion": "Clang produce SBEF ABI 1; MSVC verifica declaraciones en COFF.",
-      "falta": "Ejecutar GCC ELF y cargar los clientes en QEMU."
+      "aceptacion": "GCC y Clang producen SBEF ABI 1 y conservan los 28 bytes del portal; MSVC verifica declaraciones en COFF.",
+      "falta": "Ejecutar y comparar los clientes en QEMU y ampliar el banco a C++ y Rust."
     },
     {
       "id": "hot-unmap",
@@ -2132,6 +2146,26 @@
     }
   ],
   "relaciones": [
+    {
+      "de": "host-pipeline",
+      "a": "sbef-host-pack",
+      "clase": "codigo"
+    },
+    {
+      "de": "host-pipeline",
+      "a": "sbef-host-reader",
+      "clase": "codigo"
+    },
+    {
+      "de": "host-pipeline",
+      "a": "sbef-host-pe",
+      "clase": "codigo"
+    },
+    {
+      "de": "abi-toolchains",
+      "a": "host-pipeline",
+      "clase": "verificacion"
+    },
     {
       "de": "desktop-usb-hid",
       "a": "desktop-keyboard",

@@ -16,7 +16,7 @@ from genesis import check as genesis_check
 sys.path.insert(0,str(ROOT/'CASM'))
 from stop_verify import check as stop_check, CPU_PROFILE, CONTEXT_PROFILE, FAULT_PROFILE, MEMORY_PROFILE, CYCLE_PROFILE, PAGING_PROFILE
 from stop_verify import ABI_PROBE_PROFILE, HOT_UNMAP_PROFILE, USER_FAULT_PROFILE
-from sbef_host.format import inspect as inspect_sbef
+from host.sbef.format import inspect as inspect_sbef
 from splash_verify import check as splash_check, PROFILE as SPLASH_PROFILE, HD_PROFILE
 
 

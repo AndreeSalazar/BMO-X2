@@ -9,7 +9,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import sbef
-from sbef_host.diagnostics import Rejection
+from host.diagnostics import Rejection
 
 
 class Sbef(unittest.TestCase):

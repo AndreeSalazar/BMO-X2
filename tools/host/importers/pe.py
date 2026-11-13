@@ -1,7 +1,7 @@
 """Inventory PE32+ headers on the host."""
 import struct
 
-from .diagnostics import Rejection
+from ..diagnostics import Rejection
 
 
 COFF = struct.Struct('<HHIIIHH')

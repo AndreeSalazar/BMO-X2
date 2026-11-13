@@ -1,5 +1,9 @@
 # SBEF provisional en HOST
 
+La estructura del [HOST](../tools/host/README.md) separa importadores,
+formato SBEF, diagnosticos y banco de toolchains. Los comandos de este
+contrato conservan sus puntos de entrada.
+
 `tools/sbef.py pack` toma un ELF64 x86-64 estatico y enlazado,
 extrae los segmentos PT_LOAD y construye un SBEF. `inspect` comprueba
 el contenedor resultante desde sus bytes. El mismo paso puede consumir
@@ -24,8 +28,8 @@ Ejecutar los comandos desde la raiz de BMO-X2. En C++ declarar
 para este perfil minimo. Rust necesita un target x86-64 freestanding,
 `no_std`, inicio propio y panic abort. Sus bibliotecas deben estar
 compiladas para el mismo target y contrato. La prueba HOST construyo
-ejemplos C y C++ con Clang y LLD, ambos de 112 bytes. Este anfitrion
-tiene Rust para Windows y WASM, y queda por probar el target ELF.
+ejemplos C y C++ con Clang y LLD, ambos de 112 bytes. El escritorio
+Rust usa el target `x86_64-unknown-none` y ya arranca desde SBEF.
 
 Ejemplo minimo para reproducir el empaquetado en C:
 

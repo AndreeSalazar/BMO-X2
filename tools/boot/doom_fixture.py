@@ -5,7 +5,7 @@ import struct
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from sbef_host.format import inspect
+from host.sbef.format import inspect
 
 from sbef_probe_cases import SBEF_OFFSET
 

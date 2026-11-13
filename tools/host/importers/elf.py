@@ -1,8 +1,8 @@
 """Import static freestanding ELF64 on the host."""
 import struct
 
-from .diagnostics import Rejection
-from .format import BASE, END, HEADER, MACHINE, MAX_IMAGE, MAX_REGIONS, PAGE, PERMISSIONS, REGION, inspect
+from ..diagnostics import Rejection
+from ..sbef.format import BASE, END, HEADER, MACHINE, MAX_IMAGE, MAX_REGIONS, PAGE, PERMISSIONS, REGION, inspect
 
 MAX_ELF = 16 * MAX_IMAGE
 ELF_HEADER = struct.Struct("<16sHHIQQQIHHHHHH")

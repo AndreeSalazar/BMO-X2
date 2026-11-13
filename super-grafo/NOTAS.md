@@ -1212,7 +1212,18 @@ Depende de: Tablas propias y alias de datos (plan), Primera excepcion #UD (plan)
 Aceptacion: QEMU comprueba CPL3, CR2, error 5, pila de Ring 0 y memoria a cero.
 Pendiente: Reutilizar los marcos con el asignador general y ejecutar un segundo proceso.
 
-## tools/sbef_host/elf.py
+## tools/host
+
+Coordina la inspeccion, admision, diagnostico y publicacion de ejecutables x86-64.
+
+Estado: HOST. Anillo: host. Lenguaje: Python control.
+Entrada: ELF64 o PE32+ enlazado y version de ABI.
+Salida: SBEF admitido o un rechazo con campo y offset.
+Depende de: Empaquetador ELF64 a SBEF (codigo), Lector SBEF de referencia (codigo), Inspeccion PE32+ (codigo).
+Aceptacion: El vector ELF conserva sus bytes y la CLI mantiene pack, inspect, probe y diagnosticos.
+Pendiente: Ejecutar el cliente comun de varios productores y admitir PE32+ freestanding.
+
+## tools/host/importers/elf.py
 
 Convierte segmentos de un ELF64 estatico a regiones SBEF comprobadas.
 
@@ -1221,9 +1232,9 @@ Entrada: Ejecutable x86-64 freestanding y contrato binario provisional.
 Salida: Cabecera, tabla de regiones y bytes de la imagen SBEF.
 Depende de: SBEF y congelacion del ABI (codigo), Lector SBEF de referencia (verificacion).
 Aceptacion: Vector fijo y rechazos de truncado, solape, permisos y entrada; pruebas C y C++.
-Pendiente: Probar Rust ELF y cotejar la admision contra el cargador CASM.
+Pendiente: Cotejar la admision general contra el cargador CASM. El escritorio Rust ya usa ELF64 y SBEF.
 
-## tools/sbef_host/format.py
+## tools/host/sbef/format.py
 
 Valida la imagen SBEF y localiza el campo rechazado.
 
@@ -1234,7 +1245,7 @@ Depende de: contrato propio sin dependencias en este catalogo.
 Aceptacion: Coteja el vector y rechaza permisos, truncado y solapes.
 Pendiente: Compartir vectores de admision y diagnostico con CASM.
 
-## tools/sbef_host/pe.py
+## tools/host/importers/pe.py
 
 Expone secciones y directorios PE que requieren adaptacion de ABI.
 
@@ -1267,16 +1278,16 @@ Depende de: Fallo de proteccion desde CPL3 (plan).
 Aceptacion: QEMU ejecuta CPL3 y rechaza ABI ajeno o W+X antes de copiar.
 Pendiente: Cargar imagen externa y probar WAIT con senal y plazo.
 
-## tools/abi_toolchain.py
+## tools/host/toolchains/abi.py
 
 Construye un cliente comun y coteja los bytes de los stubs ELF.
 
 Estado: HOST. Anillo: host. Lenguaje: Python control.
 Entrada: Cliente C, cabecera ABI 1, compilador y vector HEX.
 Salida: SBEF para ELF o inventario de un objeto COFF MSVC.
-Depende de: Empaquetador ELF64 a SBEF (generacion).
-Aceptacion: Clang produce SBEF ABI 1; MSVC verifica declaraciones en COFF.
-Pendiente: Ejecutar GCC ELF y cargar los clientes en QEMU.
+Depende de: HOST: del ejecutable a SBEF (verificacion), Empaquetador ELF64 a SBEF (generacion).
+Aceptacion: GCC y Clang producen SBEF ABI 1 y conservan los 28 bytes del portal; MSVC verifica declaraciones en COFF.
+Pendiente: Ejecutar y comparar los clientes en QEMU y ampliar el banco a C++ y Rust.
 
 ## kernel/mm/virtual/revoke/main.casm
 
@@ -1421,4 +1432,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-127 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+128 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

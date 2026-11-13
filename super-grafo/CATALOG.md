@@ -114,12 +114,13 @@
 | [Propiedad y devolucion de un marco](../kernel/mm/physical/lifecycle/main.casm) | qemu | 0 | Asigna, protege la propiedad, borra y reasigna un marco de 4 KiB. |
 | [Tablas propias y alias de datos](../kernel/mm/virtual/main.casm) | qemu | 0 | Instala CR3 propio y separa el mapa supervisor de un alias de usuario. |
 | [Fallo de proteccion desde CPL3](../kernel/mm/user/main.casm) | qemu | 0 | Ejecuta un programa fijo en CPL3 y captura el acceso prohibido en Ring 0. |
-| [Empaquetador ELF64 a SBEF](../tools/sbef_host/elf.py) | host | host | Convierte segmentos de un ELF64 estatico a regiones SBEF comprobadas. |
-| [Lector SBEF de referencia](../tools/sbef_host/format.py) | host | host | Valida la imagen SBEF y localiza el campo rechazado. |
-| [Inspeccion PE32+](../tools/sbef_host/pe.py) | host | host | Expone secciones y directorios PE que requieren adaptacion de ABI. |
+| [HOST: del ejecutable a SBEF](../tools/host) | host | host | Coordina la inspeccion, admision, diagnostico y publicacion de ejecutables x86-64. |
+| [Empaquetador ELF64 a SBEF](../tools/host/importers/elf.py) | host | host | Convierte segmentos de un ELF64 estatico a regiones SBEF comprobadas. |
+| [Lector SBEF de referencia](../tools/host/sbef/format.py) | host | host | Valida la imagen SBEF y localiza el campo rechazado. |
+| [Inspeccion PE32+](../tools/host/importers/pe.py) | host | host | Expone secciones y directorios PE que requieren adaptacion de ABI. |
 | [Supervisor Rust de Ring 3](../userspace/supervisor) | diseno | 3 | Ordena, configura y recupera servicios desde CPL3. |
 | [SBEF ABI 1 y llamadas desde CPL3](../kernel/syscalls/main.casm) | qemu | 0 | Valida SBEF embebido y ejecuta tres entradas SYSCALL. |
-| [Banco de toolchains del ABI](../tools/abi_toolchain.py) | host | host | Construye un cliente comun y coteja los bytes de los stubs ELF. |
+| [Banco de toolchains del ABI](../tools/host/toolchains/abi.py) | host | host | Construye un cliente comun y coteja los bytes de los stubs ELF. |
 | [Revocacion en caliente y diario de fallos](../kernel/mm/virtual/revoke/main.casm) | qemu | 0 | Retira una pagina, invalida la traduccion y reanuda CPL3. |
 | [Contrato minimo del cargador SBEF](../contracts/SBEF-LOADER.md) | diseno | contrato | Separa admision, plan de carga, memoria y diagnostico. |
 | [Inventario de crates de BMO-X](../heritage/RING3-CRATES.md) | host | host | Agrupa crates del padre por familia y dependencias declaradas. |
@@ -136,6 +137,10 @@
 
 | Quien usa | De quien depende | Clase |
 |---|---|---|
+| host-pipeline | sbef-host-pack | codigo |
+| host-pipeline | sbef-host-reader | codigo |
+| host-pipeline | sbef-host-pe | codigo |
+| abi-toolchains | host-pipeline | verificacion |
 | desktop-usb-hid | desktop-keyboard | codigo |
 | desktop-usb-hid | device-io | plan |
 | physical-boot | boot-bridge | plan |

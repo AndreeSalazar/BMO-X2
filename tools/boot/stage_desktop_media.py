@@ -10,7 +10,7 @@ import sys
 import uuid
 
 from doom_fixture import make_packet, prepend_intro
-from sbef_host.format import inspect
+from host.sbef.format import inspect
 from scope import workspace
 from stage_bmo_x2 import bridge_variant
 from wake import SPLASH_PROFILE, check, sha

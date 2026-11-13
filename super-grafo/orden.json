@@ -1,5 +1,9 @@
 {
   "tintes": {
+    "tools/host": {
+      "rgb": [90, 200, 140],
+      "motivo": "HOST: admision, diagnostico y publicacion de SBEF x86-64."
+    },
     "docs/FIRST-BOOT.md": {
       "rgb": [255, 194, 79],
       "motivo": "Arranque fisico UEFI: preparacion, evidencia y retorno."
@@ -36,7 +40,7 @@
       "rgb": [90, 220, 255],
       "motivo": "Ring 0: admite SBEF fijo y atiende SYSCALL desde CPL3."
     },
-    "tools/abi_toolchain.py": {
+    "tools/host/toolchains/abi.py": {
       "rgb": [90, 200, 140],
       "motivo": "HOST: coteja los stubs y empaqueta el cliente ABI 1."
     },
@@ -44,7 +48,7 @@
       "rgb": [90, 220, 255],
       "motivo": "Ring 0: recibe #PF desde CPL3 y limpia las paginas del proceso."
     },
-    "tools/sbef_host/elf.py": {
+    "tools/host/importers/elf.py": {
       "rgb": [90, 200, 140],
       "motivo": "Puente HOST: empaqueta y comprueba imagenes SBEF."
     },
@@ -555,6 +559,7 @@
   "rejilla": false,
   "bloqueada": true,
   "grafo": {
+    "tools/host": [9600, 4025],
     "docs/FIRST-BOOT.md": [2860, -1300],
     "": [
       -350.0,
@@ -1028,15 +1033,15 @@
       9500,
       3850
     ],
-    "tools/sbef_host/elf.py": [
+    "tools/host/importers/elf.py": [
       10000,
       3850
     ],
-    "tools/sbef_host/format.py": [
+    "tools/host/sbef/format.py": [
       10000,
       4025
     ],
-    "tools/sbef_host/pe.py": [
+    "tools/host/importers/pe.py": [
       10000,
       4200
     ],
@@ -1048,7 +1053,7 @@
       10500,
       3850
     ],
-    "tools/abi_toolchain.py": [
+    "tools/host/toolchains/abi.py": [
       10500,
       4025
     ],

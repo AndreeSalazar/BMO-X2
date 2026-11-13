@@ -341,8 +341,8 @@ def run(case):
             result.update(fault_evidence(memory,last_registers,captured,code,case=='contexto'))
         if case in MUTATIONS:
             sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-            from sbef_host.diagnostics import Rejection
-            from sbef_host.format import inspect
+            from host.diagnostics import Rejection
+            from host.sbef.format import inspect
             try:
                 inspect(packet[SBEF_OFFSET:])
             except Rejection as error:

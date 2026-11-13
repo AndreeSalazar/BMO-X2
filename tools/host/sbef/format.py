@@ -1,7 +1,7 @@
 """Read the provisional SBEF contract from bytes."""
 import struct
 
-from .diagnostics import Rejection
+from ..diagnostics import Rejection
 
 PAGE = 4096
 BASE = 0x40000000

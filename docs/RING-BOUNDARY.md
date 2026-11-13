@@ -2,7 +2,7 @@
 
 | Lugar | Responsabilidad | Artefacto que cruza la frontera |
 |---|---|---|
-| `tools/sbef_host/` en HOST | Inspeccionar ELF64 y PE32+, explicar incompatibilidades y empaquetar el ELF64 admitido. | SBEF y un informe de diagnostico para el desarrollador. |
+| `tools/host/` en HOST | Inspeccionar ELF64 y PE32+, explicar incompatibilidades y empaquetar el ELF64 admitido. | SBEF y un informe de diagnostico para el desarrollador. |
 | `kernel/` en Ring 0 | Orquestador CASM. Controla memoria, admision SBEF, transiciones de CPU, excepciones, capacidades e IPC. | Imagen SBEF comprobada hacia CPL3. Peticiones y respuestas del ABI. |
 | `userspace/supervisor/` en Ring 3 | Supervisor Rust previsto. Decide orden de servicios, reinicio, configuracion y distribucion de las capacidades que recibe. | Peticiones al kernel por INVOKE y WAIT. Politica y errores de servicio para las aplicaciones. |
 | `userspace/runtime/`, `services/`, `apps/` | Inicio, bibliotecas, servicios y aplicaciones de usuario. Los formatos de datos pertenecen al consumidor de Ring 3. | Binarios SBEF para ejecutar y mensajes para interactuar. |
