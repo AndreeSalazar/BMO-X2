@@ -11,6 +11,8 @@ session_gate:
     pushq %rcx
     push %rbp
     mov %gs:0x320, %rbp
+    cmp $1, %rax
+    je wait_input
     test %rax, %rax
     jne denied
     cmp $2, %rsi
@@ -143,6 +145,86 @@ poll_write:
 ready:
     clc
     ret
+
+# One-client QEMU profile: WAIT(input, 0, relative PIT ticks).
+# Timer IRQs are enabled only around HLT. Input stays in the PS/2 FIFO.
+wait_input:
+    cmp $2, %rdi
+    jne denied
+    test %rsi, %rsi
+    jne denied
+    cmp $100, %rdx
+    ja denied
+    cmpb $1, %gs:0x328
+    jne denied
+    cmpb $0, %gs:0x330
+    jne timer_ready
+    mov %rdx, %r9
+    lea timer_irq(%rip), %rax
+    mov %ax, %gs:0x400
+    movl $0x8e000008, %gs:0x402
+    shr $16, %rax
+    mov %ax, %gs:0x406
+    shr $16, %rax
+    mov %eax, %gs:0x408
+    movw $0x20f, %gs:0x90
+    lidt %gs:0x90
+    mov $0xff, %al
+    out %al, $0xa1
+    out %al, $0x21
+    mov $0x11, %al
+    out %al, $0x20
+    out %al, $0xa0
+    mov $0x20, %al
+    out %al, $0x21
+    mov $0x28, %al
+    out %al, $0xa1
+    mov $4, %al
+    out %al, $0x21
+    mov $2, %al
+    out %al, $0xa1
+    mov $1, %al
+    out %al, $0x21
+    out %al, $0xa1
+    mov $0xff, %al
+    out %al, $0xa1
+    mov $0xfe, %al
+    out %al, $0x21
+    mov $0x34, %al
+    out %al, $0x43
+    mov $11932, %ax
+    out %al, $0x40
+    mov %ah, %al
+    out %al, $0x40
+    movb $1, %gs:0x330
+    mov %r9, %rdx
+timer_ready:
+    mov %gs:0x338, %r8
+    add %rdx, %r8
+wait_check:
+    in $0x64, %al
+    test $1, %al
+    jnz event_ready
+    cmp %r8, %gs:0x338
+    jae wait_timeout
+    sti
+    hlt
+    cli
+    jmp wait_check
+event_ready:
+    incl %gs:0x340
+    xor %eax, %eax
+    jmp finish
+wait_timeout:
+    incl %gs:0x344
+    jmp empty
+timer_irq:
+    push %rax
+    incq %gs:0x338
+    mov $0x20, %al
+    out %al, $0x20
+    pop %rax
+    iretq
 empty:
     mov $256, %eax
     jmp finish

@@ -38,6 +38,17 @@ el numero 1 y devuelve -4. Su semantica candidata compara la
 secuencia y espera un cambio o el plazo; falta implementar el
 bloqueo, la senal, el vencimiento y las carreras de ambos.
 
+El perfil experimental `desktop-external` prueba otra puerta con
+`WAIT(entrada, 0, ticks)`. Acepta de 0 a 100 ticks relativos del
+PIT de aproximadamente 10 ms. Devuelve 0 cuando hay un byte en
+PS/2, 256 al vencer y 257 si rechaza la peticion. INVOKE consume
+el byte. Ring 0 consulta el FIFO antes de dormir con `STI; HLT`
+y despues de cada interrupcion del PIT. El ensayo verifica HLT,
+vencimiento y reanudacion con entrada. Sigue pendiente integrar
+esta prueba en CASM, despertar por IRQ de entrada, aplicar la
+secuencia y el plazo monotono del contrato, y planificar varios
+procesos.
+
 ## Reproduccion
 
 ```powershell

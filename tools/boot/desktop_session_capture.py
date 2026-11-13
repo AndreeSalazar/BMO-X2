@@ -82,12 +82,22 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         regs = registers()
         return 'CPL=3' in regs and 0x40000000 <= register(regs, 'RIP') < 0x40001000
 
+    def wait_stats():
+        return struct.unpack('<II', memory(address + 0x1a340, 8, 'wait-stats'))
+
+    def sleeping():
+        regs = registers()
+        return 'CPL=0' in regs and 'HLT=1' in regs and code <= register(regs, 'RIP') < code + len(packet)-24
+
     def key(*keys):
         command('send-key', {'keys': [{'type': 'qcode', 'data': key} for key in keys],
                              'hold-time': 100})
         time.sleep(0.2)
 
-    wait_until(lambda: logical(216, 33, 0x5ad8ff) and logical(52, 99, 0x5ad8ff) and ring3())
+    wait_until(lambda: logical(216, 33, 0x5ad8ff) and logical(52, 99, 0x5ad8ff) and sleeping())
+    timeout_before = wait_stats()[1]
+    wait_until(lambda: wait_stats()[1] > timeout_before)
+    event_before = wait_stats()[0]
     assert pixel(width-1, height-1, 0x0d0e17), 'La intro no fue reemplazada'
     assert memory(code, len(packet)-24, 'session-code') == packet[24:]
     if external_image is not None:
@@ -104,7 +114,8 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     key('1')
     wait_until(lambda: logical(216, 33, 0x5ad8ff))
     key('2')
-    wait_until(lambda: logical(390, 147, 0xad92ff) and ring3())
+    wait_until(lambda: logical(390, 147, 0xad92ff) and (sleeping() or ring3()))
+    assert wait_stats()[0] > event_before, 'WAIT no devolvio entrada disponible'
 
     def full_repaints():
         return int.from_bytes(memory(address + 0x1a32c, 4, 'full-repaints'), 'little')
@@ -137,6 +148,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 KeyboardVerified=True, FocusRestored=True, DesktopSession=True, IntroReplaced=True,
                 MouseVerified=True, Framebuffer=[width, height], DesktopScale=scale,
                 PointerMovesVerified=5, FullRepaintsDuringPointerMoves=0,
+                WaitHalted=True, WaitTimeoutVerified=True, WaitInputVerified=True,
                 ExternalSbef=external_image is not None,
                 PayloadSHA256=hashlib.sha256(packet[24:]).hexdigest(),
                 SbefSHA256=fixture['sbef_sha256'])

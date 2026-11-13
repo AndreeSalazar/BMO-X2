@@ -27,6 +27,17 @@ fn fill(x: u64, y: u64, w: u64, h: u64, color: u32) {
     invoke(DISPLAY, FILL, x | y << 16 | w << 32 | h << 48, color);
 }
 
+fn wait_input(ticks: u64) -> u32 {
+    let reply: u64;
+    unsafe {
+        asm!("syscall", inlateout("rax") 1u64 => reply,
+             inlateout("rdi") INPUT => _, inlateout("rsi") 0u64 => _,
+             inlateout("rdx") ticks => _, lateout("rcx") _, lateout("r11") _,
+             lateout("r8") _, lateout("r9") _, lateout("r10") _);
+    }
+    reply as u32
+}
+
 #[derive(Clone, Copy)]
 struct Clip {
     left: u64,
@@ -172,9 +183,7 @@ extern "C" fn bmo_main() -> ! {
             continue;
         }
         if raw >= 256 {
-            for _ in 0..128 {
-                core::hint::spin_loop();
-            }
+            wait_input(100);
             continue;
         }
         let key = raw as u8;

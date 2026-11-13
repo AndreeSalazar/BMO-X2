@@ -161,7 +161,7 @@ con `-AbiRun` apuntando al run de `bmo-x2.ps1 -Accion abi` y
 ## Sesion interactiva en QEMU
 
 El perfil de sesion con modulo externo arranca un SBEF Rust de
-2128 bytes despues de la intro. Dibuja un panel con cuatro espacios y dos ventanas de
+2136 bytes despues de la intro. Dibuja un panel con cuatro espacios y dos ventanas de
 muestra. QEMU verifica el cambio con Ctrl+Super+1-4, el foco con
 Super+2 y su restauracion al volver. Las teclas 1-4 tambien cambian de
 espacio si Windows intercepta los atajos con Super.
@@ -201,10 +201,15 @@ siguen pendientes.
 ### SBEF separado en QEMU
 
 Agrega `-External` al build de sesion. QEMU carga el SBEF como modulo
-separado en RAM. El paquete con intro ocupa 2288 bytes y conserva la
+separado en RAM. El paquete con intro ocupa 2607 bytes y conserva la
 misma sesion. El validador de Ring 0 admite una region RX y QEMU
 comprueba un rechazo W+X. La lectura del archivo desde el disco del
 invitado sigue pendiente.
+
+Cuando INVOKE deja el FIFO PS/2 vacio, la sesion llama a WAIT.
+Ring 0 duerme la CPU con HLT entre interrupciones del PIT y
+comprueba el FIFO al despertar. El ensayo usa un cliente.
+El planificador y la espera por secuencia quedan pendientes.
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1 -Profile desktop-external -Wait
