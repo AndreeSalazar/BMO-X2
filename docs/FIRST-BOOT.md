@@ -60,6 +60,20 @@ y se cotejaron sus huellas. El arranque anterior del gato se conserva
 en `previous-splash` dentro del run. Seleccionar la entrada UEFI BMO-X2
 y pulsar F2 al aparecer el escritorio.
 
+El propietario confirmo que el escritorio aparece en el equipo y que
+teclado y raton quedan sin respuesta. El inventario de Windows identifica
+ambos como USB HID y dos controladores AMD xHCI. BMO-X divide ese camino
+entre el controlador xHCI, la enumeracion USB y la decodificacion HID.
+ULTRA-LinuX usa `xhci_hcd` y la capa HID del kernel Linux en su perfil PC.
+
+El ensayo de BMO-X2 incorpora un inventario PCI xHCI de solo lectura
+con aviso visible en Ring 3. Detectar la clase PCI no habilita USB.
+La siguiente entrega necesita el transporte xHCI, memoria DMA concedida
+por Ring 0, transferencias con plazo y un servicio Rust que traduzca los
+informes HID a eventos de teclado y puntero. La prueba de cierre debe
+inyectar eventos por dispositivos USB en QEMU y luego repetir F2 y
+movimiento del puntero en el equipo.
+
 Por cada prueba guardar huellas, configuracion, bytes de entrada, memoria
 reservada y el ultimo punto observado. Registrar consola serie si el
 equipo la ofrece, o captura del diagnostico visible. Faggin mantiene su

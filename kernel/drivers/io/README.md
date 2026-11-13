@@ -11,4 +11,4 @@ Ofrece recursos de entrada y salida a servicios autorizados.
 - Entrada: Dispositivos descubiertos, buffers y eventos.
 - Salida: Canales y ventanas de aparato acotados.
 - Aceptacion: Pruebas de acceso, revocacion y fallo de servicio por dispositivo admitido.
-- Pendiente: Priorizar entrada y pantalla segun el primer servicio.
+- Pendiente: El ensayo detecta PCI xHCI. Faltan MMIO y DMA acotados, transporte xHCI y eventos HID para teclado y raton.

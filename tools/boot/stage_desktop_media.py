@@ -37,16 +37,17 @@ def main():
     run.mkdir()
     scripts = Path(__file__).resolve().parent
     llvm = Path(os.environ['ProgramFiles']) / 'LLVM/bin'
-    for name in ('desktop_media_alloc', 'desktop_media_read', 'external_sbef'):
+    for name in ('desktop_media_alloc', 'desktop_media_read', 'external_sbef', 'session_gate'):
         obj = run / f'{name}.o'
+        source = scripts.parent / 'desktop/session_gate.S' if name == 'session_gate' else scripts / f'{name}.S'
         subprocess.run([llvm / 'clang.exe', '--target=x86_64-unknown-none-elf', '-DDESKTOP_MEDIA',
-                        '-c', scripts / f'{name}.S', '-o', obj], check=True)
+                        '-c', source, '-o', obj], check=True)
         subprocess.run([llvm / 'llvm-objcopy.exe', '-O', 'binary', '--only-section=.text',
                         obj, run / f'{name}.bin'], check=True)
 
     reference = (abi / 'INICIO.X86').read_bytes()
     intro = (splash / 'INICIO.X86').read_bytes()
-    gate = (desktop / 'session-gate.bin').read_bytes()
+    gate = (run / 'session_gate.bin').read_bytes()
     loader = (run / 'external_sbef.bin').read_bytes()
     packet, _ = make_packet(reference, sbef, session_gate=gate, external=loader)
     packet, _ = prepend_intro(packet, intro)

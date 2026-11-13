@@ -125,6 +125,8 @@ input:
 #endif
     xor %eax, %eax
     in $0x64, %al
+    cmp $0xff, %al
+    je empty
     test $1, %al
     jz empty
     mov %eax, %edx
@@ -154,9 +156,12 @@ writable:
     mov $65536, %ecx
 poll_write:
     in $0x64, %al
+    cmp $0xff, %al
+    je absent
     test $2, %al
     jz ready
     loop poll_write
+absent:
     stc
     ret
 ready:
@@ -180,10 +185,6 @@ valid_wait_op:
 #endif
     cmp $100, %rdx
     ja denied
-#ifndef DOOM_ENGINE
-    cmpb $1, %gs:0x328
-    jne denied
-#endif
     cmpb $0, %gs:0x330
     jne timer_ready
     mov %rdx, %r9
@@ -235,6 +236,8 @@ wait_check:
     jnz wait_clock
 #endif
     in $0x64, %al
+    cmp $0xff, %al
+    je wait_clock
     test $1, %al
     jnz event_ready
 #endif
@@ -264,6 +267,10 @@ timer_irq:
 diagnostics:
     cmp $3, %rdi
     jne denied
+#ifdef DESKTOP_MEDIA
+    cmp $4, %rdx
+    je usb_controllers
+#endif
     cmp $2, %rdx
     ja denied
     test %rdx, %rdx
@@ -276,6 +283,9 @@ diagnostics_result:
     mov %edx, %gs:0x348
     mov %eax, %gs:0x34c
     jmp finish
+#ifdef DESKTOP_MEDIA
+#include "xhci_inventory.inc"
+#endif
 #ifdef DOOM_ENGINE
 serial_byte:
     cmp $5, %rdi

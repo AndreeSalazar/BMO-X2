@@ -638,7 +638,7 @@ Entrada: EFI y paquete verificados, ruta separada en FAT32 y perfil UEFI x86-64.
 Salida: Evidencia del firmware, entrada en CPL0 y parada controlada.
 Depende de: Puente UEFI provisional (plan), Genesis: prueba aislada en QEMU (plan), Contexto de entrega (plan).
 Aceptacion: El mismo EFI y paquete pasan QEMU y arrancan en el equipo; se observa la parada y Windows vuelve a arrancar.
-Pendiente: El propietario observo el gato en el equipo. Falta comprobar escritorio y F2 en hardware con SBEF cargado desde FAT32.
+Pendiente: El propietario observo gato y escritorio en el equipo. F2 y raton fisicos requieren entrada USB HID.
 
 ## tools/boot/wake.py
 
@@ -957,7 +957,7 @@ Entrada: Dispositivos descubiertos, buffers y eventos.
 Salida: Canales y ventanas de aparato acotados.
 Depende de: Buses, recursos y DMA (plan), Comunicacion entre procesos (plan).
 Aceptacion: Pruebas de acceso, revocacion y fallo de servicio por dispositivo admitido.
-Pendiente: Priorizar entrada y pantalla segun el primer servicio.
+Pendiente: El ensayo detecta PCI xHCI. Faltan MMIO y DMA acotados, transporte xHCI y eventos HID para teclado y raton.
 
 ## kernel/drivers/network
 

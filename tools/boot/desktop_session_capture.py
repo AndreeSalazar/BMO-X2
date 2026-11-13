@@ -32,7 +32,7 @@ def verify_external_rejection(command, memory, image):
     raise ValueError(f'El cargador externo no rechazo W+X: {regs[:420]}')
 
 
-def verify_session(command, memory, prefix, packet, intro, fixture, external_image=None):
+def verify_session(command, memory, prefix, packet, intro, fixture, external_image=None, *, desktop_media=False):
     def registers():
         return command('human-monitor-command', {'command-line': 'info registers'})
 
@@ -105,6 +105,9 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         time.sleep(0.2)
 
     wait_until(lambda: logical(216, 33, 0x0d0e17) and logical(52, 99, 0x5ad8ff) and sleeping())
+    if desktop_media:
+        assert memory(address + 0x1a358, 5, 'xhci-inventory') == struct.pack('<IB', 1, 1)
+        assert logical(24, 354, 0x232638), 'El escritorio no mostro el aviso de entrada USB'
     timeout_before = wait_stats()[1]
     wait_until(lambda: wait_stats()[1] > timeout_before)
     event_before = wait_stats()[0]
@@ -230,5 +233,6 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 WritableNxRegionVerified=external_image is not None and count == 3,
                 UserDataAndBssVerified=external_image is not None and count == 3,
                 CabinaCommandsVerified=4 if external_image is not None else 0,
+                XhciInventoryVerified=desktop_media,
                 PayloadSHA256=hashlib.sha256(packet[24:]).hexdigest(),
                 SbefSHA256=fixture['sbef_sha256'])

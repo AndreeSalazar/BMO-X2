@@ -127,6 +127,8 @@ def run(case):
     wad = ROOT / 'wad-module.bin'
     if wad.is_file():
         staging += ['-device', f'loader,file={wad},addr=0x3000000,force-raw=on']
+    if args.doom_fixture and desktop_media:
+        staging += ['-device', 'qemu-xhci']
     process = subprocess.Popen([
         str(qemu), '-machine', 'pc', '-cpu', args.cpu, '-accel', 'tcg', '-m', f'{args.ram_mib}M', '-smp', '1',
         '-drive', f'if=pflash,format=raw,unit=0,readonly=on,file={share / "edk2-x86_64-code.fd"}',
@@ -187,7 +189,7 @@ def run(case):
                 from doom_external_capture import verify_doom_external
                 return verify_doom_external(command, memory, prefix, fixture_packet, external_image, wad)
             return verify_session(command, memory, prefix, fixture_packet, intro_rows, doom,
-                                  external_image if external is not None else None)
+                                  external_image if external is not None else None, desktop_media=desktop_media)
         deadline = time.monotonic() + 45
         last_registers = ''
         context = None

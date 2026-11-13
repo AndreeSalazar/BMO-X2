@@ -62,6 +62,11 @@ pub fn show() {
     prompt(b"");
 }
 
+pub fn usb_pending() {
+    fill(24, 354, 328, 28, PANEL);
+    text(36, 362, b"USB XHCI DETECTADO   ENTRADA PENDIENTE");
+}
+
 pub fn diagnostic(scancode: u8) {
     if scancode == 0x13 {
         for field in 0..FIELDS.len() {

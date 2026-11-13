@@ -1002,7 +1002,7 @@
       "entrada": "EFI y paquete verificados, ruta separada en FAT32 y perfil UEFI x86-64.",
       "salida": "Evidencia del firmware, entrada en CPL0 y parada controlada.",
       "aceptacion": "El mismo EFI y paquete pasan QEMU y arrancan en el equipo; se observa la parada y Windows vuelve a arrancar.",
-      "falta": "El propietario observo el gato en el equipo. Falta comprobar escritorio y F2 en hardware con SBEF cargado desde FAT32."
+      "falta": "El propietario observo gato y escritorio en el equipo. F2 y raton fisicos requieren entrada USB HID."
     },
     {
       "id": "qemu-runner",
@@ -1509,7 +1509,7 @@
       "entrada": "Dispositivos descubiertos, buffers y eventos.",
       "salida": "Canales y ventanas de aparato acotados.",
       "aceptacion": "Pruebas de acceso, revocacion y fallo de servicio por dispositivo admitido.",
-      "falta": "Priorizar entrada y pantalla segun el primer servicio.",
+      "falta": "El ensayo detecta PCI xHCI. Faltan MMIO y DMA acotados, transporte xHCI y eventos HID para teclado y raton.",
       "pagina": true
     },
     {

@@ -224,6 +224,10 @@ extern "C" fn bmo_main() -> ! {
     }
     paint(VIEWPORT, space, focus[space], false);
     cursor(x, y);
+    let usb_pending = matches!(invoke(3, 3, 4, 0), 1..=256);
+    if usb_pending {
+        cabina::usb_pending();
+    }
     loop {
         if let Some(shown) = bar {
             if invoke(3, 3, 0, 0).wrapping_sub(shown) >= BAR_TICKS {
@@ -325,6 +329,9 @@ extern "C" fn bmo_main() -> ! {
             } else {
                 paint(VIEWPORT, space, focus[space], false);
                 cursor(x, y);
+                if usb_pending {
+                    cabina::usb_pending();
+                }
             }
             continue;
         }
