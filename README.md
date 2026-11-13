@@ -99,6 +99,8 @@ de los cuatro espacios usando el compositor Rust.
 El [ensayo DOOM](userspace/apps/doom/README.md) compila DoomGeneric con GCC,
 empaqueta su ELF64 como SBEF ABI 1 y arranca E1M1 en CPL3 tras la intro
 del gato. QEMU comprueba el menu y el desplazamiento por teclado.
+El perfil QEMU `desktop-doom` arranca el escritorio Rust y permite abrir
+CABINA con F2 y escribir `doom run` para iniciar E1M1.
 El [mezclador de audio Rust](userspace/services/audio/AUDIO.md) prueba
 PCM, volumen y medicion en HOST. La salida virtual y USB quedan pendientes.
 

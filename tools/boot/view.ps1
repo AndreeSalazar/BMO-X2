@@ -2,7 +2,7 @@
 [CmdletBinding()]
 param(
     [string]$Run,
-    [ValidateSet('gato-hd','doom-intro','doom-engine','desktop-intro','desktop-session','desktop-external')][string]$Profile,
+    [ValidateSet('gato-hd','doom-intro','doom-engine','desktop-doom','desktop-intro','desktop-session','desktop-external')][string]$Profile,
     [switch]$Wait,
     [string]$Qemu = (Join-Path $env:ProgramFiles 'qemu/qemu-system-x86_64.exe')
 )
@@ -15,6 +15,7 @@ if (-not $Run) {
     $expectedProfile = switch ($Profile) {
         'doom-intro' { 'doom-abi-fixture' }
         'doom-engine' { 'doom-engine' }
+        'desktop-doom' { 'desktop-doom' }
         'desktop-intro' { 'desktop-abi-fixture' }
         'desktop-session' { 'desktop-session' }
         'desktop-external' { 'desktop-external' }
@@ -28,7 +29,8 @@ if (-not $Run) {
             (Test-Path -LiteralPath $result -PathType Leaf)) {
             $report = Get-Content -LiteralPath $result -Raw | ConvertFrom-Json
             if ($report.run -eq $candidate.Name -and $report.Total -gt 0 -and $report.Passed -eq $report.Total -and
-                ($Profile -in @('gato-hd','desktop-session','desktop-external','doom-engine') -or @($report.Cases[0].FramesVerified).Count -eq 3) -and
+                ($Profile -in @('gato-hd','desktop-session','desktop-external','doom-engine','desktop-doom') -or @($report.Cases[0].FramesVerified).Count -eq 3) -and
+                ($Profile -ne 'desktop-doom' -or $report.Cases[0].CabinaDoomVerified) -and
                 ($Profile -ne 'doom-engine' -or $report.Cases[0].DoomKeyboardVerified) -and
                 ($Profile -ne 'desktop-external' -or $report.Cases[0].ExternalSbef) -and
                 ($Profile -ne 'desktop-session' -or ($report.Cases[0].DesktopSession -and
@@ -82,7 +84,7 @@ $arguments = @(
     '-drive', ('"file={0},format=raw,if=ide,snapshot=on"' -f $disk.FullName),
     '-vga', 'std', '-display', 'sdl,gl=off', '-serial', ('"file:{0}"' -f $serial), '-monitor', 'none', '-no-reboot'
 )
-if ($actualProfile -in @('desktop-external','doom-external','doom-engine')) {
+if ($actualProfile -in @('desktop-external','doom-external','doom-engine','desktop-doom')) {
     $module = Get-Item -LiteralPath (Join-Path $runDir.FullName 'sbef-module.bin')
     if (-not ($module -is [IO.FileInfo]) -or ($module.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
         throw 'Falta el modulo SBEF externo del ensayo.'

@@ -2042,7 +2042,7 @@
       "que": "Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX.",
       "entrada": "Eventos de entrada, superficies de clientes y capacidad de pantalla.",
       "salida": "Cuadro en RAM, espacio activo, foco y movimiento de ventanas.",
-      "aceptacion": "QEMU verifica cuatro espacios, raton, foco y cuatro rechazos de permisos de pantalla y entrada.",
+      "aceptacion": "QEMU verifica cuatro espacios, ocultacion de la barra, raton, foco y rechazos de permisos de pantalla y entrada.",
       "falta": "Leer SBEF desde disco, conectar el compositor completo y pasar de WAIT con PIT a eventos y planificacion.",
       "pagina": true
     },
@@ -2085,8 +2085,8 @@
       "que": "Enlaza DoomGeneric con el runtime C y presenta el juego por CPU.",
       "entrada": "80 unidades GCC, ABI 1 experimental e IWAD local de solo lectura.",
       "salida": "ELF64 estatico, doom-engine.sbef y capturas de E1M1 en QEMU.",
-      "aceptacion": "CPL3, mapa RX/R/RW con NX, menu y movimiento por teclado, y rechazo externo de W+X.",
-      "falta": "Ventana de DIRECTOR, lectura de disco invitado, guardado, audio y puntero relativo."
+      "aceptacion": "CPL3, mapa RX/R/RW con NX, doom run desde CABINA, menu y movimiento por teclado, y rechazo externo de W+X.",
+      "falta": "Proceso y ventana de DIRECTOR, retorno al escritorio, lectura de disco invitado, guardado, audio y puntero relativo."
     },
     {
       "id": "audio-mixer",

@@ -1330,7 +1330,7 @@ Estado: QEMU. Anillo: 3. Lenguaje: Rust.
 Entrada: Eventos de entrada, superficies de clientes y capacidad de pantalla.
 Salida: Cuadro en RAM, espacio activo, foco y movimiento de ventanas.
 Depende de: Supervisor Rust de Ring 3 (plan), Mezcla y controles de audio (plan).
-Aceptacion: QEMU verifica cuatro espacios, raton, foco y cuatro rechazos de permisos de pantalla y entrada.
+Aceptacion: QEMU verifica cuatro espacios, ocultacion de la barra, raton, foco y rechazos de permisos de pantalla y entrada.
 Pendiente: Leer SBEF desde disco, conectar el compositor completo y pasar de WAIT con PIT a eventos y planificacion.
 
 ## userspace/services/desktop/src/keyboard.rs
@@ -1363,8 +1363,8 @@ Estado: QEMU. Anillo: host. Lenguaje: PowerShell y C.
 Entrada: 80 unidades GCC, ABI 1 experimental e IWAD local de solo lectura.
 Salida: ELF64 estatico, doom-engine.sbef y capturas de E1M1 en QEMU.
 Depende de: Sonda DOOM C a SBEF (verificacion), Empaquetador ELF64 a SBEF (generacion).
-Aceptacion: CPL3, mapa RX/R/RW con NX, menu y movimiento por teclado, y rechazo externo de W+X.
-Pendiente: Ventana de DIRECTOR, lectura de disco invitado, guardado, audio y puntero relativo.
+Aceptacion: CPL3, mapa RX/R/RW con NX, doom run desde CABINA, menu y movimiento por teclado, y rechazo externo de W+X.
+Pendiente: Proceso y ventana de DIRECTOR, retorno al escritorio, lectura de disco invitado, guardado, audio y puntero relativo.
 
 ## userspace/services/audio
 

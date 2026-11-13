@@ -64,8 +64,9 @@ if args.doom_fixture:
     gate_path = ROOT / 'session-gate.bin'
     gate = gate_path.read_bytes() if gate_path.is_file() else None
     profile = (ROOT / 'profile.txt').read_text(encoding='ascii').strip()
-    doom_engine = profile == 'doom-engine'
-    doom_external = profile in ('doom-external', 'doom-engine')
+    desktop_doom = profile == 'desktop-doom'
+    doom_engine = profile == 'doom-engine' or desktop_doom
+    doom_external = profile == 'doom-external' or doom_engine
     desktop_fixture = (present is not None or gate is not None) and not doom_external
     image_path = ROOT / ('desktop.sbef' if desktop_fixture else 'doom.sbef')
     if not image_path.is_file() and present is None and gate is None:
@@ -175,7 +176,7 @@ def run(case):
             from desktop_session_capture import verify_external_rejection, verify_session
             if doom_engine:
                 from doom_engine_capture import verify_engine
-                return verify_engine(command, memory, prefix, external_image, case)
+                return verify_engine(command, memory, prefix, external_image, case, desktop=desktop_doom)
             if case == 'external-permissions':
                 return verify_external_rejection(command, memory, external_image)
             if external is not None:

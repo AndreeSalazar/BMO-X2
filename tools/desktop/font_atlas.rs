@@ -4,7 +4,7 @@ use std::io::{self, Write};
 fn main() -> io::Result<()> {
     let mut font = Box::new(LetraFija::<4096, 64>::nueva());
     let mut output = io::stdout().lock();
-    for character in b"0123456789ABCDEFGHIKLMNOPRSTUVYZJ" {
+    for character in b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" {
         let glyph = font.glifo(*character, 11, Peso::Media, 0).unwrap();
         let advance = ((glyph.avance64 + 32) / 64).clamp(4, 9);
         let mut rows = [0u32; 12];

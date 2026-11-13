@@ -20,6 +20,12 @@ const INPUT: u64 = 2;
 const FILL: u64 = 1;
 const READ_INPUT: u64 = 2;
 const DENIED: u32 = 257;
+const BAR_TICKS: u32 = 120;
+
+#[cfg(desktop_doom)]
+unsafe extern "C" {
+    fn doom_run() -> !;
+}
 
 fn invoke(capability: u64, operation: u64, rect: u64, color: u32) -> u32 {
     let reply: u64;
@@ -92,18 +98,22 @@ fn digit(clip: Clip, x: u64, y: u64, index: usize, color: u32) {
     }
 }
 
-fn paint(clip: Clip, space: usize, focus: usize) {
+const BAR: Clip = Clip { bottom: 44, ..VIEWPORT };
+
+fn paint(clip: Clip, space: usize, focus: usize, bar: bool) {
     if clip.left >= clip.right || clip.top >= clip.bottom {
         return;
     }
     let accent = ACCENTS[space];
     clip.fill(0, 0, 640, 400, 0x0d0e17);
-    clip.fill(0, 0, 640, 44, 0x161722);
-    for i in 0..4 {
-        let x = 216 + i as u64 * 56;
-        let color = if i == space { accent } else { 0x5d647b };
-        digit(clip, x + 12, 10, i, color);
-        clip.fill(x, 33, 32, 3, color);
+    if bar {
+        clip.fill(0, 0, 640, 44, 0x161722);
+        for i in 0..4 {
+            let x = 216 + i as u64 * 56;
+            let color = if i == space { accent } else { 0x5d647b };
+            digit(clip, x + 12, 10, i, color);
+            clip.fill(x, 33, 32, 3, color);
+        }
     }
     for (i, x, y, w, h) in [(0, 52, 99, 315, 191), (1, 390, 147, 198, 151)] {
         let border = if i == focus { accent } else { 0x40465d };
@@ -122,7 +132,7 @@ fn cursor(x: i16, y: i16) {
     fill(x as u64, y as u64, 7, 3, 0xe7efff);
 }
 
-fn move_cursor(old: (i16, i16), new: (i16, i16), space: usize, focus: usize) {
+fn move_cursor(old: (i16, i16), new: (i16, i16), space: usize, focus: usize, bar: bool) {
     if old == new {
         return;
     }
@@ -164,7 +174,7 @@ fn move_cursor(old: (i16, i16), new: (i16, i16), space: usize, focus: usize) {
             bottom: y + 10,
         },
     ] {
-        paint(old.intersect(exposed), space, focus);
+        paint(old.intersect(exposed), space, focus, bar);
     }
 }
 
@@ -199,6 +209,8 @@ extern "C" fn bmo_main() -> ! {
     let (mut flags, mut dx, mut index) = (0u8, 0u8, 0u8);
     let mut left = false;
     let mut console = false;
+    let mut command = cabina::Command::default();
+    let mut bar = None;
     let mut f2_down = false;
     let pixel = (1u64 << 32) | (1u64 << 48);
     if invoke(INPUT, FILL, pixel, 0xffffff) != DENIED
@@ -210,9 +222,18 @@ extern "C" fn bmo_main() -> ! {
     {
         panic!("session permissions");
     }
-    paint(VIEWPORT, space, focus[space]);
+    paint(VIEWPORT, space, focus[space], false);
     cursor(x, y);
     loop {
+        if let Some(shown) = bar {
+            if invoke(3, 3, 0, 0).wrapping_sub(shown) >= BAR_TICKS {
+                bar = None;
+                paint(BAR, space, focus[space], false);
+                if displayed.1 < 44 {
+                    cursor(displayed.0, displayed.1);
+                }
+            }
+        }
         let raw = invoke(INPUT, READ_INPUT, 0, 0);
         if raw & 512 != 0 {
             let byte = raw as u8;
@@ -249,14 +270,14 @@ extern "C" fn bmo_main() -> ! {
                     x = next_x;
                     y = next_y;
                     if focus[space] != previous_focus {
-                        paint(VIEWPORT, space, focus[space]);
+                        paint(VIEWPORT, space, focus[space], bar.is_some());
                         cursor(x, y);
                         displayed = (x, y);
                         pending_motion = 0;
                     } else {
                         pending_motion += 1;
                         if pending_motion == 8 {
-                            move_cursor(displayed, (x, y), space, focus[space]);
+                            move_cursor(displayed, (x, y), space, focus[space], bar.is_some());
                             displayed = (x, y);
                             pending_motion = 0;
                         }
@@ -267,12 +288,15 @@ extern "C" fn bmo_main() -> ! {
             continue;
         }
         if pending_motion != 0 {
-            move_cursor(displayed, (x, y), space, focus[space]);
+            move_cursor(displayed, (x, y), space, focus[space], bar.is_some());
             displayed = (x, y);
             pending_motion = 0;
         }
         if raw >= 256 {
-            wait_input(100);
+            let wait = bar.map_or(100, |shown| {
+                u64::from(BAR_TICKS.saturating_sub(invoke(3, 3, 0, 0).wrapping_sub(shown))).min(100)
+            });
+            wait_input(wait);
             continue;
         }
         let key = raw as u8;
@@ -282,6 +306,11 @@ extern "C" fn bmo_main() -> ! {
         }
         let extended = core::mem::replace(&mut prefix, false);
         let down = key & 0x80 == 0;
+        match key & 0x7f {
+            0x1d => ctrl = down,
+            0x5b | 0x5c if extended => super_key = down,
+            _ => {}
+        }
         if key & 0x7f == 0x3c && !extended {
             let toggle = down && !f2_down;
             f2_down = down;
@@ -290,35 +319,44 @@ extern "C" fn bmo_main() -> ! {
             }
             console = !console;
             if console {
+                bar = None;
+                command = cabina::Command::default();
                 cabina::show();
             } else {
-                paint(VIEWPORT, space, focus[space]);
+                paint(VIEWPORT, space, focus[space], false);
                 cursor(x, y);
             }
             continue;
         }
         if console {
             if down && !extended {
-                cabina::command(key);
+                let launch = command.key(key);
+                #[cfg(desktop_doom)]
+                if launch {
+                    unsafe { doom_run() };
+                }
+                #[cfg(not(desktop_doom))]
+                let _ = launch;
             }
             continue;
         }
         match key & 0x7f {
-            0x1d => ctrl = down,
-            0x5b | 0x5c if extended => super_key = down,
             2..=5 if down && !extended && (!super_key || ctrl) => {
                 let selected = usize::from(key - 2);
+                bar = Some(invoke(3, 3, 0, 0));
                 if selected != space {
                     space = selected;
-                    paint(VIEWPORT, space, focus[space]);
-                    cursor(x, y);
+                    paint(VIEWPORT, space, focus[space], true);
+                } else {
+                    paint(BAR, space, focus[space], true);
                 }
+                cursor(x, y);
             }
             2..=3 if down && super_key && !extended => {
                 let selected = usize::from(key - 2);
                 if selected != focus[space] {
                     focus[space] = selected;
-                    paint(VIEWPORT, space, selected);
+                    paint(VIEWPORT, space, selected, bar.is_some());
                     cursor(x, y);
                 }
             }

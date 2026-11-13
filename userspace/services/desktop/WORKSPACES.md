@@ -229,7 +229,20 @@ dibujados con los valores que devolvio el kernel.
 
 La fuente proporcional de CABINA viene de `bmo-letra`, la fuente
 de trazos de BMO-X. El [atlas](../../../tools/desktop/CABINA-FONT.md)
-conserva cuatro niveles de cobertura y ocupa 1221 bytes.
+conserva cuatro niveles de cobertura y ocupa 1332 bytes.
+
+En la sesion QEMU, la barra de espacios aparece con Ctrl + Super + 1 a 4
+y se oculta tras unos 1,2 segundos. F2 abre CABINA. En el perfil
+`desktop-doom`, escribir `doom run` y pulsar Enter inicia E1M1.
+El escritorio Rust y DoomGeneric C se enlazan en el mismo SBEF del
+ensayo. El juego ocupa la presentacion y el teclado de la sesion.
+Quedan pendientes el proceso independiente, la ventana en DIRECTOR,
+el retorno al escritorio y el audio.
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\build-doom-engine.ps1 -Desktop -AbiRun $abiRun -IntroRun $introRun -Wad ..\BMO-externo\doom\doom1.wad
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1 -Profile desktop-doom
+```
 
 Quedan pendientes las metricas de RAM y CPU, los rechazos del
 cargador con motivo y offset y el diario de excepciones.

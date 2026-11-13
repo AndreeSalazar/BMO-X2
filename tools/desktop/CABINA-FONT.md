@@ -4,7 +4,7 @@
 commit `6076bdefefc67877419ca53633c6e40cb45fc92d`.
 Copyright 2026 Eddi Andree Salazar Matos. Apache-2.0.
 
-El atlas guarda 33 glifos del vocabulario de CABINA, en el orden
+El atlas guarda 36 glifos ASCII de CABINA, en el orden
 de `font_atlas.rs`. Cada glifo ocupa un byte de avance y 12 filas
 de tres bytes, con dos bits de cobertura por pixel. El generador
 usa la fuente proporcional del padre, a 11 pixeles y peso medio.

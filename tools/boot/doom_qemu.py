@@ -25,14 +25,18 @@ def main():
     profiles = parser.add_mutually_exclusive_group()
     profiles.add_argument('--doom-external', action='store_true')
     profiles.add_argument('--doom-engine', action='store_true')
+    profiles.add_argument('--desktop-doom', action='store_true')
     parser.add_argument('--wad', type=Path)
     parser.add_argument('--qemu', default='C:/Program Files/qemu/qemu-system-x86_64.exe')
     args = parser.parse_args()
-    doom = args.doom_external or args.doom_engine
+    engine = args.doom_engine or args.desktop_doom
+    doom = args.doom_external or engine
     if doom and not (args.external_loader and args.session_gate):
         parser.error('DOOM externo requiere cargador y puerta de sesion')
     if args.wad and not doom:
         parser.error('El WAD requiere la sonda DOOM externa')
+    if engine and not args.wad:
+        parser.error('El motor requiere el IWAD')
     if args.wad:
         with args.wad.open('rb') as stream:
             wad = stream.read(0x1000001)
@@ -47,7 +51,7 @@ def main():
     present = args.desktop_present.read_bytes() if args.desktop_present else None
     gate = args.session_gate.read_bytes() if args.session_gate else None
     external = args.external_loader.read_bytes() if args.external_loader else None
-    packet, _ = make_packet(base_packet, sbef, present, gate, external, engine=args.doom_engine)
+    packet, _ = make_packet(base_packet, sbef, present, gate, external, engine=engine)
     if args.intro:
         intro = workspace(args.intro)
         if (intro / 'profile.txt').read_text(encoding='utf-8-sig').strip() not in ('ring0-splash-hd-0.1', 'ring0-splash-0.1'):
@@ -84,6 +88,8 @@ def main():
         profile = 'doom-external'
     if args.doom_engine:
         profile = 'doom-engine'
+    if args.desktop_doom:
+        profile = 'desktop-doom'
     (run / 'profile.txt').write_text(f'{profile}\n', encoding='ascii')
     bridge = ROOT / 'kernel/boot/bridge'
     efi = run / 'build/Puente_Metal/EFI/BOOT/BOOTX64.EFI'
@@ -113,6 +119,8 @@ def main():
         milestone = 'GCC DoomGeneric arithmetic and drawing from an external SBEF'
     if args.doom_engine:
         milestone = 'GCC DoomGeneric E1M1 and keyboard in CPL3 from an external SBEF'
+    if args.desktop_doom:
+        milestone = 'Rust desktop CABINA launches DoomGeneric E1M1 in CPL3'
     report.update(run=run.name, evidence='QEMU', milestone=f'Cat intro then {milestone}' if args.intro else milestone)
     (run / 'qemu-results.json').write_text(json.dumps(report, indent=2) + '\n', encoding='ascii')
     (run / 'qemu-run.json').write_text(json.dumps(dict(cpu='qemu64', ram_mib=256)) + '\n', encoding='ascii')

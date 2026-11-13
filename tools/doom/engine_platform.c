@@ -25,7 +25,7 @@ void DG_SleepMs(uint32_t ms) {
     while (ticks) {
         unsigned step = ticks > 100 ? 100 : ticks;
         register unsigned long service __asm__("rax") = 1;
-        unsigned long cap = 2, op = 0, duration = step;
+        unsigned long cap = 2, op = 1, duration = step;
         __asm__ volatile("syscall" : "+a"(service), "+D"(cap), "+S"(op), "+d"(duration)
                          :
                          : "rcx", "r11", "r8", "r9", "r10", "memory");
@@ -59,7 +59,12 @@ int DG_GetKey(int *pressed, unsigned char *key) {
 void DG_SetWindowTitle(const char *title) { puts(title); }
 
 /* IRET enters with a page-aligned stack and no return address. */
-__attribute__((force_align_arg_pointer)) _Noreturn void _start(void) {
+#ifdef DESKTOP_DOOM
+#define DOOM_ENTRY doom_run
+#else
+#define DOOM_ENTRY _start
+#endif
+__attribute__((force_align_arg_pointer)) _Noreturn void DOOM_ENTRY(void) {
     static char *args[] = {
         "doom", "-iwad", "doom1.wad", "-warp", "1", "1",
         "-nosound", "-nomusic", "-nomouse", "-mb", "6", NULL

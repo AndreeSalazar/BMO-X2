@@ -8,17 +8,69 @@ from cpu_config import register
 from desktop_session_capture import verify_external_rejection
 
 
-def verify_engine(command, memory, prefix, image, case):
+def verify_engine(command, memory, prefix, image, case, *, desktop=False):
     if case == 'external-permissions':
         result = verify_external_rejection(command, memory, image)
         assert memory(0x4000000, 4096, 'rejected-engine-text') == bytes(4096)
         return result
 
     serial = Path(str(prefix) + '-serial.log')
+
+    def registers():
+        return command('human-monitor-command', {'command-line': 'info registers'})
+
+    def screenshot(label):
+        path = Path(str(prefix) + f'-{label}.ppm')
+        command('screendump', dict(filename=str(path)))
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+
+    def key(*names, hold=100):
+        command('send-key', {'keys': [{'type': 'qcode', 'data': name} for name in names],
+                             'hold-time': hold})
+        time.sleep(hold / 1000 + 0.35)
+
+    if desktop:
+        deadline = time.monotonic() + 30
+        while time.monotonic() < deadline:
+            regs = registers()
+            rbp = register(regs, 'RBP')
+            if ('HLT=1' in regs and 0x100000 <= rbp < 0xffe0000 and
+                    register(regs, 'CR3') == rbp + 0x13000):
+                context = memory(rbp, 0x30, 'desktop-context')
+                if context[:8] == b'METAL64!':
+                    break
+            time.sleep(0.05)
+        else:
+            raise ValueError(f'El escritorio no entro en WAIT: {regs[:460]}')
+        fb = struct.unpack_from('<Q', context, 16)[0]
+        width, height, pitch, order = struct.unpack_from('<IIII', context, 32)
+        scale = 2 if width >= 1280 and height >= 800 else 1
+
+        def check_pixel(x, y, color):
+            rgb = color.to_bytes(4, 'little')
+            if order == 0:
+                rgb = rgb[:3][::-1] + b'\0'
+            assert memory(fb + 4*scale*(y*pitch+x), 4, 'desktop-doom-pixel') == rgb
+
+        check_pixel(272, 33, 0x0d0e17)
+        key('ctrl', 'meta_l', '2')
+        check_pixel(272, 33, 0xad92ff)
+        time.sleep(1.5)
+        check_pixel(272, 33, 0x0d0e17)
+        key('f2')
+        check_pixel(24, 24, 0x232638)
+        key('d')
+        key('ret')
+        check_pixel(24, 24, 0x232638)
+        assert 'BMO DOOM START' not in serial.read_text(encoding='utf-8', errors='replace')
+        screenshot('cabina')
+        for char in ('d', 'o', 'o', 'm', 'spc', 'r', 'u', 'n', 'ret'):
+            key(char, hold=40)
+
     deadline = time.monotonic() + 40
     while time.monotonic() < deadline:
         log = serial.read_text(encoding='utf-8', errors='replace') if serial.is_file() else ''
-        regs = command('human-monitor-command', {'command-line': 'info registers'})
+        regs = registers()
         if 'BMO DOOM EXIT' in log:
             raise ValueError(log[-1600:])
         if 'BMO DOOM FRAME' in log and 'CPL=3' in regs:
@@ -39,15 +91,6 @@ def verify_engine(command, memory, prefix, image, case):
     expected.extend(0x8000000004400087 + i * 0x200000 for i in range(6))
     assert tuple(entry & ~0x60 for entry in table) == tuple(expected), table
 
-    def screenshot(label):
-        path = Path(str(prefix) + f'-{label}.ppm')
-        command('screendump', dict(filename=str(path)))
-        return hashlib.sha256(path.read_bytes()).hexdigest()
-
-    def key(name, hold=100):
-        command('send-key', {'keys': [{'type': 'qcode', 'data': name}], 'hold-time': hold})
-        time.sleep(hold / 1000 + 0.35)
-
     time.sleep(2)
     initial = screenshot('engine-initial')
     key('esc')
@@ -55,10 +98,11 @@ def verify_engine(command, memory, prefix, image, case):
     key('esc')
     resumed = screenshot('engine-resumed')
     assert menu != initial and menu != resumed, 'El menu no respondio a Escape'
-    key('up', 500)
+    key('up', hold=500)
     moved = screenshot('engine-moved')
     assert moved != resumed, 'El cuadro no cambio al avanzar'
     return dict(Case=case, Passed=True, DoomEngine=True, DoomKeyboardVerified=True,
+                CabinaDoomVerified=desktop, WorkspaceBarAutoHideVerified=desktop,
                 SbefSha256=hashlib.sha256(image).hexdigest(), SbefBytes=len(image),
                 UserCpl=3, FrameWidth=320, FrameHeight=200, FrameSha256=initial,
                 MenuSha256=menu, ResumedSha256=resumed, MovedSha256=moved, GuestRamMiB=256,

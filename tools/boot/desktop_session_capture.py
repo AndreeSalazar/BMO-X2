@@ -104,7 +104,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                              'hold-time': 100})
         time.sleep(0.2)
 
-    wait_until(lambda: logical(216, 33, 0x5ad8ff) and logical(52, 99, 0x5ad8ff) and sleeping())
+    wait_until(lambda: logical(216, 33, 0x0d0e17) and logical(52, 99, 0x5ad8ff) and sleeping())
     timeout_before = wait_stats()[1]
     wait_until(lambda: wait_stats()[1] > timeout_before)
     event_before = wait_stats()[0]
@@ -143,6 +143,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     wait_until(lambda: logical(216, 33, 0x5ad8ff))
     key('2')
     wait_until(lambda: logical(390, 147, 0xad92ff) and (sleeping() or ring3()))
+    wait_until(lambda: logical(272, 33, 0x0d0e17))
     assert wait_stats()[0] > event_before, 'WAIT no devolvio entrada disponible'
 
     def full_repaints():

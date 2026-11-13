@@ -6,7 +6,7 @@ const INK: u32 = 0xe7efff;
 const PANEL: u32 = 0x232638;
 
 // Rasterized from BMO-X's bmo-letra. See CABINA-FONT.md for provenance.
-const CHARACTERS: &[u8] = b"0123456789ABCDEFGHIKLMNOPRSTUVYZJ";
+const CHARACTERS: &[u8] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const ATLAS: &[u8; CHARACTERS.len() * 37] = include_bytes!("cabina_font.bin");
 const SHADES: [u32; 4] = [PANEL, 0x64697a, 0xa5acbc, INK];
 const FIELDS: [(u8, &[u8], &[u8]); 3] = [
@@ -45,7 +45,7 @@ fn text(mut x: u64, y: u64, bytes: &[u8]) {
 
 pub fn show() {
     fill(0, 0, 640, 400, 0x0d0e17);
-    fill(24, 24, 592, 194, PANEL);
+    fill(24, 24, 592, 226, PANEL);
     text(40, 42, b"CABINA RING 0");
     text(40, 68, b"CONTADOR");
     text(168, 68, b"VALOR");
@@ -58,15 +58,70 @@ pub fn show() {
         refresh(field);
     }
     text(40, 188, b"R ACTUALIZAR TODO   F2 CERRAR");
+    text(40, 210, b"DOOM RUN");
+    prompt(b"");
 }
 
-pub fn command(scancode: u8) {
+pub fn diagnostic(scancode: u8) {
     if scancode == 0x13 {
         for field in 0..FIELDS.len() {
             refresh(field);
         }
     } else if let Some(field) = FIELDS.iter().position(|&(key, _, _)| key == scancode) {
         refresh(field);
+    }
+}
+
+fn prompt(input: &[u8]) {
+    fill(40, 228, 560, 12, PANEL);
+    text(40, 228, input);
+    fill(40, 240, 32, 1, 0x5ad8ff);
+}
+
+#[derive(Default)]
+pub struct Command {
+    bytes: [u8; 24],
+    len: usize,
+    active: bool,
+}
+
+impl Command {
+    pub fn key(&mut self, scan: u8) -> bool {
+        if scan == 0x1c {
+            let launch = self.active && self.bytes[..self.len].trim_ascii() == b"DOOM RUN";
+            let message: &[u8] = if launch {
+                if cfg!(desktop_doom) { b"INICIANDO DOOM" } else { b"DOOM REQUIERE EL PERFIL CON IWAD" }
+            } else if self.active {
+                b"COMANDO INVALIDO"
+            } else {
+                b""
+            };
+            *self = Self::default();
+            prompt(message);
+            return launch;
+        }
+        if !self.active && matches!(scan, 0x13 | 0x14 | 0x12 | 0x2f) {
+            diagnostic(scan);
+            return false;
+        }
+        if scan == 0x0e {
+            self.len = self.len.saturating_sub(1);
+        } else {
+            let row = match scan {
+                0x10..=0x19 => b"QWERTYUIOP"[usize::from(scan - 0x10)],
+                0x1e..=0x26 => b"ASDFGHJKL"[usize::from(scan - 0x1e)],
+                0x2c..=0x32 => b"ZXCVBNM"[usize::from(scan - 0x2c)],
+                0x39 => b' ',
+                _ => return false,
+            };
+            if self.len < self.bytes.len() {
+                self.bytes[self.len] = row;
+                self.len += 1;
+                self.active = true;
+            }
+        }
+        prompt(&self.bytes[..self.len]);
+        false
     }
 }
 

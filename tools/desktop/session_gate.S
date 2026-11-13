@@ -119,7 +119,7 @@ row:
 input:
     cmp $2, %rdi
     jne denied
-#ifndef DOOM_ENGINE
+#if !defined(DOOM_ENGINE) || defined(DESKTOP_DOOM)
     cmpb $0, %gs:0x328
     je enable_mouse
 #endif
@@ -134,7 +134,7 @@ input:
     jz finish
     or $512, %eax
     jmp finish
-#ifndef DOOM_ENGINE
+#if !defined(DOOM_ENGINE) || defined(DESKTOP_DOOM)
 enable_mouse:
     call writable
     jc denied
@@ -169,8 +169,15 @@ ready:
 wait_input:
     cmp $2, %rdi
     jne denied
+#ifdef DOOM_ENGINE
+    cmp $1, %rsi
+    je valid_wait_op
+#endif
     test %rsi, %rsi
     jne denied
+#ifdef DOOM_ENGINE
+valid_wait_op:
+#endif
     cmp $100, %rdx
     ja denied
 #ifndef DOOM_ENGINE
@@ -222,18 +229,23 @@ timer_ready:
     mov %gs:0x338, %r8
     add %rdx, %r8
 wait_check:
-#ifndef DOOM_ENGINE
+#if !defined(DOOM_ENGINE) || defined(DESKTOP_DOOM)
+#ifdef DESKTOP_DOOM
+    test %rsi, %rsi
+    jnz wait_clock
+#endif
     in $0x64, %al
     test $1, %al
     jnz event_ready
 #endif
+wait_clock:
     cmp %r8, %gs:0x338
     jae wait_timeout
     sti
     hlt
     cli
     jmp wait_check
-#ifndef DOOM_ENGINE
+#if !defined(DOOM_ENGINE) || defined(DESKTOP_DOOM)
 event_ready:
     incl %gs:0x340
     xor %eax, %eax
