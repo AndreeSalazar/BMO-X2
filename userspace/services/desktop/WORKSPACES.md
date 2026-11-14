@@ -206,8 +206,17 @@ separado en RAM. El paquete con intro ocupa 3189 bytes y conserva la
 misma sesion. El validador admite codigo RX, constantes R/NX y
 datos RW/NX con BSS a cero. QEMU verifica que Rust modifica datos
 y BSS en CPL3 y comprueba un rechazo W+X en la tercera region.
-La lectura del archivo desde el disco del
-invitado sigue pendiente.
+El perfil de arranque desde FAT32 lee el escritorio con UEFI antes
+de entrar a Ring 0. HOST exige un maximo de 16512 bytes para el SBEF
+y 16 KiB en sus regiones mapeadas. El perfil anade una pagina de
+pila de 4 KiB. El informe distingue esos valores del paquete de
+arranque y del puente UEFI. El reto de 2 KiB corresponde al paquete
+minimo del banco ABI.
+
+El cargador inicializa BSS y relleno de las regiones con ceros.
+La sonda ABI separada verifica el borrado de codigo y pila tras
+un fallo. La sesion de escritorio todavia requiere cierre de proceso,
+revocacion de capacidades y recuperacion de sus paginas.
 
 Cuando INVOKE deja el FIFO PS/2 vacio, la sesion llama a WAIT.
 Ring 0 duerme la CPU con HLT entre interrupciones del PIT y

@@ -86,7 +86,9 @@ if ($Guest -and -not $Session) {
 }
 & rustc @flags @linkFlags @guestFlags --crate-name desktop_probe --extern "bmo_x2_desktop=$library" $entrySource -o $elf
 if ($LASTEXITCODE -ne 0) { throw 'Fallo el enlace ELF del escritorio.' }
-& $Python -B (Join-Path $root 'tools/sbef.py') pack $elf $image --abi 1
+$budget = @()
+if ($External) { $budget = @('--max-file-bytes', '16512', '--max-mapped-bytes', '16384') }
+& $Python -B (Join-Path $root 'tools/sbef.py') pack $elf $image --abi 1 @budget
 if ($LASTEXITCODE -ne 0) { throw 'Fallo la admision HOST del escritorio.' }
 Write-Output "SBEF: $image"
 if ($AbiRun) {

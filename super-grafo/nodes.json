@@ -2056,7 +2056,7 @@
       "que": "Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX.",
       "entrada": "Eventos de entrada, superficies de clientes y capacidad de pantalla.",
       "salida": "Cuadro en RAM, espacio activo, foco y movimiento de ventanas.",
-      "aceptacion": "QEMU verifica cuatro espacios, ocultacion de la barra, raton, foco y rechazos de permisos de pantalla y entrada.",
+      "aceptacion": "HOST exige presupuesto SBEF y QEMU verifica cuatro espacios, ocultacion de la barra, raton, foco y rechazos de permisos.",
       "falta": "Leer SBEF desde disco, conectar el compositor completo y pasar de WAIT con PIT a eventos y planificacion.",
       "pagina": true
     },

@@ -16,6 +16,26 @@ from stage_bmo_x2 import bridge_variant
 from wake import SPLASH_PROFILE, check, sha
 
 
+def desktop_budget(image):
+    report = inspect(image)
+    layout = (
+        ('0x40000000', 'RX', 8192),
+        ('0x40003000', 'R', 4096),
+        ('0x40004000', 'RW', 4096),
+    )
+    regions = report['Regions']
+    if report['AbiVersion'] != 1 or len(image) > 16512 or len(regions) != len(layout):
+        raise ValueError('El escritorio requiere SBEF ABI 1 y tres regiones de hasta 16512 bytes en archivo')
+    for region, (address, permissions, limit) in zip(regions, layout, strict=True):
+        if (region['Address'], region['Permissions']) != (address, permissions) or region['MappedBytes'] > limit:
+            raise ValueError(f'La region de escritorio en {address} excede el perfil {permissions} de {limit} bytes')
+        if permissions in ('RX', 'R') and not region['FileBytes']:
+            raise ValueError(f'La region de escritorio en {address} requiere bytes de archivo')
+    return dict(file_bytes=len(image), file_limit_bytes=16512,
+                region_pages_bytes=sum(region['MappedBytes'] for region in regions),
+                region_pages_limit_bytes=16384, stack_bytes=4096)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('abi_run', type=Path)
@@ -31,9 +51,7 @@ def main():
     check(abi)
     check(splash)
     sbef = (desktop / 'desktop.sbef').read_bytes()
-    regions = inspect(sbef)['Regions']
-    if len(regions) != 3:
-        parser.error('El escritorio requiere tres regiones')
+    budget = desktop_budget(sbef)
     run = abi.parent / f'run-desktop-media-{uuid.uuid4().hex[:12]}'
     run.mkdir()
     scripts = Path(__file__).resolve().parent
@@ -120,6 +138,7 @@ def main():
         shutil.copyfile(src, target)
     report = json.loads((run / 'build/puente-test-results.json').read_text(encoding='utf-8'))
     report.update(run=run.name, evidence='QEMU', disk_sbef=True, physical_boot=False,
+                  desktop_budget=budget, boot_packet_bytes=len(packet), uefi_bridge_bytes=len(image),
                   files={name: sha(media / name) for name in files})
     (run / 'qemu-results.json').write_text(json.dumps(report, indent=2) + '\n', encoding='ascii')
     print(f'Media: {media}')
