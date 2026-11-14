@@ -165,10 +165,16 @@ Si SUPER GRAFO es de una revision anterior, reconstruyelo con
 
 `examples/panel/view/main.ujh` describe dos pantallas con etiquetas y clases.
 El estilo Graphite define posicion, dimensiones y colores.
-`view.py` aplana ambos a `panel.ujv`. Su cabecera es `UJVI 01 02`,
-seguida de dos listas. Cada lista empieza con un contador `u16`.
-Cada rectangulo tiene x, y, ancho y alto como `u16`, y color
-`0x00RRGGBB` como `u32`, todos little-endian.
+`view.py` aplana ambos a `panel.ujv`. La version 2 empieza con
+`UJVI 02 02`, un contador `u16` de colores y hasta 64 colores RGB
+como `u32`. Siguen dos listas con un contador `u16` cada una.
+En cada rectangulo de 6 bytes, los campos x, y, ancho, alto e indice
+de color ocupan 10, 9, 10, 9 y 6 bits desde el bit menos significativo.
+Los 4 bits superiores quedan a cero. Todos los valores son little-endian.
+El presentador incluido lee esta version del formato.
+
+El tema admite esquinas redondeadas, escala entera de texto y centrado.
+HOST convierte esos estilos a rectangulos antes de arrancar QEMU.
 
 El presentador x86-64 carga las listas de solo lectura desde su SBEF.
 En Ring 3 solicita el dibujo mediante INVOKE y espera entrada con WAIT.

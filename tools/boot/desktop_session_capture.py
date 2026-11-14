@@ -153,16 +153,16 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         return cache, match
 
     if desktop_media and (prefix.parent.parent / 'ultra-j-view.txt').is_file():
-        probes = ((0, 0, 0x0d0e17), (150, 102, 0x5ad8ff),
-                  (155, 115, 0x202435), (272, 245, 0x244658))
+        probes = ((0, 0, 0x10121a), (110, 96, 0x10121a), (130, 110, 0x1b1f2c),
+                  (150, 239, 0x293850), (380, 239, 0xa8c5ff))
         wait_until(lambda: all(logical(*probe) for probe in probes) and sleeping())
         command('screendump', {'filename': str(prefix) + '-ultra-j-ready.png', 'format': 'png'})
         key('ret')
-        wait_until(lambda: logical(150, 102, 0x6ee7b7) and logical(272, 245, 0x24584d))
+        wait_until(lambda: logical(150, 239, 0x233d35) and logical(380, 239, 0xa0e5ca))
         assert memory(address + 0x1d008, 16, 'ultra-j-button-arena') == bytes(16)
         command('screendump', {'filename': str(prefix) + '-ultra-j-active.png', 'format': 'png'})
         key('ret')
-        wait_until(lambda: logical(150, 102, 0x6ee7b7) and sleeping())
+        wait_until(lambda: logical(150, 239, 0x233d35) and sleeping())
         key('esc')
         wait_until(lambda: all(logical(*probe) for probe in probes) and sleeping())
         cache, _ = bootlog()

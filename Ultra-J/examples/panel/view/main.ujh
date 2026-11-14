@@ -1,18 +1,20 @@
 <app>
   <screen class="canvas">
     <panel class="card">
-      <panel class="stripe"/>
       <label class="title">ULTRA J</label>
-      <label class="status">LISTO</label>
-      <button class="action">ENTER</button>
+      <panel class="rule"/>
+      <label class="ready">LISTO</label>
+      <button class="action">ACTIVAR</button>
+      <label class="key">ENTER</label>
     </panel>
   </screen>
   <screen class="canvas">
     <panel class="card">
-      <panel class="success"/>
       <label class="title">ULTRA J</label>
-      <label class="status">ACTIVO</label>
-      <button class="back">ESC</button>
+      <panel class="rule"/>
+      <label class="active">ACTIVO</label>
+      <button class="back">VOLVER</button>
+      <label class="key">ESC</label>
     </panel>
   </screen>
 </app>

@@ -1,8 +1,9 @@
-canvas { left: 0px; top: 0px; width: 640px; height: 400px; background: #0D0E17; }
-card { left: 140px; top: 102px; width: 360px; height: 196px; background: #202435; }
-stripe { left: 0px; top: 0px; width: 360px; height: 3px; background: #5AD8FF; }
-success { left: 0px; top: 0px; width: 360px; height: 3px; background: #6EE7B7; }
-title { left: 30px; top: 32px; width: 160px; height: 20px; color: #EEF5FF; }
-status { left: 30px; top: 76px; width: 160px; height: 20px; color: #ADBADE; }
-action { left: 30px; top: 130px; width: 112px; height: 28px; background: #244658; color: #EEF5FF; }
-back { left: 30px; top: 130px; width: 112px; height: 28px; background: #24584D; color: #EEF5FF; }
+canvas { left: 0px; top: 0px; width: 640px; height: 400px; background: #10121A; }
+card { left: 110px; top: 96px; width: 420px; height: 208px; border-radius: 16px; background: #1B1F2C; }
+title { left: 30px; top: 38px; width: 220px; height: 40px; font-scale: 3; color: #F3F5FF; }
+rule { left: 30px; top: 102px; width: 360px; height: 1px; background: #343C51; }
+ready { left: 30px; top: 125px; width: 84px; height: 34px; border-radius: 8px; background: #293850; color: #AECFFF; text-align: center; }
+active { left: 30px; top: 125px; width: 84px; height: 34px; border-radius: 8px; background: #233D35; color: #A0E5CA; text-align: center; }
+action { left: 260px; top: 125px; width: 130px; height: 34px; border-radius: 8px; background: #A8C5FF; color: #172746; text-align: center; }
+back { left: 260px; top: 125px; width: 130px; height: 34px; border-radius: 8px; background: #A0E5CA; color: #15362C; text-align: center; }
+key { left: 260px; top: 169px; width: 130px; height: 16px; color: #9CA8C2; text-align: center; }

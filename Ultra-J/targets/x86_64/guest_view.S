@@ -5,18 +5,25 @@ _start:
     lea view(%rip), %r12
     cmpl $0x49564a55, (%r12)
     jne invalid
-    cmpw $0x0201, 4(%r12)
+    cmpw $0x0202, 4(%r12)
     jne invalid
-    add $6, %r12
+    movzwl 6(%r12), %eax
+    dec %eax
+    cmp $63, %eax
+    ja invalid
+    lea 12(%r12,%rax,4), %r12
     lea view_end(%rip), %rbp
+    lea 2(%r12), %rax
+    cmp %rbp, %rax
+    ja invalid
     movzwl (%r12), %eax
-    imul $12, %eax, %eax
+    imul $6, %eax, %eax
     lea 2(%r12,%rax), %r13
     lea 2(%r13), %rax
     cmp %rbp, %rax
     ja invalid
     movzwl (%r13), %eax
-    imul $12, %eax, %eax
+    imul $6, %eax, %eax
     lea 2(%r13,%rax), %rax
     cmp %rbp, %rax
     jne invalid
@@ -27,13 +34,39 @@ paint:
 rect:
     test %ebx, %ebx
     jz input
+    # UJVI v2 packs x/y/w/h and a palette index into six bytes.
+    mov (%r15), %eax
+    movzwl 4(%r15), %ecx
+    shl $32, %rcx
+    or %rcx, %rax
+    mov %eax, %edx
+    and $0x3ff, %edx
+    mov %eax, %ecx
+    shr $10, %ecx
+    and $0x1ff, %ecx
+    shl $16, %ecx
+    or %rcx, %rdx
+    mov %eax, %ecx
+    shr $19, %ecx
+    and $0x3ff, %ecx
+    shl $32, %rcx
+    or %rcx, %rdx
+    shr $29, %rax
+    mov %eax, %ecx
+    and $0x1ff, %ecx
+    shl $48, %rcx
+    or %rcx, %rdx
+    shr $9, %eax
+    movzwl view+6(%rip), %ecx
+    cmp %ecx, %eax
+    jae invalid
+    lea view+8(%rip), %rcx
+    mov (%rcx,%rax,4), %r10d
     xor %eax, %eax
     mov $1, %edi
     mov $1, %esi
-    mov (%r15), %rdx
-    mov 8(%r15), %r10d
     syscall
-    add $12, %r15
+    add $6, %r15
     dec %ebx
     jmp rect
 input:
