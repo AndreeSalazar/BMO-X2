@@ -1333,6 +1333,28 @@ Depende de: contrato propio sin dependencias en este catalogo.
 Aceptacion: Un cliente y un interprete actuan solo con capacidades concedidas.
 Pendiente: Probar procesos externos y aplicar la politica al primer servicio.
 
+## contracts/ULTRA-J.md
+
+Fija bytes de instrucciones, estilo por clase y cierre de regiones.
+
+Estado: HOST. Anillo: contrato. Lenguaje: contrato.
+Entrada: Objetos de interfaz y reglas de propiedad.
+Salida: Formatos UJBC y UJTH para el runtime de usuario.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: Los vectores manuales cargan con longitudes exactas y estilos acotados.
+Pendiente: Compilar sintaxis estilo Java y definir referencias de objetos.
+
+## tools/ultra_j.py
+
+Verifica los dos archivos y ejecuta la recuperacion por region en HOST.
+
+Estado: HOST. Anillo: host. Lenguaje: Python.
+Entrada: Bytecode UJBC y tema UJTH.
+Salida: Rechazo con offset o informe de objetos, estilos y bytes recuperados.
+Depende de: ULTRA-J: bytecode y tema (verificacion), Escritorio y espacios de trabajo (plan).
+Aceptacion: Recuperar 64 bytes en un cierre y reutilizar el offset cero.
+Pendiente: Integrar VM SBEF y presentar el tema en DIRECTOR bajo QEMU.
+
 ## userspace/services/desktop
 
 Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX.
@@ -1432,4 +1454,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-128 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+130 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

@@ -1,0 +1,67 @@
+"""Check the exact ULTRA-J vectors and invalid binary cases."""
+from pathlib import Path
+import unittest
+
+from ultra_j import Rejection, run
+
+
+VECTORS = Path(__file__).resolve().parents[1] / 'userspace/runtime/ultra-j'
+PROGRAM = bytes.fromhex((VECTORS / 'window.ujb.hex').read_text(encoding='ascii'))
+THEME = bytes.fromhex((VECTORS / 'graphite.ujt.hex').read_text(encoding='ascii'))
+
+
+def image(code):
+    return PROGRAM[:6] + len(code).to_bytes(2, 'little') + code
+
+
+class UltraJTests(unittest.TestCase):
+    def test_release_and_reuse(self):
+        report = run(PROGRAM, THEME)
+        self.assertEqual((len(PROGRAM), len(THEME)), (25, 32))
+        self.assertEqual(report['ArenaBytes'], 256)
+        self.assertEqual(report['PeakObjectBytes'], 64)
+        self.assertEqual(report['LiveObjectBytes'], 0)
+        self.assertEqual([a['Offset'] for a in report['Allocations']], [0, 32, 48, 0])
+        self.assertEqual(report['Releases'], [
+            dict(Region=1, Objects=3, Bytes=64), dict(Region=2, Objects=1, Bytes=32),
+        ])
+
+    def test_theme_is_independent(self):
+        custom = bytearray(THEME)
+        custom[20 + 4:20 + 8] = bytes.fromhex('00 FF 00 00')
+        first, second = run(PROGRAM, THEME), run(PROGRAM, custom)
+        self.assertEqual(first.pop('Styles')['Button']['Background'], '#5AD8FF')
+        self.assertEqual(second.pop('Styles')['Button']['Background'], '#00FF00')
+        self.assertEqual(first, second)
+
+    def test_rejects_invalid_program(self):
+        cases = [
+            (PROGRAM[:-1], 'CODE_SIZE', 6),
+            (image(b'\x00'), 'OPCODE', 8),
+            (image(b'\x10'), 'MISSING_OPERAND', 9),
+            (image(bytes.fromhex('10 00 FF')), 'REGION_OPEN', 9),
+            (image(bytes.fromhex('20 01 FF')), 'NO_REGION', 8),
+            (image(bytes.fromhex('10 01 20 03 FF')), 'CLASS', 11),
+            (image(bytes.fromhex('10 01 30 02 FF')), 'REGION_CLOSE', 11),
+            (image(bytes.fromhex('10 01 FF')), 'LIVE_REGION', 10),
+            (image(bytes.fromhex('FF FF')), 'AFTER_RETURN', 9),
+            (image(bytes.fromhex('10 01 30 01')), 'MISSING_RETURN', 12),
+            (image(bytes.fromhex('10 01') + bytes.fromhex('20 01') * 9), 'REGION_CAPACITY', 26),
+        ]
+        for program, code, offset in cases:
+            with self.subTest(code=code), self.assertRaises(Rejection) as caught:
+                run(program, THEME)
+            self.assertEqual((caught.exception.code, caught.exception.offset), (code, offset))
+
+    def test_rejects_invalid_theme(self):
+        for offset, value, code in ((8, 2, 'STYLE_CLASS'), (9, 33, 'STYLE_RADIUS'),
+                                    (10, 33, 'STYLE_PADDING'), (11, 1, 'STYLE_RESERVED')):
+            theme = bytearray(THEME)
+            theme[offset] = value
+            with self.subTest(code=code), self.assertRaises(Rejection) as caught:
+                run(PROGRAM, theme)
+            self.assertEqual((caught.exception.code, caught.exception.offset), (code, offset))
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -125,6 +125,8 @@
 | [Contrato minimo del cargador SBEF](../contracts/SBEF-LOADER.md) | diseno | contrato | Separa admision, plan de carga, memoria y diagnostico. |
 | [Inventario de crates de BMO-X](../heritage/RING3-CRATES.md) | host | host | Agrupa crates del padre por familia y dependencias declaradas. |
 | [Reglas de jerarquia de Ring 3](../userspace/POLICY.md) | diseno | contrato | Separa runtime, supervisor, servicios y aplicaciones mediante capacidades. |
+| [ULTRA-J: bytecode y tema](../contracts/ULTRA-J.md) | host | contrato | Fija bytes de instrucciones, estilo por clase y cierre de regiones. |
+| [ULTRA-J: verificador y reciclador](../tools/ultra_j.py) | host | host | Verifica los dos archivos y ejecuta la recuperacion por region en HOST. |
 | [Escritorio y espacios de trabajo](../userspace/services/desktop) | qemu | 3 | Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX. |
 | [Teclado y atajos del escritorio](../userspace/services/desktop/src/keyboard.rs) | host | 3 | Convierte eventos de BMO-X en cambios de espacio, foco numerado y movimiento de ventanas. |
 | [Teclado y raton USB HID boot](../userspace/services/desktop/src/usb_hid.rs) | host | 3 | Traduce informes USB boot en flancos de teclado, movimiento y botones del raton. |
@@ -137,6 +139,8 @@
 
 | Quien usa | De quien depende | Clase |
 |---|---|---|
+| ultra-j-recycler | ultra-j-format | verificacion |
+| ultra-j-recycler | desktop-workspaces | plan |
 | host-pipeline | sbef-host-pack | codigo |
 | host-pipeline | sbef-host-reader | codigo |
 | host-pipeline | sbef-host-pe | codigo |

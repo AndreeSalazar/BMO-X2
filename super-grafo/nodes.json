@@ -2046,6 +2046,34 @@
       "falta": "Probar procesos externos y aplicar la politica al primer servicio."
     },
     {
+      "id": "ultra-j-format",
+      "titulo": "ULTRA-J: bytecode y tema",
+      "ruta": "contracts/ULTRA-J.md",
+      "estado": "host",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
+      "posicion": [1750, 2375],
+      "que": "Fija bytes de instrucciones, estilo por clase y cierre de regiones.",
+      "entrada": "Objetos de interfaz y reglas de propiedad.",
+      "salida": "Formatos UJBC y UJTH para el runtime de usuario.",
+      "aceptacion": "Los vectores manuales cargan con longitudes exactas y estilos acotados.",
+      "falta": "Compilar sintaxis estilo Java y definir referencias de objetos."
+    },
+    {
+      "id": "ultra-j-recycler",
+      "titulo": "ULTRA-J: verificador y reciclador",
+      "ruta": "tools/ultra_j.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [2080, 2375],
+      "que": "Verifica los dos archivos y ejecuta la recuperacion por region en HOST.",
+      "entrada": "Bytecode UJBC y tema UJTH.",
+      "salida": "Rechazo con offset o informe de objetos, estilos y bytes recuperados.",
+      "aceptacion": "Recuperar 64 bytes en un cierre y reutilizar el offset cero.",
+      "falta": "Integrar VM SBEF y presentar el tema en DIRECTOR bajo QEMU."
+    },
+    {
       "id": "desktop-workspaces",
       "titulo": "Escritorio y espacios de trabajo",
       "ruta": "userspace/services/desktop",
@@ -2146,6 +2174,16 @@
     }
   ],
   "relaciones": [
+    {
+      "de": "ultra-j-recycler",
+      "a": "ultra-j-format",
+      "clase": "verificacion"
+    },
+    {
+      "de": "ultra-j-recycler",
+      "a": "desktop-workspaces",
+      "clase": "plan"
+    },
     {
       "de": "host-pipeline",
       "a": "sbef-host-pack",

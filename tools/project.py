@@ -37,7 +37,7 @@ def validate(data, paths=True):
     require(data.get('destino') == 'x86-64', 'El destino debe ser x86-64')
     require(data.get('ring0') == 'CASM' and data.get('ring3') == 'Rust', 'Frontera CASM/Rust invalida')
     nodes, edges = data['nodos'], data['relaciones']
-    require(isinstance(nodes, list) and 0 < len(nodes) <= 128, 'Cantidad de nodos fuera de limite')
+    require(isinstance(nodes, list) and 0 < len(nodes) <= 256, 'Cantidad de nodos fuera de limite')
     require(isinstance(edges, list) and len(edges) <= 512, 'Cantidad de relaciones fuera de limite')
     ids, routes, locations = {}, set(), set()
     for n in nodes:
