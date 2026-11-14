@@ -203,6 +203,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         assert kind == 2 and start <= dma and dma + pages * 4096 <= end
         reserved = memory(dma, pages * 4096, 'xhci-reserved-pages')
         if command_probe:
+            assert memory(address + 0x1a3c4, 1, 'xhci-dma-validated') == b'\x01'
             status = memory(address + 0x1a379, 2, 'xhci-command-status')
             assert status == b'\x01\x01', f'xHCI command/stop status: {status.hex()}'
             original, restored = struct.unpack('<HH', memory(address + 0x1a37c, 4, 'xhci-pci-command'))
@@ -285,7 +286,8 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                         UsbKeyboardTransferVerified=True,
                         UsbInputVerified=True, UsbCabinaVerified=True, CpuL1=cache,
                         XhciControllers=count, XhciSelectedBdf=f'{bdf:04X}', XhciConnectedPorts=rank-1,
-                        XhciResetStage=reset_stage, XhciScratchpadPages=scratchpads, XhciContextBytes=context_bytes)
+                        XhciResetStage=reset_stage, XhciScratchpadPages=scratchpads, XhciContextBytes=context_bytes,
+                        DmaReservationValidated=True)
     timeout_before = wait_stats()[1]
     wait_until(lambda: wait_stats()[1] > timeout_before)
     event_before = wait_stats()[0]

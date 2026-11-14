@@ -37,10 +37,20 @@ La misma sonda lee la configuracion de 34 bytes, valida una interfaz
 HID boot, solicita SET_CONFIGURATION y SET_PROTOCOL y configura
 el endpoint 1 IN. QEMU inyecta F2 y coteja el informe de ocho bytes
 que xHCI escribe en memoria. El controlador se detiene al terminar.
-La etapa se guarda bajo `qemu-only`; usa el controlador virtual y no
-concede DMA a Ring 3. Faltan el dominio IOMMU, rearmar transferencias
-para pulsaciones y liberaciones, entregar informes a Ring 3 y
-enumerar el raton.
+La etapa se guarda bajo `qemu-only`. Antes de programar las colas,
+Ring 0 exige que las cinco paginas tengan cobertura exclusiva de
+EfiLoaderData y esten separadas del contexto, del paquete y del SBEF.
+El ensayo coteja las pulsaciones y liberaciones que recibe CABINA
+tras detener el controlador. Si la parada no se confirma, la sonda
+intenta desactivar bus mastering y conserva las paginas reservadas.
+
+La comprobacion acota las direcciones que el controlador recibe del
+driver. La proteccion frente a un dispositivo que accede fuera de
+esas direcciones requiere que el hardware aplique un dominio IOMMU.
+El contrato comun de prestamos define propiedad, direccion y
+revocacion. AMD IOMMU e Intel VT-d son posibles implementaciones
+de ese contrato. Quedan pendientes esos dominios, las transferencias
+continuas de teclado y la enumeracion del raton.
 
 [Revocacion de pagina](../../mm/virtual/revoke/HOT-UNMAP.md) |
 [Referencia de DMA en Linux](https://docs.kernel.org/core-api/dma-api-howto.html)
