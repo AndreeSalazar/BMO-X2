@@ -2,6 +2,23 @@
 
 ## Primera prueba en hardware
 
+### Diagnostico visible de teclado y raton
+
+El ensayo de escritorio `run-desktop-media-660962069397` conserva los
+tres archivos de arranque bajo `media/`, el manifiesto de huellas en
+`qemu-results.json` y una captura en `build/puente-normal.png`.
+QEMU verifico que la pantalla distingue el inventario xHCI de la
+recepcion de eventos PS/2 y que los dos indicadores cambian por separado.
+
+Al entrar por BMO-X2 en UEFI, fotografiar el panel inferior antes de
+interactuar. Pulsar F2 y mover el raton, probar un clic y fotografiar
+el resultado. Anotar el numero XHCI, los dos estados PS2, si se abrio
+CABINA y si se movio el cursor. Incluir el puerto usado y si habia un
+hub. Si el arranque se queda en el gato, fotografiar esa pantalla.
+El contador XHCI registra controladores PCI detectados. El indicador
+PS2 registra eventos recibidos por la ruta PS/2 y puede reflejar la
+emulacion del firmware. El transporte USB HID continuo sigue pendiente.
+
 El primer objetivo fisico es llegar a una parada controlada en Ring 0 desde
 el firmware UEFI x86-64 y poder explicar en que fase quedo el equipo. El
 ensayo de DOOM prueba otra parte del sistema: carga externa, ejecucion CPL3,

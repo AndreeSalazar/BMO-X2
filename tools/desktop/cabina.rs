@@ -64,9 +64,21 @@ pub fn show() {
     prompt(b"");
 }
 
-pub fn usb_pending() {
-    fill(24, 354, 328, 28, PANEL);
-    text(36, 362, b"USB XHCI DETECTADO   ENTRADA PENDIENTE");
+#[cfg(external_session)]
+pub fn boot_input(controllers: u32, keyboard: bool, mouse: bool) {
+    fill(24, 354, 548, 32, PANEL);
+    text(36, 359, b"BMO X2   PRUEBA DE ENTRADA");
+    text(260, 359, b"XHCI");
+    let mut count = [b'0'; 5];
+    let mut value = controllers;
+    for digit in count.iter_mut().rev() {
+        *digit += (value % 10) as u8;
+        value /= 10;
+    }
+    let start = count.iter().position(|&digit| digit != b'0').unwrap_or(4);
+    text(303, 359, &count[start..]);
+    text(36, 372, if keyboard { b"TECLADO PS2 OK" } else { b"TECLADO PS2 ESPERA" });
+    text(260, 372, if mouse { b"RATON PS2 OK" } else { b"RATON PS2 ESPERA" });
 }
 
 pub fn diagnostic(scancode: u8) {

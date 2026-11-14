@@ -109,6 +109,16 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         wait_until(lambda: memory(address + 0x1a396, 1, 'xhci-armed') == b'\x01')
         key('f2')
     wait_until(lambda: logical(216, 33, 0x0d0e17) and logical(52, 99, 0x5ad8ff) and sleeping())
+    def input_label(x, tag):
+        stride = pitch * 4
+        length = 115 * scale * 4
+        data = memory(fb + (372*scale*pitch + x*scale)*4, 11*scale*stride + length, tag)
+        return tuple(data[row*stride:row*stride+length] for row in range(0, 11*scale+1, scale))
+
+    if external_image is not None:
+        assert logical(24, 354, 0x232638), 'Falta el panel de entrada al arrancar'
+        keyboard_before = input_label(36, 'keyboard-before')
+        mouse_before = input_label(260, 'mouse-before')
     cache = l1_cache_profile(memory(address + 0xd0, 32, 'cpu-l1')) if desktop_media else None
     if desktop_media:
         staging, image_bytes = struct.unpack('<QQ', memory(address + 0xa8, 16, 'desktop-staging'))
@@ -244,6 +254,9 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     wait_until(lambda: logical(390, 147, 0xad92ff) and (sleeping() or ring3()))
     wait_until(lambda: logical(272, 33, 0x0d0e17))
     assert wait_stats()[0] > event_before, 'WAIT no devolvio entrada disponible'
+    if external_image is not None:
+        assert input_label(36, 'keyboard-after') != keyboard_before
+        assert input_label(260, 'mouse-idle') == mouse_before
 
     def full_repaints():
         return int.from_bytes(memory(address + 0x1a32c, 4, 'full-repaints'), 'little')
@@ -258,6 +271,8 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     assert baseline > 0, 'Contador de repintados sin inicializar'
     move(-80, -32)
     wait_until(lambda: logical(240, 168, 0xe7efff) and logical(320, 200, 0x171825))
+    if external_image is not None:
+        assert input_label(260, 'mouse-after') != mouse_before
     move(4, 0)
     wait_until(lambda: logical(244, 168, 0xe7efff) and logical(240, 168, 0x171825))
     move(-4, 0)
@@ -406,4 +421,5 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 DesktopStagingBytes=staging_pages * 4096 if desktop_media else None,
                 DesktopStagingReturnedBytes=(5 - staging_pages) * 4096 if desktop_media else None,
                 PayloadSHA256=hashlib.sha256(packet[24:]).hexdigest(),
-                SbefSHA256=fixture['sbef_sha256'], CpuL1=cache, **closed)
+                SbefSHA256=fixture['sbef_sha256'], CpuL1=cache,
+                BootInputIndicatorsVerified=external_image is not None, **closed)

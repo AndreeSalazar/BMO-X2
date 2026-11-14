@@ -236,11 +236,18 @@ extern "C" fn bmo_main() -> ! {
     }
     paint(VIEWPORT, space, focus[space], false);
     cursor(x, y);
-    let usb_pending = matches!(invoke(3, 3, 4, 0), 1..=256);
-    if usb_pending {
-        cabina::usb_pending();
-    }
+    let controllers = invoke(3, 3, 4, 0);
+    let usb_pending = controllers != DENIED && (1..=65536).contains(&controllers);
+    #[cfg(external_session)]
+    let (mut keyboard_seen, mut mouse_seen, mut input_dirty) = (false, false, true);
     loop {
+        #[cfg(external_session)]
+        if input_dirty && !console && !settings_open {
+            cabina::boot_input(if controllers <= 65536 && controllers != DENIED { controllers } else { 0 },
+                               keyboard_seen, mouse_seen);
+            cursor(x, y);
+            input_dirty = false;
+        }
         if let Some(shown) = bar {
             if invoke(3, 3, 0, 0).wrapping_sub(shown) >= BAR_TICKS {
                 bar = None;
@@ -272,6 +279,11 @@ extern "C" fn bmo_main() -> ! {
                     let next_x = (x + delta_x * pointer_speed).clamp(0, 633);
                     let next_y = (y - delta_y * pointer_speed).clamp(0, 390);
                     let pressed = flags & 1 != 0;
+                    #[cfg(external_session)]
+                    if !mouse_seen && (delta_x != 0 || delta_y != 0 || pressed) {
+                        mouse_seen = true;
+                        input_dirty = true;
+                    }
                     #[cfg(desktop_doom)]
                     if doom.active(space) {
                         doom.mouse(flags, delta_x, delta_y);
@@ -301,11 +313,15 @@ extern "C" fn bmo_main() -> ! {
                     if focus[space] != previous_focus {
                         paint(VIEWPORT, space, focus[space], bar.is_some());
                         cursor(x, y);
+                        #[cfg(external_session)]
+                        { input_dirty = true; }
                         displayed = (x, y);
                         pending_motion = 0;
                     } else {
                         pending_motion += 1;
                         if pending_motion == 8 {
+                            #[cfg(external_session)]
+                            { input_dirty |= displayed.0 < 572 && displayed.1 >= 345; }
                             move_cursor(displayed, (x, y), space, focus[space], bar.is_some());
                             displayed = (x, y);
                             pending_motion = 0;
@@ -317,6 +333,8 @@ extern "C" fn bmo_main() -> ! {
             continue;
         }
         if pending_motion != 0 {
+            #[cfg(external_session)]
+            { input_dirty |= displayed.0 < 572 && displayed.1 >= 345; }
             move_cursor(displayed, (x, y), space, focus[space], bar.is_some());
             displayed = (x, y);
             pending_motion = 0;
@@ -334,6 +352,11 @@ extern "C" fn bmo_main() -> ! {
             continue;
         }
         let key = raw as u8;
+        #[cfg(external_session)]
+        if !keyboard_seen && matches!(key, 0x01..=0x58) {
+            keyboard_seen = true;
+            input_dirty = true;
+        }
         if key == 0xe0 {
             prefix = true;
             continue;
@@ -415,9 +438,8 @@ extern "C" fn bmo_main() -> ! {
             } else {
                 paint(VIEWPORT, space, focus[space], false);
                 cursor(x, y);
-                if usb_pending {
-                    cabina::usb_pending();
-                }
+                #[cfg(external_session)]
+                { input_dirty = true; }
             }
             continue;
         }
@@ -432,6 +454,8 @@ extern "C" fn bmo_main() -> ! {
                 } else {
                     paint(VIEWPORT, space, focus[space], false);
                     cursor(x, y);
+                    #[cfg(external_session)]
+                    { input_dirty = true; }
                 }
             }
             continue;
@@ -443,6 +467,8 @@ extern "C" fn bmo_main() -> ! {
                         settings_open = false;
                         paint(VIEWPORT, space, focus[space], false);
                         cursor(x, y);
+                        #[cfg(external_session)]
+                        { input_dirty = true; }
                     }
                     2 | 3 => {
                         pointer_speed = i16::from(key - 1);
@@ -475,6 +501,8 @@ extern "C" fn bmo_main() -> ! {
                 if selected != space {
                     space = selected;
                     paint(VIEWPORT, space, focus[space], true);
+                    #[cfg(external_session)]
+                    { input_dirty = true; }
                 } else {
                     paint(BAR, space, focus[space], true);
                 }
@@ -486,6 +514,8 @@ extern "C" fn bmo_main() -> ! {
                     focus[space] = selected;
                     paint(VIEWPORT, space, selected, bar.is_some());
                     cursor(x, y);
+                    #[cfg(external_session)]
+                    { input_dirty = true; }
                 }
             }
             _ => {}
