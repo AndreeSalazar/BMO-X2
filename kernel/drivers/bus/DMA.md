@@ -41,10 +41,11 @@ direcciona el dispositivo y lee su descriptor de 18 bytes por EP0.
 La misma sonda lee la configuracion de 34 bytes, valida una interfaz
 HID boot, solicita SET_CONFIGURATION y SET_PROTOCOL y configura
 el endpoint 1 IN. QEMU inyecta F2 y F3, con sus flancos de liberacion.
-La sonda rearma el endpoint hasta cuatro veces sin envolver la cola.
+La sonda rearma cuatro posiciones fijas y verifica el retorno al
+inicio de las colas de transferencias y de eventos con veinte informes.
 WAIT comprueba el evento al despertar del PIT. INVOKE valida el TRB
 y entrega el informe a Rust. QEMU comprueba que CABINA abre con el
-controlador activo y que este se detiene tras el cuarto informe.
+controlador activo y que este se detiene tras el vigesimo informe.
 La etapa se guarda bajo `qemu-only`. Antes de programar las colas,
 Ring 0 exige que las diez paginas tengan cobertura exclusiva de
 EfiLoaderData y esten separadas del contexto, del paquete y del SBEF.

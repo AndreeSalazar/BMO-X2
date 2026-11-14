@@ -1509,7 +1509,7 @@
       "entrada": "Dispositivos descubiertos, buffers y eventos.",
       "salida": "Canales y ventanas de aparato acotados.",
       "aceptacion": "Pruebas de acceso, revocacion y fallo de servicio por dispositivo admitido.",
-      "falta": "QEMU abre CABINA por USB con xHCI activo. WAIT detecta el evento al despertar del PIT y Rust recibe cuatro informes. Faltan reciclado de colas, raton y controladores fisicos.",
+      "falta": "QEMU abre CABINA con xHCI activo y Rust recibe veinte informes usando colas circulares. Faltan operacion sostenida, raton y validacion de controladores fisicos.",
       "pagina": true
     },
     {

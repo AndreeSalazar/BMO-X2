@@ -1,6 +1,6 @@
 # QEMU qemu-xhci only. Interrupt delivery remains disabled.
 #include "xhci_dma_layout.inc"
-.equ keyboard_report_count, 4
+.equ keyboard_report_count, 20
 .text
 xhci_test_command:
     cmpb $1, %gs:0x378
@@ -530,19 +530,31 @@ keyboard_interval_ready:
     cmpb $1, 15(%rsi)
     jne keyboard_report_done
     add $16, %rsi
-    lea 0x2100-16*keyboard_report_count(%r8), %rax
+    lea 0x2100-16(%r8), %rax
     cmp %rax, %rsi
     ja keyboard_report_done
     mov %rsi, %gs:0x3d0
+    movw $0x0101, %gs:0x3ca   # Producer and consumer cycles.
+    lea 0x4900(%r8), %rax
+    mov %rax, 0x4940(%r8)
     xor %ecx, %ecx
 keyboard_report_submit:
     mov %rcx, %rbx
+    and $3, %ebx
+    lea 0x4e80(%r8,%rbx,8), %rdx
     shl $4, %rbx
     lea 0x4900(%r8,%rbx), %rbx
-    lea 0x4e80(%r8,%rcx,8), %rdx
     mov %rdx, (%rbx)
     movl $8, 8(%rbx)
-    movl $0x421, 12(%rbx)
+    movzbl %gs:0x3ca, %eax
+    cmpb $3, %cl
+    jne keyboard_publish
+    lea 0x1802(%rax), %edx
+    mov %edx, 0x494c(%r8)      # Link TRB, toggle cycle.
+    xorb $1, %gs:0x3ca
+keyboard_publish:
+    or $0x420, %eax
+    mov %eax, 12(%rbx)
     movl $3, 4(%r10)
     incb %gs:0x396
     ret
@@ -552,11 +564,14 @@ xhci_live_report:
     cmpb $1, %gs:0x3c8
     jne keyboard_report_done
     mov %gs:0x3d0, %rsi
-    testb $1, 12(%rsi)
-    jz keyboard_report_done
+    mov 12(%rsi), %dl
+    and $1, %dl
+    cmp %gs:0x3cb, %dl
+    jne keyboard_report_done
     mov 0xb8(%rbp), %r8
     movzbl %gs:0x397, %ecx
     mov %rcx, %rbx
+    and $3, %ebx
     shl $4, %rbx
     lea 0x4900(%r8,%rbx), %rbx
 keyboard_report_event:
@@ -568,24 +583,30 @@ keyboard_report_event:
     jne keyboard_live_error
     cmp %rbx, (%rsi)
     jne keyboard_live_error
-    lea 24(%rsi), %rax
-    mov %rax, 0x10001038
     add $16, %rsi
+    lea 0x2100(%r8), %rax
+    cmp %rax, %rsi
+    jne keyboard_event_next
+    lea 0x2000(%r8), %rsi
+    xorb $1, %gs:0x3cb
+keyboard_event_next:
+    lea 8(%rsi), %rax
+    mov %rax, 0x10001038
     mov %rsi, %gs:0x3d0
     incb %gs:0x397
+    and $3, %ecx
+    pushq 0x4e80(%r8,%rcx,8)
     cmpb $keyboard_report_count, %gs:0x397
     je keyboard_live_last
     lea 0x10002000, %r10
     inc %ecx
+    and $3, %ecx
     call keyboard_report_submit
-    dec %ecx
     jmp keyboard_live_deliver
 keyboard_live_last:
-    push %rcx
     call xhci_live_stop
-    pop %rcx
 keyboard_live_deliver:
-    mov 0x4e80(%r8,%rcx,8), %rax
+    pop %rax
     incb %gs:0x398
     ret
 keyboard_live_error:

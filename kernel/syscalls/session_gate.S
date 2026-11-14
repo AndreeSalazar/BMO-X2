@@ -238,8 +238,10 @@ wait_check:
     cmpb $1, %gs:0x3c8
     jne wait_ps2
     mov %gs:0x3d0, %rax
-    testb $1, 12(%rax)
-    jnz event_ready
+    mov 12(%rax), %al
+    and $1, %al
+    cmp %gs:0x3cb, %al
+    je event_ready
 wait_ps2:
 #endif
 #if !defined(DOOM_ENGINE) || defined(DESKTOP_DOOM)
