@@ -87,6 +87,10 @@ header:
     test %r9d, %r9d
     jz reject
     mov 80(%rsi), %eax
+#ifdef ULTRA_J_MEDIA
+    cmp $3576, %eax
+    ja reject
+#endif
     cmp %r9d, %eax
     jb reject
     cmp $4096, %eax
@@ -117,6 +121,17 @@ header:
 payload_checked:
     test %edx, %edx
     jne reject
+#ifdef ULTRA_J_MEDIA
+    # Last 520 bytes of read-only user page carry length and action.
+    cmpq $9, 0x600(%rbp)
+    jb reject
+    cmpq $512, 0x600(%rbp)
+    ja reject
+    cmp $128, %r8d
+    jne reject
+    test %r9d, %r9d
+    jz reject
+#endif
     lea 0x5000(%r11), %rdi
     add %r8, %rsi
     rep movsb
@@ -146,6 +161,16 @@ payload_checked:
     mov $4096, %ecx
     sub %r9d, %ecx
     rep stosb
+#ifdef ULTRA_J_MEDIA
+    push %rsi
+    lea 0x9df8(%r11), %rdi
+    mov 0x600(%rbp), %rcx
+    mov %rcx, (%rdi)
+    add $8, %rdi
+    lea 0xa00(%rbp), %rsi
+    rep movsb
+    pop %rsi
+#endif
     lea 0x9005(%r11), %rax
     bts $63, %rax
     mov %rax, 0x4018(%r11)

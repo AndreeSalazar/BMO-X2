@@ -2125,9 +2125,9 @@
       "posicion": [3070, 2375],
       "que": "Empaqueta un presentador de Ring 3 para los servicios INVOKE y WAIT de BMO-X2.",
       "entrada": "Vista UJVI compilada y ABI x86-64.",
-      "salida": "SBEF con presentador nativo, vista y accion UJBC de solo lectura.",
+      "salida": "SBEF con presentador y vista; ACTION.UJB separado en FAT32.",
       "aceptacion": "UJBC v1/v2 interpreta regiones y metodos; QEMU coteja la vista y los 256 bytes de la arena.",
-      "falta": "Cargar UJBC separado, integrar DIRECTOR y comprobar en metal."
+      "falta": "Cargar aplicaciones en sesion activa, integrar DIRECTOR y comprobar en metal."
     },
     {
       "id": "desktop-workspaces",

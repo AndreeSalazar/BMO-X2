@@ -46,10 +46,13 @@ def main():
     probes.add_argument('--xhci-command', action='store_true', help='Run the QEMU-only xHCI command probe')
     probes.add_argument('--reuse-session', action='store_true', help='Run the QEMU-only desktop frame reuse probe')
     probes.add_argument('--ultra-j-view', type=Path, help='Test the ULTRA-J Ring 3 view SBEF in QEMU')
+    parser.add_argument('--ultra-j-action', type=Path)
     parser.add_argument('--usb-desktop', type=Path, help='Desktop SBEF compiled with -UsbProbe')
     parser.add_argument('--usb-full-speed', action='store_true', help='Use USB 1.x in the xHCI probe')
     parser.add_argument('--usb-mouse', action='store_true', help='Probe a USB boot mouse instead of a keyboard')
     args = parser.parse_args()
+    if bool(args.ultra_j_view) != bool(args.ultra_j_action):
+        parser.error('--ultra-j-view y --ultra-j-action deben usarse juntos')
     abi, splash, desktop = map(workspace, (args.abi_run, args.splash_run, args.desktop_run))
     for path, profile in ((abi, 'ring0-abi-probe-0.1'), (splash, SPLASH_PROFILE),
                           (desktop, 'desktop-external')):
@@ -68,6 +71,12 @@ def main():
         parser.error('--usb-desktop requiere el resultado local de -UsbProbe')
     sbef = (args.usb_desktop or args.ultra_j_view or desktop / 'desktop.sbef').read_bytes()
     budget = desktop_budget(sbef)
+    action = args.ultra_j_action.read_bytes() if args.ultra_j_action else b''
+    if args.ultra_j_action:
+        if not 9 <= len(action) <= 512:
+            parser.error('ACTION.UJB debe ocupar de 9 a 512 bytes')
+        if inspect(sbef)['Regions'][1]['MemoryBytes'] > 3576:
+            parser.error('La vista ULTRA-J debe dejar 520 bytes de su pagina para ACTION.UJB')
     run = abi.parent / f'run-desktop-media-{uuid.uuid4().hex[:12]}'
     run.mkdir()
     scripts = Path(__file__).resolve().parent
@@ -82,6 +91,8 @@ def main():
         flags = ['-DXHCI_COMMAND_PROBE'] if args.xhci_command else []
         if args.reuse_session:
             flags.append('-DDESKTOP_REUSE')
+        if args.ultra_j_action:
+            flags.append('-DULTRA_J_MEDIA')
         subprocess.run([llvm / 'clang.exe', '--target=x86_64-unknown-none-elf',
                         '-DDESKTOP_MEDIA', '-DDESKTOP_EXTERNAL', *flags,
                         '-c', source, '-o', obj], check=True)
@@ -146,9 +157,14 @@ def main():
     struct.pack_into('<I', rejected, 116, 7)
     bad = run / 'rejected.sbef'
     bad.write_bytes(rejected)
+    action_args = []
+    if args.ultra_j_action:
+        action_path = run / 'ACTION.UJB'
+        action_path.write_bytes(action)
+        action_args = ['--ultra-j-action', action_path]
     for case, path in (('external-permissions', bad), ('normal', run / 'desktop.sbef')):
         subprocess.run([sys.executable, '-B', scripts / 'prepare.py', '--workspace', run,
-                        '--bmo-x2-folder', '--desktop', path], check=True, timeout=30)
+                        '--bmo-x2-folder', '--desktop', path, *action_args], check=True, timeout=30)
         if case != 'normal':
             (run / 'build/puente-normal.img').replace(run / 'build/puente-external-permissions.img')
     if args.xhci_command:
@@ -169,6 +185,8 @@ def main():
     media = run / ('qemu-only' if args.xhci_command or args.reuse_session or args.ultra_j_view else 'media')
     files = {'EFI/BMO-X2/BMO-X2.EFI': efi, 'BMO-X2/INICIO.X86': payload,
              'BMO-X2/DESKTOP.SBF': run / 'desktop.sbef'}
+    if args.ultra_j_action:
+        files['BMO-X2/ACTION.UJB'] = action_path
     for name, src in files.items():
         target = media / name
         target.parent.mkdir(parents=True, exist_ok=True)

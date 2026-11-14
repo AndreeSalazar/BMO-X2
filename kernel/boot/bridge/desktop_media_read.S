@@ -51,6 +51,33 @@ desktop_media_read:
     call *0x10(%rcx)
     test %rax, %rax
     js release
+#ifdef ULTRA_J_MEDIA
+    # The action is a separate FAT32 file, bounded before ExitBootServices.
+    mov 0x38(%rbp), %rcx
+    lea 0x40(%rbp), %rdx
+    lea action_path(%rip), %r8
+    mov $1, %r9d
+    movq $0, 32(%rsp)
+    call *8(%rcx)
+    test %rax, %rax
+    js release
+    movq $513, 0x600(%rbp)
+    mov 0x40(%rbp), %rcx
+    lea 0x600(%rbp), %rdx
+    lea 0xa00(%rbp), %r8
+    call *0x20(%rcx)
+    test %rax, %rax
+    js release
+    cmpq $512, 0x600(%rbp)
+    ja release
+    cmpq $9, 0x600(%rbp)
+    jb release
+    mov 0x40(%rbp), %rcx
+    movq $0, 0x40(%rbp)
+    call *0x10(%rcx)
+    test %rax, %rax
+    js release
+#endif
     call cache_profile
     call boot_report
     # Return the unused tail to firmware before taking the final memory map.
@@ -105,5 +132,10 @@ done:
 path:
     # \BMO-X2\DESKTOP.SBF
     .short 92,66,77,79,45,88,50,92,68,69,83,75,84,79,80,46,83,66,70,0
+#ifdef ULTRA_J_MEDIA
+action_path:
+    # \BMO-X2\ACTION.UJB
+    .short 92,66,77,79,45,88,50,92,65,67,84,73,79,78,46,85,74,66,0
+#endif
 error:
     .short 66,77,79,45,88,50,58,32,101,114,114,111,114,32,68,69,83,75,84,79,80,46,83,66,70,13,10,0

@@ -17,11 +17,14 @@ parser.add_argument('--caso', choices=['normal', 'firma', 'suma', 'ausente', 'ex
 parser.add_argument('--profile',choices=['hello','flappy-preview'],default='hello')
 parser.add_argument('--bmo-x2-folder', action='store_true', help='Use a separate payload folder in the virtual image')
 parser.add_argument('--desktop', type=Path, help='Add the desktop SBEF to the BMO-X2 folder')
+parser.add_argument('--ultra-j-action', type=Path, help='Add ACTION.UJB alongside the desktop SBEF')
 args = parser.parse_args()
 if args.bmo_x2_folder and (args.profile != 'hello' or args.caso != 'normal'):
     parser.error('--bmo-x2-folder requires the normal bridge case')
 if args.desktop and not args.bmo_x2_folder:
     parser.error('--desktop requires --bmo-x2-folder')
+if args.ultra_j_action and not args.desktop:
+    parser.error('--ultra-j-action requires --desktop')
 root = workspace(args.workspace)
 build = root / 'build'
 if args.profile=='flappy-preview' and args.caso!='normal':raise ValueError('Visual preview uses only the normal virtual image case')
@@ -154,6 +157,14 @@ with output.open('r+b') as disk:
             write(cluster_offset(cluster), data.ljust(cluster_bytes, b'\0'))
         slot = next(i for i in range(0, len(directory), 32) if directory[i] == 0)
         directory[slot:slot+32] = entry(b'DESKTOP SBF', 0x20, desktop_chain[0], len(desktop))
+    if args.ultra_j_action:
+        action = args.ultra_j_action.read_bytes()
+        if not 9 <= len(action) <= min(512, cluster_bytes):
+            raise ValueError('Tamano invalido de ACTION.UJB')
+        action_cluster, = allocate(1)
+        write(cluster_offset(action_cluster), action.ljust(cluster_bytes, b'\0'))
+        slot = next(i for i in range(0, len(directory), 32) if directory[i] == 0)
+        directory[slot:slot+32] = entry(b'ACTION  UJB', 0x20, action_cluster, len(action))
     write(metal_offset, directory)
 
     efi_dir, boot_dir = allocate(2)

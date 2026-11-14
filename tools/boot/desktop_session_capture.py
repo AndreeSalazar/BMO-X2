@@ -156,6 +156,12 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         probes = ((0, 0, 0x10121a), (110, 96, 0x10121a), (130, 110, 0x1b1f2c),
                   (150, 239, 0x293850), (380, 239, 0xa8c5ff))
         wait_until(lambda: all(logical(*probe) for probe in probes) and sleeping())
+        action = (prefix.parent.parent / 'ACTION.UJB').read_bytes()
+        assert action not in external_image
+        assert memory(address + 0x1cdf8, 520, 'ultra-j-action') == (
+            struct.pack('<Q', len(action)) + action.ljust(512, b'\0'))
+        rodata = struct.unpack('<Q', memory(address + 0x17018, 8, 'ultra-j-rodata-pte'))[0]
+        assert rodata & ((1 << 63) | 7) == ((1 << 63) | 5)
         command('screendump', {'filename': str(prefix) + '-ultra-j-ready.png', 'format': 'png'})
         key('ret')
         wait_until(lambda: logical(150, 239, 0x233d35) and logical(380, 239, 0xa0e5ca))
@@ -168,6 +174,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         cache, _ = bootlog()
         return dict(Case='normal', Passed=True, UserCpl=3, UltraJViewVerified=True,
                     UltraJButtonAction=True, UltraJArenaCleared=True, UltraJResetVerified=True,
+                    UltraJExternalAction=True,
                     IntroFramesObserved=sorted(frames),
                     CpuL1=cache)
 

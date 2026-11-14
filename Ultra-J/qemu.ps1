@@ -19,6 +19,6 @@ $view = Join-Path $output 'panel.ujv'
 $action = Join-Path $output 'panel-action.ujb'
 & $Python -B (Join-Path $PSScriptRoot 'package.py') (Join-Path $PSScriptRoot 'examples/panel') $output
 if ($LASTEXITCODE -ne 0) { throw 'Fallo la compilacion del paquete del panel.' }
-$sbef = & (Join-Path $PSScriptRoot 'targets/x86_64/build.ps1') -View $view -Action $action -Python $Python -Llvm $Llvm
-& $Python -B (Join-Path $root 'tools/boot/stage_desktop_media.py') $AbiRun $SplashRun $DesktopRun --ultra-j-view $sbef
+$sbef = & (Join-Path $PSScriptRoot 'targets/x86_64/build.ps1') -View $view -Python $Python -Llvm $Llvm
+& $Python -B (Join-Path $root 'tools/boot/stage_desktop_media.py') $AbiRun $SplashRun $DesktopRun --ultra-j-view $sbef --ultra-j-action $action
 if ($LASTEXITCODE -ne 0) { throw 'Fallo la comprobacion de la vista en QEMU.' }

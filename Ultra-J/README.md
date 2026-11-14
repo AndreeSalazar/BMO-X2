@@ -153,10 +153,9 @@ entradas ausentes se diagnostican antes de publicar el binario.
 Si la firma no coincide, el informe apunta a la declaracion y registra
 la linea y la columna de la llamada.
 
-El siguiente hito de Ring 3 es cargar el `.ujb` del escenario como
-archivo separado, con un verificador e interprete que acepten sus
-instrucciones. El panel actual incorpora su accion durante el build.
-Despues toca conectar los eventos de cada ventana con DIRECTOR y
+Ring 3 ya recibe el `.ujb` del escenario como archivo separado en el
+perfil de arranque QEMU. Ahora toca cargar aplicaciones desde la
+sesion activa, conectar los eventos de cada ventana con DIRECTOR y
 ejercitar dos aplicaciones con regiones independientes en QEMU.
 
 Desde la raiz, `& $ujPython -B .\Ultra-J\package.py .\Ultra-J\examples\panel .\build\ultra-j`
@@ -203,14 +202,17 @@ y `activate()`, copia el resultado por valor y borra la memoria al
 cerrar la region. QEMU coteja los 256 bytes de la arena al terminar.
 El resultado cambia LISTO por ACTIVO. Esc devuelve el panel a LISTO.
 El perfil de vista admite coordenadas fijas y texto
-A-Z/0-9 con la fuente de CABINA. El ejecutable de prueba incorpora la
-vista y la accion en la region de solo lectura del SBEF.
+A-Z/0-9 con la fuente de CABINA. El SBEF incorpora la vista. UEFI lee
+la accion de `BMO-X2/ACTION.UJB` en FAT32 antes de ExitBootServices.
+El cargador copia la longitud y el contenido a `0x40003df8`, en una
+pagina de solo lectura y sin ejecucion. La accion admite de 9 a 512
+bytes y puede cambiarse conservando el mismo SBEF.
 
 BMO-X2 conserva en Ring 0 las capacidades y el acceso a los dispositivos.
 ULTRA-J toma la logica de aplicacion, estructura y estilos en Ring 3.
 Los servicios nativos, las bibliotecas portadas y las rutas criticas
 medidas pueden usar Rust o C. Para usar ULTRA-J en el escritorio habitual
-faltan la lectura de UJBC separado, su conexion con DIRECTOR y dos
+faltan la carga desde la sesion activa, su conexion con DIRECTOR y dos
 ventanas con eventos y cierre independientes. La entrada USB en metal
 se verifica por separado. [Primer BOOT](../docs/FIRST-BOOT.md)
 
@@ -236,7 +238,9 @@ incluyendo la VM y los servicios de audio y video.
 |---|---|
 | `compiler.py` y `runtime.py` | Escritura estilo Java, instrucciones UJBC y regiones de objetos. |
 | `view.py` | Estructura y estilos de la vista, con coordenadas logicas y salida UJVI. |
-| `targets/x86_64/` | Presentador, instrucciones de CPU y empaquetado para el ABI x86-64 de BMO-X2. |
+| `targets/x86_64/guest_view.S` | Presentador del panel y llamadas de pantalla y teclado. |
+| `targets/x86_64/action_vm.inc` | Interprete UJBC v1/v2, regiones y metodos. |
+| `targets/x86_64/build.ps1` | Enlace del presentador y empaquetado SBEF. |
 | `qemu.ps1` | Compila la vista, construye el presentador x86-64 y ejecuta el ensayo. |
 
 UJBC, UJTH y UJVI tienen tamanos, orden de bytes y significado fijos

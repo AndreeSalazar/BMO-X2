@@ -1394,10 +1394,10 @@ Empaqueta un presentador de Ring 3 para los servicios INVOKE y WAIT de BMO-X2.
 
 Estado: QEMU. Anillo: host. Lenguaje: ASM x86-64 y PowerShell.
 Entrada: Vista UJVI compilada y ABI x86-64.
-Salida: SBEF con presentador nativo, vista y accion UJBC de solo lectura.
+Salida: SBEF con presentador y vista; ACTION.UJB separado en FAT32.
 Depende de: ULTRA-J: estructura y estilos (codigo).
 Aceptacion: UJBC v1/v2 interpreta regiones y metodos; QEMU coteja la vista y los 256 bytes de la arena.
-Pendiente: Cargar UJBC separado, integrar DIRECTOR y comprobar en metal.
+Pendiente: Cargar aplicaciones en sesion activa, integrar DIRECTOR y comprobar en metal.
 
 ## userspace/services/desktop
 

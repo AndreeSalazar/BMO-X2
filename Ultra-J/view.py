@@ -14,7 +14,8 @@ PROPERTIES = ('left', 'top', 'width', 'height', 'background', 'color', 'border-r
               'text-align')
 ROOT = Path(__file__).resolve().parents[1]
 GLYPHS = b'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-MAX_RECTS = (4096 - 10 - 18 - 8) // 6
+VIEW_BYTES = 3576
+MAX_RECTS = (VIEW_BYTES - 12) // 6
 
 
 def require(condition, message):
@@ -139,7 +140,7 @@ def compile_view_rules(markup, rules):
         lists.append(struct.pack('<H', len(rects)) + b''.join(rects))
     colors = b''.join(struct.pack('<I', color) for color in palette)
     binary = b'UJVI\x02\x02' + struct.pack('<H', len(palette)) + colors + b''.join(lists)
-    require(len(binary) <= 4096 - 18 - 8, 'La vista excede la pagina de constantes')
+    require(len(binary) <= VIEW_BYTES, 'La vista excede su reserva de constantes')
     return binary
 
 
