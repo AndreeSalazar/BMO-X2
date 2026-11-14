@@ -2057,7 +2057,7 @@
       "entrada": "Objetos de interfaz y reglas de propiedad.",
       "salida": "Formatos UJBC y UJTH para el runtime de usuario.",
       "aceptacion": "Los vectores manuales cargan con longitudes exactas y estilos acotados.",
-      "falta": "Ampliar el subconjunto estilo Java y definir referencias de objetos."
+      "falta": "Ampliar UJBC v2 con campos y metodos definidos por el usuario."
     },
     {
       "id": "ultra-j-recycler",
@@ -2084,8 +2084,8 @@
       "que": "Traduce el perfil de clases y regiones a instrucciones UJBC verificadas.",
       "entrada": "Fuente .uj con sintaxis estilo Java.",
       "salida": "Binario .ujb reproducible o error con offset del fuente.",
-      "aceptacion": "El ejemplo compilado coincide byte a byte con su vector manual.",
-      "falta": "Implementar el compilador en ULTRA-J y comprobar la autocompilacion."
+      "aceptacion": "El ejemplo v1 conserva su vector manual y v2 verifica el receptor y su metodo.",
+      "falta": "Agregar metodos de usuario, control de flujo y buffers para el autocompilador."
     },
     {
       "id": "ultra-j-view",

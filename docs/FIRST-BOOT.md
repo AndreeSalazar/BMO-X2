@@ -36,6 +36,24 @@ abre CABINA mediante F2. La sonda de comandos sigue limitada a
 `1B36:000D`. La inicializacion AMD, la enumeracion conjunta y la
 entrada sostenida quedan pendientes.
 
+### Condiciones para el siguiente BOOT de entrada
+
+1. Ring 0 debe comprobar los requisitos del AMD `1022:149C` y
+   registrar la fase lograda o el primer error de inicializacion.
+2. Cada HID necesita su propia ranura y su cola. Probar coexistencia
+   en QEMU y confirmar que la desconexion de uno deja al otro activo.
+3. Ring 3 debe mostrar que llegan ambos tipos de evento en CABINA.
+   El ensayo debe poder explicar un fallo sin depender del teclado.
+4. HOST prepara la imagen FAT32 a partir del perfil probado, conserva
+   las huellas y publica el resultado de QEMU antes de probar en metal.
+
+El panel ULTRA-J y sus metodos de objeto tienen ensayos propios. El
+panel se verifico en QEMU. Las llamadas UJBC v2 se comprobaron en HOST.
+El informe UEFI actual identifica el controlador, mientras las fases
+de HID posteriores a ExitBootServices requieren su propio registro.
+
+### Estado del controlador
+
 El inventario lee HCSPARAMS2 y HCCPARAMS1 del controlador elegido
 para registrar paginas scratchpad y tamano de contexto. La sonda
 QEMU usa la secuencia de BMO-X: espera CNR, detiene el controlador,

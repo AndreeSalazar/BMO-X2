@@ -14,6 +14,8 @@ STYLE = Struct('<BBBBII')
 ARENA_BYTES = 256
 CLASSES = {1: ('Window', 32), 2: ('Button', 16)}
 OPEN, NEW, CLOSE, RETURN = 0x10, 0x20, 0x30, 0xff
+CALL = 0x40
+METHODS = {1: (1, b'show'), 2: (2, b'activate')}
 MAX_CODE = 4096
 
 
@@ -22,31 +24,35 @@ def require(condition, code, offset, field):
         raise Rejection(code, offset, field)
 
 
-def check_header(data, magic):
+def check_header(data, magic, versions=(1,)):
     require(len(data) >= HEADER.size, 'TRUNCATED_HEADER', len(data), 'header')
     signature, version, flags, size = HEADER.unpack_from(data)
     require(signature == magic, 'MAGIC', 0, 'magic')
-    require(version == 1, 'VERSION', 4, 'version')
+    require(version in versions, 'VERSION', 4, 'version')
     require(flags == 0, 'FLAGS', 5, 'flags')
     return size
 
 
 def verify(data):
-    size = check_header(data, b'UJBC')
+    size = check_header(data, b'UJBC', (1, 2))
     require(0 < size <= MAX_CODE and len(data) == HEADER.size + size,
             'CODE_SIZE', 6, 'code_size')
     offset = HEADER.size
     active, used = 0, 0
     instructions = []
+    classes = []
     while offset < len(data):
         opcode = data[offset]
         if opcode == RETURN:
             require(active == 0, 'LIVE_REGION', offset, 'region')
             require(offset + 1 == len(data), 'AFTER_RETURN', offset + 1, 'opcode')
             return instructions
-        require(opcode in (OPEN, NEW, CLOSE), 'OPCODE', offset, 'opcode')
-        require(offset + 1 < len(data), 'MISSING_OPERAND', offset + 1, 'operand')
+        require(opcode in (OPEN, NEW, CLOSE) or (opcode == CALL and data[4] == 2),
+                'OPCODE', offset, 'opcode')
+        width = 3 if opcode == CALL else 2
+        require(offset + width <= len(data), 'MISSING_OPERAND', len(data), 'operand')
         operand = data[offset + 1]
+        method = None
         if opcode == OPEN:
             require(active == 0 and operand != 0, 'REGION_OPEN', offset + 1, 'region')
             active, used = operand, 0
@@ -55,11 +61,17 @@ def verify(data):
             require(operand in CLASSES, 'CLASS', offset + 1, 'class')
             used += CLASSES[operand][1]
             require(used <= ARENA_BYTES, 'REGION_CAPACITY', offset, 'region')
+            classes.append(operand)
+        elif opcode == CALL:
+            require(active != 0 and operand < len(classes), 'RECEIVER', offset + 1, 'receiver')
+            method = data[offset + 2]
+            require(method == METHODS[classes[operand]][0], 'METHOD', offset + 2, 'method')
         else:
             require(active != 0 and operand == active, 'REGION_CLOSE', offset + 1, 'region')
             active = 0
-        instructions.append((opcode, operand))
-        offset += 2
+            classes.clear()
+        instructions.append((opcode, operand, method))
+        offset += width
     raise Rejection('MISSING_RETURN', offset, 'opcode')
 
 
@@ -87,23 +99,30 @@ def run(program, appearance):
     styles = theme(appearance)
     arena = bytearray(ARENA_BYTES)
     used, peak, objects = 0, 0, 0
-    allocations, releases = [], []
-    for opcode, operand in instructions:
+    allocations, releases, calls, slots = [], [], [], []
+    for opcode, operand, method in instructions:
         if opcode == NEW:
             name, size = CLASSES[operand]
             end = used + size
             arena[used:end] = bytes(size)
             arena[used] = operand
+            slots.append(used)
             allocations.append(dict(Class=name, Offset=used, Bytes=size))
             used = end
             peak = max(peak, used)
             objects += 1
+        elif opcode == CALL:
+            target = slots[operand]
+            old = arena[target + 1]
+            arena[target + 1] = 1
+            calls.append(dict(Receiver=operand, Method=method, Before=old, After=1))
         elif opcode == CLOSE:
             releases.append(dict(Region=operand, Objects=objects, Bytes=used))
             used, objects = 0, 0
+            slots.clear()
     return dict(Evidence='HOST', BytecodeBytes=len(program), ThemeBytes=len(appearance),
                 ArenaBytes=len(arena), PeakObjectBytes=peak, LiveObjectBytes=used,
-                Allocations=allocations, Releases=releases, Styles=styles)
+                Allocations=allocations, Releases=releases, Calls=calls, Styles=styles)
 
 
 def read_bounded(path, maximum):

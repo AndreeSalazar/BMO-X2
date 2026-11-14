@@ -7,13 +7,13 @@ import sys
 from tempfile import NamedTemporaryFile
 from time import sleep
 
-from runtime import CLASSES, CLOSE, HEADER, MAX_CODE, NEW, OPEN, RETURN
+from runtime import CALL, CLASSES, CLOSE, HEADER, MAX_CODE, METHODS, NEW, OPEN, RETURN
 from runtime import Rejection, read_bounded, require, verify
 
 
 MAX_SOURCE = 64 * 1024
 TOKENS = re.compile(rb'(?P<trivia>\s+|//[^\r\n]*|/\*.*?\*/)|'
-                    rb'(?P<token>[A-Za-z_$][A-Za-z0-9_$]*|[0-9]+|[{}();=])|(?P<invalid>.)', re.S)
+                    rb'(?P<token>[A-Za-z_$][A-Za-z0-9_$]*|[0-9]+|[{}();=.])|(?P<invalid>.)', re.S)
 IDENTIFIER = re.compile(rb'[A-Za-z_$][A-Za-z0-9_$]*')
 DECIMAL = re.compile(rb'[1-9][0-9]{0,2}')
 CLASS_IDS = {name.encode('ascii'): number for number, (name, _) in CLASSES.items()}
@@ -45,7 +45,9 @@ class Source:
     def identifier(self):
         require(IDENTIFIER.fullmatch(self.token) and self.token not in RESERVED,
                 'SOURCE_IDENTIFIER', self.offset, 'identifier')
+        name = self.token
         self.advance()
+        return name
 
 
 def compile_source(data):
@@ -55,10 +57,11 @@ def compile_source(data):
     source.identifier()
     source.take(b'{', b'void', b'run', b'(', b')', b'{')
     code = bytearray()
-    locations = []
+    locations = {}
+    version = 1
     while source.token == b'try':
         source.take(b'try', b'(', b'Region')
-        source.identifier()
+        region_name = source.identifier()
         source.take(b'=', b'new', b'Region', b'(')
         region_offset = source.offset
         require(DECIMAL.fullmatch(source.token) and int(source.token) <= 255,
@@ -66,28 +69,53 @@ def compile_source(data):
         region = int(source.token)
         source.advance()
         source.take(b')', b')', b'{')
+        locations[len(code)] = region_offset
         code.extend((OPEN, region))
-        locations.append(region_offset)
-        while source.token == b'new':
+        bindings = {}
+        slot = 0
+        while source.token != b'}':
+            offset = source.offset
+            if source.token in bindings:
+                receiver, class_id = bindings[source.identifier()]
+                source.take(b'.')
+                method, name = METHODS[class_id]
+                source.take(name, b'(', b')', b';')
+                code.extend((CALL, receiver, method))
+                version = 2
+                continue
+            declared = None
+            if source.token in CLASS_IDS:
+                declared = source.token
+                source.advance()
+                name_offset = source.offset
+                name = source.identifier()
+                require(name not in bindings and name != region_name,
+                        'SOURCE_DUPLICATE', name_offset, 'receiver')
+                source.take(b'=')
             source.take(b'new')
-            require(source.token in CLASS_IDS, 'SOURCE_CLASS', source.offset, 'class')
-            code.extend((NEW, CLASS_IDS[source.token]))
-            locations.append(source.offset)
+            require(source.token in CLASS_IDS and (declared is None or source.token == declared),
+                    'SOURCE_CLASS', source.offset, 'class')
+            class_id = CLASS_IDS[source.token]
+            locations[len(code)] = source.offset
+            code.extend((NEW, class_id))
             source.advance()
             source.take(b'(', b')', b';')
-        locations.append(source.offset)
+            if declared is not None:
+                require(slot < 256, 'REGION_CAPACITY', offset, 'region')
+                bindings[name] = (slot, class_id)
+            slot += 1
+        locations[len(code)] = source.offset
         source.take(b'}')
         code.extend((CLOSE, region))
     return_offset = source.offset
     source.take(b'return', b';', b'}', b'}', b'')
     code.append(RETURN)
-    locations.append(return_offset)
     require(len(code) <= MAX_CODE, 'SOURCE_CODE_SIZE', return_offset, 'source')
-    binary = HEADER.pack(b'UJBC', 1, 0, len(code)) + code
+    binary = HEADER.pack(b'UJBC', version, 0, len(code)) + code
     try:
         verify(binary)
     except Rejection as error:
-        source_offset = locations[(error.offset - HEADER.size) // 2]
+        source_offset = locations.get(error.offset - HEADER.size, return_offset)
         raise Rejection(error.code, source_offset, error.field) from error
     return bytes(binary)
 

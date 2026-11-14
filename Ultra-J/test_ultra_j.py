@@ -17,6 +17,33 @@ def image(code):
 
 
 class UltraJTests(unittest.TestCase):
+    def test_methods_have_distinct_receivers(self):
+        source = (VECTORS / 'ObjectDemo.uj').read_bytes()
+        program = compile_source(source)
+        self.assertEqual(program, bytes.fromhex(
+            '55 4A 42 43 02 00 12 00 10 01 20 01 20 02 40 00 01 40 01 02 40 00 01 30 01 FF'))
+        report = run(program, THEME)
+        self.assertEqual(report['Calls'], [
+            dict(Receiver=0, Method=1, Before=0, After=1),
+            dict(Receiver=1, Method=2, Before=0, After=1),
+            dict(Receiver=0, Method=1, Before=1, After=1),
+        ])
+        self.assertEqual(report['LiveObjectBytes'], 0)
+
+    def test_method_guards(self):
+        source = (VECTORS / 'ObjectDemo.uj').read_bytes()
+        with self.assertRaises(Rejection):
+            compile_source(source.replace(b'panel.show()', b'panel.activate()'))
+        with self.assertRaises(Rejection):
+            compile_source(source.replace(b'        return;', b'        panel.show(); return;'))
+        program = compile_source(source)
+        for index, value, expected in ((4, 1, 'OPCODE'), (15, 3, 'RECEIVER'), (16, 2, 'METHOD')):
+            invalid = bytearray(program)
+            invalid[index] = value
+            with self.subTest(expected=expected), self.assertRaises(Rejection) as caught:
+                run(invalid, THEME)
+            self.assertEqual(caught.exception.code, expected)
+
     def test_source_matches_golden_bytes(self):
         self.assertEqual(compile_source(SOURCE), PROGRAM)
         self.assertEqual(compile_source(b'/* comment */\n' + SOURCE), PROGRAM)

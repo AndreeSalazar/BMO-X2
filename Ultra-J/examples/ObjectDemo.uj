@@ -1,0 +1,12 @@
+class ObjectDemo {
+    void run() {
+        try (Region app = new Region(1)) {
+            Window panel = new Window();
+            Button enter = new Button();
+            panel.show();
+            enter.activate();
+            panel.show();
+        }
+        return;
+    }
+}

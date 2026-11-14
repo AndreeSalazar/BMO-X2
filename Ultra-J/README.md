@@ -4,6 +4,10 @@
 a `.ujb`. `runtime.py` verifica y ejecuta en HOST. `examples/` guarda
 el tema y el vector manual que define los bytes esperados.
 El [contrato](FORMAT.md) especifica las instrucciones y el alcance.
+El [ejemplo de objetos](examples/ObjectDemo.uj) usa UJBC v2 para llamar
+metodos sobre una ventana y un boton con estado propio. Se puede pasar
+ese archivo a `compiler.py` en lugar de `WindowDemo.uj` para ver las
+llamadas registradas por el runtime HOST.
 
 Desde la raiz de BMO-X2, en PowerShell:
 

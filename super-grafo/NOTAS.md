@@ -1342,7 +1342,7 @@ Entrada: Objetos de interfaz y reglas de propiedad.
 Salida: Formatos UJBC y UJTH para el runtime de usuario.
 Depende de: contrato propio sin dependencias en este catalogo.
 Aceptacion: Los vectores manuales cargan con longitudes exactas y estilos acotados.
-Pendiente: Ampliar el subconjunto estilo Java y definir referencias de objetos.
+Pendiente: Ampliar UJBC v2 con campos y metodos definidos por el usuario.
 
 ## Ultra-J/runtime.py
 
@@ -1363,8 +1363,8 @@ Estado: HOST. Anillo: host. Lenguaje: Python.
 Entrada: Fuente .uj con sintaxis estilo Java.
 Salida: Binario .ujb reproducible o error con offset del fuente.
 Depende de: ULTRA-J: verificador y reciclador (codigo).
-Aceptacion: El ejemplo compilado coincide byte a byte con su vector manual.
-Pendiente: Implementar el compilador en ULTRA-J y comprobar la autocompilacion.
+Aceptacion: El ejemplo v1 conserva su vector manual y v2 verifica el receptor y su metodo.
+Pendiente: Agregar metodos de usuario, control de flujo y buffers para el autocompilador.
 
 ## Ultra-J/view.py
 
