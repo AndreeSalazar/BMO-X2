@@ -51,34 +51,39 @@ def compile_action(root, action, graph):
     active = []
     compiled = {}
 
-    def compile_file(path, name=None, caller=None):
+    def compile_file(path, name=None, caller=None, argument=None):
         source = load(path, root, MAX_SOURCE)
         active.append(path)
 
-        def resolve(crate, offset):
+        def resolve(crate, value, offset):
             line = source.count(b'\n', 0, offset) + 1
             column = offset - source.rfind(b'\n', 0, offset)
             name_text = crate.decode('ascii')
             target = root / 'crates' / name_text / 'main.uj'
+            signature = f'{name_text}.run({value if value is not None else ""})'
             edge = {'From': path.relative_to(root).as_posix(),
                     'To': target.relative_to(root).as_posix(),
-                    'Reason': f'{name_text}.run()', 'Line': line}
+                    'Reason': signature, 'Line': line}
             if edge not in graph:
                 graph.append(edge)
             if target in active or len(active) >= 32:
                 code = 'CRATE_CYCLE' if target in active else 'CRATE_DEPTH'
-                raise PackageError(code, path, f'No se puede resolver {name_text}.run().',
+                raise PackageError(code, path, f'No se puede resolver {signature}.',
                                    Line=line, Column=column, RequiredBy=str(target))
-            if target not in compiled:
+            key = target, value
+            if key not in compiled:
                 try:
-                    compiled[target] = compile_file(target, crate, path)
+                    compiled[key] = compile_file(target, crate, path, value)
                 except PackageError as error:
                     error.report.setdefault('RequiredBy', str(path))
+                    if error.report['RequiredBy'] == str(path):
+                        error.report.setdefault('CallLine', line)
+                        error.report.setdefault('CallColumn', column)
                     raise
-            return compiled[target]
+            return compiled[key]
 
         try:
-            return compile_source(source, resolve, name)
+            return compile_source(source, resolve, name, argument)
         except Rejection as error:
             offset = error.offset
             line = source.count(b'\n', 0, offset) + 1

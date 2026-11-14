@@ -1,6 +1,6 @@
 class PanelAction {
     void run() {
-        Activate.run();
+        Activate.run(1);
         return;
     }
 }

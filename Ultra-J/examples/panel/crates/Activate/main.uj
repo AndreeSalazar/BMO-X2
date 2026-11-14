@@ -1,6 +1,6 @@
 class Activate {
-    static void run() {
-        try (Region app = new Region(1)) {
+    static void run(int id) {
+        try (Region app = new Region(id)) {
             Button enter = new Button();
             enter.activate();
         }

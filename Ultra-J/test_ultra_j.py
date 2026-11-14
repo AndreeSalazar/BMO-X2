@@ -28,7 +28,7 @@ class UltraJTests(unittest.TestCase):
         style = 'dependencies/graphite/1/style.ujc'
         self.assertEqual(bytecode, bytes.fromhex('55 4A 42 43 02 00 0A 00 10 01 20 02 40 00 02 30 01 FF'))
         self.assertIn({'From': 'action/main.uj', 'To': 'crates/Activate/main.uj',
-                       'Reason': 'Activate.run()', 'Line': 3}, graph)
+                       'Reason': 'Activate.run(1)', 'Line': 3}, graph)
         self.assertEqual(display, compile_view((panel / markup).read_text(encoding='ascii'),
                                                (panel / style).read_text(encoding='ascii')))
         self.assertIn({'From': markup, 'To': style}, graph)
@@ -60,7 +60,7 @@ class UltraJTests(unittest.TestCase):
             (spare / 'main.uj').write_bytes(b'invalid')
             build(panel)
             entry = panel / 'crates/Activate/main.uj'
-            entry.write_bytes(b'class Activate { static void run() { Activate.run(); return; } }')
+            entry.write_bytes(b'class Activate { static void run(int id) { Activate.run(id); return; } }')
             with self.assertRaises(PackageError) as caught:
                 build(panel)
             self.assertEqual(caught.exception.report['Code'], 'CRATE_CYCLE')
@@ -70,6 +70,22 @@ class UltraJTests(unittest.TestCase):
             self.assertEqual(caught.exception.report['Code'], 'PACKAGE_MISSING')
             self.assertEqual(Path(caught.exception.report['RequiredBy']),
                              (panel / 'action/main.uj').resolve())
+
+    def test_crate_argument_specializes_each_call(self):
+        with TemporaryDirectory() as directory:
+            panel = Path(directory) / 'panel'
+            copytree(VECTORS / 'panel', panel)
+            main = panel / 'action/main.uj'
+            source = main.read_bytes()
+            main.write_bytes(source.replace(b'Activate.run(1);', b'Activate.run(1); Activate.run(7);'))
+            program, _, graph = build(panel)
+            self.assertEqual([r['Region'] for r in run(program, THEME)['Releases']], [1, 7])
+            self.assertIn('Activate.run(7)', [edge.get('Reason') for edge in graph])
+            main.write_bytes(source.replace(b'Activate.run(1)', b'Activate.run()'))
+            with self.assertRaises(PackageError) as caught:
+                build(panel)
+            self.assertEqual(caught.exception.report['Code'], 'CRATE_ARITY')
+            self.assertEqual(caught.exception.report['CallLine'], 3)
 
     def test_methods_have_distinct_receivers(self):
         source = (VECTORS / 'ObjectDemo.uj').read_bytes()

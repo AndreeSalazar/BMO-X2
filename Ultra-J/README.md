@@ -121,14 +121,25 @@ dependencia local contiene una carpeta de version y su `style.ujc`.
 HOST resuelve el grafo por rutas y rechaza clases de estilo duplicadas
 o versiones ambiguas. Este primer perfil admite dependencias de estilo.
 
-El `main.uj` del escenario llama a `Activate.run();`. HOST lo conecta
+El `main.uj` del escenario llama a `Activate.run(1);`. HOST lo conecta
 con `crates/Activate/main.uj`, cuya clase `Activate` declara
-`static void run()`. Una llamada comienza fuera de cualquier region
+`static void run(int id)`. El parametro toma un ID entero de 1 a 255.
+HOST lo resuelve al construir el escenario. Un crate puede usarlo al
+abrir su region o pasarlo a otro crate. Tambien existe la firma sin
+parametros `static void run()`. Una llamada comienza fuera de cualquier region
 abierta y el crate libera sus regiones antes de retornar. HOST incorpora
 las instrucciones de cada crate invocado en el orden de llamada. Las
 carpetas de crates que el escenario deja sin usar quedan fuera del UJBC.
 El informe muestra el enlace, la llamada y su linea. Los ciclos y las
 entradas ausentes se diagnostican antes de publicar el binario.
+Si la firma no coincide, el informe apunta a la declaracion y registra
+la linea y la columna de la llamada.
+
+El siguiente hito de Ring 3 es cargar el `.ujb` del escenario como
+archivo separado, con un verificador e interprete que acepten sus
+instrucciones. El panel actual incorpora su accion durante el build.
+Despues toca conectar los eventos de cada ventana con DIRECTOR y
+ejercitar dos aplicaciones con regiones independientes en QEMU.
 
 Desde la raiz, `& $ujPython -B .\Ultra-J\package.py .\Ultra-J\examples\panel .\build\ultra-j`
 genera UJBC y UJVI y muestra las conexiones en JSON. Si falta

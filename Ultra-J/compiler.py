@@ -51,7 +51,19 @@ class Source:
         return name
 
 
-def compile_source(data, resolve_crate=None, crate_name=None):
+def region_value(source, parameter, argument):
+    token = source.token
+    if token == parameter:
+        value = argument
+    else:
+        require(DECIMAL.fullmatch(token) and int(token) <= 255,
+                'SOURCE_REGION', source.offset, 'region de 1 a 255')
+        value = int(token)
+    source.advance()
+    return value
+
+
+def compile_source(data, resolve_crate=None, crate_name=None, argument=None):
     require(len(data) <= MAX_SOURCE, 'SOURCE_SIZE', MAX_SOURCE, 'source')
     source = Source(data)
     source.take(b'class')
@@ -62,7 +74,16 @@ def compile_source(data, resolve_crate=None, crate_name=None):
     source.take(b'{')
     if crate_name is not None:
         source.take(b'static')
-    source.take(b'void', b'run', b'(', b')', b'{')
+    source.take(b'void', b'run', b'(')
+    parameter = None
+    if crate_name is not None:
+        signature_offset = source.offset
+        if source.token == b'int':
+            source.advance()
+            parameter = source.identifier()
+        require((parameter is None) == (argument is None), 'CRATE_ARITY',
+                signature_offset, 'run(int)' if parameter is not None else 'run()')
+    source.take(b')', b'{')
     code = bytearray()
     locations = {}
     version = 1
@@ -71,20 +92,20 @@ def compile_source(data, resolve_crate=None, crate_name=None):
             require(resolve_crate is not None, 'SOURCE_EXPECTED', source.offset, 'try o return')
             offset = source.offset
             name = source.identifier()
-            source.take(b'.', b'run', b'(', b')', b';')
-            imported = resolve_crate(name, offset)
+            source.take(b'.', b'run', b'(')
+            value = None if source.token == b')' else region_value(source, parameter, argument)
+            source.take(b')', b';')
+            imported = resolve_crate(name, value, offset)
             code.extend(imported[HEADER.size:-1])
             version = max(version, imported[4])
             require(len(code) < MAX_CODE, 'SOURCE_CODE_SIZE', offset, 'source')
             continue
         source.take(b'try', b'(', b'Region')
         region_name = source.identifier()
+        require(region_name != parameter, 'SOURCE_DUPLICATE', source.offset, 'region')
         source.take(b'=', b'new', b'Region', b'(')
         region_offset = source.offset
-        require(DECIMAL.fullmatch(source.token) and int(source.token) <= 255,
-                'SOURCE_REGION', region_offset, 'region')
-        region = int(source.token)
-        source.advance()
+        region = region_value(source, parameter, argument)
         source.take(b')', b')', b'{')
         locations[len(code)] = region_offset
         code.extend((OPEN, region))
@@ -106,7 +127,7 @@ def compile_source(data, resolve_crate=None, crate_name=None):
                 source.advance()
                 name_offset = source.offset
                 name = source.identifier()
-                require(name not in bindings and name != region_name,
+                require(name not in bindings and name not in (region_name, parameter),
                         'SOURCE_DUPLICATE', name_offset, 'receiver')
                 source.take(b'=')
             source.take(b'new')

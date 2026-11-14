@@ -1386,7 +1386,7 @@ Entrada: Carpeta con accion, vista y dependencias locales versionadas.
 Salida: UJBC, UJVI y grafo JSON o diagnostico con archivo y contexto.
 Depende de: ULTRA-J: compilador inicial (codigo), ULTRA-J: estructura y estilos (codigo).
 Aceptacion: Compila solo los crates invocados, reporta su llamada y rechaza ciclos.
-Pendiente: Ampliar los crates con metodos de usuario, argumentos y tipos exportados.
+Pendiente: Extender el argumento de region a valores de ejecucion y tipos exportados.
 
 ## Ultra-J/targets/x86_64
 
