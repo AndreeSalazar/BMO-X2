@@ -77,6 +77,7 @@ y 57 elementos del catalogo CASM.
 | [CASM](CASM/STATUS-BMO-X2.md) | Fuente, IR, emision x86-64, HEX exacto y verificacion independiente. |
 | [kernel](kernel/README.md) | Ring 0 en CASM. Arranque, CPU, memoria, aislamiento, admision SBEF y capacidades. |
 | [userspace](userspace/README.md) | Rust como lenguaje principal del runtime, supervisor, servicios y escritorio de Ring 3. |
+| [Ultra-J](Ultra-J/README.md) | Lenguaje de aplicaciones de Ring 3 con bytecode, memoria por regiones y vistas binarias. |
 | [contracts](contracts/README.md) | ABI, SBEF y fronteras de arranque y ejecucion. |
 | [heritage](heritage/README.md) | Procedencia y revision de 110 paquetes Cargo del padre. |
 | [tools](tools/README.md) | Build, empaquetado SBEF, diagnostico y pruebas HOST y QEMU. |

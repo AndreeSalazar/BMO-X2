@@ -1,5 +1,60 @@
 # ULTRA-J
 
+## Por que existe
+
+ULTRA-J es el lenguaje de aplicaciones de BMO-X2. Nacio para escribir
+objetos y sus eventos con una sintaxis familiar de Java, construirlos
+en HOST y ejecutarlos en Ring 3 con permisos de BMO-X2. Su primer
+campo es el escritorio. El mismo modelo esta pensado para utilidades,
+paneles de diagnostico, automatizacion, herramientas y juegos. Un motor
+grafico podria usarlo para escenas, controles y logica, con el dibujo
+intensivo a cargo de un servicio nativo si las mediciones lo justifican.
+
+La aplicacion declara comportamiento en `.uj`, estructura de interfaz
+en `.ujh` y apariencia en `.ujc`. HOST transforma esos archivos en
+binarios versionados. En el modelo previsto, una VM compartida en Ring 3
+cargara distintos `.ujb` sin reconstruir el kernel ni enlazar la VM
+para cada cambio. Ring 0 conserva su ABI de capacidades y admite el
+ejecutable de la VM mediante SBEF.
+
+## Donde aporta frente a C, Rust y Java
+
+| Lenguaje | Papel en BMO-X2 |
+|---|---|
+| **C** | Permite portar codigo existente, como DOOM, y escribir rutinas nativas con control de memoria. ULTRA-J aspira a reducir el trabajo repetido de definir objetos de interfaz, cerrar grupos de asignaciones y empaquetar cambios de aplicacion. |
+| **Rust** | Sostiene los servicios nativos de Ring 3 y aporta comprobaciones de propiedad durante la compilacion. ULTRA-J propone un contrato de bytecode comun y recursos de interfaz binarios que varias aplicaciones podran compartir a traves de una VM. Ambos modelos admiten regiones de memoria. |
+| **Java** | Inspira las clases, interfaces y bytecode portable. La JVM estandar administra automaticamente la memoria de objetos. ULTRA-J define para BMO-X2 regiones cuyo cierre devuelve en bloque el espacio de sus objetos. Su modelo de vistas binarias y capacidades apunta a cubrir las necesidades del escritorio con los servicios propios del sistema. |
+
+Los binarios de ULTRA-J tienen su propio contrato. Ejecutar archivos
+`.class` o utilizar bibliotecas Java requeriria una capa adicional.
+[Especificacion de la JVM](https://docs.oracle.com/en/java/javase/26/docs/specs/jvms/jvms-2.html)
+
+## Que esta medido
+
+`ObjectDemo.uj` y un equivalente minimo en Rust crean una ventana y
+un boton como objetos, llaman a sus metodos y terminan su alcance.
+La comparacion de HOST tomo la mediana de 11 ejecuciones en Windows,
+con Rust `no_std` optimizado para tamano y destino x86-64.
+
+| Artefacto | Tiempo mediano de construccion | Tamano en archivo |
+|---|---:|---:|
+| ULTRA-J UJBC | 81,6 ms | 26 B |
+| Rust ELF | 164,8 ms | 4576 B |
+| Rust SBEF | 254,8 ms | 117 B |
+
+El UJBC requiere un runtime. El SBEF incluye 53 bytes de codigo nativo
+y 64 bytes de contenedor. Estos tiempos miden produccion del artefacto.
+Para medir el coste de ejecucion y RAM queda pendiente correr ambos en
+Ring 3 con la misma entrada y contar tambien las paginas de la VM.
+Hoy QEMU verifica el presentador de vistas binarias. El verificador
+UJBC, las llamadas a objetos y el Reciclador se prueban en HOST.
+
+Reproduce la medicion con `python -B .\Ultra-J\compare_build.py`
+desde la raiz de BMO-X2. Usa LLVM para enlazar y Rust con el destino
+`x86_64-unknown-none`. Puedes usar `$ujPython` del ejemplo siguiente.
+
+## Compilar y verificar objetos
+
 `compiler.py` compila el [ejemplo de escritura Java](examples/WindowDemo.uj)
 a `.ujb`. `runtime.py` verifica y ejecuta en HOST. `examples/` guarda
 el tema y el vector manual que define los bytes esperados.
