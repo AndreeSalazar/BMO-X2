@@ -178,7 +178,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         assert staging_pages == (image_bytes + 4095) // 4096
         assert memory(staging, image_bytes, 'desktop-staging-image') == external_image
         dma, pages = struct.unpack('<QQ', memory(address + 0xb8, 16, 'xhci-reservation'))
-        assert pages == (9 if command_probe else 5)
+        assert pages == (10 if command_probe else 5)
         assert 0x100000 <= dma <= 0x10000000 - pages * 4096 and dma % 4096 == 0
         assert dma + pages * 4096 <= address or dma >= address + 0x20000
         assert not dma <= code < dma + pages * 4096
@@ -213,8 +213,10 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
             assert pointer == dma + 4096 and result >> 24 == 1 and (control >> 10) & 63 == 33
             device_state = tuple(memory(address + 0x1a380, 5, 'xhci-device'))
             port, speed, slot, addressed, descriptor_read = device_state
-            assert port and speed in (1, 2, 3) and slot == addressed == descriptor_read == 1, device_state
-            output_slot = struct.unpack_from('<I', reserved, 0x440c)[0]
+            expected_speed = 1 if (prefix.parent.parent / 'usb-full-speed.txt').is_file() else 3
+            assert port and speed == expected_speed and slot == addressed == descriptor_read == 1, device_state
+            assert struct.unpack_from('<Q', reserved, 8)[0] == dma + 0x5800
+            output_slot = struct.unpack_from('<I', reserved, 0x580c)[0]
             assert (output_slot >> 27) & 0x1f == 3 and output_slot & 0xff
             descriptor = reserved[0x4c00:0x4c12]
             assert descriptor[:2] == bytes([18, 1]) and descriptor[17] >= 1
@@ -267,11 +269,19 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         assert scratchpads == ((params2 >> 27) | ((params2 >> 16) & 0x3e0))
         assert context_bytes == (64 if cap1 & 4 else 32)
         if command_probe:
+            interval = data[data.index(bytes([7, 5, endpoint])) + 6]
+            expected_interval = interval - 1 if speed == 3 else interval.bit_length() + 2
+            input_control = struct.unpack_from('<II', reserved, 0x5000)
+            assert input_control == (0, 9)
+            slot_context = struct.unpack_from('<I', reserved, 0x5000 + context_bytes)[0]
+            assert slot_context >> 27 == 3 and (slot_context >> 20) & 0xf == speed
+            endpoint_context = struct.unpack_from('<IIQI', reserved, 0x5000 + 4*context_bytes)
+            assert endpoint_context == (expected_interval << 16, 0x0008003e, dma + 0x4901, 0x00080008)
             assert struct.unpack_from('<Q', reserved)[0] == (dma + 0x800 if scratchpads else 0)
             assert struct.unpack_from('<4Q', reserved, 0x800) == tuple(
-                dma + page * 4096 for page in range(5, 9))
+                dma + page * 4096 for page in range(6, 10))
             if not scratchpads:
-                assert reserved[0x5000:] == bytes(4 * 4096)
+                assert reserved[0x6000:] == bytes(4 * 4096)
         reset_stage = memory(address + 0x1a3b9, 1, 'xhci-reset-stage')[0]
         assert reset_stage == (3 if command_probe else 0)
         handoff = memory(address + 0x1a378, 1, 'xhci-handoff')[0]
@@ -295,6 +305,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                         XhciControllers=count, XhciSelectedBdf=f'{bdf:04X}', XhciConnectedPorts=rank-1,
                         XhciResetStage=reset_stage, XhciScratchpadPages=scratchpads, XhciContextBytes=context_bytes,
                         DmaReservationValidated=True, XhciReservedBytes=pages * 4096,
+                        XhciKeyboardInterval=expected_interval, XhciContextLayoutVerified=True,
                         XhciScratchpadCapacityPages=4, XhciScratchpadTableVerified=True)
     timeout_before = wait_stats()[1]
     wait_until(lambda: wait_stats()[1] > timeout_before)

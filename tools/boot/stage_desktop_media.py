@@ -46,6 +46,7 @@ def main():
     probes.add_argument('--xhci-command', action='store_true', help='Run the QEMU-only xHCI command probe')
     probes.add_argument('--reuse-session', action='store_true', help='Run the QEMU-only desktop frame reuse probe')
     parser.add_argument('--usb-desktop', type=Path, help='Desktop SBEF compiled with -UsbProbe')
+    parser.add_argument('--usb-full-speed', action='store_true', help='Use a USB 1.x keyboard in the xHCI probe')
     args = parser.parse_args()
     abi, splash, desktop = map(workspace, (args.abi_run, args.splash_run, args.desktop_run))
     for path, profile in ((abi, 'ring0-abi-probe-0.1'), (splash, SPLASH_PROFILE),
@@ -56,6 +57,8 @@ def main():
     check(splash)
     if args.xhci_command != (args.usb_desktop is not None):
         parser.error('--xhci-command requiere --usb-desktop')
+    if args.usb_full_speed and not args.xhci_command:
+        parser.error('--usb-full-speed requiere --xhci-command')
     if args.usb_desktop and args.usb_desktop.resolve() != (ROOT / 'build/desktop/desktop-usb-probe.sbef').resolve():
         parser.error('--usb-desktop requiere el resultado local de -UsbProbe')
     sbef = (args.usb_desktop if args.usb_desktop else desktop / 'desktop.sbef').read_bytes()
@@ -143,6 +146,8 @@ def main():
             (run / 'build/puente-normal.img').replace(run / 'build/puente-external-permissions.img')
     if args.xhci_command:
         (run / 'xhci-command.txt').write_text('QEMU\n', encoding='ascii')
+    if args.usb_full_speed:
+        (run / 'usb-full-speed.txt').write_text('QEMU\n', encoding='ascii')
     if args.reuse_session:
         (run / 'reuse-session.txt').write_text('QEMU\n', encoding='ascii')
     subprocess.run([sys.executable, '-B', scripts / 'probe.py', '--workspace', run, '--halt',

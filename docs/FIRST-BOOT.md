@@ -43,9 +43,11 @@ espera HCHalted, solicita HCRST y comprueba que HCRST y CNR se
 borren y que PAGESIZE admita 4 KiB. El estado 3 certifica ese
 tramo en QEMU. En el arranque habitual solo se leen los requisitos.
 El ensayo de DMA prepara una tabla para hasta cuatro scratchpads y
-usa contextos de 32 bytes. QEMU solicita cero scratchpads. Para el AMD
-hay que verificar sus capacidades, sus estructuras y el reinicio con
-plazos de hardware.
+calcula los desplazamientos segun el tamano de contexto anunciado.
+QEMU solicita cero scratchpads y usa contextos de 32 bytes. El
+teclado emulado funciona a velocidad completa y alta. Para el AMD
+hay que verificar sus capacidades, sus estructuras y el reinicio
+con plazos de hardware.
 
 CABINA en Rust muestra los datos de la sesion. Guardar eventos de Ring 0
 posteriores a ExitBootServices requiere un controlador de bloques y una

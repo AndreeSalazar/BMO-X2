@@ -25,8 +25,8 @@ ensayo actual de revocacion de pagina cubre el TLB de una CPU.
 
 El puente del escritorio reserva cinco paginas contiguas de EfiLoaderData
 por debajo de 256 MiB y las entrega en los campos B8/C0 del contexto.
-La variante QEMU de comandos reserva otras cuatro paginas para
-scratchpads (36 KiB en total). Ring 0 valida toda la reserva y prepara
+La variante QEMU de comandos agrega una pagina para contextos
+y cuatro para scratchpads (40 KiB en total). Ring 0 valida toda la reserva y prepara
 una tabla de direcciones fisicas alineadas. Publica la tabla en
 DCBAA[0] solo si HCSPARAMS2 solicita scratchpads y aborta antes de
 activar el controlador si solicita mas de cuatro.
@@ -43,7 +43,7 @@ HID boot, solicita SET_CONFIGURATION y SET_PROTOCOL y configura
 el endpoint 1 IN. QEMU inyecta F2 y coteja el informe de ocho bytes
 que xHCI escribe en memoria. El controlador se detiene al terminar.
 La etapa se guarda bajo `qemu-only`. Antes de programar las colas,
-Ring 0 exige que las nueve paginas tengan cobertura exclusiva de
+Ring 0 exige que las diez paginas tengan cobertura exclusiva de
 EfiLoaderData y esten separadas del contexto, del paquete y del SBEF.
 El ensayo coteja las pulsaciones y liberaciones que recibe CABINA
 tras detener el controlador. Si la parada no se confirma, la sonda
@@ -59,7 +59,10 @@ continuas de teclado y la enumeracion del raton.
 
 QEMU pide cero scratchpads. La prueba coteja las cuatro direcciones
 de la tabla, las paginas a cero y DCBAA[0] a cero. Queda probar el uso
-real de scratchpads y el formato de contexto de 64 bytes.
+real de scratchpads. Los desplazamientos de los contextos se
+calculan con el tamano anunciado. QEMU ejercita el formato de 32
+bytes con teclado full-speed y high-speed. Queda validar 64 bytes
+con un controlador que anuncie ese formato.
 
 [Revocacion de pagina](../../mm/virtual/revoke/HOT-UNMAP.md) |
 [Referencia de DMA en Linux](https://docs.kernel.org/core-api/dma-api-howto.html)

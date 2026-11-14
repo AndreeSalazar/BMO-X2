@@ -52,13 +52,11 @@ xhci_test_command:
     lea (%rdi,%rax), %r11
     call xhci_reset
     jne command_unmap
-    testb $4, 0x10(%rdi)         # 32-byte contexts only
-    jnz command_unmap
     movl $1, 0x38(%r11)         # one device slot
     # Prepare the physical pointer array. DCBAA[0] is zero when HCSPARAMS2
     # requests no scratchpads.
     lea XHCI_SCRATCHPAD_TABLE(%r8), %rsi
-    lea (4096 * XHCI_QUEUE_PAGES)(%r8), %rax
+    lea (4096 * XHCI_PROBE_QUEUE_PAGES)(%r8), %rax
     mov $XHCI_SCRATCHPAD_LIMIT, %ecx
 scratchpad_next:
     mov %rax, (%rsi)
@@ -275,27 +273,30 @@ port_ready:
     lea 16(%rsi), %rax
     mov %rax, %gs:0x388
 
-    # Input and device contexts and EP0 transfer ring share page 4.
-    lea 0x4400(%r8), %rax
+    # The output context has room for 32 entries of up to 64 bytes.
+    lea XHCI_OUTPUT_CONTEXT(%r8), %rax
     mov %rax, 8(%r8)
-    movl $3, 0x4004(%r8)
+    mov %gs:0x3c0, %ecx
+    lea XHCI_INPUT_CONTEXT(%r8,%rcx), %rbx
+    movl $3, XHCI_INPUT_CONTEXT+4(%r8)
     movzbl %gs:0x381, %eax
     shl $20, %eax
     or $0x08000000, %eax
-    mov %eax, 0x4020(%r8)
+    mov %eax, (%rbx)
     movzbl %gs:0x380, %eax
     shl $16, %eax
-    mov %eax, 0x4024(%r8)
+    mov %eax, 4(%rbx)
+    add %rcx, %rbx
     mov $0x00080026, %eax      # control EP, CErr 3, MPS 8
     cmpb $3, %gs:0x381
     jne ep0_packet
     mov $0x00400026, %eax
 ep0_packet:
-    mov %eax, 0x4044(%r8)
+    mov %eax, 4(%rbx)
     lea 0x4801(%r8), %rax
-    mov %rax, 0x4048(%r8)
-    movl $8, 0x4050(%r8)
-    lea 0x4000(%r8), %rax
+    mov %rax, 8(%rbx)
+    movl $8, 16(%rbx)
+    lea XHCI_INPUT_CONTEXT(%r8), %rax
     mov %rax, 0x1020(%r8)
     movl $0x01002c01, 0x102c(%r8) # Address Device, slot 1
     movl $0, (%r10)
@@ -480,28 +481,40 @@ control_no_data:
     jmp control_submit
 
 keyboard_first_report:
-    # This probe covers the emulated high-speed boot keyboard, endpoint 1 IN.
-    cmpb $3, %gs:0x381
-    jne keyboard_report_done
+    # Emulated boot keyboard, endpoint 1 IN.
     cmpb $0x81, %gs:0x392
     jne keyboard_report_done
     cmpw $8, %gs:0x394
     jne keyboard_report_done
     movzbl %gs:0x393, %eax
+    test %eax, %eax
+    jz keyboard_report_done
+    cmpb $3, %gs:0x381
+    jne keyboard_frame_interval
     dec %eax
     cmp $15, %eax
     ja keyboard_report_done
+    jmp keyboard_interval_ready
+keyboard_frame_interval:
+    # Full/low-speed bInterval is in frames. Encode in microframes,
+    # rounding down to the nearest power of two.
+    bsr %eax, %eax
+    add $3, %eax
+keyboard_interval_ready:
     shl $16, %eax
-    mov %eax, 0x4080(%r8)
-    movl $0, 0x4000(%r8)
-    movl $9, 0x4004(%r8)
-    andl $0x07ffffff, 0x4020(%r8)
-    orl $0x18000000, 0x4020(%r8)
-    movl $0x0008003e, 0x4084(%r8)
+    mov %gs:0x3c0, %ecx
+    lea XHCI_INPUT_CONTEXT(%r8,%rcx), %rbx
+    andl $0x07ffffff, (%rbx)
+    orl $0x18000000, (%rbx)
+    lea XHCI_INPUT_CONTEXT(%r8,%rcx,4), %rbx
+    mov %eax, (%rbx)
+    movl $0, XHCI_INPUT_CONTEXT(%r8)
+    movl $9, XHCI_INPUT_CONTEXT+4(%r8)
+    movl $0x0008003e, 4(%rbx)
     lea 0x4901(%r8), %rax
-    mov %rax, 0x4088(%r8)
-    movl $0x00080008, 0x4090(%r8)
-    lea 0x4000(%r8), %rax
+    mov %rax, 8(%rbx)
+    movl $0x00080008, 16(%rbx)
+    lea XHCI_INPUT_CONTEXT(%r8), %rax
     mov %rax, 0x1030(%r8)
     movl $0x01003001, 0x103c(%r8)
     movl $0, (%r10)

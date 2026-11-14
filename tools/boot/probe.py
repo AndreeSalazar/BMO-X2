@@ -141,8 +141,9 @@ def run(case):
     if args.doom_fixture and desktop_media:
         staging += ['-device', 'qemu-xhci,id=bmo-xhci']
         if (ROOT / 'xhci-command.txt').is_file():
+            usb_version = ',usb_version=1' if (ROOT / 'usb-full-speed.txt').is_file() else ''
             staging += ['-device', 'qemu-xhci,id=bmo-xhci-second',
-                        '-device', 'usb-kbd,bus=bmo-xhci-second.0']
+                        '-device', f'usb-kbd,bus=bmo-xhci-second.0{usb_version}']
     process = subprocess.Popen([
         str(qemu), '-machine', 'pc', '-cpu', args.cpu, '-accel', 'tcg', '-m', f'{args.ram_mib}M', '-smp', '1',
         '-drive', f'if=pflash,format=raw,unit=0,readonly=on,file={share / "edk2-x86_64-code.fd"}',
