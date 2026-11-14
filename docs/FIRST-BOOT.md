@@ -36,6 +36,16 @@ abre CABINA mediante F2. La sonda de comandos sigue limitada a
 `1B36:000D`. La inicializacion AMD, la enumeracion conjunta y la
 entrada sostenida quedan pendientes.
 
+El inventario lee HCSPARAMS2 y HCCPARAMS1 del controlador elegido
+para registrar paginas scratchpad y tamano de contexto. La sonda
+QEMU usa la secuencia de BMO-X: espera CNR, detiene el controlador,
+espera HCHalted, solicita HCRST y comprueba que HCRST y CNR se
+borren y que PAGESIZE admita 4 KiB. El estado 3 certifica ese
+tramo en QEMU. En el arranque habitual solo se leen los requisitos.
+El ensayo de DMA sigue limitado a contextos de 32 bytes y cero
+scratchpads. Para el AMD hay que preparar sus estructuras a partir
+de sus capacidades y comprobar el reinicio con plazos de hardware.
+
 CABINA en Rust muestra los datos de la sesion. Guardar eventos de Ring 0
 posteriores a ExitBootServices requiere un controlador de bloques y una
 ruta de guardado del sistema. El informe UEFI cubre la fase previa.

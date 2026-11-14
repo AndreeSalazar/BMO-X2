@@ -259,6 +259,13 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         words = actual.split(':', 1)[1].split()
         assert (caps, parameters) == tuple(int(word, 16) for word in words[:2])
         assert caps >> 16 and parameters & 0xff
+        requirements = command('human-monitor-command', {'command-line': f'xp /3wx {bar + 8:#x}'})
+        params2, _, cap1 = (int(word, 16) for word in requirements.split(':', 1)[1].split()[:3])
+        scratchpads, context_bytes = struct.unpack('<II', memory(address + 0x1a3bc, 8, 'xhci-dma-needs'))
+        assert scratchpads == ((params2 >> 27) | ((params2 >> 16) & 0x3e0))
+        assert context_bytes == (64 if cap1 & 4 else 32)
+        reset_stage = memory(address + 0x1a3b9, 1, 'xhci-reset-stage')[0]
+        assert reset_stage == (3 if command_probe else 0)
         handoff = memory(address + 0x1a378, 1, 'xhci-handoff')[0]
         assert handoff in (1, 2), f'xHCI handoff state: {handoff}'
         assert memory(address + 0x15400, 8, 'xhci-alias-pde') == bytes(8)
@@ -277,7 +284,8 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                         UsbKeyboardReports=[report.hex() for report in reports],
                         UsbKeyboardTransferVerified=True,
                         UsbInputVerified=True, UsbCabinaVerified=True, CpuL1=cache,
-                        XhciControllers=count, XhciSelectedBdf=f'{bdf:04X}', XhciConnectedPorts=rank-1)
+                        XhciControllers=count, XhciSelectedBdf=f'{bdf:04X}', XhciConnectedPorts=rank-1,
+                        XhciResetStage=reset_stage, XhciScratchpadPages=scratchpads, XhciContextBytes=context_bytes)
     timeout_before = wait_stats()[1]
     wait_until(lambda: wait_stats()[1] > timeout_before)
     event_before = wait_stats()[0]
@@ -478,6 +486,8 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 CabinaCommandsVerified=4 if external_image is not None else 0,
                 SettingsVerified=external_image is not None,
                 XhciInventoryVerified=desktop_media,
+                XhciScratchpadPages=scratchpads if desktop_media else None,
+                XhciContextBytes=context_bytes if desktop_media else None,
                 XhciReadOnlyMmioVerified=desktop_media,
                 XhciFirmwareHandoff=handoff if desktop_media else None,
                 XhciCommandCompleted=desktop_media and command_probe,

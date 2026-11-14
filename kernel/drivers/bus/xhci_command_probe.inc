@@ -47,21 +47,8 @@ xhci_test_command:
     invlpg (%r10)
     movzbl (%rdi), %eax
     lea (%rdi,%rax), %r11
-    movl $0, (%r11)
-    mov $1, %eax
-    mov $1, %esi
-    call command_poll
+    call xhci_reset
     jne command_unmap
-    movl $2, (%r11)
-    mov $2, %eax
-    xor %esi, %esi
-    call command_poll
-    jne command_unmap
-    mov $0x800, %eax
-    call command_poll
-    jne command_unmap
-    testl $1, 8(%r11)
-    jz command_unmap
     testb $4, 0x10(%rdi)         # 32-byte contexts only
     jnz command_unmap
     movl $1, 0x38(%r11)         # one device slot
@@ -140,25 +127,6 @@ command_restore:
     mov $0xcf8, %edx
     out %eax, %dx
 command_skip:
-    ret
-
-# Compare the requested mask with zero or the mask itself. ZF reports success.
-command_poll:
-    neg %esi
-    and %eax, %esi
-    mov $100000, %ecx
-command_poll_next:
-    mov 4(%r11), %edx
-    test $2, %al
-    jz command_poll_compare
-    mov (%r11), %edx
-command_poll_compare:
-    and %eax, %edx
-    cmp %esi, %edx
-    je command_poll_done
-    pause
-    loop command_poll_next
-command_poll_done:
     ret
 
 enumerate_keyboard:

@@ -155,6 +155,19 @@ caps_map:
     mov %edx, %gs:0x374
     cmpb $0, %gs:0x3b8
     je xhci_census
+    # Record DMA requirements before doing anything to the controller.
+    mov 8(%rdi), %eax
+    mov %eax, %ecx
+    shr $27, %eax
+    shr $16, %ecx
+    and $0x3e0, %ecx
+    or %ecx, %eax
+    mov %eax, %gs:0x3bc
+    mov 0x10(%rdi), %eax
+    and $4, %eax
+    shl $3, %eax
+    add $32, %eax
+    mov %eax, %gs:0x3c0
     call xhci_handoff
 #ifdef XHCI_COMMAND_PROBE
     push %rbx
@@ -268,4 +281,5 @@ caps_done:
 
 #ifdef XHCI_COMMAND_PROBE
 #include "xhci_command_probe.inc"
+#include "xhci_reset.inc"
 #endif
