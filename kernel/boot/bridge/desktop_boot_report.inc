@@ -32,6 +32,37 @@ report_pci_next:
     shr $8, %eax
     cmp $0x0c0330, %eax
     jne report_pci_advance
+    cmp $2, %r8d
+    jae report_pci_count
+    push %rcx
+    push %rdx
+    lea (0x800+report_pci0-report_template)(%rbp), %rdi
+    imul $(report_pci1-report_pci0), %r8d, %eax
+    add %rax, %rdi
+    mov %ecx, %eax
+    shr $8, %eax
+    and $0xffff, %eax
+    call report_hex32
+    inc %rdi
+    mov (%rsp), %edx
+    mov 8(%rsp), %eax
+    sub $8, %eax
+    out %eax, %dx
+    add $4, %dx
+    in %dx, %eax
+    call report_hex32
+    inc %rdi
+    mov (%rsp), %edx
+    mov 8(%rsp), %eax
+    sub $4, %eax
+    out %eax, %dx
+    add $4, %dx
+    xor %eax, %eax
+    in %dx, %ax
+    call report_hex32
+    pop %rdx
+    pop %rcx
+report_pci_count:
     inc %r8d
 report_pci_advance:
     add $0x100, %ecx
@@ -91,7 +122,7 @@ report_hex_store:
     ret
 
 report_template:
-    .ascii "BMO-X2 V1 UEFI\r\nSBEF="
+    .ascii "BMO-X2 V2 UEFI\r\nSBEF="
 report_sbef:
     .ascii "00000000\r\nCPUID="
 report_l1:
@@ -99,7 +130,11 @@ report_l1:
 report_ps2:
     .ascii "00000000\r\nXHCI="
 report_xhci:
-    .ascii "00000000\r\n"
+    .ascii "00000000\r\nBDF ID CMD\r\n"
+report_pci0:
+    .ascii "-------- -------- --------\r\n"
+report_pci1:
+    .ascii "-------- -------- --------\r\n"
 report_end:
     .p2align 1
 report_path:

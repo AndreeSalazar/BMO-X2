@@ -1,4 +1,5 @@
 .text
+#define DESKTOP_READER_OFFSET 0x3000
 # Position-independent extension of the inherited EFI reader.
 # The original reader has closed its files and saved SimpleFileSystem in RBP+88h.
 .globl desktop_media_read
@@ -6,7 +7,7 @@ desktop_media_read:
     # The original reader expects the EFI caller's original stack alignment.
     sub $8, %rsp
     .byte 0xe8
-    .long 0x800 - 0x2800 - (. - desktop_media_read) - 4
+    .long 0x800 - DESKTOP_READER_OFFSET - (. - desktop_media_read) - 4
     add $8, %rsp
     test %rax, %rax
     js done
@@ -77,7 +78,7 @@ staging_ready:
 #ifdef XHCI_COMMAND_PROBE
     # Copy the EFI stage to the page between the packet buffer and page tables.
     .byte 0x48, 0x8d, 0x35
-    .long 0x3000 - 0x2800 - (. - desktop_media_read) - 4
+    .long 0x4000 - DESKTOP_READER_OFFSET - (. - desktop_media_read) - 4
     lea 0x12000(%rbp), %rdi
     mov $512, %ecx
     cld

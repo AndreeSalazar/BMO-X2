@@ -105,20 +105,20 @@ def main():
 
     image = bridge_variant()
     reader = (run / 'desktop_media_read.bin').read_bytes()
-    site, extension = 0x267, 0x2800
-    if image[site:site+5] != bytes.fromhex('e894050000') or any(image[extension:]) or len(reader) > len(image)-extension:
+    site, extension = 0x267, 0x3000
+    if image[site:site+5] != bytes.fromhex('e894050000') or len(image) != extension or len(reader) > 4096:
         raise ValueError('El lector ya no cabe en el puente')
     struct.pack_into('<i', image, site+1, extension-site-5)
-    image[extension:extension+len(reader)] = reader
+    extra = 0x2000 if args.xhci_command else 0x1000
+    for offset, old in ((0x5c, 0x2e00), (0x90, 0x4000), (0x150, 0x2e00), (0x158, 0x2e00)):
+        if struct.unpack_from('<I', image, offset)[0] != old:
+            raise ValueError('Cambio la cabecera PE del puente')
+        struct.pack_into('<I', image, offset, old + extra)
+    image.extend(reader.ljust(4096, b'\0'))
     if args.xhci_command:
         driver = (run / 'xhci-command.bin').read_bytes()
-        if len(image) != 0x3000 or not 0 < len(driver) <= 4096:
+        if not 0 < len(driver) <= 4096:
             raise ValueError('La sonda xHCI no cabe en su etapa EFI')
-        for offset, old, new in ((0x5c, 0x2e00, 0x3e00), (0x90, 0x4000, 0x5000),
-                                 (0x150, 0x2e00, 0x3e00), (0x158, 0x2e00, 0x3e00)):
-            if struct.unpack_from('<I', image, offset)[0] != old:
-                raise ValueError('Cambio la cabecera PE del puente')
-            struct.pack_into('<I', image, offset, new)
         image.extend(driver.ljust(4096, b'\0'))
     allocator = (run / 'desktop_media_alloc.bin').read_bytes()
     if image[0x400:0x404] != bytes.fromhex('4883ec28') or len(allocator) > 0xf0:

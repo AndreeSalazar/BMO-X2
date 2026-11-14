@@ -8,8 +8,16 @@ El puente UEFI escribe `\BMO-X2\BOOTLOG.TXT` en el volumen de arranque
 antes de ExitBootServices. En Windows se puede abrir desde A:. El
 informe fijo usa ASCII con valores hexadecimales: bytes del SBEF,
 hoja CPUID de cache, lectura del puerto PS/2 64h y cantidad PCI xHCI.
+La version 2 agrega BDF, ID PCI y comando PCI de los dos primeros
+controladores. Las filas con guiones indican posiciones vacias.
+El ID contiene dispositivo en los 16 bits altos y fabricante en
+los bajos. El bit 1 del comando indica decodificacion MMIO.
 Se genera sin teclado ni raton. Un error de escritura permite que
 continue el arranque.
+
+La primera captura en metal del 14-11-2026 registro `SBEF=000027D6`,
+`CPUID=8000001D`, `PS2=00000055` y `XHCI=00000002`. Windows
+identifico los controladores AMD `1022:43BC` y `1022:149C`.
 
 CABINA en Rust muestra los datos de la sesion. Guardar eventos de Ring 0
 posteriores a ExitBootServices requiere un controlador de bloques y una
