@@ -1,4 +1,12 @@
 .text
+#ifdef XHCI_COMMAND_PROBE
+    .byte 0xe9
+    .long usb_controllers - . - 4
+    .byte 0xe9
+    .long xhci_live_report - . - 4
+    .byte 0xe9
+    .long xhci_live_stop - . - 4
+#endif
 # Inventory each xHC before choosing a controller. Restore PCI selector.
 # One scan per boot, including bridges and multifunction devices.
 usb_controllers:
@@ -175,6 +183,8 @@ caps_map:
     call xhci_test_command
     pop %rdi
     pop %rbx
+    cmpb $1, %gs:0x3c8
+    je caps_done
 #endif
     xor %eax, %eax
     jmp xhci_unmap

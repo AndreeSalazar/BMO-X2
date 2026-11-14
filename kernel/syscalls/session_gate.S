@@ -234,6 +234,14 @@ timer_ready:
     mov %gs:0x338, %r8
     add %rdx, %r8
 wait_check:
+#ifdef XHCI_COMMAND_PROBE
+    cmpb $1, %gs:0x3c8
+    jne wait_ps2
+    mov %gs:0x3d0, %rax
+    testb $1, 12(%rax)
+    jnz event_ready
+wait_ps2:
+#endif
 #if !defined(DOOM_ENGINE) || defined(DESKTOP_DOOM)
 #ifdef DESKTOP_DOOM
     test %rsi, %rsi
@@ -299,14 +307,10 @@ usb_controllers:
 #endif
 #ifdef XHCI_COMMAND_PROBE
 usb_report:
-    movzbl %gs:0x398, %ecx
-    cmp %gs:0x397, %cl
-    jae empty
-    cmpb $1, %gs:0x37a
-    jne empty
-    mov 0xb8(%rbp), %rax
-    mov 0x4e80(%rax,%rcx,8), %rax
-    incb %gs:0x398
+    push %rbx
+    lea 0x12005(%rbp), %rax
+    call *%rax
+    pop %rbx
     jmp finish
 #endif
 #ifdef DOOM_ENGINE
@@ -495,6 +499,13 @@ finish:
 session_exit:
     test %rdi, %rdi
     jne denied
+#ifdef XHCI_COMMAND_PROBE
+    cmpb $1, %gs:0x3c8
+    jne exit_no_usb
+    lea 0x1200a(%rbp), %rax
+    call *%rax
+exit_no_usb:
+#endif
     mov %cr3, %r8
     mov %gs:0x318, %rax
     mov %rax, %cr3

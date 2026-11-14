@@ -143,12 +143,15 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     command_probe = desktop_media and (prefix.parent.parent / 'xhci-command.txt').is_file()
     if command_probe:
         wait_until(lambda: memory(address + 0x1a396, 1, 'xhci-armed') == b'\x01')
+        wait_until(lambda: logical(52, 99, 0x5ad8ff) and sleeping())
         key('f2')
+        wait_until(lambda: logical(40, 86, 0x40465d)
+                   and memory(address + 0x1a3c8, 1, 'xhci-live') == b'\x01')
         wait_until(lambda: memory(address + 0x1a396, 1, 'xhci-rearmed') == b'\x03')
         key('f3')
     if command_probe:
-        wait_until(lambda: logical(24, 24, 0x232638) and sleeping()
-                   and memory(address + 0x1a398, 1, 'xhci-delivered') == b'\x03')
+        wait_until(lambda: logical(40, 86, 0x40465d) and sleeping()
+                   and memory(address + 0x1a398, 1, 'xhci-delivered') == b'\x04')
         command('screendump', {'filename': str(prefix) + '-usb-cabina.png', 'format': 'png'})
     else:
         wait_until(lambda: logical(216, 33, 0x0d0e17) and logical(52, 99, 0x5ad8ff) and sleeping())
@@ -226,9 +229,10 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
             data = reserved[0x4c40:0x4c40 + total]
             assert len(data) == total and data[:5] == struct.pack('<BBHB', 9, 2, total, 1)
             assert config == data[5] and endpoint & 0x80
-            assert memory(address + 0x1a397, 1, 'xhci-report-state') == b'\x03'
-            reports = [reserved[offset:offset + 8] for offset in range(0x4e80, 0x4e98, 8)]
-            assert reports == [bytes([0, 0, usage, 0, 0, 0, 0, 0]) for usage in (0x3b, 0, 0x3c)]
+            assert memory(address + 0x1a397, 1, 'xhci-report-state') == b'\x04'
+            reports = [reserved[offset:offset + 8] for offset in range(0x4e80, 0x4ea0, 8)]
+            assert reports == [bytes([0, 0, usage, 0, 0, 0, 0, 0]) for usage in (0x3b, 0, 0x3c, 0)]
+            assert wait_stats()[0] > 0
         else:
             assert reserved == bytes(pages * 4096)
         count = 2 if command_probe else 1
@@ -305,6 +309,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                         XhciControllers=count, XhciSelectedBdf=f'{bdf:04X}', XhciConnectedPorts=rank-1,
                         XhciResetStage=reset_stage, XhciScratchpadPages=scratchpads, XhciContextBytes=context_bytes,
                         DmaReservationValidated=True, XhciReservedBytes=pages * 4096,
+                        UsbCabinaOpenedWhileControllerRunning=True, UsbWaitVerified=True,
                         XhciKeyboardInterval=expected_interval, XhciContextLayoutVerified=True,
                         XhciScratchpadCapacityPages=4, XhciScratchpadTableVerified=True)
     timeout_before = wait_stats()[1]

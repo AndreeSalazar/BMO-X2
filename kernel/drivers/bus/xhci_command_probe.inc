@@ -1,6 +1,6 @@
 # QEMU qemu-xhci only. Interrupt delivery remains disabled.
 #include "xhci_dma_layout.inc"
-.equ keyboard_report_count, 3
+.equ keyboard_report_count, 4
 .text
 xhci_test_command:
     cmpb $1, %gs:0x378
@@ -121,6 +121,11 @@ command_received:
     lea 0x2018(%r8), %rax
     mov %rax, 0x38(%r9)
     call enumerate_keyboard
+    cmpb $1, %gs:0x396
+    jne command_stop
+    movb $1, %gs:0x3c8
+    add $16, %rsp                # Saved PCI command and function.
+    jmp command_restore
 command_stop:
     movl $0, (%r11)
     mov $1, %eax
@@ -525,46 +530,106 @@ keyboard_interval_ready:
     cmpb $1, 15(%rsi)
     jne keyboard_report_done
     add $16, %rsi
-    lea 0x4900(%r8), %rbx
-    lea 0x4e80(%r8), %rdx
-    lea 0x2100(%r8), %rdi
+    lea 0x2100-16*keyboard_report_count(%r8), %rax
+    cmp %rax, %rsi
+    ja keyboard_report_done
+    mov %rsi, %gs:0x3d0
+    xor %ecx, %ecx
 keyboard_report_submit:
-    # Do not wrap the probe's event segment. The production driver needs
-    # cycle-bit tracking and recycling across both rings.
-    cmp %rdi, %rsi
-    jae keyboard_report_done
+    mov %rcx, %rbx
+    shl $4, %rbx
+    lea 0x4900(%r8,%rbx), %rbx
+    lea 0x4e80(%r8,%rcx,8), %rdx
     mov %rdx, (%rbx)
     movl $8, 8(%rbx)
     movl $0x421, 12(%rbx)
     movl $3, 4(%r10)
     incb %gs:0x396
-    # The harness injects transitions only after the first transfer is armed.
-    mov $160000000, %ecx
-keyboard_report_wait:
-    testb $1, 12(%rsi)
-    jnz keyboard_report_event
-    pause
-    loop keyboard_report_wait
     ret
+
+xhci_live_report:
+    mov $256, %eax
+    cmpb $1, %gs:0x3c8
+    jne keyboard_report_done
+    mov %gs:0x3d0, %rsi
+    testb $1, 12(%rsi)
+    jz keyboard_report_done
+    mov 0xb8(%rbp), %r8
+    movzbl %gs:0x397, %ecx
+    mov %rcx, %rbx
+    shl $4, %rbx
+    lea 0x4900(%r8,%rbx), %rbx
 keyboard_report_event:
     mov 12(%rsi), %eax
     and $0xfffffc00, %eax
     cmp $0x01038000, %eax
-    jne keyboard_report_done
+    jne keyboard_live_error
     cmpl $0x01000000, 8(%rsi)
-    jne keyboard_report_done
+    jne keyboard_live_error
     cmp %rbx, (%rsi)
-    jne keyboard_report_done
+    jne keyboard_live_error
     lea 24(%rsi), %rax
-    mov %rax, 0x38(%r9)
+    mov %rax, 0x10001038
+    add $16, %rsi
+    mov %rsi, %gs:0x3d0
     incb %gs:0x397
     cmpb $keyboard_report_count, %gs:0x397
-    je keyboard_report_done
-    add $16, %rsi
-    add $16, %rbx
-    add $8, %rdx
-    jmp keyboard_report_submit
+    je keyboard_live_last
+    lea 0x10002000, %r10
+    inc %ecx
+    call keyboard_report_submit
+    dec %ecx
+    jmp keyboard_live_deliver
+keyboard_live_last:
+    push %rcx
+    call xhci_live_stop
+    pop %rcx
+keyboard_live_deliver:
+    mov 0x4e80(%r8,%rcx,8), %rax
+    incb %gs:0x398
+    ret
+keyboard_live_error:
+    call xhci_live_stop
+    mov $256, %eax
 keyboard_report_done:
+    ret
+
+xhci_live_stop:
+    movb $0, %gs:0x3c8
+    movzbl 0x10000000, %r11d
+    add $0x10000000, %r11
+    movl $0, (%r11)
+    mov $1, %eax
+    mov $1, %esi
+    call command_poll
+    setz %gs:0x37a
+    mov $0xcf8, %edx
+    in %dx, %eax
+    push %rax
+    mov %gs:0x360, %eax
+    shl $8, %eax
+    or $0x80000004, %eax
+    out %eax, %dx
+    add $4, %edx
+    mov %gs:0x37c, %ax
+    cmpb $1, %gs:0x37a
+    je keyboard_live_restore
+    and $0xfffb, %ax
+keyboard_live_restore:
+    out %ax, %dx
+    in %dx, %ax
+    mov %ax, %gs:0x37e
+    pop %rax
+    sub $4, %edx
+    out %eax, %dx
+    xor %eax, %eax
+    mov %rax, 0x15400(%rbp)
+    mov %rax, 0x1e000(%rbp)
+    mov %rax, 0x1e008(%rbp)
+    mov %rax, 0x1e010(%rbp)
+    invlpg 0x10000000
+    invlpg 0x10001000
+    invlpg 0x10002000
     ret
 
 # Find a command completion, allowing intervening port-change events.
