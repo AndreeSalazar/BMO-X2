@@ -29,6 +29,13 @@ tras un fallo controlado desde CPL3. `--language cpp` usa el mismo
 cliente fuente y `--language rust` usa rustc con el mismo portal ABI.
 Cada run guarda la huella de su SBEF y el informe de QEMU.
 
+El reto de 2 KiB exige que `INICIO.X86` contenga en 2048 bytes o menos
+la cabecera, la sonda CASM Ring 0 y el cliente SBEF Ring 3. El banco
+rechaza un exceso antes de construir la imagen y registra el desglose,
+el margen y el total junto con el puente EFI. El primer perfil usa un
+cliente y tres llamadas de prueba. El puente UEFI, las tablas, la pila
+en RAM, los controladores y el escritorio tienen presupuestos propios.
+
 El banco embebe una region RX en el paquete de prueba. Falta repetir
 la comparacion con el cargador externo general y un segundo proceso.
 El perfil PE32+ freestanding de MSVC queda por implementar. HOST

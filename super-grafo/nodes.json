@@ -1986,7 +1986,7 @@
       "que": "Construye un cliente comun y coteja los bytes de los stubs ELF.",
       "entrada": "Cliente C, cabecera ABI 1, compilador y vector HEX.",
       "salida": "SBEF para ELF o inventario de un objeto COFF MSVC.",
-      "aceptacion": "GCC C, Clang C/C++ y Rust verifican INVOKE, WAIT y limpieza tras fallo en QEMU. MSVC se inspecciona como COFF.",
+      "aceptacion": "GCC C, Clang C/C++ y Rust verifican INVOKE, WAIT y limpieza tras fallo en QEMU en un paquete de hasta 2048 bytes. MSVC se inspecciona como COFF.",
       "falta": "Probar el mismo ABI con el cargador externo general y admitir PE32+ freestanding."
     },
     {

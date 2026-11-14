@@ -12,6 +12,8 @@ from doom_fixture import make_packet, prepend_intro
 from scope import ROOT, workspace
 from wake import assemble, check
 
+MINIMAL_SYSTEM_BUDGET = 2 * 1024
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -55,6 +57,8 @@ def main():
     gate = args.session_gate.read_bytes() if args.session_gate else None
     external = args.external_loader.read_bytes() if args.external_loader else None
     packet, _ = make_packet(base_packet, sbef, present, gate, external, engine=engine)
+    if args.toolchain_client and len(packet) > MINIMAL_SYSTEM_BUDGET:
+        raise ValueError(f'El paquete ABI ocupa {len(packet)} bytes y supera {MINIMAL_SYSTEM_BUDGET}')
     if args.intro:
         intro = workspace(args.intro)
         if (intro / 'profile.txt').read_text(encoding='utf-8-sig').strip() not in ('ring0-splash-hd-0.1', 'ring0-splash-0.1'):
@@ -129,6 +133,17 @@ def main():
     if args.toolchain_client:
         milestone = f'{args.toolchain_client.upper()} client exercises the CASM ABI in CPL3'
         report['toolchain'] = args.toolchain_client
+        report['minimal_system_budget'] = dict(
+            limit_bytes=MINIMAL_SYSTEM_BUDGET,
+            packet_bytes=len(packet),
+            packet_header_bytes=24,
+            embedded_sbef_bytes=len(sbef),
+            ring0_body_bytes=len(packet) - len(sbef) - 24,
+            packet_headroom_bytes=MINIMAL_SYSTEM_BUDGET - len(packet),
+            uefi_bridge_bytes=efi.stat().st_size,
+            packet_and_bridge_bytes=len(packet) + efi.stat().st_size,
+            guest_ram_mib=256,
+        )
     report.update(run=run.name, evidence='QEMU', milestone=f'Cat intro then {milestone}' if args.intro else milestone)
     (run / 'qemu-results.json').write_text(json.dumps(report, indent=2) + '\n', encoding='ascii')
     (run / 'qemu-run.json').write_text(json.dumps(dict(cpu='qemu64', ram_mib=256)) + '\n', encoding='ascii')
