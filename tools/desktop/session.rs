@@ -72,6 +72,7 @@ struct Clip {
 }
 
 impl Clip {
+    #[cfg(not(desktop_ultra_j))]
     fn intersect(self, other: Self) -> Self {
         Self {
             left: self.left.max(other.left),
@@ -134,6 +135,7 @@ fn paint(clip: Clip, space: usize, focus: usize, bar: bool) {
         clip.fill(x + 2, y + 2, w - 4, h - 4, 0x171825);
         clip.fill(x + 2, y + 2, w - 4, 28, 0x232638);
         digit(clip, x + 14, y + 9, i, border);
+        #[cfg(not(desktop_ultra_j))]
         for line in 0..3 {
             clip.fill(x + 20, y + 58 + line * 17, w - 65 - line * 17, 2, 0x353c53);
         }
@@ -149,6 +151,7 @@ fn move_cursor(old: (i16, i16), new: (i16, i16), space: usize, focus: usize, bar
     if old == new {
         return;
     }
+    #[cfg(not(desktop_ultra_j))]
     let (x, y) = (new.0 as u64, new.1 as u64);
     let (old_x, old_y) = (old.0 as u64, old.1 as u64);
     let old = Clip {
@@ -157,8 +160,11 @@ fn move_cursor(old: (i16, i16), new: (i16, i16), space: usize, focus: usize, bar
         right: old_x + 7,
         bottom: old_y + 10,
     };
+    #[cfg(desktop_ultra_j)]
+    paint(old, space, focus, bar);
     // Publish the new cursor first. Restore only the old area outside its L.
     cursor(new.0, new.1);
+    #[cfg(not(desktop_ultra_j))]
     for exposed in [
         Clip {
             bottom: y,
@@ -411,6 +417,10 @@ extern "C" fn bmo_main() -> ! {
                 sheet_open = false;
                 paint(VIEWPORT, space, focus[space], false);
                 cursor(x, y);
+            }
+            #[cfg(desktop_ultra_j)]
+            if key == 0x1c {
+                sheet::activate();
             }
             continue;
         }

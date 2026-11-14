@@ -48,12 +48,15 @@ def main():
     probes.add_argument('--ultra-j-view', type=Path, help='Test the ULTRA-J Ring 3 view SBEF in QEMU')
     probes.add_argument('--sheet-desktop', type=Path, help='Test the Ring 3 sheet desktop in QEMU')
     parser.add_argument('--ultra-j-action', type=Path)
+    parser.add_argument('--ultra-j-launcher', action='store_true')
     parser.add_argument('--usb-desktop', type=Path, help='Desktop SBEF compiled with -UsbProbe')
     parser.add_argument('--usb-full-speed', action='store_true', help='Use USB 1.x in the xHCI probe')
     parser.add_argument('--usb-mouse', action='store_true', help='Probe a USB boot mouse instead of a keyboard')
     args = parser.parse_args()
     if bool(args.ultra_j_view) != bool(args.ultra_j_action):
         parser.error('--ultra-j-view y --ultra-j-action deben usarse juntos')
+    if args.ultra_j_launcher and not args.ultra_j_view:
+        parser.error('--ultra-j-launcher requiere --ultra-j-view')
     abi, splash, desktop = map(workspace, (args.abi_run, args.splash_run, args.desktop_run))
     for path, profile in ((abi, 'ring0-abi-probe-0.1'), (splash, SPLASH_PROFILE),
                           (desktop, 'desktop-external')):
@@ -178,6 +181,8 @@ def main():
         (run / 'reuse-session.txt').write_text('QEMU\n', encoding='ascii')
     if args.ultra_j_view:
         (run / 'ultra-j-view.txt').write_text('QEMU\n', encoding='ascii')
+    if args.ultra_j_launcher:
+        (run / 'ultra-j-launcher.txt').write_text('QEMU\n', encoding='ascii')
     if args.sheet_desktop:
         (run / 'sheet-desktop.txt').write_text('QEMU\n', encoding='ascii')
     subprocess.run([sys.executable, '-B', scripts / 'probe.py', '--workspace', run, '--halt',

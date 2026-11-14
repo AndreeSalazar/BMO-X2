@@ -1,0 +1,5 @@
+canvas { left: 0px; top: 0px; width: 640px; height: 400px; background: #10121A; }
+card { left: 110px; top: 96px; width: 420px; height: 208px; border-radius: 12px; background: #1B1F2C; }
+title { left: 40px; top: 48px; width: 160px; height: 24px; font-scale: 2; color: #F3F5FF; }
+line { left: 40px; top: 121px; width: 340px; height: 8px; background: #A8C5FF; }
+active { left: 40px; top: 121px; width: 340px; height: 8px; background: #A0E5CA; }

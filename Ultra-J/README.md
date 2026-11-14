@@ -252,6 +252,29 @@ vectores y aportara su presentador, ABI y formato de carga nativo.
 
 ## Ejecutar el ensayo
 
+### Desde el icono del escritorio
+
+El perfil `-Sheet -UltraJ` muestra un icono azul arriba a la izquierda.
+El doble clic dibuja la vista de `examples/desktop-panel`. Enter
+ejecuta la accion de `ACTION.UJB` y cambia la linea azul a verde.
+Esc devuelve el control al escritorio. La vista usa el mismo
+presentador y el mismo interprete que el panel de arranque.
+
+En PowerShell desde la raiz de BMO-X2, usando `$ujPython` de arriba:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\build-desktop.ps1 -Session -External -Sheet -UltraJ -AbiRun build/CASM/run-20261112-174958-944cb997
+& $ujPython -B tools/boot/stage_desktop_media.py build/CASM/run-20261112-174958-944cb997 build/CASM/run-20261112-045636-c461240e build/CASM/run-desktop-3c09ddaa8ea6 --ultra-j-view build/desktop/desktop-ultra-j.sbef --ultra-j-action build/ultra-j/desktop/panel-action.ujb --ultra-j-launcher
+```
+
+Abre el run impreso con `tools/boot/view.ps1 -Run <ruta-del-run>`.
+El lanzador es un perfil QEMU con raton PS/2 emulado. La vista se
+presenta dentro de la sesion actual y toma la pantalla hasta Esc.
+Para caber en las dos paginas de texto usa una vista compacta y
+simplifica el restaurado del cursor.
+
+### Arranque directo al panel
+
 Con los tres runs de BMO-X2 ya generados, desde la raiz:
 
 ```powershell

@@ -1,0 +1,14 @@
+<app>
+  <screen class="canvas">
+    <panel class="card">
+      <label class="title">ULTRA J</label>
+      <panel class="line"/>
+    </panel>
+  </screen>
+  <screen class="canvas">
+    <panel class="card">
+      <label class="title">ULTRA J</label>
+      <panel class="active"/>
+    </panel>
+  </screen>
+</app>

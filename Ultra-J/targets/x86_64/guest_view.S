@@ -1,7 +1,19 @@
 .text
+#ifdef UJ_DESKTOP
+.globl ultra_j_draw
+ultra_j_draw:
+    push %rbp
+    push %rbx
+    push %r12
+    push %r13
+    push %r14
+    push %r15
+    mov %edi, %r10d
+#else
 .globl _start
 _start:
     call run_action
+#endif
     lea view(%rip), %r12
     cmpl $0x49564a55, (%r12)
     jne invalid
@@ -28,12 +40,16 @@ _start:
     cmp %rbp, %rax
     jne invalid
     mov %r12, %r14
+#ifdef UJ_DESKTOP
+    test %r10d, %r10d
+    cmovne %r13, %r14
+#endif
 paint:
     movzwl (%r14), %ebx
     lea 2(%r14), %r15
 rect:
     test %ebx, %ebx
-    jz input
+    jz frame_done
     # UJVI v2 packs x/y/w/h and a palette index into six bytes.
     mov (%r15), %eax
     movzwl 4(%r15), %ecx
@@ -69,6 +85,19 @@ rect:
     add $6, %r15
     dec %ebx
     jmp rect
+frame_done:
+#ifdef UJ_DESKTOP
+    pop %r15
+    pop %r14
+    pop %r13
+    pop %r12
+    pop %rbx
+    pop %rbp
+    ret
+.globl ultra_j_action
+ultra_j_action:
+    jmp run_action
+#else
 input:
     xor %eax, %eax
     mov $2, %edi
@@ -101,6 +130,7 @@ reset:
     je input
     mov %r12, %r14
     jmp paint
+#endif
 
 #include "action_vm.inc"
 invalid:
@@ -111,8 +141,10 @@ view:
     .incbin UJ_VIEW_FILE
 view_end:
 
+#ifndef UJ_DESKTOP
 .data
     .long 0x49564a55
+#endif
 .bss
     .balign 8
 arena:

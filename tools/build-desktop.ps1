@@ -8,6 +8,7 @@ param(
     [switch]$UsbProbe,
     [switch]$UsbMouse,
     [switch]$Sheet,
+    [switch]$UltraJ,
     [string]$AbiRun,
     [string]$IntroRun
 )
@@ -17,6 +18,7 @@ if ($External -and (-not $Session -or -not $AbiRun)) { throw '-External requiere
 if ($UsbProbe -and -not $External) { throw '-UsbProbe requiere -External.' }
 if ($UsbMouse -and -not $UsbProbe) { throw '-UsbMouse requiere -UsbProbe.' }
 if ($Sheet -and (-not $External -or $UsbProbe)) { throw '-Sheet requiere -External y entrada PS/2.' }
+if ($UltraJ -and -not $Sheet) { throw '-UltraJ requiere -Sheet.' }
 if ($AbiRun -and -not $Guest) { throw '-AbiRun requiere -Guest.' }
 if ($IntroRun -and -not $AbiRun) { throw '-IntroRun requiere -AbiRun.' }
 $root = Split-Path $PSScriptRoot
@@ -49,6 +51,11 @@ if ($Session) {
         $guestFlags += @('--cfg','desktop_sheet')
         $elf = Join-Path $build.FullName 'desktop-sheet.elf'
         $image = Join-Path $build.FullName 'desktop-sheet.sbef'
+    }
+    if ($UltraJ) {
+        $guestFlags += @('--cfg','desktop_ultra_j')
+        $elf = Join-Path $build.FullName 'desktop-ultra-j.elf'
+        $image = Join-Path $build.FullName 'desktop-ultra-j.sbef'
     }
     if ($UsbProbe) {
         $guestFlags += @('--cfg','usb_probe')
@@ -93,6 +100,19 @@ if ($LASTEXITCODE -ne 0) { throw 'Fallo el build Rust. Verifica rustup target ad
 if ($LASTEXITCODE -ne 0) { throw 'Fallo el stub ABI.' }
 $linkFlags = @('-C', "linker=$linker", '-C', 'linker-flavor=ld', '-C', 'lto=fat',
                '-C', "link-arg=-T$linkScript", '-C', "link-arg=$portal")
+if ($UltraJ) {
+    $ujOutput = (New-Item -ItemType Directory -Force (Join-Path $root 'build/ultra-j/desktop')).FullName
+    & $Python -B (Join-Path $root 'Ultra-J/package.py') (Join-Path $root 'Ultra-J/examples/panel') $ujOutput
+    if ($LASTEXITCODE -ne 0) { throw 'Fallo el paquete ULTRA-J.' }
+    $ujView = Join-Path $ujOutput 'desktop-panel.ujv'
+    & $Python -B (Join-Path $root 'Ultra-J/view.py') (Join-Path $root 'Ultra-J/examples/desktop-panel/main.ujh') (Join-Path $root 'Ultra-J/examples/desktop-panel/style.ujc') $ujView
+    if ($LASTEXITCODE -ne 0) { throw 'Fallo la vista compacta de ULTRA-J.' }
+    $ujObject = Join-Path $ujOutput 'panel.o'
+    $ujDefine = '-DUJ_VIEW_FILE=\"' + ($ujView -replace '\\', '/') + '\"'
+    & (Join-Path $Llvm 'clang.exe') --target=x86_64-unknown-none-elf -DUJ_DESKTOP $ujDefine -c (Join-Path $root 'Ultra-J/targets/x86_64/guest_view.S') -o $ujObject
+    if ($LASTEXITCODE -ne 0) { throw 'Fallo el presentador ULTRA-J.' }
+    $linkFlags += @('-C',"link-arg=$ujObject")
+}
 if ($Guest -and -not $Session) {
     $complete = Join-Path $build.FullName 'desktop-complete.o'
     $present = Join-Path $build.FullName 'desktop-present.o'

@@ -152,8 +152,10 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         Path(str(prefix) + '-bootlog-expected.bin').write_bytes(match[0])
         return cache, match
 
-    if desktop_media and (prefix.parent.parent / 'sheet-desktop.txt').is_file():
-        wait_until(lambda: logical(70, 55, 0xe7efff) and sleeping())
+    launcher = desktop_media and (prefix.parent.parent / 'ultra-j-launcher.txt').is_file()
+    if launcher or (desktop_media and (prefix.parent.parent / 'sheet-desktop.txt').is_file()):
+        icon_color = 0xa8c5ff if launcher else 0xe7efff
+        wait_until(lambda: logical(70, 55, icon_color) and sleeping())
         for dx, dy in [(-120, -120), (-122, -8)]:
             command('input-send-event', {'events': [
                 {'type': 'rel', 'data': {'axis': 'x', 'value': dx}},
@@ -175,11 +177,27 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         click()
         wait_until(lambda: logical(250, 110, 0x232638) and sleeping())
         click()
-        wait_until(lambda: logical(250, 110, 0xe7efff) and sleeping())
-        command('screendump', {'filename': str(prefix) + '-sheet.png', 'format': 'png'})
+        if launcher:
+            wait_until(lambda: logical(200, 220, 0xa8c5ff) and sleeping())
+            command('screendump', {'filename': str(prefix) + '-launcher-ready.png', 'format': 'png'})
+            key('ret')
+            wait_until(lambda: logical(200, 220, 0xa0e5ca) and sleeping())
+            action = (prefix.parent.parent / 'ACTION.UJB').read_bytes()
+            assert action not in external_image
+            assert memory(address + 0x1cdf8, 520, 'launcher-action') == (
+                struct.pack('<Q', len(action)) + action.ljust(512, b'\0'))
+            assert memory(address + 0x1d010, 256, 'launcher-arena') == bytes(256)
+        else:
+            wait_until(lambda: logical(250, 110, 0xe7efff) and sleeping())
+        screenshot = '-launcher-active.png' if launcher else '-sheet.png'
+        command('screendump', {'filename': str(prefix) + screenshot, 'format': 'png'})
         key('esc')
-        wait_until(lambda: logical(250, 110, 0x232638) and logical(70, 55, 0xe7efff) and sleeping())
+        wait_until(lambda: logical(250, 110, 0x232638) and logical(70, 55, icon_color) and sleeping())
         cache, _ = bootlog()
+        if launcher:
+            return dict(Case='normal', Passed=True, UserCpl=3, UltraJDoubleClickVerified=True,
+                        UltraJExternalAction=True, UltraJArenaCleared=True, UltraJCloseVerified=True,
+                        IntroFramesObserved=sorted(frames), CpuL1=cache)
         return dict(Case='normal', Passed=True, UserCpl=3, SheetDoubleClickVerified=True,
                     SheetCloseVerified=True, IntroFramesObserved=sorted(frames), CpuL1=cache)
 
