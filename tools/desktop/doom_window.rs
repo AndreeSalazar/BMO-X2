@@ -74,6 +74,7 @@ pub fn forward(key: u8) {
 unsafe extern "C" {
     fn doom_init();
     fn doom_tick();
+    fn doom_mouse(buttons: u32, dx: i32, dy: i32);
 }
 
 #[derive(Default)]
@@ -81,6 +82,9 @@ pub struct DoomWindow {
     initialized: bool,
     workspace: Option<usize>,
     focused: bool,
+    mouse_buttons: u32,
+    mouse_delta: (i32, i32),
+    mouse_pending: bool,
 }
 
 impl DoomWindow {
@@ -108,6 +112,9 @@ impl DoomWindow {
         self.focused = false;
         if self.initialized {
             with_input(Input::release_all);
+            self.mouse_delta = (0, 0);
+            self.mouse_buttons = 0;
+            self.mouse_pending = true;
         }
     }
 
@@ -116,7 +123,19 @@ impl DoomWindow {
         self.workspace = None;
     }
 
-    pub fn tick(&self) {
+    pub fn mouse(&mut self, flags: u8, dx: i16, dy: i16) {
+        // PS/2 orders left, right, middle. Doom expects left, middle, right.
+        self.mouse_buttons = u32::from((flags & 1) | ((flags & 2) << 1) | ((flags & 4) >> 1));
+        self.mouse_delta.0 = (self.mouse_delta.0 + i32::from(dx)).clamp(-2048, 2048);
+        self.mouse_delta.1 = (self.mouse_delta.1 + i32::from(dy)).clamp(-2048, 2048);
+        self.mouse_pending = true;
+    }
+
+    pub fn tick(&mut self) {
+        if core::mem::take(&mut self.mouse_pending) {
+            let (dx, dy) = core::mem::take(&mut self.mouse_delta);
+            unsafe { doom_mouse(self.mouse_buttons, dx, dy) };
+        }
         unsafe { doom_tick() };
     }
 }

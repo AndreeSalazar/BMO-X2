@@ -303,6 +303,9 @@ Super + 1 enfoca DOOM en su espacio, Super + 2 vuelve al escritorio
 y Ctrl + Super + 1 a 4 cambia de espacio. Super + Q cierra la vista
 de DOOM y restaura el escritorio. El motor queda en memoria y
 `doom run` reabre la partida. Los numeros sin Super llegan al juego.
+El raton PS/2 entrega movimiento relativo y botones a DoomGeneric
+mientras el juego tiene foco. Al salir de la vista, DIRECTOR descarta
+el movimiento pendiente y libera los botones para la proxima entrada.
 El modelo de ventanas admite nueve posiciones. En la sonda grafica
 DOOM y el escritorio ocupan las dos primeras. Quedan pendientes el
 proceso SBEF independiente, el audio y la entrada USB continua.

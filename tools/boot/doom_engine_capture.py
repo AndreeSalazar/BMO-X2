@@ -50,7 +50,12 @@ def verify_engine(command, memory, prefix, image, case, *, desktop=False):
             rgb = color.to_bytes(4, 'little')
             if order == 0:
                 rgb = rgb[:3][::-1] + b'\0'
-            assert memory(fb + 4*scale*(y*pitch+x), 4, 'desktop-doom-pixel') == rgb
+            deadline = time.monotonic() + 2
+            while time.monotonic() < deadline:
+                if memory(fb + 4*scale*(y*pitch+x), 4, 'desktop-doom-pixel') == rgb:
+                    return
+                time.sleep(0.03)
+            raise ValueError(f'El pixel del escritorio ({x}, {y}) no llego a {color:06x}')
 
         check_pixel(272, 33, 0x0d0e17)
         key('ctrl', 'meta_l', '2')
@@ -110,6 +115,16 @@ def verify_engine(command, memory, prefix, image, case, *, desktop=False):
         for x in (0, width - 1):
             assert any(frame[3 * (y * width + x) + channel]
                        for y in range(height) for channel in range(3)), 'DOOM dejo un borde vertical'
+        command('input-send-event', {'events': [
+            {'type': 'rel', 'data': {'axis': 'x', 'value': 64}},
+        ]})
+        deadline = time.monotonic() + 5
+        while 'BMO DOOM MOUSE' not in serial.read_text(encoding='utf-8', errors='replace'):
+            if time.monotonic() >= deadline:
+                raise ValueError('El raton no llego a DoomGeneric')
+            time.sleep(0.05)
+        time.sleep(0.2)
+        assert screenshot('engine-mouse') != moved
         key('meta_l', '2')
         check_pixel(390, 147, 0xad92ff)
         background = screenshot('engine-background')
@@ -127,6 +142,7 @@ def verify_engine(command, memory, prefix, image, case, *, desktop=False):
     return dict(Case=case, Passed=True, DoomEngine=True, DoomKeyboardVerified=True,
                 CabinaDoomVerified=desktop, WorkspaceBarAutoHideVerified=desktop,
                 DoomFullScreenVerified=desktop, DoomFocusAndCloseVerified=desktop,
+                DoomRelativeMouseVerified=desktop,
                 SbefSha256=hashlib.sha256(image).hexdigest(), SbefBytes=len(image),
                 UserCpl=3, FrameWidth=320, FrameHeight=200, FrameSha256=initial,
                 MenuSha256=menu, ResumedSha256=resumed, MovedSha256=moved, GuestRamMiB=256,

@@ -1385,8 +1385,8 @@ Estado: QEMU. Anillo: host. Lenguaje: PowerShell y C.
 Entrada: 80 unidades GCC, ABI 1 experimental e IWAD local de solo lectura.
 Salida: ELF64 estatico, doom-engine.sbef y capturas de E1M1 en QEMU.
 Depende de: Sonda DOOM C a SBEF (verificacion), Empaquetador ELF64 a SBEF (generacion).
-Aceptacion: CPL3, mapa RX/R/RW con NX, doom run desde CABINA, pantalla completa, cambios de foco y espacio, cierre con Super + Q y rechazo W+X.
-Pendiente: Proceso SBEF independiente, lectura de disco invitado, guardado, audio, puntero relativo y entrada USB continua.
+Aceptacion: CPL3, mapa RX/R/RW con NX, doom run desde CABINA, pantalla completa, movimiento relativo PS/2, cambios de foco y espacio, cierre con Super + Q y rechazo W+X.
+Pendiente: Proceso SBEF independiente, lectura de disco invitado, guardado, audio y entrada USB continua.
 
 ## userspace/services/audio
 

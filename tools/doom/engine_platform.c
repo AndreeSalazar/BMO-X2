@@ -3,6 +3,9 @@
 #include "doomgeneric.h"
 #include "doomkeys.h"
 #include "guest_invoke.h"
+#ifdef DESKTOP_DOOM
+#include "d_event.h"
+#endif
 
 void DG_Init(void) {
     puts("BMO DOOM START");
@@ -66,6 +69,15 @@ void DG_SetWindowTitle(const char *title) { puts(title); }
 
 /* IRET enters with a page-aligned stack and no return address. */
 #ifdef DESKTOP_DOOM
+void doom_mouse(unsigned buttons, int dx, int dy) {
+    static int observed;
+    event_t event = { .type = ev_mouse, .data1 = (int)buttons, .data2 = dx, .data3 = dy };
+    D_PostEvent(&event);
+    if (!observed && dx) {
+        observed = 1;
+        puts("BMO DOOM MOUSE");
+    }
+}
 void doom_tick(void) { doomgeneric_Tick(); }
 void doom_init(void) {
 #else
@@ -73,7 +85,11 @@ __attribute__((force_align_arg_pointer)) _Noreturn void _start(void) {
 #endif
     static char *args[] = {
         "doom", "-iwad", "doom1.wad", "-warp", "1", "1",
-        "-nosound", "-nomusic", "-nomouse", "-mb", "6", NULL
+        "-nosound", "-nomusic",
+#ifndef DESKTOP_DOOM
+        "-nomouse",
+#endif
+        "-mb", "6", NULL
     };
     doomgeneric_Create(sizeof(args) / sizeof(args[0]) - 1, args);
 #ifndef DESKTOP_DOOM

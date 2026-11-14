@@ -274,6 +274,7 @@ extern "C" fn bmo_main() -> ! {
                     let pressed = flags & 1 != 0;
                     #[cfg(desktop_doom)]
                     if doom.active(space) {
+                        doom.mouse(flags, delta_x, delta_y);
                         left = pressed;
                         continue;
                     }
