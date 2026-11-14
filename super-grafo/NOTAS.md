@@ -1379,14 +1379,14 @@ Pendiente: Conectar eventos por elemento y compositor DIRECTOR.
 
 ## Ultra-J/package.py
 
-Resuelve entradas y dependencias de estilo por la estructura del paquete.
+Resuelve estilos y crates invocados por la estructura del paquete.
 
 Estado: HOST. Anillo: host. Lenguaje: Python.
 Entrada: Carpeta con accion, vista y dependencias locales versionadas.
 Salida: UJBC, UJVI y grafo JSON o diagnostico con archivo y contexto.
 Depende de: ULTRA-J: compilador inicial (codigo), ULTRA-J: estructura y estilos (codigo).
-Aceptacion: Construye el panel y explica una dependencia ausente o un error de fuente.
-Pendiente: Definir dependencias entre modulos de codigo.
+Aceptacion: Compila solo los crates invocados, reporta su llamada y rechaza ciclos.
+Pendiente: Ampliar los crates con metodos de usuario, argumentos y tipos exportados.
 
 ## Ultra-J/targets/x86_64
 

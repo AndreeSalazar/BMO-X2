@@ -110,6 +110,7 @@ las entradas y dependencias. Esta es la estructura usada por el panel:
 ```text
 panel/
   action/main.uj
+  crates/Activate/main.uj
   view/main.ujh
   dependencies/graphite/1/style.ujc
 ```
@@ -119,6 +120,15 @@ Los estilos del propio paquete pueden ir en `view/style.ujc`. Cada
 dependencia local contiene una carpeta de version y su `style.ujc`.
 HOST resuelve el grafo por rutas y rechaza clases de estilo duplicadas
 o versiones ambiguas. Este primer perfil admite dependencias de estilo.
+
+El `main.uj` del escenario llama a `Activate.run();`. HOST lo conecta
+con `crates/Activate/main.uj`, cuya clase `Activate` declara
+`static void run()`. Una llamada comienza fuera de cualquier region
+abierta y el crate libera sus regiones antes de retornar. HOST incorpora
+las instrucciones de cada crate invocado en el orden de llamada. Las
+carpetas de crates que el escenario deja sin usar quedan fuera del UJBC.
+El informe muestra el enlace, la llamada y su linea. Los ciclos y las
+entradas ausentes se diagnostican antes de publicar el binario.
 
 Desde la raiz, `& $ujPython -B .\Ultra-J\package.py .\Ultra-J\examples\panel .\build\ultra-j`
 genera UJBC y UJVI y muestra las conexiones en JSON. Si falta

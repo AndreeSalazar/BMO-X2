@@ -2109,11 +2109,11 @@
       "anillo": "host",
       "lenguaje": "Python",
       "posicion": [3400, 2375],
-      "que": "Resuelve entradas y dependencias de estilo por la estructura del paquete.",
+      "que": "Resuelve estilos y crates invocados por la estructura del paquete.",
       "entrada": "Carpeta con accion, vista y dependencias locales versionadas.",
       "salida": "UJBC, UJVI y grafo JSON o diagnostico con archivo y contexto.",
-      "aceptacion": "Construye el panel y explica una dependencia ausente o un error de fuente.",
-      "falta": "Definir dependencias entre modulos de codigo."
+      "aceptacion": "Compila solo los crates invocados, reporta su llamada y rechaza ciclos.",
+      "falta": "Ampliar los crates con metodos de usuario, argumentos y tipos exportados."
     },
     {
       "id": "ultra-j-x86-view",

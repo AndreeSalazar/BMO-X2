@@ -51,16 +51,32 @@ class Source:
         return name
 
 
-def compile_source(data):
+def compile_source(data, resolve_crate=None, crate_name=None):
     require(len(data) <= MAX_SOURCE, 'SOURCE_SIZE', MAX_SOURCE, 'source')
     source = Source(data)
     source.take(b'class')
-    source.identifier()
-    source.take(b'{', b'void', b'run', b'(', b')', b'{')
+    class_offset = source.offset
+    name = source.identifier()
+    if crate_name is not None:
+        require(name == crate_name, 'CRATE_CLASS', class_offset, crate_name.decode('ascii'))
+    source.take(b'{')
+    if crate_name is not None:
+        source.take(b'static')
+    source.take(b'void', b'run', b'(', b')', b'{')
     code = bytearray()
     locations = {}
     version = 1
-    while source.token == b'try':
+    while source.token != b'return':
+        if source.token != b'try':
+            require(resolve_crate is not None, 'SOURCE_EXPECTED', source.offset, 'try o return')
+            offset = source.offset
+            name = source.identifier()
+            source.take(b'.', b'run', b'(', b')', b';')
+            imported = resolve_crate(name, offset)
+            code.extend(imported[HEADER.size:-1])
+            version = max(version, imported[4])
+            require(len(code) < MAX_CODE, 'SOURCE_CODE_SIZE', offset, 'source')
+            continue
         source.take(b'try', b'(', b'Region')
         region_name = source.identifier()
         source.take(b'=', b'new', b'Region', b'(')

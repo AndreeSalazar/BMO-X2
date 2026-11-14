@@ -24,10 +24,11 @@ class UltraJTests(unittest.TestCase):
     def test_package_reproduces_panel(self):
         panel = VECTORS / 'panel'
         bytecode, display, graph = build(panel)
-        action = panel / 'action/main.uj'
         markup = 'view/main.ujh'
         style = 'dependencies/graphite/1/style.ujc'
-        self.assertEqual(bytecode, compile_source(action.read_bytes()))
+        self.assertEqual(bytecode, bytes.fromhex('55 4A 42 43 02 00 0A 00 10 01 20 02 40 00 02 30 01 FF'))
+        self.assertIn({'From': 'action/main.uj', 'To': 'crates/Activate/main.uj',
+                       'Reason': 'Activate.run()', 'Line': 3}, graph)
         self.assertEqual(display, compile_view((panel / markup).read_text(encoding='ascii'),
                                                (panel / style).read_text(encoding='ascii')))
         self.assertIn({'From': markup, 'To': style}, graph)
@@ -49,6 +50,26 @@ class UltraJTests(unittest.TestCase):
             with self.assertRaises(PackageError) as caught:
                 build(panel)
             self.assertEqual((caught.exception.report['Line'], caught.exception.report['Column']), (2, 5))
+
+    def test_crate_is_resolved_only_when_called_and_detects_cycles(self):
+        with TemporaryDirectory() as directory:
+            panel = Path(directory) / 'panel'
+            copytree(VECTORS / 'panel', panel)
+            spare = panel / 'crates/Spare'
+            spare.mkdir()
+            (spare / 'main.uj').write_bytes(b'invalid')
+            build(panel)
+            entry = panel / 'crates/Activate/main.uj'
+            entry.write_bytes(b'class Activate { static void run() { Activate.run(); return; } }')
+            with self.assertRaises(PackageError) as caught:
+                build(panel)
+            self.assertEqual(caught.exception.report['Code'], 'CRATE_CYCLE')
+            entry.unlink()
+            with self.assertRaises(PackageError) as caught:
+                build(panel)
+            self.assertEqual(caught.exception.report['Code'], 'PACKAGE_MISSING')
+            self.assertEqual(Path(caught.exception.report['RequiredBy']),
+                             (panel / 'action/main.uj').resolve())
 
     def test_methods_have_distinct_receivers(self):
         source = (VECTORS / 'ObjectDemo.uj').read_bytes()

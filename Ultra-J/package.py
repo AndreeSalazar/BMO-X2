@@ -47,6 +47,51 @@ def dependencies(root):
     return styles
 
 
+def compile_action(root, action, graph):
+    active = []
+    compiled = {}
+
+    def compile_file(path, name=None, caller=None):
+        source = load(path, root, MAX_SOURCE)
+        active.append(path)
+
+        def resolve(crate, offset):
+            line = source.count(b'\n', 0, offset) + 1
+            column = offset - source.rfind(b'\n', 0, offset)
+            name_text = crate.decode('ascii')
+            target = root / 'crates' / name_text / 'main.uj'
+            edge = {'From': path.relative_to(root).as_posix(),
+                    'To': target.relative_to(root).as_posix(),
+                    'Reason': f'{name_text}.run()', 'Line': line}
+            if edge not in graph:
+                graph.append(edge)
+            if target in active or len(active) >= 32:
+                code = 'CRATE_CYCLE' if target in active else 'CRATE_DEPTH'
+                raise PackageError(code, path, f'No se puede resolver {name_text}.run().',
+                                   Line=line, Column=column, RequiredBy=str(target))
+            if target not in compiled:
+                try:
+                    compiled[target] = compile_file(target, crate, path)
+                except PackageError as error:
+                    error.report.setdefault('RequiredBy', str(path))
+                    raise
+            return compiled[target]
+
+        try:
+            return compile_source(source, resolve, name)
+        except Rejection as error:
+            offset = error.offset
+            line = source.count(b'\n', 0, offset) + 1
+            column = offset - source.rfind(b'\n', 0, offset)
+            raise PackageError(error.code, path, f'Revisa {error.field}.',
+                               Line=line, Column=column, Offset=offset,
+                               RequiredBy=str(caller or root)) from error
+        finally:
+            active.pop()
+
+    return compile_file(action)
+
+
 def build(root, graph=None):
     root = root.resolve(strict=True)
     action = root / 'action/main.uj'
@@ -59,16 +104,7 @@ def build(root, graph=None):
     if local_style.exists() or local_style.is_symlink():
         paths.append(local_style)
     graph.extend({'From': 'view/main.ujh', 'To': path.relative_to(root).as_posix()} for path in paths)
-    source = load(action, root, MAX_SOURCE)
-    try:
-        bytecode = compile_source(source)
-    except Rejection as error:
-        offset = error.offset
-        line = source.count(b'\n', 0, offset) + 1
-        column = offset - source.rfind(b'\n', 0, offset)
-        raise PackageError(error.code, action, f'Revisa {error.field}.',
-                           Line=line, Column=column, Offset=offset,
-                           RequiredBy=str(root)) from error
+    bytecode = compile_action(root, action, graph)
 
     rules, owners = {}, {}
     for path in paths:
