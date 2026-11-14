@@ -33,6 +33,9 @@ def main():
     pack.add_argument('--max-mapped-bytes', type=positive_bytes)
     pack.add_argument('--size-report', action='store_true', help='Show file and memory costs by region')
     commands.add_parser('inspect').add_argument('input', type=Path)
+    compare = commands.add_parser('compare', help='Compare the size of two validated SBEF builds')
+    compare.add_argument('input', type=Path, metavar='baseline')
+    compare.add_argument('candidate', type=Path)
     commands.add_parser('probe').add_argument('input', type=Path)
     args = parser.parse_args()
     try:
@@ -54,11 +57,47 @@ def main():
     return 0
 
 
+def inspect_file(path):
+    with path.open('rb') as file:
+        return inspect(file.read(MAX_IMAGE + 1))
+
+
+def compare_builds(baseline, candidate):
+    if baseline['AbiVersion'] != candidate['AbiVersion']:
+        raise Rejection('SBEF-COMPARE-ABI', 6, 'abi_version')
+
+    def delta(before, after):
+        return dict(BaselineBytes=before, CandidateBytes=after, DeltaBytes=after - before)
+
+    def index(report):
+        return {(int(region['Address'], 16), region['Permissions']): region
+                for region in report['Regions']}
+
+    before, after = index(baseline), index(candidate)
+    regions = []
+    for address, permissions in sorted(before.keys() | after.keys()):
+        old = before.get((address, permissions), {})
+        new = after.get((address, permissions), {})
+        costs = {field: delta(old.get(field, 0), new.get(field, 0))
+                 for field in ('FileBytes', 'MemoryBytes', 'MappedBytes')}
+        regions.append(dict(Address=f'0x{address:X}', Permissions=permissions, **costs))
+    return dict(
+        Architecture=baseline['Architecture'],
+        AbiVersion=baseline['AbiVersion'],
+        File=delta(baseline['Bytes'], candidate['Bytes']),
+        MappedRegions=delta(sum(region['MappedBytes'] for region in before.values()),
+                            sum(region['MappedBytes'] for region in after.values())),
+        Regions=regions,
+    )
+
+
 def run(args):
-    with args.input.open('rb') as file:
-        data = file.read((MAX_IMAGE if args.action == 'inspect' else MAX_ELF) + 1)
     if args.action == 'inspect':
-        return inspect(data)
+        return inspect_file(args.input)
+    if args.action == 'compare':
+        return compare_builds(inspect_file(args.input), inspect_file(args.candidate))
+    with args.input.open('rb') as file:
+        data = file.read(MAX_ELF + 1)
     if len(data) > MAX_ELF:
         raise Rejection('IMPORT-SIZE', MAX_ELF, 'file')
     if data.startswith(b'MZ'):

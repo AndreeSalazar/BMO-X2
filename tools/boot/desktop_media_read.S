@@ -20,6 +20,7 @@ desktop_media_read:
     call *0x28(%r14)
     test %rax, %rax
     js failed
+    movq $5, 0xc8(%rbp)
     mov 0x88(%rbp), %rcx
     lea 0x38(%rbp), %rdx
     call *8(%rcx)
@@ -49,6 +50,23 @@ desktop_media_read:
     call *0x10(%rcx)
     test %rax, %rax
     js release
+    # Return the unused tail to firmware before taking the final memory map.
+    mov 0xb0(%rbp), %rax
+    add $4095, %rax
+    shr $12, %rax
+    mov $5, %edx
+    sub %eax, %edx
+    jz staging_ready
+    mov %rax, 32(%rsp)
+    shl $12, %rax
+    add 0xa8(%rbp), %rax
+    mov %rax, %rcx
+    call *0x30(%r14)
+    test %rax, %rax
+    js staging_ready
+    mov 32(%rsp), %rax
+    mov %rax, 0xc8(%rbp)
+staging_ready:
     mov 0x38(%rbp), %rcx
     movq $0, 0x38(%rbp)
     call *0x10(%rcx)
@@ -68,7 +86,7 @@ desktop_media_read:
 release:
     # The inherited error path closes any handles that are still open.
     mov 0xa8(%rbp), %rcx
-    mov $5, %edx
+    mov 0xc8(%rbp), %rdx
     call *0x30(%r14)
 failed:
     lea error(%rip), %rbx

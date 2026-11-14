@@ -110,6 +110,11 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         key('f2')
     wait_until(lambda: logical(216, 33, 0x0d0e17) and logical(52, 99, 0x5ad8ff) and sleeping())
     if desktop_media:
+        staging, image_bytes = struct.unpack('<QQ', memory(address + 0xa8, 16, 'desktop-staging'))
+        staging_pages = struct.unpack('<Q', memory(address + 0xc8, 8, 'desktop-staging-pages'))[0]
+        assert image_bytes == len(external_image)
+        assert staging_pages == (image_bytes + 4095) // 4096
+        assert memory(staging, image_bytes, 'desktop-staging-image') == external_image
         dma, pages = struct.unpack('<QQ', memory(address + 0xb8, 16, 'xhci-reservation'))
         assert pages == 5 and 0x100000 <= dma <= 0x10000000 - pages * 4096 and dma % 4096 == 0
         assert dma + pages * 4096 <= address or dma >= address + 0x20000
@@ -118,9 +123,17 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         stride = struct.unpack_from('<Q', context, 0x60)[0]
         assert 40 <= stride <= 256 and 0 < length <= 65536 and length % stride == 0
         descriptors = memory(address + 0x1000, length, 'xhci-memory-map')
+        staging_end = staging + staging_pages * 4096
+        memory_map = list(struct.iter_unpack('<I4xQQQQ' + f'{stride - 40}x', descriptors))
+        assert staging % 4096 == 0 and any(
+            kind == 2 and start <= staging and staging_end <= start + count * 4096
+            for kind, start, _, count, _ in memory_map
+        )
+        if staging_pages < 5:
+            assert any(kind == 7 and start <= staging_end and staging + 5 * 4096 <= start + count * 4096
+                       for kind, start, _, count, _ in memory_map)
         covering = []
-        for offset in range(0, length, stride):
-            kind, start, _, count, _ = struct.unpack_from('<I4xQQQQ', descriptors, offset)
+        for kind, start, _, count, _ in memory_map:
             if start < dma + pages * 4096 and dma < start + count * 4096:
                 covering.append((kind, start, start + count * 4096))
         assert len(covering) == 1
@@ -343,5 +356,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 XhciFirmwareHandoff=handoff if desktop_media else None,
                 XhciCommandCompleted=desktop_media and command_probe,
                 XhciReservedBytes=pages * 4096 if desktop_media else 0,
+                DesktopStagingBytes=staging_pages * 4096 if desktop_media else None,
+                DesktopStagingReturnedBytes=(5 - staging_pages) * 4096 if desktop_media else None,
                 PayloadSHA256=hashlib.sha256(packet[24:]).hexdigest(),
                 SbefSHA256=fixture['sbef_sha256'])

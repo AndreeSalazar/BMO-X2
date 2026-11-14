@@ -225,6 +225,13 @@ La region RX sigue usando dos paginas; el ahorro en RAM medido
 por regiones es cero. Para liberar una pagina con el mapa actual,
 el codigo RX debe caber en 4096 bytes.
 
+En el perfil FAT32, el cargador UEFI devuelve las paginas sobrantes
+del buffer de lectura antes de tomar el mapa de memoria final. QEMU
+comprueba el SBEF de 8894 bytes en las tres paginas conservadas
+(12 KiB) y registra dos paginas devueltas (8 KiB). El buffer del
+cargador se mide aparte de los 16 KiB de regiones de Ring 3 y los
+4 KiB de pila.
+
 El cargador inicializa BSS y relleno de las regiones con ceros.
 La sonda ABI separada verifica el borrado de codigo y pila tras
 un fallo. La sesion de escritorio todavia requiere cierre de proceso,

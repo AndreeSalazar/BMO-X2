@@ -73,6 +73,25 @@ class Sbef(unittest.TestCase):
                                           ActualBytes=actual, LimitBytes=limit))
                     self.assertEqual(output.read_bytes(), original)
 
+    def test_compare_separates_file_bytes_from_mapped_pages(self):
+        changed = bytearray(self.elf)
+        struct.pack_into('<Q', changed, 160, 2)
+        with tempfile.TemporaryDirectory() as path:
+            baseline, candidate = Path(path)/'before.sbef', Path(path)/'after.sbef'
+            baseline.write_bytes(sbef.pack_elf(self.elf, abi=1))
+            candidate.write_bytes(sbef.pack_elf(changed, abi=1))
+            compare = [sys.executable, '-B', sbef.__file__, '--json-errors',
+                       'compare', str(baseline), str(candidate)]
+            report = json.loads(subprocess.check_output(compare))
+            self.assertEqual(report['File']['DeltaBytes'], 0)
+            self.assertEqual(report['MappedRegions']['DeltaBytes'], -4096)
+            self.assertEqual(report['Regions'][1]['MappedBytes']['DeltaBytes'], -4096)
+            self.assertEqual(report['Regions'][1]['MemoryBytes']['DeltaBytes'], -8190)
+            candidate.write_bytes(sbef.pack_elf(changed, abi=0))
+            rejected = subprocess.run(compare, capture_output=True)
+            self.assertEqual(rejected.returncode, 1)
+            self.assertEqual(json.loads(rejected.stderr)['Code'], 'SBEF-COMPARE-ABI')
+
     def test_reject_truncation_permissions_overlap_and_entry(self):
         image = sbef.pack_elf(self.elf)
         for length in range(len(image)):

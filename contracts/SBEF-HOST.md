@@ -20,6 +20,7 @@ python -B tools/sbef.py pack app.elf app.sbef
 python -B tools/sbef.py pack app.elf app-abi1.sbef --abi 1
 python -B tools/sbef.py --json-errors pack app.elf app-limited.sbef --abi 1 --max-file-bytes 512 --max-mapped-bytes 8192
 python -B tools/sbef.py inspect app.sbef
+python -B tools/sbef.py compare baseline.sbef candidate.sbef
 python -B tools/sbef.py probe app.elf
 python -B tools/sbef.py probe app.exe
 ```
@@ -59,6 +60,12 @@ suma de paginas de sus regiones. Incluyen el BSS en el presupuesto
 mapeado. Pila, tablas y recursos externos tienen cuentas propias.
 Un exceso informa `SBEF-BUDGET` con bytes reales y limite, y conserva
 el archivo de salida anterior.
+
+`compare` valida los dos archivos y exige la misma version de ABI.
+Muestra el tamano de cada SBEF y el total mapeado, con el delta
+candidato menos base. Identifica regiones por direccion y permisos y
+desglosa sus bytes de archivo, memoria y paginas. Un cambio de direccion
+o permisos aparece como una region retirada y otra agregada.
 
 El importador copia los bytes de segmentos PT_LOAD. Los metadatos y
 simbolos fuera de esos segmentos quedan en el ELF para diagnostico.
