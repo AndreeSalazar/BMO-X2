@@ -19,6 +19,17 @@ La primera captura en metal del 14-11-2026 registro `SBEF=000027D6`,
 `CPUID=8000001D`, `PS2=00000055` y `XHCI=00000002`. Windows
 identifico los controladores AMD `1022:43BC` y `1022:149C`.
 
+El informe V2 del mismo equipo localiza `1022:43BC` en `03:00.0`
+(CMD `0006`) y `1022:149C` en `2B:00.3` (CMD `0007`).
+Ambos tienen habilitados MMIO y bus mastering. Windows situa el
+teclado HID `1A2C:635A` y el raton HID `4E53:5406` directamente
+bajo el concentrador raiz del `149C`, en los puertos 2 y 3 de su
+topologia USB. El inventario de Ring 0 conserva hoy el primer
+controlador encontrado. La prueba fisica de entrada debe poder
+seleccionar el segundo y enumerar ambos dispositivos en el mismo
+arranque. La sonda de comandos de QEMU sigue limitada al controlador
+emulado `1B36:000D`.
+
 CABINA en Rust muestra los datos de la sesion. Guardar eventos de Ring 0
 posteriores a ExitBootServices requiere un controlador de bloques y una
 ruta de guardado del sistema. El informe UEFI cubre la fase previa.
