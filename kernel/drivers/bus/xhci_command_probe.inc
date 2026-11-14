@@ -1,4 +1,5 @@
 # QEMU qemu-xhci only. Interrupt delivery remains disabled.
+#include "xhci_dma_layout.inc"
 .equ keyboard_report_count, 3
 .text
 xhci_test_command:
@@ -17,11 +18,11 @@ xhci_test_command:
     cmp $0x000d1b36, %eax
     jne command_restore
     mov 0xb8(%rbp), %r8
-    cmpq $5, 0xc0(%rbp)
+    cmpq $XHCI_PROBE_PAGES, 0xc0(%rbp)
     jne command_restore
     cmp $0x100000, %r8
     jb command_restore
-    cmp $0x0fffb000, %r8
+    cmp $(0x10000000 - 4096 * XHCI_PROBE_PAGES), %r8
     ja command_restore
     test $0xfff, %r8d
     jnz command_restore
@@ -32,9 +33,8 @@ xhci_test_command:
     jne command_restore
     cmpl $0x2000, 0x14(%rdi)
     jne command_restore
-    mov 8(%rdi), %eax
-    test $0xffe00000, %eax
-    jnz command_restore
+    cmpl $XHCI_SCRATCHPAD_LIMIT, %gs:0x3bc
+    ja command_restore
     push %rcx
     mov 0x1e000(%rbp), %rax
     or $2, %rax
@@ -55,6 +55,21 @@ xhci_test_command:
     testb $4, 0x10(%rdi)         # 32-byte contexts only
     jnz command_unmap
     movl $1, 0x38(%r11)         # one device slot
+    # Prepare the physical pointer array. DCBAA[0] is zero when HCSPARAMS2
+    # requests no scratchpads.
+    lea XHCI_SCRATCHPAD_TABLE(%r8), %rsi
+    lea (4096 * XHCI_QUEUE_PAGES)(%r8), %rax
+    mov $XHCI_SCRATCHPAD_LIMIT, %ecx
+scratchpad_next:
+    mov %rax, (%rsi)
+    add $4096, %rax
+    add $8, %rsi
+    loop scratchpad_next
+    cmpl $0, %gs:0x3bc
+    je scratchpads_ready
+    lea XHCI_SCRATCHPAD_TABLE(%r8), %rax
+    mov %rax, (%r8)
+scratchpads_ready:
 
     # First TRB: No Op Command, cycle 1. Single 16-TRB event segment.
     lea 0x1000(%r8), %rax
@@ -140,7 +155,7 @@ command_skip:
 xhci_validate_dma:
     push %rcx
     push %rdi
-    lea 0x5000(%r8), %rax
+    lea (4096 * XHCI_PROBE_PAGES)(%r8), %rax
     lea 0x20000(%rbp), %rsi
     cmp %rsi, %r8
     jae dma_check_packet

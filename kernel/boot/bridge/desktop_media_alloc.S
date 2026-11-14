@@ -1,4 +1,10 @@
 .text
+#include "../../drivers/bus/xhci_dma_layout.inc"
+#ifdef XHCI_COMMAND_PROBE
+#define XHCI_RESERVE_PAGES XHCI_PROBE_PAGES
+#else
+#define XHCI_RESERVE_PAGES XHCI_QUEUE_PAGES
+#endif
 # Reserve the context and payload inside the CASM fixture's identity map.
 .globl desktop_media_alloc
 desktop_media_alloc:
@@ -26,21 +32,21 @@ desktop_media_alloc:
     js finish
     mov 32(%rsp), %rax
     mov %rax, 8(%rbp)
-    # Reserve five contiguous pages for the first xHCI controller.
+    # Reserve contiguous pages for the selected xHCI controller.
     # Context offsets B8/C0 describe the reservation, not a DMA grant.
     movq $0x0fffffff, 32(%rsp)
     mov $1, %ecx
     mov $2, %edx
-    mov $5, %r8d
+    mov $XHCI_RESERVE_PAGES, %r8d
     lea 32(%rsp), %r9
     call *0x28(%r14)
     test %rax, %rax
     js context_ready
     mov 32(%rsp), %rdi
     mov %rdi, 0xb8(%rbp)
-    movq $5, 0xc0(%rbp)
+    movq $XHCI_RESERVE_PAGES, 0xc0(%rbp)
     xor %eax, %eax
-    mov $2560, %ecx
+    mov $(512 * XHCI_RESERVE_PAGES), %ecx
     cld
     rep stosq
 context_ready:

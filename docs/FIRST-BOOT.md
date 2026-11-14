@@ -42,9 +42,10 @@ QEMU usa la secuencia de BMO-X: espera CNR, detiene el controlador,
 espera HCHalted, solicita HCRST y comprueba que HCRST y CNR se
 borren y que PAGESIZE admita 4 KiB. El estado 3 certifica ese
 tramo en QEMU. En el arranque habitual solo se leen los requisitos.
-El ensayo de DMA sigue limitado a contextos de 32 bytes y cero
-scratchpads. Para el AMD hay que preparar sus estructuras a partir
-de sus capacidades y comprobar el reinicio con plazos de hardware.
+El ensayo de DMA prepara una tabla para hasta cuatro scratchpads y
+usa contextos de 32 bytes. QEMU solicita cero scratchpads. Para el AMD
+hay que verificar sus capacidades, sus estructuras y el reinicio con
+plazos de hardware.
 
 CABINA en Rust muestra los datos de la sesion. Guardar eventos de Ring 0
 posteriores a ExitBootServices requiere un controlador de bloques y una

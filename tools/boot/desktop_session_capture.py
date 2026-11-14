@@ -178,7 +178,8 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         assert staging_pages == (image_bytes + 4095) // 4096
         assert memory(staging, image_bytes, 'desktop-staging-image') == external_image
         dma, pages = struct.unpack('<QQ', memory(address + 0xb8, 16, 'xhci-reservation'))
-        assert pages == 5 and 0x100000 <= dma <= 0x10000000 - pages * 4096 and dma % 4096 == 0
+        assert pages == (9 if command_probe else 5)
+        assert 0x100000 <= dma <= 0x10000000 - pages * 4096 and dma % 4096 == 0
         assert dma + pages * 4096 <= address or dma >= address + 0x20000
         assert not dma <= code < dma + pages * 4096
         length = struct.unpack_from('<Q', context, 0x50)[0]
@@ -265,6 +266,12 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         scratchpads, context_bytes = struct.unpack('<II', memory(address + 0x1a3bc, 8, 'xhci-dma-needs'))
         assert scratchpads == ((params2 >> 27) | ((params2 >> 16) & 0x3e0))
         assert context_bytes == (64 if cap1 & 4 else 32)
+        if command_probe:
+            assert struct.unpack_from('<Q', reserved)[0] == (dma + 0x800 if scratchpads else 0)
+            assert struct.unpack_from('<4Q', reserved, 0x800) == tuple(
+                dma + page * 4096 for page in range(5, 9))
+            if not scratchpads:
+                assert reserved[0x5000:] == bytes(4 * 4096)
         reset_stage = memory(address + 0x1a3b9, 1, 'xhci-reset-stage')[0]
         assert reset_stage == (3 if command_probe else 0)
         handoff = memory(address + 0x1a378, 1, 'xhci-handoff')[0]
@@ -287,7 +294,8 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                         UsbInputVerified=True, UsbCabinaVerified=True, CpuL1=cache,
                         XhciControllers=count, XhciSelectedBdf=f'{bdf:04X}', XhciConnectedPorts=rank-1,
                         XhciResetStage=reset_stage, XhciScratchpadPages=scratchpads, XhciContextBytes=context_bytes,
-                        DmaReservationValidated=True)
+                        DmaReservationValidated=True, XhciReservedBytes=pages * 4096,
+                        XhciScratchpadCapacityPages=4, XhciScratchpadTableVerified=True)
     timeout_before = wait_stats()[1]
     wait_until(lambda: wait_stats()[1] > timeout_before)
     event_before = wait_stats()[0]
