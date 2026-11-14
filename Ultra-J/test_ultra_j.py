@@ -2,12 +2,14 @@
 from pathlib import Path
 import unittest
 
-from ultra_j import Rejection, run
+from compiler import compile_source
+from runtime import Rejection, run
 
 
-VECTORS = Path(__file__).resolve().parents[1] / 'userspace/runtime/ultra-j'
+VECTORS = Path(__file__).resolve().parent / 'examples'
 PROGRAM = bytes.fromhex((VECTORS / 'window.ujb.hex').read_text(encoding='ascii'))
 THEME = bytes.fromhex((VECTORS / 'graphite.ujt.hex').read_text(encoding='ascii'))
+SOURCE = (VECTORS / 'WindowDemo.uj').read_bytes()
 
 
 def image(code):
@@ -15,6 +17,19 @@ def image(code):
 
 
 class UltraJTests(unittest.TestCase):
+    def test_source_matches_golden_bytes(self):
+        self.assertEqual(compile_source(SOURCE), PROGRAM)
+        self.assertEqual(compile_source(b'/* comment */\n' + SOURCE), PROGRAM)
+        changed = SOURCE.replace(b'new Button();', b'new Window();', 1)
+        self.assertEqual(run(compile_source(changed), THEME)['PeakObjectBytes'], 80)
+
+    def test_source_reports_offsets(self):
+        changed = SOURCE.replace(b'Button', b'Unknown', 1)
+        with self.assertRaises(Rejection) as caught:
+            compile_source(changed)
+        self.assertEqual((caught.exception.code, caught.exception.offset),
+                         ('SOURCE_CLASS', changed.index(b'Unknown')))
+
     def test_release_and_reuse(self):
         report = run(PROGRAM, THEME)
         self.assertEqual((len(PROGRAM), len(THEME)), (25, 32))

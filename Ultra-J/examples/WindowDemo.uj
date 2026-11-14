@@ -1,0 +1,13 @@
+class WindowDemo {
+    void run() {
+        try (Region first = new Region(1)) {
+            new Window();
+            new Button();
+            new Button();
+        }
+        try (Region second = new Region(2)) {
+            new Window();
+        }
+        return;
+    }
+}

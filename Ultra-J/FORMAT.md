@@ -1,8 +1,18 @@
 # ULTRA-J 0.1
 
 ULTRA-J toma de Java la escritura con clases y tipos declarados. El perfil
-HOST fija el binario antes de implementar el compilador de fuente. El
+HOST incluye un compilador inicial para el ciclo de una region. El
 escritorio asigna el aspecto por clase con un tema independiente.
+
+## Sintaxis de la sonda
+
+Se admite una clase con un metodo `void run()`, bloques
+`try (Region r = new Region(id))`, expresiones `new Window();` y
+`new Button();` dentro de los bloques, y un `return;` final.
+El cierre del bloque representa `CLOSE`. Los nombres de la clase y de
+la variable de region se consumen durante la compilacion. El formato
+v1 conserva los IDs y las instrucciones. Espacios y comentarios no
+alteran los bytes del programa.
 
 ## Sintaxis prevista
 
@@ -63,13 +73,18 @@ pertenecen a etapas posteriores.
 
 ## Evidencia y frontera
 
-El [banco HOST](../tools/ultra_j.py) verifica el binario y el tema
+El [banco HOST](runtime.py) verifica el binario y el tema
 completos antes de aplicar la secuencia. Reporta errores con codigo,
-campo y offset. Los [vectores exactos](../userspace/runtime/ultra-j/README.md)
+campo y offset. Los [vectores exactos](README.md)
 prueban una ventana, dos botones, cierre y reuso desde el offset cero.
 
 El siguiente hito es una VM en Ring 3 con el mismo contrato y un
 adaptador para DIRECTOR. Ring 0 carga el ejecutable x86-64 de la VM
 mediante SBEF y atiende INVOKE y WAIT.
+
+La autocompilacion requiere expresar el lexer, el parser y el emisor en
+ULTRA-J. El primer criterio sera construir ese compilador con el
+compilador inicial y comprobar que dos generaciones sucesivas produzcan
+el mismo binario a partir del mismo fuente.
 
 [Referencia de clases de Java](https://docs.oracle.com/javase/specs/jls/se26/html/jls-8.html)

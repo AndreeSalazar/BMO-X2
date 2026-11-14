@@ -1,12 +1,16 @@
 {
   "tintes": {
-    "contracts/ULTRA-J.md": {
+    "Ultra-J/FORMAT.md": {
       "rgb": [255, 194, 79],
       "motivo": "ULTRA-J: contrato de bytecode, regiones y apariencia."
     },
-    "tools/ultra_j.py": {
+    "Ultra-J/runtime.py": {
       "rgb": [90, 200, 140],
       "motivo": "ULTRA-J: verifica los dos binarios y mide el reuso de la arena."
+    },
+    "Ultra-J/compiler.py": {
+      "rgb": [90, 220, 255],
+      "motivo": "ULTRA-J: compila el fuente y coteja los bytes con el contrato."
     },
     "tools/host": {
       "rgb": [90, 200, 140],
@@ -567,8 +571,9 @@
   "rejilla": false,
   "bloqueada": true,
   "grafo": {
-    "contracts/ULTRA-J.md": [1750, 2375],
-    "tools/ultra_j.py": [2080, 2375],
+    "Ultra-J/FORMAT.md": [1750, 2375],
+    "Ultra-J/runtime.py": [2080, 2375],
+    "Ultra-J/compiler.py": [2410, 2375],
     "tools/host": [9600, 4025],
     "docs/FIRST-BOOT.md": [2860, -1300],
     "": [

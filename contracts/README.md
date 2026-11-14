@@ -18,5 +18,5 @@ revision aqui exige una decision escrita; no copiar sus numeros sin contrato.
 para congelarlo junto con el ABI. [BEF2 y ABI de BMO-X](ABI-BEF2.md)
 conserva la referencia del padre.
 
-[ULTRA-J 0.1](ULTRA-J.md) define bytecode, tema binario y recuperacion de
+[ULTRA-J 0.1](../Ultra-J/FORMAT.md) define bytecode, tema binario y recuperacion de
 objetos por regiones en la primera sonda HOST.

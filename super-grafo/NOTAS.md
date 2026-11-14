@@ -1333,7 +1333,7 @@ Depende de: contrato propio sin dependencias en este catalogo.
 Aceptacion: Un cliente y un interprete actuan solo con capacidades concedidas.
 Pendiente: Probar procesos externos y aplicar la politica al primer servicio.
 
-## contracts/ULTRA-J.md
+## Ultra-J/FORMAT.md
 
 Fija bytes de instrucciones, estilo por clase y cierre de regiones.
 
@@ -1342,9 +1342,9 @@ Entrada: Objetos de interfaz y reglas de propiedad.
 Salida: Formatos UJBC y UJTH para el runtime de usuario.
 Depende de: contrato propio sin dependencias en este catalogo.
 Aceptacion: Los vectores manuales cargan con longitudes exactas y estilos acotados.
-Pendiente: Compilar sintaxis estilo Java y definir referencias de objetos.
+Pendiente: Ampliar el subconjunto estilo Java y definir referencias de objetos.
 
-## tools/ultra_j.py
+## Ultra-J/runtime.py
 
 Verifica los dos archivos y ejecuta la recuperacion por region en HOST.
 
@@ -1354,6 +1354,17 @@ Salida: Rechazo con offset o informe de objetos, estilos y bytes recuperados.
 Depende de: ULTRA-J: bytecode y tema (verificacion), Escritorio y espacios de trabajo (plan).
 Aceptacion: Recuperar 64 bytes en un cierre y reutilizar el offset cero.
 Pendiente: Integrar VM SBEF y presentar el tema en DIRECTOR bajo QEMU.
+
+## Ultra-J/compiler.py
+
+Traduce el perfil de clases y regiones a instrucciones UJBC verificadas.
+
+Estado: HOST. Anillo: host. Lenguaje: Python.
+Entrada: Fuente .uj con sintaxis estilo Java.
+Salida: Binario .ujb reproducible o error con offset del fuente.
+Depende de: ULTRA-J: verificador y reciclador (codigo).
+Aceptacion: El ejemplo compilado coincide byte a byte con su vector manual.
+Pendiente: Implementar el compilador en ULTRA-J y comprobar la autocompilacion.
 
 ## userspace/services/desktop
 
@@ -1454,4 +1465,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-130 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+131 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

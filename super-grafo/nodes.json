@@ -2048,7 +2048,7 @@
     {
       "id": "ultra-j-format",
       "titulo": "ULTRA-J: bytecode y tema",
-      "ruta": "contracts/ULTRA-J.md",
+      "ruta": "Ultra-J/FORMAT.md",
       "estado": "host",
       "anillo": "contrato",
       "lenguaje": "contrato",
@@ -2057,12 +2057,12 @@
       "entrada": "Objetos de interfaz y reglas de propiedad.",
       "salida": "Formatos UJBC y UJTH para el runtime de usuario.",
       "aceptacion": "Los vectores manuales cargan con longitudes exactas y estilos acotados.",
-      "falta": "Compilar sintaxis estilo Java y definir referencias de objetos."
+      "falta": "Ampliar el subconjunto estilo Java y definir referencias de objetos."
     },
     {
       "id": "ultra-j-recycler",
       "titulo": "ULTRA-J: verificador y reciclador",
-      "ruta": "tools/ultra_j.py",
+      "ruta": "Ultra-J/runtime.py",
       "estado": "host",
       "anillo": "host",
       "lenguaje": "Python",
@@ -2072,6 +2072,20 @@
       "salida": "Rechazo con offset o informe de objetos, estilos y bytes recuperados.",
       "aceptacion": "Recuperar 64 bytes en un cierre y reutilizar el offset cero.",
       "falta": "Integrar VM SBEF y presentar el tema en DIRECTOR bajo QEMU."
+    },
+    {
+      "id": "ultra-j-compiler",
+      "titulo": "ULTRA-J: compilador inicial",
+      "ruta": "Ultra-J/compiler.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [2410, 2375],
+      "que": "Traduce el perfil de clases y regiones a instrucciones UJBC verificadas.",
+      "entrada": "Fuente .uj con sintaxis estilo Java.",
+      "salida": "Binario .ujb reproducible o error con offset del fuente.",
+      "aceptacion": "El ejemplo compilado coincide byte a byte con su vector manual.",
+      "falta": "Implementar el compilador en ULTRA-J y comprobar la autocompilacion."
     },
     {
       "id": "desktop-workspaces",
@@ -2174,6 +2188,11 @@
     }
   ],
   "relaciones": [
+    {
+      "de": "ultra-j-compiler",
+      "a": "ultra-j-recycler",
+      "clase": "codigo"
+    },
     {
       "de": "ultra-j-recycler",
       "a": "ultra-j-format",
