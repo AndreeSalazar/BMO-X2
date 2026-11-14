@@ -1396,8 +1396,8 @@ Estado: QEMU. Anillo: host. Lenguaje: ASM x86-64 y PowerShell.
 Entrada: Vista UJVI compilada y ABI x86-64.
 Salida: SBEF con presentador nativo, vista y accion UJBC de solo lectura.
 Depende de: ULTRA-J: estructura y estilos (codigo).
-Aceptacion: La accion del boton cambia la vista y su arena queda a cero en QEMU.
-Pendiente: Cargar UJBC separado en una VM general, integrar DIRECTOR y comprobar en metal.
+Aceptacion: UJBC v1/v2 interpreta regiones y metodos; QEMU coteja la vista y los 256 bytes de la arena.
+Pendiente: Cargar UJBC separado, integrar DIRECTOR y comprobar en metal.
 
 ## userspace/services/desktop
 

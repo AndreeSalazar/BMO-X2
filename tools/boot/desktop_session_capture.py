@@ -159,7 +159,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         command('screendump', {'filename': str(prefix) + '-ultra-j-ready.png', 'format': 'png'})
         key('ret')
         wait_until(lambda: logical(150, 239, 0x233d35) and logical(380, 239, 0xa0e5ca))
-        assert memory(address + 0x1d008, 16, 'ultra-j-button-arena') == bytes(16)
+        assert memory(address + 0x1d008, 256, 'ultra-j-action-arena') == bytes(256)
         command('screendump', {'filename': str(prefix) + '-ultra-j-active.png', 'format': 'png'})
         key('ret')
         wait_until(lambda: logical(150, 239, 0x233d35) and sleeping())

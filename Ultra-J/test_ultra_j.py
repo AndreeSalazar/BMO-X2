@@ -44,7 +44,8 @@ class UltraJTests(unittest.TestCase):
         bytecode, display, graph = build(panel)
         markup = 'view/main.ujh'
         style = 'dependencies/graphite/1/style.ujc'
-        self.assertEqual(bytecode, bytes.fromhex('55 4A 42 43 02 00 0A 00 10 01 20 02 40 00 02 30 01 FF'))
+        self.assertEqual(bytecode, bytes.fromhex(
+            '55 4A 42 43 02 00 0F 00 10 01 20 01 20 02 40 00 01 40 01 02 30 01 FF'))
         self.assertIn({'From': 'action/main.uj', 'To': 'crates/Activate/main.uj',
                        'Reason': 'Activate.run(1)', 'Line': 3}, graph)
         self.assertEqual(display, compile_view((panel / markup).read_text(encoding='ascii'),

@@ -1,7 +1,9 @@
 class Activate {
     static void run(int id) {
         try (Region app = new Region(id)) {
+            Window panel = new Window();
             Button enter = new Button();
+            panel.show();
             enter.activate();
         }
         return;

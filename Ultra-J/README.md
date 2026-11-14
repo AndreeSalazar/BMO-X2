@@ -46,9 +46,8 @@ El UJBC requiere un runtime. El SBEF incluye 53 bytes de codigo nativo
 y 64 bytes de contenedor. Estos tiempos miden produccion del artefacto.
 Para medir el coste de ejecucion y RAM queda pendiente correr ambos en
 Ring 3 con la misma entrada y contar tambien las paginas de la VM.
-QEMU verifica la vista y una accion UJBC de forma fija en Ring 3.
-El interprete general, las llamadas a objetos y el Reciclador
-tienen su banco de referencia en HOST.
+QEMU verifica la vista y el interprete UJBC v1/v2 de Ring 3.
+El perfil de consola UJBC v3 se ejecuta en HOST.
 
 Reproduce la medicion con `python -B .\Ultra-J\compare_build.py`
 desde la raiz de BMO-X2. Usa LLVM para enlazar y Rust con el destino
@@ -198,12 +197,22 @@ HOST convierte esos estilos a rectangulos antes de arrancar QEMU.
 El presentador x86-64 carga las listas de solo lectura desde su SBEF.
 En Ring 3 solicita el dibujo mediante INVOKE y espera entrada con WAIT.
 Enter ejecuta la accion compilada de [main.uj](examples/panel/action/main.uj).
-El presentador comprueba su secuencia UJBC v2, crea un Button temporal,
-aplica `activate()`, copia el resultado por valor y borra sus 16 bytes.
+El interprete recorre UJBC v1/v2 y comprueba rangos, regiones y metodos
+durante la ejecucion. El ejemplo crea Window y Button, ejecuta `show()`
+y `activate()`, copia el resultado por valor y borra la memoria al
+cerrar la region. QEMU coteja los 256 bytes de la arena al terminar.
 El resultado cambia LISTO por ACTIVO. Esc devuelve el panel a LISTO.
-El perfil acepta esa accion fija y admite coordenadas fijas y texto
+El perfil de vista admite coordenadas fijas y texto
 A-Z/0-9 con la fuente de CABINA. El ejecutable de prueba incorpora la
 vista y la accion en la region de solo lectura del SBEF.
+
+BMO-X2 conserva en Ring 0 las capacidades y el acceso a los dispositivos.
+ULTRA-J toma la logica de aplicacion, estructura y estilos en Ring 3.
+Los servicios nativos, las bibliotecas portadas y las rutas criticas
+medidas pueden usar Rust o C. Para usar ULTRA-J en el escritorio habitual
+faltan la lectura de UJBC separado, su conexion con DIRECTOR y dos
+ventanas con eventos y cierre independientes. La entrada USB en metal
+se verifica por separado. [Primer BOOT](../docs/FIRST-BOOT.md)
 
 ## Que falta para aplicaciones completas
 

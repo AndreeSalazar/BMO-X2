@@ -1,7 +1,7 @@
 .text
 .globl _start
 _start:
-    call validate_action
+    call run_action
     lea view(%rip), %r12
     cmpl $0x49564a55, (%r12)
     jne invalid
@@ -102,47 +102,120 @@ reset:
     mov %r12, %r14
     jmp paint
 
-# The panel accepts a single Button action with a local lifetime.
-# Check the exact instruction shape before presenting or dispatching.
-validate_action:
-    cmpq $18, action_size(%rip)
-    jne invalid
-    lea action(%rip), %rax
-    cmpl $0x43424a55, (%rax)
-    jne invalid
-    cmpl $0x000a0002, 4(%rax)
-    jne invalid
-    cmpb $0x10, 8(%rax)
-    jne invalid
-    mov 9(%rax), %cl
-    test %cl, %cl
-    jz invalid
-    cmpl $0x00400220, 10(%rax)
-    jne invalid
-    cmpw $0x3002, 14(%rax)
-    jne invalid
-    cmp 16(%rax), %cl
-    jne invalid
-    cmpb $0xff, 17(%rax)
-    jne invalid
-    ret
-
+# UJBC v1/v2. The only result visible to the panel is the Button event,
+# returned after the complete program has passed validation.
 run_action:
-    # OPEN/NEW allocate a zeroed Button in the event arena.
-    xor %eax, %eax
-    mov %rax, button(%rip)
-    mov %rax, button+8(%rip)
-    movb action+11(%rip), %al
-    mov %al, button(%rip)
-    # CALL uses receiver zero and writes the instance state.
-    cmpb $2, action+14(%rip)
+    lea action(%rip), %rsi
+    lea action_end(%rip), %rdi
+    lea 9(%rsi), %rax
+    cmp %rdi, %rax
+    ja invalid
+    cmpl $0x43424a55, (%rsi)
     jne invalid
-    movb $1, button+1(%rip)
-    mov button+1(%rip), %al
-    # CLOSE releases the entire local arena. Copy the event result by value.
-    xor %edx, %edx
-    mov %rdx, button(%rip)
-    mov %rdx, button+8(%rip)
+    movzbl 4(%rsi), %r11d
+    lea -1(%r11), %eax
+    cmp $1, %eax
+    ja invalid
+    cmpb $0, 5(%rsi)
+    jne invalid
+    movzwl 6(%rsi), %eax
+    add $8, %rsi
+    add %rsi, %rax
+    cmp %rdi, %rax
+    jne invalid
+    xor %r8d, %r8d             # Active region ID.
+    xor %r9d, %r9d             # Bytes used in the current region.
+    xor %r10d, %r10d           # Button event result.
+    lea arena(%rip), %rdx
+action_next:
+    cmp %rdi, %rsi
+    jae invalid
+    lodsb
+    cmp $0xff, %al
+    je action_return
+    cmp %rdi, %rsi
+    jae invalid
+    movzbl (%rsi), %ecx
+    inc %rsi
+    cmp $0x10, %al
+    je action_open
+    test %r8d, %r8d
+    jz invalid
+    cmp $0x20, %al
+    je action_new
+    cmp $0x30, %al
+    je action_close
+    cmp $0x40, %al
+    jne invalid
+    cmp $2, %r11d
+    jne invalid
+    cmp %rdi, %rsi
+    jae invalid
+    xor %eax, %eax
+action_find_receiver:
+    cmp %r9d, %eax
+    jae invalid
+    test %ecx, %ecx
+    jz action_call
+    cmpb $1, (%rdx,%rax)
+    lea 16(%rax), %rax
+    jne action_skip_window
+    add $16, %eax
+action_skip_window:
+    dec %ecx
+    jmp action_find_receiver
+action_call:
+    movzbl (%rsi), %ecx
+    inc %rsi
+    cmp %cl, (%rdx,%rax)       # The v2 method ID matches its class.
+    jne invalid
+    movb $1, 1(%rdx,%rax)
+    cmp $2, %ecx
+    jne action_next
+    movzbl 1(%rdx,%rax), %r10d
+    jmp action_next
+action_open:
+    test %r8d, %r8d
+    jnz invalid
+    test %ecx, %ecx
+    jz invalid
+    mov %ecx, %r8d
+    jmp action_next
+action_new:
+    lea -1(%rcx), %eax
+    cmp $1, %eax
+    ja invalid
+    # Window uses 32 bytes and Button uses 16.
+    cmp $1, %ecx
+    mov $32, %eax
+    je action_size_known
+    mov $16, %eax
+action_size_known:
+    add %r9d, %eax
+    cmp $256, %eax
+    ja invalid
+    mov %cl, (%rdx,%r9)
+    mov %eax, %r9d
+    jmp action_next
+action_close:
+    cmp %r8d, %ecx
+    jne invalid
+    push %rdi
+    lea arena(%rip), %rdi
+    mov %r9d, %ecx
+    shr $3, %ecx
+    xor %eax, %eax
+    rep stosq
+    pop %rdi
+    xor %r8d, %r8d
+    xor %r9d, %r9d
+    jmp action_next
+action_return:
+    test %r8d, %r8d
+    jnz invalid
+    cmp %rdi, %rsi
+    jne invalid
+    mov %r10d, %eax
     ret
 invalid:
     ud2
@@ -153,13 +226,12 @@ view:
 view_end:
 action:
     .incbin UJ_ACTION_FILE
-action_size:
-    .quad action_size - action
+action_end:
 
 .data
     .long 0x49564a55
 .bss
     .balign 8
-button:
-    .zero 16
+arena:
+    .zero 256
 .section .note.GNU-stack,"",@progbits
