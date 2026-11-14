@@ -60,7 +60,8 @@ def main():
         obj = run / f'{name}.o'
         source = scripts.parent / 'desktop/session_gate.S' if name == 'session_gate' else scripts / f'{name}.S'
         flags = ['-DXHCI_COMMAND_PROBE'] if args.xhci_command else []
-        subprocess.run([llvm / 'clang.exe', '--target=x86_64-unknown-none-elf', '-DDESKTOP_MEDIA', *flags,
+        subprocess.run([llvm / 'clang.exe', '--target=x86_64-unknown-none-elf',
+                        '-DDESKTOP_MEDIA', '-DDESKTOP_EXTERNAL', *flags,
                         '-c', source, '-o', obj], check=True)
         subprocess.run([llvm / 'llvm-objcopy.exe', '-O', 'binary', '--only-section=.text',
                         obj, run / f'{name}.bin'], check=True)

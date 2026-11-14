@@ -44,7 +44,8 @@ $fixtureArguments = @()
 if ($Session) {
     $gateObject = Join-Path $build.FullName 'session-gate.o'
     $gateBin = Join-Path $build.FullName 'session-gate.bin'
-    & (Join-Path $Llvm 'clang.exe') --target=x86_64-unknown-none-elf -c (Join-Path $PSScriptRoot 'desktop/session_gate.S') -o $gateObject
+    [string[]]$gateFlags = if ($External) { '-DDESKTOP_EXTERNAL' }
+    & (Join-Path $Llvm 'clang.exe') --target=x86_64-unknown-none-elf @gateFlags -c (Join-Path $PSScriptRoot 'desktop/session_gate.S') -o $gateObject
     if ($LASTEXITCODE -ne 0) { throw 'Fallo la puerta de sesion.' }
     & (Join-Path $Llvm 'llvm-objcopy.exe') -O binary --only-section=.text $gateObject $gateBin
     if ($LASTEXITCODE -ne 0) { throw 'Fallo la extraccion de la puerta de sesion.' }

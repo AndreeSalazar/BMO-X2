@@ -229,6 +229,10 @@ extern "C" fn bmo_main() -> ! {
     {
         panic!("session permissions");
     }
+    #[cfg(external_session)]
+    if invoke(INPUT, 8, 0, 0) != DENIED {
+        panic!("session exit permissions");
+    }
     paint(VIEWPORT, space, focus[space], false);
     cursor(x, y);
     let usb_pending = matches!(invoke(3, 3, 4, 0), 1..=256);

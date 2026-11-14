@@ -338,6 +338,26 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         key('f3')
         wait_until(lambda: logical(52, 99, 0xad92ff))
     command('screendump', {'filename': str(prefix)+'.png', 'format': 'png'})
+    closed = {}
+    if external_image is not None and count == 3:
+        descriptor = address + 0x1a000
+        bridge_cr3 = struct.unpack('<Q', memory(descriptor + 0x318, 8, 'bridge-cr3'))[0]
+        key('f2')
+        wait_until(lambda: logical(24, 24, 0x232638))
+        for letter in 'session exit':
+            key('spc' if letter == ' ' else letter)
+        key('ret')
+
+        def session_closed():
+            regs = registers()
+            return ('CPL=0' in regs and 'HLT=1' in regs and register(regs, 'R12') == 5
+                    and register(regs, 'CR3') == bridge_cr3 and not register(regs, 'EFER') & 1)
+
+        wait_until(session_closed)
+        assert memory(address + 0x17000, 40, 'closed-pte') == bytes(40)
+        assert memory(address + 0x18000, 8192, 'closed-text') == bytes(8192)
+        assert memory(address + 0x1b000, 12288, 'closed-stack-and-data') == bytes(12288)
+        closed = dict(SessionClosed=True, SyscallGateDisabled=True, UserPagesUnmapped=5, UserBytesScrubbed=20480)
     return dict(Case='normal', Passed=True, BootServicesExited=True, UserCPL=3,
                 IntroFramesObserved=sorted(frames), WorkspacesVerified=[1, 2, 3, 4],
                 KeyboardVerified=True, FocusRestored=True, DesktopSession=True, IntroReplaced=True,
@@ -359,4 +379,4 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 DesktopStagingBytes=staging_pages * 4096 if desktop_media else None,
                 DesktopStagingReturnedBytes=(5 - staging_pages) * 4096 if desktop_media else None,
                 PayloadSHA256=hashlib.sha256(packet[24:]).hexdigest(),
-                SbefSHA256=fixture['sbef_sha256'])
+                SbefSHA256=fixture['sbef_sha256'], **closed)

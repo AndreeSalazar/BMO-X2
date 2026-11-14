@@ -59,6 +59,8 @@ pub fn show() {
     }
     text(40, 188, b"R ACTUALIZAR TODO   F2 CERRAR");
     text(40, 210, b"DOOM RUN");
+    #[cfg(external_session)]
+    text(136, 210, b"SESSION EXIT");
     prompt(b"");
 }
 
@@ -93,7 +95,16 @@ pub struct Command {
 impl Command {
     pub fn key(&mut self, scan: u8) -> bool {
         if scan == 0x1c {
-            let launch = self.active && self.bytes[..self.len].trim_ascii() == b"DOOM RUN";
+            let command = self.bytes[..self.len].trim_ascii();
+            #[cfg(external_session)]
+            if command == b"SESSION EXIT" {
+                prompt(b"CERRANDO SESION");
+                invoke(0, 8, 0, 0);
+                prompt(b"CIERRE DENEGADO");
+                *self = Self::default();
+                return false;
+            }
+            let launch = self.active && command == b"DOOM RUN";
             let message: &[u8] = if launch {
                 if cfg!(desktop_doom) { b"INICIANDO DOOM" } else { b"DOOM REQUIERE EL PERFIL CON IWAD" }
             } else if self.active {

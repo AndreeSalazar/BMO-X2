@@ -15,6 +15,10 @@ session_gate:
     je wait_input
     test %rax, %rax
     jne denied
+#ifdef DESKTOP_EXTERNAL
+    cmp $8, %rsi
+    je session_exit
+#endif
 #ifdef DOOM_ENGINE
     cmp $6, %rsi
     je present_frame
@@ -414,3 +418,35 @@ finish:
     pop %rbp
     swapgs
     iretq
+
+#ifdef DESKTOP_EXTERNAL
+# The fixed external profile owns five user pages and has no second client.
+session_exit:
+    test %rdi, %rdi
+    jne denied
+    mov %cr3, %r8
+    mov %gs:0x318, %rax
+    mov %rax, %cr3
+    lea 0x4000(%r8), %rdi
+    xor %eax, %eax
+    push $5
+    pop %rcx
+    cld
+    rep stosq
+    lea 0x5000(%r8), %rdi
+    mov $4, %ch                  # RCX is zero after REP; 1024 qwords.
+    rep stosq
+    # Skip the reserved page between RX and the stack.
+    add $4096, %rdi
+    mov $6, %ch                  # 1536 qwords for stack, rodata and data.
+    rep stosq
+    # Revoke the single client's access to INVOKE and WAIT (EFER.SCE).
+    mov $0xc0000080, %ecx
+    rdmsr
+    and $0xfe, %al
+    wrmsr
+    mov $5, %r12d
+session_closed:
+    hlt
+    jmp session_closed
+#endif

@@ -233,9 +233,13 @@ cargador se mide aparte de los 16 KiB de regiones de Ring 3 y los
 4 KiB de pila.
 
 El cargador inicializa BSS y relleno de las regiones con ceros.
-La sonda ABI separada verifica el borrado de codigo y pila tras
-un fallo. La sesion de escritorio todavia requiere cierre de proceso,
-revocacion de capacidades y recuperacion de sus paginas.
+En el escritorio SBEF externo, F2 abre CABINA y `session exit` cierra
+la sesion. INVOKE usa el identificador propio 0 y la operacion 8.
+Ring 0 vuelve a las tablas del puente, retira las cinco entradas de
+usuario, borra 20 KiB de codigo, pila y datos, y deshabilita SYSCALL
+para este perfil de un cliente. El invitado queda detenido en Ring 0.
+Quedan pendientes la entrega de los marcos al asignador y la carga de
+una segunda sesion sin reiniciar.
 
 Cuando INVOKE deja el FIFO PS/2 vacio, la sesion llama a WAIT.
 Ring 0 duerme la CPU con HLT entre interrupciones del PIT y
