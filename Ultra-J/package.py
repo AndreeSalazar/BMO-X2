@@ -10,6 +10,7 @@ from compiler import MAX_SOURCE, compile_source, publish
 from runtime import Rejection, read_bounded
 from view import compile_view_rules, stylesheet
 
+PROJECT = Path(__file__).resolve().parent.parent
 
 class PackageError(ValueError):
     def __init__(self, code, path, message, **details):
@@ -46,10 +47,18 @@ def dependencies(root):
     return styles
 
 
-def build(root):
+def build(root, graph=None):
     root = root.resolve(strict=True)
     action = root / 'action/main.uj'
     markup = root / 'view/main.ujh'
+    if graph is None:
+        graph = []
+    graph.extend(({'From': '.', 'To': 'action/main.uj'}, {'From': '.', 'To': 'view/main.ujh'}))
+    paths = dependencies(root)
+    local_style = root / 'view/style.ujc'
+    if local_style.exists() or local_style.is_symlink():
+        paths.append(local_style)
+    graph.extend({'From': 'view/main.ujh', 'To': path.relative_to(root).as_posix()} for path in paths)
     source = load(action, root, MAX_SOURCE)
     try:
         bytecode = compile_source(source)
@@ -61,10 +70,6 @@ def build(root):
                            Line=line, Column=column, Offset=offset,
                            RequiredBy=str(root)) from error
 
-    paths = dependencies(root)
-    local_style = root / 'view/style.ujc'
-    if local_style.exists() or local_style.is_symlink():
-        paths.append(local_style)
     rules, owners = {}, {}
     for path in paths:
         try:
@@ -92,10 +97,25 @@ def build(root):
     except ValueError as error:
         raise PackageError('VIEW_INVALID', markup, str(error), Styles=[str(path) for path in paths]) from error
 
-    edges = [[root, action], [root, markup], *([markup, path] for path in paths)]
-    graph = [{'From': origin.relative_to(root).as_posix(), 'To': target.relative_to(root).as_posix()}
-             for origin, target in edges]
     return bytecode, display, graph
+
+
+def graph_report(root, graph, error=None):
+    if not root.is_relative_to(PROJECT):
+        return
+    relative = root.relative_to(PROJECT)
+    if not relative.parts:
+        return
+    target = PROJECT / 'build/ultra-j/graph' / relative / 'report.json'
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if error:
+        error = error.copy()
+        for key in ('Path', 'RequiredBy', 'Previous'):
+            if key in error:
+                path = Path(error[key])
+                error[key] = path.relative_to(root).as_posix() if path.is_relative_to(root) else None
+    payload = dict(Package=relative.as_posix(), Dependencies=graph, Error=error)
+    publish(target, (json.dumps(payload, indent=2) + '\n').encode('utf-8'))
 
 
 def main():
@@ -103,19 +123,28 @@ def main():
     parser.add_argument('root', type=Path)
     parser.add_argument('output', type=Path)
     args = parser.parse_args()
+    root = args.root.resolve()
+    graph = []
     try:
-        bytecode, display, graph = build(args.root)
-        if args.output.resolve().is_relative_to(args.root.resolve()):
+        bytecode, display, graph = build(root, graph)
+        if args.output.resolve().is_relative_to(root):
             raise PackageError('PACKAGE_OUTPUT', args.output, 'La salida va fuera de la carpeta fuente.')
         args.output.mkdir(parents=True, exist_ok=True)
         publish(args.output / 'panel-action.ujb', bytecode)
         publish(args.output / 'panel.ujv', display)
     except PackageError as error:
         print(json.dumps(error.report), file=sys.stderr)
+        graph_report(root, graph, error.report)
         return 1
     except OSError as error:
-        print(json.dumps(dict(Code='PACKAGE_IO', Message=str(error))), file=sys.stderr)
+        report = dict(Code='PACKAGE_IO', Path=str(root), Message=str(error))
+        print(json.dumps(report), file=sys.stderr)
+        try:
+            graph_report(root, graph, report)
+        except OSError:
+            pass
         return 1
+    graph_report(root, graph)
     print(json.dumps(dict(Package=args.root.name, Dependencies=graph), indent=2))
     return 0
 

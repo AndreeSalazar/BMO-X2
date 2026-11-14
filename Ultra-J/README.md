@@ -126,6 +126,20 @@ genera UJBC y UJVI y muestra las conexiones en JSON. Si falta
 `view/main.ujh`. Los errores de sintaxis de la accion incluyen archivo,
 linea, columna y frase esperada.
 
+### Ver el paquete en SUPER GRAFO
+
+Compila el paquete, abre BMO-X2 con `bmo-x2.ps1 -Accion abrir` y
+selecciona `Ultra-J/examples/panel` en el Explorador o en el Grafo.
+El panel **ULTRA-J · Dependencias** del Explorador muestra las
+conexiones del ultimo intento de compilacion, incluso si fallo.
+Puedes abrir los archivos desde la lista y saltar a la linea del error.
+Para un archivo ausente, el enlace lleva a su carpeta si existe.
+Al volver a compilar con exito se actualiza el informe y desaparece el
+error. Los informes viven bajo `build/ultra-j/graph/`.
+
+Si SUPER GRAFO es de una revision anterior, reconstruyelo con
+`bmo-x2.ps1 -Accion preparar-grafo`.
+
 ## Vista en QEMU
 
 `examples/panel/view/main.ujh` describe dos pantallas con etiquetas y clases.
