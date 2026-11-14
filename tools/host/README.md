@@ -38,7 +38,12 @@ en RAM, los controladores y el escritorio tienen presupuestos propios.
 El comando `pack` admite limites opcionales de archivo y paginas
 mapeadas para que cada aplicacion declare su propio presupuesto.
 
-El banco embebe una region RX en el paquete de prueba. Falta repetir
-la comparacion con el cargador externo general y un segundo proceso.
+El banco embebe una region RX por cliente. Con `--reuse --abi-run`
+ejecuta dos SBEF distintos en las mismas dos paginas de usuario. La
+sonda verifica que el codigo y la pila anteriores quedaron desmapeados
+y a cero antes de volver a usarlos. El paquete con Clang pesa 1980 bytes.
+La etapa de reuso es una extension ensamblada de la sonda CASM. Faltan
+el cargador externo general, los propietarios de proceso y la
+revocacion de capacidades por proceso.
 El perfil PE32+ freestanding de MSVC queda por implementar. HOST
 expone dependencias de DLL, TLS y otros directorios en `probe`.

@@ -1987,7 +1987,7 @@
       "entrada": "Cliente C, cabecera ABI 1, compilador y vector HEX.",
       "salida": "SBEF para ELF o inventario de un objeto COFF MSVC.",
       "aceptacion": "GCC C, Clang C/C++ y Rust verifican INVOKE, WAIT y limpieza tras fallo en QEMU en un paquete de hasta 2048 bytes. MSVC se inspecciona como COFF.",
-      "falta": "Probar el mismo ABI con el cargador externo general y admitir PE32+ freestanding."
+      "falta": "El reuso de dos paginas entre dos SBEF pasa en QEMU. Faltan cargador externo general, revocacion por proceso y PE32+ freestanding."
     },
     {
       "id": "hot-unmap",

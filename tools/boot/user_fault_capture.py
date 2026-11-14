@@ -89,6 +89,9 @@ def user_fault_evidence(memory, snapshot, context, code, reject, *, abi_probe=Fa
         result['SbefSHA256'] = doom['sbef_sha256']
         if doom.get('toolchain_client'):
             result['CommonAbiClientVerified'] = True
+            if doom.get('reuse'):
+                assert page[0x350] == 2, 'No se verifico la reutilizacion tras el primer cliente'
+                result.update(ClientsCompleted=2, ReusedPages=2, SyscallsPerClient=3)
         elif not doom['desktop']:
             result['DoomFixedArithmetic'] = True
     return result

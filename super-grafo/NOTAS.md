@@ -1287,7 +1287,7 @@ Entrada: Cliente C, cabecera ABI 1, compilador y vector HEX.
 Salida: SBEF para ELF o inventario de un objeto COFF MSVC.
 Depende de: HOST: del ejecutable a SBEF (verificacion), Empaquetador ELF64 a SBEF (generacion).
 Aceptacion: GCC C, Clang C/C++ y Rust verifican INVOKE, WAIT y limpieza tras fallo en QEMU en un paquete de hasta 2048 bytes. MSVC se inspecciona como COFF.
-Pendiente: Probar el mismo ABI con el cargador externo general y admitir PE32+ freestanding.
+Pendiente: El reuso de dos paginas entre dos SBEF pasa en QEMU. Faltan cargador externo general, revocacion por proceso y PE32+ freestanding.
 
 ## kernel/mm/virtual/revoke/main.casm
 

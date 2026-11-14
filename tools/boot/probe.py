@@ -78,7 +78,9 @@ if args.doom_fixture:
     external_path = ROOT / 'external-loader.bin'
     external = external_path.read_bytes() if external_path.is_file() else None
     external_image = image_path.read_bytes()
-    expected, doom = make_packet(reference, external_image, present, gate, external, engine=doom_engine)
+    reuse_path = ROOT / 'abi-reuse.bin'
+    reuse = (reuse_path.read_bytes(), (ROOT / 'second.sbef').read_bytes()) if reuse_path.is_file() else None
+    expected, doom = make_packet(reference, external_image, present, gate, external, engine=doom_engine, reuse=reuse)
     doom['toolchain_client'] = toolchain_client
     if (ROOT / 'intro.x86').is_file():
         splash = (ROOT / 'intro.x86').read_bytes()

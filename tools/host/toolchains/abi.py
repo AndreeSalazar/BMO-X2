@@ -23,12 +23,17 @@ def main():
     parser.add_argument('--objcopy', default='llvm-objcopy')
     parser.add_argument('--abi-run', type=Path, help='Execute the common client in the CASM ABI QEMU fixture')
     parser.add_argument('--language', choices=['c', 'cpp', 'rust'], default='c')
+    parser.add_argument('--reuse', action='store_true', help='Run two distinct embedded SBEFs on the same pages')
     args = parser.parse_args()
+    if args.reuse and (not args.abi_run or args.toolchain == 'msvc'):
+        parser.error('--reuse requiere --abi-run y un ensamblador ELF64')
     if args.language != 'c' and (not args.abi_run or args.toolchain == 'msvc'):
         parser.error('C++ y Rust requieren --abi-run y un ensamblador ELF64')
     out = ROOT/'build/SBEF/abi'/args.toolchain
     if args.language != 'c':
         out /= args.language
+    if args.reuse:
+        out /= 'reuse'
     out.mkdir(parents=True, exist_ok=True)
     cc = args.cc or ('cl' if args.toolchain == 'msvc' else args.toolchain)
     if args.toolchain == 'msvc':
@@ -67,9 +72,10 @@ def main():
     objects = [obj, portal]
     if args.abi_run:
         complete = out/'complete.o'
-        subprocess.run([cc, *target, '-c', str(ROOT/'tools/doom/complete.S'), '-o', str(complete)],
+        completion_flags = ['-DBMO_ABI_REUSE'] if args.reuse else []
+        subprocess.run([cc, *target, *completion_flags, '-c', str(ROOT/'tools/doom/complete.S'), '-o', str(complete)],
                        check=True, cwd=out)
-        script = ROOT/'tools/desktop/guest.ld'
+        script = ROOT / ('tools/boot/abi_reuse.ld' if args.reuse else 'tools/desktop/guest.ld')
         objects.append(complete)
     subprocess.run([args.ld, '-static', '-T', str(script), *map(str, objects),
                     '-o', str(elf)], check=True, cwd=out)
@@ -79,8 +85,20 @@ def main():
     print(json.dumps(dict(Toolchain=producer, Stage='SBEF', PortalBytes=raw.stat().st_size,
                           SHA256=hashlib.sha256(image).hexdigest(), Image=inspect(image)), indent=2), flush=True)
     if args.abi_run:
-        subprocess.run([sys.executable, '-B', str(ROOT/'tools/boot/doom_qemu.py'),
-                        str(args.abi_run.resolve()), str(sbef), '--toolchain-client', producer], check=True)
+        command = [sys.executable, '-B', str(ROOT/'tools/boot/doom_qemu.py'),
+                   str(args.abi_run.resolve()), str(sbef), '--toolchain-client', producer]
+        if args.reuse:
+            stage_obj, stage = out/'reuse.o', out/'reuse.bin'
+            subprocess.run([cc, *target, '-c', str(ROOT/'tools/boot/abi_reuse.S'), '-o', str(stage_obj)], check=True)
+            subprocess.run([args.objcopy, '-O', 'binary', '--only-section=.text', str(stage_obj), str(stage)], check=True)
+            second_obj, second_elf, second = out/'second.o', out/'second.elf', out/'second.sbef'
+            subprocess.run([cc, *target, *flags, '-DBMO_ABI_SECOND', '-c', str(CLIENT), '-o', str(second_obj)],
+                           check=True)
+            subprocess.run([args.ld, '-static', '-T', str(script), *map(str, (second_obj, portal, complete)),
+                            '-o', str(second_elf)], check=True)
+            second.write_bytes(pack_elf(second_elf.read_bytes(), abi=1))
+            command.extend(['--reuse', str(stage), str(second)])
+        subprocess.run(command, check=True)
 
 
 if __name__ == '__main__':

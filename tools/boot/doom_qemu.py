@@ -1,5 +1,6 @@
 """Boot the DOOM arithmetic SBEF inside the single-page CASM ABI probe."""
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -24,6 +25,7 @@ def main():
     variants.add_argument('--desktop-present', type=Path)
     variants.add_argument('--session-gate', type=Path)
     parser.add_argument('--external-loader', type=Path)
+    parser.add_argument('--reuse', nargs=2, type=Path, metavar=('STAGE', 'SECOND_SBEF'))
     profiles = parser.add_mutually_exclusive_group()
     profiles.add_argument('--doom-external', action='store_true')
     profiles.add_argument('--doom-engine', action='store_true')
@@ -32,6 +34,8 @@ def main():
     parser.add_argument('--wad', type=Path)
     parser.add_argument('--qemu', default='C:/Program Files/qemu/qemu-system-x86_64.exe')
     args = parser.parse_args()
+    if args.reuse and not args.toolchain_client:
+        parser.error('--reuse requiere --toolchain-client')
     if args.toolchain_client and (args.session_gate or args.desktop_present or args.external_loader or args.intro):
         parser.error('El cliente ABI usa el paquete CASM embebido')
     engine = args.doom_engine or args.desktop_doom
@@ -56,7 +60,8 @@ def main():
     present = args.desktop_present.read_bytes() if args.desktop_present else None
     gate = args.session_gate.read_bytes() if args.session_gate else None
     external = args.external_loader.read_bytes() if args.external_loader else None
-    packet, _ = make_packet(base_packet, sbef, present, gate, external, engine=engine)
+    reuse = tuple(path.read_bytes() for path in args.reuse) if args.reuse else None
+    packet, _ = make_packet(base_packet, sbef, present, gate, external, engine=engine, reuse=reuse)
     if args.toolchain_client and len(packet) > MINIMAL_SYSTEM_BUDGET:
         raise ValueError(f'El paquete ABI ocupa {len(packet)} bytes y supera {MINIMAL_SYSTEM_BUDGET}')
     if args.intro:
@@ -76,6 +81,9 @@ def main():
         (run / 'wad-module.bin').write_bytes(struct.pack('<Q', len(wad)) + wad)
     (run / 'reference.x86').write_bytes(base_packet)
     (run / f'{application}.sbef').write_bytes(sbef)
+    if reuse is not None:
+        (run / 'abi-reuse.bin').write_bytes(reuse[0])
+        (run / 'second.sbef').write_bytes(reuse[1])
     if present is not None:
         (run / 'desktop-present.bin').write_bytes(present)
     if gate is not None:
@@ -133,17 +141,20 @@ def main():
     if args.toolchain_client:
         milestone = f'{args.toolchain_client.upper()} client exercises the CASM ABI in CPL3'
         report['toolchain'] = args.toolchain_client
+        second_bytes = len(reuse[1]) if reuse is not None else 0
         report['minimal_system_budget'] = dict(
             limit_bytes=MINIMAL_SYSTEM_BUDGET,
             packet_bytes=len(packet),
             packet_header_bytes=24,
-            embedded_sbef_bytes=len(sbef),
-            ring0_body_bytes=len(packet) - len(sbef) - 24,
+            embedded_sbef_bytes=len(sbef) + second_bytes,
+            ring0_body_bytes=len(packet) - len(sbef) - second_bytes - 24,
             packet_headroom_bytes=MINIMAL_SYSTEM_BUDGET - len(packet),
             uefi_bridge_bytes=efi.stat().st_size,
             packet_and_bridge_bytes=len(packet) + efi.stat().st_size,
             guest_ram_mib=256,
         )
+        if reuse is not None:
+            report['second_sbef_sha256'] = hashlib.sha256(reuse[1]).hexdigest()
     report.update(run=run.name, evidence='QEMU', milestone=f'Cat intro then {milestone}' if args.intro else milestone)
     (run / 'qemu-results.json').write_text(json.dumps(report, indent=2) + '\n', encoding='ascii')
     (run / 'qemu-run.json').write_text(json.dumps(dict(cpu='qemu64', ram_mib=256)) + '\n', encoding='ascii')

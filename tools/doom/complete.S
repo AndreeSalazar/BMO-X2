@@ -1,4 +1,8 @@
+#ifdef BMO_ABI_REUSE
+.section .abi_complete,"ax",@progbits
+#else
 .text
+#endif
 .globl doom_probe_complete
 .type doom_probe_complete,@function
 doom_probe_complete:

