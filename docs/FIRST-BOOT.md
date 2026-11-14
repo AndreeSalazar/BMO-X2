@@ -4,6 +4,17 @@
 
 ### Diagnostico visible de teclado y raton
 
+El puente UEFI escribe `\BMO-X2\BOOTLOG.TXT` en el volumen de arranque
+antes de ExitBootServices. En Windows se puede abrir desde A:. El
+informe fijo usa ASCII con valores hexadecimales: bytes del SBEF,
+hoja CPUID de cache, lectura del puerto PS/2 64h y cantidad PCI xHCI.
+Se genera sin teclado ni raton. Un error de escritura permite que
+continue el arranque.
+
+CABINA en Rust muestra los datos de la sesion. Guardar eventos de Ring 0
+posteriores a ExitBootServices requiere un controlador de bloques y una
+ruta de guardado del sistema. El informe UEFI cubre la fase previa.
+
 El ensayo de escritorio `run-desktop-media-660962069397` conserva los
 tres archivos de arranque bajo `media/`, el manifiesto de huellas en
 `qemu-results.json` y una captura en `build/puente-normal.png`.

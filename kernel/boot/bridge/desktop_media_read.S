@@ -50,6 +50,8 @@ desktop_media_read:
     call *0x10(%rcx)
     test %rax, %rax
     js release
+    call cache_profile
+    call boot_report
     # Return the unused tail to firmware before taking the final memory map.
     mov 0xb0(%rbp), %rax
     add $4095, %rax
@@ -72,7 +74,6 @@ staging_ready:
     call *0x10(%rcx)
     test %rax, %rax
     js release
-    call cache_profile
 #ifdef XHCI_COMMAND_PROBE
     # Copy the EFI stage to the page between the packet buffer and page tables.
     .byte 0x48, 0x8d, 0x35
@@ -98,6 +99,7 @@ done:
     ret
 
 #include "../../arch/x86_64/cpu/cache_profile.inc"
+#include "desktop_boot_report.inc"
 
     # UEFI accepts CHAR16 paths at aligned addresses.
     .p2align 1

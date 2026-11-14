@@ -1,11 +1,47 @@
 """Verify a live CPL3 session, framebuffer changes and QEMU keyboard input."""
 import hashlib
+import re
 from pathlib import Path
 import struct
 import time
 
 from cpu_config import l1_cache_profile, register
 from splash_capture import compare_frame
+
+
+def verify_bootlog_file(image, prefix):
+    expected = Path(str(prefix) + '-bootlog-expected.bin').read_bytes()
+    with image.open('rb') as disk:
+        disk.seek(512 + 72)
+        table = struct.unpack('<Q', disk.read(8))[0]
+        disk.seek(table * 512 + 32)
+        volume = struct.unpack('<Q', disk.read(8))[0] * 512
+        disk.seek(volume)
+        bpb = disk.read(512)
+        sectors = struct.unpack_from('<H', bpb, 14)[0]
+        fat_size, root = struct.unpack_from('<I4xI', bpb, 36)
+        data = volume + (sectors + bpb[16] * fat_size) * 512
+        cluster_size = bpb[13] * 512
+
+        def read_cluster(cluster):
+            disk.seek(data + (cluster - 2) * cluster_size)
+            return disk.read(cluster_size)
+
+        def find(cluster, name):
+            block = read_cluster(cluster)
+            for offset in range(0, len(block), 32):
+                entry = block[offset:offset+32]
+                if entry[:11] == name:
+                    return ((int.from_bytes(entry[20:22], 'little') << 16)
+                            | int.from_bytes(entry[26:28], 'little'),
+                            int.from_bytes(entry[28:32], 'little'))
+            raise ValueError(f'Falta {name!r} en el volumen FAT32 invitado')
+
+        folder, _ = find(root, b'BMO-X2     ')
+        cluster, size = find(folder, b'BOOTLOG TXT')
+        if size != len(expected) or read_cluster(cluster)[:size] != expected:
+            raise ValueError('BOOTLOG.TXT de FAT32 difiere de la captura UEFI')
+    Path(str(prefix) + '-BOOTLOG.TXT').write_bytes(expected)
 
 
 def verify_external_rejection(command, memory, image):
@@ -128,6 +164,13 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         mouse_before = input_label(260, 'mouse-before')
     cache = l1_cache_profile(memory(address + 0xd0, 32, 'cpu-l1')) if desktop_media else None
     if desktop_media:
+        assert memory(address + 0xf0, 1, 'bootlog-status') == b'\x01', 'UEFI no pudo guardar BOOTLOG.TXT'
+        raw = memory(address + 0x800, 128, 'bootlog-expected-buffer')
+        match = re.match(rb'BMO-X2 V1 UEFI\r\nSBEF=([0-9A-F]{8})\r\nCPUID=([0-9A-F]{8})\r\n'
+                         rb'PS2=[0-9A-F]{8}\r\nXHCI=00000001\r\n', raw)
+        assert (match and int(match[1], 16) == len(external_image)
+                and int(match[2], 16) == int(cache['Leaf'] or '0', 16)), 'Informe UEFI invalido'
+        Path(str(prefix) + '-bootlog-expected.bin').write_bytes(match[0])
         staging, image_bytes = struct.unpack('<QQ', memory(address + 0xa8, 16, 'desktop-staging'))
         staging_pages = struct.unpack('<Q', memory(address + 0xc8, 8, 'desktop-staging-pages'))[0]
         assert image_bytes == len(external_image)

@@ -126,6 +126,11 @@ def run(case):
     image = ROOT / 'build' / f'puente-{disk_case}.img'
     before = hashlib.sha256(image.read_bytes()).hexdigest()
     prefix = ROOT / 'build' / f'puente-{case}'
+    check_bootlog = args.doom_fixture and desktop_media and case == 'normal'
+    guest_disk = image
+    if check_bootlog:
+        guest_disk = Path(str(prefix) + '-bootlog.img')
+        shutil.copyfile(image, guest_disk)
     variables = Path(str(prefix) + '-vars.fd')
     shutil.copyfile(share / 'edk2-i386-vars.fd', variables)
     module = ROOT / ('sbef-rejected.bin' if case == 'external-permissions' else 'sbef-module.bin')
@@ -141,7 +146,7 @@ def run(case):
         str(qemu), '-machine', 'pc', '-cpu', args.cpu, '-accel', 'tcg', '-m', f'{args.ram_mib}M', '-smp', '1',
         '-drive', f'if=pflash,format=raw,unit=0,readonly=on,file={share / "edk2-x86_64-code.fd"}',
         '-drive', f'if=pflash,format=raw,unit=1,file={variables}',
-        '-drive', f'file={image},format=raw,if=ide,snapshot=on',
+        '-drive', f'file={guest_disk},format=raw,if=ide,snapshot={"off" if check_bootlog else "on"}',
         '-vga', 'std', '-display', 'none', '-serial', f'file:{prefix}-serial.log',
         '-qmp', 'stdio', '-monitor', 'none', '-no-reboot',
         '-d', 'guest_errors,int', '-D', str(prefix) + '-cpu.log', *staging],
@@ -407,6 +412,11 @@ def run(case):
 for case in args.casos:
     try:
         result = run(case)
+        if args.doom_fixture and desktop_media and case == 'normal':
+            from desktop_session_capture import verify_bootlog_file
+            prefix = ROOT / 'build' / 'puente-normal'
+            verify_bootlog_file(Path(str(prefix) + '-bootlog.img'), prefix)
+            result['BootLogFat32Verified'] = True
     except Exception as error:
         result = dict(Case=case, Passed=False, Error=str(error))
     results.append(result)
