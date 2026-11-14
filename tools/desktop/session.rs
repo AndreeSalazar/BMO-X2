@@ -5,6 +5,7 @@ use core::arch::asm;
 use core::panic::PanicInfo;
 
 mod cabina;
+#[cfg(not(desktop_ultra_j))]
 mod settings;
 #[cfg(desktop_sheet)]
 mod sheet;
@@ -117,6 +118,7 @@ fn paint(clip: Clip, space: usize, focus: usize, bar: bool) {
     }
     let accent = ACCENTS[space];
     clip.fill(0, 0, 640, 400, 0x0d0e17);
+    #[cfg(not(desktop_ultra_j))]
     settings::icon(clip);
     #[cfg(desktop_sheet)]
     sheet::icon(clip);
@@ -231,9 +233,12 @@ extern "C" fn bmo_main() -> ! {
     let mut command = cabina::Command::default();
     let mut bar = None;
     let mut f2_down = false;
+    #[cfg(not(desktop_ultra_j))]
     let mut f3_down = false;
-    let mut settings_open = false;
-    let mut pointer_speed = 1;
+    #[cfg(not(desktop_ultra_j))]
+    let (mut settings_open, mut pointer_speed) = (false, 1);
+    #[cfg(desktop_ultra_j)]
+    let (settings_open, pointer_speed) = (false, 1);
     #[cfg(desktop_sheet)]
     let (mut sheet_open, mut sheet_click) = (false, None::<u32>);
     #[cfg(desktop_doom)]
@@ -256,7 +261,9 @@ extern "C" fn bmo_main() -> ! {
     }
     paint(VIEWPORT, space, focus[space], false);
     cursor(x, y);
+    #[cfg(not(desktop_ultra_j))]
     let controllers = invoke(3, 3, 4, 0);
+    #[cfg(not(desktop_ultra_j))]
     let usb_pending = controllers != DENIED && (1..=65536).contains(&controllers);
     #[cfg(usb_probe)]
     let mut usb = usb_probe::Input::default();
@@ -337,8 +344,7 @@ extern "C" fn bmo_main() -> ! {
                         #[cfg(desktop_sheet)]
                         {
                             let bounds = sheet::TILE;
-                            if !bar.is_some_and(|_| next_y < BAR.bottom as i16)
-                                && (bounds.left as i16..bounds.right as i16).contains(&next_x)
+                            if (bounds.left as i16..bounds.right as i16).contains(&next_x)
                                 && (bounds.top as i16..bounds.bottom as i16).contains(&next_y)
                             {
                                 let now = invoke(3, 3, 0, 0);
@@ -355,6 +361,7 @@ extern "C" fn bmo_main() -> ! {
                                 sheet_click = None;
                             }
                         }
+                        #[cfg(not(desktop_ultra_j))]
                         if settings::hit(next_x, next_y) {
                             left = pressed;
                             bar = None;
@@ -411,19 +418,6 @@ extern "C" fn bmo_main() -> ! {
             continue;
         }
         let key = raw as u8;
-        #[cfg(desktop_sheet)]
-        if sheet_open {
-            if key == 1 {
-                sheet_open = false;
-                paint(VIEWPORT, space, focus[space], false);
-                cursor(x, y);
-            }
-            #[cfg(desktop_ultra_j)]
-            if key == 0x1c {
-                sheet::activate();
-            }
-            continue;
-        }
         #[cfg(all(external_session, not(usb_probe), not(desktop_sheet)))]
         if !keyboard_seen && matches!(key, 0x01..=0x58) {
             keyboard_seen = true;
@@ -439,6 +433,22 @@ extern "C" fn bmo_main() -> ! {
             0x1d => ctrl = down,
             0x5b | 0x5c if extended => super_key = down,
             _ => {}
+        }
+        #[cfg(desktop_sheet)]
+        if sheet_open {
+            if !extended {
+                match key {
+                    1 | 0x10 if key == 1 || (super_key && !ctrl) => {
+                        sheet_open = false;
+                        paint(VIEWPORT, space, focus[space], false);
+                        cursor(x, y);
+                    }
+                    #[cfg(desktop_ultra_j)]
+                    0x1c => sheet::activate(),
+                    _ => {}
+                }
+            }
+            continue;
         }
         #[cfg(desktop_doom)]
         {
@@ -515,6 +525,7 @@ extern "C" fn bmo_main() -> ! {
             }
             continue;
         }
+        #[cfg(not(desktop_ultra_j))]
         if !extended && key & 0x7f == 0x3d {
             let toggle = down && !f3_down;
             f3_down = down;
@@ -532,6 +543,7 @@ extern "C" fn bmo_main() -> ! {
             }
             continue;
         }
+        #[cfg(not(desktop_ultra_j))]
         if settings_open {
             if !extended && down {
                 match key {

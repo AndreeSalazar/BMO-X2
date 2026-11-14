@@ -257,7 +257,8 @@ vectores y aportara su presentador, ABI y formato de carga nativo.
 El perfil `-Sheet -UltraJ` muestra un icono azul arriba a la izquierda.
 El doble clic dibuja la vista de `examples/desktop-panel`. Enter
 ejecuta la accion de `ACTION.UJB` y cambia la linea azul a verde.
-Esc devuelve el control al escritorio. La vista usa el mismo
+Super + Q o Esc devuelven el control al mismo espacio de trabajo. La
+vista usa el mismo
 presentador y el mismo interprete que el panel de arranque.
 
 En PowerShell desde la raiz de BMO-X2, usando `$ujPython` de arriba:
@@ -270,8 +271,13 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\build-desktop.ps
 Abre el run impreso con `tools/boot/view.ps1 -Run <ruta-del-run>`.
 El lanzador es un perfil QEMU con raton PS/2 emulado. La vista se
 presenta dentro de la sesion actual y toma la pantalla hasta Esc.
-Para caber en las dos paginas de texto usa una vista compacta y
-simplifica el restaurado del cursor.
+Para caber en las dos paginas de texto usa una vista compacta, con
+velocidad fija del puntero. El panel de configuracion queda en el
+perfil de escritorio habitual.
+
+La prueba usa el raton y teclado PS/2 emulados de QEMU. La entrada
+USB del AMD 1022:149C y el arranque de este perfil en el equipo siguen
+pendientes. [Condiciones del BOOT fisico](../docs/FIRST-BOOT.md)
 
 ### Arranque directo al panel
 

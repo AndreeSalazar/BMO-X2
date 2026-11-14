@@ -175,7 +175,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
 
         click()
         time.sleep(0.7)
-        assert logical(250, 110, 0x232638), 'Un clic abrio Hoja'
+        assert logical(250, 110, 0x232638), 'Un clic abrio el lanzador'
         click()
         wait_until(lambda: logical(250, 110, 0x232638) and sleeping())
         click()
@@ -193,12 +193,30 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
             wait_until(lambda: logical(250, 110, 0xe7efff) and sleeping())
         screenshot = '-launcher-active.png' if launcher else '-sheet.png'
         command('screendump', {'filename': str(prefix) + screenshot, 'format': 'png'})
-        key('esc')
+        if launcher:
+            key('q')
+            assert logical(200, 220, 0xa0e5ca), 'Q sin Super cerro ULTRA-J'
+            key('meta_l', 'q')
+        else:
+            key('esc')
         wait_until(lambda: logical(250, 110, 0x232638) and logical(70, 55, icon_color) and sleeping())
         cache, _ = bootlog()
         if launcher:
+            key('ctrl', 'meta_l', '2')
+            wait_until(lambda: logical(52, 99, 0xad92ff) and sleeping())
+            click()
+            click()
+            wait_until(lambda: logical(200, 220, 0xa8c5ff) and sleeping())
+            key('meta_r', 'q')
+            wait_until(lambda: logical(52, 99, 0xad92ff) and sleeping())
+            click()
+            click()
+            wait_until(lambda: logical(200, 220, 0xa8c5ff) and sleeping())
+            key('esc')
+            wait_until(lambda: logical(52, 99, 0xad92ff) and sleeping())
             return dict(Case='normal', Passed=True, UserCpl=3, UltraJDoubleClickVerified=True,
                         UltraJExternalAction=True, UltraJArenaCleared=True, UltraJCloseVerified=True,
+                        SuperQVerified=True, WorkspacePreserved=True, EscapeVerified=True,
                         IntroFramesObserved=sorted(frames), CpuL1=cache)
         return dict(Case='normal', Passed=True, UserCpl=3, SheetDoubleClickVerified=True,
                     SheetCloseVerified=True, IntroFramesObserved=sorted(frames), CpuL1=cache)
