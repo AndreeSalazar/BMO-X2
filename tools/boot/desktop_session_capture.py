@@ -167,8 +167,8 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         assert memory(address + 0xf0, 1, 'bootlog-status') == b'\x01', 'UEFI no pudo guardar BOOTLOG.TXT'
         raw = memory(address + 0x800, 160, 'bootlog-expected-buffer')
         match = re.match(rb'BMO-X2 V2 UEFI\r\nSBEF=([0-9A-F]{8})\r\nCPUID=([0-9A-F]{8})\r\n'
-                         rb'PS2=[0-9A-F]{8}\r\nXHCI=00000001\r\nBDF ID CMD\r\n'
-                         rb'([0-9A-F]{8}) ([0-9A-F]{8}) ([0-9A-F]{8})\r\n-------- -------- --------\r\n', raw)
+                         rb'PS2=[0-9A-F]{8}\r\nXHCI=([0-9A-F]{8})\r\nBDF ID CMD\r\n'
+                         rb'((?:[0-9A-F-]{8} [0-9A-F-]{8} [0-9A-F-]{8}\r\n){2})', raw)
         assert (match and int(match[1], 16) == len(external_image)
                 and int(match[2], 16) == int(cache['Leaf'] or '0', 16)), 'Informe UEFI invalido'
         Path(str(prefix) + '-bootlog-expected.bin').write_bytes(match[0])
@@ -227,14 +227,22 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
             assert reports == [bytes([0, 0, usage, 0, 0, 0, 0, 0]) for usage in (0x3b, 0, 0x3c)]
         else:
             assert reserved == bytes(pages * 4096)
-        assert memory(address + 0x1a358, 5, 'xhci-inventory') == struct.pack('<IB', 1, 1)
+        count = 2 if command_probe else 1
+        assert int(match[3], 16) == count
+        assert memory(address + 0x1a358, 5, 'xhci-inventory') == struct.pack('<IB', count, 1)
         bdf, low, high = struct.unpack('<III', memory(address + 0x1a360, 12, 'xhci-pci'))
         devices = [device for bus in command('query-pci') for device in bus['devices']]
-        controller = next(device for device in devices if device['class_info']['class'] == 0x0c03)
+        controllers = sorted((device for device in devices if device['class_info']['class'] == 0x0c03),
+                             key=lambda device: (device['bus'], device['slot'], device['function']))
+        assert len(controllers) == count
+        controller = controllers[-1]
         assert bdf == (controller['bus'] << 8 | controller['slot'] << 3 | controller['function'])
         pci_id = controller['id']['device'] << 16 | controller['id']['vendor']
         pci_command = struct.unpack('<H', memory(address + 0x1a36c, 2, 'xhci-pci-command-inventory'))[0]
-        assert (int(match[3], 16), int(match[4], 16), int(match[5], 16)) == (bdf, pci_id, pci_command)
+        pci_row = match[4].splitlines()[count - 1].split()
+        assert tuple(int(field, 16) for field in pci_row) == (bdf, pci_id, pci_command)
+        rank = struct.unpack('<I', memory(address + 0x1a3b0, 4, 'xhci-rank'))[0]
+        assert rank == count
         bar = low & ~15
         if low & 6 == 4:
             bar |= high << 32
@@ -268,7 +276,8 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                         UsbDeviceDescriptor=descriptor.hex(), UsbF2Report=reports[0].hex(),
                         UsbKeyboardReports=[report.hex() for report in reports],
                         UsbKeyboardTransferVerified=True,
-                        UsbInputVerified=True, UsbCabinaVerified=True, CpuL1=cache)
+                        UsbInputVerified=True, UsbCabinaVerified=True, CpuL1=cache,
+                        XhciControllers=count, XhciSelectedBdf=f'{bdf:04X}', XhciConnectedPorts=rank-1)
     timeout_before = wait_stats()[1]
     wait_until(lambda: wait_stats()[1] > timeout_before)
     event_before = wait_stats()[0]

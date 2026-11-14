@@ -24,11 +24,17 @@ El informe V2 del mismo equipo localiza `1022:43BC` en `03:00.0`
 Ambos tienen habilitados MMIO y bus mastering. Windows situa el
 teclado HID `1A2C:635A` y el raton HID `4E53:5406` directamente
 bajo el concentrador raiz del `149C`, en los puertos 2 y 3 de su
-topologia USB. El inventario de Ring 0 conserva hoy el primer
-controlador encontrado. La prueba fisica de entrada debe poder
-seleccionar el segundo y enumerar ambos dispositivos en el mismo
-arranque. La sonda de comandos de QEMU sigue limitada al controlador
-emulado `1B36:000D`.
+topologia USB. ULTRA-LinuX registra ambos AMD bajo `xhci_hcd` en
+`evidencias/audio-juegos/pc-real/PC-configuracion.txt`. BMO-X censa
+los puertos antes de elegir el controlador en
+`Ultra_kernel_x86-64/kernel/src/ring0/dev/usb/arranque.rs`.
+
+BMO-X2 lee PORTSC de los controladores con MMIO valido y elige
+el que tenga mas puertos conectados. La lectura usa el estado
+dejado por el firmware. En QEMU, un teclado en el segundo xHCI
+abre CABINA mediante F2. La sonda de comandos sigue limitada a
+`1B36:000D`. La inicializacion AMD, la enumeracion conjunta y la
+entrada sostenida quedan pendientes.
 
 CABINA en Rust muestra los datos de la sesion. Guardar eventos de Ring 0
 posteriores a ExitBootServices requiere un controlador de bloques y una

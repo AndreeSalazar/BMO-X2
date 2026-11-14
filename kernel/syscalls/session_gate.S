@@ -292,7 +292,10 @@ diagnostics_result:
     mov %eax, %gs:0x34c
     jmp finish
 #ifdef DESKTOP_MEDIA
-#include "../drivers/bus/xhci_inventory.inc"
+usb_controllers:
+    lea 0x12000(%rbp), %rax
+    call *%rax
+    jmp finish
 #endif
 #ifdef XHCI_COMMAND_PROBE
 usb_report:

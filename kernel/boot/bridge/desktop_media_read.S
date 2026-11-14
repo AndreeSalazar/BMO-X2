@@ -75,15 +75,13 @@ staging_ready:
     call *0x10(%rcx)
     test %rax, %rax
     js release
-#ifdef XHCI_COMMAND_PROBE
-    # Copy the EFI stage to the page between the packet buffer and page tables.
+    # Copy the xHCI stage to the page between the packet buffer and page tables.
     .byte 0x48, 0x8d, 0x35
     .long 0x4000 - DESKTOP_READER_OFFSET - (. - desktop_media_read) - 4
     lea 0x12000(%rbp), %rdi
     mov $512, %ecx
     cld
     rep movsq
-#endif
     xor %eax, %eax
     jmp finish
 release:

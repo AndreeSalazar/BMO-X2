@@ -1,4 +1,5 @@
-# Read PCI class codes only. Preserve the PCI configuration selector.
+.text
+# Inventory each xHC before choosing a controller. Restore PCI selector.
 # One scan per boot, including bridges and multifunction devices.
 usb_controllers:
     cmpb $0, %gs:0x35c
@@ -17,10 +18,25 @@ inventory_next:
     shr $8, %eax
     cmp $0x0c0330, %eax
     jne inventory_advance
-    test %r8d, %r8d
-    jnz inventory_count
-    # Record the first function and its raw BAR0/BAR1. Reading never sizes
-    # the BAR, enables bus mastering or changes firmware ownership.
+    inc %r8d
+    push %rcx
+    push %rdx
+    push %r8
+    push %r9
+    call inventory_function
+    call xhci_read_caps
+    cmp %gs:0x3b0, %eax
+    jbe inventory_continue
+    mov %eax, %gs:0x3b0
+    mov 24(%rsp), %eax
+    mov %eax, %gs:0x3b4
+inventory_continue:
+    pop %r9
+    pop %r8
+    pop %rdx
+    pop %rcx
+    jmp inventory_advance
+inventory_function:
     mov %ecx, %eax
     and $0x00ffff00, %eax
     shr $8, %eax
@@ -43,22 +59,27 @@ inventory_next:
     in %dx, %eax
     mov %ax, %gs:0x36c
     sub $4, %edx
-inventory_count:
-    inc %r8d
+    ret
 inventory_advance:
     add $0x100, %ecx
     cmp $0x81000008, %ecx
     jne inventory_next
-    mov %r9d, %eax
-    out %eax, %dx
     mov %r8d, %gs:0x358
     movb $1, %gs:0x35c
-    test %r8d, %r8d
+    mov %gs:0x3b4, %ecx
+    test %ecx, %ecx
+    jz inventory_restore
+    call inventory_function
+inventory_restore:
+    mov %r9d, %eax
+    out %eax, %dx
+    test %ecx, %ecx
     jz inventory_cached
+    movb $1, %gs:0x3b8
     call xhci_read_caps
 inventory_cached:
     mov %gs:0x358, %eax
-    jmp finish
+    ret
 
 # Use a temporary supervisor-only 4 KiB mapping in the private page tables.
 # Context page 0x1e is reserved here for the alias PT, below the boot stack.
@@ -132,15 +153,44 @@ caps_map:
     mov 4(%rdi), %edx
     mov %eax, %gs:0x370
     mov %edx, %gs:0x374
+    cmpb $0, %gs:0x3b8
+    je xhci_census
     call xhci_handoff
 #ifdef XHCI_COMMAND_PROBE
     push %rbx
     push %rdi
-    lea 0x12000(%rbp), %rax
-    call *%rax
+    call xhci_test_command
     pop %rdi
     pop %rbx
 #endif
+    xor %eax, %eax
+    jmp xhci_unmap
+xhci_census:
+    movzbl %al, %ecx
+    cmp $0x20, %ecx
+    jb xhci_census_invalid
+    test $3, %ecx
+    jnz xhci_census_invalid
+    shr $24, %edx
+    jz xhci_census_invalid
+    lea 0x400(%rdi,%rcx), %rsi
+    lea (%rsi,%rdx,8), %rax
+    lea (%rax,%rdx,8), %rax
+    lea 4096(%rdi), %rcx
+    cmp %rcx, %rax
+    ja xhci_census_invalid
+    mov $1, %eax                 # Rank valid empty controllers below connected ones.
+xhci_port_next:
+    mov (%rsi), %ecx
+    and $1, %ecx
+    add %ecx, %eax
+    add $16, %rsi
+    dec %edx
+    jnz xhci_port_next
+    jmp xhci_unmap
+xhci_census_invalid:
+    xor %eax, %eax
+xhci_unmap:
     movq $0, 0x15400(%rbp)
     movq $0, 0x1e000(%rbp)
     invlpg (%rdi)
@@ -213,4 +263,9 @@ legacy_wait:
 legacy_owned:
     movb $2, %gs:0x378
 caps_done:
+    xor %eax, %eax
     ret
+
+#ifdef XHCI_COMMAND_PROBE
+#include "xhci_command_probe.inc"
+#endif

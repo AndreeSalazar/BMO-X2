@@ -79,12 +79,12 @@ def main():
                         '-c', source, '-o', obj], check=True)
         subprocess.run([llvm / 'llvm-objcopy.exe', '-O', 'binary', '--only-section=.text',
                         obj, run / f'{name}.bin'], check=True)
-    if args.xhci_command:
-        obj = run / 'xhci-command.o'
-        subprocess.run([llvm / 'clang.exe', '--target=x86_64-unknown-none-elf', '-x', 'assembler',
-                        '-c', kernel / 'drivers/bus/xhci_command_probe.inc', '-o', obj], check=True)
-        subprocess.run([llvm / 'llvm-objcopy.exe', '-O', 'binary', '--only-section=.text',
-                        obj, run / 'xhci-command.bin'], check=True)
+    obj = run / 'xhci-stage.o'
+    flags = ['-DXHCI_COMMAND_PROBE'] if args.xhci_command else []
+    subprocess.run([llvm / 'clang.exe', '--target=x86_64-unknown-none-elf', '-x', 'assembler-with-cpp',
+                    *flags, '-c', kernel / 'drivers/bus/xhci_inventory.inc', '-o', obj], check=True)
+    subprocess.run([llvm / 'llvm-objcopy.exe', '-O', 'binary', '--only-section=.text',
+                    obj, run / 'xhci-stage.bin'], check=True)
 
     reference = (abi / 'INICIO.X86').read_bytes()
     intro = (splash / 'INICIO.X86').read_bytes()
@@ -109,17 +109,16 @@ def main():
     if image[site:site+5] != bytes.fromhex('e894050000') or len(image) != extension or len(reader) > 4096:
         raise ValueError('El lector ya no cabe en el puente')
     struct.pack_into('<i', image, site+1, extension-site-5)
-    extra = 0x2000 if args.xhci_command else 0x1000
+    extra = 0x2000
     for offset, old in ((0x5c, 0x2e00), (0x90, 0x4000), (0x150, 0x2e00), (0x158, 0x2e00)):
         if struct.unpack_from('<I', image, offset)[0] != old:
             raise ValueError('Cambio la cabecera PE del puente')
         struct.pack_into('<I', image, offset, old + extra)
     image.extend(reader.ljust(4096, b'\0'))
-    if args.xhci_command:
-        driver = (run / 'xhci-command.bin').read_bytes()
-        if not 0 < len(driver) <= 4096:
-            raise ValueError('La sonda xHCI no cabe en su etapa EFI')
-        image.extend(driver.ljust(4096, b'\0'))
+    driver = (run / 'xhci-stage.bin').read_bytes()
+    if not 0 < len(driver) <= 4096:
+        raise ValueError('La etapa xHCI no cabe en el puente EFI')
+    image.extend(driver.ljust(4096, b'\0'))
     allocator = (run / 'desktop_media_alloc.bin').read_bytes()
     if image[0x400:0x404] != bytes.fromhex('4883ec28') or len(allocator) > 0xf0:
         raise ValueError('Cambio la reserva de memoria del puente')
