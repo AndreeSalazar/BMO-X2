@@ -2,6 +2,8 @@
 from pathlib import Path
 from shutil import copytree
 from tempfile import TemporaryDirectory
+import subprocess
+import sys
 import unittest
 
 from compiler import compile_source
@@ -21,6 +23,22 @@ def image(code):
 
 
 class UltraJTests(unittest.TestCase):
+    def test_new_crate_and_run(self):
+        cli = [sys.executable, '-B', str(VECTORS.parent / 'uj.py')]
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            subprocess.run([*cli, 'new', 'crate', 'hola'], cwd=root, check=True, capture_output=True)
+            crate = root / 'hola'
+            for command in ('run', 'Run'):
+                result = subprocess.run([*cli, command], cwd=crate, check=True, capture_output=True)
+                self.assertEqual(result.stdout.strip(), b'Hola mundo')
+            program = (crate / 'build/main.ujb').read_bytes()
+            self.assertEqual(program, b'UJBC\x03\x00\x0d\x00\x50\x0aHola mundo\xff')
+            result = subprocess.run([*cli, 'run'], cwd=root, capture_output=True)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn(b'PACKAGE_MISSING', result.stderr)
+            result = subprocess.run([*cli, 'new', 'crate', 'hola'], cwd=root, capture_output=True)
+            self.assertEqual(result.returncode, 1)
     def test_package_reproduces_panel(self):
         panel = VECTORS / 'panel'
         bytecode, display, graph = build(panel)

@@ -15,6 +15,7 @@ ARENA_BYTES = 256
 CLASSES = {1: ('Window', 32), 2: ('Button', 16)}
 OPEN, NEW, CLOSE, RETURN = 0x10, 0x20, 0x30, 0xff
 CALL = 0x40
+PRINT = 0x50
 METHODS = {1: (1, b'show'), 2: (2, b'activate')}
 MAX_CODE = 4096
 
@@ -34,7 +35,7 @@ def check_header(data, magic, versions=(1,)):
 
 
 def verify(data):
-    size = check_header(data, b'UJBC', (1, 2))
+    size = check_header(data, b'UJBC', (1, 2, 3))
     require(0 < size <= MAX_CODE and len(data) == HEADER.size + size,
             'CODE_SIZE', 6, 'code_size')
     offset = HEADER.size
@@ -47,12 +48,21 @@ def verify(data):
             require(active == 0, 'LIVE_REGION', offset, 'region')
             require(offset + 1 == len(data), 'AFTER_RETURN', offset + 1, 'opcode')
             return instructions
-        require(opcode in (OPEN, NEW, CLOSE) or (opcode == CALL and data[4] == 2),
+        require(opcode in (OPEN, NEW, CLOSE) or (opcode == CALL and data[4] >= 2)
+                or (opcode == PRINT and data[4] == 3),
                 'OPCODE', offset, 'opcode')
         width = 3 if opcode == CALL else 2
         require(offset + width <= len(data), 'MISSING_OPERAND', len(data), 'operand')
         operand = data[offset + 1]
         method = None
+        if opcode == PRINT:
+            end = offset + 2 + operand
+            require(end <= len(data), 'TRUNCATED_TEXT', offset + 1, 'length')
+            text = data[offset + 2:end]
+            require(all(32 <= byte <= 126 for byte in text), 'TEXT', offset + 2, 'text')
+            instructions.append((PRINT, text.decode('ascii'), None))
+            offset = end
+            continue
         if opcode == OPEN:
             require(active == 0 and operand != 0, 'REGION_OPEN', offset + 1, 'region')
             active, used = operand, 0
@@ -94,12 +104,13 @@ def theme(data):
     return styles
 
 
-def run(program, appearance):
+def run(program, appearance=None):
     instructions = verify(program)
-    styles = theme(appearance)
+    styles = theme(appearance) if appearance is not None else {}
     arena = bytearray(ARENA_BYTES)
     used, peak, objects = 0, 0, 0
     allocations, releases, calls, slots = [], [], [], []
+    output = []
     for opcode, operand, method in instructions:
         if opcode == NEW:
             name, size = CLASSES[operand]
@@ -120,9 +131,11 @@ def run(program, appearance):
             releases.append(dict(Region=operand, Objects=objects, Bytes=used))
             used, objects = 0, 0
             slots.clear()
-    return dict(Evidence='HOST', BytecodeBytes=len(program), ThemeBytes=len(appearance),
+        elif opcode == PRINT:
+            output.append(operand)
+    return dict(Evidence='HOST', BytecodeBytes=len(program), ThemeBytes=len(appearance or b''),
                 ArenaBytes=len(arena), PeakObjectBytes=peak, LiveObjectBytes=used,
-                Allocations=allocations, Releases=releases, Calls=calls, Styles=styles)
+                Allocations=allocations, Releases=releases, Calls=calls, Styles=styles, Output=output)
 
 
 def read_bounded(path, maximum):

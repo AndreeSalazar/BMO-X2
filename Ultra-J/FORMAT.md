@@ -49,7 +49,7 @@ class Panel implements View {
 
 Los dos archivos empiezan con ocho bytes. Los enteros multibyte son
 little-endian. Byte 4 indica la version y byte 5 contiene flags `00`.
-UJBC admite versiones 1 y 2. UJTH usa version 1.
+UJBC admite versiones 1, 2 y 3. UJTH usa version 1.
 Los opcodes son de ULTRA-J. Su significado y sus datos se conservan
 en cualquier destino. El codigo de maquina y el ABI del sistema
 pertenecen al presentador o a la VM de cada arquitectura.
@@ -63,6 +63,7 @@ exacta de las instrucciones, de 1 a 4096 bytes. El cuerpo es lineal.
 | `20 cc` | Crea un objeto de clase `cc` en la region activa. La clase `01` (Window) ocupa 32 bytes y `02` (Button) ocupa 16. |
 | `30 rr` | Cierra la region activa si coincide con `rr` y vuelve a entregar el espacio de objetos a la arena. |
 | `40 ss mm` | En v2, llama al metodo `mm` sobre el objeto de indice `ss` en orden de reserva desde cero. |
+| `50 nn ...` | En v3, envia `nn` bytes ASCII imprimibles a la salida de linea de HOST. |
 | `FF` | Retorna con la region cerrada. Debe ser el ultimo byte. |
 
 Cada objeto de la sonda empieza con su ID de clase seguido por bytes a

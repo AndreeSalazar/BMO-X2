@@ -7,14 +7,14 @@ import sys
 from tempfile import NamedTemporaryFile
 from time import sleep
 
-from runtime import CALL, CLASSES, CLOSE, HEADER, MAX_CODE, METHODS, NEW, OPEN, RETURN
+from runtime import CALL, CLASSES, CLOSE, HEADER, MAX_CODE, METHODS, NEW, OPEN, PRINT, RETURN
 from runtime import Rejection, read_bounded, require, verify
 
 
 MAX_SOURCE = 64 * 1024
 WATCH_INTERVAL = 0.010
 TOKENS = re.compile(rb'(?P<trivia>\s+|//[^\r\n]*|/\*.*?\*/)|'
-                    rb'(?P<token>[A-Za-z_$][A-Za-z0-9_$]*|[0-9]+|[{}();=.])|(?P<invalid>.)', re.S)
+                    rb'(?P<token>"[^"\r\n]*"|[A-Za-z_$][A-Za-z0-9_$]*|[0-9]+|[{}();=.])|(?P<invalid>.)', re.S)
 IDENTIFIER = re.compile(rb'[A-Za-z_$][A-Za-z0-9_$]*')
 DECIMAL = re.compile(rb'[1-9][0-9]{0,2}')
 CLASS_IDS = {name.encode('ascii'): number for number, (name, _) in CLASSES.items()}
@@ -23,7 +23,7 @@ RESERVED = frozenset(b'''
     double else enum extends false final finally float for goto if implements import
     instanceof int interface long native new null package private protected public
     return short static strictfp super switch synchronized this throw throws transient
-    true try void volatile while _ var yield record sealed permits Region Window Button
+    true try void volatile while _ var yield record sealed permits Region Window Button Console
 '''.split())
 
 
@@ -88,6 +88,18 @@ def compile_source(data, resolve_crate=None, crate_name=None, argument=None):
     locations = {}
     version = 1
     while source.token != b'return':
+        if source.token == b'Console':
+            source.take(b'Console', b'.', b'println', b'(')
+            text = source.token[1:-1]
+            require(source.token.startswith(b'"') and source.token.endswith(b'"') and len(text) <= 255
+                    and all(32 <= byte <= 126 and byte != 92 for byte in text),
+                    'SOURCE_TEXT', source.offset, 'literal ASCII de hasta 255 bytes sin escapes')
+            source.advance()
+            source.take(b')', b';')
+            code.extend((PRINT, len(text)))
+            code.extend(text)
+            version = 3
+            continue
         if source.token != b'try':
             require(resolve_crate is not None, 'SOURCE_EXPECTED', source.offset, 'try o return')
             offset = source.offset
@@ -119,7 +131,7 @@ def compile_source(data, resolve_crate=None, crate_name=None, argument=None):
                 method, name = METHODS[class_id]
                 source.take(name, b'(', b')', b';')
                 code.extend((CALL, receiver, method))
-                version = 2
+                version = max(version, 2)
                 continue
             declared = None
             if source.token in CLASS_IDS:

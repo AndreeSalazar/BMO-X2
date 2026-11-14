@@ -104,6 +104,25 @@ Deten el proceso con Ctrl+C.
 
 ## La carpeta es el manifiesto
 
+Para comenzar un crate de consola, ejecuta estos comandos desde el
+directorio que alojara la carpeta. En la raiz de BMO-X2 puedes usar:
+
+```powershell
+$ujCli = (Resolve-Path .\Ultra-J\uj.py).Path
+& $ujPython -B $ujCli new crate hola
+Set-Location .\hola
+& $ujPython -B $ujCli run
+```
+
+`new crate hola` crea `hola/main.uj` con
+`Console.println("Hola mundo");`. `run` y `Run` usan la carpeta actual,
+compilan su entrada y publican `build/main.ujb` dentro del crate.
+El programa se ejecuta en HOST. Los crates que llama pueden vivir en
+`crates/<Nombre>/main.uj` debajo de la misma carpeta. Si el crate creado
+esta en BMO-X2, SUPER GRAFO puede leer su informe de dependencias.
+Para vistas, el constructor del perfil de panel conserva las entradas
+que se explican a continuacion.
+
 El nombre de la carpeta identifica el paquete. Sus subcarpetas declaran
 las entradas y dependencias. Esta es la estructura usada por el panel:
 
