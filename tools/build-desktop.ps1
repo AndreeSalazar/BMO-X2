@@ -6,6 +6,7 @@ param(
     [switch]$Session,
     [switch]$External,
     [switch]$UsbProbe,
+    [switch]$UsbMouse,
     [string]$AbiRun,
     [string]$IntroRun
 )
@@ -13,6 +14,7 @@ $ErrorActionPreference = 'Stop'
 if ($Session) { $Guest = $true }
 if ($External -and (-not $Session -or -not $AbiRun)) { throw '-External requiere -Session y -AbiRun.' }
 if ($UsbProbe -and -not $External) { throw '-UsbProbe requiere -External.' }
+if ($UsbMouse -and -not $UsbProbe) { throw '-UsbMouse requiere -UsbProbe.' }
 if ($AbiRun -and -not $Guest) { throw '-AbiRun requiere -Guest.' }
 if ($IntroRun -and -not $AbiRun) { throw '-IntroRun requiere -AbiRun.' }
 $root = Split-Path $PSScriptRoot
@@ -45,6 +47,11 @@ if ($Session) {
         $guestFlags += @('--cfg','usb_probe')
         $elf = Join-Path $build.FullName 'desktop-usb-probe.elf'
         $image = Join-Path $build.FullName 'desktop-usb-probe.sbef'
+        if ($UsbMouse) {
+            $guestFlags += @('--cfg','usb_mouse')
+            $elf = Join-Path $build.FullName 'desktop-usb-mouse.elf'
+            $image = Join-Path $build.FullName 'desktop-usb-mouse.sbef'
+        }
     }
 }
 $fixtureArguments = @()

@@ -46,7 +46,8 @@ def main():
     probes.add_argument('--xhci-command', action='store_true', help='Run the QEMU-only xHCI command probe')
     probes.add_argument('--reuse-session', action='store_true', help='Run the QEMU-only desktop frame reuse probe')
     parser.add_argument('--usb-desktop', type=Path, help='Desktop SBEF compiled with -UsbProbe')
-    parser.add_argument('--usb-full-speed', action='store_true', help='Use a USB 1.x keyboard in the xHCI probe')
+    parser.add_argument('--usb-full-speed', action='store_true', help='Use USB 1.x in the xHCI probe')
+    parser.add_argument('--usb-mouse', action='store_true', help='Probe a USB boot mouse instead of a keyboard')
     args = parser.parse_args()
     abi, splash, desktop = map(workspace, (args.abi_run, args.splash_run, args.desktop_run))
     for path, profile in ((abi, 'ring0-abi-probe-0.1'), (splash, SPLASH_PROFILE),
@@ -59,7 +60,10 @@ def main():
         parser.error('--xhci-command requiere --usb-desktop')
     if args.usb_full_speed and not args.xhci_command:
         parser.error('--usb-full-speed requiere --xhci-command')
-    if args.usb_desktop and args.usb_desktop.resolve() != (ROOT / 'build/desktop/desktop-usb-probe.sbef').resolve():
+    if args.usb_mouse and not args.xhci_command:
+        parser.error('--usb-mouse requiere --xhci-command')
+    usb_name = 'desktop-usb-mouse.sbef' if args.usb_mouse else 'desktop-usb-probe.sbef'
+    if args.usb_desktop and args.usb_desktop.resolve() != (ROOT / 'build/desktop' / usb_name).resolve():
         parser.error('--usb-desktop requiere el resultado local de -UsbProbe')
     sbef = (args.usb_desktop if args.usb_desktop else desktop / 'desktop.sbef').read_bytes()
     budget = desktop_budget(sbef)
@@ -84,6 +88,8 @@ def main():
                         obj, run / f'{name}.bin'], check=True)
     obj = run / 'xhci-stage.o'
     flags = ['-DXHCI_COMMAND_PROBE'] if args.xhci_command else []
+    if args.usb_mouse:
+        flags.append('-DXHCI_MOUSE_PROBE')
     subprocess.run([llvm / 'clang.exe', '--target=x86_64-unknown-none-elf', '-x', 'assembler-with-cpp',
                     *flags, '-c', kernel / 'drivers/bus/xhci_inventory.inc', '-o', obj], check=True)
     subprocess.run([llvm / 'llvm-objcopy.exe', '-O', 'binary', '--only-section=.text',
@@ -148,6 +154,8 @@ def main():
         (run / 'xhci-command.txt').write_text('QEMU\n', encoding='ascii')
     if args.usb_full_speed:
         (run / 'usb-full-speed.txt').write_text('QEMU\n', encoding='ascii')
+    if args.usb_mouse:
+        (run / 'usb-mouse.txt').write_text('QEMU\n', encoding='ascii')
     if args.reuse_session:
         (run / 'reuse-session.txt').write_text('QEMU\n', encoding='ascii')
     subprocess.run([sys.executable, '-B', scripts / 'probe.py', '--workspace', run, '--halt',

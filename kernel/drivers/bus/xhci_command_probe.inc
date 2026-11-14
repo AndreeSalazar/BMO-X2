@@ -422,7 +422,11 @@ configuration_next:
     jne configuration_advance
     cmpb $3, 5(%rbx)
     jne configuration_advance
+#ifdef XHCI_MOUSE_PROBE
+    cmpw $0x0201, 6(%rbx)
+#else
     cmpw $0x0101, 6(%rbx)
+#endif
     jne configuration_advance
     mov 2(%rbx), %cl
     or $0x100, %ecx
@@ -488,8 +492,15 @@ keyboard_first_report:
     # Emulated boot keyboard, endpoint 1 IN.
     cmpb $0x81, %gs:0x392
     jne keyboard_report_done
-    cmpw $8, %gs:0x394
+    movzwl %gs:0x394, %edx
+#ifdef XHCI_MOUSE_PROBE
+    lea -3(%rdx), %eax
+    cmp $5, %eax
+    ja keyboard_report_done
+#else
+    cmp $8, %edx
     jne keyboard_report_done
+#endif
     movzbl %gs:0x393, %eax
     test %eax, %eax
     jz keyboard_report_done
@@ -514,10 +525,14 @@ keyboard_interval_ready:
     mov %eax, (%rbx)
     movl $0, XHCI_INPUT_CONTEXT(%r8)
     movl $9, XHCI_INPUT_CONTEXT+4(%r8)
-    movl $0x0008003e, 4(%rbx)
+    mov %edx, %eax
+    shl $16, %eax
+    lea 0x3e(%rax), %ecx
+    mov %ecx, 4(%rbx)
+    or %edx, %eax
+    mov %eax, 16(%rbx)
     lea 0x4901(%r8), %rax
     mov %rax, 8(%rbx)
-    movl $0x00080008, 16(%rbx)
     lea XHCI_INPUT_CONTEXT(%r8), %rax
     mov %rax, 0x1030(%r8)
     movl $0x01003001, 0x103c(%r8)
@@ -544,7 +559,8 @@ keyboard_report_submit:
     shl $4, %rbx
     lea 0x4900(%r8,%rbx), %rbx
     mov %rdx, (%rbx)
-    movl $8, 8(%rbx)
+    movzwl %gs:0x394, %eax
+    mov %eax, 8(%rbx)
     movzbl %gs:0x3ca, %eax
     cmpb $3, %cl
     jne keyboard_publish
@@ -552,7 +568,11 @@ keyboard_report_submit:
     mov %edx, 0x494c(%r8)      # Link TRB, toggle cycle.
     xorb $1, %gs:0x3ca
 keyboard_publish:
+#ifdef XHCI_MOUSE_PROBE
+    or $0x424, %eax              # Interrupt on a short packet as well.
+#else
     or $0x420, %eax
+#endif
     mov %eax, 12(%rbx)
     movl $3, 4(%r10)
     incb %gs:0x396
@@ -578,8 +598,20 @@ keyboard_report_event:
     and $0xfffffc00, %eax
     cmp $0x01038000, %eax
     jne keyboard_live_error
+#ifdef XHCI_MOUSE_PROBE
+    mov 8(%rsi), %eax
+    cmp $0x01000000, %eax
+    je mouse_report_ready
+    sub $0x0d000000, %eax
+    movzwl %gs:0x394, %edx
+    sub $3, %edx
+    cmp %edx, %eax
+    ja keyboard_live_error
+mouse_report_ready:
+#else
     cmpl $0x01000000, 8(%rsi)
     jne keyboard_live_error
+#endif
     cmp %rbx, (%rsi)
     jne keyboard_live_error
     add $16, %rsi
@@ -600,6 +632,9 @@ keyboard_event_next:
     and $3, %ecx
     call keyboard_report_submit
     pop %rax
+#ifdef XHCI_MOUSE_PROBE
+    bts $63, %rax
+#endif
     incb %gs:0x398
     ret
 keyboard_live_error:

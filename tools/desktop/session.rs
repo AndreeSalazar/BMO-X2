@@ -7,6 +7,7 @@ use core::panic::PanicInfo;
 mod cabina;
 mod settings;
 #[cfg(usb_probe)]
+#[cfg_attr(usb_mouse, path = "usb_mouse_probe.rs")]
 mod usb_probe;
 #[cfg(desktop_doom)]
 mod doom_window;
@@ -246,7 +247,7 @@ extern "C" fn bmo_main() -> ! {
     let controllers = invoke(3, 3, 4, 0);
     let usb_pending = controllers != DENIED && (1..=65536).contains(&controllers);
     #[cfg(usb_probe)]
-    let mut usb = usb_probe::Keyboard::default();
+    let mut usb = usb_probe::Input::default();
     #[cfg(all(external_session, not(usb_probe)))]
     let (mut keyboard_seen, mut mouse_seen, mut input_dirty) = (false, false, true);
     loop {
@@ -267,7 +268,15 @@ extern "C" fn bmo_main() -> ! {
             }
         }
         #[cfg(usb_probe)]
-        let raw = usb.next().unwrap_or_else(|| invoke(INPUT, READ_INPUT, 0, 0));
+        let raw = usb.next().unwrap_or_else(|| {
+            let input = invoke(INPUT, READ_INPUT, 0, 0);
+            #[cfg(usb_mouse)]
+            if input & 512 != 0 {
+                // This probe has one pointer. Keep the PS/2 keyboard for CABINA.
+                return 256;
+            }
+            input
+        });
         #[cfg(not(usb_probe))]
         let raw = invoke(INPUT, READ_INPUT, 0, 0);
         if raw & 512 != 0 {

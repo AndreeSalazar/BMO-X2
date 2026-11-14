@@ -82,9 +82,17 @@ HOST genera `build/desktop/desktop-usb-probe.sbef`. Pasarlo a
 `stage_desktop_media.py` con `--xhci-command --usb-desktop` permite
 probar la entrega mediante INVOKE. Ring 3 usa el decodificador HID
 boot y QEMU verifica que F2 abra CABINA con el controlador activo.
-WAIT detecta el informe en un despertar del PIT. La sonda queda en
-`qemu-only/`. Faltan la recuperacion tras desconexion, el raton y
-la validacion en metal.
+WAIT detecta el informe en un despertar del PIT.
+
+Para la variante de raton, agregar `-UsbMouse` y pasar
+`build/desktop/desktop-usb-mouse.sbef` con `--usb-desktop` y
+`--usb-mouse`. QEMU comprueba el movimiento en ambos sentidos,
+el clic que cambia el foco y la parada tras `session exit`.
+La variante usa teclado PS/2 emulado para CABINA.
+
+Ambas sondas quedan en `qemu-only/`. La siguiente prueba requiere
+gestionar teclado y raton USB a la vez, retirar y reabrir una ranura
+tras desconexion y registrar las fases de enumeracion en metal.
 
 El primer objetivo fisico es llegar a una parada controlada en Ring 0 desde
 el firmware UEFI x86-64 y poder explicar en que fase quedo el equipo. El

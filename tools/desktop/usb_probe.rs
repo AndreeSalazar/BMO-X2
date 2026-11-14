@@ -1,7 +1,7 @@
 use bmo_x2_desktop::usb_hid::BootKeyboard;
 
 #[derive(Default)]
-pub struct Keyboard {
+pub struct Input {
     decoder: BootKeyboard,
     // At most six releases, eight modifier changes and six presses.
     // Extended modifiers add one prefix byte each.
@@ -10,7 +10,7 @@ pub struct Keyboard {
     end: usize,
 }
 
-impl Keyboard {
+impl Input {
     pub fn next(&mut self) -> Option<u32> {
         if self.next == self.end {
             let raw = super::invoke_word(3, 3, 5, 0);

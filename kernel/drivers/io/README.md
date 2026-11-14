@@ -11,4 +11,4 @@ Ofrece recursos de entrada y salida a servicios autorizados.
 - Entrada: Dispositivos descubiertos, buffers y eventos.
 - Salida: Canales y ventanas de aparato acotados.
 - Aceptacion: Pruebas de acceso, revocacion y fallo de servicio por dispositivo admitido.
-- Pendiente: QEMU abre CABINA con xHCI activo y recibe 260 informes con colas fijas antes de cerrar la sesion. Faltan reconexion, raton y validacion de controladores fisicos.
+- Pendiente: QEMU verifica 260 informes de teclado y, en otra sonda, movimiento y foco con raton USB. Faltan uso simultaneo, reconexion y validacion en controladores fisicos.

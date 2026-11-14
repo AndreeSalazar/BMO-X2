@@ -47,6 +47,10 @@ antes del cierre de sesion.
 WAIT comprueba el evento al despertar del PIT. INVOKE valida el TRB
 y entrega el informe a Rust. QEMU comprueba que CABINA abre con el
 controlador activo y que este se detiene al ejecutar `session exit`.
+La variante `--usb-mouse` usa las mismas colas con el tamano anunciado
+por el endpoint y acepta reportes cortos con al menos tres bytes.
+Ring 3 adapta botones y desplazamientos HID a su flujo de puntero.
+QEMU coteja el informe recibido, la posicion del cursor y el foco.
 La etapa se guarda bajo `qemu-only`. Antes de programar las colas,
 Ring 0 exige que las diez paginas tengan cobertura exclusiva de
 EfiLoaderData y esten separadas del contexto, del paquete y del SBEF.
@@ -58,8 +62,13 @@ driver. La proteccion frente a un dispositivo que accede fuera de
 esas direcciones requiere que el hardware aplique un dominio IOMMU.
 El contrato comun de prestamos define propiedad, direccion y
 revocacion. AMD IOMMU e Intel VT-d son posibles implementaciones
-de ese contrato. Quedan pendientes esos dominios, la recuperacion de
-teclado tras desconexion y la enumeracion del raton.
+de ese contrato. Quedan pendientes esos dominios, la enumeracion
+simultanea y la recuperacion de dispositivos tras desconexion.
+Para el futuro reciclador, conservar la regla de propiedad explicita:
+reutilizar una posicion cuando llega su finalizacion y liberar las paginas
+de la sesion tras confirmar la parada del controlador.
+
+[Especificacion xHCI, seccion 4.10.1.1.2](https://cdrdv2-public.intel.com/625472/625472_xHCI_Rev1_2b.pdf)
 
 QEMU pide cero scratchpads. La prueba coteja las cuatro direcciones
 de la tabla, las paginas a cero y DCBAA[0] a cero. Queda probar el uso

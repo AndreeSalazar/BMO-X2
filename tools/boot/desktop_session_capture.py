@@ -141,7 +141,28 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         time.sleep(0.2)
 
     command_probe = desktop_media and (prefix.parent.parent / 'xhci-command.txt').is_file()
-    if command_probe:
+    mouse_probe = command_probe and (prefix.parent.parent / 'usb-mouse.txt').is_file()
+    if mouse_probe:
+        wait_until(lambda: logical(52, 99, 0x5ad8ff) and sleeping()
+                   and memory(address + 0x1a3c8, 1, 'xhci-live') == b'\x01')
+        command('input-send-event', {'events': [
+            {'type': 'rel', 'data': {'axis': 'x', 'value': 100}},
+        ]})
+        wait_until(lambda: logical(420, 200, 0xe7efff))
+        for down in (True, False):
+            command('input-send-event', {'events': [
+                {'type': 'btn', 'data': {'button': 'left', 'down': down}},
+            ]})
+            if down:
+                wait_until(lambda: logical(390, 147, 0x5ad8ff))
+        wait_until(lambda: memory(address + 0x1a398, 1, 'xhci-delivered')[0] >= 3)
+        command('input-send-event', {'events': [
+            {'type': 'rel', 'data': {'axis': 'x', 'value': -25}},
+            {'type': 'rel', 'data': {'axis': 'y', 'value': -30}},
+        ]})
+        wait_until(lambda: logical(395, 170, 0xe7efff) and sleeping())
+        command('screendump', {'filename': str(prefix) + '-usb-mouse.png', 'format': 'png'})
+    elif command_probe:
         wait_until(lambda: memory(address + 0x1a396, 1, 'xhci-armed') == b'\x01')
         wait_until(lambda: logical(52, 99, 0x5ad8ff) and sleeping())
         key('f2')
@@ -231,9 +252,16 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
             data = reserved[0x4c40:0x4c40 + total]
             assert len(data) == total and data[:5] == struct.pack('<BBHB', 9, 2, total, 1)
             assert config == data[5] and endpoint & 0x80
-            assert memory(address + 0x1a397, 1, 'xhci-report-state') == b'\x04'
+            report_count = memory(address + 0x1a397, 1, 'xhci-report-state')[0]
             reports = [reserved[offset:offset + 8] for offset in range(0x4e80, 0x4ea0, 8)]
-            assert reports == [bytes([0, 0, usage, 0, 0, 0, 0, 0]) for usage in (0x3c, 0, 0x3c, 0)]
+            if mouse_probe:
+                assert report_count == 4
+                assert [report[:3] for report in reports] == [
+                    b'\x00\x64\x00', b'\x01\x00\x00', b'\x00\x00\x00', b'\x00\xe7\xe2',
+                ]
+            else:
+                assert report_count == 4
+                assert reports == [bytes([0, 0, usage, 0, 0, 0, 0, 0]) for usage in (0x3c, 0, 0x3c, 0)]
             assert wait_stats()[0] > 0
         else:
             assert reserved == bytes(pages * 4096)
@@ -273,14 +301,15 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         assert scratchpads == ((params2 >> 27) | ((params2 >> 16) & 0x3e0))
         assert context_bytes == (64 if cap1 & 4 else 32)
         if command_probe:
-            interval = data[data.index(bytes([7, 5, endpoint])) + 6]
+            packet_size, interval = struct.unpack_from('<HB', data, data.index(bytes([7, 5, endpoint])) + 4)
             expected_interval = interval - 1 if speed == 3 else interval.bit_length() + 2
             input_control = struct.unpack_from('<II', reserved, 0x5000)
             assert input_control == (0, 9)
             slot_context = struct.unpack_from('<I', reserved, 0x5000 + context_bytes)[0]
             assert slot_context >> 27 == 3 and (slot_context >> 20) & 0xf == speed
             endpoint_context = struct.unpack_from('<IIQI', reserved, 0x5000 + 4*context_bytes)
-            assert endpoint_context == (expected_interval << 16, 0x0008003e, dma + 0x4901, 0x00080008)
+            assert endpoint_context == (expected_interval << 16, packet_size << 16 | 0x3e,
+                                        dma + 0x4901, packet_size << 16 | packet_size)
             assert struct.unpack_from('<Q', reserved)[0] == (dma + 0x800 if scratchpads else 0)
             assert struct.unpack_from('<4Q', reserved, 0x800) == tuple(
                 dma + page * 4096 for page in range(6, 10))
@@ -296,6 +325,9 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         if not command_probe:
             assert logical(24, 354, 0x232638), 'El escritorio no mostro el aviso de entrada USB'
         if command_probe:
+            if mouse_probe:
+                key('f2')
+                wait_until(lambda: logical(40, 86, 0x40465d))
             for letter in 'session exit':
                 key('spc' if letter == ' ' else letter)
             key('ret')
@@ -313,25 +345,31 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
             assert memory(address + 0x15400, 8, 'xhci-alias-pde') == bytes(8)
             assert memory(address + 0x1e000, 24, 'xhci-alias-pte') == bytes(24)
             assert memory(address + 0x17000, 40, 'usb-closed-pte') == bytes(40)
-            # QEMU routes these keys to usb-kbd. This run ends with DMA stopped.
-            return dict(Case='normal', Passed=True, UserCpl=3, DesktopSession=True,
+            result = dict(Case='normal', Passed=True, UserCpl=3, DesktopSession=True,
                         XhciCommandCompleted=True, XhciUsbDeviceAddressed=True,
                         XhciUsbDeviceDescriptorRead=True, XhciPort=port, XhciSpeed=speed,
                         XhciSlot=slot, XhciControllerStopped=True,
-                        UsbConfigurationBytes=total, UsbBootKeyboardInterface=interface,
-                        UsbKeyboardEndpoint=endpoint, UsbBootProtocolSelected=True,
+                        UsbConfigurationBytes=total, UsbBootProtocolSelected=True,
                         UsbDeviceDescriptor=descriptor.hex(),
-                        UsbKeyboardReportsBeforeExit=260, UsbKeyboardRingWrapVerified=True,
                         UsbSessionExitVerified=True,
-                        UsbKeyboardFinalReports=[report.hex() for report in reports],
-                        UsbKeyboardTransferVerified=True,
                         UsbInputVerified=True, UsbCabinaVerified=True, CpuL1=cache,
                         XhciControllers=count, XhciSelectedBdf=f'{bdf:04X}', XhciConnectedPorts=rank-1,
                         XhciResetStage=reset_stage, XhciScratchpadPages=scratchpads, XhciContextBytes=context_bytes,
                         DmaReservationValidated=True, XhciReservedBytes=pages * 4096,
                         UsbCabinaOpenedWhileControllerRunning=True, UsbWaitVerified=True,
-                        XhciKeyboardInterval=expected_interval, XhciContextLayoutVerified=True,
+                        XhciContextLayoutVerified=True,
                         XhciScratchpadCapacityPages=4, XhciScratchpadTableVerified=True)
+            if mouse_probe:
+                result.update(UsbBootMouseInterface=interface, UsbMouseEndpoint=endpoint,
+                              UsbMouseReportsBeforeExit=report_count, UsbMouseVerified=True,
+                              UsbMouseFinalReports=[report.hex() for report in reports],
+                              XhciMouseInterval=expected_interval)
+            else:
+                result.update(UsbBootKeyboardInterface=interface, UsbKeyboardEndpoint=endpoint,
+                              UsbKeyboardReportsBeforeExit=260, UsbKeyboardRingWrapVerified=True,
+                              UsbKeyboardFinalReports=[report.hex() for report in reports],
+                              UsbKeyboardTransferVerified=True, XhciKeyboardInterval=expected_interval)
+            return result
     timeout_before = wait_stats()[1]
     wait_until(lambda: wait_stats()[1] > timeout_before)
     event_before = wait_stats()[0]
