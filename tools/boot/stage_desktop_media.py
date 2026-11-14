@@ -41,7 +41,9 @@ def main():
     parser.add_argument('abi_run', type=Path)
     parser.add_argument('splash_run', type=Path)
     parser.add_argument('desktop_run', type=Path)
-    parser.add_argument('--xhci-command', action='store_true', help='Run the QEMU-only xHCI command probe')
+    probes = parser.add_mutually_exclusive_group()
+    probes.add_argument('--xhci-command', action='store_true', help='Run the QEMU-only xHCI command probe')
+    probes.add_argument('--reuse-session', action='store_true', help='Run the QEMU-only desktop frame reuse probe')
     args = parser.parse_args()
     abi, splash, desktop = map(workspace, (args.abi_run, args.splash_run, args.desktop_run))
     for path, profile in ((abi, 'ring0-abi-probe-0.1'), (splash, SPLASH_PROFILE),
@@ -60,6 +62,8 @@ def main():
         obj = run / f'{name}.o'
         source = scripts.parent / 'desktop/session_gate.S' if name == 'session_gate' else scripts / f'{name}.S'
         flags = ['-DXHCI_COMMAND_PROBE'] if args.xhci_command else []
+        if args.reuse_session:
+            flags.append('-DDESKTOP_REUSE')
         subprocess.run([llvm / 'clang.exe', '--target=x86_64-unknown-none-elf',
                         '-DDESKTOP_MEDIA', '-DDESKTOP_EXTERNAL', *flags,
                         '-c', source, '-o', obj], check=True)
@@ -77,7 +81,7 @@ def main():
     gate = (run / 'session_gate.bin').read_bytes()
     loader = (run / 'external_sbef.bin').read_bytes()
     packet, _ = make_packet(reference, sbef, session_gate=gate, external=loader)
-    if not args.xhci_command:
+    if not (args.xhci_command or args.reuse_session):
         packet, _ = prepend_intro(packet, intro)
         (run / 'intro.x86').write_bytes(intro)
         shutil.copyfile(splash / 'source.casm', run / 'intro.casm')
@@ -126,11 +130,13 @@ def main():
             (run / 'build/puente-normal.img').replace(run / 'build/puente-external-permissions.img')
     if args.xhci_command:
         (run / 'xhci-command.txt').write_text('QEMU\n', encoding='ascii')
+    if args.reuse_session:
+        (run / 'reuse-session.txt').write_text('QEMU\n', encoding='ascii')
     subprocess.run([sys.executable, '-B', scripts / 'probe.py', '--workspace', run, '--halt',
                     '--abi-probe', '--doom-fixture', '--ram-mib', '1024', '--casos', 'normal', 'external-permissions'],
                    check=True, cwd=run, timeout=100)
 
-    media = run / ('qemu-only' if args.xhci_command else 'media')
+    media = run / ('qemu-only' if args.xhci_command or args.reuse_session else 'media')
     files = {'EFI/BMO-X2/BMO-X2.EFI': efi, 'BMO-X2/INICIO.X86': payload,
              'BMO-X2/DESKTOP.SBF': run / 'desktop.sbef'}
     for name, src in files.items():
@@ -139,6 +145,7 @@ def main():
         shutil.copyfile(src, target)
     report = json.loads((run / 'build/puente-test-results.json').read_text(encoding='utf-8'))
     report.update(run=run.name, evidence='QEMU', disk_sbef=True, physical_boot=False,
+                  desktop_reuse_probe=args.reuse_session,
                   desktop_budget=budget, boot_packet_bytes=len(packet), uefi_bridge_bytes=len(image),
                   files={name: sha(media / name) for name in files})
     (run / 'qemu-results.json').write_text(json.dumps(report, indent=2) + '\n', encoding='ascii')

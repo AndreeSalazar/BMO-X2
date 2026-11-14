@@ -420,7 +420,7 @@ finish:
     iretq
 
 #ifdef DESKTOP_EXTERNAL
-# The fixed external profile owns five user pages and has no second client.
+# The fixed external profile owns five user pages.
 session_exit:
     test %rdi, %rdi
     jne denied
@@ -446,6 +446,36 @@ session_exit:
     and $0xfe, %al
     wrmsr
     mov $5, %r12d
+#ifdef DESKTOP_REUSE
+    # 0 = first owner, 1 = free, 2 = second owner, 3 = free and stopped.
+    incb %gs:0x3a8
+    cmpb $1, %gs:0x3a8
+    jne session_closed
+restart_wait:
+    in $0x64, %al
+    cmp $0xff, %al
+    je restart_sleep
+    test $1, %al
+    jz restart_sleep
+    mov %eax, %edx
+    in $0x60, %al
+    test $0x20, %dl
+    jnz restart_wait
+    cmp $0x3e, %al                # PS/2 F4 make code.
+    je restart_session
+restart_sleep:
+    cmpb $0, %gs:0x330
+    je restart_wait
+    sti
+    hlt
+    cli
+    jmp restart_wait
+restart_session:
+    mov %gs:0x308, %rsp
+    mov %r8, %r11
+    lea 0x7000(%r11), %r10
+    jmp *%gs:0x3a0
+#endif
 session_closed:
     hlt
     jmp session_closed

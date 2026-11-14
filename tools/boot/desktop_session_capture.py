@@ -342,25 +342,51 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     if external_image is not None and count == 3:
         descriptor = address + 0x1a000
         bridge_cr3 = struct.unpack('<Q', memory(descriptor + 0x318, 8, 'bridge-cr3'))[0]
-        key('f2')
-        wait_until(lambda: logical(24, 24, 0x232638))
-        for letter in 'session exit':
-            key('spc' if letter == ' ' else letter)
-        key('ret')
+        reuse = desktop_media and (prefix.parent.parent / 'reuse-session.txt').is_file()
+
+        def close_session():
+            key('f2')
+            wait_until(lambda: logical(24, 24, 0x232638))
+            for letter in 'session exit':
+                key('spc' if letter == ' ' else letter)
+            key('ret')
 
         def session_closed():
             regs = registers()
             return ('CPL=0' in regs and 'HLT=1' in regs and register(regs, 'R12') == 5
                     and register(regs, 'CR3') == bridge_cr3 and not register(regs, 'EFER') & 1)
 
-        wait_until(session_closed)
-        assert memory(address + 0x17000, 40, 'closed-pte') == bytes(40)
-        assert memory(address + 0x18000, 8192, 'closed-text') == bytes(8192)
-        assert memory(address + 0x1b000, 12288, 'closed-stack-and-data') == bytes(12288)
+        def verify_closed():
+            wait_until(session_closed)
+            assert memory(address + 0x17000, 40, 'closed-pte') == bytes(40)
+            assert memory(address + 0x18000, 8192, 'closed-text') == bytes(8192)
+            assert memory(address + 0x1b000, 12288, 'closed-stack-and-data') == bytes(12288)
+
+        close_session()
+        verify_closed()
         closed = dict(SessionClosed=True, SyscallGateDisabled=True, UserPagesUnmapped=5, UserBytesScrubbed=20480)
+        if reuse:
+            def owner(expected):
+                return memory(descriptor + 0x3a8, 1, 'session-owner') == bytes([expected])
+
+            assert owner(1)
+            key('f4')
+            wait_until(lambda: owner(2) and logical(52, 99, 0x5ad8ff)
+                       and logical(320, 200, 0xe7efff) and sleeping())
+            regs = registers()
+            assert register(regs, 'EFER') & 1 and register(regs, 'CR3') == base
+            new_entries = struct.unpack('<QQQQQ', memory(address + 0x17000, 40, 'reused-pte'))
+            assert tuple(entry & ~0x60 for entry in new_entries) == tuple(entry & ~0x60 for entry in entries)
+            assert memory(address + 0x1d000, 8, 'reused-data') == struct.pack('<II', 0x52334441, 0x52334253)
+            key('2')
+            wait_until(lambda: logical(52, 99, 0xad92ff))
+            close_session()
+            verify_closed()
+            assert owner(3)
+            closed.update(SessionsCompleted=2, ReusedUserPages=5, SecondSessionInputVerified=True)
     return dict(Case='normal', Passed=True, BootServicesExited=True, UserCPL=3,
                 IntroFramesObserved=sorted(frames), WorkspacesVerified=[1, 2, 3, 4],
-                KeyboardVerified=True, FocusRestored=True, DesktopSession=True, IntroReplaced=True,
+                KeyboardVerified=True, FocusRestored=True, DesktopSession=True, IntroReplaced=bool(intro),
                 MouseVerified=True, Framebuffer=[width, height], DesktopScale=scale,
                 PointerMovesVerified=5, FullRepaintsDuringPointerMoves=0,
                 PointerBurstEvents=48,

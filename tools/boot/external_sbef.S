@@ -3,6 +3,11 @@
 # R11 is the private page-table reservation, R10 its descriptor page.
 .globl external_sbef
 external_sbef:
+#ifdef DESKTOP_REUSE
+.Lreload_entry:
+    lea .Lreload_entry(%rip), %rax
+    mov %rax, 0x3a0(%r10)
+#endif
 #ifdef DESKTOP_MEDIA
     mov 0xa8(%rbp), %rsi
     mov 0xb0(%rbp), %rdx
@@ -119,6 +124,10 @@ payload_checked:
     sub %rdi, %rcx
     xor %eax, %eax
     rep stosb
+#ifdef DESKTOP_REUSE
+    lea 0x5005(%r11), %rax
+    mov %rax, 0x4000(%r11)
+#endif
     # The old stack page becomes the second immutable code page.
     lea 0x6005(%r11), %rax
     mov %rax, 0x4008(%r11)
@@ -176,4 +185,38 @@ rejected_message:
     hlt
 #endif
 exit:
+#ifdef DESKTOP_REUSE
+    # First load follows the fixture's GDT setup. The next uses the live GDT.
+    cmpb $1, 0x3a8(%r10)
+    jne first_entry
+    movb $2, 0x3a8(%r10)
+    mov $0xc0000080, %ecx
+    rdmsr
+    or $1, %al
+    wrmsr
+    mov %r11, %cr3
+    pushq $0x1b
+    pushq $0x40003000
+    pushq $2
+    pushq $0x23
+    push %r12
+    xor %eax, %eax
+    xor %ebx, %ebx
+    xor %ecx, %ecx
+    xor %edx, %edx
+    xor %esi, %esi
+    xor %edi, %edi
+    xor %ebp, %ebp
+    xor %r8d, %r8d
+    xor %r9d, %r9d
+    xor %r10d, %r10d
+    xor %r11d, %r11d
+    xor %r12d, %r12d
+    xor %r13d, %r13d
+    xor %r14d, %r14d
+    xor %r15d, %r15d
+    swapgs
+    iretq
+first_entry:
+#endif
     # The packet builder appends the jump to the ABI fixture's GDT setup.

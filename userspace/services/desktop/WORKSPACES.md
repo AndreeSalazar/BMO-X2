@@ -238,8 +238,19 @@ la sesion. INVOKE usa el identificador propio 0 y la operacion 8.
 Ring 0 vuelve a las tablas del puente, retira las cinco entradas de
 usuario, borra 20 KiB de codigo, pila y datos, y deshabilita SYSCALL
 para este perfil de un cliente. El invitado queda detenido en Ring 0.
-Quedan pendientes la entrega de los marcos al asignador y la carga de
-una segunda sesion sin reiniciar.
+
+La sonda `--reuse-session` comprueba dos sesiones consecutivas con el
+mismo SBEF de escritorio cargado desde FAT32. Tras `session exit`, F4
+vuelve a validar el SBEF que conserva el cargador, activa los cinco
+mapeos de usuario sobre los mismos marcos y reinicia el escritorio.
+QEMU coteja los marcos, la inicializacion de datos y BSS, el teclado
+de la segunda sesion y el segundo borrado. La sonda usa PS/2 y omite
+la intro para mantener el limite de 4096 bytes del puente.
+
+El siguiente hito es transferir esos marcos al asignador de Ring 0 y
+cargar un SBEF distinto. Despues quedan el contexto privado por proceso,
+el supervisor que recupera fallos, y un contrato de servicios de
+pantalla, entrada, tiempo y archivos para aplicaciones independientes.
 
 Cuando INVOKE deja el FIFO PS/2 vacio, la sesion llama a WAIT.
 Ring 0 duerme la CPU con HLT entre interrupciones del PIT y
