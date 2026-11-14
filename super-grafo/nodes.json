@@ -2089,7 +2089,7 @@
     },
     {
       "id": "ultra-j-view",
-      "titulo": "ULTRA-J: estructura, estilos y presentacion",
+      "titulo": "ULTRA-J: estructura y estilos",
       "ruta": "Ultra-J/view.py",
       "estado": "qemu",
       "anillo": "host",
@@ -2097,9 +2097,23 @@
       "posicion": [2740, 2375],
       "que": "Compila estructura y estilos a dos listas binarias de dibujo.",
       "entrada": "Vista .ujh, estilos .ujc y atlas de CABINA.",
-      "salida": "Vista .ujv incrustada en un SBEF de Ring 3.",
+      "salida": "Vista UJVI con coordenadas logicas independiente del destino.",
       "aceptacion": "QEMU verifica ambos estados, ida y vuelta con Enter y rechazo de SBEF W+X.",
       "falta": "Conectar objetos .ujb, eventos por elemento y compositor DIRECTOR."
+    },
+    {
+      "id": "ultra-j-x86-view",
+      "titulo": "ULTRA-J: presentador x86-64",
+      "ruta": "Ultra-J/targets/x86_64",
+      "estado": "qemu",
+      "anillo": "host",
+      "lenguaje": "ASM x86-64 y PowerShell",
+      "posicion": [3070, 2375],
+      "que": "Empaqueta un presentador de Ring 3 para los servicios INVOKE y WAIT de BMO-X2.",
+      "entrada": "Vista UJVI compilada y ABI x86-64.",
+      "salida": "SBEF con presentador nativo y vista de solo lectura.",
+      "aceptacion": "QEMU muestra la vista, entrega Enter y coteja los fotogramas.",
+      "falta": "Integrar con DIRECTOR y comprobar en metal."
     },
     {
       "id": "desktop-workspaces",
@@ -2202,6 +2216,11 @@
     }
   ],
   "relaciones": [
+    {
+      "de": "ultra-j-x86-view",
+      "a": "ultra-j-view",
+      "clase": "codigo"
+    },
     {
       "de": "ultra-j-view",
       "a": "ultra-j-format",

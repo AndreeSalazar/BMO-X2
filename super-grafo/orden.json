@@ -1,5 +1,9 @@
 {
   "tintes": {
+    "Ultra-J/targets/x86_64": {
+      "rgb": [90, 220, 255],
+      "motivo": "Presentador de Ring 3 y empaquetado x86-64."
+    },
     "Ultra-J/view.py": {
       "rgb": [90, 200, 140],
       "motivo": "Compila estructura y estilo binario con evidencia visual QEMU."
@@ -575,6 +579,7 @@
   "rejilla": false,
   "bloqueada": true,
   "grafo": {
+    "Ultra-J/targets/x86_64": [3070, 2375],
     "Ultra-J/view.py": [2740, 2375],
     "Ultra-J/FORMAT.md": [1750, 2375],
     "Ultra-J/runtime.py": [2080, 2375],

@@ -48,6 +48,24 @@ Enter alterna LISTO y ACTIVO. El perfil admite coordenadas fijas y texto
 A-Z/0-9 con la fuente de CABINA. La integracion con objetos `.ujb`,
 eventos por elemento y el compositor DIRECTOR queda pendiente.
 
+## Frontera por arquitectura
+
+| Carpeta o archivo | Responsabilidad |
+|---|---|
+| `compiler.py` y `runtime.py` | Escritura estilo Java, instrucciones UJBC y regiones de objetos. |
+| `view.py` | Estructura y estilos de la vista, con coordenadas logicas y salida UJVI. |
+| `targets/x86_64/` | Presentador, instrucciones de CPU y empaquetado para el ABI x86-64 de BMO-X2. |
+| `qemu.ps1` | Compila la vista, construye el presentador x86-64 y ejecuta el ensayo. |
+
+UJBC, UJTH y UJVI tienen tamanos, orden de bytes y significado fijos
+con independencia de la CPU. La capa x86-64 recibe un archivo UJVI ya
+compilado y traduce sus rectangulos a peticiones INVOKE del sistema.
+Las variables de entrada y la espera de eventos tambien pertenecen
+a esa capa. Un futuro destino RISC-V o ARM64 reutilizara los mismos
+vectores y aportara su presentador, ABI y formato de carga nativo.
+
+## Ejecutar el ensayo
+
 Con los tres runs de BMO-X2 ya generados, desde la raiz:
 
 ```powershell

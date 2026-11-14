@@ -62,7 +62,7 @@ invalid:
 
 .section .rodata
 view:
-    .incbin "panel.ujv"
+    .incbin UJ_VIEW_FILE
 view_end:
 
 .data

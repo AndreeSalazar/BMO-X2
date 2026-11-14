@@ -42,6 +42,9 @@ class Panel implements View {
 
 Los dos archivos empiezan con ocho bytes. Los enteros multibyte son
 little-endian. En ambos, byte 4 es version `01` y byte 5 es flags `00`.
+Los opcodes son de ULTRA-J. Su significado y sus datos se conservan
+en cualquier destino. El codigo de maquina y el ABI del sistema
+pertenecen al presentador o a la VM de cada arquitectura.
 
 **`.ujb`** usa la firma ASCII `UJBC`. Los bytes 6 y 7 indican la longitud
 exacta de las instrucciones, de 1 a 4096 bytes. El cuerpo es lineal.
