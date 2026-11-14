@@ -88,8 +88,19 @@ if ($Guest -and -not $Session) {
 if ($LASTEXITCODE -ne 0) { throw 'Fallo el enlace ELF del escritorio.' }
 $budget = @()
 if ($External) { $budget = @('--max-file-bytes', '16512', '--max-mapped-bytes', '16384') }
-& $Python -B (Join-Path $root 'tools/sbef.py') pack $elf $image --abi 1 @budget
+$sizeReport = & $Python -B (Join-Path $root 'tools/sbef.py') pack $elf $image --abi 1 --size-report @budget
 if ($LASTEXITCODE -ne 0) { throw 'Fallo la admision HOST del escritorio.' }
+$sizePath = [IO.Path]::ChangeExtension($image, 'size.json')
+$sizeReport | Set-Content -LiteralPath $sizePath -Encoding ascii
+$sizeReport
+if ($External) {
+    $symbolPath = [IO.Path]::ChangeExtension($image, 'symbols.txt')
+    $symbols = & (Join-Path $Llvm 'llvm-nm.exe') --defined-only --print-size --size-sort --reverse-sort --demangle $elf
+    if ($LASTEXITCODE -ne 0) { throw 'Fallo el inventario de simbolos del escritorio.' }
+    $symbols | Set-Content -LiteralPath $symbolPath -Encoding ascii
+    Write-Output "Simbolos ELF por tamano: $symbolPath"
+}
+Write-Output "Medidas HOST: $sizePath"
 Write-Output "SBEF: $image"
 if ($AbiRun) {
     $introArguments = @()

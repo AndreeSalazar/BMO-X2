@@ -213,6 +213,18 @@ pila de 4 KiB. El informe distingue esos valores del paquete de
 arranque y del puente UEFI. El reto de 2 KiB corresponde al paquete
 minimo del banco ABI.
 
+El build emite `desktop-session.size.json` y
+`desktop-session.symbols.txt` en `build/desktop`. HOST muestra
+bytes del ELF, cabecera y tabla SBEF, contenido por region, ceros de
+BSS y relleno por pagina. Los simbolos del ELF se ordenan por tamano
+para localizar candidatos de optimizacion.
+
+Compartir las rutinas Rust de dibujo e INVOKE reduce 64 bytes de
+codigo en el perfil externo. El SBEF pasa de 8958 a 8894 bytes.
+La region RX sigue usando dos paginas; el ahorro en RAM medido
+por regiones es cero. Para liberar una pagina con el mapa actual,
+el codigo RX debe caber en 4096 bytes.
+
 El cargador inicializa BSS y relleno de las regiones con ceros.
 La sonda ABI separada verifica el borrado de codigo y pila tras
 un fallo. La sesion de escritorio todavia requiere cierre de proceso,

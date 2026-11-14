@@ -31,6 +31,7 @@ def main():
     pack.add_argument('--abi', type=int, choices=[0, 1], default=0)
     pack.add_argument('--max-file-bytes', type=positive_bytes)
     pack.add_argument('--max-mapped-bytes', type=positive_bytes)
+    pack.add_argument('--size-report', action='store_true', help='Show file and memory costs by region')
     commands.add_parser('inspect').add_argument('input', type=Path)
     commands.add_parser('probe').add_argument('input', type=Path)
     args = parser.parse_args()
@@ -88,6 +89,16 @@ def run(args):
     finally:
         if temp:
             temp.unlink(missing_ok=True)
+    if getattr(args, 'size_report', False):
+        regions = report['Regions']
+        report['SizeReport'] = dict(
+            SourceBytes=len(data),
+            ContainerBytes=regions[0]['Offset'],
+            PayloadBytes=sum(region['FileBytes'] for region in regions),
+            MappedRegionBytes=sum(region['MappedBytes'] for region in regions),
+            ZeroFillBytes=sum(region['MemoryBytes'] - region['FileBytes'] for region in regions),
+            PagePaddingBytes=sum(region['MappedBytes'] - region['MemoryBytes'] for region in regions),
+        )
     return report
 
 

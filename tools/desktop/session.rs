@@ -28,6 +28,7 @@ unsafe extern "C" {
     fn doom_run() -> !;
 }
 
+#[inline(never)]
 fn invoke(capability: u64, operation: u64, rect: u64, color: u32) -> u32 {
     let reply: u64;
     unsafe {
@@ -39,6 +40,7 @@ fn invoke(capability: u64, operation: u64, rect: u64, color: u32) -> u32 {
     reply as u32
 }
 
+#[inline(never)]
 fn fill(x: u64, y: u64, w: u64, h: u64, color: u32) {
     invoke(DISPLAY, FILL, x | y << 16 | w << 32 | h << 48, color);
 }
