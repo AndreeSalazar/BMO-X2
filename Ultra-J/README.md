@@ -53,6 +53,15 @@ Reproduce la medicion con `python -B .\Ultra-J\compare_build.py`
 desde la raiz de BMO-X2. Usa LLVM para enlazar y Rust con el destino
 `x86_64-unknown-none`. Puedes usar `$ujPython` del ejemplo siguiente.
 
+En una segunda medicion, el compilador residente tardo 0,053 ms de
+mediana en compilar y verificar en memoria (1001 corridas).
+Con `--watch`, la mediana desde guardar hasta publicar el UJBC bajo
+la misma prueba paso de 203,7 ms con sondeo cada 250 ms a 8,9 ms
+con sondeo cada 10 ms (11 cambios validos por configuracion).
+Un proceso nuevo de ULTRA-J tardo 81,4 ms en esa segunda prueba.
+El modo residente revisa el archivo con mayor frecuencia mientras
+esta activo. La medicion incluye guardado y reemplazo atomico.
+
 ## Compilar y verificar objetos
 
 `compiler.py` compila el [ejemplo de escritura Java](examples/WindowDemo.uj)
@@ -88,7 +97,7 @@ informa los estilos y el ciclo de memoria. La ventana visible en QEMU
 requiere la integracion con DIRECTOR.
 
 Agrega `--watch` al comando de `compiler.py` para compilar al guardar.
-Consulta el fuente cada 250 ms. Publica el binario verificado mediante un
+Consulta el fuente cada 10 ms. Publica el binario verificado mediante un
 reemplazo atomico y conserva el ultimo binario valido si hay un error.
 Deten el proceso con Ctrl+C.
 

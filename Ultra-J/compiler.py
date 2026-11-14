@@ -12,6 +12,7 @@ from runtime import Rejection, read_bounded, require, verify
 
 
 MAX_SOURCE = 64 * 1024
+WATCH_INTERVAL = 0.010
 TOKENS = re.compile(rb'(?P<trivia>\s+|//[^\r\n]*|/\*.*?\*/)|'
                     rb'(?P<token>[A-Za-z_$][A-Za-z0-9_$]*|[0-9]+|[{}();=.])|(?P<invalid>.)', re.S)
 IDENTIFIER = re.compile(rb'[A-Za-z_$][A-Za-z0-9_$]*')
@@ -161,7 +162,7 @@ def main():
                     previous_error = report
                 if not args.watch:
                     return 1
-            sleep(0.25)
+            sleep(WATCH_INTERVAL)
     except KeyboardInterrupt:
         return 0
 
