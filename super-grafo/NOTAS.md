@@ -1377,6 +1377,17 @@ Depende de: ULTRA-J: bytecode y tema (plan).
 Aceptacion: QEMU verifica ambos estados, la accion con Enter, el reinicio con Esc y el rechazo de SBEF W+X.
 Pendiente: Conectar eventos por elemento y compositor DIRECTOR.
 
+## Ultra-J/package.py
+
+Resuelve entradas y dependencias de estilo por la estructura del paquete.
+
+Estado: HOST. Anillo: host. Lenguaje: Python.
+Entrada: Carpeta con accion, vista y dependencias locales versionadas.
+Salida: UJBC, UJVI y grafo JSON o diagnostico con archivo y contexto.
+Depende de: ULTRA-J: compilador inicial (codigo), ULTRA-J: estructura y estilos (codigo).
+Aceptacion: Construye el panel y explica una dependencia ausente o un error de fuente.
+Pendiente: Definir dependencias entre modulos de codigo.
+
 ## Ultra-J/targets/x86_64
 
 Empaqueta un presentador de Ring 3 para los servicios INVOKE y WAIT de BMO-X2.
@@ -1487,4 +1498,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-133 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+134 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

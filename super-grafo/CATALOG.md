@@ -129,6 +129,7 @@
 | [ULTRA-J: verificador y reciclador](../Ultra-J/runtime.py) | host | host | Verifica los dos archivos y ejecuta la recuperacion por region en HOST. |
 | [ULTRA-J: compilador inicial](../Ultra-J/compiler.py) | host | host | Traduce el perfil de clases y regiones a instrucciones UJBC verificadas. |
 | [ULTRA-J: estructura y estilos](../Ultra-J/view.py) | qemu | host | Compila estructura y estilos a dos listas binarias de dibujo. |
+| [ULTRA-J: paquete por carpetas](../Ultra-J/package.py) | host | host | Resuelve entradas y dependencias de estilo por la estructura del paquete. |
 | [ULTRA-J: presentador x86-64](../Ultra-J/targets/x86_64) | qemu | host | Empaqueta un presentador de Ring 3 para los servicios INVOKE y WAIT de BMO-X2. |
 | [Escritorio y espacios de trabajo](../userspace/services/desktop) | qemu | 3 | Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX. |
 | [Teclado y atajos del escritorio](../userspace/services/desktop/src/keyboard.rs) | host | 3 | Convierte eventos de BMO-X en cambios de espacio, foco numerado y movimiento de ventanas. |
@@ -142,6 +143,8 @@
 
 | Quien usa | De quien depende | Clase |
 |---|---|---|
+| ultra-j-package | ultra-j-compiler | codigo |
+| ultra-j-package | ultra-j-view | codigo |
 | ultra-j-x86-view | ultra-j-view | codigo |
 | ultra-j-view | ultra-j-format | plan |
 | ultra-j-compiler | ultra-j-recycler | codigo |

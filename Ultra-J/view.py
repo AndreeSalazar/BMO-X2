@@ -43,11 +43,14 @@ def stylesheet(source):
 
 
 def compile_view(markup, styles):
+    return compile_view_rules(markup, stylesheet(styles))
+
+
+def compile_view_rules(markup, rules):
     require('<!' not in markup and '<?' not in markup, 'El perfil admite etiquetas y texto ASCII')
     root = ET.fromstring(markup)
     require(root.tag == 'app' and not root.attrib and len(root) == 2
             and not (root.text or '').strip(), 'Se requiere app con dos pantallas')
-    rules = stylesheet(styles)
     atlas = (ROOT / 'tools/desktop/cabina_font.bin').read_bytes()
     lists = []
     for screen in root:

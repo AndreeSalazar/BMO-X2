@@ -102,10 +102,34 @@ Consulta el fuente cada 10 ms. Publica el binario verificado mediante un
 reemplazo atomico y conserva el ultimo binario valido si hay un error.
 Deten el proceso con Ctrl+C.
 
+## La carpeta es el manifiesto
+
+El nombre de la carpeta identifica el paquete. Sus subcarpetas declaran
+las entradas y dependencias. Esta es la estructura usada por el panel:
+
+```text
+panel/
+  action/main.uj
+  view/main.ujh
+  dependencies/graphite/1/style.ujc
+```
+
+`action/main.uj` contiene el comportamiento y `view/main.ujh` la vista.
+Los estilos del propio paquete pueden ir en `view/style.ujc`. Cada
+dependencia local contiene una carpeta de version y su `style.ujc`.
+HOST resuelve el grafo por rutas y rechaza clases de estilo duplicadas
+o versiones ambiguas. Este primer perfil admite dependencias de estilo.
+
+Desde la raiz, `& $ujPython -B .\Ultra-J\package.py .\Ultra-J\examples\panel .\build\ultra-j`
+genera UJBC y UJVI y muestra las conexiones en JSON. Si falta
+`dependencies/graphite/1/style.ujc`, indica que lo requiere
+`view/main.ujh`. Los errores de sintaxis de la accion incluyen archivo,
+linea, columna y frase esperada.
+
 ## Vista en QEMU
 
-`examples/panel.ujh` describe dos pantallas con etiquetas y clases.
-`examples/panel.ujc` define posicion, dimensiones y colores.
+`examples/panel/view/main.ujh` describe dos pantallas con etiquetas y clases.
+El estilo Graphite define posicion, dimensiones y colores.
 `view.py` aplana ambos a `panel.ujv`. Su cabecera es `UJVI 01 02`,
 seguida de dos listas. Cada lista empieza con un contador `u16`.
 Cada rectangulo tiene x, y, ancho y alto como `u16`, y color
@@ -113,7 +137,7 @@ Cada rectangulo tiene x, y, ancho y alto como `u16`, y color
 
 El presentador x86-64 carga las listas de solo lectura desde su SBEF.
 En Ring 3 solicita el dibujo mediante INVOKE y espera entrada con WAIT.
-Enter ejecuta la accion compilada de [PanelAction.uj](examples/PanelAction.uj).
+Enter ejecuta la accion compilada de [main.uj](examples/panel/action/main.uj).
 El presentador comprueba su secuencia UJBC v2, crea un Button temporal,
 aplica `activate()`, copia el resultado por valor y borra sus 16 bytes.
 El resultado cambia LISTO por ACTIVO. Esc devuelve el panel a LISTO.

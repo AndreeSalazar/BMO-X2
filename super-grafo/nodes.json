@@ -2102,6 +2102,20 @@
       "falta": "Conectar eventos por elemento y compositor DIRECTOR."
     },
     {
+      "id": "ultra-j-package",
+      "titulo": "ULTRA-J: paquete por carpetas",
+      "ruta": "Ultra-J/package.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [3400, 2375],
+      "que": "Resuelve entradas y dependencias de estilo por la estructura del paquete.",
+      "entrada": "Carpeta con accion, vista y dependencias locales versionadas.",
+      "salida": "UJBC, UJVI y grafo JSON o diagnostico con archivo y contexto.",
+      "aceptacion": "Construye el panel y explica una dependencia ausente o un error de fuente.",
+      "falta": "Definir dependencias entre modulos de codigo."
+    },
+    {
       "id": "ultra-j-x86-view",
       "titulo": "ULTRA-J: presentador x86-64",
       "ruta": "Ultra-J/targets/x86_64",
@@ -2216,6 +2230,16 @@
     }
   ],
   "relaciones": [
+    {
+      "de": "ultra-j-package",
+      "a": "ultra-j-compiler",
+      "clase": "codigo"
+    },
+    {
+      "de": "ultra-j-package",
+      "a": "ultra-j-view",
+      "clase": "codigo"
+    },
     {
       "de": "ultra-j-x86-view",
       "a": "ultra-j-view",

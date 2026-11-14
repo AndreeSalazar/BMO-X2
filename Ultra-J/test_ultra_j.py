@@ -1,9 +1,13 @@
 """Check the exact ULTRA-J vectors and invalid binary cases."""
 from pathlib import Path
+from shutil import copytree
+from tempfile import TemporaryDirectory
 import unittest
 
 from compiler import compile_source
+from package import PackageError, build
 from runtime import Rejection, run
+from view import compile_view
 
 
 VECTORS = Path(__file__).resolve().parent / 'examples'
@@ -17,6 +21,35 @@ def image(code):
 
 
 class UltraJTests(unittest.TestCase):
+    def test_package_reproduces_panel(self):
+        panel = VECTORS / 'panel'
+        bytecode, display, graph = build(panel)
+        action = panel / 'action/main.uj'
+        markup = 'view/main.ujh'
+        style = 'dependencies/graphite/1/style.ujc'
+        self.assertEqual(bytecode, compile_source(action.read_bytes()))
+        self.assertEqual(display, compile_view((panel / markup).read_text(encoding='ascii'),
+                                               (panel / style).read_text(encoding='ascii')))
+        self.assertIn({'From': markup, 'To': style}, graph)
+
+    def test_package_reports_path_and_required_by(self):
+        with TemporaryDirectory() as directory:
+            panel = Path(directory) / 'panel'
+            copytree(VECTORS / 'panel', panel)
+            style = panel / 'dependencies/graphite/1/style.ujc'
+            style.unlink()
+            with self.assertRaises(PackageError) as caught:
+                build(panel)
+            report = caught.exception.report
+            self.assertEqual(report['Code'], 'PACKAGE_MISSING')
+            self.assertEqual(Path(report['Path']), style.resolve())
+            self.assertEqual(Path(report['RequiredBy']), (panel / 'view/main.ujh').resolve())
+            action = panel / 'action/main.uj'
+            action.write_text('class Demo {\n    invalid\n}', encoding='ascii')
+            with self.assertRaises(PackageError) as caught:
+                build(panel)
+            self.assertEqual((caught.exception.report['Line'], caught.exception.report['Column']), (2, 5))
+
     def test_methods_have_distinct_receivers(self):
         source = (VECTORS / 'ObjectDemo.uj').read_bytes()
         program = compile_source(source)
