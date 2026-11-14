@@ -64,7 +64,7 @@ pub fn show() {
     prompt(b"");
 }
 
-#[cfg(all(external_session, not(usb_probe)))]
+#[cfg(all(external_session, not(usb_probe), not(desktop_sheet)))]
 pub fn boot_input(controllers: u32, keyboard: bool, mouse: bool) {
     fill(24, 354, 548, 32, PANEL);
     text(36, 359, b"BMO X2   PRUEBA DE ENTRADA");

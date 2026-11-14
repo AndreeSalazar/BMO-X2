@@ -1,5 +1,24 @@
 # Primer hito: una entrada propia y un fallo explicado
 
+## Prueba de escritorio Hoja
+
+El perfil `-Sheet` agrega un icono de documento arriba a la izquierda.
+Dos clics seguidos abren la hoja y Esc vuelve al escritorio. QEMU
+comprueba que un clic aislado deja el escritorio abierto. La vista es
+una demostracion de Ring 3 y usa raton PS/2 emulado.
+
+Desde la raiz de BMO-X2 en PowerShell 5.1:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\build-desktop.ps1 -Session -External -Sheet -AbiRun build/CASM/run-20261112-174958-944cb997
+$sheetPython = Join-Path $env:USERPROFILE '.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe'
+& $sheetPython -B tools/boot/stage_desktop_media.py build/CASM/run-20261112-174958-944cb997 build/CASM/run-20261112-045636-c461240e build/CASM/run-desktop-3c09ddaa8ea6 --sheet-desktop build/desktop/desktop-sheet.sbef
+```
+
+Abre el run impreso con `tools/boot/view.ps1 -Run <ruta-del-run>`.
+El perfil cabe en las dos paginas de texto del escritorio. Durante el
+ensayo cede el espacio del indicador de entrada al lanzador de Hoja.
+
 ## Primera prueba en hardware
 
 ### Diagnostico visible de teclado y raton

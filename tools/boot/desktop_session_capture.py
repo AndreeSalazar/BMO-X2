@@ -152,6 +152,37 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         Path(str(prefix) + '-bootlog-expected.bin').write_bytes(match[0])
         return cache, match
 
+    if desktop_media and (prefix.parent.parent / 'sheet-desktop.txt').is_file():
+        wait_until(lambda: logical(70, 55, 0xe7efff) and sleeping())
+        for dx, dy in [(-120, -120), (-122, -8)]:
+            command('input-send-event', {'events': [
+                {'type': 'rel', 'data': {'axis': 'x', 'value': dx}},
+                {'type': 'rel', 'data': {'axis': 'y', 'value': dy}},
+            ]})
+            time.sleep(0.08)
+        wait_until(lambda: logical(78, 72, 0xe7efff) and sleeping())
+
+        def click():
+            for down in (True, False):
+                command('input-send-event', {'events': [
+                    {'type': 'btn', 'data': {'button': 'left', 'down': down}},
+                ]})
+                time.sleep(0.045)
+
+        click()
+        time.sleep(0.7)
+        assert logical(250, 110, 0x232638), 'Un clic abrio Hoja'
+        click()
+        wait_until(lambda: logical(250, 110, 0x232638) and sleeping())
+        click()
+        wait_until(lambda: logical(250, 110, 0xe7efff) and sleeping())
+        command('screendump', {'filename': str(prefix) + '-sheet.png', 'format': 'png'})
+        key('esc')
+        wait_until(lambda: logical(250, 110, 0x232638) and logical(70, 55, 0xe7efff) and sleeping())
+        cache, _ = bootlog()
+        return dict(Case='normal', Passed=True, UserCpl=3, SheetDoubleClickVerified=True,
+                    SheetCloseVerified=True, IntroFramesObserved=sorted(frames), CpuL1=cache)
+
     if desktop_media and (prefix.parent.parent / 'ultra-j-view.txt').is_file():
         probes = ((0, 0, 0x10121a), (110, 96, 0x10121a), (130, 110, 0x1b1f2c),
                   (150, 239, 0x293850), (380, 239, 0xa8c5ff))

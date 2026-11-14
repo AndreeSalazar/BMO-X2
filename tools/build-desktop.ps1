@@ -7,6 +7,7 @@ param(
     [switch]$External,
     [switch]$UsbProbe,
     [switch]$UsbMouse,
+    [switch]$Sheet,
     [string]$AbiRun,
     [string]$IntroRun
 )
@@ -15,6 +16,7 @@ if ($Session) { $Guest = $true }
 if ($External -and (-not $Session -or -not $AbiRun)) { throw '-External requiere -Session y -AbiRun.' }
 if ($UsbProbe -and -not $External) { throw '-UsbProbe requiere -External.' }
 if ($UsbMouse -and -not $UsbProbe) { throw '-UsbMouse requiere -UsbProbe.' }
+if ($Sheet -and (-not $External -or $UsbProbe)) { throw '-Sheet requiere -External y entrada PS/2.' }
 if ($AbiRun -and -not $Guest) { throw '-AbiRun requiere -Guest.' }
 if ($IntroRun -and -not $AbiRun) { throw '-IntroRun requiere -AbiRun.' }
 $root = Split-Path $PSScriptRoot
@@ -43,6 +45,11 @@ if ($Session) {
     $entrySource = Join-Path $PSScriptRoot 'desktop/session.rs'
     $guestFlags = @('-C','opt-level=z')
     if ($External) { $guestFlags += @('--cfg','external_session') }
+    if ($Sheet) {
+        $guestFlags += @('--cfg','desktop_sheet')
+        $elf = Join-Path $build.FullName 'desktop-sheet.elf'
+        $image = Join-Path $build.FullName 'desktop-sheet.sbef'
+    }
     if ($UsbProbe) {
         $guestFlags += @('--cfg','usb_probe')
         $elf = Join-Path $build.FullName 'desktop-usb-probe.elf'
@@ -117,7 +124,7 @@ if ($External) {
 }
 Write-Output "Medidas HOST: $sizePath"
 Write-Output "SBEF: $image"
-if ($AbiRun -and -not $UsbProbe) {
+if ($AbiRun -and -not ($UsbProbe -or $Sheet)) {
     $introArguments = @()
     if ($IntroRun) { $introArguments = @('--intro', $IntroRun) }
     & $Python -B (Join-Path $PSScriptRoot 'boot/doom_qemu.py') $AbiRun $image @fixtureArguments @introArguments

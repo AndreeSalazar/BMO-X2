@@ -6,6 +6,8 @@ use core::panic::PanicInfo;
 
 mod cabina;
 mod settings;
+#[cfg(desktop_sheet)]
+mod sheet;
 #[cfg(usb_probe)]
 #[cfg_attr(usb_mouse, path = "usb_mouse_probe.rs")]
 mod usb_probe;
@@ -115,6 +117,8 @@ fn paint(clip: Clip, space: usize, focus: usize, bar: bool) {
     let accent = ACCENTS[space];
     clip.fill(0, 0, 640, 400, 0x0d0e17);
     settings::icon(clip);
+    #[cfg(desktop_sheet)]
+    sheet::icon(clip);
     if bar {
         clip.fill(0, 0, 640, 44, 0x161722);
         for i in 0..4 {
@@ -224,6 +228,8 @@ extern "C" fn bmo_main() -> ! {
     let mut f3_down = false;
     let mut settings_open = false;
     let mut pointer_speed = 1;
+    #[cfg(desktop_sheet)]
+    let (mut sheet_open, mut sheet_click) = (false, None::<u32>);
     #[cfg(desktop_doom)]
     let mut doom = doom_window::DoomWindow::default();
     #[cfg(desktop_doom)]
@@ -248,10 +254,10 @@ extern "C" fn bmo_main() -> ! {
     let usb_pending = controllers != DENIED && (1..=65536).contains(&controllers);
     #[cfg(usb_probe)]
     let mut usb = usb_probe::Input::default();
-    #[cfg(all(external_session, not(usb_probe)))]
+    #[cfg(all(external_session, not(usb_probe), not(desktop_sheet)))]
     let (mut keyboard_seen, mut mouse_seen, mut input_dirty) = (false, false, true);
     loop {
-        #[cfg(all(external_session, not(usb_probe)))]
+        #[cfg(all(external_session, not(usb_probe), not(desktop_sheet)))]
         if input_dirty && !console && !settings_open {
             cabina::boot_input(if controllers <= 65536 && controllers != DENIED { controllers } else { 0 },
                                keyboard_seen, mouse_seen);
@@ -300,7 +306,12 @@ extern "C" fn bmo_main() -> ! {
                     let next_x = (x + delta_x * pointer_speed).clamp(0, 633);
                     let next_y = (y - delta_y * pointer_speed).clamp(0, 390);
                     let pressed = flags & 1 != 0;
-                    #[cfg(all(external_session, not(usb_probe)))]
+                    #[cfg(desktop_sheet)]
+                    if sheet_open {
+                        left = pressed;
+                        continue;
+                    }
+                    #[cfg(all(external_session, not(usb_probe), not(desktop_sheet)))]
                     if !mouse_seen && (delta_x != 0 || delta_y != 0 || pressed) {
                         mouse_seen = true;
                         input_dirty = true;
@@ -317,6 +328,27 @@ extern "C" fn bmo_main() -> ! {
                     }
                     let previous_focus = focus[space];
                     if pressed && !left {
+                        #[cfg(desktop_sheet)]
+                        {
+                            let bounds = sheet::TILE;
+                            if !bar.is_some_and(|_| next_y < BAR.bottom as i16)
+                                && (bounds.left as i16..bounds.right as i16).contains(&next_x)
+                                && (bounds.top as i16..bounds.bottom as i16).contains(&next_y)
+                            {
+                                let now = invoke(3, 3, 0, 0);
+                                if sheet_click.take().is_some_and(|then| now.wrapping_sub(then) <= 50) {
+                                    left = true;
+                                    sheet_open = true;
+                                    bar = None;
+                                    pending_motion = 0;
+                                    sheet::show();
+                                    continue;
+                                }
+                                sheet_click = Some(now);
+                            } else {
+                                sheet_click = None;
+                            }
+                        }
                         if settings::hit(next_x, next_y) {
                             left = pressed;
                             bar = None;
@@ -334,14 +366,14 @@ extern "C" fn bmo_main() -> ! {
                     if focus[space] != previous_focus {
                         paint(VIEWPORT, space, focus[space], bar.is_some());
                         cursor(x, y);
-                        #[cfg(all(external_session, not(usb_probe)))]
+                        #[cfg(all(external_session, not(usb_probe), not(desktop_sheet)))]
                         { input_dirty = true; }
                         displayed = (x, y);
                         pending_motion = 0;
                     } else {
                         pending_motion += 1;
                         if pending_motion == 8 {
-                            #[cfg(all(external_session, not(usb_probe)))]
+                            #[cfg(all(external_session, not(usb_probe), not(desktop_sheet)))]
                             { input_dirty |= displayed.0 < 572 && displayed.1 >= 345; }
                             move_cursor(displayed, (x, y), space, focus[space], bar.is_some());
                             displayed = (x, y);
@@ -354,7 +386,7 @@ extern "C" fn bmo_main() -> ! {
             continue;
         }
         if pending_motion != 0 {
-            #[cfg(all(external_session, not(usb_probe)))]
+            #[cfg(all(external_session, not(usb_probe), not(desktop_sheet)))]
             { input_dirty |= displayed.0 < 572 && displayed.1 >= 345; }
             move_cursor(displayed, (x, y), space, focus[space], bar.is_some());
             displayed = (x, y);
@@ -373,7 +405,16 @@ extern "C" fn bmo_main() -> ! {
             continue;
         }
         let key = raw as u8;
-        #[cfg(all(external_session, not(usb_probe)))]
+        #[cfg(desktop_sheet)]
+        if sheet_open {
+            if key == 1 {
+                sheet_open = false;
+                paint(VIEWPORT, space, focus[space], false);
+                cursor(x, y);
+            }
+            continue;
+        }
+        #[cfg(all(external_session, not(usb_probe), not(desktop_sheet)))]
         if !keyboard_seen && matches!(key, 0x01..=0x58) {
             keyboard_seen = true;
             input_dirty = true;
@@ -459,7 +500,7 @@ extern "C" fn bmo_main() -> ! {
             } else {
                 paint(VIEWPORT, space, focus[space], false);
                 cursor(x, y);
-                #[cfg(all(external_session, not(usb_probe)))]
+                #[cfg(all(external_session, not(usb_probe), not(desktop_sheet)))]
                 { input_dirty = true; }
             }
             continue;
@@ -475,7 +516,7 @@ extern "C" fn bmo_main() -> ! {
                 } else {
                     paint(VIEWPORT, space, focus[space], false);
                     cursor(x, y);
-                    #[cfg(all(external_session, not(usb_probe)))]
+                    #[cfg(all(external_session, not(usb_probe), not(desktop_sheet)))]
                     { input_dirty = true; }
                 }
             }
@@ -488,7 +529,7 @@ extern "C" fn bmo_main() -> ! {
                         settings_open = false;
                         paint(VIEWPORT, space, focus[space], false);
                         cursor(x, y);
-                        #[cfg(all(external_session, not(usb_probe)))]
+                        #[cfg(all(external_session, not(usb_probe), not(desktop_sheet)))]
                         { input_dirty = true; }
                     }
                     2 | 3 => {
@@ -522,7 +563,7 @@ extern "C" fn bmo_main() -> ! {
                 if selected != space {
                     space = selected;
                     paint(VIEWPORT, space, focus[space], true);
-                    #[cfg(all(external_session, not(usb_probe)))]
+                    #[cfg(all(external_session, not(usb_probe), not(desktop_sheet)))]
                     { input_dirty = true; }
                 } else {
                     paint(BAR, space, focus[space], true);
@@ -535,7 +576,7 @@ extern "C" fn bmo_main() -> ! {
                     focus[space] = selected;
                     paint(VIEWPORT, space, selected, bar.is_some());
                     cursor(x, y);
-                    #[cfg(all(external_session, not(usb_probe)))]
+                    #[cfg(all(external_session, not(usb_probe), not(desktop_sheet)))]
                     { input_dirty = true; }
                 }
             }
