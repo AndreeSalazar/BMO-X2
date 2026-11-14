@@ -156,6 +156,8 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     if launcher or (desktop_media and (prefix.parent.parent / 'sheet-desktop.txt').is_file()):
         icon_color = 0xa8c5ff if launcher else 0xe7efff
         wait_until(lambda: logical(70, 55, icon_color) and sleeping())
+        if launcher:
+            command('screendump', {'filename': str(prefix) + '-launcher-desktop.png', 'format': 'png'})
         for dx, dy in [(-120, -120), (-122, -8)]:
             command('input-send-event', {'events': [
                 {'type': 'rel', 'data': {'axis': 'x', 'value': dx}},
