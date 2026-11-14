@@ -1,0 +1,18 @@
+<app>
+  <screen class="canvas">
+    <panel class="card">
+      <panel class="stripe"/>
+      <label class="title">ULTRA J</label>
+      <label class="status">LISTO</label>
+      <button class="action">ENTER</button>
+    </panel>
+  </screen>
+  <screen class="canvas">
+    <panel class="card">
+      <panel class="success"/>
+      <label class="title">ULTRA J</label>
+      <label class="status">ACTIVO</label>
+      <button class="back">ENTER</button>
+    </panel>
+  </screen>
+</app>

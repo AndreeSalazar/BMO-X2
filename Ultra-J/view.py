@@ -1,0 +1,132 @@
+"""Compile ULTRA-J markup and style sheets into two binary display lists."""
+import argparse
+from pathlib import Path
+import re
+import struct
+import xml.etree.ElementTree as ET
+
+from compiler import publish
+from runtime import read_bounded
+
+
+TAGS = ('screen', 'panel', 'label', 'button')
+PROPERTIES = ('left', 'top', 'width', 'height', 'background', 'color')
+ROOT = Path(__file__).resolve().parents[1]
+GLYPHS = b'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+MAX_RECTS = (4096 - 10) // 12
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def stylesheet(source):
+    rules = {}
+    while source.strip():
+        match = re.match(r'\s*([a-z][a-z0-9-]*)\s*\{([^{}]*)\}', source)
+        require(match is not None, 'Regla de estilo invalida')
+        key, declarations = match.groups()
+        require(key not in rules, f'Regla repetida {key}')
+        rules[key] = rule = {}
+        for declaration in declarations.split(';'):
+            if not declaration.strip():
+                continue
+            name, _, value = (part.strip() for part in declaration.partition(':'))
+            require(name in PROPERTIES and name not in rule, f'Propiedad invalida {name}')
+            color = name in ('color', 'background')
+            pattern = r'#[0-9a-fA-F]{6}' if color else r'[0-9]{1,3}px'
+            require(re.fullmatch(pattern, value), f'Valor invalido para {name}')
+            rule[name] = int(value[1:], 16) if color else int(value[:-2])
+        source = source[match.end():]
+    return rules
+
+
+def compile_view(markup, styles):
+    require('<!' not in markup and '<?' not in markup, 'El perfil admite etiquetas y texto ASCII')
+    root = ET.fromstring(markup)
+    require(root.tag == 'app' and not root.attrib and len(root) == 2
+            and not (root.text or '').strip(), 'Se requiere app con dos pantallas')
+    rules = stylesheet(styles)
+    atlas = (ROOT / 'tools/desktop/cabina_font.bin').read_bytes()
+    lists = []
+    for screen in root:
+        require(screen.tag == 'screen', 'Se esperaba screen')
+        rects = []
+
+        def draw(x, y, w, h, color):
+            require(0 <= x < x+w <= 640 and 0 <= y < y+h <= 400, 'Rectangulo fuera del lienzo')
+            rects.append(struct.pack('<HHHHI', x, y, w, h, color))
+
+        def node(element, origin, bounds, depth):
+            require(depth <= 8 and element.tag in TAGS and (element.tag != 'screen' or depth == 0),
+                    'Etiqueta invalida')
+            require(set(element.attrib) == {'class'} and not (element.tail or '').strip(),
+                    'Se requiere un atributo class y texto dentro de la etiqueta')
+            style = rules.get(element.attrib['class'])
+            require(style is not None and all(key in style for key in PROPERTIES[:4]),
+                    f'Falta geometria para {element.attrib["class"]}')
+            left, top, width, height = (style[k] for k in PROPERTIES[:4])
+            require(0 <= left < left+width <= bounds[0] and 0 <= top < top+height <= bounds[1],
+                    'Elemento fuera del padre')
+            x, y = origin[0] + left, origin[1] + top
+            if depth == 0:
+                require((left, top, width, height) == (0, 0, 640, 400) and 'background' in style,
+                        'La pantalla debe cubrir 640 por 400 pixeles')
+            if 'background' in style:
+                draw(x, y, width, height, style['background'])
+            message = (element.text or '').strip()
+            if element.tag in ('label', 'button'):
+                require(message and not len(element) and 'color' in style, 'Texto, color y hoja requeridos')
+                cursor = 0
+                for character in message.encode('ascii'):
+                    if character == 32:
+                        cursor += 4
+                        continue
+                    require(character in GLYPHS, 'El atlas admite A-Z, 0-9 y espacios')
+                    index = GLYPHS.index(character) * 37
+                    advance = atlas[index]
+                    require(cursor + advance <= width and height >= 12, 'Texto fuera de la etiqueta')
+                    for row in range(12):
+                        bits = int.from_bytes(atlas[index+1+3*row:index+4+3*row], 'little')
+                        col = 0
+                        while bits:
+                            shade = bits & 3 != 0
+                            length = 1
+                            bits >>= 2
+                            while bits and (bits & 3 != 0) == shade:
+                                length += 1
+                                bits >>= 2
+                            if shade:
+                                draw(x + cursor + col, y + row, length, 1, style['color'])
+                            col += length
+                    cursor += advance
+            else:
+                require(not message, 'El texto requiere una etiqueta label o button')
+                for child in element:
+                    node(child, (x, y), (width, height), depth + 1)
+
+        node(screen, (0, 0), (640, 400), 0)
+        lists.append(struct.pack('<H', len(rects)) + b''.join(rects))
+    binary = b'UJVI\x01\x02' + b''.join(lists)
+    require(len(binary) <= 10 + 12 * MAX_RECTS, 'La vista excede la pagina de constantes')
+    return binary
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('markup', type=Path)
+    parser.add_argument('styles', type=Path)
+    parser.add_argument('output', type=Path)
+    args = parser.parse_args()
+    try:
+        markup = read_bounded(args.markup, 16384).decode('ascii')
+        styles = read_bounded(args.styles, 16384).decode('ascii')
+        data = compile_view(markup, styles)
+        publish(args.output, data)
+    except (ValueError, OSError, ET.ParseError) as error:
+        parser.exit(1, f'{error}\n')
+
+
+if __name__ == '__main__':
+    main()

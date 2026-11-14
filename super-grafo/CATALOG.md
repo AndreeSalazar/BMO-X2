@@ -128,6 +128,7 @@
 | [ULTRA-J: bytecode y tema](../Ultra-J/FORMAT.md) | host | contrato | Fija bytes de instrucciones, estilo por clase y cierre de regiones. |
 | [ULTRA-J: verificador y reciclador](../Ultra-J/runtime.py) | host | host | Verifica los dos archivos y ejecuta la recuperacion por region en HOST. |
 | [ULTRA-J: compilador inicial](../Ultra-J/compiler.py) | host | host | Traduce el perfil de clases y regiones a instrucciones UJBC verificadas. |
+| [ULTRA-J: estructura, estilos y presentacion](../Ultra-J/view.py) | qemu | host | Compila estructura y estilos a dos listas binarias de dibujo. |
 | [Escritorio y espacios de trabajo](../userspace/services/desktop) | qemu | 3 | Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX. |
 | [Teclado y atajos del escritorio](../userspace/services/desktop/src/keyboard.rs) | host | 3 | Convierte eventos de BMO-X en cambios de espacio, foco numerado y movimiento de ventanas. |
 | [Teclado y raton USB HID boot](../userspace/services/desktop/src/usb_hid.rs) | host | 3 | Traduce informes USB boot en flancos de teclado, movimiento y botones del raton. |
@@ -140,6 +141,7 @@
 
 | Quien usa | De quien depende | Clase |
 |---|---|---|
+| ultra-j-view | ultra-j-format | plan |
 | ultra-j-compiler | ultra-j-recycler | codigo |
 | ultra-j-recycler | ultra-j-format | verificacion |
 | ultra-j-recycler | desktop-workspaces | plan |

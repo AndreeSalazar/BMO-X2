@@ -2088,6 +2088,20 @@
       "falta": "Implementar el compilador en ULTRA-J y comprobar la autocompilacion."
     },
     {
+      "id": "ultra-j-view",
+      "titulo": "ULTRA-J: estructura, estilos y presentacion",
+      "ruta": "Ultra-J/view.py",
+      "estado": "qemu",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [2740, 2375],
+      "que": "Compila estructura y estilos a dos listas binarias de dibujo.",
+      "entrada": "Vista .ujh, estilos .ujc y atlas de CABINA.",
+      "salida": "Vista .ujv incrustada en un SBEF de Ring 3.",
+      "aceptacion": "QEMU verifica ambos estados, ida y vuelta con Enter y rechazo de SBEF W+X.",
+      "falta": "Conectar objetos .ujb, eventos por elemento y compositor DIRECTOR."
+    },
+    {
       "id": "desktop-workspaces",
       "titulo": "Escritorio y espacios de trabajo",
       "ruta": "userspace/services/desktop",
@@ -2188,6 +2202,11 @@
     }
   ],
   "relaciones": [
+    {
+      "de": "ultra-j-view",
+      "a": "ultra-j-format",
+      "clase": "plan"
+    },
     {
       "de": "ultra-j-compiler",
       "a": "ultra-j-recycler",

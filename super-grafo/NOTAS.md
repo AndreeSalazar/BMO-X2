@@ -1366,6 +1366,17 @@ Depende de: ULTRA-J: verificador y reciclador (codigo).
 Aceptacion: El ejemplo compilado coincide byte a byte con su vector manual.
 Pendiente: Implementar el compilador en ULTRA-J y comprobar la autocompilacion.
 
+## Ultra-J/view.py
+
+Compila estructura y estilos a dos listas binarias de dibujo.
+
+Estado: QEMU. Anillo: host. Lenguaje: Python.
+Entrada: Vista .ujh, estilos .ujc y atlas de CABINA.
+Salida: Vista .ujv incrustada en un SBEF de Ring 3.
+Depende de: ULTRA-J: bytecode y tema (plan).
+Aceptacion: QEMU verifica ambos estados, ida y vuelta con Enter y rechazo de SBEF W+X.
+Pendiente: Conectar objetos .ujb, eventos por elemento y compositor DIRECTOR.
+
 ## userspace/services/desktop
 
 Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX.
@@ -1465,4 +1476,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-131 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+132 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

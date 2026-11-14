@@ -32,3 +32,32 @@ Agrega `--watch` al comando de `compiler.py` para compilar al guardar.
 Consulta el fuente cada 250 ms. Publica el binario verificado mediante un
 reemplazo atomico y conserva el ultimo binario valido si hay un error.
 Deten el proceso con Ctrl+C.
+
+## Vista en QEMU
+
+`examples/panel.ujh` describe dos pantallas con etiquetas y clases.
+`examples/panel.ujc` define posicion, dimensiones y colores.
+`view.py` aplana ambos a `panel.ujv`. Su cabecera es `UJVI 01 02`,
+seguida de dos listas. Cada lista empieza con un contador `u16`.
+Cada rectangulo tiene x, y, ancho y alto como `u16`, y color
+`0x00RRGGBB` como `u32`, todos little-endian.
+
+El presentador x86-64 carga las listas de solo lectura desde su SBEF.
+En Ring 3 solicita el dibujo mediante INVOKE y espera entrada con WAIT.
+Enter alterna LISTO y ACTIVO. El perfil admite coordenadas fijas y texto
+A-Z/0-9 con la fuente de CABINA. La integracion con objetos `.ujb`,
+eventos por elemento y el compositor DIRECTOR queda pendiente.
+
+Con los tres runs de BMO-X2 ya generados, desde la raiz:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Ultra-J\qemu.ps1 `
+    -AbiRun build/CASM/run-20261112-174958-944cb997 `
+    -SplashRun build/CASM/run-20261112-045636-c461240e `
+    -DesktopRun build/CASM/run-desktop-3c09ddaa8ea6
+```
+
+El ensayo comprueba ambos fotogramas de la intro, los colores de la
+vista, la ida y vuelta con Enter, el BOOTLOG.TXT de FAT32 y el rechazo
+de un SBEF con permisos W+X. Abre el run impreso con
+`tools/boot/view.ps1 -Run <ruta-del-run>`. La evidencia es QEMU.

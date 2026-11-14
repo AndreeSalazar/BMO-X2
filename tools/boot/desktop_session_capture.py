@@ -140,6 +140,33 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                              'hold-time': 100})
         time.sleep(0.2)
 
+    def bootlog():
+        assert memory(address + 0xf0, 1, 'bootlog-status') == b'\x01', 'UEFI no pudo guardar BOOTLOG.TXT'
+        raw = memory(address + 0x800, 160, 'bootlog-expected-buffer')
+        match = re.match(rb'BMO-X2 V2 UEFI\r\nSBEF=([0-9A-F]{8})\r\nCPUID=([0-9A-F]{8})\r\n'
+                         rb'PS2=[0-9A-F]{8}\r\nXHCI=([0-9A-F]{8})\r\nBDF ID CMD\r\n'
+                         rb'((?:[0-9A-F-]{8} [0-9A-F-]{8} [0-9A-F-]{8}\r\n){2})', raw)
+        cache = l1_cache_profile(memory(address + 0xd0, 32, 'cpu-l1'))
+        assert (match and int(match[1], 16) == len(external_image)
+                and int(match[2], 16) == int(cache['Leaf'] or '0', 16)), 'Informe UEFI invalido'
+        Path(str(prefix) + '-bootlog-expected.bin').write_bytes(match[0])
+        return cache, match
+
+    if desktop_media and (prefix.parent.parent / 'ultra-j-view.txt').is_file():
+        probes = ((0, 0, 0x0d0e17), (150, 102, 0x5ad8ff),
+                  (155, 115, 0x202435), (272, 245, 0x244658))
+        wait_until(lambda: all(logical(*probe) for probe in probes) and sleeping())
+        command('screendump', {'filename': str(prefix) + '-ultra-j-ready.png', 'format': 'png'})
+        key('ret')
+        wait_until(lambda: logical(150, 102, 0x6ee7b7) and logical(272, 245, 0x24584d))
+        command('screendump', {'filename': str(prefix) + '-ultra-j-active.png', 'format': 'png'})
+        key('ret')
+        wait_until(lambda: all(logical(*probe) for probe in probes) and sleeping())
+        cache, _ = bootlog()
+        return dict(Case='normal', Passed=True, UserCpl=3, UltraJViewVerified=True,
+                    UltraJEnterRoundTrip=True, IntroFramesObserved=sorted(frames),
+                    CpuL1=cache)
+
     command_probe = desktop_media and (prefix.parent.parent / 'xhci-command.txt').is_file()
     mouse_probe = command_probe and (prefix.parent.parent / 'usb-mouse.txt').is_file()
     if mouse_probe:
@@ -188,16 +215,9 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         assert logical(24, 354, 0x232638), 'Falta el panel de entrada al arrancar'
         keyboard_before = input_label(36, 'keyboard-before')
         mouse_before = input_label(260, 'mouse-before')
-    cache = l1_cache_profile(memory(address + 0xd0, 32, 'cpu-l1')) if desktop_media else None
+    cache = None
     if desktop_media:
-        assert memory(address + 0xf0, 1, 'bootlog-status') == b'\x01', 'UEFI no pudo guardar BOOTLOG.TXT'
-        raw = memory(address + 0x800, 160, 'bootlog-expected-buffer')
-        match = re.match(rb'BMO-X2 V2 UEFI\r\nSBEF=([0-9A-F]{8})\r\nCPUID=([0-9A-F]{8})\r\n'
-                         rb'PS2=[0-9A-F]{8}\r\nXHCI=([0-9A-F]{8})\r\nBDF ID CMD\r\n'
-                         rb'((?:[0-9A-F-]{8} [0-9A-F-]{8} [0-9A-F-]{8}\r\n){2})', raw)
-        assert (match and int(match[1], 16) == len(external_image)
-                and int(match[2], 16) == int(cache['Leaf'] or '0', 16)), 'Informe UEFI invalido'
-        Path(str(prefix) + '-bootlog-expected.bin').write_bytes(match[0])
+        cache, match = bootlog()
         staging, image_bytes = struct.unpack('<QQ', memory(address + 0xa8, 16, 'desktop-staging'))
         staging_pages = struct.unpack('<Q', memory(address + 0xc8, 8, 'desktop-staging-pages'))[0]
         assert image_bytes == len(external_image)

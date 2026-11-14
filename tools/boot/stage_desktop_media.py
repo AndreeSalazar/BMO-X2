@@ -45,6 +45,7 @@ def main():
     probes = parser.add_mutually_exclusive_group()
     probes.add_argument('--xhci-command', action='store_true', help='Run the QEMU-only xHCI command probe')
     probes.add_argument('--reuse-session', action='store_true', help='Run the QEMU-only desktop frame reuse probe')
+    probes.add_argument('--ultra-j-view', type=Path, help='Test the ULTRA-J Ring 3 view SBEF in QEMU')
     parser.add_argument('--usb-desktop', type=Path, help='Desktop SBEF compiled with -UsbProbe')
     parser.add_argument('--usb-full-speed', action='store_true', help='Use USB 1.x in the xHCI probe')
     parser.add_argument('--usb-mouse', action='store_true', help='Probe a USB boot mouse instead of a keyboard')
@@ -65,7 +66,7 @@ def main():
     usb_name = 'desktop-usb-mouse.sbef' if args.usb_mouse else 'desktop-usb-probe.sbef'
     if args.usb_desktop and args.usb_desktop.resolve() != (ROOT / 'build/desktop' / usb_name).resolve():
         parser.error('--usb-desktop requiere el resultado local de -UsbProbe')
-    sbef = (args.usb_desktop if args.usb_desktop else desktop / 'desktop.sbef').read_bytes()
+    sbef = (args.usb_desktop or args.ultra_j_view or desktop / 'desktop.sbef').read_bytes()
     budget = desktop_budget(sbef)
     run = abi.parent / f'run-desktop-media-{uuid.uuid4().hex[:12]}'
     run.mkdir()
@@ -158,12 +159,14 @@ def main():
         (run / 'usb-mouse.txt').write_text('QEMU\n', encoding='ascii')
     if args.reuse_session:
         (run / 'reuse-session.txt').write_text('QEMU\n', encoding='ascii')
+    if args.ultra_j_view:
+        (run / 'ultra-j-view.txt').write_text('QEMU\n', encoding='ascii')
     subprocess.run([sys.executable, '-B', scripts / 'probe.py', '--workspace', run, '--halt',
                     '--abi-probe', '--doom-fixture', '--ram-mib', '1024', '--cpu', args.cpu,
                     '--casos', 'normal', 'external-permissions'],
                    check=True, cwd=run, timeout=100)
 
-    media = run / ('qemu-only' if args.xhci_command or args.reuse_session else 'media')
+    media = run / ('qemu-only' if args.xhci_command or args.reuse_session or args.ultra_j_view else 'media')
     files = {'EFI/BMO-X2/BMO-X2.EFI': efi, 'BMO-X2/INICIO.X86': payload,
              'BMO-X2/DESKTOP.SBF': run / 'desktop.sbef'}
     for name, src in files.items():
@@ -187,6 +190,7 @@ def main():
                   ring0_gate_budget=gate_budget,
                   desktop_budget=budget, boot_packet_bytes=len(packet), uefi_bridge_bytes=len(image),
                   files={name: sha(media / name) for name in files})
+    (run / 'qemu-run.json').write_text(json.dumps(dict(cpu=args.cpu, ram_mib=1024)) + '\n', encoding='ascii')
     (run / 'qemu-results.json').write_text(json.dumps(report, indent=2) + '\n', encoding='ascii')
     print(f'Media: {media}')
 
