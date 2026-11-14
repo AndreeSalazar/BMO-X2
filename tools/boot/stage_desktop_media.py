@@ -9,7 +9,7 @@ import subprocess
 import sys
 import uuid
 
-from doom_fixture import make_packet, prepend_intro
+from doom_fixture import desktop_gate_budget, make_packet, prepend_intro
 from host.sbef.format import inspect
 from scope import workspace
 from stage_bmo_x2 import bridge_variant
@@ -41,6 +41,7 @@ def main():
     parser.add_argument('abi_run', type=Path)
     parser.add_argument('splash_run', type=Path)
     parser.add_argument('desktop_run', type=Path)
+    parser.add_argument('--cpu', choices=('qemu64', 'Nehalem'), default='qemu64')
     probes = parser.add_mutually_exclusive_group()
     probes.add_argument('--xhci-command', action='store_true', help='Run the QEMU-only xHCI command probe')
     probes.add_argument('--reuse-session', action='store_true', help='Run the QEMU-only desktop frame reuse probe')
@@ -79,6 +80,10 @@ def main():
     reference = (abi / 'INICIO.X86').read_bytes()
     intro = (splash / 'INICIO.X86').read_bytes()
     gate = (run / 'session_gate.bin').read_bytes()
+    gate_budget = desktop_gate_budget(gate)
+    (run / 'session-gate.hex').write_text(
+        '\n'.join(gate[index:index+16].hex(' ').upper() for index in range(0, len(gate), 16)) + '\n',
+        encoding='ascii')
     loader = (run / 'external_sbef.bin').read_bytes()
     packet, _ = make_packet(reference, sbef, session_gate=gate, external=loader)
     if not (args.xhci_command or args.reuse_session):
@@ -133,7 +138,8 @@ def main():
     if args.reuse_session:
         (run / 'reuse-session.txt').write_text('QEMU\n', encoding='ascii')
     subprocess.run([sys.executable, '-B', scripts / 'probe.py', '--workspace', run, '--halt',
-                    '--abi-probe', '--doom-fixture', '--ram-mib', '1024', '--casos', 'normal', 'external-permissions'],
+                    '--abi-probe', '--doom-fixture', '--ram-mib', '1024', '--cpu', args.cpu,
+                    '--casos', 'normal', 'external-permissions'],
                    check=True, cwd=run, timeout=100)
 
     media = run / ('qemu-only' if args.xhci_command or args.reuse_session else 'media')
@@ -144,8 +150,20 @@ def main():
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(src, target)
     report = json.loads((run / 'build/puente-test-results.json').read_text(encoding='utf-8'))
+    cache = next(case['CpuL1'] for case in report['Cases'] if case['Case'] == 'normal')
+    instructions = cache['Instruction'] or cache['Unified']
+    gate_budget['FitsReportedL1Capacity'] = gate_budget['Bytes'] <= instructions['Bytes'] if instructions else None
+    (run / 'profile.config').write_text(
+        f'PROFILE_SCHEMA=1\nTARGET=x86_64\nPROFILE_SOURCE=QEMU_CPUID_BOOT_CPU\nQEMU_CPU={args.cpu}\n'
+        f'CPU_CACHE_LEAF={cache["Leaf"] or "unknown"}\n'
+        f'RING0_GATE_BYTES={gate_budget["Bytes"]}\nRING0_GATE_LIMIT_BYTES={gate_budget["LimitBytes"]}\n'
+        f'RING0_GATE_SHA256={gate_budget["SHA256"]}\n'
+        + ''.join(f'CPU_L1_{name.upper()}_BYTES={cache[name]["Bytes"] if cache[name] else "unknown"}\n'
+                  for name in ('Instruction', 'Data', 'Unified')), encoding='ascii')
     report.update(run=run.name, evidence='QEMU', disk_sbef=True, physical_boot=False,
+                  qemu_cpu=args.cpu,
                   desktop_reuse_probe=args.reuse_session,
+                  ring0_gate_budget=gate_budget,
                   desktop_budget=budget, boot_packet_bytes=len(packet), uefi_bridge_bytes=len(image),
                   files={name: sha(media / name) for name in files})
     (run / 'qemu-results.json').write_text(json.dumps(report, indent=2) + '\n', encoding='ascii')

@@ -4,7 +4,7 @@ from pathlib import Path
 import struct
 import time
 
-from cpu_config import register
+from cpu_config import l1_cache_profile, register
 from splash_capture import compare_frame
 
 
@@ -109,6 +109,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         wait_until(lambda: memory(address + 0x1a396, 1, 'xhci-armed') == b'\x01')
         key('f2')
     wait_until(lambda: logical(216, 33, 0x0d0e17) and logical(52, 99, 0x5ad8ff) and sleeping())
+    cache = l1_cache_profile(memory(address + 0xd0, 32, 'cpu-l1')) if desktop_media else None
     if desktop_media:
         staging, image_bytes = struct.unpack('<QQ', memory(address + 0xa8, 16, 'desktop-staging'))
         staging_pages = struct.unpack('<Q', memory(address + 0xc8, 8, 'desktop-staging-pages'))[0]
@@ -202,7 +203,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                         UsbKeyboardEndpoint=endpoint, UsbBootProtocolSelected=True,
                         UsbDeviceDescriptor=descriptor.hex(), UsbF2Report=report.hex(),
                         UsbKeyboardTransferVerified=True,
-                        UsbInputVerified=False)
+                        UsbInputVerified=False, CpuL1=cache)
     timeout_before = wait_stats()[1]
     wait_until(lambda: wait_stats()[1] > timeout_before)
     event_before = wait_stats()[0]
@@ -405,4 +406,4 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 DesktopStagingBytes=staging_pages * 4096 if desktop_media else None,
                 DesktopStagingReturnedBytes=(5 - staging_pages) * 4096 if desktop_media else None,
                 PayloadSHA256=hashlib.sha256(packet[24:]).hexdigest(),
-                SbefSHA256=fixture['sbef_sha256'], **closed)
+                SbefSHA256=fixture['sbef_sha256'], CpuL1=cache, **closed)

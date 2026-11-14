@@ -22,6 +22,26 @@ def identify(snapshot):
     return dict(Vendor=vendor.decode('ascii'), MaxBasicLeaf=eax)
 
 
+def l1_cache_profile(raw):
+    leaf, data_b, data_c, code_b, code_c, unified_b, unified_c, present = struct.unpack('<8I', raw)
+    if leaf not in (0, 4, 0x8000001d) or present & ~7 or (not leaf and present):
+        raise ValueError('CPU-CONFIG: perfil L1 invalido')
+    profile = dict(Leaf=f'0x{leaf:X}' if leaf else None)
+    for index, (name, ebx, ecx) in enumerate((
+        ('Data', data_b, data_c), ('Instruction', code_b, code_c), ('Unified', unified_b, unified_c),
+    )):
+        if not present & (1 << index):
+            profile[name] = None
+            continue
+        line_bytes = (ebx & 0xfff) + 1
+        partitions = ((ebx >> 12) & 0x3ff) + 1
+        ways = (ebx >> 22) + 1
+        sets = ecx + 1
+        profile[name] = dict(Bytes=line_bytes * partitions * ways * sets, LineBytes=line_bytes,
+                             Ways=ways, Sets=sets, Partitions=partitions)
+    return profile
+
+
 def write_config(run, result, environment, verified):
     cases = result.get('Cases')
     if result.get('Passed') != 1 or result.get('Total') != 1 or not isinstance(cases, list) or len(cases) != 1:

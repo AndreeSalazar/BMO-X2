@@ -11,6 +11,15 @@ from sbef_probe_cases import SBEF_OFFSET
 
 
 EXTERNAL_ADDRESS = 0x2000000
+DESKTOP_GATE_LIMIT = 2048
+
+
+def desktop_gate_budget(gate):
+    size = len(gate)
+    if not 0 < size <= DESKTOP_GATE_LIMIT:
+        raise ValueError(f'RING0-L1-BUDGET: puerta de sesion {size} / {DESKTOP_GATE_LIMIT} bytes')
+    return dict(Bytes=size, LimitBytes=DESKTOP_GATE_LIMIT, HeadroomBytes=DESKTOP_GATE_LIMIT - size,
+                SHA256=hashlib.sha256(gate).hexdigest())
 
 
 def make_packet(reference, image, desktop_present=None, session_gate=None, external=None, *, engine=False,
@@ -77,6 +86,8 @@ def make_packet(reference, image, desktop_present=None, session_gate=None, exter
         packet.extend(struct.pack('<i', 24 + 895 - len(packet) - 4))
         packet.extend(second_packet[SBEF_OFFSET:])
     if session_gate is not None:
+        if not engine:
+            desktop_gate_budget(session_gate)
         # Repoint LSTAR and save the bridge CR3/context before the first IRET.
         at = 24 + 677
         lstar = packet.index(bytes.fromhex('488d05d4000000'), at, at + 18)

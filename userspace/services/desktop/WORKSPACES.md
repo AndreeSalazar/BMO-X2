@@ -247,6 +247,17 @@ QEMU coteja los marcos, la inicializacion de datos y BSS, el teclado
 de la segunda sesion y el segundo borrado. La sonda usa PS/2 y omite
 la intro para mantener el limite de 4096 bytes del puente.
 
+El constructor limita a 2048 bytes la puerta de sesion del escritorio
+(`INVOKE`, `WAIT`, entrada y retorno, incluidas las ramas locales).
+Cuenta el binario que se inserta en el paquete y conserva sus bytes en
+`session-gate.hex`. El puente consulta CPUID en el CPU de arranque,
+y QEMU registra la geometria L1 observada en el informe y el tamano en
+`profile.config`. Si CPUID carece de un descriptor L1, se publica
+`unknown`. El presupuesto incluye toda la puerta del ensayo LLVM.
+Pila, tablas de paginas y demas etapas de Ring 0 tienen cuentas propias.
+La comparacion mide capacidad y el ensayo QEMU verifica el arranque.
+La residencia y latencia de L1 quedan por medir en hardware.
+
 El siguiente hito es transferir esos marcos al asignador de Ring 0 y
 cargar un SBEF distinto. Despues quedan el contexto privado por proceso,
 el supervisor que recupera fallos, y un contrato de servicios de

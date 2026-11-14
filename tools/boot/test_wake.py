@@ -1,13 +1,29 @@
 """Host checks for bootstrap conversion and VM output confinement."""
 from pathlib import Path
+import struct
 import tempfile
 import unittest
 from wake import assemble, ROOT
 from scope import workspace
-from cpu_config import identify
+from cpu_config import identify, l1_cache_profile
+from doom_fixture import desktop_gate_budget
 
 
 class Wake(unittest.TestCase):
+    def test_l1_profile_decodes_geometry_and_reports_missing_values(self):
+        geometry = 63 | (7 << 22)
+        raw = struct.pack('<8I', 4, geometry, 63, geometry, 63, 0, 0, 3)
+        profile = l1_cache_profile(raw)
+        self.assertEqual(profile['Data'], dict(Bytes=32768, LineBytes=64, Ways=8, Sets=64, Partitions=1))
+        self.assertEqual(profile['Instruction'], profile['Data'])
+        self.assertIsNone(profile['Unified'])
+        self.assertIsNone(l1_cache_profile(bytes(32))['Instruction'])
+
+    def test_desktop_gate_budget_is_inclusive(self):
+        self.assertEqual(desktop_gate_budget(bytes(2048))['HeadroomBytes'], 0)
+        with self.assertRaisesRegex(ValueError, 'RING0-L1-BUDGET'):
+            desktop_gate_budget(bytes(2049))
+
     def test_cpu_profile_uses_observed_register_order_and_rejects_invalid_values(self):
         snapshot = 'RAX=00000001 RBX=68747541 RCX=444D4163 RDX=69746E65'
         self.assertEqual(identify(snapshot), dict(Vendor='AuthenticAMD', MaxBasicLeaf=1))
