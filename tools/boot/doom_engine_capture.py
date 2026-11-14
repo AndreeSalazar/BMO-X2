@@ -101,8 +101,32 @@ def verify_engine(command, memory, prefix, image, case, *, desktop=False):
     key('up', hold=500)
     moved = screenshot('engine-moved')
     assert moved != resumed, 'El cuadro no cambio al avanzar'
+    if desktop:
+        assert width == 1280 and height == 800
+        frame = Path(str(prefix) + '-engine-moved.ppm').read_bytes().split(b'\n', 3)[-1]
+        assert len(frame) == width * height * 3
+        for y in (0, height - 1):
+            assert any(frame[y * width * 3:(y + 1) * width * 3]), 'DOOM dejo un borde horizontal'
+        for x in (0, width - 1):
+            assert any(frame[3 * (y * width + x) + channel]
+                       for y in range(height) for channel in range(3)), 'DOOM dejo un borde vertical'
+        key('meta_l', '2')
+        check_pixel(390, 147, 0xad92ff)
+        background = screenshot('engine-background')
+        key('meta_l', '1')
+        assert screenshot('engine-refocused') != background
+        key('ctrl', 'meta_l', '3')
+        check_pixel(52, 99, 0x6ee7b7)
+        key('ctrl', 'meta_l', '2')
+        check_pixel(390, 147, 0xad92ff)
+        key('meta_l', '1')
+        key('meta_l', 'q')
+        check_pixel(390, 147, 0xad92ff)
+        key('f2')
+        check_pixel(24, 24, 0x232638)
     return dict(Case=case, Passed=True, DoomEngine=True, DoomKeyboardVerified=True,
                 CabinaDoomVerified=desktop, WorkspaceBarAutoHideVerified=desktop,
+                DoomFullScreenVerified=desktop, DoomFocusAndCloseVerified=desktop,
                 SbefSha256=hashlib.sha256(image).hexdigest(), SbefBytes=len(image),
                 UserCpl=3, FrameWidth=320, FrameHeight=200, FrameSha256=initial,
                 MenuSha256=menu, ResumedSha256=resumed, MovedSha256=moved, GuestRamMiB=256,

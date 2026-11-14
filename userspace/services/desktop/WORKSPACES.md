@@ -298,9 +298,14 @@ En la sesion QEMU, la barra de espacios aparece con Ctrl + Super + 1 a 4
 y se oculta tras unos 1,2 segundos. F2 abre CABINA. En el perfil
 `desktop-doom`, escribir `doom run` y pulsar Enter inicia E1M1.
 El escritorio Rust y DoomGeneric C se enlazan en el mismo SBEF del
-ensayo. El juego ocupa la presentacion y el teclado de la sesion.
-Quedan pendientes el proceso independiente, la ventana en DIRECTOR,
-el retorno al escritorio y el audio.
+ensayo. El juego usa la mayor escala entera que cabe en pantalla.
+Super + 1 enfoca DOOM en su espacio, Super + 2 vuelve al escritorio
+y Ctrl + Super + 1 a 4 cambia de espacio. Super + Q cierra la vista
+de DOOM y restaura el escritorio. El motor queda en memoria y
+`doom run` reabre la partida. Los numeros sin Super llegan al juego.
+El modelo de ventanas admite nueve posiciones. En la sonda grafica
+DOOM y el escritorio ocupan las dos primeras. Quedan pendientes el
+proceso SBEF independiente, el audio y la entrada USB continua.
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\build-doom-engine.ps1 -Desktop -AbiRun $abiRun -IntroRun $introRun -Wad ..\BMO-externo\doom\doom1.wad

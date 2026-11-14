@@ -2113,8 +2113,8 @@
       "que": "Enlaza DoomGeneric con el runtime C y presenta el juego por CPU.",
       "entrada": "80 unidades GCC, ABI 1 experimental e IWAD local de solo lectura.",
       "salida": "ELF64 estatico, doom-engine.sbef y capturas de E1M1 en QEMU.",
-      "aceptacion": "CPL3, mapa RX/R/RW con NX, doom run desde CABINA, menu y movimiento por teclado, y rechazo externo de W+X.",
-      "falta": "Proceso y ventana de DIRECTOR, retorno al escritorio, lectura de disco invitado, guardado, audio y puntero relativo."
+      "aceptacion": "CPL3, mapa RX/R/RW con NX, doom run desde CABINA, pantalla completa, cambios de foco y espacio, cierre con Super + Q y rechazo W+X.",
+      "falta": "Proceso SBEF independiente, lectura de disco invitado, guardado, audio, puntero relativo y entrada USB continua."
     },
     {
       "id": "audio-mixer",

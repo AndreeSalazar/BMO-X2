@@ -5,6 +5,22 @@ const SHIFT: u8 = 0x01;
 const CTRL: u8 = 0x02;
 
 #[test]
+fn super_q_closes_once_and_restores_the_previous_slot() {
+    let pixel = Surface::new(1, 1, &[1]).unwrap();
+    let mut desktop = Desktop::<9>::new();
+    for id in 1..=9 {
+        desktop.open(id, 0, 0, pixel).unwrap();
+    }
+    let mut keyboard = Keyboard::default();
+    assert_eq!(keyboard.handle(&mut desktop, 0x30a, SUPER), Ok(Some(KeyRoute::Consumed)));
+    assert_eq!(desktop.focused_shortcut(), Some(9));
+    for (raw, modifiers) in [(0x310, SUPER), (0x310, SUPER), (0x110, 0)] {
+        assert_eq!(keyboard.handle(&mut desktop, raw, modifiers), Ok(Some(KeyRoute::Consumed)));
+        assert_eq!(desktop.focused_shortcut(), Some(8));
+    }
+}
+
+#[test]
 fn usb_reports_switch_workspaces_and_forward_f2() {
     let mut source = usb_hid::BootKeyboard::default();
     let mut keyboard = Keyboard::default();

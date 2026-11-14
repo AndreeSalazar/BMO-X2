@@ -6,6 +6,8 @@ use core::panic::PanicInfo;
 
 mod cabina;
 mod settings;
+#[cfg(desktop_doom)]
+mod doom_window;
 
 #[cfg(external_session)]
 use core::sync::atomic::{AtomicU32, Ordering::Relaxed};
@@ -22,11 +24,6 @@ const FILL: u64 = 1;
 const READ_INPUT: u64 = 2;
 const DENIED: u32 = 257;
 const BAR_TICKS: u32 = 120;
-
-#[cfg(desktop_doom)]
-unsafe extern "C" {
-    fn doom_run() -> !;
-}
 
 #[inline(never)]
 fn invoke(capability: u64, operation: u64, rect: u64, color: u32) -> u32 {
@@ -219,6 +216,10 @@ extern "C" fn bmo_main() -> ! {
     let mut f3_down = false;
     let mut settings_open = false;
     let mut pointer_speed = 1;
+    #[cfg(desktop_doom)]
+    let mut doom = doom_window::DoomWindow::default();
+    #[cfg(desktop_doom)]
+    let mut captured = 0u16;
     let pixel = (1u64 << 32) | (1u64 << 48);
     if invoke(INPUT, FILL, pixel, 0xffffff) != DENIED
         || invoke(DISPLAY, READ_INPUT, 0, 0) != DENIED
@@ -271,6 +272,11 @@ extern "C" fn bmo_main() -> ! {
                     let next_x = (x + delta_x * pointer_speed).clamp(0, 633);
                     let next_y = (y - delta_y * pointer_speed).clamp(0, 390);
                     let pressed = flags & 1 != 0;
+                    #[cfg(desktop_doom)]
+                    if doom.active(space) {
+                        left = pressed;
+                        continue;
+                    }
                     if console || settings_open {
                         left = pressed;
                         continue;
@@ -315,6 +321,11 @@ extern "C" fn bmo_main() -> ! {
             pending_motion = 0;
         }
         if raw >= 256 {
+            #[cfg(desktop_doom)]
+            if doom.active(space) {
+                doom.tick();
+                continue;
+            }
             let wait = bar.map_or(100, |shown| {
                 u64::from(BAR_TICKS.saturating_sub(invoke(3, 3, 0, 0).wrapping_sub(shown))).min(100)
             });
@@ -332,6 +343,62 @@ extern "C" fn bmo_main() -> ! {
             0x1d => ctrl = down,
             0x5b | 0x5c if extended => super_key = down,
             _ => {}
+        }
+        #[cfg(desktop_doom)]
+        {
+            let active = doom.active(space);
+            let shortcut = match key & 0x7f {
+                2..=10 => 1 << ((key & 0x7f) - 2),
+                0x10 => 1 << 9,
+                _ => 0,
+            };
+            if !extended && captured & shortcut != 0 {
+                if !down {
+                    captured &= !shortcut;
+                }
+                continue;
+            }
+            if down && !extended && super_key {
+                if (!ctrl && shortcut != 0) || (ctrl && (2..=5).contains(&key)) {
+                    captured |= shortcut;
+                }
+                match key {
+                    2..=5 if ctrl => {
+                        doom.blur();
+                        if active && usize::from(key - 2) == space {
+                            paint(VIEWPORT, space, focus[space], false);
+                        }
+                        // The existing workspace handler draws the selected space.
+                    }
+                    2 if !ctrl && !console && !settings_open && doom.focus(space) => {
+                        bar = None;
+                        if !active {
+                            fill(0, 0, 640, 400, 0);
+                        }
+                        continue;
+                    }
+                    3 if !ctrl && active => {
+                        doom.blur();
+                        focus[space] = 1;
+                        paint(VIEWPORT, space, 1, bar.is_some());
+                        cursor(x, y);
+                        continue;
+                    }
+                    0x10 if !ctrl && active => {
+                        doom.close();
+                        paint(VIEWPORT, space, focus[space], false);
+                        cursor(x, y);
+                        continue;
+                    }
+                    _ => {}
+                }
+            }
+            if doom.active(space) {
+                if !down || !super_key || shortcut == 0 {
+                    doom_window::forward(key);
+                }
+                continue;
+            }
         }
         if key & 0x7f == 0x3c && !extended {
             let toggle = down && !f2_down;
@@ -390,7 +457,10 @@ extern "C" fn bmo_main() -> ! {
                 let launch = command.key(key);
                 #[cfg(desktop_doom)]
                 if launch {
-                    unsafe { doom_run() };
+                    space = doom.open(space);
+                    console = false;
+                    bar = None;
+                    fill(0, 0, 640, 400, 0);
                 }
                 #[cfg(not(desktop_doom))]
                 let _ = launch;

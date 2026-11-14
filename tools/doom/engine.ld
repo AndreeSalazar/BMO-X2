@@ -9,7 +9,7 @@ PHDRS {
 SECTIONS {
     .text 0x40000000 : { *(.text .text.*) } :text
     .rodata 0x40200000 : { *(.rodata .rodata.*) } :rodata
-    .data 0x40400000 : { *(.data .data.*) } :data
+    .data 0x40400000 : { *(.data .data.*) *(.got .got.*) } :data
     .bss : ALIGN(16) { *(.bss .bss.*) *(COMMON) } :data
     ASSERT(. <= 0x40e00000, "Doom arena overlaps the stack")
 }

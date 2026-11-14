@@ -43,7 +43,7 @@ pub enum KeyRoute {
     Consumed,
 }
 
-/// Tracks only the top-row keys 1 through 9. Captured keys keep their
+/// Tracks the top-row keys 1 through 9 and Q. Captured keys keep their
 /// press, repeat, and release together even if modifiers change.
 #[derive(Default)]
 pub struct Keyboard {
@@ -73,10 +73,11 @@ impl Keyboard {
         modifiers: u8,
     ) -> KeyRoute {
         let number = event.scancode.saturating_sub(1);
-        if !(1..=9).contains(&number) {
-            return KeyRoute::Forward(event);
-        }
-        let bit = 1 << (number - 1);
+        let bit = match event.scancode {
+            2..=10 => 1 << (number - 1),
+            0x10 => 1 << 9,
+            _ => return KeyRoute::Forward(event),
+        };
         if !event.pressed {
             let was_captured = self.captured & bit != 0;
             self.down &= !bit;
@@ -95,12 +96,15 @@ impl Keyboard {
             };
         }
         self.down |= bit;
-        match (modifiers & !MOD_CAPS, Workspace::new(number)) {
-            (MOD_SUPER, _) => {
+        match (modifiers & !MOD_CAPS, event.scancode, Workspace::new(number)) {
+            (MOD_SUPER, 0x10, _) => {
+                desktop.close_focused();
+            }
+            (MOD_SUPER, _, _) => {
                 desktop.focus_shortcut(number);
             }
-            (MOD_SUPER_CTRL, Some(workspace)) => desktop.switch(workspace),
-            (MOD_SUPER_SHIFT, Some(workspace)) => {
+            (MOD_SUPER_CTRL, _, Some(workspace)) => desktop.switch(workspace),
+            (MOD_SUPER_SHIFT, _, Some(workspace)) => {
                 desktop.move_focused(workspace);
             }
             _ => return KeyRoute::Forward(event),

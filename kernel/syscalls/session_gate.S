@@ -340,8 +340,28 @@ present_frame:
     ja denied
     sub $0x3c000000, %rdx
     mov %rdx, %rsi
+#ifdef DESKTOP_DOOM
+    # Largest whole-pixel scale that fits both axes.
+    mov %edi, %eax
+    xor %edx, %edx
+    mov $320, %edi
+    div %edi
+    mov %eax, %r10d
+    mov %ecx, %eax
+    xor %edx, %edx
+    mov $200, %edi
+    div %edi
+    cmp %eax, %r10d
+    cmova %eax, %r10d
+    mov 0x20(%rbp), %edi
+    imul $320, %r10d, %eax
+    sub %eax, %edi
+    imul $200, %r10d, %eax
+    sub %eax, %ecx
+#else
     sub $640, %edi
     sub $400, %ecx
+#endif
     shr %edi
     shr %ecx
     imul %r8, %rcx
@@ -353,6 +373,9 @@ present_frame:
     mov %gs:0x318, %rax
     mov %rax, %cr3
     cld
+#ifdef DESKTOP_DOOM
+    push %r10
+#endif
     mov $200, %edx
 engine_row:
     mov %r9, %rdi
@@ -364,19 +387,48 @@ engine_pixel:
     bswap %eax
     shr $8, %eax
 engine_color:
+#ifdef DESKTOP_DOOM
+    mov %ecx, %r10d
+    # Scale is stored on the kernel stack before drawing.
+    mov (%rsp), %ecx
+    rep stosl
+    mov %r10d, %ecx
+#else
     stosl
     stosl
+#endif
     loop engine_pixel
+#ifdef DESKTOP_DOOM
+    mov %rsi, %r10
+    mov (%rsp), %esi
+    dec %esi
+    push %rsi
+    mov %r9, %rax
+engine_repeat_row:
+    add %r8, %r9
+    mov %rax, %rsi
+    mov %r9, %rdi
+    imul $320, 8(%rsp), %ecx
+    rep movsl
+    decl (%rsp)
+    jnz engine_repeat_row
+    pop %rsi
+    mov %r10, %rsi
+#else
     mov %rsi, %r10
     mov %r9, %rsi
     add %r8, %r9
     mov %r9, %rdi
     mov $640, %ecx
     rep movsl
+#endif
     mov %r10, %rsi
     add %r8, %r9
     dec %edx
     jnz engine_row
+#ifdef DESKTOP_DOOM
+    pop %r10
+#endif
     mov %r11, %cr3
     incl %gs:0x354
     xor %eax, %eax

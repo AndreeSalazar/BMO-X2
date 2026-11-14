@@ -38,6 +38,7 @@ int DG_GetKey(int *pressed, unsigned char *key) {
     static const unsigned char keys[128] = {
         [0x01] = KEY_ESCAPE, [0x02] = '1', [0x03] = '2', [0x04] = '3',
         [0x05] = '4', [0x06] = '5', [0x07] = '6', [0x08] = '7',
+        [0x09] = '8', [0x0a] = '9',
         [0x0e] = KEY_BACKSPACE, [0x0f] = KEY_TAB, [0x15] = 'y',
         [0x1c] = KEY_ENTER, [0x1d] = KEY_FIRE, [0x2a] = KEY_RSHIFT,
         [0x31] = 'n', [0x36] = KEY_RSHIFT, [0x38] = KEY_RALT, [0x39] = KEY_USE,
@@ -45,7 +46,12 @@ int DG_GetKey(int *pressed, unsigned char *key) {
         [0x4d] = KEY_RIGHTARROW, [0x50] = KEY_DOWNARROW,
     };
     for (unsigned i = 0; i < 16; ++i) {
+#ifdef DESKTOP_DOOM
+        extern unsigned int director_doom_key(void);
+        unsigned long scan = director_doom_key();
+#else
         unsigned long scan = doom_invoke(2, 2, 0, 0);
+#endif
         if (scan == 256 || scan == 257) break;
         if (scan > 255 || scan == 0xe0 || scan == 0xe1) continue;
         *key = keys[scan & 0x7f];
@@ -60,15 +66,17 @@ void DG_SetWindowTitle(const char *title) { puts(title); }
 
 /* IRET enters with a page-aligned stack and no return address. */
 #ifdef DESKTOP_DOOM
-#define DOOM_ENTRY doom_run
+void doom_tick(void) { doomgeneric_Tick(); }
+void doom_init(void) {
 #else
-#define DOOM_ENTRY _start
+__attribute__((force_align_arg_pointer)) _Noreturn void _start(void) {
 #endif
-__attribute__((force_align_arg_pointer)) _Noreturn void DOOM_ENTRY(void) {
     static char *args[] = {
         "doom", "-iwad", "doom1.wad", "-warp", "1", "1",
         "-nosound", "-nomusic", "-nomouse", "-mb", "6", NULL
     };
     doomgeneric_Create(sizeof(args) / sizeof(args[0]) - 1, args);
+#ifndef DESKTOP_DOOM
     for (;;) doomgeneric_Tick();
+#endif
 }
