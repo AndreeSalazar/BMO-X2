@@ -12,7 +12,7 @@
       <panel class="success"/>
       <label class="title">ULTRA J</label>
       <label class="status">ACTIVO</label>
-      <button class="back">ENTER</button>
+      <button class="back">ESC</button>
     </panel>
   </screen>
 </app>

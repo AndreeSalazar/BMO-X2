@@ -1374,8 +1374,8 @@ Estado: QEMU. Anillo: host. Lenguaje: Python.
 Entrada: Vista .ujh, estilos .ujc y atlas de CABINA.
 Salida: Vista UJVI con coordenadas logicas independiente del destino.
 Depende de: ULTRA-J: bytecode y tema (plan).
-Aceptacion: QEMU verifica ambos estados, ida y vuelta con Enter y rechazo de SBEF W+X.
-Pendiente: Conectar objetos .ujb, eventos por elemento y compositor DIRECTOR.
+Aceptacion: QEMU verifica ambos estados, la accion con Enter, el reinicio con Esc y el rechazo de SBEF W+X.
+Pendiente: Conectar eventos por elemento y compositor DIRECTOR.
 
 ## Ultra-J/targets/x86_64
 
@@ -1383,10 +1383,10 @@ Empaqueta un presentador de Ring 3 para los servicios INVOKE y WAIT de BMO-X2.
 
 Estado: QEMU. Anillo: host. Lenguaje: ASM x86-64 y PowerShell.
 Entrada: Vista UJVI compilada y ABI x86-64.
-Salida: SBEF con presentador nativo y vista de solo lectura.
+Salida: SBEF con presentador nativo, vista y accion UJBC de solo lectura.
 Depende de: ULTRA-J: estructura y estilos (codigo).
-Aceptacion: QEMU muestra la vista, entrega Enter y coteja los fotogramas.
-Pendiente: Integrar con DIRECTOR y comprobar en metal.
+Aceptacion: La accion del boton cambia la vista y su arena queda a cero en QEMU.
+Pendiente: Cargar UJBC separado en una VM general, integrar DIRECTOR y comprobar en metal.
 
 ## userspace/services/desktop
 

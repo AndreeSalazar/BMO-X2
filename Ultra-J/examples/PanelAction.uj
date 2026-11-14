@@ -1,0 +1,9 @@
+class PanelAction {
+    void run() {
+        try (Region app = new Region(1)) {
+            Button enter = new Button();
+            enter.activate();
+        }
+        return;
+    }
+}

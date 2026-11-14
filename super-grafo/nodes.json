@@ -2098,8 +2098,8 @@
       "que": "Compila estructura y estilos a dos listas binarias de dibujo.",
       "entrada": "Vista .ujh, estilos .ujc y atlas de CABINA.",
       "salida": "Vista UJVI con coordenadas logicas independiente del destino.",
-      "aceptacion": "QEMU verifica ambos estados, ida y vuelta con Enter y rechazo de SBEF W+X.",
-      "falta": "Conectar objetos .ujb, eventos por elemento y compositor DIRECTOR."
+      "aceptacion": "QEMU verifica ambos estados, la accion con Enter, el reinicio con Esc y el rechazo de SBEF W+X.",
+      "falta": "Conectar eventos por elemento y compositor DIRECTOR."
     },
     {
       "id": "ultra-j-x86-view",
@@ -2111,9 +2111,9 @@
       "posicion": [3070, 2375],
       "que": "Empaqueta un presentador de Ring 3 para los servicios INVOKE y WAIT de BMO-X2.",
       "entrada": "Vista UJVI compilada y ABI x86-64.",
-      "salida": "SBEF con presentador nativo y vista de solo lectura.",
-      "aceptacion": "QEMU muestra la vista, entrega Enter y coteja los fotogramas.",
-      "falta": "Integrar con DIRECTOR y comprobar en metal."
+      "salida": "SBEF con presentador nativo, vista y accion UJBC de solo lectura.",
+      "aceptacion": "La accion del boton cambia la vista y su arena queda a cero en QEMU.",
+      "falta": "Cargar UJBC separado en una VM general, integrar DIRECTOR y comprobar en metal."
     },
     {
       "id": "desktop-workspaces",

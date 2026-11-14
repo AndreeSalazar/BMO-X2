@@ -159,12 +159,16 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         command('screendump', {'filename': str(prefix) + '-ultra-j-ready.png', 'format': 'png'})
         key('ret')
         wait_until(lambda: logical(150, 102, 0x6ee7b7) and logical(272, 245, 0x24584d))
+        assert memory(address + 0x1d008, 16, 'ultra-j-button-arena') == bytes(16)
         command('screendump', {'filename': str(prefix) + '-ultra-j-active.png', 'format': 'png'})
         key('ret')
+        wait_until(lambda: logical(150, 102, 0x6ee7b7) and sleeping())
+        key('esc')
         wait_until(lambda: all(logical(*probe) for probe in probes) and sleeping())
         cache, _ = bootlog()
         return dict(Case='normal', Passed=True, UserCpl=3, UltraJViewVerified=True,
-                    UltraJEnterRoundTrip=True, IntroFramesObserved=sorted(frames),
+                    UltraJButtonAction=True, UltraJArenaCleared=True, UltraJResetVerified=True,
+                    IntroFramesObserved=sorted(frames),
                     CpuL1=cache)
 
     command_probe = desktop_media and (prefix.parent.parent / 'xhci-command.txt').is_file()

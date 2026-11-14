@@ -46,8 +46,9 @@ El UJBC requiere un runtime. El SBEF incluye 53 bytes de codigo nativo
 y 64 bytes de contenedor. Estos tiempos miden produccion del artefacto.
 Para medir el coste de ejecucion y RAM queda pendiente correr ambos en
 Ring 3 con la misma entrada y contar tambien las paginas de la VM.
-Hoy QEMU verifica el presentador de vistas binarias. El verificador
-UJBC, las llamadas a objetos y el Reciclador se prueban en HOST.
+QEMU verifica la vista y una accion UJBC de forma fija en Ring 3.
+El interprete general, las llamadas a objetos y el Reciclador
+tienen su banco de referencia en HOST.
 
 Reproduce la medicion con `python -B .\Ultra-J\compare_build.py`
 desde la raiz de BMO-X2. Usa LLVM para enlazar y Rust con el destino
@@ -112,9 +113,29 @@ Cada rectangulo tiene x, y, ancho y alto como `u16`, y color
 
 El presentador x86-64 carga las listas de solo lectura desde su SBEF.
 En Ring 3 solicita el dibujo mediante INVOKE y espera entrada con WAIT.
-Enter alterna LISTO y ACTIVO. El perfil admite coordenadas fijas y texto
-A-Z/0-9 con la fuente de CABINA. La integracion con objetos `.ujb`,
-eventos por elemento y el compositor DIRECTOR queda pendiente.
+Enter ejecuta la accion compilada de [PanelAction.uj](examples/PanelAction.uj).
+El presentador comprueba su secuencia UJBC v2, crea un Button temporal,
+aplica `activate()`, copia el resultado por valor y borra sus 16 bytes.
+El resultado cambia LISTO por ACTIVO. Esc devuelve el panel a LISTO.
+El perfil acepta esa accion fija y admite coordenadas fijas y texto
+A-Z/0-9 con la fuente de CABINA. El ejecutable de prueba incorpora la
+vista y la accion en la region de solo lectura del SBEF.
+
+## Que falta para aplicaciones completas
+
+| Uso | Siguiente base y prueba |
+|---|---|
+| Aplicaciones de escritorio | VM de Ring 3 que cargue UJBC separado, metodos y campos de usuario, y eventos por elemento en DIRECTOR. Probar dos ventanas aisladas y recuperar la region al cerrar una. |
+| Autocompilacion | Metodos con argumentos, control de flujo y buffers de bytes acotados. Compilar el compilador escrito en ULTRA-J y comprobar dos generaciones identicas. |
+| Juegos | Superficies y dibujo por lotes, teclado y raton simultaneos, temporizador, audio y activos. Empezar con un juego 2D y medir tiempo por cuadro, latencia de entrada y RAM. |
+| Contenido y video | Lectura secuencial de archivos, colas de audio y video y reloj comun. Empezar con una secuencia corta de cuadros y PCM. Para MP4 hacen falta un lector del contenedor y decodificadores para los codecs elegidos. [Registro de codecs MP4](https://mp4ra.org/registered-types/codecs) |
+
+El objetivo de escritura 1:1 es que cada construccion admitida tenga
+una traduccion binaria definida. Los espacios, comentarios y nombres
+resueltos pueden compartir la misma salida. La compatibilidad con Java
+se limita al subconjunto documentado. Comparar con Rust, C o C++ en
+juegos y video requiere medir el mismo contenido y el mismo trabajo,
+incluyendo la VM y los servicios de audio y video.
 
 ## Frontera por arquitectura
 
@@ -144,6 +165,6 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Ultra-J\qemu.ps1 `
 ```
 
 El ensayo comprueba ambos fotogramas de la intro, los colores de la
-vista, la ida y vuelta con Enter, el BOOTLOG.TXT de FAT32 y el rechazo
+vista, la accion con Enter, el reinicio con Esc, el BOOTLOG.TXT de FAT32 y el rechazo
 de un SBEF con permisos W+X. Abre el run impreso con
 `tools/boot/view.ps1 -Run <ruta-del-run>`. La evidencia es QEMU.
