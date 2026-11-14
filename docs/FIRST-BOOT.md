@@ -18,6 +18,15 @@ hub. Si el arranque se queda en el gato, fotografiar esa pantalla.
 El contador XHCI registra controladores PCI detectados. El indicador
 PS2 registra eventos recibidos por la ruta PS/2 y puede reflejar la
 emulacion del firmware. El transporte USB HID continuo sigue pendiente.
+En el equipo, ambos indicadores siguieron esperando con teclado y
+raton USB conectados. Tampoco se encendio la iluminacion RGB. El
+estado de la iluminacion no identifica la fase de enumeracion.
+
+La sonda `--xhci-command` rearma el endpoint de teclado en QEMU y
+coteja tres informes consecutivos: F2 pulsada, F2 liberada y F3
+pulsada. Al terminar detiene el controlador y restaura el comando PCI.
+La sonda queda en `qemu-only/`. El siguiente ensayo debe reciclar
+las colas, entregar eventos a Ring 3 y cubrir el raton USB.
 
 El primer objetivo fisico es llegar a una parada controlada en Ring 0 desde
 el firmware UEFI x86-64 y poder explicar en que fase quedo el equipo. El

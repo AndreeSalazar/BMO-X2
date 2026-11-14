@@ -957,7 +957,7 @@ Entrada: Dispositivos descubiertos, buffers y eventos.
 Salida: Canales y ventanas de aparato acotados.
 Depende de: Buses, recursos y DMA (plan), Comunicacion entre procesos (plan).
 Aceptacion: Pruebas de acceso, revocacion y fallo de servicio por dispositivo admitido.
-Pendiente: El ensayo verifica PCI xHCI y lectura temporal de capacidades MMIO. Faltan ventana operativa, DMA acotado y eventos HID.
+Pendiente: La sonda QEMU xHCI recibe tres informes de teclado y detiene DMA. Faltan colas reutilizables, entrega HID al escritorio y prueba de raton y controladores fisicos.
 
 ## kernel/drivers/network
 

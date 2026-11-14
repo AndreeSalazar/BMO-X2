@@ -1509,7 +1509,7 @@
       "entrada": "Dispositivos descubiertos, buffers y eventos.",
       "salida": "Canales y ventanas de aparato acotados.",
       "aceptacion": "Pruebas de acceso, revocacion y fallo de servicio por dispositivo admitido.",
-      "falta": "El ensayo verifica PCI xHCI y lectura temporal de capacidades MMIO. Faltan ventana operativa, DMA acotado y eventos HID.",
+      "falta": "La sonda QEMU xHCI recibe tres informes de teclado y detiene DMA. Faltan colas reutilizables, entrega HID al escritorio y prueba de raton y controladores fisicos.",
       "pagina": true
     },
     {

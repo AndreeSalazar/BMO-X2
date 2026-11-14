@@ -108,6 +108,8 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     if command_probe:
         wait_until(lambda: memory(address + 0x1a396, 1, 'xhci-armed') == b'\x01')
         key('f2')
+        wait_until(lambda: memory(address + 0x1a396, 1, 'xhci-rearmed') == b'\x03')
+        key('f3')
     wait_until(lambda: logical(216, 33, 0x0d0e17) and logical(52, 99, 0x5ad8ff) and sleeping())
     def input_label(x, tag):
         stride = pitch * 4
@@ -171,9 +173,9 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
             data = reserved[0x4c40:0x4c40 + total]
             assert len(data) == total and data[:5] == struct.pack('<BBHB', 9, 2, total, 1)
             assert config == data[5] and endpoint & 0x80
-            assert memory(address + 0x1a397, 1, 'xhci-report-state') == b'\x01'
-            report = reserved[0x4e80:0x4e88]
-            assert report == bytes([0, 0, 0x3b, 0, 0, 0, 0, 0])
+            assert memory(address + 0x1a397, 1, 'xhci-report-state') == b'\x03'
+            reports = [reserved[offset:offset + 8] for offset in range(0x4e80, 0x4e98, 8)]
+            assert reports == [bytes([0, 0, usage, 0, 0, 0, 0, 0]) for usage in (0x3b, 0, 0x3c)]
         else:
             assert reserved == bytes(pages * 4096)
         assert memory(address + 0x1a358, 5, 'xhci-inventory') == struct.pack('<IB', 1, 1)
@@ -203,15 +205,15 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         assert memory(address + 0x1e000, 24, 'xhci-alias-pte') == bytes(24)
         assert logical(24, 354, 0x232638), 'El escritorio no mostro el aviso de entrada USB'
         if command_probe:
-            # QEMU directs keyboard input to usb-kbd. The xHCI probe stops
-            # the controller after EP0. PS/2 interaction has its own run.
+            # QEMU routes these keys to usb-kbd. This run ends with DMA stopped.
             return dict(Case='normal', Passed=True, UserCpl=3, DesktopSession=True,
                         XhciCommandCompleted=True, XhciUsbDeviceAddressed=True,
                         XhciUsbDeviceDescriptorRead=True, XhciPort=port, XhciSpeed=speed,
                         XhciSlot=slot, XhciControllerStopped=True,
                         UsbConfigurationBytes=total, UsbBootKeyboardInterface=interface,
                         UsbKeyboardEndpoint=endpoint, UsbBootProtocolSelected=True,
-                        UsbDeviceDescriptor=descriptor.hex(), UsbF2Report=report.hex(),
+                        UsbDeviceDescriptor=descriptor.hex(), UsbF2Report=reports[0].hex(),
+                        UsbKeyboardReports=[report.hex() for report in reports],
                         UsbKeyboardTransferVerified=True,
                         UsbInputVerified=False, CpuL1=cache)
     timeout_before = wait_stats()[1]

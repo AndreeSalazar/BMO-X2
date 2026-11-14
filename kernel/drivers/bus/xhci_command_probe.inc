@@ -1,4 +1,5 @@
 # QEMU qemu-xhci only. Interrupt delivery remains disabled.
+.equ keyboard_report_count, 3
 .text
 xhci_test_command:
     cmpb $1, %gs:0x378
@@ -442,14 +443,21 @@ keyboard_first_report:
     jne keyboard_report_done
     cmpb $1, 15(%rsi)
     jne keyboard_report_done
-    lea 0x4e80(%r8), %rax
-    mov %rax, 0x4900(%r8)
-    movl $8, 0x4908(%r8)
-    movl $0x421, 0x490c(%r8)
     add $16, %rsi
+    lea 0x4900(%r8), %rbx
+    lea 0x4e80(%r8), %rdx
+    lea 0x2100(%r8), %rdi
+keyboard_report_submit:
+    # Do not wrap the probe's event segment. The production driver needs
+    # cycle-bit tracking and recycling across both rings.
+    cmp %rdi, %rsi
+    jae keyboard_report_done
+    mov %rdx, (%rbx)
+    movl $8, 8(%rbx)
+    movl $0x421, 12(%rbx)
     movl $3, 4(%r10)
-    movb $1, %gs:0x396
-    # The harness injects the key only once the transfer is armed.
+    incb %gs:0x396
+    # The harness injects transitions only after the first transfer is armed.
     mov $160000000, %ecx
 keyboard_report_wait:
     testb $1, 12(%rsi)
@@ -464,12 +472,17 @@ keyboard_report_event:
     jne keyboard_report_done
     cmpl $0x01000000, 8(%rsi)
     jne keyboard_report_done
-    lea 0x4900(%r8), %rax
-    cmp %rax, (%rsi)
+    cmp %rbx, (%rsi)
     jne keyboard_report_done
     lea 24(%rsi), %rax
     mov %rax, 0x38(%r9)
-    movb $1, %gs:0x397
+    incb %gs:0x397
+    cmpb $keyboard_report_count, %gs:0x397
+    je keyboard_report_done
+    add $16, %rsi
+    add $16, %rbx
+    add $8, %rdx
+    jmp keyboard_report_submit
 keyboard_report_done:
     ret
 
