@@ -1509,7 +1509,7 @@
       "entrada": "Dispositivos descubiertos, buffers y eventos.",
       "salida": "Canales y ventanas de aparato acotados.",
       "aceptacion": "Pruebas de acceso, revocacion y fallo de servicio por dispositivo admitido.",
-      "falta": "La sonda QEMU xHCI recibe tres informes de teclado y detiene DMA. Faltan colas reutilizables, entrega HID al escritorio y prueba de raton y controladores fisicos.",
+      "falta": "La sonda QEMU xHCI entrega tres informes a Ring 3 tras detener DMA y F2 abre CABINA. Faltan colas reutilizables, WAIT USB y prueba de raton y controladores fisicos.",
       "pagina": true
     },
     {

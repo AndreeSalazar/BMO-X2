@@ -5,12 +5,14 @@ param(
     [switch]$Guest,
     [switch]$Session,
     [switch]$External,
+    [switch]$UsbProbe,
     [string]$AbiRun,
     [string]$IntroRun
 )
 $ErrorActionPreference = 'Stop'
 if ($Session) { $Guest = $true }
 if ($External -and (-not $Session -or -not $AbiRun)) { throw '-External requiere -Session y -AbiRun.' }
+if ($UsbProbe -and -not $External) { throw '-UsbProbe requiere -External.' }
 if ($AbiRun -and -not $Guest) { throw '-AbiRun requiere -Guest.' }
 if ($IntroRun -and -not $AbiRun) { throw '-IntroRun requiere -AbiRun.' }
 $root = Split-Path $PSScriptRoot
@@ -39,6 +41,11 @@ if ($Session) {
     $entrySource = Join-Path $PSScriptRoot 'desktop/session.rs'
     $guestFlags = @('-C','opt-level=z')
     if ($External) { $guestFlags += @('--cfg','external_session') }
+    if ($UsbProbe) {
+        $guestFlags += @('--cfg','usb_probe')
+        $elf = Join-Path $build.FullName 'desktop-usb-probe.elf'
+        $image = Join-Path $build.FullName 'desktop-usb-probe.sbef'
+    }
 }
 $fixtureArguments = @()
 if ($Session) {
@@ -103,7 +110,7 @@ if ($External) {
 }
 Write-Output "Medidas HOST: $sizePath"
 Write-Output "SBEF: $image"
-if ($AbiRun) {
+if ($AbiRun -and -not $UsbProbe) {
     $introArguments = @()
     if ($IntroRun) { $introArguments = @('--intro', $IntroRun) }
     & $Python -B (Join-Path $PSScriptRoot 'boot/doom_qemu.py') $AbiRun $image @fixtureArguments @introArguments

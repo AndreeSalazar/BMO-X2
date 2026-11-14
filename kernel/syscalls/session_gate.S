@@ -271,6 +271,10 @@ timer_irq:
 diagnostics:
     cmp $3, %rdi
     jne denied
+#ifdef XHCI_COMMAND_PROBE
+    cmp $5, %rdx
+    je usb_report
+#endif
 #ifdef DESKTOP_MEDIA
     cmp $4, %rdx
     je usb_controllers
@@ -289,6 +293,18 @@ diagnostics_result:
     jmp finish
 #ifdef DESKTOP_MEDIA
 #include "../drivers/bus/xhci_inventory.inc"
+#endif
+#ifdef XHCI_COMMAND_PROBE
+usb_report:
+    movzbl %gs:0x398, %ecx
+    cmp %gs:0x397, %cl
+    jae empty
+    cmpb $1, %gs:0x37a
+    jne empty
+    mov 0xb8(%rbp), %rax
+    mov 0x4e80(%rax,%rcx,8), %rax
+    incb %gs:0x398
+    jmp finish
 #endif
 #ifdef DOOM_ENGINE
 serial_byte:

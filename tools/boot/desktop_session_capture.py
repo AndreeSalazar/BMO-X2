@@ -110,14 +110,19 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         key('f2')
         wait_until(lambda: memory(address + 0x1a396, 1, 'xhci-rearmed') == b'\x03')
         key('f3')
-    wait_until(lambda: logical(216, 33, 0x0d0e17) and logical(52, 99, 0x5ad8ff) and sleeping())
+    if command_probe:
+        wait_until(lambda: logical(24, 24, 0x232638) and sleeping()
+                   and memory(address + 0x1a398, 1, 'xhci-delivered') == b'\x03')
+        command('screendump', {'filename': str(prefix) + '-usb-cabina.png', 'format': 'png'})
+    else:
+        wait_until(lambda: logical(216, 33, 0x0d0e17) and logical(52, 99, 0x5ad8ff) and sleeping())
     def input_label(x, tag):
         stride = pitch * 4
         length = 115 * scale * 4
         data = memory(fb + (372*scale*pitch + x*scale)*4, 11*scale*stride + length, tag)
         return tuple(data[row*stride:row*stride+length] for row in range(0, 11*scale+1, scale))
 
-    if external_image is not None:
+    if external_image is not None and not command_probe:
         assert logical(24, 354, 0x232638), 'Falta el panel de entrada al arrancar'
         keyboard_before = input_label(36, 'keyboard-before')
         mouse_before = input_label(260, 'mouse-before')
@@ -203,7 +208,8 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         assert handoff in (1, 2), f'xHCI handoff state: {handoff}'
         assert memory(address + 0x15400, 8, 'xhci-alias-pde') == bytes(8)
         assert memory(address + 0x1e000, 24, 'xhci-alias-pte') == bytes(24)
-        assert logical(24, 354, 0x232638), 'El escritorio no mostro el aviso de entrada USB'
+        if not command_probe:
+            assert logical(24, 354, 0x232638), 'El escritorio no mostro el aviso de entrada USB'
         if command_probe:
             # QEMU routes these keys to usb-kbd. This run ends with DMA stopped.
             return dict(Case='normal', Passed=True, UserCpl=3, DesktopSession=True,
@@ -215,7 +221,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                         UsbDeviceDescriptor=descriptor.hex(), UsbF2Report=reports[0].hex(),
                         UsbKeyboardReports=[report.hex() for report in reports],
                         UsbKeyboardTransferVerified=True,
-                        UsbInputVerified=False, CpuL1=cache)
+                        UsbInputVerified=True, UsbCabinaVerified=True, CpuL1=cache)
     timeout_before = wait_stats()[1]
     wait_until(lambda: wait_stats()[1] > timeout_before)
     event_before = wait_stats()[0]

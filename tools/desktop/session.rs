@@ -6,6 +6,8 @@ use core::panic::PanicInfo;
 
 mod cabina;
 mod settings;
+#[cfg(usb_probe)]
+mod usb_probe;
 #[cfg(desktop_doom)]
 mod doom_window;
 
@@ -27,6 +29,11 @@ const BAR_TICKS: u32 = 120;
 
 #[inline(never)]
 fn invoke(capability: u64, operation: u64, rect: u64, color: u32) -> u32 {
+    invoke_word(capability, operation, rect, color) as u32
+}
+
+#[inline(always)]
+fn invoke_word(capability: u64, operation: u64, rect: u64, color: u32) -> u64 {
     let reply: u64;
     unsafe {
         asm!("syscall", inlateout("rax") 0u64 => reply,
@@ -34,7 +41,7 @@ fn invoke(capability: u64, operation: u64, rect: u64, color: u32) -> u32 {
              inlateout("rdx") rect => _, inlateout("r10") u64::from(color) => _,
              lateout("rcx") _, lateout("r11") _, lateout("r8") _, lateout("r9") _);
     }
-    reply as u32
+    reply
 }
 
 #[inline(never)]
@@ -238,10 +245,12 @@ extern "C" fn bmo_main() -> ! {
     cursor(x, y);
     let controllers = invoke(3, 3, 4, 0);
     let usb_pending = controllers != DENIED && (1..=65536).contains(&controllers);
-    #[cfg(external_session)]
+    #[cfg(usb_probe)]
+    let mut usb = usb_probe::Keyboard::default();
+    #[cfg(all(external_session, not(usb_probe)))]
     let (mut keyboard_seen, mut mouse_seen, mut input_dirty) = (false, false, true);
     loop {
-        #[cfg(external_session)]
+        #[cfg(all(external_session, not(usb_probe)))]
         if input_dirty && !console && !settings_open {
             cabina::boot_input(if controllers <= 65536 && controllers != DENIED { controllers } else { 0 },
                                keyboard_seen, mouse_seen);
@@ -257,6 +266,9 @@ extern "C" fn bmo_main() -> ! {
                 }
             }
         }
+        #[cfg(usb_probe)]
+        let raw = usb.next().unwrap_or_else(|| invoke(INPUT, READ_INPUT, 0, 0));
+        #[cfg(not(usb_probe))]
         let raw = invoke(INPUT, READ_INPUT, 0, 0);
         if raw & 512 != 0 {
             let byte = raw as u8;
@@ -279,7 +291,7 @@ extern "C" fn bmo_main() -> ! {
                     let next_x = (x + delta_x * pointer_speed).clamp(0, 633);
                     let next_y = (y - delta_y * pointer_speed).clamp(0, 390);
                     let pressed = flags & 1 != 0;
-                    #[cfg(external_session)]
+                    #[cfg(all(external_session, not(usb_probe)))]
                     if !mouse_seen && (delta_x != 0 || delta_y != 0 || pressed) {
                         mouse_seen = true;
                         input_dirty = true;
@@ -313,14 +325,14 @@ extern "C" fn bmo_main() -> ! {
                     if focus[space] != previous_focus {
                         paint(VIEWPORT, space, focus[space], bar.is_some());
                         cursor(x, y);
-                        #[cfg(external_session)]
+                        #[cfg(all(external_session, not(usb_probe)))]
                         { input_dirty = true; }
                         displayed = (x, y);
                         pending_motion = 0;
                     } else {
                         pending_motion += 1;
                         if pending_motion == 8 {
-                            #[cfg(external_session)]
+                            #[cfg(all(external_session, not(usb_probe)))]
                             { input_dirty |= displayed.0 < 572 && displayed.1 >= 345; }
                             move_cursor(displayed, (x, y), space, focus[space], bar.is_some());
                             displayed = (x, y);
@@ -333,7 +345,7 @@ extern "C" fn bmo_main() -> ! {
             continue;
         }
         if pending_motion != 0 {
-            #[cfg(external_session)]
+            #[cfg(all(external_session, not(usb_probe)))]
             { input_dirty |= displayed.0 < 572 && displayed.1 >= 345; }
             move_cursor(displayed, (x, y), space, focus[space], bar.is_some());
             displayed = (x, y);
@@ -352,7 +364,7 @@ extern "C" fn bmo_main() -> ! {
             continue;
         }
         let key = raw as u8;
-        #[cfg(external_session)]
+        #[cfg(all(external_session, not(usb_probe)))]
         if !keyboard_seen && matches!(key, 0x01..=0x58) {
             keyboard_seen = true;
             input_dirty = true;
@@ -438,7 +450,7 @@ extern "C" fn bmo_main() -> ! {
             } else {
                 paint(VIEWPORT, space, focus[space], false);
                 cursor(x, y);
-                #[cfg(external_session)]
+                #[cfg(all(external_session, not(usb_probe)))]
                 { input_dirty = true; }
             }
             continue;
@@ -454,7 +466,7 @@ extern "C" fn bmo_main() -> ! {
                 } else {
                     paint(VIEWPORT, space, focus[space], false);
                     cursor(x, y);
-                    #[cfg(external_session)]
+                    #[cfg(all(external_session, not(usb_probe)))]
                     { input_dirty = true; }
                 }
             }
@@ -467,7 +479,7 @@ extern "C" fn bmo_main() -> ! {
                         settings_open = false;
                         paint(VIEWPORT, space, focus[space], false);
                         cursor(x, y);
-                        #[cfg(external_session)]
+                        #[cfg(all(external_session, not(usb_probe)))]
                         { input_dirty = true; }
                     }
                     2 | 3 => {
@@ -501,7 +513,7 @@ extern "C" fn bmo_main() -> ! {
                 if selected != space {
                     space = selected;
                     paint(VIEWPORT, space, focus[space], true);
-                    #[cfg(external_session)]
+                    #[cfg(all(external_session, not(usb_probe)))]
                     { input_dirty = true; }
                 } else {
                     paint(BAR, space, focus[space], true);
@@ -514,7 +526,7 @@ extern "C" fn bmo_main() -> ! {
                     focus[space] = selected;
                     paint(VIEWPORT, space, selected, bar.is_some());
                     cursor(x, y);
-                    #[cfg(external_session)]
+                    #[cfg(all(external_session, not(usb_probe)))]
                     { input_dirty = true; }
                 }
             }

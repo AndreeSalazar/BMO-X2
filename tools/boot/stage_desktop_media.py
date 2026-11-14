@@ -45,6 +45,7 @@ def main():
     probes = parser.add_mutually_exclusive_group()
     probes.add_argument('--xhci-command', action='store_true', help='Run the QEMU-only xHCI command probe')
     probes.add_argument('--reuse-session', action='store_true', help='Run the QEMU-only desktop frame reuse probe')
+    parser.add_argument('--usb-desktop', type=Path, help='Desktop SBEF compiled with -UsbProbe')
     args = parser.parse_args()
     abi, splash, desktop = map(workspace, (args.abi_run, args.splash_run, args.desktop_run))
     for path, profile in ((abi, 'ring0-abi-probe-0.1'), (splash, SPLASH_PROFILE),
@@ -53,7 +54,11 @@ def main():
             parser.error(f'Se requiere {profile}')
     check(abi)
     check(splash)
-    sbef = (desktop / 'desktop.sbef').read_bytes()
+    if args.xhci_command != (args.usb_desktop is not None):
+        parser.error('--xhci-command requiere --usb-desktop')
+    if args.usb_desktop and args.usb_desktop.resolve() != (ROOT / 'build/desktop/desktop-usb-probe.sbef').resolve():
+        parser.error('--usb-desktop requiere el resultado local de -UsbProbe')
+    sbef = (args.usb_desktop if args.usb_desktop else desktop / 'desktop.sbef').read_bytes()
     budget = desktop_budget(sbef)
     run = abi.parent / f'run-desktop-media-{uuid.uuid4().hex[:12]}'
     run.mkdir()
