@@ -28,6 +28,8 @@ operaciones del ABI, permisos, formato de entrada, cambios y evidencia.
 Los ejecutables BEF2 del padre requieren reempaquetado o una decision de
 compatibilidad probada antes de ejecutarse en BMO-X2. Una pieza que pide
 un mecanismo aun pendiente queda inventariada con su bloqueo.
+El [orden de trabajo de Ring 3](../userspace/README.md#orden-de-trabajo-y-presupuestos)
+fija las pruebas y las medidas de cada entrega de escritorio.
 
 El emisor `toolchain/lang/cobol/emisor-x86_64` es una referencia HOST.
 Su primer caso de transferencia sera un programa COBOL pequeno,

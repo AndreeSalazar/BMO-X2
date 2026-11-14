@@ -6,6 +6,33 @@ inicio, la configuracion y la recuperacion de los servicios con las
 capacidades que reciba. CASM conserva la autoridad de Ring 0.
 [Reglas de Ring 3](POLICY.md) y [espacios de trabajo](services/desktop/WORKSPACES.md).
 
+## Orden de trabajo y presupuestos
+
+| Orden | Elemento | Base para comparar | Prueba de cierre en BMO-X2 |
+|---|---|---|---|
+| 1 | Runtime y supervisor | Inicio de sesion, dependencias y recuperacion de servicios | Cerrar una aplicacion, revocar sus capacidades y reutilizar sus paginas para otra. |
+| 2 | Entrada y configuracion | Distribucion de teclado, atajos, foco y velocidad del puntero | F2, movimiento, clic y reconexion desde USB. Guardar las preferencias de sesion. |
+| 3 | DIRECTOR y CABINA | Espacios de Ultra-LinuX, cambio de ventana y diagnostico de BMO-X | Abrir y cerrar clientes con foco propio y medir los recursos que devuelve cada uno. |
+| 4 | Archivos y aplicaciones | Lanzador, acceso a archivos y configuracion persistente | Abrir un SBEF desde disco con las capacidades solicitadas. Cargar el IWAD y ejecutar DOOM. |
+| 5 | Audio y servicios opcionales | Mezclador, volumen por aplicacion y dispositivos | Reproducir efectos y musica, medir latencia y liberar los buffers al cerrar. |
+
+Linux y Windows sirven como referencia de comportamiento para el
+usuario. BMO-X aporta bibliotecas y contratos para revisar. El
+supervisor delega capacidades concretas y cada servicio conserva sus
+dependencias y presupuesto.
+
+El recorrido de codigo es fuente Rust, C o C++ a ELF64 x86-64, luego
+HOST empaqueta SBEF y Ring 0 valida y mapea sus regiones. Un volcado
+`.hex` permite inspeccionar los mismos bytes. El presupuesto de
+2 KiB pertenece al paquete minimo, y cada SBEF del escritorio o de
+una aplicacion tiene su propio limite.
+
+Para optimizar una pieza, registrar bytes SBEF, paginas mapeadas,
+pila, buffers, coste en reposo y memoria devuelta al cerrar. Comparar
+el mismo comportamiento antes y despues. El perfil actual del
+escritorio usa 8958 bytes SBEF y 20 KiB de regiones y pila.
+[Presupuestos HOST](../contracts/SBEF-HOST.md).
+
 El primer hito de Rust es un cliente `no_std` para x86-64 que arranque
 desde SBEF, haga INVOKE y termine de forma que el kernel recupere sus
 recursos. Luego se adapta el runtime del padre y se prueba un servicio.
