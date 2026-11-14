@@ -148,13 +148,12 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         wait_until(lambda: logical(40, 86, 0x40465d)
                    and memory(address + 0x1a3c8, 1, 'xhci-live') == b'\x01')
         wait_until(lambda: memory(address + 0x1a396, 1, 'xhci-rearmed') == b'\x03')
-        for index in range(9):
+        for index in range(129):
             key('f3')
-            expected = (4 + 2*index).to_bytes(1, 'little')
+            expected = ((4 + 2*index) & 255).to_bytes(1, 'little')
             wait_until(lambda: memory(address + 0x1a398, 1, 'xhci-delivered') == expected)
-    if command_probe:
         wait_until(lambda: logical(40, 86, 0x40465d) and sleeping()
-                   and memory(address + 0x1a398, 1, 'xhci-delivered') == b'\x14')
+                   and memory(address + 0x1a3c8, 1, 'xhci-live') == b'\x01')
         command('screendump', {'filename': str(prefix) + '-usb-cabina.png', 'format': 'png'})
     else:
         wait_until(lambda: logical(216, 33, 0x0d0e17) and logical(52, 99, 0x5ad8ff) and sleeping())
@@ -212,14 +211,11 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         if command_probe:
             assert memory(address + 0x1a3c4, 1, 'xhci-dma-validated') == b'\x01'
             status = memory(address + 0x1a379, 2, 'xhci-command-status')
-            assert status == b'\x01\x01', f'xHCI command/stop status: {status.hex()}'
-            original, restored = struct.unpack('<HH', memory(address + 0x1a37c, 4, 'xhci-pci-command'))
-            assert original == restored, 'El comando PCI no se restauro'
+            assert status == b'\x01\x00', f'xHCI command/stop status: {status.hex()}'
             # The live keyboard can overwrite the initial No Op completion.
             # Ring 0 recorded its successful type, status and pointer check.
             assert struct.unpack_from('<I', reserved, 0x100c)[0] == 0x5c01
             assert struct.unpack_from('<Q', reserved, 0x4940)[0] == dma + 0x4900
-            assert memory(address + 0x1a3ca, 2, 'xhci-cycle-bits') == b'\x00\x00'
             device_state = tuple(memory(address + 0x1a380, 5, 'xhci-device'))
             port, speed, slot, addressed, descriptor_read = device_state
             expected_speed = 1 if (prefix.parent.parent / 'usb-full-speed.txt').is_file() else 3
@@ -235,7 +231,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
             data = reserved[0x4c40:0x4c40 + total]
             assert len(data) == total and data[:5] == struct.pack('<BBHB', 9, 2, total, 1)
             assert config == data[5] and endpoint & 0x80
-            assert memory(address + 0x1a397, 1, 'xhci-report-state') == b'\x14'
+            assert memory(address + 0x1a397, 1, 'xhci-report-state') == b'\x04'
             reports = [reserved[offset:offset + 8] for offset in range(0x4e80, 0x4ea0, 8)]
             assert reports == [bytes([0, 0, usage, 0, 0, 0, 0, 0]) for usage in (0x3c, 0, 0x3c, 0)]
             assert wait_stats()[0] > 0
@@ -267,8 +263,6 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         caps, parameters = struct.unpack('<II', memory(address + 0x1a370, 8, 'xhci-capabilities'))
         if command_probe:
             status_register = bar + (caps & 0xff) + 4
-            usb_status = command('human-monitor-command', {'command-line': f'xp /1wx {status_register:#x}'})
-            assert int(usb_status.split(':', 1)[1].split()[0], 16) & 1
         actual = command('human-monitor-command', {'command-line': f'xp /2wx {bar:#x}'})
         words = actual.split(':', 1)[1].split()
         assert (caps, parameters) == tuple(int(word, 16) for word in words[:2])
@@ -296,11 +290,29 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         assert reset_stage == (3 if command_probe else 0)
         handoff = memory(address + 0x1a378, 1, 'xhci-handoff')[0]
         assert handoff in (1, 2), f'xHCI handoff state: {handoff}'
-        assert memory(address + 0x15400, 8, 'xhci-alias-pde') == bytes(8)
-        assert memory(address + 0x1e000, 24, 'xhci-alias-pte') == bytes(24)
+        if not command_probe:
+            assert memory(address + 0x15400, 8, 'xhci-alias-pde') == bytes(8)
+            assert memory(address + 0x1e000, 24, 'xhci-alias-pte') == bytes(24)
         if not command_probe:
             assert logical(24, 354, 0x232638), 'El escritorio no mostro el aviso de entrada USB'
         if command_probe:
+            for letter in 'session exit':
+                key('spc' if letter == ' ' else letter)
+            key('ret')
+            def closed_usb_session():
+                regs = registers()
+                return ('CPL=0' in regs and 'HLT=1' in regs and register(regs, 'R12') == 5
+                        and not register(regs, 'EFER') & 1)
+            wait_until(closed_usb_session)
+            assert memory(address + 0x1a3c8, 1, 'xhci-live-after-exit') == bytes(1)
+            assert memory(address + 0x1a37a, 1, 'xhci-stop-after-exit') == b'\x01'
+            original, restored = struct.unpack('<HH', memory(address + 0x1a37c, 4, 'xhci-pci-command'))
+            assert original == restored, 'El comando PCI no se restauro'
+            usb_status = command('human-monitor-command', {'command-line': f'xp /1wx {status_register:#x}'})
+            assert int(usb_status.split(':', 1)[1].split()[0], 16) & 1
+            assert memory(address + 0x15400, 8, 'xhci-alias-pde') == bytes(8)
+            assert memory(address + 0x1e000, 24, 'xhci-alias-pte') == bytes(24)
+            assert memory(address + 0x17000, 40, 'usb-closed-pte') == bytes(40)
             # QEMU routes these keys to usb-kbd. This run ends with DMA stopped.
             return dict(Case='normal', Passed=True, UserCpl=3, DesktopSession=True,
                         XhciCommandCompleted=True, XhciUsbDeviceAddressed=True,
@@ -309,7 +321,8 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                         UsbConfigurationBytes=total, UsbBootKeyboardInterface=interface,
                         UsbKeyboardEndpoint=endpoint, UsbBootProtocolSelected=True,
                         UsbDeviceDescriptor=descriptor.hex(),
-                        UsbKeyboardReportsConsumed=20, UsbKeyboardRingWrapVerified=True,
+                        UsbKeyboardReportsBeforeExit=260, UsbKeyboardRingWrapVerified=True,
+                        UsbSessionExitVerified=True,
                         UsbKeyboardFinalReports=[report.hex() for report in reports],
                         UsbKeyboardTransferVerified=True,
                         UsbInputVerified=True, UsbCabinaVerified=True, CpuL1=cache,

@@ -1,6 +1,5 @@
 # QEMU qemu-xhci only. Interrupt delivery remains disabled.
 #include "xhci_dma_layout.inc"
-.equ keyboard_report_count, 20
 .text
 xhci_test_command:
     cmpb $1, %gs:0x378
@@ -596,16 +595,10 @@ keyboard_event_next:
     incb %gs:0x397
     and $3, %ecx
     pushq 0x4e80(%r8,%rcx,8)
-    cmpb $keyboard_report_count, %gs:0x397
-    je keyboard_live_last
     lea 0x10002000, %r10
     inc %ecx
     and $3, %ecx
     call keyboard_report_submit
-    jmp keyboard_live_deliver
-keyboard_live_last:
-    call xhci_live_stop
-keyboard_live_deliver:
     pop %rax
     incb %gs:0x398
     ret

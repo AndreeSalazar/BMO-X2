@@ -72,17 +72,19 @@ raton USB conectados. Tampoco se encendio la iluminacion RGB. El
 estado de la iluminacion no identifica la fase de enumeracion.
 
 La sonda `--xhci-command` rearma el endpoint de teclado en QEMU y
-coteja veinte informes. Cuatro posiciones de transferencia y
-dieciseis de eventos se reutilizan mediante bits de ciclo. Al terminar
-detiene el controlador y restaura el comando PCI.
+coteja 260 informes antes de cerrar CABINA con `session exit`.
+Cuatro posiciones de transferencia y dieciseis de eventos se
+reutilizan mediante bits de ciclo. El contador de diagnostico
+vuelve a cero sin interrumpir la entrada. Al cerrar la sesion se
+detiene el controlador y se restaura el comando PCI.
 Con `build-desktop.ps1 -Session -External -UsbProbe -AbiRun ...`,
 HOST genera `build/desktop/desktop-usb-probe.sbef`. Pasarlo a
 `stage_desktop_media.py` con `--xhci-command --usb-desktop` permite
 probar la entrega mediante INVOKE. Ring 3 usa el decodificador HID
 boot y QEMU verifica que F2 abra CABINA con el controlador activo.
 WAIT detecta el informe en un despertar del PIT. La sonda queda en
-`qemu-only/`. Faltan la operacion sostenida con desconexiones, el
-raton y la validacion en metal.
+`qemu-only/`. Faltan la recuperacion tras desconexion, el raton y
+la validacion en metal.
 
 El primer objetivo fisico es llegar a una parada controlada en Ring 0 desde
 el firmware UEFI x86-64 y poder explicar en que fase quedo el equipo. El

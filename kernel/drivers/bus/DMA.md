@@ -42,10 +42,11 @@ La misma sonda lee la configuracion de 34 bytes, valida una interfaz
 HID boot, solicita SET_CONFIGURATION y SET_PROTOCOL y configura
 el endpoint 1 IN. QEMU inyecta F2 y F3, con sus flancos de liberacion.
 La sonda rearma cuatro posiciones fijas y verifica el retorno al
-inicio de las colas de transferencias y de eventos con veinte informes.
+inicio de las colas de transferencias y de eventos con 260 informes
+antes del cierre de sesion.
 WAIT comprueba el evento al despertar del PIT. INVOKE valida el TRB
 y entrega el informe a Rust. QEMU comprueba que CABINA abre con el
-controlador activo y que este se detiene tras el vigesimo informe.
+controlador activo y que este se detiene al ejecutar `session exit`.
 La etapa se guarda bajo `qemu-only`. Antes de programar las colas,
 Ring 0 exige que las diez paginas tengan cobertura exclusiva de
 EfiLoaderData y esten separadas del contexto, del paquete y del SBEF.
@@ -57,8 +58,8 @@ driver. La proteccion frente a un dispositivo que accede fuera de
 esas direcciones requiere que el hardware aplique un dominio IOMMU.
 El contrato comun de prestamos define propiedad, direccion y
 revocacion. AMD IOMMU e Intel VT-d son posibles implementaciones
-de ese contrato. Quedan pendientes esos dominios, las transferencias
-continuas de teclado y la enumeracion del raton.
+de ese contrato. Quedan pendientes esos dominios, la recuperacion de
+teclado tras desconexion y la enumeracion del raton.
 
 QEMU pide cero scratchpads. La prueba coteja las cuatro direcciones
 de la tabla, las paginas a cero y DCBAA[0] a cero. Queda probar el uso

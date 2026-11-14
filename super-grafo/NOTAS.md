@@ -957,7 +957,7 @@ Entrada: Dispositivos descubiertos, buffers y eventos.
 Salida: Canales y ventanas de aparato acotados.
 Depende de: Buses, recursos y DMA (plan), Comunicacion entre procesos (plan).
 Aceptacion: Pruebas de acceso, revocacion y fallo de servicio por dispositivo admitido.
-Pendiente: QEMU abre CABINA con xHCI activo y Rust recibe veinte informes usando colas circulares. Faltan operacion sostenida, raton y validacion de controladores fisicos.
+Pendiente: QEMU abre CABINA con xHCI activo y recibe 260 informes con colas fijas antes de cerrar la sesion. Faltan reconexion, raton y validacion de controladores fisicos.
 
 ## kernel/drivers/network
 
