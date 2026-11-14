@@ -1220,7 +1220,7 @@ Estado: HOST. Anillo: host. Lenguaje: Python control.
 Entrada: ELF64 o PE32+ enlazado y version de ABI.
 Salida: SBEF admitido o un rechazo con campo y offset.
 Depende de: Empaquetador ELF64 a SBEF (codigo), Lector SBEF de referencia (codigo), Inspeccion PE32+ (codigo).
-Aceptacion: El vector ELF conserva sus bytes y la CLI mantiene pack, inspect, probe y diagnosticos.
+Aceptacion: El vector ELF conserva sus bytes, pack exige los presupuestos solicitados y los rechazos conservan la salida previa.
 Pendiente: Ejecutar el cliente comun de varios productores y admitir PE32+ freestanding.
 
 ## tools/host/importers/elf.py

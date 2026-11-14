@@ -1901,7 +1901,7 @@
       "que": "Coordina la inspeccion, admision, diagnostico y publicacion de ejecutables x86-64.",
       "entrada": "ELF64 o PE32+ enlazado y version de ABI.",
       "salida": "SBEF admitido o un rechazo con campo y offset.",
-      "aceptacion": "El vector ELF conserva sus bytes y la CLI mantiene pack, inspect, probe y diagnosticos.",
+      "aceptacion": "El vector ELF conserva sus bytes, pack exige los presupuestos solicitados y los rechazos conservan la salida previa.",
       "falta": "Ejecutar el cliente comun de varios productores y admitir PE32+ freestanding."
     },
     {

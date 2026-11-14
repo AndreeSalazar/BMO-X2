@@ -18,6 +18,7 @@ $llvm = Join-Path $env:ProgramFiles 'LLVM/bin'
 & "$llvm/ld.lld.exe" -static -T userspace/sbef.ld app.o -o app.elf
 python -B tools/sbef.py pack app.elf app.sbef
 python -B tools/sbef.py pack app.elf app-abi1.sbef --abi 1
+python -B tools/sbef.py --json-errors pack app.elf app-limited.sbef --abi 1 --max-file-bytes 512 --max-mapped-bytes 8192
 python -B tools/sbef.py inspect app.sbef
 python -B tools/sbef.py probe app.elf
 python -B tools/sbef.py probe app.exe
@@ -52,6 +53,17 @@ reubicaciones. Los PE quedan en inventario mientras se define su
 adaptacion de ABI. `--json-errors` antes de la accion devuelve por
 stderr codigo, campo y offset de archivo, con indice de region
 cuando corresponde. El archivo se escribe solo despues de admitirlo.
+
+Los limites opcionales de `pack` miden el archivo SBEF completo y la
+suma de paginas de sus regiones. Incluyen el BSS en el presupuesto
+mapeado. Pila, tablas y recursos externos tienen cuentas propias.
+Un exceso informa `SBEF-BUDGET` con bytes reales y limite, y conserva
+el archivo de salida anterior.
+
+El importador copia los bytes de segmentos PT_LOAD. Los metadatos y
+simbolos fuera de esos segmentos quedan en el ELF para diagnostico.
+El enlazador decide el contenido de cada segmento. El importador
+preserva esos bytes para mantener el comportamiento de la aplicacion.
 
 ## Contrato binario provisional
 

@@ -46,6 +46,33 @@ class Sbef(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     sbef.pack_elf(changed)
 
+    def test_metadata_outside_load_segments_preserves_sbef(self):
+        image = sbef.pack_elf(self.elf, abi=1)
+        with_metadata = self.elf + b'debug and symbol metadata outside PT_LOAD'
+        self.assertEqual(sbef.pack_elf(with_metadata, abi=1), image)
+        self.assertEqual(image[-3:], b'\x90AB')
+
+    def test_pack_enforces_file_and_mapped_budgets_before_publication(self):
+        with tempfile.TemporaryDirectory() as path:
+            source, output = Path(path)/'app.elf', Path(path)/'app.sbef'
+            source.write_bytes(self.elf)
+            base = [sys.executable, '-B', sbef.__file__, '--json-errors', 'pack', str(source), str(output)]
+            accepted = subprocess.run([*base, '--max-file-bytes', '99', '--max-mapped-bytes', '12288'],
+                                      capture_output=True, check=True)
+            self.assertEqual(json.loads(accepted.stdout)['Bytes'], 99)
+            original = output.read_bytes()
+            for flag, field, limit, actual, offset in (
+                ('--max-file-bytes', 'file_size', 98, 99, 12),
+                ('--max-mapped-bytes', 'mapped_bytes', 12287, 12288, 10),
+            ):
+                with self.subTest(flag=flag):
+                    rejected = subprocess.run([*base, flag, str(limit)], capture_output=True)
+                    self.assertEqual(rejected.returncode, 1)
+                    self.assertEqual(json.loads(rejected.stderr),
+                                     dict(Code='SBEF-BUDGET', Field=field, Offset=offset,
+                                          ActualBytes=actual, LimitBytes=limit))
+                    self.assertEqual(output.read_bytes(), original)
+
     def test_reject_truncation_permissions_overlap_and_entry(self):
         image = sbef.pack_elf(self.elf)
         for length in range(len(image)):

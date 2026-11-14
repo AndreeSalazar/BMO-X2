@@ -35,6 +35,8 @@ rechaza un exceso antes de construir la imagen y registra el desglose,
 el margen y el total junto con el puente EFI. El primer perfil usa un
 cliente y tres llamadas de prueba. El puente UEFI, las tablas, la pila
 en RAM, los controladores y el escritorio tienen presupuestos propios.
+El comando `pack` admite limites opcionales de archivo y paginas
+mapeadas para que cada aplicacion declare su propio presupuesto.
 
 El banco embebe una region RX en el paquete de prueba. Falta repetir
 la comparacion con el cargador externo general y un segundo proceso.
