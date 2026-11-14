@@ -40,6 +40,8 @@ integrada se mediran por separado el kernel, sus tablas, pilas y
 metadatos, y las paginas del supervisor y sus servicios. Los
 importadores se ejecutan en HOST y se contabilizan alli.
 
-El ensayo CASM ya admite un SBEF embebido y ejecuta INVOKE. Quedan la
-carga de imagenes externas, WAIT con bloqueo real y el supervisor Rust.
+El ensayo CASM admite un SBEF embebido. El perfil integrado de escritorio
+usa extensiones LLVM para leer un SBEF externo de FAT32, mapearlo en RAM
+y bloquear en WAIT con el PIT. Quedan integrar ese cargador y la puerta
+en CASM, asignar marcos por proceso y conectar el supervisor Rust.
 [Plan de Ring 0](RING0-PLAN.md) | [Perfil SBEF HOST](../contracts/SBEF-HOST.md)

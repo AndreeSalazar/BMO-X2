@@ -86,9 +86,9 @@ if ($AbiRun) {
         $objcopy = Join-Path $Llvm 'llvm-objcopy.exe'
         $wadFlags = @()
         if ($Wad) { $wadFlags = @('-DDOOM_WAD') }
-        foreach ($unit in @('desktop/session_gate', 'boot/external_sbef')) {
+        foreach ($unit in @('kernel/syscalls/session_gate', 'kernel/loader/external_sbef')) {
             $name = Split-Path $unit -Leaf
-            & $clang --target=x86_64-unknown-none-elf @wadFlags -c (Join-Path $PSScriptRoot "$unit.S") -o (Join-Path $out "$name.o")
+            & $clang --target=x86_64-unknown-none-elf @wadFlags -c (Join-Path $root "$unit.S") -o (Join-Path $out "$name.o")
             if ($LASTEXITCODE -ne 0) { throw "Fallo el ensamblado de $unit." }
             & $objcopy -O binary --only-section=.text (Join-Path $out "$name.o") (Join-Path $out "$name.bin")
             if ($LASTEXITCODE -ne 0) { throw "Fallo la extraccion de $unit." }

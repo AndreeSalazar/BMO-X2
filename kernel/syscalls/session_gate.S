@@ -288,7 +288,7 @@ diagnostics_result:
     mov %eax, %gs:0x34c
     jmp finish
 #ifdef DESKTOP_MEDIA
-#include "xhci_inventory.inc"
+#include "../drivers/bus/xhci_inventory.inc"
 #endif
 #ifdef DOOM_ENGINE
 serial_byte:

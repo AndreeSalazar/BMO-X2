@@ -27,3 +27,18 @@ El perfil observado pertenece a esa ejecucion QEMU. El kernel aun no
 consume el archivo. La aplicacion del perfil requiere descubrir las
 capacidades necesarias, validar los recursos del contexto de arranque
 y seleccionar opciones seguras antes de inicializar cada subsistema.
+
+## Geometria L1 en el perfil de escritorio
+
+[cache_profile.inc](cache_profile.inc) consulta CPUID en el procesador de
+arranque. El contexto conserva la hoja, los descriptores presentes
+y los campos crudos de geometria en `0xD0..0xEF`. Una entrada ausente
+se publica como `unknown` en el `profile.config` que genera el ensayo
+QEMU. Se vuelve a consultar en cada arranque. El archivo documenta
+el resultado y el presupuesto de la puerta. La fuente de datos en
+ejecucion es el contexto, y el ensayo actual usa un solo CPU.
+
+La geometria sirve para medir el margen de codigo. Los mapeos SBEF
+de Ring 3 se respaldan con marcos de RAM. La CPU puede almacenar en
+cache instrucciones y datos de ambos anillos durante la ejecucion.
+La politica por nucleo y las mediciones en metal siguen pendientes.

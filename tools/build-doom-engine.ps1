@@ -81,10 +81,10 @@ if ($LASTEXITCODE -ne 0) { throw 'Fallo el enlace final del motor.' }
 if ($LASTEXITCODE -ne 0) { throw 'Fallo la admision HOST del motor.' }
 if ($AbiRun) {
     if (-not $Wad) { throw '-AbiRun requiere -Wad.' }
-    foreach ($unit in @('desktop/session_gate', 'boot/doom_engine_loader')) {
+    foreach ($unit in @('kernel/syscalls/session_gate', 'kernel/loader/doom_engine_loader')) {
         $name = Split-Path $unit -Leaf
         $object = Join-Path $out "$name.o"
-        & (Join-Path $Llvm 'clang.exe') --target=x86_64-unknown-none-elf -DDOOM_WAD -DDOOM_ENGINE @profileFlags -c (Join-Path $PSScriptRoot "$unit.S") -o $object
+        & (Join-Path $Llvm 'clang.exe') --target=x86_64-unknown-none-elf -DDOOM_WAD -DDOOM_ENGINE @profileFlags -c (Join-Path $root "$unit.S") -o $object
         if ($LASTEXITCODE -ne 0) { throw "Fallo el ensamblado de $unit." }
         & (Join-Path $Llvm 'llvm-objcopy.exe') -O binary --only-section=.text $object (Join-Path $out "$name.bin")
         if ($LASTEXITCODE -ne 0) { throw "Fallo la extraccion de $unit." }

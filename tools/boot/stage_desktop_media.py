@@ -11,7 +11,7 @@ import uuid
 
 from doom_fixture import desktop_gate_budget, make_packet, prepend_intro
 from host.sbef.format import inspect
-from scope import workspace
+from scope import ROOT, workspace
 from stage_bmo_x2 import bridge_variant
 from wake import SPLASH_PROFILE, check, sha
 
@@ -59,9 +59,13 @@ def main():
     run.mkdir()
     scripts = Path(__file__).resolve().parent
     llvm = Path(os.environ['ProgramFiles']) / 'LLVM/bin'
-    for name in ('desktop_media_alloc', 'desktop_media_read', 'external_sbef', 'session_gate'):
+    kernel = ROOT / 'kernel'
+    sources = ('boot/bridge/desktop_media_alloc.S', 'boot/bridge/desktop_media_read.S',
+               'loader/external_sbef.S', 'syscalls/session_gate.S')
+    for relative in sources:
+        source = kernel / relative
+        name = source.stem
         obj = run / f'{name}.o'
-        source = scripts.parent / 'desktop/session_gate.S' if name == 'session_gate' else scripts / f'{name}.S'
         flags = ['-DXHCI_COMMAND_PROBE'] if args.xhci_command else []
         if args.reuse_session:
             flags.append('-DDESKTOP_REUSE')
@@ -73,7 +77,7 @@ def main():
     if args.xhci_command:
         obj = run / 'xhci-command.o'
         subprocess.run([llvm / 'clang.exe', '--target=x86_64-unknown-none-elf', '-x', 'assembler',
-                        '-c', scripts.parent / 'desktop/xhci_command_probe.inc', '-o', obj], check=True)
+                        '-c', kernel / 'drivers/bus/xhci_command_probe.inc', '-o', obj], check=True)
         subprocess.run([llvm / 'llvm-objcopy.exe', '-O', 'binary', '--only-section=.text',
                         obj, run / 'xhci-command.bin'], check=True)
 

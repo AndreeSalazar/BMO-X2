@@ -11,4 +11,4 @@ Admite y mapea una imagen SBEF bajo el contrato del proceso.
 - Entrada: Bytes del ejecutable, limites, perfil SBEF y estado de CPU.
 - Salida: Imagen mapeada con entrada y permisos comprobados o motivo de rechazo.
 - Aceptacion: El lector independiente y CASM coinciden en el vector de oro y rechazos, con QEMU en Ring 3.
-- Pendiente: Trasladar a CASM la sonda QEMU de RX, R/NX y RW/NX con BSS, leer desde disco y asignar capacidades por proceso.
+- Pendiente: La sonda LLVM en kernel/loader/external_sbef.S lee el SBEF entregado desde FAT32. Queda trasladar el cargador a CASM y asignar marcos y capacidades por proceso.

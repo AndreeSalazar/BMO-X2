@@ -880,7 +880,7 @@ Entrada: Bytes del ejecutable, limites, perfil SBEF y estado de CPU.
 Salida: Imagen mapeada con entrada y permisos comprobados o motivo de rechazo.
 Depende de: SBEF y congelacion del ABI (plan), Proceso y ciclo de vida (plan), Empaquetador ELF64 a SBEF (verificacion), Lector SBEF de referencia (verificacion), SBEF ABI 1 y llamadas desde CPL3 (verificacion), Contrato minimo del cargador SBEF (plan).
 Aceptacion: El lector independiente y CASM coinciden en el vector de oro y rechazos, con QEMU en Ring 3.
-Pendiente: Trasladar a CASM la sonda QEMU de RX, R/NX y RW/NX con BSS, leer desde disco y asignar capacidades por proceso.
+Pendiente: La sonda LLVM en kernel/loader/external_sbef.S lee el SBEF entregado desde FAT32. Queda trasladar el cargador a CASM y asignar marcos y capacidades por proceso.
 
 ## kernel/syscalls/invoke
 
@@ -1034,7 +1034,7 @@ Entrada: Ejecuciones QEMU con qemu64 y Nehalem.
 Salida: Huella del paquete, registros, informes y configuraciones de ambos modelos.
 Depende de: Guardian del perfil observado (verificacion).
 Aceptacion: Mismo paquete con fabricante y hoja basica maxima distintos segun la CPU invitada.
-Pendiente: Probar deteccion y aplicacion de perfil en hardware despues de completar el arranque.
+Pendiente: kernel/arch/x86_64/cpu/cache_profile.inc registra la L1 del CPU de arranque. Queda probar deteccion por nucleo y mediciones en hardware.
 
 ## kernel/boot/context/main.casm
 
@@ -1218,9 +1218,9 @@ Coordina la inspeccion, admision, diagnostico y publicacion de ejecutables x86-6
 
 Estado: HOST. Anillo: host. Lenguaje: Python control.
 Entrada: ELF64 o PE32+ enlazado y version de ABI.
-Salida: SBEF admitido o un rechazo con campo y offset.
+Salida: SBEF admitido, comparacion de builds por archivo y paginas, o rechazo con campo y offset.
 Depende de: Empaquetador ELF64 a SBEF (codigo), Lector SBEF de referencia (codigo), Inspeccion PE32+ (codigo).
-Aceptacion: El vector ELF conserva sus bytes, pack exige los presupuestos solicitados y los rechazos conservan la salida previa.
+Aceptacion: El vector ELF conserva sus bytes, pack exige los presupuestos y compare distingue bytes de archivo de paginas mapeadas.
 Pendiente: Ejecutar el cliente comun de varios productores y admitir PE32+ freestanding.
 
 ## tools/host/importers/elf.py
@@ -1339,10 +1339,10 @@ Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-Li
 
 Estado: QEMU. Anillo: 3. Lenguaje: Rust.
 Entrada: Eventos de entrada, superficies de clientes y capacidad de pantalla.
-Salida: Cuadro en RAM, espacio activo, foco y movimiento de ventanas.
+Salida: Cuadro en RAM, espacio activo, foco, movimiento de ventanas y peticion de cierre desde CABINA.
 Depende de: Supervisor Rust de Ring 3 (plan), Mezcla y controles de audio (plan).
-Aceptacion: HOST exige presupuesto SBEF y QEMU verifica cuatro espacios, ocultacion de la barra, raton, foco y rechazos de permisos.
-Pendiente: Leer SBEF desde disco, conectar el compositor completo y pasar de WAIT con PIT a eventos y planificacion.
+Aceptacion: HOST exige presupuesto SBEF y puerta de sesion de hasta 2048 bytes. QEMU registra L1 por CPUID y verifica arranque FAT32, entrada, rechazo de permisos y reuso de cinco marcos.
+Pendiente: Entregar marcos al asignador, cargar un SBEF distinto, aislar procesos y conectar el compositor y el planificador.
 
 ## userspace/services/desktop/src/keyboard.rs
 

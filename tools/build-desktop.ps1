@@ -45,7 +45,7 @@ if ($Session) {
     $gateObject = Join-Path $build.FullName 'session-gate.o'
     $gateBin = Join-Path $build.FullName 'session-gate.bin'
     [string[]]$gateFlags = if ($External) { '-DDESKTOP_EXTERNAL' }
-    & (Join-Path $Llvm 'clang.exe') --target=x86_64-unknown-none-elf @gateFlags -c (Join-Path $PSScriptRoot 'desktop/session_gate.S') -o $gateObject
+    & (Join-Path $Llvm 'clang.exe') --target=x86_64-unknown-none-elf @gateFlags -c (Join-Path $root 'kernel/syscalls/session_gate.S') -o $gateObject
     if ($LASTEXITCODE -ne 0) { throw 'Fallo la puerta de sesion.' }
     & (Join-Path $Llvm 'llvm-objcopy.exe') -O binary --only-section=.text $gateObject $gateBin
     if ($LASTEXITCODE -ne 0) { throw 'Fallo la extraccion de la puerta de sesion.' }
@@ -53,7 +53,7 @@ if ($Session) {
     if ($External) {
         $loaderObject = Join-Path $build.FullName 'external-sbef.o'
         $loaderBin = Join-Path $build.FullName 'external-sbef.bin'
-        & (Join-Path $Llvm 'clang.exe') --target=x86_64-unknown-none-elf -c (Join-Path $PSScriptRoot 'boot/external_sbef.S') -o $loaderObject
+        & (Join-Path $Llvm 'clang.exe') --target=x86_64-unknown-none-elf -c (Join-Path $root 'kernel/loader/external_sbef.S') -o $loaderObject
         if ($LASTEXITCODE -ne 0) { throw 'Fallo el ensamblado del validador externo.' }
         & (Join-Path $Llvm 'llvm-objcopy.exe') -O binary --only-section=.text $loaderObject $loaderBin
         if ($LASTEXITCODE -ne 0) { throw 'Fallo la extraccion del validador externo.' }
