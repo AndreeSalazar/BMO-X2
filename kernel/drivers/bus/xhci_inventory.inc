@@ -1,3 +1,6 @@
+#ifdef XHCI_TRANSPORT_PROBE
+#define XHCI_COMMAND_PROBE
+#endif
 .text
 #ifdef XHCI_COMMAND_PROBE
     .byte 0xe9
@@ -32,7 +35,7 @@ inventory_next:
     push %r8
     push %r9
     call inventory_function
-#ifdef XHCI_RESET_PROBE
+#if defined(XHCI_RESET_PROBE) || defined(XHCI_TRANSPORT_PROBE)
     call xhci_reset_candidate
     test %eax, %eax
     jz inventory_continue
@@ -94,7 +97,7 @@ inventory_cached:
     mov %gs:0x358, %eax
     ret
 
-#ifdef XHCI_RESET_PROBE
+#if defined(XHCI_RESET_PROBE) || defined(XHCI_TRANSPORT_PROBE)
 # Read vendor/device from the function currently being ranked.
 xhci_reset_candidate:
     lea -8(%ecx), %eax

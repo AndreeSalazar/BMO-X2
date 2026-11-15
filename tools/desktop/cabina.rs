@@ -76,6 +76,13 @@ pub fn boot_input(controllers: u32, keyboard: bool, mouse: bool) {
         5 => b"XHCI SIN ENTREGA UEFI",
         6 => b"XHCI FALLO REINICIO",
         7 => b"XHCI REINICIO OK",
+        8 => b"XHCI DMA OK",
+        9 => b"XHCI DMA GUARDA",
+        10 => b"XHCI DMA MAPA",
+        11 => b"XHCI DMA REINICIO",
+        12 => b"XHCI DMA ARRANQUE",
+        13 => b"XHCI DMA RESPUESTA",
+        14 => b"XHCI DMA PARADA",
         _ => b"XHCI SIN ESTADO",
     };
     text(36, 359, status);

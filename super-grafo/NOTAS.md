@@ -917,14 +917,14 @@ Pendiente: Definir confianza de produccion, integridad y revocacion.
 
 ## kernel/drivers/bus
 
-Descubre recursos de dispositivos y delimita su acceso y DMA.
+Descubre xHCI y prueba transporte de comandos con reserva DMA y MMIO supervisora.
 
-Estado: DISENO. Anillo: 0. Lenguaje: CASM.
-Entrada: Perfil de plataforma y recursos descubiertos.
-Salida: Recursos con propietario y transferencia controlada.
+Estado: QEMU. Anillo: 0. Lenguaje: CASM.
+Entrada: Inventario PCI, entrega UEFI, BAR, RTSOFF/DBOFF y diez paginas LoaderData.
+Salida: Respuesta No Op comprobada, parada, Bus Master revocado y alias retirados.
 Depende de: Frontera de dispositivos (plan), Espacios y permisos (plan), Prestamo y revocacion DMA (plan).
-Aceptacion: Un dispositivo de prueba queda limitado a sus recursos y ventanas DMA.
-Pendiente: Elegir primer dispositivo y politica segun hardware medido.
+Aceptacion: QEMU verifica respuesta, reserva disjunta, parada y rechazo W+X. Evidencia en evidence/transport-qemu.json.
+Pendiente: Confirmar transporte en AMD 1022:149C. Enumerar ambos HID, medir plazos reales e integrar proteccion IOMMU.
 
 ## kernel/drivers/storage
 
@@ -957,7 +957,7 @@ Entrada: Dispositivos descubiertos, buffers y eventos.
 Salida: Canales y ventanas de aparato acotados.
 Depende de: Buses, recursos y DMA (plan), Comunicacion entre procesos (plan).
 Aceptacion: Pruebas de acceso, revocacion y fallo de servicio por dispositivo admitido.
-Pendiente: Metal confirma el reinicio AMD. El perfil agrega censo de puertos; faltan direccionar ambos dispositivos y activar sus endpoints HID.
+Pendiente: Metal confirma el reinicio AMD. El transporte No Op pasa QEMU; falta confirmarlo en AMD, direccionar teclado y raton y activar ambos endpoints HID.
 
 ## kernel/drivers/network
 

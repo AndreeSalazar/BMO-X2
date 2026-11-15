@@ -2,13 +2,13 @@
 
 > Generado desde super-grafo/nodes.json.
 
-Estado: DISENO. Anillo: 0. Lenguaje previsto: CASM.
+Estado: QEMU. Anillo: 0. Lenguaje previsto: CASM.
 
-Descubre recursos de dispositivos y delimita su acceso y DMA.
+Descubre xHCI y prueba transporte de comandos con reserva DMA y MMIO supervisora.
 
 ## Contrato del nodo
 
-- Entrada: Perfil de plataforma y recursos descubiertos.
-- Salida: Recursos con propietario y transferencia controlada.
-- Aceptacion: Un dispositivo de prueba queda limitado a sus recursos y ventanas DMA.
-- Pendiente: Elegir primer dispositivo y politica segun hardware medido.
+- Entrada: Inventario PCI, entrega UEFI, BAR, RTSOFF/DBOFF y diez paginas LoaderData.
+- Salida: Respuesta No Op comprobada, parada, Bus Master revocado y alias retirados.
+- Aceptacion: QEMU verifica respuesta, reserva disjunta, parada y rechazo W+X. Evidencia en evidence/transport-qemu.json.
+- Pendiente: Confirmar transporte en AMD 1022:149C. Enumerar ambos HID, medir plazos reales e integrar proteccion IOMMU.

@@ -4,10 +4,12 @@ Hijo de BMO-X. Kernel x86-64 escrito en CASM, runtime y servicios propios
 de Ring 3 en Rust, y SUPER GRAFO como mesa de trabajo.
 Autor: Eddi Salazar, Lima, Peru.
 
-BMO-X2 arranca perfiles de prueba independientes en QEMU/OVMF. Ya hay
-evidencia de ejecucion en Ring 0 y Ring 3, admision de un SBEF embebido,
-una llamada INVOKE y revocacion de paginas. La siguiente integracion
-es cargar un SBEF externo y ejecutar el primer cliente Rust.
+BMO-X2 arranca perfiles de prueba independientes en QEMU/OVMF. Hay
+evidencia de Ring 0 y Ring 3, escritorio Rust cargado desde SBEF externo,
+INVOKE, WAIT y revocacion de paginas. El equipo fisico llega al escritorio,
+pero su teclado y raton USB siguen pendientes de enumeracion HID.
+El siguiente ensayo AMD verifica una respuesta de comando por DMA y
+detiene el controlador. [Prueba y estados visibles](docs/FIRST-BOOT.md#perfil-experimental-de-transporte-xhci).
 
 ## Probar en QEMU
 

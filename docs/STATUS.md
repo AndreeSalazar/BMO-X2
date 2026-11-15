@@ -1,5 +1,20 @@
 # Estado de la base BMO-X2 -- 04-11-2026
 
+## Transporte USB AMD -- 15-11-2026
+
+El BOOTLOG V3 del equipo registra AMD 1022:149C en 2B:00.3,
+BAR 0xFC200000. La foto confirma el reinicio del controlador y la
+espera PS/2. La entrada USB fisica permanece pendiente.
+
+La sonda aislada de transporte agrega No Op, lectura de RTSOFF/DBOFF,
+colas DMA verificadas, consumo de cambios de puerto y parada con
+revocacion de Bus Master. QEMU TCG con 256 MiB pasa el transporte y el
+rechazo W+X. Las pruebas HID QEMU separadas conservan teclado y raton.
+El controlador de esta sonda se ensambla desde .inc mediante Clang;
+todavia no procede del emisor CASM. La puerta Ring 0 mide 1034 B,
+el driver va aparte en el puente UEFI. No es un sistema de 2 KiB.
+[Evidencia y limites](../kernel/drivers/bus/evidence/transport-qemu.json).
+
 ## Compatibilidad del lanzador -- 05-11-2026
 
 Se sustituyo `System.IO.Path.GetRelativePath`, ausente en .NET Framework de

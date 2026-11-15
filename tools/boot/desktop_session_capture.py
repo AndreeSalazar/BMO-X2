@@ -264,6 +264,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
 
     command_probe = desktop_media and (prefix.parent.parent / 'xhci-command.txt').is_file()
     reset_probe = desktop_media and (prefix.parent.parent / 'xhci-reset.txt').is_file()
+    transport_probe = desktop_media and (prefix.parent.parent / 'xhci-transport.txt').is_file()
     mouse_probe = command_probe and (prefix.parent.parent / 'usb-mouse.txt').is_file()
     if mouse_probe:
         wait_until(lambda: logical(52, 99, 0x5ad8ff) and sleeping()
@@ -320,7 +321,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         assert staging_pages == (image_bytes + 4095) // 4096
         assert memory(staging, image_bytes, 'desktop-staging-image') == external_image
         dma, pages = struct.unpack('<QQ', memory(address + 0xb8, 16, 'xhci-reservation'))
-        assert pages == (10 if command_probe else 5)
+        assert pages == (10 if command_probe or transport_probe else 5)
         assert 0x100000 <= dma <= 0x10000000 - pages * 4096 and dma % 4096 == 0
         assert dma + pages * 4096 <= address or dma >= address + 0x20000
         assert not dma <= code < dma + pages * 4096
@@ -345,6 +346,38 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         kind, start, end = covering[0]
         assert kind == 2 and start <= dma and dma + pages * 4096 <= end
         reserved = memory(dma, pages * 4096, 'xhci-reserved-pages')
+        if transport_probe:
+            assert memory(address + 0x1a3c4, 1, 'transport-reservation-validated') == b'\x01'
+            assert memory(address + 0x1a379, 2, 'transport-completed-halted') == b'\x01\x01'
+            assert memory(address + 0x1a3e0, 4, 'transport-state') == struct.pack('<I', 8)
+            assert memory(address + 0x1a380, 8, 'transport-no-device-slots') == bytes(8)
+            assert memory(address + 0x1a3c8, 1, 'transport-no-live-hid') == bytes(1)
+            assert struct.unpack_from('<I', reserved, 0x100c)[0] == 0x5c01
+            events = [struct.unpack_from('<QII', reserved, offset) for offset in range(0x2000, 0x2100, 16)]
+            completions = [event for event in events if event[2] & 0xfc01 == 0x8401]
+            assert len(completions) == 1 and completions[0][0] == dma + 0x1000
+            assert completions[0][1] >> 24 == 1
+            assert reserved[0x4000:0x6000] == bytes(0x2000), 'El perfil de transporte no enumera dispositivos'
+            original, restored = struct.unpack('<HH', memory(address + 0x1a37c, 4, 'transport-busmaster'))
+            assert restored == original & ~4
+            assert memory(address + 0x15400, 8, 'transport-alias-pde') == bytes(8)
+            assert memory(address + 0x1e000, 24, 'transport-alias-pte') == bytes(24)
+            assert memory(address + 0x1a3e8, 4, 'transport-connected-ports') == struct.pack('<I', 3)
+            devices = [device for bus in command('query-pci') for device in bus['devices']]
+            controller = next(device for device in devices if device['class_info']['class'] == 0x0c03)
+            bdf = controller['bus'] << 8 | controller['slot'] << 3 | controller['function']
+            assert memory(address + 0x1a360, 4, 'transport-selected-pci') == struct.pack('<I', bdf)
+            assert memory(address + 0x1a3b9, 1, 'transport-reset-stage') == b'\x03'
+            assert memory(address + 0x1a3f0, 8, 'transport-register-offsets') == struct.pack('<II', 0x1000, 0x2000)
+            bar = next(region['address'] for region in controller['regions'] if region['bar'] == 0)
+            caps = struct.unpack('<I', memory(address + 0x1a370, 4, 'transport-caps'))[0]
+            status = command('human-monitor-command', {'command-line': f'xp /1wx {bar + (caps & 255) + 4:#x}'})
+            assert int(status.split(':', 1)[1].split()[0], 16) & 1
+            command('screendump', {'filename': str(prefix) + '-usb-transport.png', 'format': 'png'})
+            return dict(Case='normal', Passed=True, DesktopSession=True, UserCpl=3,
+                        XhciTransportVerified=True, XhciNoOpCompleted=True, XhciControllerStopped=True,
+                        XhciBusMasterRevoked=True, XhciReservedBytes=pages * 4096,
+                        XhciConnectedPorts=2, XhciHidConfigured=False, CpuL1=cache)
         if command_probe:
             assert memory(address + 0x1a3c4, 1, 'xhci-dma-validated') == b'\x01'
             status = memory(address + 0x1a379, 2, 'xhci-command-status')

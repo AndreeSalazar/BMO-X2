@@ -87,7 +87,7 @@
 | [Puerta INVOKE](../kernel/syscalls/invoke) | diseno | 0 | Despacha operaciones mediante capacidades del proceso activo. |
 | [Puerta WAIT](../kernel/syscalls/wait) | diseno | 0 | Duerme y despierta tareas por senal o vencimiento. |
 | [Politica de admision](../kernel/security) | diseno | 0 | Aplica procedencia y autoridad inicial a imagenes estructuralmente validas. |
-| [Buses, recursos y DMA](../kernel/drivers/bus) | diseno | 0 | Descubre recursos de dispositivos y delimita su acceso y DMA. |
+| [Buses, recursos y DMA](../kernel/drivers/bus) | qemu | 0 | Descubre xHCI y prueba transporte de comandos con reserva DMA y MMIO supervisora. |
 | [Bloques y almacenamiento](../kernel/drivers/storage) | diseno | 0 | Entrega bloques mediante un dispositivo acotado. |
 | [Acceso a archivos](../kernel/storage) | diseno | 0 | Fija la frontera de acceso a imagenes y archivos sobre bloques. |
 | [Entrada, pantalla y audio](../kernel/drivers/io) | diseno | 0 | Ofrece recursos de entrada y salida a servicios autorizados. |

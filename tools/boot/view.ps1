@@ -95,6 +95,20 @@ if ($actualProfile -in @('desktop-external','doom-external','doom-engine','deskt
         $arguments += @('-device', ('"loader,file={0},addr=0x3000000,force-raw=on"' -f $wad))
     }
 }
+if ($actualProfile -eq 'desktop-media') {
+    $arguments += @('-device', 'qemu-xhci,id=bmo-xhci')
+    if ((Test-Path -LiteralPath (Join-Path $runDir.FullName 'xhci-reset.txt')) -or
+        (Test-Path -LiteralPath (Join-Path $runDir.FullName 'xhci-transport.txt'))) {
+        $arguments += @('-device', 'usb-kbd,bus=bmo-xhci.0,port=1',
+                        '-device', 'usb-mouse,bus=bmo-xhci.0,port=2')
+    }
+    if (Test-Path -LiteralPath (Join-Path $runDir.FullName 'xhci-command.txt')) {
+        $usbDevice = if (Test-Path -LiteralPath (Join-Path $runDir.FullName 'usb-mouse.txt')) { 'usb-mouse' } else { 'usb-kbd' }
+        $usbVersion = if (Test-Path -LiteralPath (Join-Path $runDir.FullName 'usb-full-speed.txt')) { ',usb_version=1' } else { '' }
+        $arguments += @('-device', 'qemu-xhci,id=bmo-xhci-second',
+                        '-device', "$usbDevice,bus=bmo-xhci-second.0$usbVersion")
+    }
+}
 Write-Output "Arrancando $($runDir.Name) con TCG y framebuffer VGA sin OpenGL."
 $process = Start-Process -FilePath $Qemu -ArgumentList $arguments -WindowStyle Normal -PassThru `
     -RedirectStandardOutput $stdout -RedirectStandardError $stderr

@@ -1444,18 +1444,18 @@
       "id": "device-bus",
       "titulo": "Buses, recursos y DMA",
       "ruta": "kernel/drivers/bus",
-      "estado": "diseno",
+      "estado": "qemu",
       "anillo": "0",
       "lenguaje": "CASM",
       "posicion": [
         6390,
         3850
       ],
-      "que": "Descubre recursos de dispositivos y delimita su acceso y DMA.",
-      "entrada": "Perfil de plataforma y recursos descubiertos.",
-      "salida": "Recursos con propietario y transferencia controlada.",
-      "aceptacion": "Un dispositivo de prueba queda limitado a sus recursos y ventanas DMA.",
-      "falta": "Elegir primer dispositivo y politica segun hardware medido.",
+      "que": "Descubre xHCI y prueba transporte de comandos con reserva DMA y MMIO supervisora.",
+      "entrada": "Inventario PCI, entrega UEFI, BAR, RTSOFF/DBOFF y diez paginas LoaderData.",
+      "salida": "Respuesta No Op comprobada, parada, Bus Master revocado y alias retirados.",
+      "aceptacion": "QEMU verifica respuesta, reserva disjunta, parada y rechazo W+X. Evidencia en evidence/transport-qemu.json.",
+      "falta": "Confirmar transporte en AMD 1022:149C. Enumerar ambos HID, medir plazos reales e integrar proteccion IOMMU.",
       "pagina": true
     },
     {
@@ -1509,7 +1509,7 @@
       "entrada": "Dispositivos descubiertos, buffers y eventos.",
       "salida": "Canales y ventanas de aparato acotados.",
       "aceptacion": "Pruebas de acceso, revocacion y fallo de servicio por dispositivo admitido.",
-      "falta": "Metal confirma el reinicio AMD. El perfil agrega censo de puertos; faltan direccionar ambos dispositivos y activar sus endpoints HID.",
+      "falta": "Metal confirma el reinicio AMD. El transporte No Op pasa QEMU; falta confirmarlo en AMD, direccionar teclado y raton y activar ambos endpoints HID.",
       "pagina": true
     },
     {

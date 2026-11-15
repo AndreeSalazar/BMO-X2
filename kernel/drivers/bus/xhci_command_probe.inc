@@ -1,9 +1,18 @@
-# QEMU qemu-xhci only. Interrupt delivery remains disabled.
+# HID is QEMU-only. The isolated transport probe also admits AMD 149C.
+# Interrupt delivery remains disabled.
 #include "xhci_dma_layout.inc"
 .text
 xhci_test_command:
+#ifdef XHCI_TRANSPORT_PROBE
+    movl $9, %gs:0x3e0        # Incomplete transport, including rejected geometry.
+    movzbl %gs:0x378, %eax
+    dec %eax
+    cmp $1, %eax
+    ja command_skip
+#else
     cmpb $1, %gs:0x378
     jne command_skip
+#endif
     mov %gs:0x360, %ecx
     shl $8, %ecx
     or $0x80000000, %ecx
@@ -14,8 +23,13 @@ xhci_test_command:
     out %eax, %dx
     add $4, %edx
     in %dx, %eax
+#ifdef XHCI_TRANSPORT_PROBE
+    cmp $0x149c1022, %eax
+    je command_device_allowed
+#endif
     cmp $0x000d1b36, %eax
     jne command_restore
+command_device_allowed:
     mov 0xb8(%rbp), %r8
     cmpq $XHCI_PROBE_PAGES, 0xc0(%rbp)
     jne command_restore
@@ -28,29 +42,83 @@ xhci_test_command:
     call xhci_validate_dma
     jnz command_restore
     movb $1, %gs:0x3c4
+#ifdef XHCI_TRANSPORT_PROBE
+    movl $10, %gs:0x3e0
+    # Each register bank gets its own uncached supervisor alias. Bounds keep
+    # this diagnostic inside the first 64 KiB of the controller aperture.
+    mov 0x18(%rdi), %r9d
+    mov 0x14(%rdi), %r10d
+    test $0x1f, %r9d
+    jnz command_restore
+    test $3, %r10d
+    jnz command_restore
+    cmp $0xffc0, %r9d
+    ja command_restore
+    cmp $0xfffc, %r10d
+    ja command_restore
+    cmp $0x1000, %r9d
+    jb command_restore
+    cmp $0x1000, %r10d
+    jb command_restore
+    # Interrupter 0 (through ERDP) must fit its mapped page.
+    mov %r9d, %eax
+    and $0xfff, %eax
+    cmp $0xfc0, %eax
+    ja command_restore
+    mov %r9d, %gs:0x3f0
+    mov %r10d, %gs:0x3f4
+    mov %r9d, %edx
+    call xhci_transport_mmio
+    jne command_restore
+    mov %r10d, %edx
+    call xhci_transport_mmio
+    jne command_restore
+#else
     cmpl $0x1000, 0x18(%rdi)
     jne command_restore
     cmpl $0x2000, 0x14(%rdi)
     jne command_restore
+#endif
     cmpl $XHCI_SCRATCHPAD_LIMIT, %gs:0x3bc
     ja command_restore
     push %rcx
     mov 0x1e000(%rbp), %rax
     or $2, %rax
     mov %rax, 0x1e000(%rbp)
+#ifdef XHCI_TRANSPORT_PROBE
+    mov %r9d, %edx
+    and $-4096, %edx
+    add %rax, %rdx
+    mov %rdx, 0x1e008(%rbp)
+    mov %r10d, %edx
+    and $-4096, %edx
+    add %rax, %rdx
+    mov %rdx, 0x1e010(%rbp)
+    and $0xfff, %r9d
+    add $0x10001000, %r9
+    and $0xfff, %r10d
+    add $0x10002000, %r10
+#else
     add $4096, %rax
     mov %rax, 0x1e008(%rbp)
     add $4096, %rax
     mov %rax, 0x1e010(%rbp)
-    invlpg (%rdi)
     lea 0x1000(%rdi), %r9
-    invlpg (%r9)
     lea 0x2000(%rdi), %r10
+#endif
+    invlpg (%rdi)
+    invlpg (%r9)
     invlpg (%r10)
     movzbl (%rdi), %eax
     lea (%rdi,%rax), %r11
+#ifdef XHCI_TRANSPORT_PROBE
+    movl $11, %gs:0x3e0
+#endif
     call xhci_reset
     jne command_unmap
+#ifdef XHCI_TRANSPORT_PROBE
+    movl $12, %gs:0x3e0
+#endif
     movl $1, 0x38(%r11)         # one device slot
     # Prepare the physical pointer array. DCBAA[0] is zero when HCSPARAMS2
     # requests no scratchpads.
@@ -99,6 +167,47 @@ scratchpads_ready:
     call command_poll
     jne command_stop
     movl $0, (%r10)
+#ifdef XHCI_TRANSPORT_PROBE
+    movl $13, %gs:0x3e0
+    lea 0x2000(%r8), %rsi
+    mov $10000000, %ecx
+transport_event:
+    testb $1, 12(%rsi)
+    jz transport_pause
+    mov 12(%rsi), %eax
+    and $0xfc00, %eax
+    cmp $0x8800, %eax         # Port changes can precede the No Op completion.
+    jne transport_completion
+    add $16, %rsi
+    lea 0x2100(%r8), %rax
+    cmp %rax, %rsi
+    jae command_stop
+    lea 8(%rsi), %rax
+    mov %rax, 0x38(%r9)
+transport_pause:
+    pause
+    loop transport_event
+    jmp command_stop
+transport_completion:
+    cmp $0x8400, %eax
+    jne command_stop
+    cmpb $1, 11(%rsi)
+    jne command_stop
+    lea 0x1000(%r8), %rax
+    cmp %rax, (%rsi)
+    jne command_stop
+    movb $1, %gs:0x379
+    movl $14, %gs:0x3e0
+    lea 16(%rsi), %rax
+    lea 0x2100(%r8), %rdx
+    cmp %rdx, %rax
+    jb transport_ack
+    lea 0x2000(%r8), %rax
+transport_ack:
+    or $8, %rax
+    mov %rax, 0x38(%r9)
+    jmp command_stop
+#else
     mov $100000, %ecx
 command_event:
     testb $1, 0x200c(%r8)
@@ -125,13 +234,26 @@ command_received:
     movb $1, %gs:0x3c8
     add $16, %rsp                # Saved PCI command and function.
     jmp command_restore
+#endif
 command_stop:
     movl $0, (%r11)
     mov $1, %eax
     mov $1, %esi
     call command_poll
     setz %gs:0x37a
+#ifdef XHCI_TRANSPORT_PROBE
+    jne transport_stop_failed
+    cmpb $1, %gs:0x379
+    jne transport_stop_failed
+    movl $8, %gs:0x3e0        # No Op verified AND controller halted.
+transport_stop_failed:
+#endif
     pop %rax
+#ifdef XHCI_TRANSPORT_PROBE
+    # Always revoke bus mastering when this finite diagnostic ends.
+    and $0xfffb, %ax
+    jmp command_restore_pci
+#endif
     je command_restore_pci
     and $0xfffb, %ax           # Halt unconfirmed: do not restore bus mastering.
 command_restore_pci:
@@ -150,6 +272,12 @@ command_restore:
     mov $0xcf8, %edx
     out %eax, %dx
 command_skip:
+#ifdef XHCI_TRANSPORT_PROBE
+    mov %gs:0x370, %eax
+    mov %gs:0x374, %edx
+    call xhci_count_ports
+    mov %eax, %gs:0x3e8
+#endif
     ret
 
 # Require exclusive coverage by a LoaderData descriptor and disjoint
@@ -231,6 +359,7 @@ dma_invalid:
     pop %rcx
     ret
 
+#ifndef XHCI_TRANSPORT_PROBE
 enumerate_keyboard:
     movzbl 7(%rdi), %ecx        # MaxPorts
     cmp $32, %ecx
@@ -714,3 +843,10 @@ enum_pause:
 enum_failed:
     or $1, %eax
     ret
+#else
+#include "xhci_transport_mmio.inc"
+xhci_live_report:
+    mov $256, %eax
+xhci_live_stop:
+    ret
+#endif

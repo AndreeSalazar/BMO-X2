@@ -140,7 +140,7 @@ def run(case):
         staging += ['-device', f'loader,file={wad},addr=0x3000000,force-raw=on']
     if args.doom_fixture and desktop_media:
         staging += ['-device', 'qemu-xhci,id=bmo-xhci']
-        if (ROOT / 'xhci-reset.txt').is_file():
+        if (ROOT / 'xhci-reset.txt').is_file() or (ROOT / 'xhci-transport.txt').is_file():
             staging += ['-device', 'usb-kbd,bus=bmo-xhci.0,port=1',
                         '-device', 'usb-mouse,bus=bmo-xhci.0,port=2']
         if (ROOT / 'xhci-command.txt').is_file():

@@ -44,6 +44,57 @@ El perfil de reinicio ahora muestra `USB PUERTOS` con la cantidad de
 puertos que mantienen CCS despues de HCRST. Ese censo precede a la
 asignacion de ranuras y la lectura de descriptores.
 
+### Perfil experimental de transporte xHCI
+
+`stage_desktop_media.py --xhci-transport-probe` prepara una prueba finita
+para AMD `1022:149C` o QEMU `1B36:000D`. Usa el escritorio externo normal.
+Reserva diez paginas de LoaderData (40 KiB), verifica sus limites y
+solapamientos, toma la entrega UEFI y reinicia el controlador. Lee RTSOFF
+y DBOFF en vez de imponer las posiciones del emulador. Admite registros
+en los primeros 64 KiB del dispositivo, alineados y contenidos en las
+paginas mapeadas. Rechaza solapamientos con memoria de firmware no MMIO.
+
+Publica un unico No Op y espera una terminacion de comando con tipo,
+puntero y codigo correctos. Consume cambios de puerto intermedios sin
+confundirlos con la respuesta. Tras activar las colas solicita parada, revoca PCI
+Bus Master y elimina los alias MMIO. La memoria DMA permanece reservada
+durante este arranque. Estas comprobaciones no sustituyen una IOMMU.
+Las esperas tienen limite de iteraciones; el plazo real en AMD sigue
+pendiente. La capacidad de scratchpads de esta prueba es cuatro paginas.
+
+| Aviso visible | Resultado o ultima fase alcanzada |
+|---|---|
+| `XHCI DMA OK` | Respuesta validada y parada confirmada. |
+| `XHCI DMA GUARDA` | Entrega, dispositivo o reserva DMA no admitidos. |
+| `XHCI DMA MAPA` | Geometria MMIO o scratchpads no admitidos. |
+| `XHCI DMA REINICIO` | No termino el reinicio. |
+| `XHCI DMA ARRANQUE` | No se confirmo la salida de HCHalted. |
+| `XHCI DMA RESPUESTA` | No llego una terminacion valida dentro del limite. |
+| `XHCI DMA PARADA` | Llego la respuesta, pero no se confirmo la parada. |
+
+La evidencia QEMU esta en `kernel/drivers/bus/evidence/transport-qemu.json`.
+Verifica dos puertos conectados, respuesta No Op, parada, revocacion de
+Bus Master, retirada de alias y rechazo de SBEF W+X. Las sondas HID
+separadas conservan sus pruebas de teclado (260 informes con vuelta del
+anillo) y raton (movimiento y botones). Sus resultados siguen siendo QEMU.
+La nueva imagen aun no habilita entrada USB en el equipo fisico.
+
+Para reproducir en PowerShell 5.1 desde BMO-X2:
+
+```powershell
+$usbPython = Join-Path $env:USERPROFILE '.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe'
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\build-desktop.ps1 -Session -External -AbiRun build/CASM/run-20261112-174958-944cb997
+# Usar como tercer argumento el run-desktop impreso por el build anterior.
+& $usbPython -B tools/boot/stage_desktop_media.py build/CASM/run-20261112-174958-944cb997 build/CASM/run-20261112-045636-c461240e build/CASM/run-desktop-03ce37eeb426 --xhci-transport-probe --ram-mib 256
+```
+
+El resultado se guarda en `diagnostic-media/`. El visor `tools/boot/view.ps1`
+reproduce ahora los mismos dispositivos USB de cada perfil. Para avanzar
+en metal hace falta la foto del aviso completo, junto con el BOOTLOG V3.
+Ese archivo se escribe antes de ExitBootServices y no registra el resultado
+posterior del transporte. El siguiente paso, tras confirmar `XHCI DMA OK`
+en AMD, es direccionar ambos HID y armar sus endpoints de interrupcion.
+
 ### Diagnostico visible de teclado y raton
 
 El puente UEFI escribe `\BMO-X2\BOOTLOG.TXT` en el volumen de arranque
