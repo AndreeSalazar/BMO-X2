@@ -13,6 +13,11 @@ orden de trabajo. [Catalogo de nodos](../super-grafo/CATALOG.md).
 
 ## Orden de cierre
 
+Este es el backlog unico de mecanismos pendientes. Sus nombres de
+subsistema son referencias de diseno, no acreditan nodos implementados
+ni carpetas existentes. El catalogo conserva las fuentes y contratos
+activos; los documentos duplicados de `contracts/plans/` se retiraron.
+
 | Entrega | Nodos principales | Prueba para avanzar |
 |---|---|---|
 | 1. Entrega y diagnostico | `boot-context`, `x86_64-cpu`, `cpu-state`, `x86_64-exceptions`, `kernel-diagnostics`, `init` | Pila propia y excepcion controlada en QEMU. Diagnostico por fase. |

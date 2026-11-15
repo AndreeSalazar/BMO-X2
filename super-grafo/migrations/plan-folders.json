@@ -1,5 +1,5 @@
 {
-  "scope": "Generated design-only kernel folders consolidated into contract documents; no implemented subsystem removed.",
+  "scope": "Design documents removed at user request. One implementation backlog remains in docs/RING0-PLAN.md; no source subsystem removed.",
   "moves": [
     {
       "id": "capabilities",
@@ -166,5 +166,28 @@
     "kernel/storage",
     "tools/sbef_host",
     "kernel/boot/faggin"
+  ],
+  "retired_plan_documents": [
+    "contracts/plans/README.md",
+    "contracts/plans/capabilities.md",
+    "contracts/plans/cpu-state.md",
+    "contracts/plans/device-io.md",
+    "contracts/plans/device-network.md",
+    "contracts/plans/device-storage.md",
+    "contracts/plans/faggin16.md",
+    "contracts/plans/faggin32.md",
+    "contracts/plans/faggin64.md",
+    "contracts/plans/file-access.md",
+    "contracts/plans/image-policy.md",
+    "contracts/plans/init.md",
+    "contracts/plans/invoke.md",
+    "contracts/plans/ipc.md",
+    "contracts/plans/kernel-diagnostics.md",
+    "contracts/plans/multiprocessor.md",
+    "contracts/plans/process.md",
+    "contracts/plans/sched.md",
+    "contracts/plans/time.md",
+    "contracts/plans/wait.md",
+    "contracts/plans/x86_64-interrupts.md"
   ]
 }

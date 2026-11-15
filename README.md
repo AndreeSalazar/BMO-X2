@@ -127,8 +127,8 @@ un servicio aislado aun requiere implementar el dominio IOMMU.
 
 ## Probar en QEMU
 
-Los [planes sin implementacion](contracts/plans/README.md) viven como
-documentos de contrato, separados de las carpetas de codigo. Para
+El [backlog de implementacion](docs/RING0-PLAN.md) concentra el trabajo
+pendiente sin carpetas ni documentos duplicados por subsistema. Para
 comprobar rutas fantasma y referencias explicitas desde la raiz:
 
 ```powershell

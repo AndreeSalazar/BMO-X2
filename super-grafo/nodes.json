@@ -334,25 +334,6 @@
       "falta": "Asignador, paginacion, TLB, vida de prestamos y pruebas de muerte del proceso."
     },
     {
-      "id": "capabilities",
-      "titulo": "Capacidades",
-      "ruta": "contracts/plans/capabilities.md",
-      "estado": "diseno",
-      "implementacion_prevista": {"ruta": "kernel/capabilities", "anillo": "0", "lenguaje": "CASM"},
-      "pagina": true,
-      "anillo": "contrato",
-      "lenguaje": "contrato",
-      "posicion": [
-        1110,
-        1400
-      ],
-      "que": "Concede autoridad explicita y comprueba propietario, derechos y vigencia.",
-      "entrada": "Peticion admitida y recursos con propietario.",
-      "salida": "Handle concedido, operacion comprobada o motivo de rechazo.",
-      "aceptacion": "Handle inventado, revocado o de otro proceso falla por su motivo; la autoridad no se hereda implicitamente.",
-      "falta": "Layout del handle, tabla, generacion, transferencia y revocacion."
-    },
-    {
       "id": "syscalls",
       "titulo": "Puerta CASM/Rust",
       "ruta": "kernel/syscalls",
@@ -508,101 +489,6 @@
       "salida": "Mensaje BMO-X2 y retorno al cargador; por ahora solo bytes verificados en host.",
       "aceptacion": "HEX/IR y paquete coinciden con el contrato; la ejecucion de entrada se acredita por separado en QEMU.",
       "falta": "No configura la CPU ni la memoria; falta cadena de carga, ejecucion observada y parada controlada."
-    },
-    {
-      "id": "x86_64-interrupts",
-      "titulo": "Interrupciones de hardware",
-      "ruta": "contracts/plans/x86_64-interrupts.md",
-      "estado": "diseno",
-      "anillo": "contrato",
-      "lenguaje": "contrato",
-      "posicion": [
-        370,
-        1660
-      ],
-      "que": "Encamina IRQ con un contrato de entrada y reconocimiento separado de las excepciones.",
-      "entrada": "CPU preparada, tabla de vectores y controlador de interrupciones identificado.",
-      "salida": "Evento acotado y retorno con el estado de CPU preservado.",
-      "aceptacion": "Interrupcion de prueba y fuente muda en QEMU; no perder ni repetir reconocimientos.",
-      "falta": "Controlador, vectores y politica de habilitacion antes de usar tiempo y dispositivos.",
-      "implementacion_prevista": {"ruta": "kernel/arch/x86_64/interrupts", "anillo": "0", "lenguaje": "CASM"},
-      "pagina": true
-    },
-    {
-      "id": "init",
-      "titulo": "Inicializacion del kernel",
-      "ruta": "contracts/plans/init.md",
-      "estado": "diseno",
-      "anillo": "contrato",
-      "lenguaje": "contrato",
-      "posicion": [
-        0,
-        1880
-      ],
-      "que": "Ordena fases y precondiciones del kernel sin esconder los fallos de un subsistema.",
-      "entrada": "Contexto boot y resultados de CPU, excepciones y memoria.",
-      "salida": "Estado de fase listo o fallo con nombre y motivo.",
-      "aceptacion": "Una fase invalida impide ejecutar las siguientes; diagnostico identificable en QEMU.",
-      "falta": "Primera secuencia de inicializacion escrita en CASM despues de fijar el perfil de kernel.",
-      "implementacion_prevista": {"ruta": "kernel/init", "anillo": "0", "lenguaje": "CASM"},
-      "pagina": true
-    },
-    {
-      "id": "time",
-      "titulo": "Reloj y plazos",
-      "ruta": "contracts/plans/time.md",
-      "estado": "diseno",
-      "anillo": "contrato",
-      "lenguaje": "contrato",
-      "posicion": [
-        370,
-        1880
-      ],
-      "que": "Ofrece tiempo monotono y plazos medibles antes de introducir planificacion.",
-      "entrada": "Fuente de tiempo descubierta y mecanismo de interrupcion comprobado.",
-      "salida": "Lecturas y vencimientos con unidad y origen declarados.",
-      "aceptacion": "Plazo vence y tiempo no retrocede; frecuencia observada y coste de lectura registrados.",
-      "falta": "Elegir fuente y calibracion sin suponer frecuencias del Ryzen.",
-      "implementacion_prevista": {"ruta": "kernel/time", "anillo": "0", "lenguaje": "CASM"},
-      "pagina": true
-    },
-    {
-      "id": "sched",
-      "titulo": "Planificacion",
-      "ruta": "contracts/plans/sched.md",
-      "estado": "diseno",
-      "anillo": "contrato",
-      "lenguaje": "contrato",
-      "posicion": [
-        1110,
-        1660
-      ],
-      "que": "Gestiona ejecucion y espera con contexto y presupuesto definidos.",
-      "entrada": "Tareas admitidas, memoria propia y fuente de tiempo.",
-      "salida": "Cambio de contexto o espera con estado preservado.",
-      "aceptacion": "Dos tareas no comparten contexto y una espera no gira en vacio; empezar por una CPU.",
-      "falta": "Modelo de tarea, registros preservados y despertares; SMP queda para otra entrega.",
-      "implementacion_prevista": {"ruta": "kernel/sched", "anillo": "0", "lenguaje": "CASM"},
-      "pagina": true
-    },
-    {
-      "id": "ipc",
-      "titulo": "Comunicacion entre procesos",
-      "ruta": "contracts/plans/ipc.md",
-      "estado": "diseno",
-      "anillo": "contrato",
-      "lenguaje": "contrato",
-      "posicion": [
-        1480,
-        1660
-      ],
-      "que": "Transporta mensajes y prestamos con autoridad y limites comprobados.",
-      "entrada": "Procesos aislados, capacidades y buffers declarados.",
-      "salida": "Mensaje recibido o error de permisos, medida o vida util.",
-      "aceptacion": "Rechaza destino ajeno, rango invalido y prestamo vencido sin filtrar memoria.",
-      "falta": "Primer canal y sus postcondiciones de cierre/muerte antes de servicios mayores.",
-      "implementacion_prevista": {"ruta": "kernel/ipc", "anillo": "0", "lenguaje": "CASM"},
-      "pagina": true
     },
     {
       "id": "drivers",
@@ -1267,44 +1153,6 @@
       "pagina": true
     },
     {
-      "id": "cpu-state",
-      "titulo": "Estado de CPU y cambio de contexto",
-      "ruta": "contracts/plans/cpu-state.md",
-      "estado": "diseno",
-      "anillo": "contrato",
-      "lenguaje": "contrato",
-      "posicion": [
-        6390,
-        3500
-      ],
-      "que": "Prepara descriptores, TSS y estado de CPU que debe preservarse.",
-      "entrada": "Capacidades de CPU, pila y contrato de contexto.",
-      "salida": "Marcos separados y estado preservado por tarea.",
-      "aceptacion": "QEMU comprueba pilas, registros y estado de CPU al cambiar de tarea.",
-      "falta": "Definir marcos y probar primero una CPU.",
-      "implementacion_prevista": {"ruta": "kernel/arch/x86_64/context", "anillo": "0", "lenguaje": "CASM"},
-      "pagina": true
-    },
-    {
-      "id": "kernel-diagnostics",
-      "titulo": "Diagnostico y recuperacion",
-      "ruta": "contracts/plans/kernel-diagnostics.md",
-      "estado": "diseno",
-      "anillo": "contrato",
-      "lenguaje": "contrato",
-      "posicion": [
-        6780,
-        3500
-      ],
-      "que": "Registra fases, excepciones y causa de parada.",
-      "entrada": "Fase de inicializacion o marco de excepcion.",
-      "salida": "Registro acotado y decision de continuar, terminar proceso o parar.",
-      "aceptacion": "QEMU identifica excepcion, origen y fase sin depender del escritorio.",
-      "falta": "Emitir captura de excepcion y salida minima.",
-      "implementacion_prevista": {"ruta": "kernel/diagnostics", "anillo": "0", "lenguaje": "CASM"},
-      "pagina": true
-    },
-    {
       "id": "physical-memory",
       "titulo": "Memoria fisica",
       "ruta": "kernel/mm/physical",
@@ -1359,25 +1207,6 @@
       "pagina": true
     },
     {
-      "id": "process",
-      "titulo": "Proceso y ciclo de vida",
-      "ruta": "contracts/plans/process.md",
-      "estado": "diseno",
-      "anillo": "contrato",
-      "lenguaje": "contrato",
-      "posicion": [
-        6390,
-        3675
-      ],
-      "que": "Crea contexto de usuario, entra en Ring 3 y recoge recursos al terminar.",
-      "entrada": "Espacio aislado, imagen de prueba y pila.",
-      "salida": "Proceso con identidad y salida observable.",
-      "aceptacion": "QEMU observa CPL3, retorno y fallo contenido, con recursos recuperados.",
-      "falta": "Arrancar una imagen SBEF y reutilizar recursos en un segundo proceso.",
-      "implementacion_prevista": {"ruta": "kernel/process", "anillo": "0", "lenguaje": "CASM"},
-      "pagina": true
-    },
-    {
       "id": "sbef-loader",
       "titulo": "Cargador SBEF",
       "ruta": "kernel/loader",
@@ -1396,63 +1225,6 @@
       "pagina": true
     },
     {
-      "id": "invoke",
-      "titulo": "Puerta INVOKE",
-      "ruta": "contracts/plans/invoke.md",
-      "estado": "diseno",
-      "anillo": "contrato",
-      "lenguaje": "contrato",
-      "posicion": [
-        7170,
-        3675
-      ],
-      "que": "Despacha operaciones mediante capacidades del proceso activo.",
-      "entrada": "Registros del ABI, handle, operacion y argumentos.",
-      "salida": "Estado y valor o rechazo acotado.",
-      "aceptacion": "Operaciones autorizadas y denegadas dan el resultado esperado sin afectar otro proceso.",
-      "falta": "Generalizar capacidades por proceso y probar una operacion con buffer.",
-      "implementacion_prevista": {"ruta": "kernel/syscalls/invoke", "anillo": "0", "lenguaje": "CASM"},
-      "pagina": true
-    },
-    {
-      "id": "wait",
-      "titulo": "Puerta WAIT",
-      "ruta": "contracts/plans/wait.md",
-      "estado": "diseno",
-      "anillo": "contrato",
-      "lenguaje": "contrato",
-      "posicion": [
-        7560,
-        3675
-      ],
-      "que": "Duerme y despierta tareas por senal o vencimiento.",
-      "entrada": "Objeto esperable, secuencia y plazo.",
-      "salida": "Despertar, vencimiento o error con contexto preservado.",
-      "aceptacion": "QEMU observa senal y plazo, sin espera activa ni perdida de un aviso concurrente.",
-      "falta": "El numero ya responde -4 en QEMU. Probar bloqueo, senal y plazo con dos tareas.",
-      "implementacion_prevista": {"ruta": "kernel/syscalls/wait", "anillo": "0", "lenguaje": "CASM"},
-      "pagina": true
-    },
-    {
-      "id": "image-policy",
-      "titulo": "Politica de admision",
-      "ruta": "contracts/plans/image-policy.md",
-      "estado": "diseno",
-      "anillo": "contrato",
-      "lenguaje": "contrato",
-      "posicion": [
-        6000,
-        3850
-      ],
-      "que": "Aplica procedencia y autoridad inicial a imagenes estructuralmente validas.",
-      "entrada": "Imagen validada y politica de confianza.",
-      "salida": "Decision de ejecucion y capacidades iniciales acotadas.",
-      "aceptacion": "Cambiar imagen o permiso invalida la admision correspondiente.",
-      "falta": "Definir confianza de produccion, integridad y revocacion.",
-      "implementacion_prevista": {"ruta": "kernel/security", "anillo": "0", "lenguaje": "CASM"},
-      "pagina": true
-    },
-    {
       "id": "device-bus",
       "titulo": "Buses, recursos y DMA",
       "ruta": "kernel/drivers/bus",
@@ -1468,101 +1240,6 @@
       "salida": "Respuesta No Op comprobada, parada, Bus Master revocado y alias retirados.",
       "aceptacion": "QEMU verifica respuesta, reserva disjunta, parada y rechazo W+X. Evidencia en evidence/transport-qemu.json.",
       "falta": "Metal confirma No Op y dos puertos. QEMU verifica debounce adaptativo y limites; falta enumerar ambos HID, hotplug asincrono e IOMMU.",
-      "pagina": true
-    },
-    {
-      "id": "device-storage",
-      "titulo": "Bloques y almacenamiento",
-      "ruta": "contracts/plans/device-storage.md",
-      "estado": "diseno",
-      "anillo": "contrato",
-      "lenguaje": "contrato",
-      "posicion": [
-        6780,
-        3850
-      ],
-      "que": "Entrega bloques mediante un dispositivo acotado.",
-      "entrada": "Dispositivo de bloques, rangos y capacidad.",
-      "salida": "Lecturas y errores de dispositivo reproducibles.",
-      "aceptacion": "Lectura valida y fuera de rango en un disco virtual con imagen de prueba.",
-      "falta": "Separar los bloques del sistema de archivos.",
-      "implementacion_prevista": {"ruta": "userspace/drivers/storage", "anillo": "3", "lenguaje": "Rust"},
-      "pagina": true
-    },
-    {
-      "id": "file-access",
-      "titulo": "Acceso a archivos",
-      "ruta": "contracts/plans/file-access.md",
-      "estado": "diseno",
-      "anillo": "contrato",
-      "lenguaje": "contrato",
-      "posicion": [
-        7170,
-        3850
-      ],
-      "que": "Fija la frontera de acceso a imagenes y archivos sobre bloques.",
-      "entrada": "Bloques, espacio de nombres y capacidad de directorio.",
-      "salida": "Acceso limitado a datos o imagen de proceso.",
-      "aceptacion": "Un servicio puede leer una imagen y rechaza una ruta fuera de su autoridad.",
-      "falta": "Elegir que mecanismo queda en CASM y que politica va a Ring 3.",
-      "implementacion_prevista": {"ruta": "userspace/services/files", "anillo": "3", "lenguaje": "Rust"},
-      "pagina": true
-    },
-    {
-      "id": "device-io",
-      "titulo": "Entrada, pantalla y audio",
-      "ruta": "contracts/plans/device-io.md",
-      "estado": "diseno",
-      "anillo": "contrato",
-      "lenguaje": "contrato",
-      "posicion": [
-        7560,
-        3850
-      ],
-      "que": "Ofrece recursos de entrada y salida a servicios autorizados.",
-      "entrada": "Dispositivos descubiertos, buffers y eventos.",
-      "salida": "Canales y ventanas de aparato acotados.",
-      "aceptacion": "Pruebas de acceso, revocacion y fallo de servicio por dispositivo admitido.",
-      "falta": "Metal confirma dos puertos conectados tras estabilizacion. Falta direccionar teclado y raton y activar ambos endpoints HID.",
-      "implementacion_prevista": {"ruta": "userspace/drivers/input", "anillo": "3", "lenguaje": "Rust"},
-      "pagina": true
-    },
-    {
-      "id": "device-network",
-      "titulo": "Dispositivos de red",
-      "ruta": "contracts/plans/device-network.md",
-      "estado": "diseno",
-      "anillo": "contrato",
-      "lenguaje": "contrato",
-      "posicion": [
-        6000,
-        4025
-      ],
-      "que": "Expone colas y buffers de un dispositivo a un servicio autorizado.",
-      "entrada": "Dispositivo, memoria asignada y permisos.",
-      "salida": "Transporte acotado de tramas para Ring 3.",
-      "aceptacion": "Prueba de envio, recepcion y aislamiento con dispositivo virtual.",
-      "falta": "Elegir dispositivo y dejar protocolos en el servicio.",
-      "implementacion_prevista": {"ruta": "userspace/drivers/network", "anillo": "3", "lenguaje": "Rust"},
-      "pagina": true
-    },
-    {
-      "id": "multiprocessor",
-      "titulo": "Multiprocesador y perfil fisico",
-      "ruta": "contracts/plans/multiprocessor.md",
-      "estado": "diseno",
-      "anillo": "contrato",
-      "lenguaje": "contrato",
-      "posicion": [
-        6390,
-        4025
-      ],
-      "que": "Extiende el contexto por CPU y coordina acceso concurrente.",
-      "entrada": "Base estable de una CPU, topologia y requisitos del equipo.",
-      "salida": "CPU adicionales, sincronizacion y registro por CPU.",
-      "aceptacion": "QEMU con varias CPU conserva estado y permisos antes de probar metal.",
-      "falta": "Definir invariantes de sincronizacion y perfil de hardware.",
-      "implementacion_prevista": {"ruta": "kernel/arch/x86_64/smp", "anillo": "0", "lenguaje": "CASM"},
       "pagina": true
     },
     {
@@ -1734,63 +1411,6 @@
       "salida": "Fronteras por modo, evidencia exigida y ABI de entrega.",
       "aceptacion": "Se observa cada transicion en QEMU y ambas rutas entregan el contrato de entrada.",
       "falta": "Emitir y verificar las etapas propias desde reset."
-    },
-    {
-      "id": "faggin16",
-      "titulo": "Faggin 16 bits",
-      "ruta": "contracts/plans/faggin16.md",
-      "estado": "diseno",
-      "anillo": "contrato",
-      "lenguaje": "contrato",
-      "posicion": [
-        8500,
-        3675
-      ],
-      "que": "Prepara el primer salto desde reset en la ruta propia.",
-      "entrada": "Estado de reset, ROM y espacio de pila temporal.",
-      "salida": "A20, GDT y entrada protegida de 32 bits.",
-      "aceptacion": "QEMU registra el cambio de modo y el destino del salto.",
-      "falta": "Definir el formato y la emision CASM de la etapa de 16 bits.",
-      "implementacion_prevista": {"ruta": "kernel/boot/faggin/stage16", "anillo": "contrato", "lenguaje": "CASM arranque"},
-      "pagina": true
-    },
-    {
-      "id": "faggin32",
-      "titulo": "Faggin 32 bits",
-      "ruta": "contracts/plans/faggin32.md",
-      "estado": "diseno",
-      "anillo": "contrato",
-      "lenguaje": "contrato",
-      "posicion": [
-        8500,
-        3850
-      ],
-      "que": "Prepara segmentos, pila y paginacion inicial para modo largo.",
-      "entrada": "Entrega protegida de 32 bits y memoria reservada.",
-      "salida": "Tablas y salto al segmento de codigo de 64 bits.",
-      "aceptacion": "QEMU verifica registros de control y rangos de las reservas.",
-      "falta": "Emitir la transicion de 32 a 64 bits con vector independiente.",
-      "implementacion_prevista": {"ruta": "kernel/boot/faggin/stage32", "anillo": "0", "lenguaje": "CASM"},
-      "pagina": true
-    },
-    {
-      "id": "faggin64",
-      "titulo": "Faggin 64 bits",
-      "ruta": "contracts/plans/faggin64.md",
-      "estado": "diseno",
-      "anillo": "contrato",
-      "lenguaje": "contrato",
-      "posicion": [
-        8500,
-        4025
-      ],
-      "que": "Entrega contexto x86-64 a la misma entrada que utiliza UEFI.",
-      "entrada": "Modo largo y mapa inicial de la ruta reset.",
-      "salida": "Contexto, pila y recursos de arranque comprobables.",
-      "aceptacion": "La entrada CASM observa modo largo y registra una excepcion controlada.",
-      "falta": "Unir con la entrada despues de validar la IDT propia.",
-      "implementacion_prevista": {"ruta": "kernel/boot/faggin/stage64", "anillo": "0", "lenguaje": "CASM"},
-      "pagina": true
     },
     {
       "id": "boot-splash-hd",
@@ -2276,11 +1896,11 @@
         15000,
         5250
       ],
-      "que": "Descubre interfaces boot y decodifica informes de teclado y raton fuera del compositor.",
+      "que": "Descubre interfaces boot y mantiene fuentes de entrada con colas acotadas y desconexion atomica.",
       "entrada": "Descriptores acotados y reportes recibidos por un transporte autorizado.",
       "salida": "Interfaces, endpoints, solicitudes de configuracion y cambios de entrada.",
-      "aceptacion": "HOST verifica diez casos USB y catorce de escritorio; QEMU conserva teclado y raton en sondas separadas. Evidencia en evidence/validation.json.",
-      "falta": "El parser solo tiene evidencia HOST; faltan transporte Ring 3, aislamiento de proceso, enumeracion AMD y recepcion simultanea de ambos HID."
+      "aceptacion": "HOST verifica 18 casos USB y 14 de escritorio; el nuevo servicio compila freestanding. Las sondas HID QEMU anteriores se conservan como evidencia separada.",
+      "falta": "El nuevo InputService solo tiene evidencia HOST. Faltan proceso SBEF independiente, transporte Ring 3, aislamiento DMA y enumeracion AMD."
     }
   ],
   "relaciones": [
@@ -2343,11 +1963,6 @@
       "de": "desktop-usb-hid",
       "a": "desktop-keyboard",
       "clase": "codigo"
-    },
-    {
-      "de": "desktop-usb-hid",
-      "a": "device-io",
-      "clase": "plan"
     },
     {
       "de": "physical-boot",
@@ -2475,21 +2090,6 @@
       "clase": "plan"
     },
     {
-      "de": "capabilities",
-      "a": "mm",
-      "clase": "plan"
-    },
-    {
-      "de": "capabilities",
-      "a": "contracts",
-      "clase": "plan"
-    },
-    {
-      "de": "syscalls",
-      "a": "capabilities",
-      "clase": "plan"
-    },
-    {
       "de": "syscalls",
       "a": "x86_64-exceptions",
       "clase": "plan"
@@ -2560,53 +2160,8 @@
       "clase": "verificacion"
     },
     {
-      "de": "x86_64-interrupts",
-      "a": "x86_64-cpu",
-      "clase": "plan"
-    },
-    {
-      "de": "x86_64-interrupts",
-      "a": "x86_64-exceptions",
-      "clase": "plan"
-    },
-    {
-      "de": "init",
-      "a": "x86_64-exceptions",
-      "clase": "plan"
-    },
-    {
-      "de": "init",
-      "a": "mm",
-      "clase": "plan"
-    },
-    {
-      "de": "time",
-      "a": "x86_64-interrupts",
-      "clase": "plan"
-    },
-    {
-      "de": "sched",
-      "a": "time",
-      "clase": "plan"
-    },
-    {
-      "de": "sched",
-      "a": "init",
-      "clase": "plan"
-    },
-    {
-      "de": "ipc",
-      "a": "capabilities",
-      "clase": "plan"
-    },
-    {
       "de": "drivers",
       "a": "mm",
-      "clase": "plan"
-    },
-    {
-      "de": "drivers",
-      "a": "x86_64-interrupts",
       "clase": "plan"
     },
     {
@@ -3000,21 +2555,6 @@
       "clase": "plan"
     },
     {
-      "de": "cpu-state",
-      "a": "x86_64-cpu",
-      "clase": "plan"
-    },
-    {
-      "de": "cpu-state",
-      "a": "boot-context",
-      "clase": "plan"
-    },
-    {
-      "de": "kernel-diagnostics",
-      "a": "x86_64-exceptions",
-      "clase": "plan"
-    },
-    {
       "de": "physical-memory",
       "a": "mm",
       "clase": "plan"
@@ -3040,73 +2580,8 @@
       "clase": "plan"
     },
     {
-      "de": "process",
-      "a": "cpu-state",
-      "clase": "plan"
-    },
-    {
-      "de": "process",
-      "a": "user-memory",
-      "clase": "plan"
-    },
-    {
-      "de": "process",
-      "a": "init",
-      "clase": "plan"
-    },
-    {
       "de": "sbef-loader",
       "a": "sbef",
-      "clase": "plan"
-    },
-    {
-      "de": "sbef-loader",
-      "a": "process",
-      "clase": "plan"
-    },
-    {
-      "de": "invoke",
-      "a": "syscalls",
-      "clase": "plan"
-    },
-    {
-      "de": "invoke",
-      "a": "process",
-      "clase": "plan"
-    },
-    {
-      "de": "invoke",
-      "a": "user-memory",
-      "clase": "plan"
-    },
-    {
-      "de": "wait",
-      "a": "syscalls",
-      "clase": "plan"
-    },
-    {
-      "de": "wait",
-      "a": "sched",
-      "clase": "plan"
-    },
-    {
-      "de": "wait",
-      "a": "ipc",
-      "clase": "plan"
-    },
-    {
-      "de": "wait",
-      "a": "process",
-      "clase": "plan"
-    },
-    {
-      "de": "image-policy",
-      "a": "sbef-loader",
-      "clase": "plan"
-    },
-    {
-      "de": "image-policy",
-      "a": "capabilities",
       "clase": "plan"
     },
     {
@@ -3120,83 +2595,13 @@
       "clase": "plan"
     },
     {
-      "de": "device-storage",
-      "a": "device-bus",
-      "clase": "plan"
-    },
-    {
-      "de": "file-access",
-      "a": "device-storage",
-      "clase": "plan"
-    },
-    {
-      "de": "file-access",
-      "a": "capabilities",
-      "clase": "plan"
-    },
-    {
-      "de": "device-io",
-      "a": "device-bus",
-      "clase": "plan"
-    },
-    {
-      "de": "device-io",
-      "a": "ipc",
-      "clase": "plan"
-    },
-    {
-      "de": "device-network",
-      "a": "device-bus",
-      "clase": "plan"
-    },
-    {
-      "de": "device-network",
-      "a": "ipc",
-      "clase": "plan"
-    },
-    {
-      "de": "multiprocessor",
-      "a": "sched",
-      "clase": "plan"
-    },
-    {
-      "de": "multiprocessor",
-      "a": "cpu-state",
-      "clase": "plan"
-    },
-    {
-      "de": "multiprocessor",
-      "a": "virtual-memory",
-      "clase": "plan"
-    },
-    {
       "de": "ring0-base-gate",
       "a": "entry-budget",
       "clase": "plan"
     },
     {
       "de": "ring0-base-gate",
-      "a": "kernel-diagnostics",
-      "clase": "plan"
-    },
-    {
-      "de": "ring0-base-gate",
       "a": "sbef-loader",
-      "clase": "plan"
-    },
-    {
-      "de": "ring0-base-gate",
-      "a": "invoke",
-      "clase": "plan"
-    },
-    {
-      "de": "ring0-base-gate",
-      "a": "wait",
-      "clase": "plan"
-    },
-    {
-      "de": "ring0-base-gate",
-      "a": "image-policy",
       "clase": "plan"
     },
     {
@@ -3207,16 +2612,6 @@
     {
       "de": "x86_64-cpu",
       "a": "boot-context",
-      "clase": "plan"
-    },
-    {
-      "de": "x86_64-exceptions",
-      "a": "cpu-state",
-      "clase": "plan"
-    },
-    {
-      "de": "sched",
-      "a": "process",
       "clase": "plan"
     },
     {
@@ -3287,26 +2682,6 @@
     {
       "de": "faggin-contract",
       "a": "contracts",
-      "clase": "plan"
-    },
-    {
-      "de": "faggin16",
-      "a": "faggin-contract",
-      "clase": "plan"
-    },
-    {
-      "de": "faggin32",
-      "a": "faggin16",
-      "clase": "plan"
-    },
-    {
-      "de": "faggin64",
-      "a": "faggin32",
-      "clase": "plan"
-    },
-    {
-      "de": "faggin64",
-      "a": "boot-context",
       "clase": "plan"
     },
     {
@@ -3385,11 +2760,6 @@
       "clase": "verificacion"
     },
     {
-      "de": "process",
-      "a": "user-protection-fault",
-      "clase": "plan"
-    },
-    {
       "de": "user-protection-fault",
       "a": "own-page-tables",
       "clase": "plan"
@@ -3428,16 +2798,6 @@
       "de": "userspace-supervisor",
       "a": "rust-runtime",
       "clase": "plan"
-    },
-    {
-      "de": "invoke",
-      "a": "abi-probe",
-      "clase": "verificacion"
-    },
-    {
-      "de": "wait",
-      "a": "abi-probe",
-      "clase": "verificacion"
     },
     {
       "de": "sbef-loader",
@@ -3500,11 +2860,6 @@
       "clase": "codigo"
     },
     {
-      "de": "desktop-keyboard",
-      "a": "device-io",
-      "clase": "plan"
-    },
-    {
       "de": "doom-fixed-probe",
       "a": "sbef-loader-boundary",
       "clase": "plan"
@@ -3523,11 +2878,6 @@
       "de": "doom-engine",
       "a": "sbef-host-pack",
       "clase": "generacion"
-    },
-    {
-      "de": "audio-mixer",
-      "a": "device-io",
-      "clase": "plan"
     },
     {
       "de": "audio-mixer",

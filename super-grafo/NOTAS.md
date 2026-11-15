@@ -196,7 +196,7 @@ Contiene fallos de CPU y preserva el estado necesario para explicar quien fallo 
 Estado: DISENO. Anillo: 0. Lenguaje: CASM.
 Entrada: CPU preparada y marcos de excepcion definidos.
 Salida: Diagnostico, terminacion del proceso o parada controlada segun origen.
-Depende de: CPU x86-64 (plan), Estado de CPU y cambio de contexto (plan), Pila inicial CASM (plan).
+Depende de: CPU x86-64 (plan), Pila inicial CASM (plan).
 Aceptacion: #UD/#PF de Ring 3 terminan ese proceso; el kernel conserva control y evidencia.
 Pendiente: La primera puerta #UD ya tiene evidencia. Faltan otros vectores, pilas de emergencia, diagnostico y contencion de Ring 3.
 
@@ -211,17 +211,6 @@ Depende de: CPU x86-64 (plan).
 Aceptacion: Ring 3 no escribe kernel ni ejecuta datos NX; rangos invalidos y desbordes se rechazan.
 Pendiente: Asignador, paginacion, TLB, vida de prestamos y pruebas de muerte del proceso.
 
-## contracts/plans/capabilities.md
-
-Concede autoridad explicita y comprueba propietario, derechos y vigencia.
-
-Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
-Entrada: Peticion admitida y recursos con propietario.
-Salida: Handle concedido, operacion comprobada o motivo de rechazo.
-Depende de: Memoria y aislamiento (plan), Contratos de BMO-X2 (plan).
-Aceptacion: Handle inventado, revocado o de otro proceso falla por su motivo; la autoridad no se hereda implicitamente.
-Pendiente: Layout del handle, tabla, generacion, transferencia y revocacion.
-
 ## kernel/syscalls
 
 Recibe operaciones de Ring 3 y comprueba el contrato antes de tocar recursos.
@@ -229,7 +218,7 @@ Recibe operaciones de Ring 3 y comprueba el contrato antes de tocar recursos.
 Estado: DISENO. Anillo: 0. Lenguaje: CASM.
 Entrada: ABI versionado, registros, capability y buffers declarados.
 Salida: Respuesta definida y retorno seguro a Ring 3.
-Depende de: Capacidades (plan), Excepciones x86-64 (plan), BEF2 y ABI de BMO-X (plan).
+Depende de: Excepciones x86-64 (plan), BEF2 y ABI de BMO-X (plan).
 Aceptacion: Solicitud valida devuelve resultado; puntero/capacidad invalidos no comprometen al kernel.
 Pendiente: Convencion de llamada, entradas/salidas, estados y primera operacion observable.
 
@@ -321,61 +310,6 @@ Depende de: Verificador metal64 (verificacion).
 Aceptacion: HEX/IR y paquete coinciden con el contrato; la ejecucion de entrada se acredita por separado en QEMU.
 Pendiente: No configura la CPU ni la memoria; falta cadena de carga, ejecucion observada y parada controlada.
 
-## contracts/plans/x86_64-interrupts.md
-
-Encamina IRQ con un contrato de entrada y reconocimiento separado de las excepciones.
-
-Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
-Entrada: CPU preparada, tabla de vectores y controlador de interrupciones identificado.
-Salida: Evento acotado y retorno con el estado de CPU preservado.
-Depende de: CPU x86-64 (plan), Excepciones x86-64 (plan).
-Aceptacion: Interrupcion de prueba y fuente muda en QEMU; no perder ni repetir reconocimientos.
-Pendiente: Controlador, vectores y politica de habilitacion antes de usar tiempo y dispositivos.
-
-## contracts/plans/init.md
-
-Ordena fases y precondiciones del kernel sin esconder los fallos de un subsistema.
-
-Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
-Entrada: Contexto boot y resultados de CPU, excepciones y memoria.
-Salida: Estado de fase listo o fallo con nombre y motivo.
-Depende de: Excepciones x86-64 (plan), Memoria y aislamiento (plan).
-Aceptacion: Una fase invalida impide ejecutar las siguientes; diagnostico identificable en QEMU.
-Pendiente: Primera secuencia de inicializacion escrita en CASM despues de fijar el perfil de kernel.
-
-## contracts/plans/time.md
-
-Ofrece tiempo monotono y plazos medibles antes de introducir planificacion.
-
-Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
-Entrada: Fuente de tiempo descubierta y mecanismo de interrupcion comprobado.
-Salida: Lecturas y vencimientos con unidad y origen declarados.
-Depende de: Interrupciones de hardware (plan).
-Aceptacion: Plazo vence y tiempo no retrocede; frecuencia observada y coste de lectura registrados.
-Pendiente: Elegir fuente y calibracion sin suponer frecuencias del Ryzen.
-
-## contracts/plans/sched.md
-
-Gestiona ejecucion y espera con contexto y presupuesto definidos.
-
-Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
-Entrada: Tareas admitidas, memoria propia y fuente de tiempo.
-Salida: Cambio de contexto o espera con estado preservado.
-Depende de: Reloj y plazos (plan), Inicializacion del kernel (plan), Proceso y ciclo de vida (plan).
-Aceptacion: Dos tareas no comparten contexto y una espera no gira en vacio; empezar por una CPU.
-Pendiente: Modelo de tarea, registros preservados y despertares; SMP queda para otra entrega.
-
-## contracts/plans/ipc.md
-
-Transporta mensajes y prestamos con autoridad y limites comprobados.
-
-Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
-Entrada: Procesos aislados, capacidades y buffers declarados.
-Salida: Mensaje recibido o error de permisos, medida o vida util.
-Depende de: Capacidades (plan).
-Aceptacion: Rechaza destino ajeno, rango invalido y prestamo vencido sin filtrar memoria.
-Pendiente: Primer canal y sus postcondiciones de cierre/muerte antes de servicios mayores.
-
 ## kernel/drivers
 
 Aisla mecanismos de dispositivos del resto del kernel y explicita acceso a puertos/MMIO/DMA.
@@ -383,7 +317,7 @@ Aisla mecanismos de dispositivos del resto del kernel y explicita acceso a puert
 Estado: DISENO. Anillo: 0. Lenguaje: CASM.
 Entrada: Hardware identificado, regiones concedidas e interrupciones comprobadas.
 Salida: Operaciones acotadas con estado, tiempo limite y motivo de fallo.
-Depende de: Memoria y aislamiento (plan), Interrupciones de hardware (plan).
+Depende de: Memoria y aislamiento (plan).
 Aceptacion: Aparato ausente o mudo no bloquea el kernel; permisos y DMA se prueban por separado.
 Pendiente: Empezar con un dispositivo simple exigido por el arranque; no trasladar la investigacion GPU a esta base.
 
@@ -805,28 +739,6 @@ Depende de: Arranque del kernel (plan), Fuente de parada propia (plan).
 Aceptacion: QEMU acredita pila propia y rechazo de un contexto invalido.
 Pendiente: El perfil de pila ya prueba la entrega valida y RDI nulo. Faltan contrato propio de mapeos y guardas de pila.
 
-## contracts/plans/cpu-state.md
-
-Prepara descriptores, TSS y estado de CPU que debe preservarse.
-
-Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
-Entrada: Capacidades de CPU, pila y contrato de contexto.
-Salida: Marcos separados y estado preservado por tarea.
-Depende de: CPU x86-64 (plan), Contexto de entrega (plan).
-Aceptacion: QEMU comprueba pilas, registros y estado de CPU al cambiar de tarea.
-Pendiente: Definir marcos y probar primero una CPU.
-
-## contracts/plans/kernel-diagnostics.md
-
-Registra fases, excepciones y causa de parada.
-
-Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
-Entrada: Fase de inicializacion o marco de excepcion.
-Salida: Registro acotado y decision de continuar, terminar proceso o parar.
-Depende de: Excepciones x86-64 (plan).
-Aceptacion: QEMU identifica excepcion, origen y fase sin depender del escritorio.
-Pendiente: Emitir captura de excepcion y salida minima.
-
 ## kernel/mm/physical
 
 Distingue memoria util, reservada y marcos asignados.
@@ -860,17 +772,6 @@ Depende de: Espacios y permisos (plan), Excepciones x86-64 (plan).
 Aceptacion: Un rango ajeno, desbordado o con pagina ausente se rechaza.
 Pendiente: Probar copia entre anillos y devolver paginas al asignador general.
 
-## contracts/plans/process.md
-
-Crea contexto de usuario, entra en Ring 3 y recoge recursos al terminar.
-
-Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
-Entrada: Espacio aislado, imagen de prueba y pila.
-Salida: Proceso con identidad y salida observable.
-Depende de: Estado de CPU y cambio de contexto (plan), Memoria de usuario (plan), Inicializacion del kernel (plan), Fallo de proteccion desde CPL3 (plan).
-Aceptacion: QEMU observa CPL3, retorno y fallo contenido, con recursos recuperados.
-Pendiente: Arrancar una imagen SBEF y reutilizar recursos en un segundo proceso.
-
 ## kernel/loader
 
 Admite y mapea una imagen SBEF bajo el contrato del proceso.
@@ -878,42 +779,9 @@ Admite y mapea una imagen SBEF bajo el contrato del proceso.
 Estado: DISENO. Anillo: 0. Lenguaje: CASM.
 Entrada: Bytes del ejecutable, limites, perfil SBEF y estado de CPU.
 Salida: Imagen mapeada con entrada y permisos comprobados o motivo de rechazo.
-Depende de: SBEF y congelacion del ABI (plan), Proceso y ciclo de vida (plan), Empaquetador ELF64 a SBEF (verificacion), Lector SBEF de referencia (verificacion), SBEF ABI 1 y llamadas desde CPL3 (verificacion), Contrato minimo del cargador SBEF (plan).
+Depende de: SBEF y congelacion del ABI (plan), Empaquetador ELF64 a SBEF (verificacion), Lector SBEF de referencia (verificacion), SBEF ABI 1 y llamadas desde CPL3 (verificacion), Contrato minimo del cargador SBEF (plan).
 Aceptacion: El lector independiente y CASM coinciden en el vector de oro y rechazos, con QEMU en Ring 3.
 Pendiente: La sonda LLVM en kernel/loader/external_sbef.S lee el SBEF entregado desde FAT32. Queda trasladar el cargador a CASM y asignar marcos y capacidades por proceso.
-
-## contracts/plans/invoke.md
-
-Despacha operaciones mediante capacidades del proceso activo.
-
-Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
-Entrada: Registros del ABI, handle, operacion y argumentos.
-Salida: Estado y valor o rechazo acotado.
-Depende de: Puerta CASM/Rust (plan), Proceso y ciclo de vida (plan), Memoria de usuario (plan), SBEF ABI 1 y llamadas desde CPL3 (verificacion).
-Aceptacion: Operaciones autorizadas y denegadas dan el resultado esperado sin afectar otro proceso.
-Pendiente: Generalizar capacidades por proceso y probar una operacion con buffer.
-
-## contracts/plans/wait.md
-
-Duerme y despierta tareas por senal o vencimiento.
-
-Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
-Entrada: Objeto esperable, secuencia y plazo.
-Salida: Despertar, vencimiento o error con contexto preservado.
-Depende de: Puerta CASM/Rust (plan), Planificacion (plan), Comunicacion entre procesos (plan), Proceso y ciclo de vida (plan), SBEF ABI 1 y llamadas desde CPL3 (verificacion).
-Aceptacion: QEMU observa senal y plazo, sin espera activa ni perdida de un aviso concurrente.
-Pendiente: El numero ya responde -4 en QEMU. Probar bloqueo, senal y plazo con dos tareas.
-
-## contracts/plans/image-policy.md
-
-Aplica procedencia y autoridad inicial a imagenes estructuralmente validas.
-
-Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
-Entrada: Imagen validada y politica de confianza.
-Salida: Decision de ejecucion y capacidades iniciales acotadas.
-Depende de: Cargador SBEF (plan), Capacidades (plan).
-Aceptacion: Cambiar imagen o permiso invalida la admision correspondiente.
-Pendiente: Definir confianza de produccion, integridad y revocacion.
 
 ## kernel/drivers/bus
 
@@ -926,61 +794,6 @@ Depende de: Frontera de dispositivos (plan), Espacios y permisos (plan), Prestam
 Aceptacion: QEMU verifica respuesta, reserva disjunta, parada y rechazo W+X. Evidencia en evidence/transport-qemu.json.
 Pendiente: Metal confirma No Op y dos puertos. QEMU verifica debounce adaptativo y limites; falta enumerar ambos HID, hotplug asincrono e IOMMU.
 
-## contracts/plans/device-storage.md
-
-Entrega bloques mediante un dispositivo acotado.
-
-Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
-Entrada: Dispositivo de bloques, rangos y capacidad.
-Salida: Lecturas y errores de dispositivo reproducibles.
-Depende de: Buses, recursos y DMA (plan).
-Aceptacion: Lectura valida y fuera de rango en un disco virtual con imagen de prueba.
-Pendiente: Separar los bloques del sistema de archivos.
-
-## contracts/plans/file-access.md
-
-Fija la frontera de acceso a imagenes y archivos sobre bloques.
-
-Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
-Entrada: Bloques, espacio de nombres y capacidad de directorio.
-Salida: Acceso limitado a datos o imagen de proceso.
-Depende de: Bloques y almacenamiento (plan), Capacidades (plan).
-Aceptacion: Un servicio puede leer una imagen y rechaza una ruta fuera de su autoridad.
-Pendiente: Elegir que mecanismo queda en CASM y que politica va a Ring 3.
-
-## contracts/plans/device-io.md
-
-Ofrece recursos de entrada y salida a servicios autorizados.
-
-Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
-Entrada: Dispositivos descubiertos, buffers y eventos.
-Salida: Canales y ventanas de aparato acotados.
-Depende de: Buses, recursos y DMA (plan), Comunicacion entre procesos (plan).
-Aceptacion: Pruebas de acceso, revocacion y fallo de servicio por dispositivo admitido.
-Pendiente: Metal confirma dos puertos conectados tras estabilizacion. Falta direccionar teclado y raton y activar ambos endpoints HID.
-
-## contracts/plans/device-network.md
-
-Expone colas y buffers de un dispositivo a un servicio autorizado.
-
-Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
-Entrada: Dispositivo, memoria asignada y permisos.
-Salida: Transporte acotado de tramas para Ring 3.
-Depende de: Buses, recursos y DMA (plan), Comunicacion entre procesos (plan).
-Aceptacion: Prueba de envio, recepcion y aislamiento con dispositivo virtual.
-Pendiente: Elegir dispositivo y dejar protocolos en el servicio.
-
-## contracts/plans/multiprocessor.md
-
-Extiende el contexto por CPU y coordina acceso concurrente.
-
-Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
-Entrada: Base estable de una CPU, topologia y requisitos del equipo.
-Salida: CPU adicionales, sincronizacion y registro por CPU.
-Depende de: Planificacion (plan), Estado de CPU y cambio de contexto (plan), Espacios y permisos (plan).
-Aceptacion: QEMU con varias CPU conserva estado y permisos antes de probar metal.
-Pendiente: Definir invariantes de sincronizacion y perfil de hardware.
-
 ## docs/RING0-PLAN.md
 
 Define la evidencia necesaria para congelar SBEF y el ABI.
@@ -988,7 +801,7 @@ Define la evidencia necesaria para congelar SBEF y el ABI.
 Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
 Entrada: Emision CASM, aislamiento, cargador, capacidades y dos puertas.
 Salida: Contrato congelable con casos de oro, rechazos y medidas.
-Depende de: Presupuesto de la entrada Ring 0 (plan), Diagnostico y recuperacion (plan), Cargador SBEF (plan), Puerta INVOKE (plan), Puerta WAIT (plan), Politica de admision (plan).
+Depende de: Presupuesto de la entrada Ring 0 (plan), Cargador SBEF (plan).
 Aceptacion: QEMU prueba carga, aislamiento, INVOKE y WAIT y coinciden varios toolchains.
 Pendiente: Cerrar primero contexto, pila y excepcion.
 
@@ -1090,39 +903,6 @@ Salida: Fronteras por modo, evidencia exigida y ABI de entrega.
 Depende de: Contratos de BMO-X2 (plan).
 Aceptacion: Se observa cada transicion en QEMU y ambas rutas entregan el contrato de entrada.
 Pendiente: Emitir y verificar las etapas propias desde reset.
-
-## contracts/plans/faggin16.md
-
-Prepara el primer salto desde reset en la ruta propia.
-
-Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
-Entrada: Estado de reset, ROM y espacio de pila temporal.
-Salida: A20, GDT y entrada protegida de 32 bits.
-Depende de: Rutas de arranque Faggin (plan).
-Aceptacion: QEMU registra el cambio de modo y el destino del salto.
-Pendiente: Definir el formato y la emision CASM de la etapa de 16 bits.
-
-## contracts/plans/faggin32.md
-
-Prepara segmentos, pila y paginacion inicial para modo largo.
-
-Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
-Entrada: Entrega protegida de 32 bits y memoria reservada.
-Salida: Tablas y salto al segmento de codigo de 64 bits.
-Depende de: Faggin 16 bits (plan).
-Aceptacion: QEMU verifica registros de control y rangos de las reservas.
-Pendiente: Emitir la transicion de 32 a 64 bits con vector independiente.
-
-## contracts/plans/faggin64.md
-
-Entrega contexto x86-64 a la misma entrada que utiliza UEFI.
-
-Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
-Entrada: Modo largo y mapa inicial de la ruta reset.
-Salida: Contexto, pila y recursos de arranque comprobables.
-Depende de: Faggin 32 bits (plan), Contexto de entrega (plan).
-Aceptacion: La entrada CASM observa modo largo y registra una excepcion controlada.
-Pendiente: Unir con la entrada despues de validar la IDT propia.
 
 ## kernel/boot/splash/hd/main.casm
 
@@ -1417,7 +1197,7 @@ Convierte eventos de BMO-X en cambios de espacio, foco numerado y movimiento de 
 Estado: HOST. Anillo: 3. Lenguaje: Rust.
 Entrada: Scancode normalizado, flanco y modificadores asociados al evento.
 Salida: Atajo consumido o evento para el componente enfocado.
-Depende de: Escritorio y espacios de trabajo (codigo), Entrada, pantalla y audio (plan).
+Depende de: Escritorio y espacios de trabajo (codigo).
 Aceptacion: HOST verifica cambio de espacio, movimiento, repeticion, liberacion y reenvio.
 Pendiente: Conectar la capacidad de entrada y probar teclado real en QEMU.
 
@@ -1428,7 +1208,7 @@ Traduce informes USB boot en flancos de teclado, movimiento y botones del raton.
 Estado: HOST. Anillo: 3. Lenguaje: Rust.
 Entrada: Informes de endpoints HID con protocolo boot seleccionado.
 Salida: Eventos para atajos, cliente enfocado y puntero.
-Depende de: Teclado y atajos del escritorio (codigo), Entrada, pantalla y audio (plan).
+Depende de: Teclado y atajos del escritorio (codigo).
 Aceptacion: HOST comprueba Ctrl Super 2, F2, deltas con signo, rollover y liberacion al desconectar.
 Pendiente: Conectar el transporte xHCI y probar perifericos USB en QEMU y hardware.
 
@@ -1461,7 +1241,7 @@ Mezcla PCM estereo de hasta dieciseis fuentes con ganancia acotada.
 Estado: HOST. Anillo: 3. Lenguaje: Rust.
 Entrada: Bloques PCM, ganancias por canal y volumen general.
 Salida: PCM mezclado, picos por canal y contador de saturacion.
-Depende de: Entrada, pantalla y audio (plan), Prestamo y revocacion DMA (plan).
+Depende de: Prestamo y revocacion DMA (plan).
 Aceptacion: HOST verifica balance, silencio, recorte y picos WAV. El monitor QEMU enumera Intel HDA y su codec.
 Pendiente: Reproducir desde el invitado, conectar DMA, panel y fuentes de DOOM.
 
@@ -1489,14 +1269,14 @@ Pendiente: Implementar procesos, concesiones de MMIO y DMA con IOMMU y eventos d
 
 ## userspace/drivers/usb
 
-Descubre interfaces boot y decodifica informes de teclado y raton fuera del compositor.
+Descubre interfaces boot y mantiene fuentes de entrada con colas acotadas y desconexion atomica.
 
 Estado: QEMU. Anillo: 3. Lenguaje: Rust.
 Entrada: Descriptores acotados y reportes recibidos por un transporte autorizado.
 Salida: Interfaces, endpoints, solicitudes de configuracion y cambios de entrada.
 Depende de: Contrato de drivers Ring 3 (codigo).
-Aceptacion: HOST verifica diez casos USB y catorce de escritorio; QEMU conserva teclado y raton en sondas separadas. Evidencia en evidence/validation.json.
-Pendiente: El parser solo tiene evidencia HOST; faltan transporte Ring 3, aislamiento de proceso, enumeracion AMD y recepcion simultanea de ambos HID.
+Aceptacion: HOST verifica 18 casos USB y 14 de escritorio; el nuevo servicio compila freestanding. Las sondas HID QEMU anteriores se conservan como evidencia separada.
+Pendiente: El nuevo InputService solo tiene evidencia HOST. Faltan proceso SBEF independiente, transporte Ring 3, aislamiento DMA y enumeracion AMD.
 
 ## CASM
 
@@ -1508,7 +1288,7 @@ Estado: base HEREDADA; banco metal64 HOST. Ver STATUS-BMO-X2.md para los perfile
 
 Fuentes y evidencias de mecanismos Ring 0; extensiones experimentales del puente declaradas por perfil.
 
-Los subsistemas solo disenados viven en contracts/plans/. Consultar el estado y la evidencia de cada nodo.
+El backlog unico esta en docs/RING0-PLAN.md. Consultar el estado y la evidencia de cada nodo activo.
 
 ## userspace
 
@@ -1520,4 +1300,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-136 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+116 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

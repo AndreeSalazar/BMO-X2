@@ -3,9 +3,9 @@
     "HOST",
     "QEMU"
   ],
-  "scope": "Descriptor discovery HOST; shared HID decoders in CPL3 QEMU. xHCI transport remains Ring 0. No physical HID or isolated driver-process claim.",
+  "scope": "Descriptor discovery and InputService HOST tests; shared HID decoders have prior CPL3 QEMU evidence. No physical HID or isolated driver-process claim.",
   "host_results": {
-    "usb": "ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+    "usb": "ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
     "desktop": "ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
   },
   "target": "x86_64-unknown-none",
@@ -213,12 +213,20 @@
     }
   },
   "source_sha256": {
-    "userspace/drivers/usb/src/lib.rs": "e22c856159baf8ad92fc19df422efc9fefe2ca90ed392081fc67bf8b38e44a2f",
-    "userspace/drivers/usb/src/hid.rs": "cc6688f7fe09080e7a4a67fe540c2ad1e74f46fdb017ce7697b7145957d879cf",
+    "userspace/drivers/usb/src/lib.rs": "06012a7a4e163ce40aff8730fa8eb96e6aa4a61d793cc8bd2079bd53b72a8bc6",
+    "userspace/drivers/usb/src/hid.rs": "02343d9763a41c5a9a209f4d6c0f2ffc407b325cda05efdfb19a7ad6ee8c7abd",
     "userspace/drivers/usb/src/descriptor.rs": "c1be18fcce886274ffbb97b698e332eaf1c765c95bb2dcf9d021fdd74e9f5ccd",
-    "userspace/drivers/usb/src/tests.rs": "c83ab6c66790c71a7b6c43235c1e35862df92e39dfd28186c2157c0d16459fb2",
+    "userspace/drivers/usb/src/tests.rs": "dd3b3418638b0327d32fd9a1763ba0f0cdb2d59c48ba30fbda687a4dff61526f",
     "userspace/services/desktop/src/usb_hid.rs": "6e5d65a9c65101a936e66b564dd90e77e26f4109dbeb85e5e9a9f1709492c0fa",
     "tools/desktop/usb_probe.rs": "24f7301114443de75772308eafdd23248a65865272841b43f20c10fc4bf2f45e",
-    "tools/desktop/usb_mouse_probe.rs": "4505c9d18fbeb55c9635e1e81f5bf42052ac36f2b8d73613335a604ff8001946"
-  }
+    "tools/desktop/usb_mouse_probe.rs": "4505c9d18fbeb55c9635e1e81f5bf42052ac36f2b8d73613335a604ff8001946",
+    "userspace/drivers/usb/src/input.rs": "d8908a24ddfca5e6d1a41b93f977f4ff43f686a44836cddfd75e9c86ff589925"
+  },
+  "input_service_state_bytes": {
+    "devices": 8,
+    "events": 64,
+    "bytes": 1752,
+    "measurement": "HOST x86-64 core::mem::size_of; excludes stack, code, transport buffers and runtime"
+  },
+  "qemu_provenance": "Previously recorded HID probe runs. InputService itself has no QEMU execution evidence yet."
 }

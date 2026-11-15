@@ -6,8 +6,8 @@
 - Destino exclusivo x86-64. CASM para Ring 0; Rust para Ring 3.
 - Carpetas nuevas en ingles. Tres ramas principales: `CASM/`, `kernel/` y
   `userspace/`; el codigo especifico de CPU vive en `kernel/arch/x86_64/`.
-- Planes sin implementacion en `contracts/plans/*.md`, como nodos de contrato
-  con `implementacion_prevista`; no crear carpetas de codigo con solo un plan.
+- Backlog de mecanismos pendientes en `docs/RING0-PLAN.md`; no crear carpetas
+  ni documentos por subsistema si solo duplican ese plan sin implementacion.
   Tras reorganizar rutas ejecutar `tools/workspace_audit.py` y comprobar nodos.
 - La base del kernel se escribe desde cero en CASM. La inspiracion Linux es
   organizativa; heredar lecciones de BMO-X no significa copiar su kernel.

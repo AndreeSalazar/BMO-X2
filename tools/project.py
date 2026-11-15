@@ -198,7 +198,7 @@ def generate(data):
         '## CASM', '', 'Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.',
         '', 'Estado: base HEREDADA; banco metal64 HOST. Ver STATUS-BMO-X2.md para los perfiles y limites.', '',
         '## kernel', '', 'Fuentes y evidencias de mecanismos Ring 0; extensiones experimentales del puente declaradas por perfil.',
-        '', 'Los subsistemas solo disenados viven en contracts/plans/. Consultar el estado y la evidencia de cada nodo.', '',
+        '', 'El backlog unico esta en docs/RING0-PLAN.md. Consultar el estado y la evidencia de cada nodo activo.', '',
         '## userspace', '', 'Bibliotecas, servicios, drivers y aplicaciones de Ring 3.',
         '', 'Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y servicios aislados del diseno.', '',
         '## super-grafo', '', 'Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.',

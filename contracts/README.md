@@ -19,9 +19,8 @@ revision aqui exige una decision escrita; no copiar sus numeros sin contrato.
 para congelarlo junto con el ABI. [BEF2 y ABI de BMO-X](ABI-BEF2.md)
 conserva la referencia del padre.
 
-Los [planes de subsistemas](plans/README.md) concentran los contratos
-que antes ocupaban carpetas sin implementacion. El catalogo conserva
-sus IDs y distingue el documento actual de su ruta futura.
+El [backlog de implementacion](../docs/RING0-PLAN.md) conserva el trabajo
+pendiente. Los documentos duplicados por subsistema fueron eliminados.
 
 [ULTRA-J 0.1](../Ultra-J/FORMAT.md) define bytecode, tema binario y recuperacion de
 objetos por regiones en la primera sonda HOST.

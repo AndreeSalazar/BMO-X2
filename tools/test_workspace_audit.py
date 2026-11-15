@@ -59,6 +59,12 @@ class AuditChecks(unittest.TestCase):
         self.assertEqual(self.report([])['recreated_plan_folders'], ['kernel/future'])
         (folder / 'main.casm').write_text('Actual source')
         self.assertEqual(self.report([])['recreated_plan_folders'], [])
+        retired = self.root / 'contracts/plans/old.md'
+        retired.parent.mkdir(parents=True)
+        retired.write_text('Duplicated plan')
+        (migration / 'plan-folders.json').write_text(json.dumps(dict(
+            moves=[], retired_plan_documents=['contracts/plans/old.md'])))
+        self.assertEqual(self.report([])['recreated_plan_documents'], ['contracts/plans/old.md'])
 
 
 if __name__ == '__main__':

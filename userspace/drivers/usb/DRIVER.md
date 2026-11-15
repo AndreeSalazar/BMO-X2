@@ -6,6 +6,7 @@
 |---|---|---|
 | `src/hid.rs` | Decodificar informes boot de teclado y raton, cambios de modificadores y liberacion al desconectar. | Pruebas HOST; el escritorio usa el mismo fuente en sus sondas USB QEMU. |
 | `src/descriptor.rs` | Leer una configuracion acotada y descubrir interfaces HID boot con sus endpoints IN. Generar los paquetes de solicitud SET_CONFIGURATION y SET_PROTOCOL. | HOST con descriptores reales capturados en las sondas QEMU de teclado y raton. |
+| `src/input.rs` | Servicio de entrada con fuentes separadas, cola acotada, cambios atomicos y desconexion con liberacion. | HOST y compilacion freestanding x86-64. Aun no conectado al transporte invitado. |
 | `src/tests.rs` | Rechazos con offset, dispositivo compuesto, alternates, truncamientos, descriptores HID y mutaciones. | HOST. No sustituye enumeracion en hardware. |
 
 El parser no supone interface cero ni endpoint 0x81. Conserva el numero
@@ -20,6 +21,22 @@ El desktop conserva `usb_hid.rs` como adaptador de su politica de atajos.
 Comparte `hid.rs` mediante una referencia de fuente para mantener los
 builds `rustc` freestanding actuales. Cambiar de carpeta no crea una
 frontera de memoria: este perfil sigue enlazado con la sesion actual.
+
+`InputService<DEVICES, EVENTS>` combina fuentes de teclado y raton en
+una cola fija. Un informe que no cabe devuelve `Backpressure` sin
+modificar el decoder ni publicar parte de sus eventos. El llamador debe
+conservar el informe para reintentar; no puede descartarlo ni reutilizar
+su buffer de transporte por esa respuesta. Al desconectar se retiran
+eventos pendientes de la fuente y se publican liberaciones y `Detached`.
+Si no hay espacio para cerrar, la fuente permanece activa hasta drenar
+la cola y reintentar. La siguiente vinculacion usa otra generacion.
+
+Estos tokens son identificadores locales de biblioteca, no capacidades
+del NANO-CORE. No conceden acceso a hardware ni sustituyen la revocacion
+de DMA. El servicio es de un solo propietario; el transporte concurrente
+necesita sincronizacion y eventos del ABI. El codigo se compila para
+x86-64 sin std, pero no existe todavia un SBEF independiente de este
+servicio ni una ruta xHCI de usuario que lo alimente durante el arranque.
 
 ## Lo que queda antes de entrada USB fisica
 

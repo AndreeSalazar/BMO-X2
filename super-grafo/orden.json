@@ -284,22 +284,6 @@
       ],
       "motivo": "Valida el contexto recibido y fija la pila inicial propia."
     },
-    "contracts/plans/cpu-state.md": {
-      "rgb": [
-        185,
-        130,
-        255
-      ],
-      "motivo": "Prepara descriptores, TSS y estado de CPU que debe preservarse."
-    },
-    "contracts/plans/kernel-diagnostics.md": {
-      "rgb": [
-        185,
-        130,
-        255
-      ],
-      "motivo": "Registra fases, excepciones y causa de parada."
-    },
     "kernel/mm/physical": {
       "rgb": [
         185,
@@ -324,14 +308,6 @@
       ],
       "motivo": "Valida rangos y copia datos entre anillos."
     },
-    "contracts/plans/process.md": {
-      "rgb": [
-        185,
-        130,
-        255
-      ],
-      "motivo": "Crea contexto de usuario, entra en Ring 3 y recoge recursos al terminar."
-    },
     "kernel/loader": {
       "rgb": [
         185,
@@ -340,30 +316,6 @@
       ],
       "motivo": "Admite y mapea una imagen SBEF bajo el contrato del proceso."
     },
-    "contracts/plans/invoke.md": {
-      "rgb": [
-        185,
-        130,
-        255
-      ],
-      "motivo": "Despacha operaciones mediante capacidades del proceso activo."
-    },
-    "contracts/plans/wait.md": {
-      "rgb": [
-        185,
-        130,
-        255
-      ],
-      "motivo": "Duerme y despierta tareas por senal o vencimiento."
-    },
-    "contracts/plans/image-policy.md": {
-      "rgb": [
-        185,
-        130,
-        255
-      ],
-      "motivo": "Aplica procedencia y autoridad inicial a imagenes estructuralmente validas."
-    },
     "kernel/drivers/bus": {
       "rgb": [
         185,
@@ -371,46 +323,6 @@
         255
       ],
       "motivo": "Descubre recursos de dispositivos y delimita su acceso y DMA."
-    },
-    "contracts/plans/device-storage.md": {
-      "rgb": [
-        185,
-        130,
-        255
-      ],
-      "motivo": "Entrega bloques mediante un dispositivo acotado."
-    },
-    "contracts/plans/file-access.md": {
-      "rgb": [
-        185,
-        130,
-        255
-      ],
-      "motivo": "Fija la frontera de acceso a imagenes y archivos sobre bloques."
-    },
-    "contracts/plans/device-io.md": {
-      "rgb": [
-        185,
-        130,
-        255
-      ],
-      "motivo": "Ofrece recursos de entrada y salida a servicios autorizados."
-    },
-    "contracts/plans/device-network.md": {
-      "rgb": [
-        185,
-        130,
-        255
-      ],
-      "motivo": "Expone colas y buffers de un dispositivo a un servicio autorizado."
-    },
-    "contracts/plans/multiprocessor.md": {
-      "rgb": [
-        185,
-        130,
-        255
-      ],
-      "motivo": "Extiende el contexto por CPU y coordina acceso concurrente."
     },
     "docs/RING0-PLAN.md": {
       "rgb": [
@@ -483,30 +395,6 @@
         255
       ],
       "motivo": "Define la convergencia de reset y UEFI en una entrega CASM x86-64."
-    },
-    "contracts/plans/faggin16.md": {
-      "rgb": [
-        100,
-        170,
-        255
-      ],
-      "motivo": "Prepara el primer salto desde reset en la ruta propia."
-    },
-    "contracts/plans/faggin32.md": {
-      "rgb": [
-        100,
-        170,
-        255
-      ],
-      "motivo": "Prepara segmentos, pila y paginacion inicial para modo largo."
-    },
-    "contracts/plans/faggin64.md": {
-      "rgb": [
-        100,
-        170,
-        255
-      ],
-      "motivo": "Entrega contexto x86-64 a la misma entrada que utiliza UEFI."
     },
     "kernel/boot/splash/hd/main.casm": {
       "rgb": [
@@ -779,10 +667,6 @@
       740.0,
       1400.0
     ],
-    "contracts/plans/x86_64-interrupts.md": [
-      370.0,
-      1660.0
-    ],
     "kernel/boot": [
       0.0,
       1400.0
@@ -811,37 +695,17 @@
       0.0,
       180.0
     ],
-    "contracts/plans/capabilities.md": [
-      1110.0,
-      1400.0
-    ],
     "kernel/drivers": [
       1850.0,
       1400.0
-    ],
-    "contracts/plans/init.md": [
-      0.0,
-      1880.0
-    ],
-    "contracts/plans/ipc.md": [
-      1480.0,
-      1660.0
     ],
     "kernel/mm": [
       740.0,
       1660.0
     ],
-    "contracts/plans/sched.md": [
-      1110.0,
-      1660.0
-    ],
     "kernel/syscalls": [
       1480.0,
       1400.0
-    ],
-    "contracts/plans/time.md": [
-      370.0,
-      1880.0
     ],
     "super-grafo": [
       320.0,
@@ -919,14 +783,6 @@
       6000,
       3500
     ],
-    "contracts/plans/cpu-state.md": [
-      6390,
-      3500
-    ],
-    "contracts/plans/kernel-diagnostics.md": [
-      6780,
-      3500
-    ],
     "kernel/mm/physical": [
       7170,
       3500
@@ -939,49 +795,13 @@
       6000,
       3675
     ],
-    "contracts/plans/process.md": [
-      6390,
-      3675
-    ],
     "kernel/loader": [
       6780,
       3675
     ],
-    "contracts/plans/invoke.md": [
-      7170,
-      3675
-    ],
-    "contracts/plans/wait.md": [
-      7560,
-      3675
-    ],
-    "contracts/plans/image-policy.md": [
-      6000,
-      3850
-    ],
     "kernel/drivers/bus": [
       6390,
       3850
-    ],
-    "contracts/plans/device-storage.md": [
-      6780,
-      3850
-    ],
-    "contracts/plans/file-access.md": [
-      7170,
-      3850
-    ],
-    "contracts/plans/device-io.md": [
-      7560,
-      3850
-    ],
-    "contracts/plans/device-network.md": [
-      6000,
-      4025
-    ],
-    "contracts/plans/multiprocessor.md": [
-      6390,
-      4025
     ],
     "docs/RING0-PLAN.md": [
       6780,
@@ -1018,18 +838,6 @@
     "contracts/FAGGIN.md": [
       8500,
       3500
-    ],
-    "contracts/plans/faggin16.md": [
-      8500,
-      3675
-    ],
-    "contracts/plans/faggin32.md": [
-      8500,
-      3850
-    ],
-    "contracts/plans/faggin64.md": [
-      8500,
-      4025
     ],
     "kernel/boot/splash/hd/main.casm": [
       8500,

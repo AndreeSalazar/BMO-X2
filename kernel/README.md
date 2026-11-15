@@ -8,8 +8,7 @@
 | `syscalls/` | Puerta y sondas de operaciones privilegiadas. |
 | `drivers/bus/` | Sondas xHCI, inventario y diagnostico de transporte. |
 
-Los subsistemas aun disenados estan en [contracts/plans](../contracts/plans/README.md),
-con su ruta de implementacion prevista y el mismo ID de SUPER GRAFO.
+Los mecanismos pendientes estan en el [backlog de Ring 0](../docs/RING0-PLAN.md).
 Las carpetas de codigo se crean cuando contienen una implementacion.
 Los [drivers de Ring 3](../userspace/drivers/README.md) mantienen la
 logica de dispositivo separada del NANO-CORE.

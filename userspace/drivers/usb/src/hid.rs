@@ -15,7 +15,7 @@ pub struct KeyChange {
     pub modifiers: u8,
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct BootKeyboard {
     modifiers: u8,
     keys: [u8; 6],
@@ -120,7 +120,7 @@ pub struct MouseMotion {
     pub changed_buttons: u8,
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct BootMouse {
     buttons: u8,
 }

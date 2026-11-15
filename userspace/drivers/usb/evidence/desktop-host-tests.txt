@@ -1,17 +1,17 @@
 
 running 14 tests
 test tests::composition_clips_each_surface_and_draws_the_top_window_last ... ok
-test tests::ctrl_super_selects_each_workspace_and_captures_the_matching_release ... ok
 test tests::moving_keeps_the_current_workspace_and_closing_restores_focus ... ok
+test tests::ctrl_super_selects_each_workspace_and_captures_the_matching_release ... ok
 test tests::ordinary_digits_and_unrelated_chords_are_forwarded ... ok
 test tests::parent_event_keeps_raw_scancode_press_and_release ... ok
-test tests::super_shift_moves_once_even_when_the_digit_repeats ... ok
-test tests::usb_keyboard_preserves_held_keys_on_rollover_and_releases_on_disconnect ... ok
+test tests::rejects_invalid_workspaces_buffers_and_window_ids ... ok
 test tests::replacing_input_discards_stale_key_capture ... ok
 test tests::super_focuses_stable_slots_within_the_active_workspace ... ok
-test tests::switching_restores_focus_and_composes_only_the_active_workspace ... ok
-test tests::rejects_invalid_workspaces_buffers_and_window_ids ... ok
 test tests::super_q_closes_once_and_restores_the_previous_slot ... ok
+test tests::usb_keyboard_preserves_held_keys_on_rollover_and_releases_on_disconnect ... ok
+test tests::super_shift_moves_once_even_when_the_digit_repeats ... ok
+test tests::switching_restores_focus_and_composes_only_the_active_workspace ... ok
 test tests::usb_mouse_preserves_signed_motion_and_releases_buttons ... ok
 test tests::usb_reports_switch_workspaces_and_forward_f2 ... ok
 

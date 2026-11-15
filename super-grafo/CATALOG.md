@@ -23,7 +23,6 @@
 | [CPU x86-64](../kernel/arch/x86_64/cpu) | diseno | 0 | Descubre capacidades CPU y prepara descriptores y estado privilegiado con limites explicitos. |
 | [Excepciones x86-64](../kernel/arch/x86_64/exceptions) | diseno | 0 | Contiene fallos de CPU y preserva el estado necesario para explicar quien fallo y donde. |
 | [Memoria y aislamiento](../kernel/mm) | diseno | 0 | Asigna paginas y separa memoria del kernel, procesos y aparatos. |
-| [Capacidades](../contracts/plans/capabilities.md) | diseno | contrato | Concede autoridad explicita y comprueba propietario, derechos y vigencia. |
 | [Puerta CASM/Rust](../kernel/syscalls) | diseno | 0 | Recibe operaciones de Ring 3 y comprueba el contrato antes de tocar recursos. |
 | [Runtime minimo Rust](../userspace/runtime) | diseno | 3 | Permite ejecutar un programa Rust aislado usando el ABI concedido por CASM. |
 | [Servicios Rust](../userspace/services) | diseno | 3 | Aloja servicios con autoridad concedida y politica fuera del kernel. |
@@ -33,11 +32,6 @@
 | [Ruta y criterios de cierre](../docs) | diseno | contrato | Ordena la construccion de CASM y del kernel por entregas que se puedan comprobar. |
 | [Investigacion metal64 0.3](../CASM/traspaso) | investigacion | host | Conserva el intento de runtime/RDTSC con su verificador incompleto y limites escritos. |
 | [Primera entrada CASM](../kernel/boot/entry.casm) | host | 0 | Fuente propia minima que ejercita la emision de una entrada de kernel bajo el ABI metal64. |
-| [Interrupciones de hardware](../contracts/plans/x86_64-interrupts.md) | diseno | contrato | Encamina IRQ con un contrato de entrada y reconocimiento separado de las excepciones. |
-| [Inicializacion del kernel](../contracts/plans/init.md) | diseno | contrato | Ordena fases y precondiciones del kernel sin esconder los fallos de un subsistema. |
-| [Reloj y plazos](../contracts/plans/time.md) | diseno | contrato | Ofrece tiempo monotono y plazos medibles antes de introducir planificacion. |
-| [Planificacion](../contracts/plans/sched.md) | diseno | contrato | Gestiona ejecucion y espera con contexto y presupuesto definidos. |
-| [Comunicacion entre procesos](../contracts/plans/ipc.md) | diseno | contrato | Transporta mensajes y prestamos con autoridad y limites comprobados. |
 | [Frontera de dispositivos](../kernel/drivers) | diseno | 0 | Aisla mecanismos de dispositivos del resto del kernel y explicita acceso a puertos/MMIO/DMA. |
 | [Lexico](../CASM/src/frontend/lexer.c) | host | host | Reconoce tokens ASCII y posiciones sin interpretar los valores. |
 | [Nombres y tipos](../CASM/src/frontend/symbols.c) | host | host | Comprueba nombres reservados, declarados y tipos disponibles. |
@@ -77,22 +71,11 @@
 | [Presupuesto de la entrada Ring 0](../CASM/entry_budget.py) | host | host | Acota el paquete binario de la entrada a menos de 512 bytes. |
 | [SBEF y congelacion del ABI](../contracts/SBEF.md) | diseno | contrato | Define la evolucion de BEF2 para admitir programas x86-64 en BMO-X2. |
 | [Contexto de entrega](../kernel/boot/context) | diseno | 0 | Valida el contexto recibido y fija la pila inicial propia. |
-| [Estado de CPU y cambio de contexto](../contracts/plans/cpu-state.md) | diseno | contrato | Prepara descriptores, TSS y estado de CPU que debe preservarse. |
-| [Diagnostico y recuperacion](../contracts/plans/kernel-diagnostics.md) | diseno | contrato | Registra fases, excepciones y causa de parada. |
 | [Memoria fisica](../kernel/mm/physical) | diseno | 0 | Distingue memoria util, reservada y marcos asignados. |
 | [Espacios y permisos](../kernel/mm/virtual) | diseno | 0 | Establece espacios virtuales separados y permisos por pagina. |
 | [Memoria de usuario](../kernel/mm/user) | diseno | 0 | Valida rangos y copia datos entre anillos. |
-| [Proceso y ciclo de vida](../contracts/plans/process.md) | diseno | contrato | Crea contexto de usuario, entra en Ring 3 y recoge recursos al terminar. |
 | [Cargador SBEF](../kernel/loader) | diseno | 0 | Admite y mapea una imagen SBEF bajo el contrato del proceso. |
-| [Puerta INVOKE](../contracts/plans/invoke.md) | diseno | contrato | Despacha operaciones mediante capacidades del proceso activo. |
-| [Puerta WAIT](../contracts/plans/wait.md) | diseno | contrato | Duerme y despierta tareas por senal o vencimiento. |
-| [Politica de admision](../contracts/plans/image-policy.md) | diseno | contrato | Aplica procedencia y autoridad inicial a imagenes estructuralmente validas. |
 | [Buses, recursos y DMA](../kernel/drivers/bus) | qemu | 0 | Descubre xHCI y prueba transporte de comandos con reserva DMA y MMIO supervisora. |
-| [Bloques y almacenamiento](../contracts/plans/device-storage.md) | diseno | contrato | Entrega bloques mediante un dispositivo acotado. |
-| [Acceso a archivos](../contracts/plans/file-access.md) | diseno | contrato | Fija la frontera de acceso a imagenes y archivos sobre bloques. |
-| [Entrada, pantalla y audio](../contracts/plans/device-io.md) | diseno | contrato | Ofrece recursos de entrada y salida a servicios autorizados. |
-| [Dispositivos de red](../contracts/plans/device-network.md) | diseno | contrato | Expone colas y buffers de un dispositivo a un servicio autorizado. |
-| [Multiprocesador y perfil fisico](../contracts/plans/multiprocessor.md) | diseno | contrato | Extiende el contexto por CPU y coordina acceso concurrente. |
 | [Cierre de la base Ring 0](../docs/RING0-PLAN.md) | diseno | contrato | Define la evidencia necesaria para congelar SBEF y el ABI. |
 | [Plan de herencia Ring 3](../heritage/RING3-TRANSFER.md) | diseno | contrato | Ordena la transferencia de Ultra_userspace por dependencia real. |
 | [Identificacion CPUID](../kernel/arch/x86_64/cpu/identify.casm) | qemu | 0 | Descubre fabricante y hoja basica maxima con CPUID hoja 0. |
@@ -103,9 +86,6 @@
 | [Guardian del HEX grafico](../CASM/splash_verify.py) | host | host | Reconstruye mascara y verifica el renderer, IR y presupuesto. |
 | [Evidencia de los tres cuadros](../kernel/boot/splash/evidence/qemu.json) | qemu | host | Vincula la animacion observada al paquete exacto y al entorno QEMU. |
 | [Rutas de arranque Faggin](../contracts/FAGGIN.md) | diseno | contrato | Define la convergencia de reset y UEFI en una entrega CASM x86-64. |
-| [Faggin 16 bits](../contracts/plans/faggin16.md) | diseno | contrato | Prepara el primer salto desde reset en la ruta propia. |
-| [Faggin 32 bits](../contracts/plans/faggin32.md) | diseno | contrato | Prepara segmentos, pila y paginacion inicial para modo largo. |
-| [Faggin 64 bits](../contracts/plans/faggin64.md) | diseno | contrato | Entrega contexto x86-64 a la misma entrada que utiliza UEFI. |
 | [Gato de arranque de mayor resolucion](../kernel/boot/splash/hd/main.casm) | qemu | 0 | Dibuja la silueta de 64 celdas por lado con tres intensidades de ojos. |
 | [Primera excepcion #UD](../kernel/arch/x86_64/exceptions/main.casm) | qemu | 0 | Instala una IDT minima y registra el vector y RIP de una excepcion controlada. |
 | [Primer marco de RAM](../kernel/mm/physical/main.casm) | qemu | 0 | Prueba escritura y lectura de un marco convencional tras ExitBootServices. |
@@ -139,7 +119,7 @@
 | [Mezcla y controles de audio](../userspace/services/audio) | host | 3 | Mezcla PCM estereo de hasta dieciseis fuentes con ganancia acotada. |
 | [Prestamo y revocacion DMA](../kernel/drivers/bus/DMA.md) | diseno | contrato | Acota los marcos visibles al dispositivo y controla su devolucion. |
 | [Contrato de drivers Ring 3](../contracts/DRIVER-SERVICES.md) | diseno | contrato | Separa protocolos de usuario y concesiones privilegiadas de recursos. |
-| [USB HID de Ring 3](../userspace/drivers/usb) | qemu | 3 | Descubre interfaces boot y decodifica informes de teclado y raton fuera del compositor. |
+| [USB HID de Ring 3](../userspace/drivers/usb) | qemu | 3 | Descubre interfaces boot y mantiene fuentes de entrada con colas acotadas y desconexion atomica. |
 
 ## Dependencias declaradas
 
@@ -157,7 +137,6 @@
 | host-pipeline | sbef-host-pe | codigo |
 | abi-toolchains | host-pipeline | verificacion |
 | desktop-usb-hid | desktop-keyboard | codigo |
-| desktop-usb-hid | device-io | plan |
 | physical-boot | boot-bridge | plan |
 | physical-boot | qemu-runner | plan |
 | physical-boot | boot-context | plan |
@@ -183,9 +162,6 @@
 | x86_64-cpu | boot | plan |
 | x86_64-exceptions | x86_64-cpu | plan |
 | mm | x86_64-cpu | plan |
-| capabilities | mm | plan |
-| capabilities | contracts | plan |
-| syscalls | capabilities | plan |
 | syscalls | x86_64-exceptions | plan |
 | rust-runtime | syscalls | plan |
 | rust-services | rust-runtime | plan |
@@ -200,16 +176,7 @@
 | research-metal64-03 | metal64-verifier | plan |
 | boot | kernel-entry | plan |
 | kernel-entry | metal64-verifier | verificacion |
-| x86_64-interrupts | x86_64-cpu | plan |
-| x86_64-interrupts | x86_64-exceptions | plan |
-| init | x86_64-exceptions | plan |
-| init | mm | plan |
-| time | x86_64-interrupts | plan |
-| sched | time | plan |
-| sched | init | plan |
-| ipc | capabilities | plan |
 | drivers | mm | plan |
-| drivers | x86_64-interrupts | plan |
 | frontend | grammar | codigo |
 | frontend | frontend-contract | codigo |
 | frontend-contract | metal64-ir | codigo |
@@ -288,50 +255,18 @@
 | rust-runtime | sbef | plan |
 | boot-context | boot | plan |
 | boot-context | stop-source | plan |
-| cpu-state | x86_64-cpu | plan |
-| cpu-state | boot-context | plan |
-| kernel-diagnostics | x86_64-exceptions | plan |
 | physical-memory | mm | plan |
 | physical-memory | boot-context | plan |
 | virtual-memory | physical-memory | plan |
 | user-memory | virtual-memory | plan |
 | user-memory | x86_64-exceptions | plan |
-| process | cpu-state | plan |
-| process | user-memory | plan |
-| process | init | plan |
 | sbef-loader | sbef | plan |
-| sbef-loader | process | plan |
-| invoke | syscalls | plan |
-| invoke | process | plan |
-| invoke | user-memory | plan |
-| wait | syscalls | plan |
-| wait | sched | plan |
-| wait | ipc | plan |
-| wait | process | plan |
-| image-policy | sbef-loader | plan |
-| image-policy | capabilities | plan |
 | device-bus | drivers | plan |
 | device-bus | virtual-memory | plan |
-| device-storage | device-bus | plan |
-| file-access | device-storage | plan |
-| file-access | capabilities | plan |
-| device-io | device-bus | plan |
-| device-io | ipc | plan |
-| device-network | device-bus | plan |
-| device-network | ipc | plan |
-| multiprocessor | sched | plan |
-| multiprocessor | cpu-state | plan |
-| multiprocessor | virtual-memory | plan |
 | ring0-base-gate | entry-budget | plan |
-| ring0-base-gate | kernel-diagnostics | plan |
 | ring0-base-gate | sbef-loader | plan |
-| ring0-base-gate | invoke | plan |
-| ring0-base-gate | wait | plan |
-| ring0-base-gate | image-policy | plan |
 | ring3-transfer | ring0-base-gate | plan |
 | x86_64-cpu | boot-context | plan |
-| x86_64-exceptions | cpu-state | plan |
-| sched | process | plan |
 | rust-runtime | ring3-transfer | plan |
 | cpu-identification | x86_64-cpu | codigo |
 | cpu-identification | stop-verifier | verificacion |
@@ -346,10 +281,6 @@
 | splash-guardian | entry-budget | verificacion |
 | splash-qemu | boot-splash | verificacion |
 | faggin-contract | contracts | plan |
-| faggin16 | faggin-contract | plan |
-| faggin32 | faggin16 | plan |
-| faggin64 | faggin32 | plan |
-| faggin64 | boot-context | plan |
 | boot-splash-hd | boot-splash | verificacion |
 | boot-splash-hd | splash-guardian | verificacion |
 | fault-ud | x86_64-exceptions | plan |
@@ -365,7 +296,6 @@
 | virtual-memory | own-page-tables | plan |
 | own-page-tables | ram-frame | codigo |
 | own-page-tables | stop-verifier | verificacion |
-| process | user-protection-fault | plan |
 | user-protection-fault | own-page-tables | plan |
 | user-protection-fault | fault-ud | plan |
 | sbef-host-pack | sbef | codigo |
@@ -374,8 +304,6 @@
 | sbef-loader | sbef-host-reader | verificacion |
 | userspace-supervisor | rust-services | plan |
 | userspace-supervisor | rust-runtime | plan |
-| invoke | abi-probe | verificacion |
-| wait | abi-probe | verificacion |
 | sbef-loader | abi-probe | verificacion |
 | abi-probe | user-protection-fault | plan |
 | abi-toolchains | sbef-host-pack | generacion |
@@ -388,12 +316,10 @@
 | device-bus | dma-lease | plan |
 | dma-lease | hot-unmap | plan |
 | desktop-keyboard | desktop-workspaces | codigo |
-| desktop-keyboard | device-io | plan |
 | doom-fixed-probe | sbef-loader-boundary | plan |
 | doom-fixed-probe | sbef-host-pack | generacion |
 | doom-engine | doom-fixed-probe | verificacion |
 | doom-engine | sbef-host-pack | generacion |
-| audio-mixer | device-io | plan |
 | audio-mixer | dma-lease | plan |
 | desktop-workspaces | audio-mixer | plan |
 | usb-ring3-driver | driver-services-contract | codigo |

@@ -65,18 +65,22 @@ def audit():
                     rust.append(dict(source=name, target=target))
     data = json.loads((ROOT / 'super-grafo/nodes.json').read_text())
     nodes = [n['ruta'] for n in data['nodos'] if not (ROOT / n['ruta']).exists()]
-    retired = []
+    retired, retired_documents = [], []
     migration = ROOT / 'super-grafo/migrations/plan-folders.json'
     if migration.exists():
-        for entry in json.loads(migration.read_text())['moves']:
+        retired_data = json.loads(migration.read_text())
+        for entry in retired_data['moves']:
             old = ROOT / entry['old']
             if old.is_dir() and all(p.name == 'README.md' for p in old.rglob('*') if p.is_file()):
                 retired.append(entry['old'])
-    errors = len(missing) + len(links) + len(rust) + len(nodes) + len(retired)
+        retired_documents = [name for name in retired_data.get('retired_plan_documents', [])
+                             if (ROOT / name).exists()]
+    errors = len(missing) + len(links) + len(rust) + len(nodes) + len(retired) + len(retired_documents)
     return dict(scope='Source paths and explicit references; no deletion or unused-code inference',
                 files=len(set(filter(None, names))), checked_references=checked, errors=errors,
                 missing_files=missing, broken_local_links=links, missing_rust_inputs=rust,
                 missing_node_paths=nodes, recreated_plan_folders=retired,
+                recreated_plan_documents=retired_documents,
                 historical_links=historical)
 
 
