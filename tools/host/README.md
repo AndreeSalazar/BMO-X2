@@ -5,6 +5,27 @@ de aplicacion. El resultado admitido es un SBEF con un ABI, entrada,
 regiones y permisos definidos. El ejecutable mantiene el codigo de
 maquina que emitio el compilador.
 
+## Frontera con el NANO-CORE
+
+HOST trabaja para el destino x86-64 y fuera del Ring 0 de BMO-X2.
+Los importadores, compiladores, resolucion de dependencias y politicas
+de construccion pertenecen a herramientas o servicios sin autoridad
+privilegiada sobre el sistema invitado. El NANO-CORE conserva la decision
+de admitir la imagen y conceder capacidades. Su cargador valida SBEF
+de nuevo; un informe favorable de HOST no sustituye esa comprobacion.
+
+La portabilidad entre CPUs no es requisito del proyecto. Una variante
+de otra arquitectura tendria herramientas y backend propios en otro
+proyecto. La especializacion permite preparar el resultado para un
+destino definido, con medidas de tamano, memoria y ejecucion.
+
+La implementacion actual valida perfiles concretos y empaqueta codigo
+nativo ya enlazado. El backend propio total, la adaptacion general de
+dependencias de otros sistemas, la ejecucion de HOST dentro del Ring 3
+de BMO-X2 y el aislamiento de importadores aun estan pendientes. Cuando
+se amplie un productor, debe declarar entradas, salida, diagnosticos,
+limites de recursos, pruebas de rechazo y evidencia de ejecucion.
+
 | Carpeta o archivo | Responsabilidad |
 |---|---|
 | `toolchains/abi.py` | Compilar un cliente ABI comun con GCC o Clang y cotejar el portal con el vector HEX. Inventariar el objeto COFF de MSVC. |

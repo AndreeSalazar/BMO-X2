@@ -1,5 +1,11 @@
 # Frontera de ejecucion de BMO-X2
 
+NANO-CORE nombra el diseno acotado de la base privilegiada de Ring 0.
+HOST prepara imagenes fuera de esa base. Ring 3 aloja servicios,
+runtimes y aplicaciones con capacidades concedidas por el nucleo.
+La portabilidad entre CPUs no es requisito: BMO-X2 se especializa en
+x86-64. [Identidad y estado del diseno](../README.md#identidad-nano-core-host-aislado-y-ring-3-abierto).
+
 | Lugar | Responsabilidad | Artefacto que cruza la frontera |
 |---|---|---|
 | `tools/host/` en HOST | Inspeccionar ELF64 y PE32+, explicar incompatibilidades y empaquetar el ELF64 admitido. | SBEF y un informe de diagnostico para el desarrollador. |

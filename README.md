@@ -1,7 +1,8 @@
 # BMO-X2
 
-Hijo de BMO-X. Kernel x86-64 escrito en CASM, runtime y servicios propios
-de Ring 3 en Rust, y SUPER GRAFO como mesa de trabajo.
+Hijo de BMO-X. Diseno NANO-CORE para Ring 0 x86-64 en CASM,
+HOST separado para construir y admitir binarios del destino,
+servicios y aplicaciones en Ring 3, y SUPER GRAFO como mesa de trabajo.
 Autor: Eddi Salazar, Lima, Peru.
 
 BMO-X2 arranca perfiles de prueba independientes en QEMU/OVMF. Hay
@@ -12,7 +13,70 @@ El AMD ya confirmo una respuesta de comando por DMA, dos puertos
 conectados y la parada del controlador. La estabilizacion adaptativa
 por puerto pasa QEMU. [Prueba y estados visibles](docs/FIRST-BOOT.md#perfil-experimental-de-transporte-xhci).
 
-## Vision: ULTRA-J, HOST y un contrato de ejecucion propio
+## Identidad: NANO-CORE, HOST aislado y Ring 3 abierto
+
+NANO-CORE es el nombre del diseno privilegiado de BMO-X2: un nucleo
+acotado que conserva la autoridad de admision, memoria, capacidades,
+excepciones y operaciones de CPU y dispositivos que exigen privilegio.
+El objetivo es mantener esa base pequena, precisa y auditable mientras
+crecen las herramientas y aplicaciones fuera de ella. Es una definicion
+del proyecto; la implementacion completa sigue en construccion.
+
+Ring 3 admite diversidad de lenguajes, runtimes, interfaces y servicios.
+Cada programa recibe recursos y capacidades acotados. La apertura del
+ecosistema se construye ampliando perfiles de admision y servicios,
+manteniendo la proteccion entre procesos y respecto del NANO-CORE.
+Rust sostiene servicios actuales; C, C++ y ULTRA-J tienen recorridos
+de construccion propios. Otros productores requieren su perfil probado.
+
+La portabilidad entre CPUs no es un objetivo ni un requisito de BMO-X2.
+Este proyecto se especializa en x86-64. Si se crea una variante para
+POWER u otra CPU, sera un proyecto separado con su HOST, backend,
+NANO-CORE y pruebas del destino. No se exige un mismo binario entre
+arquitecturas ni una capa universal dentro del nucleo.
+
+## HOST y emision hacia el binario del destino
+
+HOST concentra el trabajo de preparacion: analisis, dependencias,
+adaptacion al ABI, diagnostico, recursos, verificacion y empaquetado.
+Los importadores de formatos y los compiladores permanecen fuera de
+Ring 0. Hoy HOST se ejecuta en la maquina de desarrollo; integrarlo
+como servicio del propio Ring 3, con aislamiento de sus importadores,
+es trabajo pendiente. Una separacion de carpetas no acredita por si
+sola aislamiento de memoria o contencion de fallos.
+
+El emisor produce instrucciones y datos del destino con disposicion
+definida. CASM emite los perfiles Ring 0 soportados y sus bytes pasan
+un verificador independiente. La ruta nativa actual de C, C++ y Rust
+conserva el codigo de maquina de su compilador; HOST valida y empaqueta
+los perfiles que admite. Un backend nativo total propio y optimizadores
+generales de HOST siguen pendientes. No se presentan como implementados.
+
+```text
+Fuentes y formatos admitidos
+  -> HOST: analizar, resolver, adaptar y diagnosticar
+  -> emisor del destino / codigo nativo de un productor admitido
+  -> verificacion independiente
+  -> SBEF: entrada, regiones, permisos y ABI
+  -> NANO-CORE: validar, conceder recursos y activar CPL3
+  -> CPU: ejecutar la aplicacion en Ring 3
+  -> INVOKE / WAIT: solicitar operaciones y esperar segun el ABI
+```
+
+SBEF es el contrato propio que cruza la frontera de admision. El
+cargador vuelve a validar sus campos aunque HOST lo haya aceptado.
+El NANO-CORE configura los mecanismos del perfil de hardware admitido
+y atiende operaciones privilegiadas; la CPU ejecuta directamente el
+codigo de usuario autorizado. La cabecera por si sola no resuelve las
+llamadas, bibliotecas ni instrucciones de un programa de otro sistema.
+HOST debe adaptar o rechazar cada dependencia no satisfecha.
+
+El presupuesto de 2 KiB corresponde a un nucleo o perfil cuyo contenido
+se delimite y mida. Las tablas, pilas, estado, controladores, puentes y
+servicios tienen costes propios. La puerta de sesion pequena no prueba
+que todo Ring 0, su RAM o el sistema integrado entren en ese presupuesto.
+
+## ULTRA-J y el potencial del conjunto
 
 ULTRA-J aspira a reunir programacion orientada a objetos con escritura
 inspirada en Java, estructura de interfaz inspirada en HTML y estilos
@@ -21,11 +85,9 @@ Ring 3. Hoy `.uj`, `.ujh` y `.ujc` implementan subconjuntos propios;
 la compatibilidad completa con Java, HTML o CSS no esta implementada.
 [Alcance y pendientes de ULTRA-J](Ultra-J/README.md#vision-integrada-y-limites).
 
-HOST es la herramienta de construccion, adaptacion y diagnostico.
-Prepara recursos y ejecutables admitidos antes de entregarlos al sistema.
-Ring 0 conserva mecanismos pequenos y estrictos de admision, memoria,
-capacidades y operaciones privilegiadas. Los servicios, la VM, el
-compositor y las aplicaciones viven en Ring 3.
+Los servicios, la VM, el compositor y las aplicaciones viven en Ring 3.
+El modelo concentra la variedad de aplicaciones y su construccion fuera
+de la base privilegiada.
 
 ```text
 .uj + .ujh + .ujc -> HOST -> bytecode y recursos propios
@@ -40,27 +102,15 @@ C / C++ / Rust -> compilador y enlace para el ABI de BMO-X2
               -> HOST -> SBEF validado -> cargador Ring 0 -> ejecucion Ring 3
 ```
 
-SBEF es el contenedor comun de admision: describe entrada, regiones,
-permisos y ABI. La cabecera no ejecuta instrucciones ni convierte por
-si sola codigo de otra CPU o de otro sistema operativo. La CPU ejecuta
-el codigo admitido en Ring 3; entra en Ring 0 para peticiones
-privilegiadas, interrupciones y excepciones. Un ELF64 de Linux o PE de
-Windows no se vuelve compatible solo por cambiarle el encabezado.
-
-La separacion permite conservar lenguaje, semantica y contratos al
-portar el sistema, pero cada CPU necesita backend, runtime, portal ABI,
-arranque y mecanismos privilegiados propios. El codigo nativo sigue
-ligado a su arquitectura. BMO-X2 trabaja exclusivamente en x86-64;
-ARM64 y RISC-V quedan fuera de este proyecto actual.
-
-El potencial esta en diagnosticar dependencias y costes en HOST,
-compartir un runtime de aplicaciones y mantener una frontera de
-privilegios pequena. Empaquetar en binario o reducir una cabecera no
-garantiza menos RAM, mas velocidad ni seguridad de todo el programa.
-Hoy HOST valida y empaqueta perfiles concretos; conserva el codigo
-nativo del compilador. Su optimizacion futura debe preservar semantica
-y demostrar mejoras con medidas. HOST aun requiere sus herramientas
-de desarrollo y no forma parte del nucleo privilegiado.
+El potencial esta en reducir decisiones durante la carga, detectar
+incompatibilidades antes del arranque, especializar la emision para el
+destino y ampliar Ring 3 sin incorporar cada lenguaje al NANO-CORE.
+Compartir runtimes y recursos puede reducir duplicacion. La politica de
+capacidades permite mantener distintas aplicaciones bajo la misma
+frontera de autoridad. Esas ventajas requieren pruebas: bytes, paginas
+de RAM, tiempos de carga y ejecucion, y comportamiento ante fallos.
+Cambiar de formato o retirar el requisito de portabilidad no garantiza
+por si solo compatibilidad, optimizacion ni seguridad.
 
 Para ampliar esa base faltan enumeracion HID en metal, gestion de
 procesos y recursos mas general, eventos de interfaz, texto y fuentes,

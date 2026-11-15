@@ -36,10 +36,11 @@ reconstrucciones y duplicacion; falta medir el coste total de esa VM,
 los objetos, los recursos y las aplicaciones para demostrar el ahorro.
 
 La semantica y los formatos se mantienen separados del destino nativo
-en `targets/x86_64/`. Un UJBC portable necesita una implementacion del
-runtime para cada destino; un SBEF con instrucciones x86-64 sigue
-siendo x86-64. HOST no es un traductor universal entre CPUs. Solo se
-implementa el destino x86-64 en BMO-X2 por ahora.
+en `targets/x86_64/` para organizar y verificar responsabilidades.
+La portabilidad entre CPUs no es objetivo ni requisito de BMO-X2.
+UJBC organiza la ejecucion dentro de su runtime; SBEF admite el binario
+del destino. Una variante para otra CPU seria un proyecto separado con
+su propio backend y runtime. El trabajo actual es exclusivo x86-64.
 
 La CPU ejecuta la aplicacion o su VM en Ring 3. Ring 0 admite el
 ejecutable, limita sus capacidades y atiende operaciones privilegiadas.
