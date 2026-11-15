@@ -336,11 +336,12 @@
     {
       "id": "capabilities",
       "titulo": "Capacidades",
-      "ruta": "kernel/capabilities",
+      "ruta": "contracts/plans/capabilities.md",
       "estado": "diseno",
+      "implementacion_prevista": {"ruta": "kernel/capabilities", "anillo": "0", "lenguaje": "CASM"},
       "pagina": true,
-      "anillo": "0",
-      "lenguaje": "CASM",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
       "posicion": [
         1110,
         1400
@@ -511,10 +512,10 @@
     {
       "id": "x86_64-interrupts",
       "titulo": "Interrupciones de hardware",
-      "ruta": "kernel/arch/x86_64/interrupts",
+      "ruta": "contracts/plans/x86_64-interrupts.md",
       "estado": "diseno",
-      "anillo": "0",
-      "lenguaje": "CASM",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
       "posicion": [
         370,
         1660
@@ -524,15 +525,16 @@
       "salida": "Evento acotado y retorno con el estado de CPU preservado.",
       "aceptacion": "Interrupcion de prueba y fuente muda en QEMU; no perder ni repetir reconocimientos.",
       "falta": "Controlador, vectores y politica de habilitacion antes de usar tiempo y dispositivos.",
+      "implementacion_prevista": {"ruta": "kernel/arch/x86_64/interrupts", "anillo": "0", "lenguaje": "CASM"},
       "pagina": true
     },
     {
       "id": "init",
       "titulo": "Inicializacion del kernel",
-      "ruta": "kernel/init",
+      "ruta": "contracts/plans/init.md",
       "estado": "diseno",
-      "anillo": "0",
-      "lenguaje": "CASM",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
       "posicion": [
         0,
         1880
@@ -542,15 +544,16 @@
       "salida": "Estado de fase listo o fallo con nombre y motivo.",
       "aceptacion": "Una fase invalida impide ejecutar las siguientes; diagnostico identificable en QEMU.",
       "falta": "Primera secuencia de inicializacion escrita en CASM despues de fijar el perfil de kernel.",
+      "implementacion_prevista": {"ruta": "kernel/init", "anillo": "0", "lenguaje": "CASM"},
       "pagina": true
     },
     {
       "id": "time",
       "titulo": "Reloj y plazos",
-      "ruta": "kernel/time",
+      "ruta": "contracts/plans/time.md",
       "estado": "diseno",
-      "anillo": "0",
-      "lenguaje": "CASM",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
       "posicion": [
         370,
         1880
@@ -560,15 +563,16 @@
       "salida": "Lecturas y vencimientos con unidad y origen declarados.",
       "aceptacion": "Plazo vence y tiempo no retrocede; frecuencia observada y coste de lectura registrados.",
       "falta": "Elegir fuente y calibracion sin suponer frecuencias del Ryzen.",
+      "implementacion_prevista": {"ruta": "kernel/time", "anillo": "0", "lenguaje": "CASM"},
       "pagina": true
     },
     {
       "id": "sched",
       "titulo": "Planificacion",
-      "ruta": "kernel/sched",
+      "ruta": "contracts/plans/sched.md",
       "estado": "diseno",
-      "anillo": "0",
-      "lenguaje": "CASM",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
       "posicion": [
         1110,
         1660
@@ -578,15 +582,16 @@
       "salida": "Cambio de contexto o espera con estado preservado.",
       "aceptacion": "Dos tareas no comparten contexto y una espera no gira en vacio; empezar por una CPU.",
       "falta": "Modelo de tarea, registros preservados y despertares; SMP queda para otra entrega.",
+      "implementacion_prevista": {"ruta": "kernel/sched", "anillo": "0", "lenguaje": "CASM"},
       "pagina": true
     },
     {
       "id": "ipc",
       "titulo": "Comunicacion entre procesos",
-      "ruta": "kernel/ipc",
+      "ruta": "contracts/plans/ipc.md",
       "estado": "diseno",
-      "anillo": "0",
-      "lenguaje": "CASM",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
       "posicion": [
         1480,
         1660
@@ -596,6 +601,7 @@
       "salida": "Mensaje recibido o error de permisos, medida o vida util.",
       "aceptacion": "Rechaza destino ajeno, rango invalido y prestamo vencido sin filtrar memoria.",
       "falta": "Primer canal y sus postcondiciones de cierre/muerte antes de servicios mayores.",
+      "implementacion_prevista": {"ruta": "kernel/ipc", "anillo": "0", "lenguaje": "CASM"},
       "pagina": true
     },
     {
@@ -1263,10 +1269,10 @@
     {
       "id": "cpu-state",
       "titulo": "Estado de CPU y cambio de contexto",
-      "ruta": "kernel/arch/x86_64/context",
+      "ruta": "contracts/plans/cpu-state.md",
       "estado": "diseno",
-      "anillo": "0",
-      "lenguaje": "CASM",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
       "posicion": [
         6390,
         3500
@@ -1276,15 +1282,16 @@
       "salida": "Marcos separados y estado preservado por tarea.",
       "aceptacion": "QEMU comprueba pilas, registros y estado de CPU al cambiar de tarea.",
       "falta": "Definir marcos y probar primero una CPU.",
+      "implementacion_prevista": {"ruta": "kernel/arch/x86_64/context", "anillo": "0", "lenguaje": "CASM"},
       "pagina": true
     },
     {
       "id": "kernel-diagnostics",
       "titulo": "Diagnostico y recuperacion",
-      "ruta": "kernel/diagnostics",
+      "ruta": "contracts/plans/kernel-diagnostics.md",
       "estado": "diseno",
-      "anillo": "0",
-      "lenguaje": "CASM",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
       "posicion": [
         6780,
         3500
@@ -1294,6 +1301,7 @@
       "salida": "Registro acotado y decision de continuar, terminar proceso o parar.",
       "aceptacion": "QEMU identifica excepcion, origen y fase sin depender del escritorio.",
       "falta": "Emitir captura de excepcion y salida minima.",
+      "implementacion_prevista": {"ruta": "kernel/diagnostics", "anillo": "0", "lenguaje": "CASM"},
       "pagina": true
     },
     {
@@ -1353,10 +1361,10 @@
     {
       "id": "process",
       "titulo": "Proceso y ciclo de vida",
-      "ruta": "kernel/process",
+      "ruta": "contracts/plans/process.md",
       "estado": "diseno",
-      "anillo": "0",
-      "lenguaje": "CASM",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
       "posicion": [
         6390,
         3675
@@ -1366,6 +1374,7 @@
       "salida": "Proceso con identidad y salida observable.",
       "aceptacion": "QEMU observa CPL3, retorno y fallo contenido, con recursos recuperados.",
       "falta": "Arrancar una imagen SBEF y reutilizar recursos en un segundo proceso.",
+      "implementacion_prevista": {"ruta": "kernel/process", "anillo": "0", "lenguaje": "CASM"},
       "pagina": true
     },
     {
@@ -1389,10 +1398,10 @@
     {
       "id": "invoke",
       "titulo": "Puerta INVOKE",
-      "ruta": "kernel/syscalls/invoke",
+      "ruta": "contracts/plans/invoke.md",
       "estado": "diseno",
-      "anillo": "0",
-      "lenguaje": "CASM",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
       "posicion": [
         7170,
         3675
@@ -1402,15 +1411,16 @@
       "salida": "Estado y valor o rechazo acotado.",
       "aceptacion": "Operaciones autorizadas y denegadas dan el resultado esperado sin afectar otro proceso.",
       "falta": "Generalizar capacidades por proceso y probar una operacion con buffer.",
+      "implementacion_prevista": {"ruta": "kernel/syscalls/invoke", "anillo": "0", "lenguaje": "CASM"},
       "pagina": true
     },
     {
       "id": "wait",
       "titulo": "Puerta WAIT",
-      "ruta": "kernel/syscalls/wait",
+      "ruta": "contracts/plans/wait.md",
       "estado": "diseno",
-      "anillo": "0",
-      "lenguaje": "CASM",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
       "posicion": [
         7560,
         3675
@@ -1420,15 +1430,16 @@
       "salida": "Despertar, vencimiento o error con contexto preservado.",
       "aceptacion": "QEMU observa senal y plazo, sin espera activa ni perdida de un aviso concurrente.",
       "falta": "El numero ya responde -4 en QEMU. Probar bloqueo, senal y plazo con dos tareas.",
+      "implementacion_prevista": {"ruta": "kernel/syscalls/wait", "anillo": "0", "lenguaje": "CASM"},
       "pagina": true
     },
     {
       "id": "image-policy",
       "titulo": "Politica de admision",
-      "ruta": "kernel/security",
+      "ruta": "contracts/plans/image-policy.md",
       "estado": "diseno",
-      "anillo": "0",
-      "lenguaje": "CASM",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
       "posicion": [
         6000,
         3850
@@ -1438,6 +1449,7 @@
       "salida": "Decision de ejecucion y capacidades iniciales acotadas.",
       "aceptacion": "Cambiar imagen o permiso invalida la admision correspondiente.",
       "falta": "Definir confianza de produccion, integridad y revocacion.",
+      "implementacion_prevista": {"ruta": "kernel/security", "anillo": "0", "lenguaje": "CASM"},
       "pagina": true
     },
     {
@@ -1461,10 +1473,10 @@
     {
       "id": "device-storage",
       "titulo": "Bloques y almacenamiento",
-      "ruta": "kernel/drivers/storage",
+      "ruta": "contracts/plans/device-storage.md",
       "estado": "diseno",
-      "anillo": "0",
-      "lenguaje": "CASM",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
       "posicion": [
         6780,
         3850
@@ -1474,15 +1486,16 @@
       "salida": "Lecturas y errores de dispositivo reproducibles.",
       "aceptacion": "Lectura valida y fuera de rango en un disco virtual con imagen de prueba.",
       "falta": "Separar los bloques del sistema de archivos.",
+      "implementacion_prevista": {"ruta": "userspace/drivers/storage", "anillo": "3", "lenguaje": "Rust"},
       "pagina": true
     },
     {
       "id": "file-access",
       "titulo": "Acceso a archivos",
-      "ruta": "kernel/storage",
+      "ruta": "contracts/plans/file-access.md",
       "estado": "diseno",
-      "anillo": "0",
-      "lenguaje": "CASM",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
       "posicion": [
         7170,
         3850
@@ -1492,15 +1505,16 @@
       "salida": "Acceso limitado a datos o imagen de proceso.",
       "aceptacion": "Un servicio puede leer una imagen y rechaza una ruta fuera de su autoridad.",
       "falta": "Elegir que mecanismo queda en CASM y que politica va a Ring 3.",
+      "implementacion_prevista": {"ruta": "userspace/services/files", "anillo": "3", "lenguaje": "Rust"},
       "pagina": true
     },
     {
       "id": "device-io",
       "titulo": "Entrada, pantalla y audio",
-      "ruta": "kernel/drivers/io",
+      "ruta": "contracts/plans/device-io.md",
       "estado": "diseno",
-      "anillo": "0",
-      "lenguaje": "CASM",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
       "posicion": [
         7560,
         3850
@@ -1510,15 +1524,16 @@
       "salida": "Canales y ventanas de aparato acotados.",
       "aceptacion": "Pruebas de acceso, revocacion y fallo de servicio por dispositivo admitido.",
       "falta": "Metal confirma dos puertos conectados tras estabilizacion. Falta direccionar teclado y raton y activar ambos endpoints HID.",
+      "implementacion_prevista": {"ruta": "userspace/drivers/input", "anillo": "3", "lenguaje": "Rust"},
       "pagina": true
     },
     {
       "id": "device-network",
       "titulo": "Dispositivos de red",
-      "ruta": "kernel/drivers/network",
+      "ruta": "contracts/plans/device-network.md",
       "estado": "diseno",
-      "anillo": "0",
-      "lenguaje": "CASM",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
       "posicion": [
         6000,
         4025
@@ -1528,15 +1543,16 @@
       "salida": "Transporte acotado de tramas para Ring 3.",
       "aceptacion": "Prueba de envio, recepcion y aislamiento con dispositivo virtual.",
       "falta": "Elegir dispositivo y dejar protocolos en el servicio.",
+      "implementacion_prevista": {"ruta": "userspace/drivers/network", "anillo": "3", "lenguaje": "Rust"},
       "pagina": true
     },
     {
       "id": "multiprocessor",
       "titulo": "Multiprocesador y perfil fisico",
-      "ruta": "kernel/arch/x86_64/smp",
+      "ruta": "contracts/plans/multiprocessor.md",
       "estado": "diseno",
-      "anillo": "0",
-      "lenguaje": "CASM",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
       "posicion": [
         6390,
         4025
@@ -1546,6 +1562,7 @@
       "salida": "CPU adicionales, sincronizacion y registro por CPU.",
       "aceptacion": "QEMU con varias CPU conserva estado y permisos antes de probar metal.",
       "falta": "Definir invariantes de sincronizacion y perfil de hardware.",
+      "implementacion_prevista": {"ruta": "kernel/arch/x86_64/smp", "anillo": "0", "lenguaje": "CASM"},
       "pagina": true
     },
     {
@@ -1721,10 +1738,10 @@
     {
       "id": "faggin16",
       "titulo": "Faggin 16 bits",
-      "ruta": "kernel/boot/faggin/stage16",
+      "ruta": "contracts/plans/faggin16.md",
       "estado": "diseno",
       "anillo": "contrato",
-      "lenguaje": "CASM arranque",
+      "lenguaje": "contrato",
       "posicion": [
         8500,
         3675
@@ -1734,15 +1751,16 @@
       "salida": "A20, GDT y entrada protegida de 32 bits.",
       "aceptacion": "QEMU registra el cambio de modo y el destino del salto.",
       "falta": "Definir el formato y la emision CASM de la etapa de 16 bits.",
+      "implementacion_prevista": {"ruta": "kernel/boot/faggin/stage16", "anillo": "contrato", "lenguaje": "CASM arranque"},
       "pagina": true
     },
     {
       "id": "faggin32",
       "titulo": "Faggin 32 bits",
-      "ruta": "kernel/boot/faggin/stage32",
+      "ruta": "contracts/plans/faggin32.md",
       "estado": "diseno",
-      "anillo": "0",
-      "lenguaje": "CASM",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
       "posicion": [
         8500,
         3850
@@ -1752,15 +1770,16 @@
       "salida": "Tablas y salto al segmento de codigo de 64 bits.",
       "aceptacion": "QEMU verifica registros de control y rangos de las reservas.",
       "falta": "Emitir la transicion de 32 a 64 bits con vector independiente.",
+      "implementacion_prevista": {"ruta": "kernel/boot/faggin/stage32", "anillo": "0", "lenguaje": "CASM"},
       "pagina": true
     },
     {
       "id": "faggin64",
       "titulo": "Faggin 64 bits",
-      "ruta": "kernel/boot/faggin/stage64",
+      "ruta": "contracts/plans/faggin64.md",
       "estado": "diseno",
-      "anillo": "0",
-      "lenguaje": "CASM",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
       "posicion": [
         8500,
         4025
@@ -1770,6 +1789,7 @@
       "salida": "Contexto, pila y recursos de arranque comprobables.",
       "aceptacion": "La entrada CASM observa modo largo y registra una excepcion controlada.",
       "falta": "Unir con la entrada despues de validar la IDT propia.",
+      "implementacion_prevista": {"ruta": "kernel/boot/faggin/stage64", "anillo": "0", "lenguaje": "CASM"},
       "pagina": true
     },
     {

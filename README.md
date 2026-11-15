@@ -127,6 +127,17 @@ un servicio aislado aun requiere implementar el dominio IOMMU.
 
 ## Probar en QEMU
 
+Los [planes sin implementacion](contracts/plans/README.md) viven como
+documentos de contrato, separados de las carpetas de codigo. Para
+comprobar rutas fantasma y referencias explicitas desde la raiz:
+
+```powershell
+python -B tools/workspace_audit.py
+```
+
+La auditoria es de solo lectura. Distingue enlaces heredados comprobados
+por sus hashes y no elimina codigo por carecer de referencias textuales.
+
 Desde la raiz de BMO-X2, con QEMU, Clang y Python disponibles:
 
 ```powershell

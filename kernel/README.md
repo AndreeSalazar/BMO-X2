@@ -3,12 +3,16 @@
 | Carpeta | Responsabilidad |
 |---|---|
 | `boot/` | Entrada acotada, contexto de entrega y evidencia del puente. |
-| `arch/x86_64/` | Identificacion de CPU, contexto, excepciones e interrupciones. |
-| `init/`, `diagnostics/` | Orden de fases y registro de fallos. |
-| `mm/`, `process/`, `loader/` | Memoria, aislamiento y carga SBEF. |
-| `capabilities/`, `syscalls/`, `security/` | Autoridad, puertas y admision. |
-| `time/`, `sched/`, `ipc/` | Reloj, ejecucion y comunicacion. |
-| `drivers/`, `storage/` | Dispositivos, bloques y acceso a archivos. |
+| `arch/x86_64/` | Fuentes y evidencias de CPU y excepciones. |
+| `mm/`, `loader/` | Perfiles de memoria, aislamiento y carga SBEF. |
+| `syscalls/` | Puerta y sondas de operaciones privilegiadas. |
+| `drivers/bus/` | Sondas xHCI, inventario y diagnostico de transporte. |
+
+Los subsistemas aun disenados estan en [contracts/plans](../contracts/plans/README.md),
+con su ruta de implementacion prevista y el mismo ID de SUPER GRAFO.
+Las carpetas de codigo se crean cuando contienen una implementacion.
+Los [drivers de Ring 3](../userspace/drivers/README.md) mantienen la
+logica de dispositivo separada del NANO-CORE.
 
 ## Perfil del escritorio
 

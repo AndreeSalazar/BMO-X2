@@ -48,6 +48,19 @@ def validate(data, paths=True):
         if paths:
             require(path.exists(), f"Nodo sin ruta real: {n['ruta']}")
         require(n['estado'] in STATES, f"Estado desconocido: {n['id']}")
+        intended = n.get('implementacion_prevista')
+        if intended is not None:
+            require(n['anillo'] == 'contrato' and n['ruta'].startswith('contracts/plans/')
+                    and n['ruta'].endswith('.md') and n.get('pagina'),
+                    f"Plan debe vivir en un documento de contrato: {n['id']}")
+            within(intended['ruta'])
+            require(intended['anillo'] in {'0', '3', 'contrato'}, 'Anillo previsto invalido')
+            if intended['anillo'] == '0':
+                require(intended['ruta'].startswith('kernel/') and intended['lenguaje'] == 'CASM',
+                        'Implementacion Ring 0 prevista requiere kernel/ y CASM')
+            if intended['anillo'] == '3':
+                require(intended['ruta'].startswith('userspace/') and intended['lenguaje'] == 'Rust',
+                        'Implementacion Ring 3 prevista requiere userspace/ y Rust')
         require(n['anillo'] in {'host', '0', '3', 'contrato'}, f"Anillo desconocido: {n['id']}")
         if n['anillo'] == '0':
             require(n['lenguaje'] == 'CASM', f"Ring 0 requiere CASM: {n['id']}")
@@ -149,17 +162,22 @@ def rejection_tests(data):
 
 
 def generate(data):
-    # La ruta de cada futuro subsistema contiene una pagina de contrato, no codigo ficticio.
+    # Plans live as documents; create implementation directories only for code.
     for n in data['nodos']:
         if n.get('pagina'):
-            directory = within(n['ruta'])
-            directory.mkdir(parents=True, exist_ok=True)
+            location = within(n['ruta'])
+            page = location if location.suffix == '.md' else location / 'README.md'
+            page.parent.mkdir(parents=True, exist_ok=True)
+            intended = n.get('implementacion_prevista')
+            implementation = (f"Implementacion prevista: `{intended['ruta']}`; "
+                              f"anillo {intended['anillo']}, {intended['lenguaje']}. "
+                              "Esta ruta no acredita codigo existente.\n\n") if intended else ''
             text = (f"# {n['titulo']}\n\n> Generado desde super-grafo/nodes.json.\n\n"
                     f"Estado: {n['estado'].upper()}. Anillo: {n['anillo']}. Lenguaje previsto: {n['lenguaje']}.\n\n"
-                    f"{n['que']}\n\n## Contrato del nodo\n\n"
+                    f"{n['que']}\n\n{implementation}## Contrato del nodo\n\n"
                     f"- Entrada: {n['entrada']}\n- Salida: {n['salida']}\n"
                     f"- Aceptacion: {n['aceptacion']}\n- Pendiente: {n['falta']}\n")
-            (directory / 'README.md').write_text(text, encoding='utf-8', newline='\n')
+            page.write_text(text, encoding='utf-8', newline='\n')
     nodes, edges = validate(data)
     notes = ['# Notas de BMO-X2', '', '> Generadas desde nodes.json; HEREDADO y DISENO no significan ejecutado aqui.', '']
     catalog = ['# Catalogo de nodos de BMO-X2', '', '> Generado desde nodes.json. Relaciones de plan separadas del codigo.', '',
@@ -179,10 +197,10 @@ def generate(data):
     notes.extend([
         '## CASM', '', 'Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.',
         '', 'Estado: base HEREDADA; banco metal64 HOST. Ver STATUS-BMO-X2.md para los perfiles y limites.', '',
-        '## kernel', '', 'Futuro Ring 0 en CASM: arranque, CPU, excepciones, memoria, capacidades y puerta.',
-        '', 'Estado: subsistemas en DISENO; boot/entry.casm es una sonda HOST, aun sin kernel arrancable.', '',
-        '## userspace', '', 'Futuro Ring 3 en Rust: runtime minimo, servicios y aplicaciones.',
-        '', 'Estado: DISENO; aun sin crates y sin std del anfitrion.', '',
+        '## kernel', '', 'Fuentes y evidencias de mecanismos Ring 0; extensiones experimentales del puente declaradas por perfil.',
+        '', 'Los subsistemas solo disenados viven en contracts/plans/. Consultar el estado y la evidencia de cada nodo.', '',
+        '## userspace', '', 'Bibliotecas, servicios, drivers y aplicaciones de Ring 3.',
+        '', 'Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y servicios aislados del diseno.', '',
         '## super-grafo', '', 'Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.',
         '', f'{len(nodes)} nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.', ''
     ])

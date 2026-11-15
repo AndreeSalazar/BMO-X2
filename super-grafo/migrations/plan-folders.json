@@ -1,0 +1,170 @@
+{
+  "scope": "Generated design-only kernel folders consolidated into contract documents; no implemented subsystem removed.",
+  "moves": [
+    {
+      "id": "capabilities",
+      "old": "kernel/capabilities",
+      "new": "contracts/plans/capabilities.md",
+      "anillo": "0",
+      "lenguaje": "CASM"
+    },
+    {
+      "id": "x86_64-interrupts",
+      "old": "kernel/arch/x86_64/interrupts",
+      "new": "contracts/plans/x86_64-interrupts.md",
+      "anillo": "0",
+      "lenguaje": "CASM"
+    },
+    {
+      "id": "init",
+      "old": "kernel/init",
+      "new": "contracts/plans/init.md",
+      "anillo": "0",
+      "lenguaje": "CASM"
+    },
+    {
+      "id": "time",
+      "old": "kernel/time",
+      "new": "contracts/plans/time.md",
+      "anillo": "0",
+      "lenguaje": "CASM"
+    },
+    {
+      "id": "sched",
+      "old": "kernel/sched",
+      "new": "contracts/plans/sched.md",
+      "anillo": "0",
+      "lenguaje": "CASM"
+    },
+    {
+      "id": "ipc",
+      "old": "kernel/ipc",
+      "new": "contracts/plans/ipc.md",
+      "anillo": "0",
+      "lenguaje": "CASM"
+    },
+    {
+      "id": "cpu-state",
+      "old": "kernel/arch/x86_64/context",
+      "new": "contracts/plans/cpu-state.md",
+      "anillo": "0",
+      "lenguaje": "CASM"
+    },
+    {
+      "id": "kernel-diagnostics",
+      "old": "kernel/diagnostics",
+      "new": "contracts/plans/kernel-diagnostics.md",
+      "anillo": "0",
+      "lenguaje": "CASM"
+    },
+    {
+      "id": "process",
+      "old": "kernel/process",
+      "new": "contracts/plans/process.md",
+      "anillo": "0",
+      "lenguaje": "CASM"
+    },
+    {
+      "id": "invoke",
+      "old": "kernel/syscalls/invoke",
+      "new": "contracts/plans/invoke.md",
+      "anillo": "0",
+      "lenguaje": "CASM"
+    },
+    {
+      "id": "wait",
+      "old": "kernel/syscalls/wait",
+      "new": "contracts/plans/wait.md",
+      "anillo": "0",
+      "lenguaje": "CASM"
+    },
+    {
+      "id": "image-policy",
+      "old": "kernel/security",
+      "new": "contracts/plans/image-policy.md",
+      "anillo": "0",
+      "lenguaje": "CASM"
+    },
+    {
+      "id": "device-storage",
+      "old": "kernel/drivers/storage",
+      "new": "contracts/plans/device-storage.md",
+      "anillo": "0",
+      "lenguaje": "CASM"
+    },
+    {
+      "id": "file-access",
+      "old": "kernel/storage",
+      "new": "contracts/plans/file-access.md",
+      "anillo": "0",
+      "lenguaje": "CASM"
+    },
+    {
+      "id": "device-io",
+      "old": "kernel/drivers/io",
+      "new": "contracts/plans/device-io.md",
+      "anillo": "0",
+      "lenguaje": "CASM"
+    },
+    {
+      "id": "device-network",
+      "old": "kernel/drivers/network",
+      "new": "contracts/plans/device-network.md",
+      "anillo": "0",
+      "lenguaje": "CASM"
+    },
+    {
+      "id": "multiprocessor",
+      "old": "kernel/arch/x86_64/smp",
+      "new": "contracts/plans/multiprocessor.md",
+      "anillo": "0",
+      "lenguaje": "CASM"
+    },
+    {
+      "id": "faggin16",
+      "old": "kernel/boot/faggin/stage16",
+      "new": "contracts/plans/faggin16.md",
+      "anillo": "contrato",
+      "lenguaje": "CASM arranque"
+    },
+    {
+      "id": "faggin32",
+      "old": "kernel/boot/faggin/stage32",
+      "new": "contracts/plans/faggin32.md",
+      "anillo": "0",
+      "lenguaje": "CASM"
+    },
+    {
+      "id": "faggin64",
+      "old": "kernel/boot/faggin/stage64",
+      "new": "contracts/plans/faggin64.md",
+      "anillo": "0",
+      "lenguaje": "CASM"
+    }
+  ],
+  "removed_empty_directories": [
+    "kernel/arch/x86_64/interrupts",
+    "kernel/arch/x86_64/context",
+    "kernel/arch/x86_64/smp",
+    "kernel/boot/faggin/stage16",
+    "kernel/boot/faggin/stage32",
+    "kernel/boot/faggin/stage64",
+    "kernel/syscalls/invoke",
+    "kernel/syscalls/wait",
+    "kernel/drivers/storage",
+    "kernel/drivers/io",
+    "kernel/drivers/network",
+    "userspace/runtime/ultra-j",
+    "kernel/capabilities",
+    "kernel/init",
+    "kernel/time",
+    "kernel/sched",
+    "kernel/ipc",
+    "kernel/diagnostics",
+    "kernel/process",
+    "kernel/security",
+    "kernel/storage",
+    "tools/sbef_host",
+    "kernel/boot/faggin"
+  ]
+}
