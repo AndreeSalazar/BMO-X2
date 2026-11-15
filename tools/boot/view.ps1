@@ -102,8 +102,10 @@ if ($actualProfile -eq 'desktop-media') {
     $arguments += @('-device', 'qemu-xhci,id=bmo-xhci')
     if ((Test-Path -LiteralPath (Join-Path $runDir.FullName 'xhci-reset.txt')) -or
         (Test-Path -LiteralPath (Join-Path $runDir.FullName 'xhci-transport.txt'))) {
-        $arguments += @('-device', 'usb-kbd,bus=bmo-xhci.0,port=1',
-                        '-device', 'usb-mouse,bus=bmo-xhci.0,port=2')
+        if (-not (Test-Path -LiteralPath (Join-Path $runDir.FullName 'xhci-empty-ports.txt'))) {
+            $arguments += @('-device', 'usb-kbd,bus=bmo-xhci.0,port=1',
+                            '-device', 'usb-mouse,bus=bmo-xhci.0,port=2')
+        }
     }
     if (Test-Path -LiteralPath (Join-Path $runDir.FullName 'xhci-command.txt')) {
         $usbDevice = if (Test-Path -LiteralPath (Join-Path $runDir.FullName 'usb-mouse.txt')) { 'usb-mouse' } else { 'usb-kbd' }

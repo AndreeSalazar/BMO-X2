@@ -1,0 +1,10 @@
+{
+  "evidence": "METAL",
+  "date": "2026-11-15",
+  "observed_label": "XHCI DMA OK",
+  "connected_ports": 2,
+  "usb_hid_working": false,
+  "photo_sha256": "c75ca205d416975f347348fab60b505acdbb4ca61307bcfeae7877511a905a80",
+  "verified": "The fixed-settle profile reports two connected ports while running, successful No Op completion and controller halt.",
+  "limit": "No device descriptors or HID reports obtained. Adaptive debounce is a newer QEMU-verified change, not established by this photo."
+}

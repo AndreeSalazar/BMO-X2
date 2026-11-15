@@ -1455,7 +1455,7 @@
       "entrada": "Inventario PCI, entrega UEFI, BAR, RTSOFF/DBOFF y diez paginas LoaderData.",
       "salida": "Respuesta No Op comprobada, parada, Bus Master revocado y alias retirados.",
       "aceptacion": "QEMU verifica respuesta, reserva disjunta, parada y rechazo W+X. Evidencia en evidence/transport-qemu.json.",
-      "falta": "Metal confirma No Op y parada AMD, con cero puertos. Verificar alimentacion y censo estable en marcha; enumerar ambos HID e integrar IOMMU.",
+      "falta": "Metal confirma No Op y dos puertos. QEMU verifica debounce adaptativo y limites; falta enumerar ambos HID, hotplug asincrono e IOMMU.",
       "pagina": true
     },
     {
@@ -1509,7 +1509,7 @@
       "entrada": "Dispositivos descubiertos, buffers y eventos.",
       "salida": "Canales y ventanas de aparato acotados.",
       "aceptacion": "Pruebas de acceso, revocacion y fallo de servicio por dispositivo admitido.",
-      "falta": "Metal confirma transporte No Op AMD. Falta confirmar puertos tras estabilizacion, direccionar teclado y raton y activar ambos endpoints HID.",
+      "falta": "Metal confirma dos puertos conectados tras estabilizacion. Falta direccionar teclado y raton y activar ambos endpoints HID.",
       "pagina": true
     },
     {

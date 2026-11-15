@@ -48,6 +48,7 @@ def main():
     probes.add_argument('--xhci-reset-probe', action='store_true', help='Test reset without arming USB DMA')
     probes.add_argument('--xhci-transport-probe', action='store_true', help='Test one No Op command on AMD 149C or QEMU, then revoke DMA')
     parser.add_argument('--xhci-timer-fault', action='store_true', help='QEMU-only: remove PIT to verify finite USB wait failure')
+    parser.add_argument('--xhci-empty-ports', action='store_true', help='QEMU-only: verify the USB discovery deadline with no attached devices')
     probes.add_argument('--reuse-session', action='store_true', help='Run the QEMU-only desktop frame reuse probe')
     probes.add_argument('--ultra-j-view', type=Path, help='Test the ULTRA-J Ring 3 view SBEF in QEMU')
     probes.add_argument('--sheet-desktop', type=Path, help='Test the Ring 3 sheet desktop in QEMU')
@@ -59,6 +60,8 @@ def main():
     args = parser.parse_args()
     if args.xhci_timer_fault and not args.xhci_transport_probe:
         parser.error('--xhci-timer-fault requiere --xhci-transport-probe')
+    if args.xhci_empty_ports and (not args.xhci_transport_probe or args.xhci_timer_fault):
+        parser.error('--xhci-empty-ports requiere transporte y no se combina con fallo PIT')
     if bool(args.ultra_j_view) != bool(args.ultra_j_action):
         parser.error('--ultra-j-view y --ultra-j-action deben usarse juntos')
     if args.ultra_j_launcher and not args.ultra_j_view:
@@ -191,6 +194,8 @@ def main():
         (run / 'xhci-transport.txt').write_text('AMD 1022:149C / QEMU 1B36:000D\n', encoding='ascii')
     if args.xhci_timer_fault:
         (run / 'xhci-timer-fault.txt').write_text('QEMU: PIT disabled\n', encoding='ascii')
+    if args.xhci_empty_ports:
+        (run / 'xhci-empty-ports.txt').write_text('QEMU: no USB devices\n', encoding='ascii')
     if args.usb_full_speed:
         (run / 'usb-full-speed.txt').write_text('QEMU\n', encoding='ascii')
     if args.usb_mouse:
@@ -208,7 +213,7 @@ def main():
                     '--casos', 'normal', 'external-permissions'],
                    check=True, cwd=run, timeout=100)
 
-    media = run / ('qemu-only' if args.xhci_timer_fault else
+    media = run / ('qemu-only' if args.xhci_timer_fault or args.xhci_empty_ports else
                    'diagnostic-media' if args.xhci_reset_probe or args.xhci_transport_probe else
                    'qemu-only' if args.xhci_command or args.reuse_session or args.ultra_j_view
                    or args.sheet_desktop else 'media')
@@ -235,6 +240,7 @@ def main():
                   qemu_cpu=args.cpu, guest_ram_mib=args.ram_mib, xhci_reset_probe=args.xhci_reset_probe,
                   xhci_transport_probe=args.xhci_transport_probe,
                   xhci_timer_fault=args.xhci_timer_fault,
+                  xhci_empty_ports=args.xhci_empty_ports,
                   boot_files_bytes=sum((media / name).stat().st_size for name in files),
                   disk_image_bytes=(run / 'build/puente-normal.img').stat().st_size,
                   desktop_reuse_probe=args.reuse_session,

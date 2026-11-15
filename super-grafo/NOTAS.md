@@ -924,7 +924,7 @@ Entrada: Inventario PCI, entrega UEFI, BAR, RTSOFF/DBOFF y diez paginas LoaderDa
 Salida: Respuesta No Op comprobada, parada, Bus Master revocado y alias retirados.
 Depende de: Frontera de dispositivos (plan), Espacios y permisos (plan), Prestamo y revocacion DMA (plan).
 Aceptacion: QEMU verifica respuesta, reserva disjunta, parada y rechazo W+X. Evidencia en evidence/transport-qemu.json.
-Pendiente: Metal confirma No Op y parada AMD, con cero puertos. Verificar alimentacion y censo estable en marcha; enumerar ambos HID e integrar IOMMU.
+Pendiente: Metal confirma No Op y dos puertos. QEMU verifica debounce adaptativo y limites; falta enumerar ambos HID, hotplug asincrono e IOMMU.
 
 ## kernel/drivers/storage
 
@@ -957,7 +957,7 @@ Entrada: Dispositivos descubiertos, buffers y eventos.
 Salida: Canales y ventanas de aparato acotados.
 Depende de: Buses, recursos y DMA (plan), Comunicacion entre procesos (plan).
 Aceptacion: Pruebas de acceso, revocacion y fallo de servicio por dispositivo admitido.
-Pendiente: Metal confirma transporte No Op AMD. Falta confirmar puertos tras estabilizacion, direccionar teclado y raton y activar ambos endpoints HID.
+Pendiente: Metal confirma dos puertos conectados tras estabilizacion. Falta direccionar teclado y raton y activar ambos endpoints HID.
 
 ## kernel/drivers/network
 

@@ -2,6 +2,14 @@
 
 ## Transporte USB AMD -- 15-11-2026
 
+La cuarta foto confirma dos puertos conectados en metal con el censo
+en marcha y la espera fija. La nueva sonda usa debounce por puerto,
+termina con >=100 ms estables observados y tiene limite de 1 segundo.
+QEMU termina el caso conectado en 110 ms. HOST pasa diez secuencias
+del helper ensamblado. QEMU pasa tambien ausencia de puertos y fallo
+PIT con parada y revocacion. Pendiente confirmar el tiempo adaptativo
+en AMD y enumerar ambos HID. Esta fase sigue siendo sincrona de arranque.
+
 La tercera foto confirma `XHCI DMA OK` en AMD y cero puertos al cerrar
 la sonda. La siguiente version alimenta puertos que lo requieren,
 espera 200 ms medidos por PIT canal 2 y registra CCS antes de detener

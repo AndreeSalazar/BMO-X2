@@ -348,16 +348,20 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         reserved = memory(dma, pages * 4096, 'xhci-reserved-pages')
         if transport_probe:
             assert memory(address + 0x1a3c4, 1, 'transport-reservation-validated') == b'\x01'
-            if (prefix.parent.parent / 'xhci-timer-fault.txt').is_file():
-                assert memory(address + 0x1a3e0, 4, 'transport-timer-failure') == struct.pack('<I', 18)
+            empty_ports = (prefix.parent.parent / 'xhci-empty-ports.txt').is_file()
+            if empty_ports or (prefix.parent.parent / 'xhci-timer-fault.txt').is_file():
+                assert memory(address + 0x1a3e0, 4, 'transport-wait-failure') == struct.pack('<I', 19 if empty_ports else 18)
                 assert memory(address + 0x1a379, 2, 'transport-no-command-halted') == b'\x00\x01'
-                assert memory(address + 0x1a3fc, 4, 'transport-no-elapsed-slices') == bytes(4)
+                assert memory(address + 0x1a3fc, 4, 'transport-bounded-slices') == struct.pack('<I', 100 if empty_ports else 0)
+                if empty_ports:
+                    assert memory(address + 0x1a3e8, 4, 'transport-empty-census') == struct.pack('<I', 1)
                 original, restored = struct.unpack('<HH', memory(address + 0x1a37c, 4, 'transport-failed-busmaster'))
                 assert restored == original & ~4
                 assert memory(address + 0x15400, 8, 'transport-failed-pde') == bytes(8)
                 assert memory(address + 0x1e000, 24, 'transport-failed-pte') == bytes(24)
                 return dict(Case='normal', Passed=True, DesktopSession=True, UserCpl=3,
-                            XhciTimerFailureVerified=True, XhciNoOpCompleted=False,
+                            XhciTimerFailureVerified=not empty_ports,
+                            XhciEmptyPortsTimeoutVerified=empty_ports, XhciNoOpCompleted=False,
                             XhciControllerStopped=True, XhciBusMasterRevoked=True,
                             XhciHidConfigured=False, CpuL1=cache)
             assert memory(address + 0x1a379, 2, 'transport-completed-halted') == b'\x01\x01'
@@ -375,7 +379,8 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
             assert memory(address + 0x15400, 8, 'transport-alias-pde') == bytes(8)
             assert memory(address + 0x1e000, 24, 'transport-alias-pte') == bytes(24)
             assert memory(address + 0x1a3e8, 4, 'transport-connected-ports') == struct.pack('<I', 3)
-            assert memory(address + 0x1a3fc, 4, 'transport-real-time-slices') == struct.pack('<I', 20)
+            settle_slices = struct.unpack('<I', memory(address + 0x1a3fc, 4, 'transport-real-time-slices'))[0]
+            assert 11 <= settle_slices <= 100
             running_status = struct.unpack('<I', memory(address + 0x1a3ec, 4, 'transport-census-status'))[0]
             assert running_status & 0x801 == 0, 'El censo requiere xHC activo y CNR despejado'
             devices = [device for bus in command('query-pci') for device in bus['devices']]
@@ -393,7 +398,8 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                         XhciTransportVerified=True, XhciNoOpCompleted=True, XhciControllerStopped=True,
                         XhciBusMasterRevoked=True, XhciReservedBytes=pages * 4096,
                         XhciConnectedPorts=2, XhciHidConfigured=False, CpuL1=cache,
-                        XhciPortSettleMilliseconds=200, XhciRunningCensusVerified=True)
+                        XhciPortSettleMilliseconds=settle_slices * 10,
+                        XhciAdaptiveDebounceVerified=True, XhciRunningCensusVerified=True)
         if command_probe:
             assert memory(address + 0x1a3c4, 1, 'xhci-dma-validated') == b'\x01'
             status = memory(address + 0x1a379, 2, 'xhci-command-status')

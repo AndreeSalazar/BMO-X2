@@ -73,6 +73,7 @@ pendiente. La capacidad de scratchpads de esta prueba es cuatro paginas.
 | `XHCI MAPA DOORBELL` | Pagina doorbell en conflicto con el mapa UEFI. |
 | `XHCI DMA SCRATCHPADS` | El controlador pide mas de cuatro paginas auxiliares. |
 | `XHCI RELOJ ESPERA` | El temporizador de estabilizacion no respondio; prueba detenida. |
+| `XHCI PUERTOS ESPERA` | No hubo un conjunto conectado y estable dentro de 1 segundo. |
 | `XHCI DMA REINICIO` | No termino el reinicio. |
 | `XHCI DMA ARRANQUE` | No se confirmo la salida de HCHalted. |
 | `XHCI DMA RESPUESTA` | No llego una terminacion valida dentro del limite. |
@@ -98,7 +99,7 @@ La nueva disposicion aun necesita confirmacion en AMD.
 La siguiente foto fisica confirmo `XHCI DMA OK`, con `USB PUERTOS 0`.
 Eso acredita la terminacion No Op y la parada, pero no la presencia de HID.
 El censo anterior ocurria al terminar una prueba breve y detener el xHC.
-La sonda ahora verifica PP cuando PPC admite control de alimentacion,
+La version de espera fija verifica PP cuando PPC admite control de alimentacion,
 activa los puertos que lo necesitan sin escribir los bits RW1C, PED o PR,
 y espera veinte intervalos PIT de algo mas de 10 ms antes del censo.
 Usa el canal 2, sin IRQ y sin alterar el canal 0 del escritorio. Restaura
@@ -114,6 +115,44 @@ Ese ensayo se guarda en `qemu-only/`, separado de la imagen para metal.
 La espera estabiliza la observacion inicial; no es aun un algoritmo de
 debounce que compruebe 100 ms continuos por cada puerto, ni enumera HID.
 El nuevo censo fisico sigue pendiente.
+
+### Estabilizacion adaptativa por puerto
+
+La foto posterior confirma dos puertos conectados y `XHCI DMA OK` en
+metal con la espera fija. La nueva version mantiene un contador por
+puerto, muestrea cada >=10 ms y termina cuando hay al menos un puerto
+conectado, todos los conectados llevan >=100 ms sin cambio observado
+y los puertos tienen alimentacion. Un puerto vacio con PP activo no
+bloquea a los que ya estan listos. CCS desconectado, PP perdido o CSC
+reinician el contador correspondiente. CSC se reconoce por separado
+sin escribir otros bits de cambio o reset. No se resetea el reloj de
+los demas puertos cuando cambia uno.
+
+La primera observacion conectada inicia el contador; diez intervalos
+posteriores acreditan el tiempo estable. QEMU completa ese caso en
+11 intervalos, unos 110 ms. El limite total es 100 intervalos, unos
+1000 ms; sin puertos listos devuelve `XHCI PUERTOS ESPERA`, detiene
+el xHC y revoca Bus Master. `--xhci-empty-ports` prueba ese limite en
+QEMU sin dispositivos USB y se guarda en `qemu-only/`. El limite de
+un segundo es una politica acotada de esta sonda, no una garantia
+universal para todos los dispositivos USB.
+
+Ring 0 mide, lee PORTSC y decide la transicion. La llamada INVOKE de
+diagnostico existente inicia la sonda y las consultas existentes
+devuelven estado y censo. No se agregan numeros de syscall. Durante
+este arranque la operacion sigue siendo sincrona y sondea el PIT.
+Falta una maquina de estados de enumeracion y hotplug que avance por
+eventos y permita al servicio Ring 3 dormir mediante WAIT. Los
+dispositivos que se conecten despues de cerrar esta sonda quedan
+fuera de su observacion. Aun no hay entrada HID en metal.
+
+`tools/boot/test_xhci_debounce.py` ejecuta el mismo helper ensamblado
+con secuencias de conexion, rebote, CSC persistente, perdida de power
+y 255 puertos. Son pruebas HOST de la decision; QEMU prueba el PIT,
+la espera acotada, el No Op y la retirada de DMA. El nuevo tiempo
+adaptativo aun necesita observacion fisica. Referencia para el
+reinicio del intervalo de estabilidad ante desconexion:
+[debounce del nucleo Linux](https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux/+/b91872c56940950a6a0852e499d249c3091d4284/drivers/usb/core/hub.c).
 
 Para reproducir en PowerShell 5.1 desde BMO-X2:
 
