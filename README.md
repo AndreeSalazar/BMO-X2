@@ -13,6 +13,12 @@ El AMD ya confirmo una respuesta de comando por DMA, dos puertos
 conectados y la parada del controlador. La estabilizacion adaptativa
 por puerto pasa QEMU. [Prueba y estados visibles](docs/FIRST-BOOT.md#perfil-experimental-de-transporte-xhci).
 
+El servicio de entrada Ring 3 ya procesa los reportes de las sondas USB
+QEMU: 260 informes de teclado y movimiento y botones del raton, en perfiles
+separados, con CABINA, WAIT y cierre comprobados. Conserva colas acotadas
+sin asignacion dinamica. Esto no acredita entrada USB AMD ni un driver
+aislado con DMA propio. [Estado, medidas y pendientes](userspace/drivers/usb/DRIVER.md).
+
 ## Identidad: NANO-CORE, HOST aislado y Ring 3 abierto
 
 NANO-CORE es el nombre del diseno privilegiado de BMO-X2: un nucleo

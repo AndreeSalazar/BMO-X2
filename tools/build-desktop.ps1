@@ -94,12 +94,20 @@ if ($Session) {
 }
 $flags = @('--edition=2024', '--target', $target, '-D', 'warnings', '-C', 'panic=abort',
            '-C', 'opt-level=s', '-C', 'relocation-model=static', '-C', 'force-unwind-tables=no')
+$usbFlags = @()
+if ($UsbProbe) {
+    $usbLibrary = Join-Path $build.FullName 'libbmo_x2_usb.rlib'
+    & rustc @flags --crate-name bmo_x2_usb --crate-type rlib (Join-Path $root 'userspace/drivers/usb/src/lib.rs') -o $usbLibrary
+    if ($LASTEXITCODE -ne 0) { throw 'Fallo la biblioteca del servicio USB Ring 3.' }
+    $usbFlags = @('--extern', "bmo_x2_usb=$usbLibrary")
+}
 & rustc @flags --crate-name bmo_x2_desktop --crate-type rlib (Join-Path $desktop 'src/lib.rs') -o $library
 if ($LASTEXITCODE -ne 0) { throw 'Fallo el build Rust. Verifica rustup target add x86_64-unknown-none.' }
 & (Join-Path $Llvm 'clang.exe') --target=x86_64-unknown-none-elf -c (Join-Path $root 'userspace/runtime/abi/portal.S') -o $portal
 if ($LASTEXITCODE -ne 0) { throw 'Fallo el stub ABI.' }
 $linkFlags = @('-C', "linker=$linker", '-C', 'linker-flavor=ld', '-C', 'lto=fat',
                '-C', "link-arg=-T$linkScript", '-C', "link-arg=$portal")
+if ($UsbProbe) { $linkFlags += @('-C', "link-arg=-Map=$elf.map") }
 if ($UltraJ) {
     $ujOutput = (New-Item -ItemType Directory -Force (Join-Path $root 'build/ultra-j/desktop')).FullName
     & $Python -B (Join-Path $root 'Ultra-J/package.py') (Join-Path $root 'Ultra-J/examples/panel') $ujOutput
@@ -126,7 +134,7 @@ if ($Guest -and -not $Session) {
     $guestFlags = @('--cfg','qemu_desktop','-C',"link-arg=$complete")
     $fixtureArguments = @('--desktop-present', $presentBin)
 }
-& rustc @flags @linkFlags @guestFlags --crate-name desktop_probe --extern "bmo_x2_desktop=$library" $entrySource -o $elf
+& rustc @flags @linkFlags @guestFlags @usbFlags --crate-name desktop_probe --extern "bmo_x2_desktop=$library" $entrySource -o $elf
 if ($LASTEXITCODE -ne 0) { throw 'Fallo el enlace ELF del escritorio.' }
 $budget = @()
 if ($External) { $budget = @('--max-file-bytes', '16512', '--max-mapped-bytes', '16384') }

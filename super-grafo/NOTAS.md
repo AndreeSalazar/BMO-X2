@@ -1275,8 +1275,8 @@ Estado: QEMU. Anillo: 3. Lenguaje: Rust.
 Entrada: Descriptores acotados y reportes recibidos por un transporte autorizado.
 Salida: Interfaces, endpoints, solicitudes de configuracion y cambios de entrada.
 Depende de: Contrato de drivers Ring 3 (codigo).
-Aceptacion: HOST verifica 18 casos USB y 14 de escritorio; el nuevo servicio compila freestanding. Las sondas HID QEMU anteriores se conservan como evidencia separada.
-Pendiente: El nuevo InputService solo tiene evidencia HOST. Faltan proceso SBEF independiente, transporte Ring 3, aislamiento DMA y enumeracion AMD.
+Aceptacion: HOST verifica 18 casos USB y 14 de escritorio. InputService ejecuta en CPL3 QEMU: teclado 260 reportes y raton 4, perfiles separados; CABINA, WAIT, cierre y rechazo SBEF W+X comprobados. Escritorio normal conserva configuracion.
+Pendiente: Faltan notificacion de desconexion/reconexion desde el transporte, dispositivos simultaneos, proceso SBEF independiente, transporte Ring 3, aislamiento DMA y enumeracion AMD. detach solo probado en HOST.
 
 ## Ultra-J/driver.py
 

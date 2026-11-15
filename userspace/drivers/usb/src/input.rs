@@ -90,10 +90,7 @@ impl<const D: usize, const E: usize> InputService<D, E> {
         let mut events = [None; 21];
         let mut count = 0;
         let mut emit = |payload| {
-            events[count] = Some(Event {
-                source: token,
-                payload,
-            });
+            events[count] = Some(payload);
             count += 1;
         };
         match &mut candidate {
@@ -112,7 +109,7 @@ impl<const D: usize, const E: usize> InputService<D, E> {
         }
         // Commit decoder and queue together. A rejected report can be retried.
         self.devices[token.slot].as_mut().unwrap().decoder = candidate;
-        self.append(events);
+        self.append(token, events);
         Ok(count)
     }
 
@@ -121,10 +118,7 @@ impl<const D: usize, const E: usize> InputService<D, E> {
         let mut events = [None; 21];
         let mut count = 0;
         let mut emit = |payload| {
-            events[count] = Some(Event {
-                source: token,
-                payload,
-            });
+            events[count] = Some(payload);
             count += 1;
         };
         match &mut decoder {
@@ -155,7 +149,7 @@ impl<const D: usize, const E: usize> InputService<D, E> {
             }
         }
         self.devices[token.slot] = None;
-        self.append(events);
+        self.append(token, events);
         Ok(count)
     }
 
@@ -181,9 +175,9 @@ impl<const D: usize, const E: usize> InputService<D, E> {
             .ok_or(Error::StaleSource)
     }
 
-    fn append(&mut self, events: [Option<Event>; 21]) {
-        for event in events.into_iter().flatten() {
-            self.push(event);
+    fn append(&mut self, token: Token, events: [Option<Payload>; 21]) {
+        for payload in events.into_iter().flatten() {
+            self.push(Event { source: token, payload });
         }
     }
 

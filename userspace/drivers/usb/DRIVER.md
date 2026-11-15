@@ -6,7 +6,7 @@
 |---|---|---|
 | `src/hid.rs` | Decodificar informes boot de teclado y raton, cambios de modificadores y liberacion al desconectar. | Pruebas HOST; el escritorio usa el mismo fuente en sus sondas USB QEMU. |
 | `src/descriptor.rs` | Leer una configuracion acotada y descubrir interfaces HID boot con sus endpoints IN. Generar los paquetes de solicitud SET_CONFIGURATION y SET_PROTOCOL. | HOST con descriptores reales capturados en las sondas QEMU de teclado y raton. |
-| `src/input.rs` | Servicio de entrada con fuentes separadas, cola acotada, cambios atomicos y desconexion con liberacion. | HOST y compilacion freestanding x86-64. Aun no conectado al transporte invitado. |
+| `src/input.rs` | Servicio de entrada con fuentes separadas, cola acotada, cambios atomicos y desconexion con liberacion. | HOST y ejecucion CPL3 en las sondas QEMU de teclado y raton, por separado. Desconexion del servicio comprobada solo en HOST. |
 | `src/tests.rs` | Rechazos con offset, dispositivo compuesto, alternates, truncamientos, descriptores HID y mutaciones. | HOST. No sustituye enumeracion en hardware. |
 
 El parser no supone interface cero ni endpoint 0x81. Conserva el numero
@@ -19,8 +19,21 @@ que requieren seleccion explicita necesitan perfiles adicionales.
 
 El desktop conserva `usb_hid.rs` como adaptador de su politica de atajos.
 Comparte `hid.rs` mediante una referencia de fuente para mantener los
-builds `rustc` freestanding actuales. Cambiar de carpeta no crea una
-frontera de memoria: este perfil sigue enlazado con la sesion actual.
+builds `rustc` freestanding actuales. Las sondas `tools/desktop/usb_probe.rs`
+y `usb_mouse_probe.rs` enlazan la biblioteca USB y pasan los reportes del
+transporte mediado por `InputService`, antes de adaptarlos al escritorio.
+Cambiar de carpeta no crea una frontera de memoria: este perfil sigue
+enlazado con la sesion actual.
+
+En QEMU el teclado procesa 260 informes y cruza el anillo de transferencias;
+el raton verifica movimiento firmado, pulsacion y liberacion. Ambos abren
+CABINA, esperan sin trabajo y cierran la sesion deteniendo el controlador.
+Son perfiles separados de un dispositivo cada uno. Las sondas USB omiten
+el icono y panel F3 de configuracion para mantener el limite de codigo RX
+de 8192 B; el escritorio normal los conserva. El teclado usa 7552 B RX y
+un SBEF de 9733 B; el raton usa 6624 B RX y un SBEF de 8702 B. Cada perfil
+mapea 16384 B para sus regiones, mas 4096 B de pila; los buffers DMA de
+la sonda (40960 B) son un coste separado. No son el consumo del sistema.
 
 `InputService<DEVICES, EVENTS>` combina fuentes de teclado y raton en
 una cola fija. Un informe que no cabe devuelve `Backpressure` sin
@@ -37,6 +50,10 @@ de DMA. El servicio es de un solo propietario; el transporte concurrente
 necesita sincronizacion y eventos del ABI. El codigo se compila para
 x86-64 sin std, pero no existe todavia un SBEF independiente de este
 servicio ni una ruta xHCI de usuario que lo alimente durante el arranque.
+Las sondas actuales reciben informes mediante INVOKE desde el transporte
+de diagnostico Ring 0. Aun no notifican desconexion fisica a `detach` ni
+prueban reconexion en QEMU. Esas operaciones siguen pendientes en el ABI
+del transporte, aunque la biblioteca ya verifica su comportamiento HOST.
 
 ## Lo que queda antes de entrada USB fisica
 

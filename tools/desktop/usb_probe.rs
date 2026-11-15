@@ -1,38 +1,40 @@
-use bmo_x2_desktop::usb_hid::BootKeyboard;
+use bmo_x2_usb::{descriptor::Kind, input::{InputService, Payload, Token}};
 
-#[derive(Default)]
 pub struct Input {
-    decoder: BootKeyboard,
-    // At most six releases, eight modifier changes and six presses.
-    // Extended modifiers add one prefix byte each.
-    bytes: [u8; 32],
-    next: usize,
-    end: usize,
+    service: InputService<1, 20>,
+    source: Token,
+    pending: Option<u8>,
+}
+
+impl Default for Input {
+    fn default() -> Self {
+        let mut service = InputService::default();
+        let source = service.bind(Kind::Keyboard).unwrap();
+        Self { service, source, pending: None }
+    }
 }
 
 impl Input {
     pub fn next(&mut self) -> Option<u32> {
-        if self.next == self.end {
+        if let Some(byte) = self.pending.take() {
+            return Some(u32::from(byte));
+        }
+        if self.service.pending() == 0 {
             let raw = super::invoke_word(3, 3, 5, 0);
             if matches!(raw, 256 | 257) {
                 return None;
             }
-            self.next = 0;
-            self.end = 0;
-            let _ = self.decoder.update(&raw.to_le_bytes(), |change| {
-                if change.extended {
-                    self.bytes[self.end] = 0xe0;
-                    self.end += 1;
-                }
-                self.bytes[self.end] = change.scancode | if change.pressed { 0 } else { 0x80 };
-                self.end += 1;
-            });
+            // An empty queue always fits the maximum 20 keyboard changes.
+            self.service.report(self.source, &raw.to_le_bytes()).ok()?;
         }
-        if self.next == self.end {
-            return None;
+        let event = self.service.poll()?;
+        let Payload::Key(change) = event.payload else { return None };
+        let byte = change.scancode | if change.pressed { 0 } else { 0x80 };
+        if change.extended {
+            self.pending = Some(byte);
+            Some(0xe0)
+        } else {
+            Some(u32::from(byte))
         }
-        let byte = self.bytes[self.next];
-        self.next += 1;
-        Some(u32::from(byte))
     }
 }

@@ -5,7 +5,9 @@ use core::arch::asm;
 use core::panic::PanicInfo;
 
 mod cabina;
-#[cfg(not(desktop_ultra_j))]
+// USB diagnostic profiles reserve the fixed RX budget for the input service.
+// The normal desktop retains its settings panel and icon.
+#[cfg(not(any(desktop_ultra_j, usb_probe)))]
 mod settings;
 #[cfg(desktop_sheet)]
 mod sheet;
@@ -118,7 +120,7 @@ fn paint(clip: Clip, space: usize, focus: usize, bar: bool) {
     }
     let accent = ACCENTS[space];
     clip.fill(0, 0, 640, 400, 0x0d0e17);
-    #[cfg(not(desktop_ultra_j))]
+    #[cfg(not(any(desktop_ultra_j, usb_probe)))]
     settings::icon(clip);
     #[cfg(desktop_sheet)]
     sheet::icon(clip);
@@ -233,11 +235,11 @@ extern "C" fn bmo_main() -> ! {
     let mut command = cabina::Command::default();
     let mut bar = None;
     let mut f2_down = false;
-    #[cfg(not(desktop_ultra_j))]
+    #[cfg(not(any(desktop_ultra_j, usb_probe)))]
     let mut f3_down = false;
-    #[cfg(not(desktop_ultra_j))]
+    #[cfg(not(any(desktop_ultra_j, usb_probe)))]
     let (mut settings_open, mut pointer_speed) = (false, 1);
-    #[cfg(desktop_ultra_j)]
+    #[cfg(any(desktop_ultra_j, usb_probe))]
     let (settings_open, pointer_speed) = (false, 1);
     #[cfg(desktop_sheet)]
     let (mut sheet_open, mut sheet_click) = (false, None::<u32>);
@@ -263,7 +265,9 @@ extern "C" fn bmo_main() -> ! {
     cursor(x, y);
     #[cfg(not(desktop_ultra_j))]
     let controllers = invoke(3, 3, 4, 0);
-    #[cfg(not(desktop_ultra_j))]
+    #[cfg(usb_probe)]
+    let _ = controllers;
+    #[cfg(not(any(desktop_ultra_j, usb_probe)))]
     let usb_pending = controllers != DENIED && (1..=65536).contains(&controllers);
     #[cfg(usb_probe)]
     let mut usb = usb_probe::Input::default();
@@ -361,7 +365,7 @@ extern "C" fn bmo_main() -> ! {
                                 sheet_click = None;
                             }
                         }
-                        #[cfg(not(desktop_ultra_j))]
+                        #[cfg(not(any(desktop_ultra_j, usb_probe)))]
                         if settings::hit(next_x, next_y) {
                             left = pressed;
                             bar = None;
@@ -525,7 +529,7 @@ extern "C" fn bmo_main() -> ! {
             }
             continue;
         }
-        #[cfg(not(desktop_ultra_j))]
+        #[cfg(not(any(desktop_ultra_j, usb_probe)))]
         if !extended && key & 0x7f == 0x3d {
             let toggle = down && !f3_down;
             f3_down = down;
@@ -543,7 +547,7 @@ extern "C" fn bmo_main() -> ! {
             }
             continue;
         }
-        #[cfg(not(desktop_ultra_j))]
+        #[cfg(not(any(desktop_ultra_j, usb_probe)))]
         if settings_open {
             if !extended && down {
                 match key {
