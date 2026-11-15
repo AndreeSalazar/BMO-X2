@@ -1509,7 +1509,7 @@
       "entrada": "Dispositivos descubiertos, buffers y eventos.",
       "salida": "Canales y ventanas de aparato acotados.",
       "aceptacion": "Pruebas de acceso, revocacion y fallo de servicio por dispositivo admitido.",
-      "falta": "El escritorio muestra el estado xHCI tras UEFI. QEMU verifica teclado y raton USB en sondas separadas. Faltan uso simultaneo, reconexion y validacion fisica.",
+      "falta": "El perfil experimental verifica en QEMU el reinicio xHCI sin DMA. Faltan probar el reinicio AMD en metal y activar ambos HID a la vez.",
       "pagina": true
     },
     {

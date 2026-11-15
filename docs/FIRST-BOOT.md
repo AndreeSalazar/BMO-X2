@@ -21,6 +21,22 @@ ensayo cede el espacio del indicador de entrada al lanzador de Hoja.
 
 ## Primera prueba en hardware
 
+### Perfil experimental de reinicio xHCI
+
+`stage_desktop_media.py --xhci-reset-probe` genera
+`diagnostic-media/` con una sonda limitada al AMD `1022:149C` y
+al xHCI emulado `1B36:000D`. Tras salir de UEFI comprueba la
+entrega del controlador, espera CNR, detiene el controlador, solicita
+HCRST y verifica que el controlador queda detenido y admite paginas
+de 4 KiB. Usa espera acotada por iteraciones. Falta medir el plazo
+de respuesta en el AMD.
+
+La primera linea del aviso de entrada muestra `XHCI REINICIO OK`,
+`XHCI FALLO REINICIO` o `XHCI SIN ENTREGA UEFI`. El controlador
+queda detenido tras un reinicio correcto. Este perfil aun carece
+de colas DMA activas y enumeracion HID. Para la prueba fisica se
+necesitan la foto del aviso y el BOOTLOG.TXT V3.
+
 ### Diagnostico visible de teclado y raton
 
 El puente UEFI escribe `\BMO-X2\BOOTLOG.TXT` en el volumen de arranque

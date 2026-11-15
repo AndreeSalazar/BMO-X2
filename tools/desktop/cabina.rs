@@ -72,6 +72,9 @@ pub fn boot_input(controllers: u32, keyboard: bool, mouse: bool) {
         2 => b"XHCI PAGINA NO ADMISIBLE",
         3 => b"XHCI DETENIDO",
         4 => b"XHCI ACTIVO",
+        5 => b"XHCI SIN ENTREGA UEFI",
+        6 => b"XHCI FALLO REINICIO",
+        7 => b"XHCI REINICIO OK",
         _ => b"XHCI SIN ESTADO",
     };
     text(36, 359, status);

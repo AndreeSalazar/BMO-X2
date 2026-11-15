@@ -263,6 +263,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                     CpuL1=cache)
 
     command_probe = desktop_media and (prefix.parent.parent / 'xhci-command.txt').is_file()
+    reset_probe = desktop_media and (prefix.parent.parent / 'xhci-reset.txt').is_file()
     mouse_probe = command_probe and (prefix.parent.parent / 'usb-mouse.txt').is_file()
     if mouse_probe:
         wait_until(lambda: logical(52, 99, 0x5ad8ff) and sleeping()
@@ -431,7 +432,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
             if not scratchpads:
                 assert reserved[0x6000:] == bytes(4 * 4096)
         reset_stage = memory(address + 0x1a3b9, 1, 'xhci-reset-stage')[0]
-        assert reset_stage == (3 if command_probe else 0)
+        assert reset_stage == (3 if command_probe or reset_probe else 0)
         handoff = memory(address + 0x1a378, 1, 'xhci-handoff')[0]
         assert handoff in (1, 2), f'xHCI handoff state: {handoff}'
         if not command_probe:
@@ -443,7 +444,12 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
             words = [int(value, 16) for value in actual.split(':', 1)[1].split()[:2]]
             assert page_mask == words[1] and (status ^ words[0]) & 0x801 == 0
             expected_state = 1 if status & 0x800 else 2 if not page_mask & 1 else 3 if status & 1 else 4
-            assert preflight == expected_state
+            if reset_probe:
+                assert preflight == 7 and expected_state == 3
+                assert memory(address + 0x1a379, 2, 'reset-only-command-state') == bytes(2)
+                assert reserved == bytes(pages * 4096)
+            else:
+                assert preflight == expected_state
         if not command_probe:
             assert logical(24, 354, 0x232638), 'El escritorio no mostro el aviso de entrada USB'
         if command_probe:
@@ -697,6 +703,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 XhciReadOnlyMmioVerified=desktop_media,
                 XhciFirmwareHandoff=handoff if desktop_media else None,
                 XhciPreflight=preflight if desktop_media else None,
+                XhciResetOnlyVerified=reset_probe,
                 XhciCommandCompleted=desktop_media and command_probe,
                 XhciReservedBytes=pages * 4096 if desktop_media else 0,
                 DesktopStagingBytes=staging_pages * 4096 if desktop_media else None,

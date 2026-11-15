@@ -32,6 +32,11 @@ inventory_next:
     push %r8
     push %r9
     call inventory_function
+#ifdef XHCI_RESET_PROBE
+    call xhci_reset_candidate
+    test %eax, %eax
+    jz inventory_continue
+#endif
     call xhci_read_caps
     cmp %gs:0x3b0, %eax
     jbe inventory_continue
@@ -88,6 +93,25 @@ inventory_restore:
 inventory_cached:
     mov %gs:0x358, %eax
     ret
+
+#ifdef XHCI_RESET_PROBE
+# Read vendor/device from the function currently being ranked.
+xhci_reset_candidate:
+    lea -8(%ecx), %eax
+    out %eax, %dx
+    add $4, %dx
+    in %dx, %eax
+    sub $4, %dx
+    cmp $0x149c1022, %eax       # AMD xHCI in the target machine.
+    je reset_candidate_yes
+    cmp $0x000d1b36, %eax       # QEMU emulator for verification.
+    je reset_candidate_yes
+    xor %eax, %eax
+    ret
+reset_candidate_yes:
+    mov $1, %eax
+    ret
+#endif
 
 # Use a temporary supervisor-only 4 KiB mapping in the private page tables.
 # Context page 0x1e is reserved here for the alias PT, below the boot stack.
@@ -177,6 +201,9 @@ caps_map:
     add $32, %eax
     mov %eax, %gs:0x3c0
     call xhci_handoff
+#ifdef XHCI_RESET_PROBE
+    call xhci_reset_probe
+#endif
 #ifdef XHCI_COMMAND_PROBE
     push %rbx
     push %rdi
@@ -266,13 +293,13 @@ legacy_invalid:
     ret
 legacy_absent:
     movb $1, %gs:0x378
-#ifndef XHCI_COMMAND_PROBE
+#if !defined(XHCI_COMMAND_PROBE) && !defined(XHCI_RESET_PROBE)
     jmp legacy_sample
 #else
     ret
 #endif
 legacy_claim:
-#ifndef XHCI_COMMAND_PROBE
+#if !defined(XHCI_COMMAND_PROBE) && !defined(XHCI_RESET_PROBE)
     # Inventory does not request ownership from firmware.
     movb $5, %gs:0x378
     jmp legacy_sample
@@ -295,7 +322,7 @@ legacy_wait:
 legacy_owned:
     movb $2, %gs:0x378
 #endif
-#ifndef XHCI_COMMAND_PROBE
+#if !defined(XHCI_COMMAND_PROBE) && !defined(XHCI_RESET_PROBE)
 legacy_sample:
     mov %gs:0x370, %eax
     call xhci_preflight
@@ -309,4 +336,8 @@ caps_done:
 #include "xhci_reset.inc"
 #else
 #include "xhci_preflight.inc"
+#ifdef XHCI_RESET_PROBE
+#include "xhci_reset.inc"
+#include "xhci_reset_probe.inc"
+#endif
 #endif

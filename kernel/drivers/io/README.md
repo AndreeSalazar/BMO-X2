@@ -11,4 +11,4 @@ Ofrece recursos de entrada y salida a servicios autorizados.
 - Entrada: Dispositivos descubiertos, buffers y eventos.
 - Salida: Canales y ventanas de aparato acotados.
 - Aceptacion: Pruebas de acceso, revocacion y fallo de servicio por dispositivo admitido.
-- Pendiente: El escritorio muestra el estado xHCI tras UEFI. QEMU verifica teclado y raton USB en sondas separadas. Faltan uso simultaneo, reconexion y validacion fisica.
+- Pendiente: El perfil experimental verifica en QEMU el reinicio xHCI sin DMA. Faltan probar el reinicio AMD en metal y activar ambos HID a la vez.
