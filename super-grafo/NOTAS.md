@@ -1278,6 +1278,17 @@ Depende de: Contrato de drivers Ring 3 (codigo).
 Aceptacion: HOST verifica 18 casos USB y 14 de escritorio; el nuevo servicio compila freestanding. Las sondas HID QEMU anteriores se conservan como evidencia separada.
 Pendiente: El nuevo InputService solo tiene evidencia HOST. Faltan proceso SBEF independiente, transporte Ring 3, aislamiento DMA y enumeracion AMD.
 
+## Ultra-J/driver.py
+
+Valida registros declarativos de driver y solicita recursos sin concederlos.
+
+Estado: HOST. Anillo: host. Lenguaje: Python.
+Entrada: main.uj, dependencias locales y backends SBEF ABI 1 x86-64.
+Salida: Registro HOST con hashes, orden y recursos; RuntimeReady falso y sin capacidades concedidas.
+Depende de: Contrato de drivers Ring 3 (codigo), Lector SBEF de referencia (verificacion).
+Aceptacion: HOST rechaza ciclos, escapes, privilegios desconocidos y SBEF o presupuestos invalidos; CLI conserva los crates existentes.
+Pendiente: Integrar registro con concesiones del NANO-CORE, proceso SBEF aislado y transporte de dispositivo.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -1300,4 +1311,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-116 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+117 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

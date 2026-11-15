@@ -142,6 +142,79 @@ Deten el proceso con Ctrl+C.
 
 ## La carpeta es el manifiesto
 
+### Puente de registro de drivers en HOST
+
+`uj.py new driver` crea una carpeta con `main.uj`. El perfil declarativo
+`Driver.register` se valida en HOST y referencia un backend nativo SBEF
+ABI 1 ya construido. No agrega instrucciones a UJBC ni ejecuta esas
+llamadas en la VM actual. El runtime de drivers y las concesiones del
+NANO-CORE siguen pendientes.
+
+Desde BMO-X2, con `$ujPython` del ejemplo anterior:
+
+```powershell
+$ujCli = (Resolve-Path .\Ultra-J\uj.py).Path
+Set-Location .\userspace\drivers
+& $ujPython -B $ujCli new driver usb_input --pci 1022:149C
+Set-Location .\usb_input
+# Colocar aqui el backend real del servicio: backend.sbef.
+& $ujPython -B $ujCli driver check
+& $ujPython -B $ujCli driver prepare
+```
+
+La plantilla requiere el backend: sin ese archivo devuelve un error
+con su ruta. No crea carpetas vacias ni un ejecutable de relleno.
+El archivo generado usa este perfil:
+
+```java
+class UsbInput {
+    void register() {
+        Driver.target("x86-64");
+        Driver.pci("1022:149C");
+        Driver.backend("backend.sbef");
+        Driver.memory(65536);
+        Driver.mmio(0, 0, 65536);
+        Driver.dma(40960);
+        Driver.events();
+    }
+}
+```
+
+Los valores de memoria y ventanas de la plantilla son solicitudes que
+deben ajustarse al backend y dispositivo. `mmio(bar, offset, bytes)`
+usa desplazamientos del BAR, sin direcciones fisicas arbitrarias.
+`dma(bytes)` solicita paginas con aislamiento IOMMU. `memory(bytes)`
+limita la solicitud de memoria CPU; HOST comprueba el suelo de regiones
+SBEF mas 4 KiB de pila. No mide el heap futuro ni concede esa memoria.
+Los limites en ejecucion necesitan aplicacion efectiva del NANO-CORE.
+
+`Driver.depends("base");` busca otro registro en
+`dependencies/base/main.uj`. Cada dependencia tiene su propio backend
+local. HOST calcula el orden, conserva hashes de fuentes y binarios,
+y rechaza ciclos y rutas fuera del paquete. Son dependencias de
+servicios de driver, no un mecanismo de enlace de bibliotecas nativas.
+Los errores incluyen archivo y, al analizar declaraciones, linea y
+columna. El informe de dependencias usa el mismo mecanismo de SUPER
+GRAFO que los otros paquetes de ULTRA-J.
+
+`driver prepare` publica atomicamente `build/driver-request.json`.
+Contiene `HostValidated: true`, `RuntimeReady: false` y
+`GrantedCapabilities: []`. Es un registro de solicitudes, no un permiso
+ni un binario nuevo para el kernel. Verificar el contenedor no prueba
+que su codigo implemente un driver funcional. Un fallo posterior
+conserva el ultimo registro valido; antes de usarlo deben comprobarse
+de nuevo sus hashes y el SBEF actual.
+
+El perfil no admite acceso root, IOPL global, ejecucion de comandos ni
+llamadas arbitrarias. Reutilizar este puente evitara modificar Ring 0
+para cada registro cuando exista la ruta general de concesiones y
+arranque de servicios. Hoy valida y prepara en HOST, sin iniciar el
+driver ni hacer funcionar USB en metal.
+
+Comprueba el perfil con `python -B Ultra-J/test_driver.py`.
+
+### Crates de aplicacion
+
 Para comenzar un crate de consola, ejecuta estos comandos desde el
 directorio que alojara la carpeta. En la raiz de BMO-X2 puedes usar:
 

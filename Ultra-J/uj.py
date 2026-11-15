@@ -48,13 +48,26 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest='command', required=True)
     new = commands.add_parser('new')
-    new.add_argument('kind', choices=('crate',))
+    new.add_argument('kind', choices=('crate', 'driver'))
     new.add_argument('name')
+    new.add_argument('--pci')
+    driver = commands.add_parser('driver')
+    driver.add_argument('action', choices=('check', 'prepare'))
     commands.add_parser('run', aliases=['Run'])
     args = parser.parse_args()
     try:
         if args.command == 'new':
-            print(new_crate(args.name))
+            if args.kind == 'driver':
+                from driver import new_driver
+                print(new_driver(args.name, args.pci))
+            else:
+                if args.pci:
+                    raise PackageError('CRATE_ARGUMENT', args.name, '--pci solo se usa con drivers.')
+                print(new_crate(args.name))
+        elif args.command == 'driver':
+            from driver import check_driver, prepare_driver
+            action = check_driver if args.action == 'check' else prepare_driver
+            print(json.dumps(action(Path.cwd().resolve()), indent=2))
         else:
             for line in run_crate(Path.cwd().resolve()):
                 print(line)

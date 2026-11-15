@@ -10,3 +10,8 @@ independiente con acceso directo al controlador. La separacion de
 procesos y el transporte xHCI de usuario siguen pendientes.
 
 [Contrato propuesto y pruebas de cierre](../../contracts/DRIVER-SERVICES.md)
+
+ULTRA-J ofrece un [registro declarativo en HOST](../../Ultra-J/README.md#puente-de-registro-de-drivers-en-host)
+con `new driver`, `driver check` y `driver prepare`. Cada carpeta
+declara un backend real y sus recursos; la preparacion no equivale
+a cargar un driver ni conceder MMIO o DMA.

@@ -120,6 +120,7 @@
 | [Prestamo y revocacion DMA](../kernel/drivers/bus/DMA.md) | diseno | contrato | Acota los marcos visibles al dispositivo y controla su devolucion. |
 | [Contrato de drivers Ring 3](../contracts/DRIVER-SERVICES.md) | diseno | contrato | Separa protocolos de usuario y concesiones privilegiadas de recursos. |
 | [USB HID de Ring 3](../userspace/drivers/usb) | qemu | 3 | Descubre interfaces boot y mantiene fuentes de entrada con colas acotadas y desconexion atomica. |
+| [Registro ULTRA-J de drivers](../Ultra-J/driver.py) | host | host | Valida registros declarativos de driver y solicita recursos sin concederlos. |
 
 ## Dependencias declaradas
 
@@ -325,5 +326,7 @@
 | usb-ring3-driver | driver-services-contract | codigo |
 | driver-services-contract | dma-lease | plan |
 | desktop-workspaces | usb-ring3-driver | codigo |
+| ultra-j-driver-registration | driver-services-contract | codigo |
+| ultra-j-driver-registration | sbef-host-reader | verificacion |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

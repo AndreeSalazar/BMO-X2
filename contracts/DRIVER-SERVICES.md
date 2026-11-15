@@ -4,6 +4,12 @@ Estado: DISENO del transporte privilegiado. Biblioteca HID en Ring 3
 con pruebas HOST y regresiones QEMU. No hay aun procesos de driver
 independientes ni concesion directa de xHCI protegido por IOMMU.
 
+El [perfil declarativo de ULTRA-J](../Ultra-J/README.md#puente-de-registro-de-drivers-en-host)
+ya valida y prepara solicitudes desde una carpeta de driver. Declara
+identidad PCI, backend SBEF, presupuestos, MMIO, DMA, eventos y
+dependencias. Su salida HOST no concede derechos ni inicia procesos.
+No cambia el ABI del kernel ni implementa aun el transporte privilegiado.
+
 ## Reparto
 
 | Lugar | Trabajo |

@@ -1,0 +1,17 @@
+{
+  "evidence": "HOST",
+  "scope": "Declarative registration and SBEF structure only; no driver process, kernel grants or hardware execution.",
+  "tests": {
+    "run": 13,
+    "passed": 12,
+    "skipped": 1,
+    "skip_reason": "Windows symlink creation unavailable; deterministic path-redirection tests pass"
+  },
+  "existing_ultra_j_tests": 13,
+  "source_sha256": {
+    "Ultra-J/driver.py": "f65c50d882d99b51bc11c18274b0cd227957ed001aab9f34e6b339171b4b7ea3",
+    "Ultra-J/uj.py": "72ee187b0281a70c2cf30aa3852a7411fb4c7bc76ed18177a35f15d8ee4c4690",
+    "Ultra-J/test_driver.py": "f2d675067255dae95d52bb5f4105e2f085d895585892ef80d863731817ddc31e",
+    "tools/host/sbef/format.py": "7298a8b11a27a909c135735629444acc8075d936b9c06d7282ebce73307e641a"
+  }
+}

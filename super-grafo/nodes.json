@@ -1901,6 +1901,23 @@
       "salida": "Interfaces, endpoints, solicitudes de configuracion y cambios de entrada.",
       "aceptacion": "HOST verifica 18 casos USB y 14 de escritorio; el nuevo servicio compila freestanding. Las sondas HID QEMU anteriores se conservan como evidencia separada.",
       "falta": "El nuevo InputService solo tiene evidencia HOST. Faltan proceso SBEF independiente, transporte Ring 3, aislamiento DMA y enumeracion AMD."
+    },
+    {
+      "id": "ultra-j-driver-registration",
+      "titulo": "Registro ULTRA-J de drivers",
+      "ruta": "Ultra-J/driver.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [
+        15000,
+        5500
+      ],
+      "que": "Valida registros declarativos de driver y solicita recursos sin concederlos.",
+      "entrada": "main.uj, dependencias locales y backends SBEF ABI 1 x86-64.",
+      "salida": "Registro HOST con hashes, orden y recursos; RuntimeReady falso y sin capacidades concedidas.",
+      "aceptacion": "HOST rechaza ciclos, escapes, privilegios desconocidos y SBEF o presupuestos invalidos; CLI conserva los crates existentes.",
+      "falta": "Integrar registro con concesiones del NANO-CORE, proceso SBEF aislado y transporte de dispositivo."
     }
   ],
   "relaciones": [
@@ -2903,6 +2920,16 @@
       "de": "desktop-workspaces",
       "a": "usb-ring3-driver",
       "clase": "codigo"
+    },
+    {
+      "de": "ultra-j-driver-registration",
+      "a": "driver-services-contract",
+      "clase": "codigo"
+    },
+    {
+      "de": "ultra-j-driver-registration",
+      "a": "sbef-host-reader",
+      "clase": "verificacion"
     }
   ]
 }

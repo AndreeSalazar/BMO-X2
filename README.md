@@ -125,6 +125,12 @@ xHCI de las sondas sigue en Ring 0 y la concesion de DMA directo a
 un servicio aislado aun requiere implementar el dominio IOMMU.
 [Frontera y pruebas de cierre](contracts/DRIVER-SERVICES.md).
 
+El [puente ULTRA-J para drivers](Ultra-J/README.md#puente-de-registro-de-drivers-en-host)
+prepara en HOST el registro por carpetas: identidad PCI, backend SBEF,
+recursos solicitados y dependencias. Valida entradas sin conceder
+capacidades ni ejecutar el driver; la ruta general de arranque y
+aislamiento de servicios sigue pendiente.
+
 ## Probar en QEMU
 
 El [backlog de implementacion](docs/RING0-PLAN.md) concentra el trabajo
