@@ -2227,6 +2227,40 @@
       "salida": "Transferencia autorizada o rechazo con fase de diagnostico.",
       "aceptacion": "QEMU limita DMA al buffer y retiene el marco si falta confirmacion.",
       "falta": "Implementar la cola y probar el primer dispositivo virtual."
+    },
+    {
+      "id": "driver-services-contract",
+      "titulo": "Contrato de drivers Ring 3",
+      "ruta": "contracts/DRIVER-SERVICES.md",
+      "estado": "diseno",
+      "anillo": "contrato",
+      "lenguaje": "contrato",
+      "posicion": [
+        15000,
+        5000
+      ],
+      "que": "Separa protocolos de usuario y concesiones privilegiadas de recursos.",
+      "entrada": "Dispositivo, propietario, capacidades, dominio DMA y eventos.",
+      "salida": "Condiciones de acceso, espera, fallo y revocacion por servicio.",
+      "aceptacion": "Un proceso CPL3 recibe solo sus recursos; CPU y DMA rechazan accesos ajenos, incluso tras revocacion.",
+      "falta": "Implementar procesos, concesiones de MMIO y DMA con IOMMU y eventos de driver."
+    },
+    {
+      "id": "usb-ring3-driver",
+      "titulo": "USB HID de Ring 3",
+      "ruta": "userspace/drivers/usb",
+      "estado": "qemu",
+      "anillo": "3",
+      "lenguaje": "Rust",
+      "posicion": [
+        15000,
+        5250
+      ],
+      "que": "Descubre interfaces boot y decodifica informes de teclado y raton fuera del compositor.",
+      "entrada": "Descriptores acotados y reportes recibidos por un transporte autorizado.",
+      "salida": "Interfaces, endpoints, solicitudes de configuracion y cambios de entrada.",
+      "aceptacion": "HOST verifica diez casos USB y catorce de escritorio; QEMU conserva teclado y raton en sondas separadas. Evidencia en evidence/validation.json.",
+      "falta": "El parser solo tiene evidencia HOST; faltan transporte Ring 3, aislamiento de proceso, enumeracion AMD y recepcion simultanea de ambos HID."
     }
   ],
   "relaciones": [
@@ -3484,6 +3518,21 @@
       "de": "desktop-workspaces",
       "a": "audio-mixer",
       "clase": "plan"
+    },
+    {
+      "de": "usb-ring3-driver",
+      "a": "driver-services-contract",
+      "clase": "codigo"
+    },
+    {
+      "de": "driver-services-contract",
+      "a": "dma-lease",
+      "clase": "plan"
+    },
+    {
+      "de": "desktop-workspaces",
+      "a": "usb-ring3-driver",
+      "clase": "codigo"
     }
   ]
 }

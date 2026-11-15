@@ -117,6 +117,14 @@ procesos y recursos mas general, eventos de interfaz, texto y fuentes,
 layout, bibliotecas de ULTRA-J y medidas completas de RAM y ejecucion.
 Un nucleo pequeno necesita tambien controladores y servicios probados.
 
+La familia [drivers de Ring 3](userspace/drivers/README.md) comienza
+con una biblioteca USB independiente del compositor. El escritorio
+comparte sus decodificadores de teclado y raton; el lector de
+descriptores identifica interfaces y endpoints en HOST. El transporte
+xHCI de las sondas sigue en Ring 0 y la concesion de DMA directo a
+un servicio aislado aun requiere implementar el dominio IOMMU.
+[Frontera y pruebas de cierre](contracts/DRIVER-SERVICES.md).
+
 ## Probar en QEMU
 
 Desde la raiz de BMO-X2, con QEMU, Clang y Python disponibles:

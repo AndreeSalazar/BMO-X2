@@ -138,6 +138,8 @@
 | [DoomGeneric E1M1 en Ring 3](../tools/build-doom-engine.ps1) | qemu | host | Enlaza DoomGeneric con el runtime C y presenta el juego por CPU. |
 | [Mezcla y controles de audio](../userspace/services/audio) | host | 3 | Mezcla PCM estereo de hasta dieciseis fuentes con ganancia acotada. |
 | [Prestamo y revocacion DMA](../kernel/drivers/bus/DMA.md) | diseno | contrato | Acota los marcos visibles al dispositivo y controla su devolucion. |
+| [Contrato de drivers Ring 3](../contracts/DRIVER-SERVICES.md) | diseno | contrato | Separa protocolos de usuario y concesiones privilegiadas de recursos. |
+| [USB HID de Ring 3](../userspace/drivers/usb) | qemu | 3 | Descubre interfaces boot y decodifica informes de teclado y raton fuera del compositor. |
 
 ## Dependencias declaradas
 
@@ -394,5 +396,8 @@
 | audio-mixer | device-io | plan |
 | audio-mixer | dma-lease | plan |
 | desktop-workspaces | audio-mixer | plan |
+| usb-ring3-driver | driver-services-contract | codigo |
+| driver-services-contract | dma-lease | plan |
+| desktop-workspaces | usb-ring3-driver | codigo |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

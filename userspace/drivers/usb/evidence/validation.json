@@ -1,0 +1,224 @@
+{
+  "evidence": [
+    "HOST",
+    "QEMU"
+  ],
+  "scope": "Descriptor discovery HOST; shared HID decoders in CPL3 QEMU. xHCI transport remains Ring 0. No physical HID or isolated driver-process claim.",
+  "host_results": {
+    "usb": "ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+    "desktop": "ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+  },
+  "target": "x86_64-unknown-none",
+  "no_std": true,
+  "unsafe_code": "forbidden",
+  "qemu": {
+    "keyboard": {
+      "Passed": 2,
+      "Total": 2,
+      "Cases": [
+        {
+          "Case": "normal",
+          "Passed": true,
+          "UserCpl": 3,
+          "DesktopSession": true,
+          "XhciCommandCompleted": true,
+          "XhciUsbDeviceAddressed": true,
+          "XhciUsbDeviceDescriptorRead": true,
+          "XhciPort": 5,
+          "XhciSpeed": 3,
+          "XhciSlot": 1,
+          "XhciControllerStopped": true,
+          "UsbConfigurationBytes": 34,
+          "UsbBootProtocolSelected": true,
+          "UsbDeviceDescriptor": "120100020000004027060100000001040b01",
+          "UsbSessionExitVerified": true,
+          "UsbInputVerified": true,
+          "UsbCabinaVerified": true,
+          "CpuL1": {
+            "Leaf": "0x4",
+            "Data": null,
+            "Instruction": null,
+            "Unified": null
+          },
+          "XhciControllers": 2,
+          "XhciSelectedBdf": "0028",
+          "XhciConnectedPorts": 1,
+          "XhciResetStage": 3,
+          "XhciScratchpadPages": 0,
+          "XhciContextBytes": 32,
+          "DmaReservationValidated": true,
+          "XhciReservedBytes": 40960,
+          "UsbCabinaOpenedWhileControllerRunning": true,
+          "UsbWaitVerified": true,
+          "XhciContextLayoutVerified": true,
+          "XhciScratchpadCapacityPages": 4,
+          "XhciScratchpadTableVerified": true,
+          "UsbBootKeyboardInterface": 0,
+          "UsbKeyboardEndpoint": 129,
+          "UsbKeyboardReportsBeforeExit": 260,
+          "UsbKeyboardRingWrapVerified": true,
+          "UsbKeyboardFinalReports": [
+            "00003c0000000000",
+            "0000000000000000",
+            "00003c0000000000",
+            "0000000000000000"
+          ],
+          "UsbKeyboardTransferVerified": true,
+          "XhciKeyboardInterval": 6,
+          "BootLogFat32Verified": true
+        },
+        {
+          "Case": "external-permissions",
+          "Passed": true,
+          "SbefAccepted": false,
+          "UserCodeCopied": false,
+          "UserAddressSpaceActivated": false,
+          "RejectedField": "permissions",
+          "RejectedOffset": 116
+        }
+      ],
+      "run": "run-desktop-media-089c80f67554",
+      "evidence": "QEMU",
+      "disk_sbef": true,
+      "physical_boot": false,
+      "qemu_cpu": "qemu64",
+      "guest_ram_mib": 256,
+      "xhci_reset_probe": false,
+      "xhci_transport_probe": false,
+      "xhci_timer_fault": false,
+      "xhci_empty_ports": false,
+      "boot_files_bytes": 33895,
+      "disk_image_bytes": 68174336,
+      "desktop_reuse_probe": false,
+      "ring0_gate_budget": {
+        "Bytes": 1076,
+        "LimitBytes": 2048,
+        "HeadroomBytes": 972,
+        "SHA256": "d62f93bf181ea4aa41a0e7fcfde03545e23bfcb4ee2d46a26cb9dacbf4682f04",
+        "FitsReportedL1Capacity": null
+      },
+      "desktop_budget": {
+        "file_bytes": 10478,
+        "file_limit_bytes": 16512,
+        "region_pages_bytes": 16384,
+        "region_pages_limit_bytes": 16384,
+        "stack_bytes": 4096
+      },
+      "boot_packet_bytes": 2937,
+      "uefi_bridge_bytes": 20480,
+      "files": {
+        "EFI/BMO-X2/BMO-X2.EFI": "c421d0dc5f8b8a33c24b222466794605f5d0220857cec513d341e82d1ea44a2e",
+        "BMO-X2/INICIO.X86": "10faeedac3294a458834f757417d334279140f0938f3d9e147b60a84745d2f5f",
+        "BMO-X2/DESKTOP.SBF": "f5b14d72dad6454926283bff3f52f55791cb465424597a147d2131588eadc613"
+      }
+    },
+    "mouse": {
+      "Passed": 2,
+      "Total": 2,
+      "Cases": [
+        {
+          "Case": "normal",
+          "Passed": true,
+          "UserCpl": 3,
+          "DesktopSession": true,
+          "XhciCommandCompleted": true,
+          "XhciUsbDeviceAddressed": true,
+          "XhciUsbDeviceDescriptorRead": true,
+          "XhciPort": 5,
+          "XhciSpeed": 3,
+          "XhciSlot": 1,
+          "XhciControllerStopped": true,
+          "UsbConfigurationBytes": 34,
+          "UsbBootProtocolSelected": true,
+          "UsbDeviceDescriptor": "120100020000004027060100000001020901",
+          "UsbSessionExitVerified": true,
+          "UsbInputVerified": true,
+          "UsbCabinaVerified": true,
+          "CpuL1": {
+            "Leaf": "0x4",
+            "Data": null,
+            "Instruction": null,
+            "Unified": null
+          },
+          "XhciControllers": 2,
+          "XhciSelectedBdf": "0028",
+          "XhciConnectedPorts": 1,
+          "XhciResetStage": 3,
+          "XhciScratchpadPages": 0,
+          "XhciContextBytes": 32,
+          "DmaReservationValidated": true,
+          "XhciReservedBytes": 40960,
+          "UsbCabinaOpenedWhileControllerRunning": true,
+          "UsbWaitVerified": true,
+          "XhciContextLayoutVerified": true,
+          "XhciScratchpadCapacityPages": 4,
+          "XhciScratchpadTableVerified": true,
+          "UsbBootMouseInterface": 0,
+          "UsbMouseEndpoint": 129,
+          "UsbMouseReportsBeforeExit": 4,
+          "UsbMouseVerified": true,
+          "UsbMouseFinalReports": [
+            "0064000000000000",
+            "0100000000000000",
+            "0000000000000000",
+            "00e7e20000000000"
+          ],
+          "XhciMouseInterval": 6,
+          "BootLogFat32Verified": true
+        },
+        {
+          "Case": "external-permissions",
+          "Passed": true,
+          "SbefAccepted": false,
+          "UserCodeCopied": false,
+          "UserAddressSpaceActivated": false,
+          "RejectedField": "permissions",
+          "RejectedOffset": 116
+        }
+      ],
+      "run": "run-desktop-media-2bced6685b2a",
+      "evidence": "QEMU",
+      "disk_sbef": true,
+      "physical_boot": false,
+      "qemu_cpu": "qemu64",
+      "guest_ram_mib": 256,
+      "xhci_reset_probe": false,
+      "xhci_transport_probe": false,
+      "xhci_timer_fault": false,
+      "xhci_empty_ports": false,
+      "boot_files_bytes": 33231,
+      "disk_image_bytes": 68174336,
+      "desktop_reuse_probe": false,
+      "ring0_gate_budget": {
+        "Bytes": 1076,
+        "LimitBytes": 2048,
+        "HeadroomBytes": 972,
+        "SHA256": "d62f93bf181ea4aa41a0e7fcfde03545e23bfcb4ee2d46a26cb9dacbf4682f04",
+        "FitsReportedL1Capacity": null
+      },
+      "desktop_budget": {
+        "file_bytes": 9814,
+        "file_limit_bytes": 16512,
+        "region_pages_bytes": 16384,
+        "region_pages_limit_bytes": 16384,
+        "stack_bytes": 4096
+      },
+      "boot_packet_bytes": 2937,
+      "uefi_bridge_bytes": 20480,
+      "files": {
+        "EFI/BMO-X2/BMO-X2.EFI": "062e4f6f4eea526f324aabfe7f3f0af2c93df876150ac11fc98fb59bde94d2e8",
+        "BMO-X2/INICIO.X86": "10faeedac3294a458834f757417d334279140f0938f3d9e147b60a84745d2f5f",
+        "BMO-X2/DESKTOP.SBF": "a1ea4763d5a958986fdd25cfe0b0f64160d68242c69f5872740959844747fc4a"
+      }
+    }
+  },
+  "source_sha256": {
+    "userspace/drivers/usb/src/lib.rs": "e22c856159baf8ad92fc19df422efc9fefe2ca90ed392081fc67bf8b38e44a2f",
+    "userspace/drivers/usb/src/hid.rs": "cc6688f7fe09080e7a4a67fe540c2ad1e74f46fdb017ce7697b7145957d879cf",
+    "userspace/drivers/usb/src/descriptor.rs": "c1be18fcce886274ffbb97b698e332eaf1c765c95bb2dcf9d021fdd74e9f5ccd",
+    "userspace/drivers/usb/src/tests.rs": "c83ab6c66790c71a7b6c43235c1e35862df92e39dfd28186c2157c0d16459fb2",
+    "userspace/services/desktop/src/usb_hid.rs": "6e5d65a9c65101a936e66b564dd90e77e26f4109dbeb85e5e9a9f1709492c0fa",
+    "tools/desktop/usb_probe.rs": "24f7301114443de75772308eafdd23248a65865272841b43f20c10fc4bf2f45e",
+    "tools/desktop/usb_mouse_probe.rs": "4505c9d18fbeb55c9635e1e81f5bf42052ac36f2b8d73613335a604ff8001946"
+  }
+}

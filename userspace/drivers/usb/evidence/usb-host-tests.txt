@@ -1,0 +1,14 @@
+
+running 10 tests
+test tests::actual_qemu_descriptors_and_requests ... ok
+test tests::alternate_setting_is_not_activated_implicitly ... ok
+test tests::boot_binding_requires_a_report_descriptor_declaration ... ok
+test tests::composite_keyboard_and_mouse_keep_their_interfaces_and_endpoints ... ok
+test tests::duplicate_endpoint_and_mismatched_counts_are_rejected ... ok
+test tests::disconnect_releases_keys_and_mouse_buttons ... ok
+test tests::selected_endpoint_requires_direction_type_size_and_interval ... ok
+test tests::truncated_and_zero_length_descriptors_explain_the_offset ... ok
+test tests::report_protocol_only_interface_is_not_treated_as_boot ... ok
+test tests::mutations_of_untrusted_lengths_do_not_panic ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

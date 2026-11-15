@@ -1,0 +1,16 @@
+[
+  {
+    "file": "qemu-keyboard.bin",
+    "source_run": "run-desktop-media-54bfd90cdcfa",
+    "evidence": "QEMU",
+    "source_offset": "0x4c40",
+    "sha256": "c6998560680dfbe184debafcdab2879e809edab78d4589e4ebbfb9a3e6e45407"
+  },
+  {
+    "file": "qemu-mouse.bin",
+    "source_run": "run-desktop-media-8baa7cfa8b7d",
+    "evidence": "QEMU",
+    "source_offset": "0x4c40",
+    "sha256": "081cd992d1fcc355351922e9fb38b05e9ced133753e35a9b76021487af09e580"
+  }
+]

@@ -1406,7 +1406,7 @@ Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-Li
 Estado: QEMU. Anillo: 3. Lenguaje: Rust.
 Entrada: Eventos de entrada, superficies de clientes y capacidad de pantalla.
 Salida: Cuadro en RAM, espacio activo, foco, movimiento de ventanas y peticion de cierre desde CABINA.
-Depende de: Supervisor Rust de Ring 3 (plan), Mezcla y controles de audio (plan).
+Depende de: Supervisor Rust de Ring 3 (plan), Mezcla y controles de audio (plan), USB HID de Ring 3 (codigo).
 Aceptacion: HOST exige presupuesto SBEF y puerta de sesion de hasta 2048 bytes. QEMU registra L1 por CPUID y verifica arranque FAT32, entrada, rechazo de permisos y reuso de cinco marcos.
 Pendiente: Entregar marcos al asignador, cargar un SBEF distinto, aislar procesos y conectar el compositor y el planificador.
 
@@ -1476,6 +1476,28 @@ Depende de: Revocacion en caliente y diario de fallos (plan).
 Aceptacion: QEMU limita DMA al buffer y retiene el marco si falta confirmacion.
 Pendiente: Implementar la cola y probar el primer dispositivo virtual.
 
+## contracts/DRIVER-SERVICES.md
+
+Separa protocolos de usuario y concesiones privilegiadas de recursos.
+
+Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
+Entrada: Dispositivo, propietario, capacidades, dominio DMA y eventos.
+Salida: Condiciones de acceso, espera, fallo y revocacion por servicio.
+Depende de: Prestamo y revocacion DMA (plan).
+Aceptacion: Un proceso CPL3 recibe solo sus recursos; CPU y DMA rechazan accesos ajenos, incluso tras revocacion.
+Pendiente: Implementar procesos, concesiones de MMIO y DMA con IOMMU y eventos de driver.
+
+## userspace/drivers/usb
+
+Descubre interfaces boot y decodifica informes de teclado y raton fuera del compositor.
+
+Estado: QEMU. Anillo: 3. Lenguaje: Rust.
+Entrada: Descriptores acotados y reportes recibidos por un transporte autorizado.
+Salida: Interfaces, endpoints, solicitudes de configuracion y cambios de entrada.
+Depende de: Contrato de drivers Ring 3 (codigo).
+Aceptacion: HOST verifica diez casos USB y catorce de escritorio; QEMU conserva teclado y raton en sondas separadas. Evidencia en evidence/validation.json.
+Pendiente: El parser solo tiene evidencia HOST; faltan transporte Ring 3, aislamiento de proceso, enumeracion AMD y recepcion simultanea de ambos HID.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -1498,4 +1520,4 @@ Estado: DISENO; aun sin crates y sin std del anfitrion.
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-134 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+136 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
