@@ -1,0 +1,14 @@
+{
+  "evidence": "METAL",
+  "date": "2026-11-15",
+  "observed_label": "XHCI DMA OK",
+  "connected_ports": 0,
+  "keyboard": "PS2 ESPERA",
+  "mouse": "PS2 ESPERA",
+  "usb_hid_working": false,
+  "bootlog": "metal-dma-ok-bootlog-v3.txt",
+  "photo_sha256": "38206a8bf3e3fd260e84d85def8162b32dbbd30200be80c7a82b601e6bd9742e",
+  "verified": "The installed probe validates No Op completion and controller halt before publishing this label.",
+  "limit": "The old census occurred after a short transport probe and controller stop. No stable powered-port census or HID enumeration is established.",
+  "next": "Power admissible ports, wait 200 ms using PIT channel 2 and retain the census while the xHC runs."
+}

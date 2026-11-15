@@ -72,6 +72,7 @@ pendiente. La capacidad de scratchpads de esta prueba es cuatro paginas.
 | `XHCI MAPA RUNTIME` | Pagina runtime en conflicto con el mapa UEFI. |
 | `XHCI MAPA DOORBELL` | Pagina doorbell en conflicto con el mapa UEFI. |
 | `XHCI DMA SCRATCHPADS` | El controlador pide mas de cuatro paginas auxiliares. |
+| `XHCI RELOJ ESPERA` | El temporizador de estabilizacion no respondio; prueba detenida. |
 | `XHCI DMA REINICIO` | No termino el reinicio. |
 | `XHCI DMA ARRANQUE` | No se confirmo la salida de HCHalted. |
 | `XHCI DMA RESPUESTA` | No llego una terminacion valida dentro del limite. |
@@ -93,6 +94,26 @@ de registros es la [especificacion xHCI, secciones 5.3.7 y 5.3.8](https://www.in
 `tools/boot/test_xhci_layout.py` ejecuta el validador ensamblado real en
 HOST con bancos compactos y casos invalidos. No simula el controlador.
 La nueva disposicion aun necesita confirmacion en AMD.
+
+La siguiente foto fisica confirmo `XHCI DMA OK`, con `USB PUERTOS 0`.
+Eso acredita la terminacion No Op y la parada, pero no la presencia de HID.
+El censo anterior ocurria al terminar una prueba breve y detener el xHC.
+La sonda ahora verifica PP cuando PPC admite control de alimentacion,
+activa los puertos que lo necesitan sin escribir los bits RW1C, PED o PR,
+y espera veinte intervalos PIT de algo mas de 10 ms antes del censo.
+Usa el canal 2, sin IRQ y sin alterar el canal 0 del escritorio. Restaura
+los bits de gate y altavoz del puerto 61h. No reconstruye una programacion
+previa del canal 2; este perfil de arranque carece de consumidor de audio.
+
+La cuenta se conserva mientras el xHC sigue activo y CNR esta despejado.
+Despues se verifica el No Op, se detiene el xHC y se revoca Bus Master.
+QEMU verifica veinte intervalos y el estado activo durante el censo.
+`--xhci-timer-fault` junto con `--xhci-transport-probe` desactiva el PIT en
+QEMU y comprueba la salida acotada con parada y revocacion de DMA.
+Ese ensayo se guarda en `qemu-only/`, separado de la imagen para metal.
+La espera estabiliza la observacion inicial; no es aun un algoritmo de
+debounce que compruebe 100 ms continuos por cada puerto, ni enumera HID.
+El nuevo censo fisico sigue pendiente.
 
 Para reproducir en PowerShell 5.1 desde BMO-X2:
 

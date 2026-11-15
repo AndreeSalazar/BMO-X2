@@ -2,6 +2,12 @@
 
 ## Transporte USB AMD -- 15-11-2026
 
+La tercera foto confirma `XHCI DMA OK` en AMD y cero puertos al cerrar
+la sonda. La siguiente version alimenta puertos que lo requieren,
+espera 200 ms medidos por PIT canal 2 y registra CCS antes de detener
+el xHC. QEMU comprueba el censo activo y el fallo sin PIT con salida
+acotada, parada y Bus Master revocado. Falta repetir el censo en metal.
+
 La segunda foto muestra `XHCI DMA MAPA` y tres puertos conectados.
 Se corrigio una restriccion del prototipo que exigia RTSOFF/DBOFF
 a partir de 4096. El padre documenta RTSOFF 0x4C0 en esta placa.

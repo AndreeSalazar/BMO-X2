@@ -11,4 +11,4 @@ Descubre xHCI y prueba transporte de comandos con reserva DMA y MMIO supervisora
 - Entrada: Inventario PCI, entrega UEFI, BAR, RTSOFF/DBOFF y diez paginas LoaderData.
 - Salida: Respuesta No Op comprobada, parada, Bus Master revocado y alias retirados.
 - Aceptacion: QEMU verifica respuesta, reserva disjunta, parada y rechazo W+X. Evidencia en evidence/transport-qemu.json.
-- Pendiente: Metal mostro MAPA: se corrigio el rechazo de bancos compactos. Confirmar transporte AMD; enumerar ambos HID, medir plazos reales e integrar IOMMU.
+- Pendiente: Metal confirma No Op y parada AMD, con cero puertos. Verificar alimentacion y censo estable en marcha; enumerar ambos HID e integrar IOMMU.

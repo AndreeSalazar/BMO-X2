@@ -11,4 +11,4 @@ Ofrece recursos de entrada y salida a servicios autorizados.
 - Entrada: Dispositivos descubiertos, buffers y eventos.
 - Salida: Canales y ventanas de aparato acotados.
 - Aceptacion: Pruebas de acceso, revocacion y fallo de servicio por dispositivo admitido.
-- Pendiente: Metal confirma el reinicio AMD. El transporte No Op pasa QEMU; falta confirmarlo en AMD, direccionar teclado y raton y activar ambos endpoints HID.
+- Pendiente: Metal confirma transporte No Op AMD. Falta confirmar puertos tras estabilizacion, direccionar teclado y raton y activar ambos endpoints HID.

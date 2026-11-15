@@ -47,6 +47,7 @@ def main():
     probes.add_argument('--xhci-command', action='store_true', help='Run the QEMU-only xHCI command probe')
     probes.add_argument('--xhci-reset-probe', action='store_true', help='Test reset without arming USB DMA')
     probes.add_argument('--xhci-transport-probe', action='store_true', help='Test one No Op command on AMD 149C or QEMU, then revoke DMA')
+    parser.add_argument('--xhci-timer-fault', action='store_true', help='QEMU-only: remove PIT to verify finite USB wait failure')
     probes.add_argument('--reuse-session', action='store_true', help='Run the QEMU-only desktop frame reuse probe')
     probes.add_argument('--ultra-j-view', type=Path, help='Test the ULTRA-J Ring 3 view SBEF in QEMU')
     probes.add_argument('--sheet-desktop', type=Path, help='Test the Ring 3 sheet desktop in QEMU')
@@ -56,6 +57,8 @@ def main():
     parser.add_argument('--usb-full-speed', action='store_true', help='Use USB 1.x in the xHCI probe')
     parser.add_argument('--usb-mouse', action='store_true', help='Probe a USB boot mouse instead of a keyboard')
     args = parser.parse_args()
+    if args.xhci_timer_fault and not args.xhci_transport_probe:
+        parser.error('--xhci-timer-fault requiere --xhci-transport-probe')
     if bool(args.ultra_j_view) != bool(args.ultra_j_action):
         parser.error('--ultra-j-view y --ultra-j-action deben usarse juntos')
     if args.ultra_j_launcher and not args.ultra_j_view:
@@ -186,6 +189,8 @@ def main():
         (run / 'xhci-reset.txt').write_text('AMD 1022:149C / QEMU 1B36:000D\n', encoding='ascii')
     if args.xhci_transport_probe:
         (run / 'xhci-transport.txt').write_text('AMD 1022:149C / QEMU 1B36:000D\n', encoding='ascii')
+    if args.xhci_timer_fault:
+        (run / 'xhci-timer-fault.txt').write_text('QEMU: PIT disabled\n', encoding='ascii')
     if args.usb_full_speed:
         (run / 'usb-full-speed.txt').write_text('QEMU\n', encoding='ascii')
     if args.usb_mouse:
@@ -203,7 +208,8 @@ def main():
                     '--casos', 'normal', 'external-permissions'],
                    check=True, cwd=run, timeout=100)
 
-    media = run / ('diagnostic-media' if args.xhci_reset_probe or args.xhci_transport_probe else
+    media = run / ('qemu-only' if args.xhci_timer_fault else
+                   'diagnostic-media' if args.xhci_reset_probe or args.xhci_transport_probe else
                    'qemu-only' if args.xhci_command or args.reuse_session or args.ultra_j_view
                    or args.sheet_desktop else 'media')
     files = {'EFI/BMO-X2/BMO-X2.EFI': efi, 'BMO-X2/INICIO.X86': payload,
@@ -228,6 +234,7 @@ def main():
     report.update(run=run.name, evidence='QEMU', disk_sbef=True, physical_boot=False,
                   qemu_cpu=args.cpu, guest_ram_mib=args.ram_mib, xhci_reset_probe=args.xhci_reset_probe,
                   xhci_transport_probe=args.xhci_transport_probe,
+                  xhci_timer_fault=args.xhci_timer_fault,
                   boot_files_bytes=sum((media / name).stat().st_size for name in files),
                   disk_image_bytes=(run / 'build/puente-normal.img').stat().st_size,
                   desktop_reuse_probe=args.reuse_session,

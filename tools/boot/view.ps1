@@ -84,6 +84,9 @@ $arguments = @(
     '-drive', ('"file={0},format=raw,if=ide,snapshot=on"' -f $disk.FullName),
     '-vga', 'std', '-display', 'sdl,gl=off', '-serial', ('"file:{0}"' -f $serial), '-monitor', 'none', '-no-reboot'
 )
+if (Test-Path -LiteralPath (Join-Path $runDir.FullName 'xhci-timer-fault.txt')) {
+    $arguments[$arguments.IndexOf('pc')] = 'pc,pit=off'
+}
 if ($actualProfile -in @('desktop-external','doom-external','doom-engine','desktop-doom')) {
     $module = Get-Item -LiteralPath (Join-Path $runDir.FullName 'sbef-module.bin')
     if (-not ($module -is [IO.FileInfo]) -or ($module.Attributes -band [IO.FileAttributes]::ReparsePoint)) {

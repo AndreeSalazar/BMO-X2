@@ -149,7 +149,8 @@ def run(case):
             staging += ['-device', 'qemu-xhci,id=bmo-xhci-second',
                         '-device', f'{hid_device},bus=bmo-xhci-second.0{usb_version}']
     process = subprocess.Popen([
-        str(qemu), '-machine', 'pc', '-cpu', args.cpu, '-accel', 'tcg', '-m', f'{args.ram_mib}M', '-smp', '1',
+        str(qemu), '-machine', 'pc,pit=off' if (ROOT / 'xhci-timer-fault.txt').is_file() else 'pc',
+        '-cpu', args.cpu, '-accel', 'tcg', '-m', f'{args.ram_mib}M', '-smp', '1',
         '-drive', f'if=pflash,format=raw,unit=0,readonly=on,file={share / "edk2-x86_64-code.fd"}',
         '-drive', f'if=pflash,format=raw,unit=1,file={variables}',
         '-drive', f'file={guest_disk},format=raw,if=ide,snapshot={"off" if check_bootlog else "on"}',

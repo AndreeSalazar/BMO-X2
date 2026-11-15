@@ -8,8 +8,9 @@ BMO-X2 arranca perfiles de prueba independientes en QEMU/OVMF. Hay
 evidencia de Ring 0 y Ring 3, escritorio Rust cargado desde SBEF externo,
 INVOKE, WAIT y revocacion de paginas. El equipo fisico llega al escritorio,
 pero su teclado y raton USB siguen pendientes de enumeracion HID.
-El siguiente ensayo AMD verifica una respuesta de comando por DMA y
-detiene el controlador. [Prueba y estados visibles](docs/FIRST-BOOT.md#perfil-experimental-de-transporte-xhci).
+El AMD ya confirmo una respuesta de comando por DMA y la parada del
+controlador. El siguiente ensayo estabiliza los puertos y cuenta las
+conexiones antes de detenerlo. [Prueba y estados visibles](docs/FIRST-BOOT.md#perfil-experimental-de-transporte-xhci).
 
 ## Probar en QEMU
 

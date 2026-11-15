@@ -154,6 +154,10 @@ scratchpads_ready:
     xor %esi, %esi
     call command_poll
     jne command_stop
+#ifdef XHCI_TRANSPORT_PROBE
+    call xhci_transport_ports
+    jne command_stop
+#endif
     movl $0, (%r10)
 #ifdef XHCI_TRANSPORT_PROBE
     movl $13, %gs:0x3e0
@@ -261,10 +265,13 @@ command_restore:
     out %eax, %dx
 command_skip:
 #ifdef XHCI_TRANSPORT_PROBE
+    cmpl $0, %gs:0x3e8
+    jne transport_census_ready
     mov %gs:0x370, %eax
     mov %gs:0x374, %edx
     call xhci_count_ports
     mov %eax, %gs:0x3e8
+transport_census_ready:
 #endif
     ret
 
@@ -834,6 +841,7 @@ enum_failed:
 #else
 #include "xhci_transport_layout.inc"
 #include "xhci_transport_mmio.inc"
+#include "xhci_transport_ports.inc"
 xhci_live_report:
     mov $256, %eax
 xhci_live_stop:
