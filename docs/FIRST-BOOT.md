@@ -28,7 +28,11 @@ antes de ExitBootServices. En Windows se puede abrir desde A:. El
 informe fijo usa ASCII con valores hexadecimales: bytes del SBEF,
 hoja CPUID de cache, lectura del puerto PS/2 64h y cantidad PCI xHCI.
 La version 2 agrega BDF, ID PCI y comando PCI de los dos primeros
-controladores. Las filas con guiones indican posiciones vacias.
+controladores. La version 3 registra tambien BAR0_LO y BAR0_HI.
+El puente lee la configuracion PCI y restaura el selector al terminar.
+La mitad alta se lee para un BAR de memoria de 64 bits. Se conserva
+el valor bajo crudo para identificar el tipo de BAR. Las filas con
+guiones indican posiciones vacias.
 El ID contiene dispositivo en los 16 bits altos y fabricante en
 los bajos. El bit 1 del comando indica decodificacion MMIO.
 Se genera sin teclado ni raton. Un error de escritura permite que
@@ -57,14 +61,20 @@ entrada sostenida quedan pendientes.
 
 ### Condiciones para el siguiente BOOT de entrada
 
-1. Ring 0 debe comprobar los requisitos del AMD `1022:149C` y
-   registrar la fase lograda o el primer error de inicializacion.
+1. Cotejar la base MMIO del AMD `1022:149C` usando el informe V3.
+   Ring 0 debe comprobar sus requisitos y registrar la primera fase
+   que falle al inicializarlo. V3 registra el estado previo.
 2. Cada HID necesita su propia ranura y su cola. Probar coexistencia
    en QEMU y confirmar que la desconexion de uno deja al otro activo.
 3. Ring 3 debe mostrar que llegan ambos tipos de evento en CABINA.
    El ensayo debe poder explicar un fallo sin depender del teclado.
 4. HOST prepara la imagen FAT32 a partir del perfil probado, conserva
    las huellas y publica el resultado de QEMU antes de probar en metal.
+
+El lanzador ULTRA-J ya prueba Super + Q en QEMU y vuelve al mismo
+espacio de trabajo. Este atajo necesita que el kernel entregue las
+teclas al escritorio. La prueba del raton USB emulado y la del
+teclado USB emulado se ejecutan en perfiles independientes.
 
 El panel ULTRA-J y sus metodos de objeto tienen ensayos propios. El
 panel se verifico en QEMU. Las llamadas UJBC v2 se comprobaron en HOST.

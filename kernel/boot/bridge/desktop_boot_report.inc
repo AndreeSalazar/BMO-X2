@@ -60,6 +60,32 @@ report_pci_next:
     xor %eax, %eax
     in %dx, %ax
     call report_hex32
+    inc %rdi
+    # Read BAR0 without sizing it or changing PCI Command.
+    mov (%rsp), %edx
+    mov 8(%rsp), %eax
+    add $8, %eax
+    out %eax, %dx
+    add $4, %dx
+    in %dx, %eax
+    push %rax
+    call report_hex32
+    inc %rdi
+    pop %rax
+    and $7, %eax
+    cmp $4, %eax
+    jne report_bar_high
+    mov (%rsp), %edx
+    mov 8(%rsp), %eax
+    add $12, %eax
+    out %eax, %dx
+    add $4, %dx
+    in %dx, %eax
+    jmp report_bar_store
+report_bar_high:
+    xor %eax, %eax
+report_bar_store:
+    call report_hex32
     pop %rdx
     pop %rcx
 report_pci_count:
@@ -122,7 +148,7 @@ report_hex_store:
     ret
 
 report_template:
-    .ascii "BMO-X2 V2 UEFI\r\nSBEF="
+    .ascii "BMO-X2 V3 UEFI\r\nSBEF="
 report_sbef:
     .ascii "00000000\r\nCPUID="
 report_l1:
@@ -130,11 +156,11 @@ report_l1:
 report_ps2:
     .ascii "00000000\r\nXHCI="
 report_xhci:
-    .ascii "00000000\r\nBDF ID CMD\r\n"
+    .ascii "00000000\r\nBDF ID CMD BAR0_LO BAR0_HI\r\n"
 report_pci0:
-    .ascii "-------- -------- --------\r\n"
+    .ascii "-------- -------- -------- -------- --------\r\n"
 report_pci1:
-    .ascii "-------- -------- --------\r\n"
+    .ascii "-------- -------- -------- -------- --------\r\n"
 report_end:
     .p2align 1
 report_path:

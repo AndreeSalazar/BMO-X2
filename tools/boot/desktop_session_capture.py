@@ -142,13 +142,26 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
 
     def bootlog():
         assert memory(address + 0xf0, 1, 'bootlog-status') == b'\x01', 'UEFI no pudo guardar BOOTLOG.TXT'
-        raw = memory(address + 0x800, 160, 'bootlog-expected-buffer')
-        match = re.match(rb'BMO-X2 V2 UEFI\r\nSBEF=([0-9A-F]{8})\r\nCPUID=([0-9A-F]{8})\r\n'
-                         rb'PS2=[0-9A-F]{8}\r\nXHCI=([0-9A-F]{8})\r\nBDF ID CMD\r\n'
-                         rb'((?:[0-9A-F-]{8} [0-9A-F-]{8} [0-9A-F-]{8}\r\n){2})', raw)
+        raw = memory(address + 0x800, 224, 'bootlog-expected-buffer')
+        match = re.match(rb'BMO-X2 V3 UEFI\r\nSBEF=([0-9A-F]{8})\r\nCPUID=([0-9A-F]{8})\r\n'
+                         rb'PS2=[0-9A-F]{8}\r\nXHCI=([0-9A-F]{8})\r\n'
+                         rb'BDF ID CMD BAR0_LO BAR0_HI\r\n'
+                         rb'((?:(?:[0-9A-F-]{8} ){4}[0-9A-F-]{8}\r\n){2})', raw)
         cache = l1_cache_profile(memory(address + 0xd0, 32, 'cpu-l1'))
         assert (match and int(match[1], 16) == len(external_image)
                 and int(match[2], 16) == int(cache['Leaf'] or '0', 16)), 'Informe UEFI invalido'
+        devices = {(device['bus'] << 8 | device['slot'] << 3 | device['function']): device
+                   for bus in command('query-pci') for device in bus['devices']
+                   if device['class_info']['class'] == 0x0c03}
+        assert int(match[3], 16) == len(devices)
+        for row, bdf in zip(match[4].splitlines(), sorted(devices)[:2], strict=False):
+            actual_bdf, device_id, pci_command, low, high = (int(value, 16) for value in row.split())
+            device = devices[bdf]
+            bar = next(region for region in device['regions'] if region['bar'] == 0)
+            assert actual_bdf == bdf
+            assert device_id == device['id']['device'] << 16 | device['id']['vendor']
+            assert pci_command & 2 and low & 1 == 0
+            assert ((high << 32) | (low & ~15)) == bar['address']
         Path(str(prefix) + '-bootlog-expected.bin').write_bytes(match[0])
         return cache, match
 
@@ -380,7 +393,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         pci_id = controller['id']['device'] << 16 | controller['id']['vendor']
         pci_command = struct.unpack('<H', memory(address + 0x1a36c, 2, 'xhci-pci-command-inventory'))[0]
         pci_row = match[4].splitlines()[count - 1].split()
-        assert tuple(int(field, 16) for field in pci_row) == (bdf, pci_id, pci_command)
+        assert tuple(int(field, 16) for field in pci_row) == (bdf, pci_id, pci_command, low, high)
         rank = struct.unpack('<I', memory(address + 0x1a3b0, 4, 'xhci-rank'))[0]
         assert rank == count
         bar = low & ~15
