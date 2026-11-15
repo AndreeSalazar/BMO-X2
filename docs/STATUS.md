@@ -2,6 +2,12 @@
 
 ## Transporte USB AMD -- 15-11-2026
 
+La segunda foto muestra `XHCI DMA MAPA` y tres puertos conectados.
+Se corrigio una restriccion del prototipo que exigia RTSOFF/DBOFF
+a partir de 4096. El padre documenta RTSOFF 0x4C0 en esta placa.
+El validador admite bancos compactos sin solapamientos y agrega
+pruebas HOST de su codigo ensamblado. Pendiente repetir en metal.
+
 El BOOTLOG V3 del equipo registra AMD 1022:149C en 2B:00.3,
 BAR 0xFC200000. La foto confirma el reinicio del controlador y la
 espera PS/2. La entrada USB fisica permanece pendiente.

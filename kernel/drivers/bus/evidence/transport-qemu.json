@@ -32,7 +32,7 @@
       "RejectedOffset": 116
     }
   ],
-  "run": "run-desktop-media-80c0cc5dcad5",
+  "run": "run-desktop-media-e4cdf36f1752",
   "evidence": "QEMU",
   "disk_sbef": true,
   "physical_boot": false,
@@ -40,7 +40,7 @@
   "guest_ram_mib": 256,
   "xhci_reset_probe": false,
   "xhci_transport_probe": true,
-  "boot_files_bytes": 34584,
+  "boot_files_bytes": 34672,
   "disk_image_bytes": 68174336,
   "desktop_reuse_probe": false,
   "ring0_gate_budget": {
@@ -51,7 +51,7 @@
     "FitsReportedL1Capacity": null
   },
   "desktop_budget": {
-    "file_bytes": 10717,
+    "file_bytes": 10805,
     "file_limit_bytes": 16512,
     "region_pages_bytes": 16384,
     "region_pages_limit_bytes": 16384,
@@ -60,9 +60,9 @@
   "boot_packet_bytes": 3387,
   "uefi_bridge_bytes": 20480,
   "files": {
-    "EFI/BMO-X2/BMO-X2.EFI": "8113fbb6c8d06581c1f10cbb74f96df36c7136dcbcaf3f6b6979a6b6978a9b5c",
+    "EFI/BMO-X2/BMO-X2.EFI": "13b9a8ce8811c4d720498693f06455cb2a027d25deaef459b6ebfd6c169448bc",
     "BMO-X2/INICIO.X86": "d00a634559843eac99cf40e694a616e755bb3710e26f2fe623ff2ccd68825ded",
-    "BMO-X2/DESKTOP.SBF": "defd80c73caa2777718c38d6a96310bf8c6762b4dae846e839c1944bfdc75aae"
+    "BMO-X2/DESKTOP.SBF": "5bea324988dd5ed1a34320b9d86b3f29d1f3e8f9d7fa7b23237e185b1c6b15cf"
   },
   "scope": "Finite command transport only; physical HID input remains unverified. Driver assembled by Clang, not CASM.",
   "toolchain": {
@@ -175,16 +175,101 @@
   ],
   "source_sha256": {
     "kernel/drivers/bus/xhci_inventory.inc": "36d9ed1024d8409f5494103f97172ed7235e25727b9f93ed47bbb28e9027bf8e",
-    "kernel/drivers/bus/xhci_command_probe.inc": "2322d2ba520d135588eb0f12c203c3a04d033f687a40fbf07a76de97691fd0b7",
+    "kernel/drivers/bus/xhci_command_probe.inc": "078703303ab3ec9182e9d9ff978e0912ab9dbcdc3b2a619ca95131cb3ea4e12e",
     "kernel/drivers/bus/xhci_transport_mmio.inc": "ca90ff87209468f40434a77f9a7769fc5170f8f302c0f38bd45da384cd85adb6",
     "kernel/drivers/bus/xhci_reset.inc": "297ef3ebbbf95c87e74c760a276378a67b85bb22e6cf266eed56dacca214a481",
     "kernel/drivers/bus/xhci_dma_layout.inc": "5576626f0cf5b6faeec106c8070ead0a1619157eef5431bb99190d2f0dd8ee66",
     "kernel/boot/bridge/desktop_media_alloc.S": "83e288023f7ef9463667cf8ca415c0b24c8ba38abefef70d455a4635ea6050b3",
     "kernel/syscalls/session_gate.S": "6ec820899f4fd9abfcd702288c1a1dda35a12f9ffb5e01ccd15da25bac7db961",
-    "tools/desktop/cabina.rs": "8c35c2c90c8ccbb60230e28cc2433bc8d855e315df9f132f49723ed09f5b2981",
+    "tools/desktop/cabina.rs": "3ceb330b8ff671d86a1e44867e32ef78fe3766d4130f1867259f40b0bb9f58c6",
     "tools/boot/stage_desktop_media.py": "6fad534e0244a7a66d6ee37e36a051426df7e9764d2b026ce6a3f0de0caf1b11",
     "tools/boot/desktop_session_capture.py": "b0440364e4356afc37a27d0e9859bb7a46aab44ee9a7941ae1579df2aaedf19a",
-    "tools/boot/probe.py": "ea907b5f544f45dd49537ab1489b4172ab931fea44d980f73d61f24bc48747cb"
+    "tools/boot/probe.py": "ea907b5f544f45dd49537ab1489b4172ab931fea44d980f73d61f24bc48747cb",
+    "kernel/drivers/bus/xhci_transport_layout.inc": "854ed23f512fb802f1370df91b14f71f4dfe264d042a81c5b17a420b9c9c4193",
+    "tools/boot/test_xhci_layout.py": "e4f1b995c89a03bd9ec162fe729cb620c5a6e1f63bee3d7d4dd5c481a4a42dbc"
   },
-  "driver_bytes": 2525
+  "driver_bytes": 2578,
+  "layout_host_tests": {
+    "evidence": "HOST",
+    "scope": "Actual assembly geometry validator; no hardware access",
+    "cases": [
+      {
+        "name": "qemu",
+        "admitted": true,
+        "passed": true
+      },
+      {
+        "name": "compact-runtime-4c0",
+        "admitted": true,
+        "passed": true
+      },
+      {
+        "name": "compact-runtime-eight-ports",
+        "admitted": true,
+        "passed": true
+      },
+      {
+        "name": "compact-doorbell-after-runtime",
+        "admitted": true,
+        "passed": true
+      },
+      {
+        "name": "same-extra-page",
+        "admitted": true,
+        "passed": true
+      },
+      {
+        "name": "last-runtime-in-page",
+        "admitted": true,
+        "passed": true
+      },
+      {
+        "name": "runtime-port-overlap",
+        "admitted": false,
+        "passed": true
+      },
+      {
+        "name": "doorbell-port-overlap",
+        "admitted": false,
+        "passed": true
+      },
+      {
+        "name": "runtime-misaligned",
+        "admitted": false,
+        "passed": true
+      },
+      {
+        "name": "doorbell-misaligned",
+        "admitted": false,
+        "passed": true
+      },
+      {
+        "name": "runtime-crosses-page",
+        "admitted": false,
+        "passed": true
+      },
+      {
+        "name": "bank-overlap",
+        "admitted": false,
+        "passed": true
+      },
+      {
+        "name": "same-bank",
+        "admitted": false,
+        "passed": true
+      },
+      {
+        "name": "runtime-outside-aperture",
+        "admitted": false,
+        "passed": true
+      },
+      {
+        "name": "doorbell-outside-aperture",
+        "admitted": false,
+        "passed": true
+      }
+    ],
+    "passed": 15,
+    "total": 15
+  }
 }

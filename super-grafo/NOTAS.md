@@ -924,7 +924,7 @@ Entrada: Inventario PCI, entrega UEFI, BAR, RTSOFF/DBOFF y diez paginas LoaderDa
 Salida: Respuesta No Op comprobada, parada, Bus Master revocado y alias retirados.
 Depende de: Frontera de dispositivos (plan), Espacios y permisos (plan), Prestamo y revocacion DMA (plan).
 Aceptacion: QEMU verifica respuesta, reserva disjunta, parada y rechazo W+X. Evidencia en evidence/transport-qemu.json.
-Pendiente: Confirmar transporte en AMD 1022:149C. Enumerar ambos HID, medir plazos reales e integrar proteccion IOMMU.
+Pendiente: Metal mostro MAPA: se corrigio el rechazo de bancos compactos. Confirmar transporte AMD; enumerar ambos HID, medir plazos reales e integrar IOMMU.
 
 ## kernel/drivers/storage
 

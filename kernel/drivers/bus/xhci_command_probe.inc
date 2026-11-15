@@ -48,31 +48,19 @@ command_device_allowed:
     # this diagnostic inside the first 64 KiB of the controller aperture.
     mov 0x18(%rdi), %r9d
     mov 0x14(%rdi), %r10d
-    test $0x1f, %r9d
-    jnz command_restore
-    test $3, %r10d
-    jnz command_restore
-    cmp $0xffc0, %r9d
-    ja command_restore
-    cmp $0xfffc, %r10d
-    ja command_restore
-    cmp $0x1000, %r9d
-    jb command_restore
-    cmp $0x1000, %r10d
-    jb command_restore
-    # Interrupter 0 (through ERDP) must fit its mapped page.
-    mov %r9d, %eax
-    and $0xfff, %eax
-    cmp $0xfc0, %eax
-    ja command_restore
     mov %r9d, %gs:0x3f0
     mov %r10d, %gs:0x3f4
+    call xhci_transport_layout
+    jne command_restore
+    movl $15, %gs:0x3e0
     mov %r9d, %edx
     call xhci_transport_mmio
     jne command_restore
+    movl $16, %gs:0x3e0
     mov %r10d, %edx
     call xhci_transport_mmio
     jne command_restore
+    movl $17, %gs:0x3e0
 #else
     cmpl $0x1000, 0x18(%rdi)
     jne command_restore
@@ -844,6 +832,7 @@ enum_failed:
     or $1, %eax
     ret
 #else
+#include "xhci_transport_layout.inc"
 #include "xhci_transport_mmio.inc"
 xhci_live_report:
     mov $256, %eax

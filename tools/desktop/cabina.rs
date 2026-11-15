@@ -83,6 +83,9 @@ pub fn boot_input(controllers: u32, keyboard: bool, mouse: bool) {
         12 => b"XHCI DMA ARRANQUE",
         13 => b"XHCI DMA RESPUESTA",
         14 => b"XHCI DMA PARADA",
+        15 => b"XHCI MAPA RUNTIME",
+        16 => b"XHCI MAPA DOORBELL",
+        17 => b"XHCI DMA SCRATCHPADS",
         _ => b"XHCI SIN ESTADO",
     };
     text(36, 359, status);

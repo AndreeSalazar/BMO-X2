@@ -51,8 +51,10 @@ para AMD `1022:149C` o QEMU `1B36:000D`. Usa el escritorio externo normal.
 Reserva diez paginas de LoaderData (40 KiB), verifica sus limites y
 solapamientos, toma la entrega UEFI y reinicia el controlador. Lee RTSOFF
 y DBOFF en vez de imponer las posiciones del emulador. Admite registros
-en los primeros 64 KiB del dispositivo, alineados y contenidos en las
-paginas mapeadas. Rechaza solapamientos con memoria de firmware no MMIO.
+en los primeros 64 KiB del dispositivo, incluso dentro de la primera
+pagina, alineados y contenidos en las paginas mapeadas. Verifica que los
+bancos usados no invadan registros operacionales o puertos ni se solapen
+entre ellos. Rechaza solapamientos con memoria de firmware no MMIO.
 
 Publica un unico No Op y espera una terminacion de comando con tipo,
 puntero y codigo correctos. Consume cambios de puerto intermedios sin
@@ -66,7 +68,10 @@ pendiente. La capacidad de scratchpads de esta prueba es cuatro paginas.
 |---|---|
 | `XHCI DMA OK` | Respuesta validada y parada confirmada. |
 | `XHCI DMA GUARDA` | Entrega, dispositivo o reserva DMA no admitidos. |
-| `XHCI DMA MAPA` | Geometria MMIO o scratchpads no admitidos. |
+| `XHCI DMA MAPA` | Geometria de los bancos MMIO no admitida. |
+| `XHCI MAPA RUNTIME` | Pagina runtime en conflicto con el mapa UEFI. |
+| `XHCI MAPA DOORBELL` | Pagina doorbell en conflicto con el mapa UEFI. |
+| `XHCI DMA SCRATCHPADS` | El controlador pide mas de cuatro paginas auxiliares. |
 | `XHCI DMA REINICIO` | No termino el reinicio. |
 | `XHCI DMA ARRANQUE` | No se confirmo la salida de HCHalted. |
 | `XHCI DMA RESPUESTA` | No llego una terminacion valida dentro del limite. |
@@ -78,6 +83,16 @@ Bus Master, retirada de alias y rechazo de SBEF W+X. Las sondas HID
 separadas conservan sus pruebas de teclado (260 informes con vuelta del
 anillo) y raton (movimiento y botones). Sus resultados siguen siendo QEMU.
 La nueva imagen aun no habilita entrada USB en el equipo fisico.
+
+La siguiente prueba fisica mostro `XHCI DMA MAPA` y tres puertos
+conectados. BMO-X documenta ERDP en `0xFC2004F8`, que implica RTSOFF
+`0x4C0` para esta base. La sonda anterior exigia offsets de al menos
+`0x1000`; esa restriccion del prototipo rechazaba bancos compactos.
+Se reemplazo por comprobaciones de limites y solapamiento. La referencia
+de registros es la [especificacion xHCI, secciones 5.3.7 y 5.3.8](https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/extensible-host-controler-interface-usb-xhci.pdf).
+`tools/boot/test_xhci_layout.py` ejecuta el validador ensamblado real en
+HOST con bancos compactos y casos invalidos. No simula el controlador.
+La nueva disposicion aun necesita confirmacion en AMD.
 
 Para reproducir en PowerShell 5.1 desde BMO-X2:
 

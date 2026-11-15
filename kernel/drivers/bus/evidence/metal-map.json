@@ -1,0 +1,16 @@
+{
+  "evidence": "METAL",
+  "date": "2026-11-15",
+  "observed_label": "XHCI DMA MAPA",
+  "connected_ports": 3,
+  "keyboard": "PS2 ESPERA",
+  "mouse": "PS2 ESPERA",
+  "usb_hid_working": false,
+  "bootlog": "metal-map-bootlog-v3.txt",
+  "photo_sha256": "04add7633b8b1ece92e9a1592f87ff1fe74837f180880c8fd997c157826350b4",
+  "interpretation": "Transport geometry guard rejected the old profile before queue activation.",
+  "parent_reference": "BMO/Ultra_kernel_x86-64/kernel/src/ring0/dev/usb/mod.rs:432",
+  "parent_erdp": "0xFC2004F8",
+  "inferred_rtsoff": "0x4C0",
+  "fix": "Accept compact nonoverlapping register banks. New physical result remains pending."
+}
