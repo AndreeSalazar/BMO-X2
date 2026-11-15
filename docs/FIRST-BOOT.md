@@ -37,6 +37,13 @@ queda detenido tras un reinicio correcto. Este perfil aun carece
 de colas DMA activas y enumeracion HID. Para la prueba fisica se
 necesitan la foto del aviso y el BOOTLOG.TXT V3.
 
+La foto en el equipo mostro `XHCI REINICIO OK` y ambos indicadores
+PS/2 en espera. El BOOTLOG V3 registro el AMD `1022:149C` en
+`2B:00.3` con BAR de memoria de 64 bits y base `0xFC200000`.
+El perfil de reinicio ahora muestra `USB PUERTOS` con la cantidad de
+puertos que mantienen CCS despues de HCRST. Ese censo precede a la
+asignacion de ranuras y la lectura de descriptores.
+
 ### Diagnostico visible de teclado y raton
 
 El puente UEFI escribe `\BMO-X2\BOOTLOG.TXT` en el volumen de arranque

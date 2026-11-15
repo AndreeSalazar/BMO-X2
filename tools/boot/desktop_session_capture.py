@@ -396,7 +396,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         pci_row = match[4].splitlines()[count - 1].split()
         assert tuple(int(field, 16) for field in pci_row) == (bdf, pci_id, pci_command, low, high)
         rank = struct.unpack('<I', memory(address + 0x1a3b0, 4, 'xhci-rank'))[0]
-        assert rank == count
+        assert rank == (3 if reset_probe else count)
         bar = low & ~15
         if low & 6 == 4:
             bar |= high << 32
@@ -448,6 +448,17 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 assert preflight == 7 and expected_state == 3
                 assert memory(address + 0x1a379, 2, 'reset-only-command-state') == bytes(2)
                 assert reserved == bytes(pages * 4096)
+                reported_ports = struct.unpack('<I', memory(address + 0x1a3e8, 4, 'post-reset-ports'))[0]
+                ports = []
+                for i in range(parameters >> 24):
+                    result = command('human-monitor-command', {'command-line': f'xp /1wx {operational+0x400+i*16:#x}'})
+                    ports.append(int(result.split(':', 1)[1].split()[0], 16))
+                assert reported_ports == sum(port & 1 for port in ports) + 1 == 3
+                assert logical(24, 354, 0x232638)
+                command('screendump', {'filename': str(prefix) + '-usb-ports.png', 'format': 'png'})
+                return dict(Case='normal', Passed=True, DesktopSession=True, UserCpl=3,
+                            XhciResetOnlyVerified=True, XhciConnectedPortsAfterReset=reported_ports - 1,
+                            XhciSelectedBdf=f'{bdf:04X}', CpuL1=cache)
             else:
                 assert preflight == expected_state
         if not command_probe:

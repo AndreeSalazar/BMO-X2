@@ -14,9 +14,13 @@ xhci_reset_probe:
     mov %gs:0x370, %eax
     call xhci_preflight
     mov $6, %eax
-    mov $7, %ecx
     cmpb $1, %gs:0x3e4
-    cmove %ecx, %eax
+    jne reset_probe_status
+    mov %gs:0x370, %eax
+    mov %gs:0x374, %edx
+    call xhci_count_ports
+    mov %eax, %gs:0x3e8
+    mov $7, %eax
     jmp reset_probe_status
 reset_probe_handoff:
     mov $5, %eax

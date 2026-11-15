@@ -65,6 +65,7 @@ pub fn show() {
 }
 
 #[cfg(all(external_session, not(usb_probe), not(desktop_sheet)))]
+#[inline(never)]
 pub fn boot_input(controllers: u32, keyboard: bool, mouse: bool) {
     fill(24, 354, 548, 32, PANEL);
     let status = match invoke(3, 3, 6, 0) {
@@ -78,15 +79,17 @@ pub fn boot_input(controllers: u32, keyboard: bool, mouse: bool) {
         _ => b"XHCI SIN ESTADO",
     };
     text(36, 359, status);
-    text(260, 359, b"XHCI");
+    let ports = invoke(3, 3, 7, 0);
+    let surveyed = (1..=256).contains(&ports);
+    text(260, 359, if surveyed { b"USB PUERTOS".as_slice() } else { b"XHCI" });
     let mut count = [b'0'; 5];
-    let mut value = controllers;
+    let mut value = if surveyed { ports - 1 } else { controllers };
     for digit in count.iter_mut().rev() {
         *digit += (value % 10) as u8;
         value /= 10;
     }
     let start = count.iter().position(|&digit| digit != b'0').unwrap_or(4);
-    text(303, 359, &count[start..]);
+    text(if surveyed { 360 } else { 303 }, 359, &count[start..]);
     text(36, 372, if keyboard { b"TECLADO PS2 OK" } else { b"TECLADO PS2 ESPERA" });
     text(260, 372, if mouse { b"RATON PS2 OK" } else { b"RATON PS2 ESPERA" });
 }

@@ -216,6 +216,10 @@ caps_map:
     xor %eax, %eax
     jmp xhci_unmap
 xhci_census:
+    call xhci_count_ports
+    jmp xhci_unmap
+# Return PORTSC.CCS count plus one, or zero for invalid geometry.
+xhci_count_ports:
     movzbl %al, %ecx
     cmp $0x20, %ecx
     jb xhci_census_invalid
@@ -237,9 +241,10 @@ xhci_port_next:
     add $16, %rsi
     dec %edx
     jnz xhci_port_next
-    jmp xhci_unmap
+    ret
 xhci_census_invalid:
     xor %eax, %eax
+    ret
 xhci_unmap:
     movq $0, 0x15400(%rbp)
     movq $0, 0x1e000(%rbp)

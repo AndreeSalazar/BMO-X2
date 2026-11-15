@@ -291,6 +291,8 @@ diagnostics:
 #ifndef XHCI_COMMAND_PROBE
     cmp $6, %rdx
     je usb_preflight
+    cmp $7, %rdx
+    je usb_port_census
 #endif
 #endif
     cmp $2, %rdx
@@ -313,6 +315,9 @@ usb_controllers:
 #ifndef XHCI_COMMAND_PROBE
 usb_preflight:
     mov %gs:0x3e0, %eax
+    jmp finish
+usb_port_census:
+    mov %gs:0x3e8, %eax
     jmp finish
 #endif
 #endif

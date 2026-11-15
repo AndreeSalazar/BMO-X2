@@ -957,7 +957,7 @@ Entrada: Dispositivos descubiertos, buffers y eventos.
 Salida: Canales y ventanas de aparato acotados.
 Depende de: Buses, recursos y DMA (plan), Comunicacion entre procesos (plan).
 Aceptacion: Pruebas de acceso, revocacion y fallo de servicio por dispositivo admitido.
-Pendiente: El perfil experimental verifica en QEMU el reinicio xHCI sin DMA. Faltan probar el reinicio AMD en metal y activar ambos HID a la vez.
+Pendiente: Metal confirma el reinicio AMD. El perfil agrega censo de puertos; faltan direccionar ambos dispositivos y activar sus endpoints HID.
 
 ## kernel/drivers/network
 

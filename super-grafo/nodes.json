@@ -1509,7 +1509,7 @@
       "entrada": "Dispositivos descubiertos, buffers y eventos.",
       "salida": "Canales y ventanas de aparato acotados.",
       "aceptacion": "Pruebas de acceso, revocacion y fallo de servicio por dispositivo admitido.",
-      "falta": "El perfil experimental verifica en QEMU el reinicio xHCI sin DMA. Faltan probar el reinicio AMD en metal y activar ambos HID a la vez.",
+      "falta": "Metal confirma el reinicio AMD. El perfil agrega censo de puertos; faltan direccionar ambos dispositivos y activar sus endpoints HID.",
       "pagina": true
     },
     {
