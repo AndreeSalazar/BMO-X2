@@ -17,6 +17,44 @@ cargara distintos `.ujb` sin reconstruir el kernel ni enlazar la VM
 para cada cambio. Ring 0 conserva su ABI de capacidades y admite el
 ejecutable de la VM mediante SBEF.
 
+## Vision integrada y limites
+
+El objetivo es un conjunto coherente para aplicaciones: objetos y
+eventos en `.uj`, estructura declarativa en `.ujh`, apariencia en `.ujc`
+y construccion verificable en HOST. Se busca ampliar progresivamente
+el lenguaje y sus bibliotecas para cubrir mas usos. La escritura
+familiar de Java no implica ejecutar cualquier programa Java, sus
+archivos `.class` ni todas sus bibliotecas. Los perfiles actuales de
+markup y estilos tampoco equivalen a HTML/CSS completos ni a un navegador.
+
+HOST analiza texto, resuelve dependencias y transforma las entradas en
+UJBC, recursos de vista y, cuando corresponde, un ejecutable SBEF.
+El frontend actual esta implementado en Python. Los formatos binarios
+no eliminan el analisis sintactico, la comprobacion de tipos ni la
+necesidad de construir el programa. Una VM compartida puede reducir
+reconstrucciones y duplicacion; falta medir el coste total de esa VM,
+los objetos, los recursos y las aplicaciones para demostrar el ahorro.
+
+La semantica y los formatos se mantienen separados del destino nativo
+en `targets/x86_64/`. Un UJBC portable necesita una implementacion del
+runtime para cada destino; un SBEF con instrucciones x86-64 sigue
+siendo x86-64. HOST no es un traductor universal entre CPUs. Solo se
+implementa el destino x86-64 en BMO-X2 por ahora.
+
+La CPU ejecuta la aplicacion o su VM en Ring 3. Ring 0 admite el
+ejecutable, limita sus capacidades y atiende operaciones privilegiadas.
+No interpreta Java, HTML o CSS ni procesa cada instruccion del programa.
+La VM y el presentador son los consumidores de UJBC y recursos de vista.
+
+Para madurar este conjunto quedan bibliotecas de objetos y eventos,
+modelo de tipos y errores mas amplio, texto y fuentes, layout,
+recursos de imagen, accesibilidad, ciclo de vida de las vistas y
+gestion de memoria con limites y diagnosticos. Una interfaz completa
+necesita ademas entrada HID, compositor y servicios del sistema.
+Cada ampliacion debe declarar version de formato, pruebas y costes.
+Autohospedaje, compatibilidad Java amplia y optimizacion nativa general
+son objetivos posibles que todavia no estan implementados.
+
 ## Donde aporta frente a C, Rust y Java
 
 | Lenguaje | Papel en BMO-X2 |

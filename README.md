@@ -8,9 +8,64 @@ BMO-X2 arranca perfiles de prueba independientes en QEMU/OVMF. Hay
 evidencia de Ring 0 y Ring 3, escritorio Rust cargado desde SBEF externo,
 INVOKE, WAIT y revocacion de paginas. El equipo fisico llega al escritorio,
 pero su teclado y raton USB siguen pendientes de enumeracion HID.
-El AMD ya confirmo una respuesta de comando por DMA y la parada del
-controlador. El siguiente ensayo estabiliza los puertos y cuenta las
-conexiones antes de detenerlo. [Prueba y estados visibles](docs/FIRST-BOOT.md#perfil-experimental-de-transporte-xhci).
+El AMD ya confirmo una respuesta de comando por DMA, dos puertos
+conectados y la parada del controlador. La estabilizacion adaptativa
+por puerto pasa QEMU. [Prueba y estados visibles](docs/FIRST-BOOT.md#perfil-experimental-de-transporte-xhci).
+
+## Vision: ULTRA-J, HOST y un contrato de ejecucion propio
+
+ULTRA-J aspira a reunir programacion orientada a objetos con escritura
+inspirada en Java, estructura de interfaz inspirada en HTML y estilos
+inspirados en CSS. Su papel es facilitar aplicaciones y escritorio en
+Ring 3. Hoy `.uj`, `.ujh` y `.ujc` implementan subconjuntos propios;
+la compatibilidad completa con Java, HTML o CSS no esta implementada.
+[Alcance y pendientes de ULTRA-J](Ultra-J/README.md#vision-integrada-y-limites).
+
+HOST es la herramienta de construccion, adaptacion y diagnostico.
+Prepara recursos y ejecutables admitidos antes de entregarlos al sistema.
+Ring 0 conserva mecanismos pequenos y estrictos de admision, memoria,
+capacidades y operaciones privilegiadas. Los servicios, la VM, el
+compositor y las aplicaciones viven en Ring 3.
+
+```text
+.uj + .ujh + .ujc -> HOST -> bytecode y recursos propios
+                                |
+                       VM/presentador en Ring 3
+                                |
+                    INVOKE / WAIT con capacidades
+                                |
+                    mecanismos de Ring 0
+
+C / C++ / Rust -> compilador y enlace para el ABI de BMO-X2
+              -> HOST -> SBEF validado -> cargador Ring 0 -> ejecucion Ring 3
+```
+
+SBEF es el contenedor comun de admision: describe entrada, regiones,
+permisos y ABI. La cabecera no ejecuta instrucciones ni convierte por
+si sola codigo de otra CPU o de otro sistema operativo. La CPU ejecuta
+el codigo admitido en Ring 3; entra en Ring 0 para peticiones
+privilegiadas, interrupciones y excepciones. Un ELF64 de Linux o PE de
+Windows no se vuelve compatible solo por cambiarle el encabezado.
+
+La separacion permite conservar lenguaje, semantica y contratos al
+portar el sistema, pero cada CPU necesita backend, runtime, portal ABI,
+arranque y mecanismos privilegiados propios. El codigo nativo sigue
+ligado a su arquitectura. BMO-X2 trabaja exclusivamente en x86-64;
+ARM64 y RISC-V quedan fuera de este proyecto actual.
+
+El potencial esta en diagnosticar dependencias y costes en HOST,
+compartir un runtime de aplicaciones y mantener una frontera de
+privilegios pequena. Empaquetar en binario o reducir una cabecera no
+garantiza menos RAM, mas velocidad ni seguridad de todo el programa.
+Hoy HOST valida y empaqueta perfiles concretos; conserva el codigo
+nativo del compilador. Su optimizacion futura debe preservar semantica
+y demostrar mejoras con medidas. HOST aun requiere sus herramientas
+de desarrollo y no forma parte del nucleo privilegiado.
+
+Para ampliar esa base faltan enumeracion HID en metal, gestion de
+procesos y recursos mas general, eventos de interfaz, texto y fuentes,
+layout, bibliotecas de ULTRA-J y medidas completas de RAM y ejecucion.
+Un nucleo pequeno necesita tambien controladores y servicios probados.
 
 ## Probar en QEMU
 
