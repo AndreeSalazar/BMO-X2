@@ -84,7 +84,20 @@ de HID posteriores a ExitBootServices requieren su propio registro.
 ### Estado del controlador
 
 El inventario lee HCSPARAMS2 y HCCPARAMS1 del controlador elegido
-para registrar paginas scratchpad y tamano de contexto. La sonda
+para registrar paginas scratchpad y tamano de contexto. Tras
+ExitBootServices, `xhci_preflight.inc` lee USBSTS y PAGESIZE a traves
+del alias temporal de Ring 0. El escritorio muestra OCUPADO si CNR
+esta activo, PAGINA NO ADMISIBLE si el controlador carece de soporte
+para 4 KiB, DETENIDO si HCHalted esta activo o ACTIVO en el caso restante.
+ACTIVO describe el controlador. Los renglones de teclado y raton
+indican por separado si llegaron eventos PS/2.
+
+El perfil habitual deja el semaforo de propiedad del firmware intacto.
+El reset, las colas DMA y USB HID pertenecen a la sonda QEMU.
+Una foto del aviso en el escritorio complementa BOOTLOG.TXT, que
+se escribe antes de ExitBootServices.
+
+La sonda
 QEMU usa la secuencia de BMO-X: espera CNR, detiene el controlador,
 espera HCHalted, solicita HCRST y comprueba que HCRST y CNR se
 borren y que PAGESIZE admita 4 KiB. El estado 3 certifica ese

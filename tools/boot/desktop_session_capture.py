@@ -437,6 +437,13 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         if not command_probe:
             assert memory(address + 0x15400, 8, 'xhci-alias-pde') == bytes(8)
             assert memory(address + 0x1e000, 24, 'xhci-alias-pte') == bytes(24)
+            status, page_mask, preflight = struct.unpack('<III', memory(address + 0x1a3d8, 12, 'xhci-preflight'))
+            operational = bar + (caps & 0xff)
+            actual = command('human-monitor-command', {'command-line': f'xp /2wx {operational + 4:#x}'})
+            words = [int(value, 16) for value in actual.split(':', 1)[1].split()[:2]]
+            assert page_mask == words[1] and (status ^ words[0]) & 0x801 == 0
+            expected_state = 1 if status & 0x800 else 2 if not page_mask & 1 else 3 if status & 1 else 4
+            assert preflight == expected_state
         if not command_probe:
             assert logical(24, 354, 0x232638), 'El escritorio no mostro el aviso de entrada USB'
         if command_probe:
@@ -689,6 +696,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 XhciContextBytes=context_bytes if desktop_media else None,
                 XhciReadOnlyMmioVerified=desktop_media,
                 XhciFirmwareHandoff=handoff if desktop_media else None,
+                XhciPreflight=preflight if desktop_media else None,
                 XhciCommandCompleted=desktop_media and command_probe,
                 XhciReservedBytes=pages * 4096 if desktop_media else 0,
                 DesktopStagingBytes=staging_pages * 4096 if desktop_media else None,

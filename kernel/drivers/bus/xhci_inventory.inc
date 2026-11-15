@@ -266,8 +266,17 @@ legacy_invalid:
     ret
 legacy_absent:
     movb $1, %gs:0x378
+#ifndef XHCI_COMMAND_PROBE
+    jmp legacy_sample
+#else
     ret
+#endif
 legacy_claim:
+#ifndef XHCI_COMMAND_PROBE
+    # Inventory does not request ownership from firmware.
+    movb $5, %gs:0x378
+    jmp legacy_sample
+#else
     # Enable writes only for the OS semaphore byte. Preserve the BIOS byte.
     orq $2, 0x1e000(%rbp)
     invlpg (%rdi)
@@ -285,6 +294,12 @@ legacy_wait:
     ret
 legacy_owned:
     movb $2, %gs:0x378
+#endif
+#ifndef XHCI_COMMAND_PROBE
+legacy_sample:
+    mov %gs:0x370, %eax
+    call xhci_preflight
+#endif
 caps_done:
     xor %eax, %eax
     ret
@@ -292,4 +307,6 @@ caps_done:
 #ifdef XHCI_COMMAND_PROBE
 #include "xhci_command_probe.inc"
 #include "xhci_reset.inc"
+#else
+#include "xhci_preflight.inc"
 #endif

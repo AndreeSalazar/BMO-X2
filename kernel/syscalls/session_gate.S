@@ -288,6 +288,10 @@ diagnostics:
 #ifdef DESKTOP_MEDIA
     cmp $4, %rdx
     je usb_controllers
+#ifndef XHCI_COMMAND_PROBE
+    cmp $6, %rdx
+    je usb_preflight
+#endif
 #endif
     cmp $2, %rdx
     ja denied
@@ -306,6 +310,11 @@ usb_controllers:
     lea 0x12000(%rbp), %rax
     call *%rax
     jmp finish
+#ifndef XHCI_COMMAND_PROBE
+usb_preflight:
+    mov %gs:0x3e0, %eax
+    jmp finish
+#endif
 #endif
 #ifdef XHCI_COMMAND_PROBE
 usb_report:

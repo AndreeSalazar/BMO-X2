@@ -67,7 +67,14 @@ pub fn show() {
 #[cfg(all(external_session, not(usb_probe), not(desktop_sheet)))]
 pub fn boot_input(controllers: u32, keyboard: bool, mouse: bool) {
     fill(24, 354, 548, 32, PANEL);
-    text(36, 359, b"BMO X2   PRUEBA DE ENTRADA");
+    let status = match invoke(3, 3, 6, 0) {
+        1 => b"XHCI OCUPADO".as_slice(),
+        2 => b"XHCI PAGINA NO ADMISIBLE",
+        3 => b"XHCI DETENIDO",
+        4 => b"XHCI ACTIVO",
+        _ => b"XHCI SIN ESTADO",
+    };
+    text(36, 359, status);
     text(260, 359, b"XHCI");
     let mut count = [b'0'; 5];
     let mut value = controllers;
