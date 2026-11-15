@@ -217,6 +217,8 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
             return dict(Case='normal', Passed=True, UserCpl=3, UltraJDoubleClickVerified=True,
                         UltraJExternalAction=True, UltraJArenaCleared=True, UltraJCloseVerified=True,
                         SuperQVerified=True, WorkspacePreserved=True, EscapeVerified=True,
+                        Framebuffer=dict(Width=width, Height=height, PitchPixels=pitch,
+                                         VisibleRowsBytes=pitch * height * 4),
                         IntroFramesObserved=sorted(frames), CpuL1=cache)
         return dict(Case='normal', Passed=True, UserCpl=3, SheetDoubleClickVerified=True,
                     SheetCloseVerified=True, IntroFramesObserved=sorted(frames), CpuL1=cache)

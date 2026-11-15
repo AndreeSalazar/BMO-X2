@@ -42,6 +42,7 @@ def main():
     parser.add_argument('splash_run', type=Path)
     parser.add_argument('desktop_run', type=Path)
     parser.add_argument('--cpu', choices=('qemu64', 'Nehalem'), default='qemu64')
+    parser.add_argument('--ram-mib', type=int, choices=(256, 1024), default=1024)
     probes = parser.add_mutually_exclusive_group()
     probes.add_argument('--xhci-command', action='store_true', help='Run the QEMU-only xHCI command probe')
     probes.add_argument('--reuse-session', action='store_true', help='Run the QEMU-only desktop frame reuse probe')
@@ -186,7 +187,7 @@ def main():
     if args.sheet_desktop:
         (run / 'sheet-desktop.txt').write_text('QEMU\n', encoding='ascii')
     subprocess.run([sys.executable, '-B', scripts / 'probe.py', '--workspace', run, '--halt',
-                    '--abi-probe', '--doom-fixture', '--ram-mib', '1024', '--cpu', args.cpu,
+                    '--abi-probe', '--doom-fixture', '--ram-mib', str(args.ram_mib), '--cpu', args.cpu,
                     '--casos', 'normal', 'external-permissions'],
                    check=True, cwd=run, timeout=100)
 
@@ -212,12 +213,14 @@ def main():
         + ''.join(f'CPU_L1_{name.upper()}_BYTES={cache[name]["Bytes"] if cache[name] else "unknown"}\n'
                   for name in ('Instruction', 'Data', 'Unified')), encoding='ascii')
     report.update(run=run.name, evidence='QEMU', disk_sbef=True, physical_boot=False,
-                  qemu_cpu=args.cpu,
+                  qemu_cpu=args.cpu, guest_ram_mib=args.ram_mib,
+                  boot_files_bytes=sum((media / name).stat().st_size for name in files),
+                  disk_image_bytes=(run / 'build/puente-normal.img').stat().st_size,
                   desktop_reuse_probe=args.reuse_session,
                   ring0_gate_budget=gate_budget,
                   desktop_budget=budget, boot_packet_bytes=len(packet), uefi_bridge_bytes=len(image),
                   files={name: sha(media / name) for name in files})
-    (run / 'qemu-run.json').write_text(json.dumps(dict(cpu=args.cpu, ram_mib=1024)) + '\n', encoding='ascii')
+    (run / 'qemu-run.json').write_text(json.dumps(dict(cpu=args.cpu, ram_mib=args.ram_mib)) + '\n', encoding='ascii')
     (run / 'qemu-results.json').write_text(json.dumps(report, indent=2) + '\n', encoding='ascii')
     print(f'Media: {media}')
 

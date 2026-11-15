@@ -275,6 +275,10 @@ Para caber en las dos paginas de texto usa una vista compacta, con
 velocidad fija del puntero. El panel de configuracion queda en el
 perfil de escritorio habitual.
 
+El mismo recorrido paso con `--ram-mib 256`. El informe de
+[huella de BMO-X2](../docs/FOOTPRINT.md) registra artefactos, paginas
+y framebuffer, junto con referencias de otros escritorios.
+
 La prueba usa el raton y teclado PS/2 emulados de QEMU. La entrada
 USB del AMD 1022:149C y el arranque de este perfil en el equipo siguen
 pendientes. [Condiciones del BOOT fisico](../docs/FIRST-BOOT.md)
