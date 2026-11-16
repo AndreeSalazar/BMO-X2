@@ -27,23 +27,23 @@ pub fn show(code: u32) {
     text(110, 308, next);
     if (23..=28).contains(&code) {
         let words = invoke_word(3, 3, 8, 0);
-        let head = invoke_word(3, 3, 10, 0);
+        let endpoint = invoke_word(3, 3, 13, 0);
         let port = invoke(3, 3, 11, 0);
         for (x, label, value, digits) in [
             (36, b"P".as_slice(), u64::from(port & 255), 2),
             (110, b"S", u64::from(port >> 8 & 255), 2),
             (180, b"CC", words >> 24 & 255, 2),
-            (266, b"LEFT", words & 0xffffff, 6),
-            (400, b"REQ", u64::from(port >> 16), 4),
-            (514, b"MPS", head >> 56, 2),
+            (266, b"EP", endpoint & 7, 2),
+            (400, b"CS", invoke_word(3, 3, 16, 0), 2),
+            (514, b"MPS", endpoint >> 48, 4),
         ] {
             text(x, 322, label);
             hex(x + if label.len() == 1 { 18 } else { 40 }, 322, value, digits);
         }
-        text(36, 338, b"HEAD");
-        hex(80, 338, head, 16);
-        text(264, 338, b"PTR");
-        hex(304, 338, invoke_word(3, 3, 9, 0), 8);
+        text(36, 338, b"OUT");
+        hex(80, 338, invoke_word(3, 3, 14, 0), 8);
+        text(264, 338, b"IN");
+        hex(304, 338, invoke_word(3, 3, 15, 0), 8);
         text(422, 338, b"EXP");
         hex(462, 338, invoke_word(3, 3, 12, 0), 8);
     } else {

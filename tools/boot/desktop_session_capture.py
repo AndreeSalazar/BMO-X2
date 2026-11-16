@@ -267,6 +267,8 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     transport_probe = desktop_media and (prefix.parent.parent / 'xhci-transport.txt').is_file()
     enum_probe = transport_probe and (prefix.parent.parent / 'xhci-enum.txt').is_file()
     reports_panel = transport_probe and (prefix.parent.parent / 'reports.txt').is_file()
+    root_file = prefix.parent.parent / 'usb-root-port.txt'
+    selected_root = int(root_file.read_text()) if root_file.is_file() else None
     mouse_probe = command_probe and (prefix.parent.parent / 'usb-mouse.txt').is_file()
     if mouse_probe:
         wait_until(lambda: logical(52, 99, 0x5ad8ff) and sleeping()
@@ -407,15 +409,39 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 if reports_panel:
                     assert logical(24, 254, 0xff6b7a)
                     check_report_hex(220, 322, 6, 2)
-                    check_report_hex(440, 322, 8, 4)
+                    check_report_hex(440, 322, 32, 2)
+                    endpoint = struct.unpack_from('<Q', reserved, 0x5820)[0]
+                    check_report_hex(306, 322, endpoint & 7, 2)
+                    check_report_hex(554, 322, endpoint >> 48, 4)
+                    check_report_hex(80, 338, struct.unpack_from('<Q', reserved, 0x5828)[0], 8)
+                    check_report_hex(304, 338, struct.unpack_from('<Q', reserved, 0x5048)[0], 8)
                 command('screendump', {'filename': str(prefix) + '-ep0-stall.png', 'format': 'png'})
                 return dict(Case='normal', Passed=True, UserCpl=3, XhciEp0StallVerified=True,
                             UsbCompletionCode=6, ReportsRawCodeVerified=reports_panel,
                             XhciControllerStopped=True, XhciBusMasterRevoked=True,
                             XhciHidConfigured=False, CpuL1=cache)
             assert memory(address + 0x1a379, 2, 'transport-completed-halted') == b'\x01\x01'
+            if selected_root and selected_root > 2:
+                assert memory(address + 0x1a3e0, 4, 'root-unavailable-phase') == struct.pack('<I', 20)
+                assert memory(address + 0x1a380, 5, 'root-no-fallback') == bytes(5)
+                original, restored = struct.unpack('<HH', memory(address + 0x1a37c, 4, 'root-stop-busmaster'))
+                assert restored == original & ~4
+                assert memory(address + 0x1e000, 24, 'root-unmapped-pte') == bytes(24)
+                assert memory(address + 0x15400, 8, 'root-unmapped-pde') == bytes(8)
+                return dict(Case='normal', Passed=True, UserCpl=3, RootPort=selected_root,
+                            RootPortUnavailableVerified=True, RootPortFallback=False,
+                            XhciControllerStopped=True, XhciBusMasterRevoked=True,
+                            XhciHidConfigured=False, CpuL1=cache)
             if reports_panel:
-                assert logical(24, 254, 0xffd166), 'Falta el indicador de hito parcial de REPORTES'
+                if not logical(24, 254, 0xffd166):
+                    devs = [dev for bus in command('query-pci') for dev in bus['devices']]
+                    xhc = next(dev for dev in devs if dev['class_info']['class'] == 0x0c03)
+                    base_mmio = next(region['address'] for region in xhc['regions'] if region['bar'] == 0)
+                    caplen = memory(address + 0x1a370, 1, 'failed-caplen')[0]
+                    portsc = command('human-monitor-command', {'command-line': f'xp /16wx {base_mmio + caplen + 0x400:#x}'})
+                    detail = memory(address + 0x1a370, 24, 'failed-caps-device').hex()
+                    phase = memory(address + 0x1a3e0, 4, 'failed-phase').hex()
+                    raise AssertionError(f'Falta hito parcial REPORTES; caps/device={detail}; phase={phase}; PORTSC: ' + portsc)
                 assert logical(600, 340, 0x232638), 'Falta el panel de siguiente paso'
                 def pulse_pixels():
                     return memory(fb + (264*scale*pitch + 470*scale)*4,
@@ -425,26 +451,30 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
             assert memory(address + 0x1a3e0, 4, 'transport-state') == struct.pack('<I', 28 if enum_probe else 8)
             if enum_probe:
                 speed = 1 if (prefix.parent.parent / 'usb-full-speed.txt').is_file() else 3
-                assert memory(address + 0x1a380, 5, 'enum-device-state') == bytes([5, speed, 1, 1, 1])
+                root_port = selected_root or 5
+                assert memory(address + 0x1a380, 5, 'enum-device-state') == bytes([root_port, speed, 1, 1, 1])
                 descriptor = reserved[0x4e20:0x4e32]
                 assert descriptor[:2] == bytes([18, 1]) and descriptor[7] == (8 if speed == 1 else 64) and descriptor[17] >= 1
                 total = struct.unpack('<I', memory(address + 0x1a38c, 4, 'enum-configuration-size'))[0]
                 config = reserved[0x4c00:0x4c00 + total]
                 assert 9 <= total <= 512 and config[:4] == struct.pack('<BBH', 9, 2, total)
-                assert config[9:11] == bytes([9, 4]) and config[14:17] == bytes([3, 1, 1])
+                protocol = 2 if selected_root == 2 else 1
+                assert config[9:11] == bytes([9, 4]) and config[14:17] == bytes([3, 1, protocol])
                 assert struct.unpack_from('<I', reserved, 0x4804)[0] == 8 << 16
                 assert struct.unpack_from('<I', reserved, 0x4834)[0] == 18 << 16
                 assert struct.unpack_from('<I', reserved, 0x103c)[0] == 0x01003401
                 assert struct.unpack_from('<I', reserved, 0x580c)[0] >> 27 & 0x1f == 2
                 if reports_panel:
-                    check_report_hex(54, 322, 5, 2)
+                    check_report_hex(54, 322, root_port, 2)
                     check_report_hex(128, 322, speed, 2)
                     check_report_hex(220, 322, 1, 2)
-                    check_report_hex(306, 322, 0, 6)
-                    check_report_hex(440, 322, total, 4)
-                    check_report_hex(554, 322, descriptor[7], 2)
-                    check_report_hex(80, 338, int.from_bytes(descriptor[:8], 'little'), 16)
-                    check_report_hex(304, 338, dma + 0x48b0, 8)
+                    endpoint = struct.unpack_from('<Q', reserved, 0x5820)[0]
+                    assert endpoint & 7 == 1 and endpoint >> 48 == descriptor[7]
+                    check_report_hex(306, 322, endpoint & 7, 2)
+                    check_report_hex(440, 322, 32, 2)
+                    check_report_hex(554, 322, descriptor[7], 4)
+                    check_report_hex(80, 338, struct.unpack_from('<Q', reserved, 0x5828)[0], 8)
+                    check_report_hex(304, 338, struct.unpack_from('<Q', reserved, 0x5048)[0], 8)
                     check_report_hex(462, 338, dma + 0x48b0, 8)
             else:
                 assert memory(address + 0x1a380, 8, 'transport-no-device-slots') == bytes(8)
@@ -483,6 +513,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                         XhciDeviceDescriptorVerified=enum_probe, XhciConfigurationRead=enum_probe,
                         XhciFirstDescriptorBytes=8 if enum_probe else 0,
                         XhciEp0Evaluated=enum_probe,
+                        UsbRootPort=selected_root,
                         ReportsPanelVerified=reports_panel, ReportsPulseUpdated=reports_panel,
                         UsbDeviceDescriptor=descriptor.hex() if enum_probe else None,
                         UsbConfiguration=config.hex() if enum_probe else None,

@@ -139,7 +139,8 @@ def run(case):
     if wad.is_file():
         staging += ['-device', f'loader,file={wad},addr=0x3000000,force-raw=on']
     if args.doom_fixture and desktop_media:
-        staging += ['-device', 'qemu-xhci,id=bmo-xhci']
+        root_profile = ',p3=0' if (ROOT / 'usb-root-port.txt').is_file() else ''
+        staging += ['-device', f'qemu-xhci,id=bmo-xhci{root_profile}']
         if ((ROOT / 'xhci-reset.txt').is_file() or (ROOT / 'xhci-transport.txt').is_file()) and not (ROOT / 'xhci-empty-ports.txt').is_file():
             usb_version = ',usb_version=1' if (ROOT / 'usb-full-speed.txt').is_file() else ''
             staging += ['-device', f'usb-kbd,bus=bmo-xhci.0,port=1{usb_version}',

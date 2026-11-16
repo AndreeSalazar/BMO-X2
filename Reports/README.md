@@ -62,18 +62,26 @@ Los detalles se muestran en hexadecimal, sin modificar el resultado:
 |---|---|
 | P / S | Puerto raiz y ID de velocidad observado. |
 | CC | Codigo del ultimo evento recibido. 01 es exito; 06 es STALL. 00 con evento vacio significa que no se capturo una respuesta util. |
-| LEFT | Residuo de longitud de 24 bits del evento; en un error no se interpreta como bytes recibidos validos. |
-| REQ | Longitud solicitada para la transferencia actual. |
-| MPS | Byte observado en bMaxPacketSize0; requiere cabecera de dispositivo valida. |
-| HEAD | Primeros ocho bytes como palabra little-endian de 64 bits. Se conserva el prefijo del dispositivo antes de leer configuracion. |
-| PTR / EXP | Puntero del evento y puntero esperado, en los 32 bits bajos del perfil DMA bajo 256 MiB. |
+| EP | Estado del endpoint en el contexto de salida visible a CPU. |
+| CS | Tamano del contexto descubierto, 20h o 40h bytes. |
+| MPS | Max Packet Size configurado en el contexto de salida; no requiere haber recibido el descriptor. |
+| OUT / IN | Punteros EP0 de los contextos de salida y entrada, con DCS en bit 0. |
+| EXP | Puntero esperado de terminacion, en los 32 bits bajos del perfil DMA bajo 256 MiB. |
+
+La vista anterior mostraba LEFT, REQ, HEAD y PTR. Esos datos permanecen
+disponibles mediante los selectores 8..12 del perfil. Esta vista prioriza
+el contexto porque las dos fotos AMD siguieron sin evento de EP0. IN y
+OUT pueden diferir correctamente cuando avanza el anillo; ademas el xHC
+puede mantener informacion en cache. Un OUT que no cambia, por si solo,
+no demuestra que el controlador no haya leido la transferencia.
 
 Los valores corresponden a la ultima operacion, no a un historial.
 Cada espera borra el evento anterior para no presentar un exito antiguo
 como respuesta de una operacion que no termino. Un error se conserva
 antes de comprobarlo; no se acepta una respuesta por el hecho de mostrarla.
-No se amplian las guardas: sonda 4096/4096 B, puerta 1189/2048 B,
-escritorio REPORTES 8057/8192 B RX y SBEF de 11453 B.
+No se amplian las guardas: la sonda dirigida al puerto 2 ocupa 4091/4096 B;
+el escritorio REPORTES ocupa 8073/8192 B RX y su SBEF 11461 B. La puerta
+conserva su limite de 2048 B; sus bytes se registran en cada run.
 
 QEMU comprueba los digitos del framebuffer contra los eventos y datos
 esperados, a velocidad alta y completa. `--xhci-ep0-stall` envia una
@@ -99,3 +107,32 @@ Para conservar la pagina RX se escriben campos cortos de Setup/Status
 en TRBs nuevos, ya puestos a cero por el asignador UEFI; nunca se
 reutilizan esos TRBs. No se quitan validaciones de terminacion ni MPS.
 El resultado en AMD de esta espera posterior aun necesita confirmacion.
+
+## Seleccion explicita del puerto
+
+La foto posterior mantuvo P 01, S 01 y ningun evento. El inventario previo
+del equipo situaba teclado y raton en los puertos USB 2 y 3 del AMD. Esa
+topologia es una referencia; la identidad debe confirmarse leyendo sus
+descriptores. `--usb-root-port 2` selecciona exclusivamente ese puerto
+raiz PORTSC, comprueba MaxPorts, CCS y la velocidad y no intenta otro
+si falla. El perfil automatico sigue disponible al omitir el argumento.
+
+Se corrigio la lectura de MaxPorts en esta sonda: usa el byte del snapshot
+HCSPARAMS1 capturado mediante una lectura MMIO de 32 bits. La lectura
+anterior de un byte en MMIO +7 devolvio cero en QEMU. Tambien se aislan
+los cuatro bits de velocidad antes de compararlos; los demas bits de
+PORTSC no forman parte del ID de velocidad.
+
+El ensayo dirigido configura QEMU con `p3=0`: sus puertos raiz USB2 1 y 2
+contienen teclado y raton. Esto solo define la topologia de prueba del
+emulador; no reconfigura puertos fisicos AMD. QEMU prueba el puerto 2 a
+velocidad alta y completa, y rechaza puerto 3 vacio y 255 fuera de rango
+sin caer al primero ni acceder fuera del banco admitido.
+
+```powershell
+& $reportPython -B tools/boot/stage_desktop_media.py build/CASM/run-20261112-174958-944cb997 build/CASM/run-20261112-045636-c461240e build/CASM/run-desktop-ab5e8222cf60 --xhci-enum-probe --reports-desktop build/desktop/desktop-reports.sbef --usb-root-port 2 --ram-mib 256
+```
+
+La copia instalada para la siguiente prueba fisica usa el puerto 2. Sigue
+siendo enumeracion finita sin endpoints HID activos. Si aparece P 02 y
+DESCRIPTORES OK, aun faltara configurar las interfaces y recibir informes.

@@ -99,7 +99,8 @@ if ($actualProfile -in @('desktop-external','doom-external','doom-engine','deskt
     }
 }
 if ($actualProfile -eq 'desktop-media') {
-    $arguments += @('-device', 'qemu-xhci,id=bmo-xhci')
+    $rootProfile = if (Test-Path -LiteralPath (Join-Path $runDir.FullName 'usb-root-port.txt')) { ',p3=0' } else { '' }
+    $arguments += @('-device', "qemu-xhci,id=bmo-xhci$rootProfile")
     if ((Test-Path -LiteralPath (Join-Path $runDir.FullName 'xhci-reset.txt')) -or
         (Test-Path -LiteralPath (Join-Path $runDir.FullName 'xhci-transport.txt'))) {
         if (-not (Test-Path -LiteralPath (Join-Path $runDir.FullName 'xhci-empty-ports.txt'))) {

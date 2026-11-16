@@ -1,8 +1,8 @@
 {
   "evidence": "QEMU",
-  "scope": "SET_ADDRESS recovery wait before EP0 plus ordered Setup publication and raw diagnostics. AMD outcome still unverified.",
+  "scope": "Explicit root port 2, corrected MaxPorts snapshot and read-only EP0 context diagnostics. Physical HID is still unverified.",
   "cases": {
-    "high_speed": {
+    "root2_high": {
       "Passed": 2,
       "Total": 2,
       "Cases": [
@@ -28,10 +28,11 @@
           "XhciConfigurationRead": true,
           "XhciFirstDescriptorBytes": 8,
           "XhciEp0Evaluated": true,
+          "UsbRootPort": 2,
           "ReportsPanelVerified": true,
           "ReportsPulseUpdated": true,
-          "UsbDeviceDescriptor": "120100020000004027060100000001040b01",
-          "UsbConfiguration": "09022200010108a032090400000103010100092111010001223f0007058103080007",
+          "UsbDeviceDescriptor": "120100020000004027060100000001020901",
+          "UsbConfiguration": "09022200010106a03209040000010301020009210100000122340007058103040007",
           "XhciPortSettleMilliseconds": 330,
           "XhciAdaptiveDebounceVerified": true,
           "XhciRunningCensusVerified": true,
@@ -47,7 +48,7 @@
           "RejectedOffset": 116
         }
       ],
-      "run": "run-desktop-media-f4ecfecd7662",
+      "run": "run-desktop-media-5796cbd72071",
       "evidence": "QEMU",
       "disk_sbef": true,
       "physical_boot": false,
@@ -57,32 +58,32 @@
       "xhci_transport_probe": true,
       "xhci_timer_fault": false,
       "xhci_empty_ports": false,
-      "boot_files_bytes": 35475,
+      "boot_files_bytes": 35609,
       "disk_image_bytes": 68174336,
       "desktop_reuse_probe": false,
       "ring0_gate_budget": {
-        "Bytes": 1189,
+        "Bytes": 1315,
         "LimitBytes": 2048,
-        "HeadroomBytes": 859,
-        "SHA256": "0f448d2165bd5b9f40de7a4c66e7ec789a106562370a1f231e4413999279dedc",
+        "HeadroomBytes": 733,
+        "SHA256": "9d07a1cd83c4597dff40853cd98c773e9e16e9aadadb3c2e950a9631e1333bdf",
         "FitsReportedL1Capacity": null
       },
       "desktop_budget": {
-        "file_bytes": 11453,
+        "file_bytes": 11461,
         "file_limit_bytes": 16512,
         "region_pages_bytes": 16384,
         "region_pages_limit_bytes": 16384,
         "stack_bytes": 4096
       },
-      "boot_packet_bytes": 3542,
+      "boot_packet_bytes": 3668,
       "uefi_bridge_bytes": 20480,
       "files": {
-        "EFI/BMO-X2/BMO-X2.EFI": "7df7859eae2a5286379ea7b7097ae793c60f38c70d3a2b62b1c63ad8334a62f8",
-        "BMO-X2/INICIO.X86": "d04da3aa2585cb0fe368a8cb86b74d4ba8a0f559a39e47d162b6c9c13c6e4b1e",
-        "BMO-X2/DESKTOP.SBF": "c286bef22b89a220f11d54c7b5360cca2f56e9dadd540556f3b4b5be1f1e64bc"
+        "EFI/BMO-X2/BMO-X2.EFI": "3911a9364b30cba7ca78b165065563ab3f585d9385129bfec8349f117a59fa28",
+        "BMO-X2/INICIO.X86": "6514b8e792758191ae8cc07cfb815070ea6c535a355ad9d3075b8b31975bc1e5",
+        "BMO-X2/DESKTOP.SBF": "44d8f37eb706cfb4054f10342c9c9abf69abb151b6a9e99ae0ecda575d9d9ca4"
       }
     },
-    "full_speed": {
+    "root2_full": {
       "Passed": 2,
       "Total": 2,
       "Cases": [
@@ -108,10 +109,11 @@
           "XhciConfigurationRead": true,
           "XhciFirstDescriptorBytes": 8,
           "XhciEp0Evaluated": true,
+          "UsbRootPort": 2,
           "ReportsPanelVerified": true,
           "ReportsPulseUpdated": true,
-          "UsbDeviceDescriptor": "120100020000000827060100000001040b01",
-          "UsbConfiguration": "09022200010108a032090400000103010100092111010001223f000705810308000a",
+          "UsbDeviceDescriptor": "120100020000000827060100000001020901",
+          "UsbConfiguration": "09022200010106a0320904000001030102000921010000012234000705810304000a",
           "XhciPortSettleMilliseconds": 330,
           "XhciAdaptiveDebounceVerified": true,
           "XhciRunningCensusVerified": true,
@@ -127,7 +129,7 @@
           "RejectedOffset": 116
         }
       ],
-      "run": "run-desktop-media-a496e3242972",
+      "run": "run-desktop-media-9f5219187ba9",
       "evidence": "QEMU",
       "disk_sbef": true,
       "physical_boot": false,
@@ -137,32 +139,166 @@
       "xhci_transport_probe": true,
       "xhci_timer_fault": false,
       "xhci_empty_ports": false,
-      "boot_files_bytes": 35475,
+      "boot_files_bytes": 35609,
       "disk_image_bytes": 68174336,
       "desktop_reuse_probe": false,
       "ring0_gate_budget": {
-        "Bytes": 1189,
+        "Bytes": 1315,
         "LimitBytes": 2048,
-        "HeadroomBytes": 859,
-        "SHA256": "0f448d2165bd5b9f40de7a4c66e7ec789a106562370a1f231e4413999279dedc",
+        "HeadroomBytes": 733,
+        "SHA256": "9d07a1cd83c4597dff40853cd98c773e9e16e9aadadb3c2e950a9631e1333bdf",
         "FitsReportedL1Capacity": null
       },
       "desktop_budget": {
-        "file_bytes": 11453,
+        "file_bytes": 11461,
         "file_limit_bytes": 16512,
         "region_pages_bytes": 16384,
         "region_pages_limit_bytes": 16384,
         "stack_bytes": 4096
       },
-      "boot_packet_bytes": 3542,
+      "boot_packet_bytes": 3668,
       "uefi_bridge_bytes": 20480,
       "files": {
-        "EFI/BMO-X2/BMO-X2.EFI": "7df7859eae2a5286379ea7b7097ae793c60f38c70d3a2b62b1c63ad8334a62f8",
-        "BMO-X2/INICIO.X86": "d04da3aa2585cb0fe368a8cb86b74d4ba8a0f559a39e47d162b6c9c13c6e4b1e",
-        "BMO-X2/DESKTOP.SBF": "c286bef22b89a220f11d54c7b5360cca2f56e9dadd540556f3b4b5be1f1e64bc"
+        "EFI/BMO-X2/BMO-X2.EFI": "3911a9364b30cba7ca78b165065563ab3f585d9385129bfec8349f117a59fa28",
+        "BMO-X2/INICIO.X86": "6514b8e792758191ae8cc07cfb815070ea6c535a355ad9d3075b8b31975bc1e5",
+        "BMO-X2/DESKTOP.SBF": "44d8f37eb706cfb4054f10342c9c9abf69abb151b6a9e99ae0ecda575d9d9ca4"
       }
     },
-    "stall_fault_qemu_only": {
+    "empty_root3": {
+      "Passed": 2,
+      "Total": 2,
+      "Cases": [
+        {
+          "Case": "normal",
+          "Passed": true,
+          "UserCpl": 3,
+          "RootPort": 3,
+          "RootPortUnavailableVerified": true,
+          "RootPortFallback": false,
+          "XhciControllerStopped": true,
+          "XhciBusMasterRevoked": true,
+          "XhciHidConfigured": false,
+          "CpuL1": {
+            "Leaf": "0x4",
+            "Data": null,
+            "Instruction": null,
+            "Unified": null
+          },
+          "BootLogFat32Verified": true
+        },
+        {
+          "Case": "external-permissions",
+          "Passed": true,
+          "SbefAccepted": false,
+          "UserCodeCopied": false,
+          "UserAddressSpaceActivated": false,
+          "RejectedField": "permissions",
+          "RejectedOffset": 116
+        }
+      ],
+      "run": "run-desktop-media-7a9dae7a7c81",
+      "evidence": "QEMU",
+      "disk_sbef": true,
+      "physical_boot": false,
+      "qemu_cpu": "qemu64",
+      "guest_ram_mib": 256,
+      "xhci_reset_probe": false,
+      "xhci_transport_probe": true,
+      "xhci_timer_fault": false,
+      "xhci_empty_ports": false,
+      "boot_files_bytes": 35609,
+      "disk_image_bytes": 68174336,
+      "desktop_reuse_probe": false,
+      "ring0_gate_budget": {
+        "Bytes": 1315,
+        "LimitBytes": 2048,
+        "HeadroomBytes": 733,
+        "SHA256": "9d07a1cd83c4597dff40853cd98c773e9e16e9aadadb3c2e950a9631e1333bdf",
+        "FitsReportedL1Capacity": null
+      },
+      "desktop_budget": {
+        "file_bytes": 11461,
+        "file_limit_bytes": 16512,
+        "region_pages_bytes": 16384,
+        "region_pages_limit_bytes": 16384,
+        "stack_bytes": 4096
+      },
+      "boot_packet_bytes": 3668,
+      "uefi_bridge_bytes": 20480,
+      "files": {
+        "EFI/BMO-X2/BMO-X2.EFI": "59bc4d439e9c0eaff70e876564cad777acbc0c7ac78d0cfa305ad07d1f8ed82e",
+        "BMO-X2/INICIO.X86": "6514b8e792758191ae8cc07cfb815070ea6c535a355ad9d3075b8b31975bc1e5",
+        "BMO-X2/DESKTOP.SBF": "44d8f37eb706cfb4054f10342c9c9abf69abb151b6a9e99ae0ecda575d9d9ca4"
+      }
+    },
+    "out_of_range_root255": {
+      "Passed": 2,
+      "Total": 2,
+      "Cases": [
+        {
+          "Case": "normal",
+          "Passed": true,
+          "UserCpl": 3,
+          "RootPort": 255,
+          "RootPortUnavailableVerified": true,
+          "RootPortFallback": false,
+          "XhciControllerStopped": true,
+          "XhciBusMasterRevoked": true,
+          "XhciHidConfigured": false,
+          "CpuL1": {
+            "Leaf": "0x4",
+            "Data": null,
+            "Instruction": null,
+            "Unified": null
+          },
+          "BootLogFat32Verified": true
+        },
+        {
+          "Case": "external-permissions",
+          "Passed": true,
+          "SbefAccepted": false,
+          "UserCodeCopied": false,
+          "UserAddressSpaceActivated": false,
+          "RejectedField": "permissions",
+          "RejectedOffset": 116
+        }
+      ],
+      "run": "run-desktop-media-596f4d6c136a",
+      "evidence": "QEMU",
+      "disk_sbef": true,
+      "physical_boot": false,
+      "qemu_cpu": "qemu64",
+      "guest_ram_mib": 256,
+      "xhci_reset_probe": false,
+      "xhci_transport_probe": true,
+      "xhci_timer_fault": false,
+      "xhci_empty_ports": false,
+      "boot_files_bytes": 35609,
+      "disk_image_bytes": 68174336,
+      "desktop_reuse_probe": false,
+      "ring0_gate_budget": {
+        "Bytes": 1315,
+        "LimitBytes": 2048,
+        "HeadroomBytes": 733,
+        "SHA256": "9d07a1cd83c4597dff40853cd98c773e9e16e9aadadb3c2e950a9631e1333bdf",
+        "FitsReportedL1Capacity": null
+      },
+      "desktop_budget": {
+        "file_bytes": 11461,
+        "file_limit_bytes": 16512,
+        "region_pages_bytes": 16384,
+        "region_pages_limit_bytes": 16384,
+        "stack_bytes": 4096
+      },
+      "boot_packet_bytes": 3668,
+      "uefi_bridge_bytes": 20480,
+      "files": {
+        "EFI/BMO-X2/BMO-X2.EFI": "8b724f6305d61e81c1f4bd9f4afff770884e95dceb36f027f4b3777311381750",
+        "BMO-X2/INICIO.X86": "6514b8e792758191ae8cc07cfb815070ea6c535a355ad9d3075b8b31975bc1e5",
+        "BMO-X2/DESKTOP.SBF": "44d8f37eb706cfb4054f10342c9c9abf69abb151b6a9e99ae0ecda575d9d9ca4"
+      }
+    },
+    "automatic_stall": {
       "Passed": 2,
       "Total": 2,
       "Cases": [
@@ -194,7 +330,7 @@
           "RejectedOffset": 116
         }
       ],
-      "run": "run-desktop-media-c078988db0c5",
+      "run": "run-desktop-media-6e1ddabbab10",
       "evidence": "QEMU",
       "disk_sbef": true,
       "physical_boot": false,
@@ -204,66 +340,67 @@
       "xhci_transport_probe": true,
       "xhci_timer_fault": false,
       "xhci_empty_ports": false,
-      "boot_files_bytes": 35475,
+      "boot_files_bytes": 35609,
       "disk_image_bytes": 68174336,
       "desktop_reuse_probe": false,
       "ring0_gate_budget": {
-        "Bytes": 1189,
+        "Bytes": 1315,
         "LimitBytes": 2048,
-        "HeadroomBytes": 859,
-        "SHA256": "0f448d2165bd5b9f40de7a4c66e7ec789a106562370a1f231e4413999279dedc",
+        "HeadroomBytes": 733,
+        "SHA256": "9d07a1cd83c4597dff40853cd98c773e9e16e9aadadb3c2e950a9631e1333bdf",
         "FitsReportedL1Capacity": null
       },
       "desktop_budget": {
-        "file_bytes": 11453,
+        "file_bytes": 11461,
         "file_limit_bytes": 16512,
         "region_pages_bytes": 16384,
         "region_pages_limit_bytes": 16384,
         "stack_bytes": 4096
       },
-      "boot_packet_bytes": 3542,
+      "boot_packet_bytes": 3668,
       "uefi_bridge_bytes": 20480,
       "files": {
-        "EFI/BMO-X2/BMO-X2.EFI": "f3782abe96f07e06c396de5a087486de905808eb0075208c9e8b65d64054b931",
-        "BMO-X2/INICIO.X86": "d04da3aa2585cb0fe368a8cb86b74d4ba8a0f559a39e47d162b6c9c13c6e4b1e",
-        "BMO-X2/DESKTOP.SBF": "c286bef22b89a220f11d54c7b5360cca2f56e9dadd540556f3b4b5be1f1e64bc"
+        "EFI/BMO-X2/BMO-X2.EFI": "f695ba87bb6c460924973dc1edbf7200009c80fa689becdf4cb9a55d2eec9e9e",
+        "BMO-X2/INICIO.X86": "6514b8e792758191ae8cc07cfb815070ea6c535a355ad9d3075b8b31975bc1e5",
+        "BMO-X2/DESKTOP.SBF": "44d8f37eb706cfb4054f10342c9c9abf69abb151b6a9e99ae0ecda575d9d9ca4"
       }
     }
   },
   "source_sha256": {
-    "tools/desktop/reports.rs": "5bd546d9fb48aef897956c54ec85336c157a79db8655d77726a9c7d5550c4f6f",
-    "kernel/drivers/bus/xhci_command_probe.inc": "63952dc2cb28eb59d264356ff7b59444a1fa87eacb41fe186c9aa8eb25be7d4a",
-    "kernel/drivers/bus/xhci_enumerate_device.inc": "0771a064598e334dd97aada0018d835e176cff6d30761c8a9c6b42e6ead56e5c",
-    "kernel/syscalls/session_gate.S": "8b3b9a88e2372132403ff28cdd44839a539bdb0d5e445b3f7bcf9e29f1ffb87f",
-    "tools/boot/stage_desktop_media.py": "fbce42d0458b61c7cfa8038c7a5c4b380dfd86b60a4d2487ff80cfbe2c328466",
-    "tools/boot/desktop_session_capture.py": "1b7f339deb79ca992fdb590f682d996017d4dc71e2fcb0da044e9e7279a8e131"
+    "kernel/syscalls/session_gate.S": "f844bc0da8accd065c0af7567a11d12c565c586f11ce35d2efa4e239c2b40a81",
+    "kernel/drivers/bus/xhci_enumerate_device.inc": "67ac36e6d1c8954a7ea102331b09d4aca109ef9971329a9201688ae4d55fb0c7",
+    "tools/desktop/reports.rs": "ac8360e13edcf3a074d7ee6f3b04f8e72f667bfaa14f28b30942f20c96cfbd03",
+    "tools/boot/stage_desktop_media.py": "09d0e200210362b25d984dd19a44234276c4bcc5075dc35ec4dd996e7046f014",
+    "tools/boot/desktop_session_capture.py": "9b56b4a75b34a398c09efda5b062af95a311057f00370ef6877a74facf9ca3c7",
+    "tools/boot/probe.py": "154eb0ba9ac14c7732c5cbe37897d157df37be94bd9781605e86cb0b79cab505",
+    "tools/boot/view.ps1": "1813e3d8d345791e3f1ccc8332a37237b33b15b3b9958c594a2b93c8c211460a"
   },
   "size": {
     "FormatVersion": 1,
     "AbiVersion": 1,
     "Architecture": "x86-64",
-    "Bytes": 11453,
-    "Entry": "0x40001F72",
+    "Bytes": 11461,
+    "Entry": "0x40001F82",
     "Regions": [
       {
         "Address": "0x40000000",
         "Offset": 128,
-        "FileBytes": 8057,
-        "MemoryBytes": 8057,
+        "FileBytes": 8073,
+        "MemoryBytes": 8073,
         "MappedBytes": 8192,
         "Permissions": "RX"
       },
       {
         "Address": "0x40003000",
-        "Offset": 8185,
-        "FileBytes": 3264,
-        "MemoryBytes": 3264,
+        "Offset": 8201,
+        "FileBytes": 3256,
+        "MemoryBytes": 3256,
         "MappedBytes": 4096,
         "Permissions": "R"
       },
       {
         "Address": "0x40004000",
-        "Offset": 11449,
+        "Offset": 11457,
         "FileBytes": 4,
         "MemoryBytes": 8,
         "MappedBytes": 4096,
@@ -273,10 +410,10 @@
     "SizeReport": {
       "SourceBytes": 22608,
       "ContainerBytes": 128,
-      "PayloadBytes": 11325,
+      "PayloadBytes": 11333,
       "MappedRegionBytes": 16384,
       "ZeroFillBytes": 4,
-      "PagePaddingBytes": 5055
+      "PagePaddingBytes": 5047
     }
   },
   "legacy_byte_equivalence": {
@@ -291,7 +428,7 @@
     "bootlog_sha256": "206faf002893173d6f5724a4337d3755f7463350191383ac2bdadd26c230214d"
   },
   "previous_reports_evidence": {
-    "commit": "ab892ea",
+    "commit": "a1ea3b0",
     "file": "Reports/evidence.json"
   },
   "metal_observation_before_recovery_fix": {
@@ -305,5 +442,15 @@
     "device_prefix": 0,
     "connected_ports": 3,
     "meaning": "No non-port-change completion captured. The actual cause is not confirmed."
+  },
+  "latest_metal_observation_before_port_fix": {
+    "source": "user photo codex-clipboard-efc1b8c3-a0aa-4416-a249-9203506644d0.png",
+    "root_port": 1,
+    "phase": 23,
+    "completion_code": 0,
+    "event_pointer": 0,
+    "device_prefix": 0,
+    "requested_bytes": 8,
+    "connected_ports": 3
   }
 }

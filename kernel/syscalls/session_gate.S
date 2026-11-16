@@ -294,6 +294,9 @@ diagnostics:
     cmp $7, %rdx
     je usb_port_census
 #ifdef XHCI_ENUM_PROBE
+    lea -13(%rdx), %rax
+    cmp $3, %rax
+    jbe usb_context_read
     cmp $8, %rdx
     je usb_event_words
     cmp $9, %rdx
@@ -332,6 +335,28 @@ usb_port_census:
     mov %gs:0x3e8, %eax
     jmp finish
 #ifdef XHCI_ENUM_PROBE
+usb_context_read:
+    cmpb $1, %gs:0x3c4
+    jne denied
+    mov %gs:0x3c0, %ecx
+    cmp $16, %rdx
+    je usb_context_size
+    mov 0xb8(%rbp), %rax
+    cmp $15, %rdx
+    je usb_input_dequeue
+    lea 0x5800(%rax,%rcx), %rax
+    cmp $14, %rdx
+    je usb_context_dequeue
+    mov (%rax), %rax
+    jmp finish
+usb_input_dequeue:
+    lea 0x5000(%rax,%rcx,2), %rax
+usb_context_dequeue:
+    mov 8(%rax), %rax
+    jmp finish
+usb_context_size:
+    mov %ecx, %eax
+    jmp finish
 usb_event_words:
     mov %gs:0x3d0, %rax
     jmp finish

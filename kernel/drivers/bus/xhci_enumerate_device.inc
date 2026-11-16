@@ -4,22 +4,39 @@
 # RSI next unconsumed event. Never reuse a TRB before its completion.
 xhci_enumerate_device:
     movb $20, %gs:0x3e0
-    movzbl 7(%rdi), %ecx
+    movzbl %gs:0x377, %ecx  # MaxPorts from the validated dword snapshot.
+#ifdef XHCI_ROOT_PORT
+    cmp $XHCI_ROOT_PORT, %ecx
+    jb enum_probe_next_port
+    lea (0x400 + 16 * (XHCI_ROOT_PORT - 1))(%r11), %rbx
+#if XHCI_ROOT_PORT > 127
+    mov $XHCI_ROOT_PORT, %eax
+#else
+    push $XHCI_ROOT_PORT
+    pop %rax
+#endif
+#else
     lea 0x400(%r11), %rbx
     mov $1, %eax
+#endif
 enum_probe_port:
     testl $1, (%rbx)
     jz enum_probe_next_port
     mov (%rbx), %edx
     shr $10, %edx
+    and $15, %edx            # PORTSC change/wake bits are not part of speed.
     dec %edx
     cmp $2, %edx             # Only default USB2 speed IDs 1..3.
     jbe enum_probe_reset
 enum_probe_next_port:
+#ifdef XHCI_ROOT_PORT
+    ret
+#else
     add $16, %rbx
     inc %eax
     loop enum_probe_port
     ret
+#endif
 enum_probe_reset:
     mov %al, %gs:0x380
     mov (%rbx), %eax
@@ -82,7 +99,7 @@ enum_probe_packet:
     lea 0x1020(%r8), %rdx
     mov %rax, (%rdx)
     movl $0x01002c01, 12(%rdx) # Address Device.
-    movb $22, %gs:0x3e0
+    incb %gs:0x3e0          # Completed phase 21; enter phase 22.
     call enum_probe_command
     jne enum_probe_done
     movb $1, %gs:0x383
@@ -122,7 +139,7 @@ enum_probe_high:
     cmp $64, %eax
     jne enum_probe_done
 enum_probe_evaluate:
-    movb $24, %gs:0x3e0
+    incb %gs:0x3e0          # Completed phase 23; enter phase 24.
     shl $16, %eax
     or $0x26, %eax
     mov %gs:0x3c0, %ecx
@@ -135,7 +152,7 @@ enum_probe_evaluate:
     movl $0x01003401, 12(%rdx)
     call enum_probe_command
     jne enum_probe_done
-    movb $25, %gs:0x3e0
+    incb %gs:0x3e0          # Completed phase 24; enter phase 25.
     lea 0x4830(%r8), %rbx
     mov $18, %ecx
     mov $0x01000680, %eax
@@ -146,7 +163,7 @@ enum_probe_evaluate:
     cmpb $0, 0x4c11(%r8)
     je enum_probe_done
     movb $1, %gs:0x384
-    movb $26, %gs:0x3e0
+    incb %gs:0x3e0          # Completed phase 25; enter phase 26.
     push %rsi
     lea 0x4c00(%r8), %rsi
     lea 0x4e20(%r8), %rdi
@@ -155,7 +172,8 @@ enum_probe_evaluate:
     rep movsb
     pop %rsi
     lea 0x4860(%r8), %rbx
-    mov $9, %ecx
+    push $9
+    pop %rcx
     mov $0x02000680, %eax
     call enum_probe_descriptor
     jne enum_probe_done
@@ -166,7 +184,7 @@ enum_probe_evaluate:
     cmp $503, %eax
     ja enum_probe_done
     mov %ecx, %gs:0x38c
-    movb $27, %gs:0x3e0
+    incb %gs:0x3e0          # Completed phase 26; enter phase 27.
     lea 0x4890(%r8), %rbx
     mov $0x02000680, %eax
     call enum_probe_descriptor
@@ -174,7 +192,7 @@ enum_probe_evaluate:
     mov %gs:0x38c, %eax
     cmp %ax, 0x4c02(%r8)
     jne enum_probe_done
-    movb $28, %gs:0x3e0
+    incb %gs:0x3e0          # Completed phase 27; enter phase 28.
 enum_probe_done:
     ret
 

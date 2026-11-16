@@ -64,8 +64,14 @@ No admite direcciones proporcionadas por el llamador ni concede MMIO.
 | 10 | Prefijo de dispositivo de 8 B, little-endian. Requiere reserva DMA validada. |
 | 11 | Puerto en bits 0..7, velocidad en 8..15, longitud solicitada en 16..31. |
 | 12 | Puntero esperado de terminacion de la operacion actual. |
+| 13 | Primeros dos dwords del contexto EP0 de salida: estado y parametros, incluido MPS. |
+| 14 | TR Dequeue Pointer de EP0 en el contexto de salida. |
+| 15 | TR Dequeue Pointer de EP0 en el contexto de entrada. |
+| 16 | Tamano de contexto descubierto: 32 o 64 bytes. |
 
 Sin esa opcion de compilacion los selectores continuan rechazados.
+Los selectores 13..16 exigen tambien reserva DMA validada y calculan
+sus direcciones a partir de esa reserva y del tamano descubierto.
 Los resultados son instantaneas del perfil finito y se leen despues de
 parar el controlador. Un evento vacio no acredita terminacion correcta.
 

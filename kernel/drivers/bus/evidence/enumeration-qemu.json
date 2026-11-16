@@ -1,15 +1,16 @@
 {
   "evidence": "QEMU",
-  "scope": "SET_ADDRESS recovery wait before EP0 plus ordered Setup publication and raw diagnostics. AMD outcome still unverified.",
-  "stage_bytes": 4096,
+  "scope": "Explicit root port 2, corrected MaxPorts snapshot and read-only EP0 context diagnostics. Physical HID is still unverified.",
+  "stage_bytes": 4091,
   "stage_limit_bytes": 4096,
   "source_sha256": {
-    "tools/desktop/reports.rs": "5bd546d9fb48aef897956c54ec85336c157a79db8655d77726a9c7d5550c4f6f",
-    "kernel/drivers/bus/xhci_command_probe.inc": "63952dc2cb28eb59d264356ff7b59444a1fa87eacb41fe186c9aa8eb25be7d4a",
-    "kernel/drivers/bus/xhci_enumerate_device.inc": "0771a064598e334dd97aada0018d835e176cff6d30761c8a9c6b42e6ead56e5c",
-    "kernel/syscalls/session_gate.S": "8b3b9a88e2372132403ff28cdd44839a539bdb0d5e445b3f7bcf9e29f1ffb87f",
-    "tools/boot/stage_desktop_media.py": "fbce42d0458b61c7cfa8038c7a5c4b380dfd86b60a4d2487ff80cfbe2c328466",
-    "tools/boot/desktop_session_capture.py": "1b7f339deb79ca992fdb590f682d996017d4dc71e2fcb0da044e9e7279a8e131"
+    "kernel/syscalls/session_gate.S": "f844bc0da8accd065c0af7567a11d12c565c586f11ce35d2efa4e239c2b40a81",
+    "kernel/drivers/bus/xhci_enumerate_device.inc": "67ac36e6d1c8954a7ea102331b09d4aca109ef9971329a9201688ae4d55fb0c7",
+    "tools/desktop/reports.rs": "ac8360e13edcf3a074d7ee6f3b04f8e72f667bfaa14f28b30942f20c96cfbd03",
+    "tools/boot/stage_desktop_media.py": "09d0e200210362b25d984dd19a44234276c4bcc5075dc35ec4dd996e7046f014",
+    "tools/boot/desktop_session_capture.py": "9b56b4a75b34a398c09efda5b062af95a311057f00370ef6877a74facf9ca3c7",
+    "tools/boot/probe.py": "154eb0ba9ac14c7732c5cbe37897d157df37be94bd9781605e86cb0b79cab505",
+    "tools/boot/view.ps1": "1813e3d8d345791e3f1ccc8332a37237b33b15b3b9958c594a2b93c8c211460a"
   },
   "legacy_byte_equivalence": {
     "keyboard_stage": true,
