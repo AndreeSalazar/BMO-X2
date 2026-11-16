@@ -202,5 +202,36 @@
     "tools/boot/rmlui_native_capture.py": "210a6a7e2bf4ce6b911caa00c9282b0a144a41461c9003905c499e8a9e89cda2",
     "tools/boot/probe.py": "a11ad9779cb2e55a1c464b0c73b6603a0282b4a9c82b5334de6bf63c2b006d55",
     "tools/boot/prepare.py": "9252af94aa4def9dfd8b0127bf1511d2c91f5d431d6a2554ed1b2b167c1f5364"
+  },
+  "fat32_backup_cleanup": {
+    "date": "2026-11-16",
+    "bytes_removed_from_fat32": 1865733,
+    "archive": "build/archives/fat32-backups-20261116",
+    "files": [
+      {
+        "name": "DESKTOP.EFI.backup-20261116221033557",
+        "bytes": 16384,
+        "sha256": "ee258ba29eb219c935aa9feaba1b973fc106a416dea0433586f97fb9c5dff972"
+      },
+      {
+        "name": "DESKTOP.SBF.backup-20261116221033535",
+        "bytes": 1845798,
+        "sha256": "0df1fc600142a4c8b66ba81e7b6ab3612c06e9287624443d5f39f9e887fa242f"
+      },
+      {
+        "name": "INICIO.X86.backup-20261116221033519",
+        "bytes": 3551,
+        "sha256": "f3268cb2025c0ebec510f380a4594c81d74f026d5ad792773b82ad94d22c80f4"
+      }
+    ],
+    "active_files_unchanged": {
+      "A:\\BMO-X2\\DESKTOP\\INICIO.X86": "867850CFD2CB8C2FBE70E455D3310EA1CC3078DF7321BAADB3ACAF9713DD47C0",
+      "A:\\BMO-X2\\DESKTOP\\DESKTOP.SBF": "626F1D7251A8073FC591FB9F0551DC333AA66EEF83CADF91BB8DC9E59E14B1F1",
+      "A:\\EFI\\BMO-X2\\DESKTOP.EFI": "C6EA0A5035DADB1D1D439C708C686B56E66FDEBEFC2DAFD1C30B806AECE2F09C",
+      "A:\\EFI\\BMO-X2\\BMO-X2.EFI": "3911A9364B30CBA7CA78B165065563AB3F585D9385129BFEC8349F117A59FA28"
+    },
+    "native_bootlog_present": false,
+    "physical_boot_verified": false,
+    "observation": "User photo shows legacy USB descriptor diagnostic desktop; native PRE-EBS log absent. New candidate boot not yet demonstrated."
   }
 }
