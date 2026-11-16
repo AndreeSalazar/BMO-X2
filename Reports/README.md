@@ -45,3 +45,39 @@ El panel inicial cubre entrada USB y contadores disponibles. RAM, todos
 los dispositivos y un historial general de fallos aun necesitan contratos
 y productores de diagnostico propios; no se inventan a partir de estos
 contadores.
+
+## Detalle EP0
+
+La foto anterior en AMD alcanzo `USB EP0 CABECERA`, con tres puertos
+conectados. Eso acredita Address Device, pero no permite distinguir
+timeout, terminacion de error, cabecera o MPS invalido. La version actual
+publica Setup solo despues de preparar Data y Status, con barreras de
+escritura antes de ceder el TRB y antes de tocar el doorbell. La secuencia
+se contrasta con [xhci_queue_ctrl_tx de Linux](https://github.com/torvalds/linux/blob/master/drivers/usb/host/xhci-ring.c).
+La causa del fallo AMD previo aun no esta confirmada.
+
+Los detalles se muestran en hexadecimal, sin modificar el resultado:
+
+| Campo | Significado |
+|---|---|
+| P / S | Puerto raiz y ID de velocidad observado. |
+| CC | Codigo del ultimo evento recibido. 01 es exito; 06 es STALL. 00 con evento vacio significa que no se capturo una respuesta util. |
+| LEFT | Residuo de longitud de 24 bits del evento; en un error no se interpreta como bytes recibidos validos. |
+| REQ | Longitud solicitada para la transferencia actual. |
+| MPS | Byte observado en bMaxPacketSize0; requiere cabecera de dispositivo valida. |
+| HEAD | Primeros ocho bytes como palabra little-endian de 64 bits. Se conserva el prefijo del dispositivo antes de leer configuracion. |
+| PTR / EXP | Puntero del evento y puntero esperado, en los 32 bits bajos del perfil DMA bajo 256 MiB. |
+
+Los valores corresponden a la ultima operacion, no a un historial.
+Cada espera borra el evento anterior para no presentar un exito antiguo
+como respuesta de una operacion que no termino. Un error se conserva
+antes de comprobarlo; no se acepta una respuesta por el hecho de mostrarla.
+No se amplian las guardas: sonda 4095/4096 B, puerta 1189/2048 B,
+escritorio REPORTES 8057/8192 B RX y SBEF de 11453 B.
+
+QEMU comprueba los digitos del framebuffer contra los eventos y datos
+esperados, a velocidad alta y completa. `--xhci-ep0-stall` envia una
+peticion no admitida al dispositivo emulado y exige CC 06, fase 23,
+parada y revocacion de Bus Master. Ese perfil solo produce `qemu-only/`
+y nunca debe instalarse en A:. El perfil normal corregido necesita una
+nueva prueba AMD para saber si la publicacion era la causa del bloqueo.

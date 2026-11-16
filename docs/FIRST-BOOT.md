@@ -190,7 +190,7 @@ los cambios de puerto intermedios se consumen sin confundirlos con ellas.
 Las transferencias requieren longitud exacta. No se reutiliza el anillo
 ni se permite rebasar su segmento de eventos en este ensayo finito.
 
-La sonda ocupa 4090 B dentro de su pagina RX de 4096 B. No se ha ampliado
+La sonda ocupa 4095 B dentro de su pagina RX de 4096 B. No se ha ampliado
 esa guarda ni el limite de 2 KiB de la puerta de syscall. Tras la prueba,
 tanto si tiene exito como si falla, se solicita parada, se revoca Bus
 Master y se retiran los alias MMIO. Las esperas de reset y terminaciones

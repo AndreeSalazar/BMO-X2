@@ -50,6 +50,7 @@ def main():
     probes.add_argument('--xhci-enum-probe', action='store_true', help='Address the first USB2 device and read its descriptor on AMD 149C or QEMU; then stop')
     parser.add_argument('--xhci-timer-fault', action='store_true', help='QEMU-only: remove PIT to verify finite USB wait failure')
     parser.add_argument('--xhci-empty-ports', action='store_true', help='QEMU-only: verify the USB discovery deadline with no attached devices')
+    parser.add_argument('--xhci-ep0-stall', action='store_true', help='QEMU-only: unsupported control request to verify EP0 error reporting')
     probes.add_argument('--reuse-session', action='store_true', help='Run the QEMU-only desktop frame reuse probe')
     probes.add_argument('--ultra-j-view', type=Path, help='Test the ULTRA-J Ring 3 view SBEF in QEMU')
     probes.add_argument('--sheet-desktop', type=Path, help='Test the Ring 3 sheet desktop in QEMU')
@@ -61,6 +62,8 @@ def main():
     parser.add_argument('--usb-mouse', action='store_true', help='Probe a USB boot mouse instead of a keyboard')
     args = parser.parse_args()
     enum_probe = args.xhci_enum_probe
+    if args.xhci_ep0_stall and (not enum_probe or args.xhci_empty_ports or args.xhci_timer_fault):
+        parser.error('--xhci-ep0-stall requiere enumeracion sin otros fallos inyectados')
     if args.reports_desktop and not (enum_probe or args.xhci_transport_probe):
         parser.error('--reports-desktop requiere una sonda de transporte o enumeracion')
     if enum_probe:
@@ -111,6 +114,8 @@ def main():
         name = source.stem
         obj = run / f'{name}.o'
         flags = ['-DXHCI_COMMAND_PROBE'] if args.xhci_command else []
+        if enum_probe and name == 'session_gate':
+            flags.append('-DXHCI_ENUM_PROBE')
         if args.xhci_transport_probe and name == 'desktop_media_alloc':
             flags.append('-DXHCI_COMMAND_PROBE')
         if args.reuse_session:
@@ -130,6 +135,8 @@ def main():
         flags.append('-DXHCI_TRANSPORT_PROBE')
     if enum_probe:
         flags.append('-DXHCI_ENUM_PROBE')
+    if args.xhci_ep0_stall:
+        flags.append('-DXHCI_EP0_STALL')
     if args.usb_mouse:
         flags.append('-DXHCI_MOUSE_PROBE')
     subprocess.run([llvm / 'clang.exe', '--target=x86_64-unknown-none-elf', '-x', 'assembler-with-cpp',
@@ -207,6 +214,8 @@ def main():
         (run / 'xhci-enum.txt').write_text('Finite first USB2 device descriptor; no HID endpoints\n', encoding='ascii')
     if args.reports_desktop:
         (run / 'reports.txt').write_text('Ring 0 values presented in Ring 3; no runtime disk writer\n', encoding='ascii')
+    if args.xhci_ep0_stall:
+        (run / 'xhci-ep0-stall.txt').write_text('QEMU-only unsupported request\n', encoding='ascii')
     if args.xhci_timer_fault:
         (run / 'xhci-timer-fault.txt').write_text('QEMU: PIT disabled\n', encoding='ascii')
     if args.xhci_empty_ports:
@@ -228,7 +237,7 @@ def main():
                     '--casos', 'normal', 'external-permissions'],
                    check=True, cwd=run, timeout=100)
 
-    media = run / ('qemu-only' if args.xhci_timer_fault or args.xhci_empty_ports else
+    media = run / ('qemu-only' if args.xhci_timer_fault or args.xhci_empty_ports or args.xhci_ep0_stall else
                    'diagnostic-media' if args.xhci_reset_probe or args.xhci_transport_probe else
                    'qemu-only' if args.xhci_command or args.reuse_session or args.ultra_j_view
                    or args.sheet_desktop else 'media')

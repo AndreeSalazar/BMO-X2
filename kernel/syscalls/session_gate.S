@@ -293,6 +293,18 @@ diagnostics:
     je usb_preflight
     cmp $7, %rdx
     je usb_port_census
+#ifdef XHCI_ENUM_PROBE
+    cmp $8, %rdx
+    je usb_event_words
+    cmp $9, %rdx
+    je usb_event_pointer
+    cmp $10, %rdx
+    je usb_descriptor_head
+    cmp $11, %rdx
+    je usb_port_speed
+    cmp $12, %rdx
+    je usb_expected_pointer
+#endif
 #endif
 #endif
     cmp $2, %rdx
@@ -319,6 +331,32 @@ usb_preflight:
 usb_port_census:
     mov %gs:0x3e8, %eax
     jmp finish
+#ifdef XHCI_ENUM_PROBE
+usb_event_words:
+    mov %gs:0x3d0, %rax
+    jmp finish
+usb_event_pointer:
+    mov %gs:0x398, %rax
+    jmp finish
+usb_expected_pointer:
+    mov %gs:0x3d8, %rax
+    jmp finish
+usb_descriptor_head:
+    cmpb $1, %gs:0x3c4
+    jne denied
+    mov 0xb8(%rbp), %rax
+    cmpb $1, %gs:0x384
+    jne usb_head_initial
+    add $0x220, %rax       # Verified device prefix retained before config reads.
+usb_head_initial:
+    mov 0x4c00(%rax), %rax
+    jmp finish
+usb_port_speed:
+    movzwl %gs:0x385, %eax
+    shl $16, %eax
+    mov %gs:0x380, %ax
+    jmp finish
+#endif
 #endif
 #endif
 #ifdef XHCI_COMMAND_PROBE

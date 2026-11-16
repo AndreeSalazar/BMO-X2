@@ -49,7 +49,27 @@ esta prueba en CASM, despertar por IRQ de entrada, aplicar la
 secuencia y el plazo monotono del contrato, y planificar varios
 procesos.
 
-## Reproduccion
+## Extension experimental de diagnostico EP0
+
+Solo la sonda `XHCI_ENUM_PROBE` agrega selectores de lectura a la
+capacidad 3, operacion 3. Conserva los selectores 0..7 y los numeros
+de puerta. Esta extension de la sonda devuelve la palabra en RAX;
+no sustituye el contrato general de resultados descrito arriba.
+No admite direcciones proporcionadas por el llamador ni concede MMIO.
+
+| Selector | Palabra devuelta |
+|---|---|
+| 8 | Dwords de estado y control del ultimo evento, en bits 0..31 y 32..63. |
+| 9 | Puntero TRB del evento capturado. |
+| 10 | Prefijo de dispositivo de 8 B, little-endian. Requiere reserva DMA validada. |
+| 11 | Puerto en bits 0..7, velocidad en 8..15, longitud solicitada en 16..31. |
+| 12 | Puntero esperado de terminacion de la operacion actual. |
+
+Sin esa opcion de compilacion los selectores continuan rechazados.
+Los resultados son instantaneas del perfil finito y se leen despues de
+parar el controlador. Un evento vacio no acredita terminacion correcta.
+
+## Reproduccion de herramientas
 
 ```powershell
 .\bmo-x2.ps1 -Accion abi

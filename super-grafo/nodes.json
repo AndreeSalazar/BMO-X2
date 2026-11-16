@@ -1933,8 +1933,8 @@
       "que": "Expone fase USB, motivo, siguiente paso y pulsos de Ring 0 sin necesitar entrada; exporta evidencia en HOST.",
       "entrada": "Capacidad de diagnostico, resultados QEMU y BOOTLOG previo a ExitBootServices.",
       "salida": "Panel automatico y latest.txt/json con fuentes separadas.",
-      "aceptacion": "QEMU confirma panel parcial amarillo, pulsos cambiantes y fallo rojo sin dispositivos; escritorio normal conserva F3. SBEF 10581 B, RX 7225 B.",
-      "falta": "Historial general, captura de excepciones fatales y persistencia FAT32 posterior a UEFI. Las fases USB sincronas se ven al retornar INVOKE; no es tiempo real duro."
+      "aceptacion": "QEMU verifica digitos EP0 en alta/completa velocidad y STALL real CC 06 con parada y revocacion; perfiles anteriores sin cambios de bytes. REPORTES SBEF 11453 B, RX 8057 B.",
+      "falta": "Confirmar en AMD la publicacion ordenada EP0; foto previa quedo en fase 23. Faltan historial general, excepciones fatales y persistencia FAT32 posterior a UEFI. Fases sincronas visibles al retornar INVOKE."
     }
   ],
   "relaciones": [

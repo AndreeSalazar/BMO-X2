@@ -2,9 +2,16 @@
 # Interrupt delivery remains disabled.
 #include "xhci_dma_layout.inc"
 .text
+.macro xhci_transport_state value
+#ifdef XHCI_ENUM_PROBE
+    movb $\value, %gs:0x3e0
+#else
+    movl $\value, %gs:0x3e0
+#endif
+.endm
 xhci_test_command:
 #ifdef XHCI_TRANSPORT_PROBE
-    movl $9, %gs:0x3e0        # Incomplete transport, including rejected geometry.
+    xhci_transport_state 9        # Incomplete transport, including rejected geometry.
     movzbl %gs:0x378, %eax
     dec %eax
     cmp $1, %eax
@@ -43,7 +50,7 @@ command_device_allowed:
     jnz command_restore
     movb $1, %gs:0x3c4
 #ifdef XHCI_TRANSPORT_PROBE
-    movl $10, %gs:0x3e0
+    xhci_transport_state 10
     # Each register bank gets its own uncached supervisor alias. Bounds keep
     # this diagnostic inside the first 64 KiB of the controller aperture.
     mov 0x18(%rdi), %r9d
@@ -52,15 +59,15 @@ command_device_allowed:
     mov %r10d, %gs:0x3f4
     call xhci_transport_layout
     jne command_restore
-    movl $15, %gs:0x3e0
+    xhci_transport_state 15
     mov %r9d, %edx
     call xhci_transport_mmio
     jne command_restore
-    movl $16, %gs:0x3e0
+    xhci_transport_state 16
     mov %r10d, %edx
     call xhci_transport_mmio
     jne command_restore
-    movl $17, %gs:0x3e0
+    xhci_transport_state 17
 #else
     cmpl $0x1000, 0x18(%rdi)
     jne command_restore
@@ -100,12 +107,12 @@ command_device_allowed:
     movzbl (%rdi), %eax
     lea (%rdi,%rax), %r11
 #ifdef XHCI_TRANSPORT_PROBE
-    movl $11, %gs:0x3e0
+    xhci_transport_state 11
 #endif
     call xhci_reset
     jne command_unmap
 #ifdef XHCI_TRANSPORT_PROBE
-    movl $12, %gs:0x3e0
+    xhci_transport_state 12
 #endif
     movl $1, 0x38(%r11)         # one device slot
     # Prepare the physical pointer array. DCBAA[0] is zero when HCSPARAMS2
@@ -160,7 +167,7 @@ scratchpads_ready:
 #endif
     movl $0, (%r10)
 #ifdef XHCI_TRANSPORT_PROBE
-    movl $13, %gs:0x3e0
+    xhci_transport_state 13
     lea 0x2000(%r8), %rsi
     mov $10000000, %ecx
 transport_event:
@@ -189,7 +196,7 @@ transport_completion:
     cmp %rax, (%rsi)
     jne command_stop
     movb $1, %gs:0x379
-    movl $14, %gs:0x3e0
+    xhci_transport_state 14
     lea 16(%rsi), %rax
     lea 0x2100(%r8), %rdx
     cmp %rdx, %rax
@@ -239,7 +246,7 @@ command_stop:
     setz %gs:0x37a
 #ifdef XHCI_ENUM_PROBE
     je enum_probe_halted
-    movl $29, %gs:0x3e0
+    xhci_transport_state 29
 enum_probe_halted:
 #endif
 #ifdef XHCI_TRANSPORT_PROBE
@@ -247,7 +254,7 @@ enum_probe_halted:
     cmpb $1, %gs:0x379
     jne transport_stop_failed
 #ifndef XHCI_ENUM_PROBE
-    movl $8, %gs:0x3e0        # No Op verified AND controller halted.
+    xhci_transport_state 8        # No Op verified AND controller halted.
 #endif
 transport_stop_failed:
 #endif

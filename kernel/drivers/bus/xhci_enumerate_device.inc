@@ -3,7 +3,7 @@
 # R8 DMA, R9 interrupter, R10 doorbells, R11 operational, RDI capabilities.
 # RSI next unconsumed event. Never reuse a TRB before its completion.
 xhci_enumerate_device:
-    movl $20, %gs:0x3e0
+    movb $20, %gs:0x3e0
     movzbl 7(%rdi), %ecx
     lea 0x400(%r11), %rbx
     mov $1, %eax
@@ -48,7 +48,7 @@ enum_probe_reset_ready:
     call xhci_transport_ports
     pop %rsi
     jne enum_probe_done
-    movl $21, %gs:0x3e0
+    movb $21, %gs:0x3e0
     lea 0x1010(%r8), %rdx
     movl $0x2401, 12(%rdx)   # Enable Slot.
     call enum_probe_command
@@ -82,27 +82,29 @@ enum_probe_packet:
     lea 0x1020(%r8), %rdx
     mov %rax, (%rdx)
     movl $0x01002c01, 12(%rdx) # Address Device.
-    movl $22, %gs:0x3e0
+    movb $22, %gs:0x3e0
     call enum_probe_command
     jne enum_probe_done
     movb $1, %gs:0x383
-    movl $23, %gs:0x3e0
+    movb $23, %gs:0x3e0
     lea 0x4800(%r8), %rbx
     mov $8, %ecx
+#ifdef XHCI_EP0_STALL
+    mov $0x0100ff80, %eax   # QEMU-only: unsupported request must stall EP0.
+#else
     mov $0x01000680, %eax
+#endif
     call enum_probe_descriptor
     jne enum_probe_done
     cmpw $0x0112, 0x4c00(%r8)
     jne enum_probe_done
     movzbl 0x4c07(%r8), %eax
-    cmp $8, %eax
-    je enum_probe_mps
-    cmp $16, %eax
-    je enum_probe_mps
-    cmp $32, %eax
-    je enum_probe_mps
-    cmp $64, %eax
-    jne enum_probe_done
+    lea -8(%rax), %edx
+    cmp $56, %edx
+    ja enum_probe_done
+    lea -1(%rax), %edx
+    test %eax, %edx         # Power of two, in [8,64].
+    jnz enum_probe_done
 enum_probe_mps:
     cmpb $2, %gs:0x381      # Low speed must use 8; high speed must use 64.
     jne enum_probe_high
@@ -114,7 +116,7 @@ enum_probe_high:
     cmp $64, %eax
     jne enum_probe_done
 enum_probe_evaluate:
-    movl $24, %gs:0x3e0
+    movb $24, %gs:0x3e0
     shl $16, %eax
     or $0x26, %eax
     mov %gs:0x3c0, %ecx
@@ -127,7 +129,7 @@ enum_probe_evaluate:
     movl $0x01003401, 12(%rdx)
     call enum_probe_command
     jne enum_probe_done
-    movl $25, %gs:0x3e0
+    movb $25, %gs:0x3e0
     lea 0x4830(%r8), %rbx
     mov $18, %ecx
     mov $0x01000680, %eax
@@ -138,13 +140,13 @@ enum_probe_evaluate:
     cmpb $0, 0x4c11(%r8)
     je enum_probe_done
     movb $1, %gs:0x384
-    movl $26, %gs:0x3e0
-    mov 0x4c00(%r8), %rax
-    mov %rax, 0x4e20(%r8)
-    mov 0x4c08(%r8), %rax
-    mov %rax, 0x4e28(%r8)
-    mov 0x4c10(%r8), %ax
-    mov %ax, 0x4e30(%r8)
+    movb $26, %gs:0x3e0
+    push %rsi
+    lea 0x4c00(%r8), %rsi
+    lea 0x4e20(%r8), %rdi
+    mov $18, %ecx
+    rep movsb
+    pop %rsi
     lea 0x4860(%r8), %rbx
     mov $9, %ecx
     mov $0x02000680, %eax
@@ -157,7 +159,7 @@ enum_probe_evaluate:
     cmp $503, %eax
     ja enum_probe_done
     mov %ecx, %gs:0x38c
-    movl $27, %gs:0x3e0
+    movb $27, %gs:0x3e0
     lea 0x4890(%r8), %rbx
     mov $0x02000680, %eax
     call enum_probe_descriptor
@@ -165,23 +167,27 @@ enum_probe_evaluate:
     mov %gs:0x38c, %eax
     cmp %ax, 0x4c02(%r8)
     jne enum_probe_done
-    movl $28, %gs:0x3e0
+    movb $28, %gs:0x3e0
 enum_probe_done:
     ret
 
 # RBX free control TRBs, EAX request, ECX requested bytes. Exact completion only.
 enum_probe_descriptor:
+    mov %cx, %gs:0x385
     mov %eax, (%rbx)
     mov %ecx, %eax
     shl $16, %eax
     mov %eax, 4(%rbx)
     movl $8, 8(%rbx)
-    movl $0x30841, 12(%rbx)
+    movl $0x30840, 12(%rbx) # Withhold Setup ownership until all stages exist.
     lea 0x4c00(%r8), %rax
     mov %rax, 16(%rbx)
     mov %ecx, 24(%rbx)
     movl $0x10c01, 28(%rbx)
     movl $0x1021, 44(%rbx)
+    sfence
+    orb $1, 12(%rbx)
+    sfence
     lea 32(%rbx), %rdx
     movl $1, 4(%r10)
     mov $0x01018000, %ebx
@@ -190,6 +196,10 @@ enum_probe_command:
     movl $0, (%r10)
     mov $0x8400, %ebx
 enum_probe_event:
+    mov %rdx, %gs:0x3d8   # Expected completion pointer, kept across timeout.
+    xor %eax, %eax
+    mov %rax, %gs:0x398
+    mov %rax, %gs:0x3d0
     mov $10000000, %ecx
 enum_probe_wait:
     lea 0x2100(%r8), %rax
@@ -201,7 +211,11 @@ enum_probe_wait:
     and $0xfc00, %eax
     cmp $0x8800, %eax
     je enum_probe_port_change
-    mov 12(%rsi), %eax
+    mov (%rsi), %rax
+    mov %rax, %gs:0x398
+    mov 8(%rsi), %rax
+    mov %rax, %gs:0x3d0
+    shr $32, %rax
     and $0xfffffc00, %eax
     # Command completions carry slot ID in the upper byte.
     cmp $0x8400, %ebx
@@ -228,7 +242,8 @@ enum_probe_port_change:
     call enum_probe_advance
 enum_probe_pause:
     pause
-    loop enum_probe_wait
+    dec %ecx
+    jnz enum_probe_wait
 enum_probe_fail:
     or $1, %eax
     ret

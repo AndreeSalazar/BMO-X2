@@ -348,6 +348,30 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         kind, start, end = covering[0]
         assert kind == 2 and start <= dma and dma + pages * 4096 <= end
         reserved = memory(dma, pages * 4096, 'xhci-reserved-pages')
+        def check_report_hex(x, y, value, digits):
+            atlas = (Path(__file__).resolve().parents[1] / 'desktop/cabina_font.bin').read_bytes()
+            shades = (0x232638, 0x64697a, 0xa5acbc, 0xe7efff)
+            glyphs = [atlas['0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'.index(c)*37:][:37]
+                      for c in f'{value:0{digits}X}'[-digits:]]
+            width = sum(glyph[0] for glyph in glyphs) + 12
+            expected = [[0] * width for _ in range(12)]
+            column = 0
+            for glyph in glyphs:
+                for row in range(12):
+                    bits = int.from_bytes(glyph[1 + row*3:4 + row*3], 'little')
+                    for bit in range(12):
+                        shade = bits >> (bit*2) & 3
+                        if shade:
+                            expected[row][column + bit] = shade
+                column += glyph[0]
+            raw = memory(fb + (y*scale*pitch + x*scale)*4,
+                         (11*scale*pitch + column*scale)*4, 'ep0-report-hex')
+            for row in range(12):
+                for col in range(column):
+                    color = shades[expected[row][col]].to_bytes(4, 'little')
+                    if order == 0:
+                        color = color[:3][::-1] + b'\0'
+                    assert raw[(row*pitch+col)*scale*4:][:4] == color, f'EP0 report differs at {x+col},{y+row}'
         if transport_probe:
             assert memory(address + 0x1a3c4, 1, 'transport-reservation-validated') == b'\x01'
             empty_ports = (prefix.parent.parent / 'xhci-empty-ports.txt').is_file()
@@ -368,6 +392,26 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                             XhciEmptyPortsTimeoutVerified=empty_ports, XhciNoOpCompleted=False,
                             XhciControllerStopped=True, XhciBusMasterRevoked=True,
                             ReportsPanelVerified=reports_panel,
+                            XhciHidConfigured=False, CpuL1=cache)
+            if (prefix.parent.parent / 'xhci-ep0-stall.txt').is_file():
+                assert memory(address + 0x1a3e0, 4, 'ep0-failed-phase') == struct.pack('<I', 23)
+                assert memory(address + 0x1a379, 2, 'ep0-failed-stop') == bytes([1, 1])
+                words = struct.unpack('<Q', memory(address + 0x1a3d0, 8, 'ep0-failed-event'))[0]
+                assert words >> 24 & 255 == 6, 'Expected an actual Stall Error from QEMU USB device'
+                assert memory(address + 0x1a384, 1, 'ep0-no-descriptor') == bytes(1)
+                assert memory(address + 0x1a3c8, 1, 'ep0-no-live-hid') == bytes(1)
+                original, restored = struct.unpack('<HH', memory(address + 0x1a37c, 4, 'ep0-failed-busmaster'))
+                assert restored == original & ~4
+                assert memory(address + 0x15400, 8, 'ep0-failed-pde') == bytes(8)
+                assert memory(address + 0x1e000, 24, 'ep0-failed-pte') == bytes(24)
+                if reports_panel:
+                    assert logical(24, 254, 0xff6b7a)
+                    check_report_hex(220, 322, 6, 2)
+                    check_report_hex(440, 322, 8, 4)
+                command('screendump', {'filename': str(prefix) + '-ep0-stall.png', 'format': 'png'})
+                return dict(Case='normal', Passed=True, UserCpl=3, XhciEp0StallVerified=True,
+                            UsbCompletionCode=6, ReportsRawCodeVerified=reports_panel,
+                            XhciControllerStopped=True, XhciBusMasterRevoked=True,
                             XhciHidConfigured=False, CpuL1=cache)
             assert memory(address + 0x1a379, 2, 'transport-completed-halted') == b'\x01\x01'
             if reports_panel:
@@ -392,6 +436,16 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 assert struct.unpack_from('<I', reserved, 0x4834)[0] == 18 << 16
                 assert struct.unpack_from('<I', reserved, 0x103c)[0] == 0x01003401
                 assert struct.unpack_from('<I', reserved, 0x580c)[0] >> 27 & 0x1f == 2
+                if reports_panel:
+                    check_report_hex(54, 322, 5, 2)
+                    check_report_hex(128, 322, speed, 2)
+                    check_report_hex(220, 322, 1, 2)
+                    check_report_hex(306, 322, 0, 6)
+                    check_report_hex(440, 322, total, 4)
+                    check_report_hex(554, 322, descriptor[7], 2)
+                    check_report_hex(80, 338, int.from_bytes(descriptor[:8], 'little'), 16)
+                    check_report_hex(304, 338, dma + 0x48b0, 8)
+                    check_report_hex(462, 338, dma + 0x48b0, 8)
             else:
                 assert memory(address + 0x1a380, 8, 'transport-no-device-slots') == bytes(8)
             assert memory(address + 0x1a3c8, 1, 'transport-no-live-hid') == bytes(1)
