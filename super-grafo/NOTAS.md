@@ -1322,6 +1322,17 @@ Depende de: ULTRA-J: perfil de estilos (codigo), ULTRA-J: bytecode y tema (gener
 Aceptacion: Reorganizacion conserva UJVI byte por byte. Banco ULTRA-J: 26 pruebas, una omitida, sin fallos; evidence/ui-layers-host.json.
 Pendiente: CSS completo y un motor de layout general no estan implementados.
 
+## tools/desktop/rmlui
+
+Prueba RmlUi/FreeType con rasterizador CPU y evento real hacia ULTRA-J HOST.
+
+Estado: HOST. Anillo: host. Lenguaje: C++ / Python.
+Entrada: RML, RCSS, main.uj y dependencias fijadas por commit.
+Salida: Paquete HOST con hashes, dos imagenes y mediciones del proceso; no SBEF.
+Depende de: ULTRA-J: compilador inicial (codigo), ULTRA-J: verificador y reciclador (codigo).
+Aceptacion: Click ejecuta dos metodos UJBC y cierra region; rechazos y reinicializacion pasan; recursos del adaptador liberados.
+Pendiente: Puente Rust, servicios nativos, presupuestos y pruebas Ring 3 antes de emitir SBEF.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -1344,4 +1355,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-120 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+121 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

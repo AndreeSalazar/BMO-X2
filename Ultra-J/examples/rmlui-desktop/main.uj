@@ -1,0 +1,11 @@
+class DesktopAction {
+    void run() {
+        try (Region app = new Region(1)) {
+            Window panel = new Window();
+            Button activate = new Button();
+            panel.show();
+            activate.activate();
+        }
+        return;
+    }
+}

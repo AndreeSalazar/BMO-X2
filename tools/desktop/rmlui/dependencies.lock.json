@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "dependencies": [
+    {
+      "name": "RmlUi",
+      "repository": "https://github.com/mikke89/RmlUi.git",
+      "tag": "6.3",
+      "commit": "ba95ffe8bfb6370efb2cdcca927eaad4710c5413",
+      "folder": "RmlUi-6.3"
+    },
+    {
+      "name": "FreeType",
+      "repository": "https://github.com/freetype/freetype.git",
+      "tag": "VER-2-14-3",
+      "commit": "0a0221a1347e2f1e07c395263540026e9a0aa7c7",
+      "folder": "freetype-2.14.3"
+    }
+  ]
+}

@@ -124,6 +124,7 @@
 | [REPORTES de entrada](../Reports) | qemu | host | Expone fase USB, motivo, siguiente paso y pulsos de Ring 0 sin necesitar entrada; exporta evidencia en HOST. |
 | [ULTRA-J: perfil de estilos](../Ultra-J/ui/style.py) | host | host | Valida el perfil UJC acotado y sus propiedades soportadas. |
 | [ULTRA-J: compilador visual](../Ultra-J/ui/view.py) | host | host | Transforma .ujh y reglas en geometria validada y listas UJVI. |
+| [RmlUi + ULTRA-J en HOST](../tools/desktop/rmlui) | host | host | Prueba RmlUi/FreeType con rasterizador CPU y evento real hacia ULTRA-J HOST. |
 
 ## Dependencias declaradas
 
@@ -336,5 +337,7 @@
 | ultra-j-view | ultra-j-view-compiler | codigo |
 | ultra-j-view-compiler | ultra-j-style-profile | codigo |
 | ultra-j-view-compiler | ultra-j-format | generacion |
+| rmlui-host-preview | ultra-j-compiler | codigo |
+| rmlui-host-preview | ultra-j-recycler | codigo |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

@@ -1969,6 +1969,23 @@
       "salida": "Listas binarias para el presentador Ring 3.",
       "aceptacion": "Reorganizacion conserva UJVI byte por byte. Banco ULTRA-J: 26 pruebas, una omitida, sin fallos; evidence/ui-layers-host.json.",
       "falta": "CSS completo y un motor de layout general no estan implementados."
+    },
+    {
+      "id": "rmlui-host-preview",
+      "titulo": "RmlUi + ULTRA-J en HOST",
+      "ruta": "tools/desktop/rmlui",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "C++ / Python",
+      "posicion": [
+        5100,
+        3100
+      ],
+      "que": "Prueba RmlUi/FreeType con rasterizador CPU y evento real hacia ULTRA-J HOST.",
+      "entrada": "RML, RCSS, main.uj y dependencias fijadas por commit.",
+      "salida": "Paquete HOST con hashes, dos imagenes y mediciones del proceso; no SBEF.",
+      "aceptacion": "Click ejecuta dos metodos UJBC y cierra region; rechazos y reinicializacion pasan; recursos del adaptador liberados.",
+      "falta": "Puente Rust, servicios nativos, presupuestos y pruebas Ring 3 antes de emitir SBEF."
     }
   ],
   "relaciones": [
@@ -3006,6 +3023,16 @@
       "de": "ultra-j-view-compiler",
       "a": "ultra-j-format",
       "clase": "generacion"
+    },
+    {
+      "de": "rmlui-host-preview",
+      "a": "ultra-j-compiler",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-host-preview",
+      "a": "ultra-j-recycler",
+      "clase": "codigo"
     }
   ]
 }

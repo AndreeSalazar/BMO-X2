@@ -40,3 +40,12 @@ La separacion de `Ultra-J/ui/` conserva el formato UJVI y su resultado
 byte por byte. `Ultra-J/view.py` mantiene la CLI y las importaciones que
 usan package.py y los scripts de construccion. No cambia los archivos
 del volumen de arranque ni la distribucion del escritorio instalado.
+
+## Experimento RmlUi, aislado del escritorio instalado
+
+`tools/desktop/rmlui/` prueba RML/RCSS con RmlUi + FreeType y un
+rasterizador CPU nativo en Windows HOST. Sus recursos viven en
+`Ultra-J/examples/rmlui-desktop/`; la accion usa el runtime HOST actual.
+No sustituye UJVI ni emite SBEF. La integracion Rust, entrada DIRECTOR,
+runtime C++ y presupuestos de memoria son requisitos pendientes para
+portarlo. Ver el README del adaptador y su evidencia reproducible.

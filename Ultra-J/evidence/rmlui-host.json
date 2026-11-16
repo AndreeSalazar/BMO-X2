@@ -1,0 +1,184 @@
+{
+  "evidence": "HOST",
+  "native": {
+    "evidence": "HOST",
+    "engine": "RmlUi 6.3",
+    "renderer": "CPU",
+    "callback_passed": true,
+    "click_events": 1,
+    "triangles_two_frames": 3008,
+    "framebuffer_bytes": 4096000,
+    "peak_adapter_geometry_bytes": 80696,
+    "peak_adapter_texture_bytes": 1277952,
+    "first_frame_and_bmp_ms": 21.0155,
+    "action_frame_and_bmp_ms": 20.2137,
+    "adapter_geometry_bytes_after_shutdown": 0,
+    "adapter_texture_bytes_after_shutdown": 0
+  },
+  "ultra_j": [
+    {
+      "Evidence": "HOST",
+      "BytecodeBytes": 23,
+      "ThemeBytes": 0,
+      "ArenaBytes": 256,
+      "PeakObjectBytes": 48,
+      "LiveObjectBytes": 0,
+      "Allocations": [
+        {
+          "Class": "Window",
+          "Offset": 0,
+          "Bytes": 32
+        },
+        {
+          "Class": "Button",
+          "Offset": 32,
+          "Bytes": 16
+        }
+      ],
+      "Releases": [
+        {
+          "Region": 1,
+          "Objects": 2,
+          "Bytes": 48
+        }
+      ],
+      "Calls": [
+        {
+          "Receiver": 0,
+          "Method": 1,
+          "Before": 0,
+          "After": 1
+        },
+        {
+          "Receiver": 1,
+          "Method": 2,
+          "Before": 0,
+          "After": 1
+        }
+      ],
+      "Styles": {},
+      "Output": []
+    }
+  ],
+  "baseline_memory": {
+    "working_set_bytes": 30019584,
+    "peak_working_set_bytes": 34512896,
+    "private_bytes": 19316736,
+    "scope": "Whole Python + RmlUi + FreeType + CPU adapter HOST process"
+  },
+  "final_memory": {
+    "working_set_bytes": 30920704,
+    "peak_working_set_bytes": 35045376,
+    "private_bytes": 20221952,
+    "scope": "Whole Python + RmlUi + FreeType + CPU adapter HOST process"
+  },
+  "total_native_call_ms": 54.00340000005599,
+  "packaged_files_bytes": 2945562,
+  "dependency_policy": "Windows CRT/SDK remain runtime dependencies, not included in package bytes",
+  "sbef": false,
+  "ring3_ready": false,
+  "scripted_click": true,
+  "checks": [
+    "native rejected action",
+    "missing font input",
+    "engine reinitialization",
+    "UJBC two methods and closed region",
+    "different before/after pixels"
+  ],
+  "sources": {
+    "tools/desktop/rmlui/build.ps1": "1624a63996582bc99f4945ef48f16e8ac57bee8f6d1e72ad11c44374d8eaf620",
+    "tools/desktop/rmlui/check.py": "26ab7843e87b216722d3abd7a563b42d5651bcbf12b95975a1aa626aa7425dff",
+    "tools/desktop/rmlui/CMakeLists.txt": "8821cf81fb4aaffd733c9833e391b668d57e33f96e9f92dc8f29606eaa92f63a",
+    "tools/desktop/rmlui/dependencies.lock.json": "bd93178ae9a731465fb2df6423ad50766d2a9a669c01b6740cb06929c22aa808",
+    "tools/desktop/rmlui/fetch.ps1": "13a321d62504927841cfaee15f75be74c42f98ed2d9b42bd6af50178aab0cc38",
+    "tools/desktop/rmlui/preview.cpp": "fe5ef57785588d2a16c518c50aaa613af4069ff6af1ebb7c8806a6bb19b334e0",
+    "tools/desktop/rmlui/preview.py": "036a9c845f1ff4c169cb8254db8abd5e9e4769d1c5321e33af237775f8f722e0",
+    "tools/desktop/rmlui/README.md": "ac1216fde3ac51b28ec45ffcad8a261b3f87d7fc7ab78fcb6fb86117afa1d056",
+    "Ultra-J/examples/rmlui-desktop/main.rml": "1e6b2bca961911109c0f58072778f42944736ac92f546ff8cbeb8640321ef2e2",
+    "Ultra-J/examples/rmlui-desktop/main.uj": "17e6f921411eae802d841caf72fabe8853bb49b00dd0e24e1e0e38cd71b9a668",
+    "Ultra-J/examples/rmlui-desktop/style.rcss": "5a8e1f979ba788d2461333bb87d3237253834dda05f7bcf5db768d861d6de108"
+  },
+  "dependencies": [
+    {
+      "name": "RmlUi",
+      "repository": "https://github.com/mikke89/RmlUi.git",
+      "tag": "6.3",
+      "commit": "ba95ffe8bfb6370efb2cdcca927eaad4710c5413",
+      "folder": "RmlUi-6.3"
+    },
+    {
+      "name": "FreeType",
+      "repository": "https://github.com/freetype/freetype.git",
+      "tag": "VER-2-14-3",
+      "commit": "0a0221a1347e2f1e07c395263540026e9a0aa7c7",
+      "folder": "freetype-2.14.3"
+    }
+  ],
+  "package_manifest": {
+    "schema": 1,
+    "profile": "rmlui-host-windows-x64",
+    "sbef": false,
+    "ring3_ready": false,
+    "note": "Native Windows proof plus Python HOST VM; no guest executable.",
+    "files": {
+      "action.ujb": {
+        "bytes": 23,
+        "sha256": "857c10cd4a5f9084693e5035fc60394a4ef1ed15bedbd58f9fdc87b7bff43088"
+      },
+      "bmo_rmlui_host.dll": {
+        "bytes": 2614784,
+        "sha256": "1b19f3e01ac62e96e19c286c9711885bff096aa5550e23ab23e06e88861a7d64"
+      },
+      "dependencies.lock.json": {
+        "bytes": 470,
+        "sha256": "bd93178ae9a731465fb2df6423ad50766d2a9a669c01b6740cb06929c22aa808"
+      },
+      "FreeType-FTL.txt": {
+        "bytes": 6912,
+        "sha256": "308dca54b5aaa4a6ba0880621fe3bcf287956821aa948430263062a8333625c0"
+      },
+      "FreeType-LICENSE.txt": {
+        "bytes": 2196,
+        "sha256": "84f47dc7f0887dd56b05f2f218060581c055e443bd7af18e46677bec3dcc2473"
+      },
+      "HOST-README.md": {
+        "bytes": 3979,
+        "sha256": "ac1216fde3ac51b28ec45ffcad8a261b3f87d7fc7ab78fcb6fb86117afa1d056"
+      },
+      "Lato-LICENSE.txt": {
+        "bytes": 15235,
+        "sha256": "bed153b0c43270d88983fbe77f8bee52faf167b37488ff8e3dd8d4bb699d18bd"
+      },
+      "LatoLatin-Bold.ttf": {
+        "bytes": 146156,
+        "sha256": "74dc638cf436cce77a0217a2a55ce7906a4cc9e4c595c6f1dcd9dd858078c1b6"
+      },
+      "LatoLatin-Regular.ttf": {
+        "bytes": 148540,
+        "sha256": "d785334ac4e7810f571def986bbad41161f68ac385db8813f798bf04d71478e1"
+      },
+      "main.rml": {
+        "bytes": 2203,
+        "sha256": "1e6b2bca961911109c0f58072778f42944736ac92f546ff8cbeb8640321ef2e2"
+      },
+      "main.uj": {
+        "bytes": 260,
+        "sha256": "17e6f921411eae802d841caf72fabe8853bb49b00dd0e24e1e0e38cd71b9a668"
+      },
+      "RmlUi-LICENSE.txt": {
+        "bytes": 1194,
+        "sha256": "02c6fa90f6a2c1cf69124014fbaaf524affc71ebf76dd4176321bc50a5b0746c"
+      },
+      "style.rcss": {
+        "bytes": 3610,
+        "sha256": "5a8e1f979ba788d2461333bb87d3237253834dda05f7bcf5db768d861d6de108"
+      }
+    }
+  },
+  "images": {
+    "before": "a47d6fc28568c349c8dcf5e6fa787f90259a7755c229f297bfe3858c25e39e42",
+    "after": "b7554e370bebc8b39d070c311096d3991ae0145922cb3d2b94871a85892fa5cc"
+  },
+  "compiler": "clang version 23.1.2 (https://github.com/llvm/llvm-project 85ac560262434c9ccfc0c183ec22d4138ed647fb)",
+  "date": "2026-11-16"
+}

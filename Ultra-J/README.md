@@ -1,5 +1,18 @@
 # ULTRA-J
 
+## Interfaz elegante con RmlUi
+
+Primera prueba real en HOST: `examples/rmlui-desktop/` separa estructura
+RML, apariencia RCSS y accion `main.uj`. RmlUi 6.3 + FreeType dibujan
+texto, paneles y boton mediante un adaptador CPU C++ compilado con Clang.
+El click programado ejecuta UJBC en el runtime HOST actual y cambia la
+vista. HOST empaqueta recursos, DLL, licencias y hashes. Todavia no es
+un ejecutable SBEF ni una interfaz instalada en el escritorio de BMO-X2.
+
+[Construccion, evidencia y limites](../tools/desktop/rmlui/README.md).
+El motor visual C++ no reemplaza a Rust como director del escritorio;
+requiere un puente y servicios adaptados antes de llegar a Ring 3.
+
 ## Por que existe
 
 ULTRA-J es el lenguaje de aplicaciones de BMO-X2. Nacio para escribir

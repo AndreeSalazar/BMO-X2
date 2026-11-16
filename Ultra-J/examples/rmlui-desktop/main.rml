@@ -1,0 +1,36 @@
+<rml>
+<head><title>BMO-X2 / Desktop lab</title><link type="text/rcss" href="style.rcss"/></head>
+<body>
+  <div id="rail">
+    <div id="brand"><span class="brand-mark">X2</span><span>BMO-X2</span></div>
+    <div class="rail-label">TU ESPACIO</div>
+    <div class="nav selected">01 <span>Inicio</span></div>
+    <div class="nav">02 <span>Aplicaciones</span></div>
+    <div class="nav">03 <span>Archivos</span></div>
+    <div class="nav">04 <span>Ajustes</span></div>
+    <div id="rail-bottom"><div class="signal">DESKTOP LAB</div><p>Interfaz real RmlUi.<br/>Prueba en HOST.</p></div>
+  </div>
+  <div id="main">
+    <div id="top"><span class="muted">BMO-X2 / DIRECTOR</span><span id="host-badge">HOST PREVIEW</span></div>
+    <div id="intro"><div class="eyebrow">CONTROL. RENDIMIENTO. ELEGANCIA.</div><h1>Tu espacio. Tu ritmo.</h1><p>Una mesa tranquila para construir algo extraordinario.</p></div>
+    <div id="workspace">
+      <div id="focus-panel">
+        <div class="panel-top"><span class="muted">ESPACIO DE TRABAJO</span><span class="cyan">01</span></div>
+        <div class="symbol">BMO / X2</div>
+        <h2>El comienzo de tu escritorio.</h2>
+        <p class="description">Una interfaz con estructura propia, estilo compartido<br/>y comportamiento conectado a ULTRA-J.</p>
+        <button id="activate">Activar ULTRA-J</button>
+        <p id="result">Pulsa el boton para ejecutar una accion real.</p>
+      </div>
+      <div id="side-panel">
+        <div class="eyebrow">LA BASE</div><h2>Todo tiene su lugar.</h2>
+        <div class="layer"><span class="layer-index">01</span><div><h3>DIRECTOR</h3><p>Ventanas y espacios.</p></div></div>
+        <div class="layer"><span class="layer-index violet">02</span><div><h3>RmlUi</h3><p>Forma, texto y distribucion.</p></div></div>
+        <div class="layer"><span class="layer-index green">03</span><div><h3>ULTRA-J</h3><p>Objetos, acciones y eventos.</p></div></div>
+        <div id="state">Esperando tu accion</div>
+      </div>
+    </div>
+    <div id="bottom"><span class="muted">BMO-X2</span><span class="footer-note">VISTA HOST / DIBUJO CPU / SIN CAMBIOS EN EL BOOT</span><span class="cyan">HECHO PARA CRECER</span></div>
+  </div>
+</body>
+</rml>
