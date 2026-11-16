@@ -72,7 +72,7 @@ Los valores corresponden a la ultima operacion, no a un historial.
 Cada espera borra el evento anterior para no presentar un exito antiguo
 como respuesta de una operacion que no termino. Un error se conserva
 antes de comprobarlo; no se acepta una respuesta por el hecho de mostrarla.
-No se amplian las guardas: sonda 4095/4096 B, puerta 1189/2048 B,
+No se amplian las guardas: sonda 4096/4096 B, puerta 1189/2048 B,
 escritorio REPORTES 8057/8192 B RX y SBEF de 11453 B.
 
 QEMU comprueba los digitos del framebuffer contra los eventos y datos
@@ -81,3 +81,21 @@ peticion no admitida al dispositivo emulado y exige CC 06, fase 23,
 parada y revocacion de Bus Master. Ese perfil solo produce `qemu-only/`
 y nunca debe instalarse en A:. El perfil normal corregido necesita una
 nueva prueba AMD para saber si la publicacion era la causa del bloqueo.
+
+La siguiente foto AMD mostro P 01, S 01, REQ 0008 y CC/HEAD/PTR en cero:
+no se capturo terminacion de transferencia. Comparar con el padre revelo
+otra omision: se pedia el descriptor inmediatamente despues de Address
+Device. BMO-X espera `PLAZO_ASENTAR_MS` antes de continuar; USB tambien
+contempla recuperacion tras SET_ADDRESS. La nueva sonda conserva el
+debounce previo y repite el muestreo PIT despues de direccionar, antes
+de publicar la primera peticion EP0. Son al menos 110 ms conservadores
+en este perfil finito, no una latencia obligatoria para cada lectura
+ni una garantia de respuesta del periferico.
+
+QEMU completa las tres fases de estabilizacion en 33 muestras, unos
+330 ms totales, y mantiene el limite global de 100 muestras. Un fallo
+del temporizador o de estabilidad detiene la prueba antes del descriptor.
+Para conservar la pagina RX se escriben campos cortos de Setup/Status
+en TRBs nuevos, ya puestos a cero por el asignador UEFI; nunca se
+reutilizan esos TRBs. No se quitan validaciones de terminacion ni MPS.
+El resultado en AMD de esta espera posterior aun necesita confirmacion.

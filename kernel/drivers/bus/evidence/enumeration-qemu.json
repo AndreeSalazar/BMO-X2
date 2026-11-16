@@ -1,15 +1,15 @@
 {
   "evidence": "QEMU",
-  "scope": "Ordered EP0 Setup publication and raw read-only diagnostics; the AMD fix is not yet confirmed in hardware.",
-  "stage_bytes": 4095,
+  "scope": "SET_ADDRESS recovery wait before EP0 plus ordered Setup publication and raw diagnostics. AMD outcome still unverified.",
+  "stage_bytes": 4096,
   "stage_limit_bytes": 4096,
   "source_sha256": {
     "tools/desktop/reports.rs": "5bd546d9fb48aef897956c54ec85336c157a79db8655d77726a9c7d5550c4f6f",
     "kernel/drivers/bus/xhci_command_probe.inc": "63952dc2cb28eb59d264356ff7b59444a1fa87eacb41fe186c9aa8eb25be7d4a",
-    "kernel/drivers/bus/xhci_enumerate_device.inc": "1f55ade5ce783218d3931fce6508d04e07857b1f035125d48e4640a6b2183410",
+    "kernel/drivers/bus/xhci_enumerate_device.inc": "0771a064598e334dd97aada0018d835e176cff6d30761c8a9c6b42e6ead56e5c",
     "kernel/syscalls/session_gate.S": "8b3b9a88e2372132403ff28cdd44839a539bdb0d5e445b3f7bcf9e29f1ffb87f",
     "tools/boot/stage_desktop_media.py": "fbce42d0458b61c7cfa8038c7a5c4b380dfd86b60a4d2487ff80cfbe2c328466",
-    "tools/boot/desktop_session_capture.py": "54ddcb864e16598ad85ad4d1fa95d0db8b3116a284e241e20c949b146c95bcf7"
+    "tools/boot/desktop_session_capture.py": "1b7f339deb79ca992fdb590f682d996017d4dc71e2fcb0da044e9e7279a8e131"
   },
   "legacy_byte_equivalence": {
     "keyboard_stage": true,

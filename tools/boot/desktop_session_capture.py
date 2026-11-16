@@ -462,7 +462,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
             assert memory(address + 0x1e000, 24, 'transport-alias-pte') == bytes(24)
             assert memory(address + 0x1a3e8, 4, 'transport-connected-ports') == struct.pack('<I', 3)
             settle_slices = struct.unpack('<I', memory(address + 0x1a3fc, 4, 'transport-real-time-slices'))[0]
-            assert 11 <= settle_slices <= (200 if enum_probe else 100)
+            assert (33 if enum_probe else 11) <= settle_slices <= 100
             running_status = struct.unpack('<I', memory(address + 0x1a3ec, 4, 'transport-census-status'))[0]
             assert running_status & 0x801 == 0, 'El censo requiere xHC activo y CNR despejado'
             devices = [device for bus in command('query-pci') for device in bus['devices']]

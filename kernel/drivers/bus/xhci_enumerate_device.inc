@@ -86,9 +86,15 @@ enum_probe_packet:
     call enum_probe_command
     jne enum_probe_done
     movb $1, %gs:0x383
+    # Allow the device to settle SET_ADDRESS before any descriptor request.
+    push %rsi
+    call xhci_transport_ports
+    pop %rsi
+    jne enum_probe_done
     movb $23, %gs:0x3e0
     lea 0x4800(%r8), %rbx
-    mov $8, %ecx
+    push $8
+    pop %rcx
 #ifdef XHCI_EP0_STALL
     mov $0x0100ff80, %eax   # QEMU-only: unsupported request must stall EP0.
 #else
@@ -144,7 +150,8 @@ enum_probe_evaluate:
     push %rsi
     lea 0x4c00(%r8), %rsi
     lea 0x4e20(%r8), %rdi
-    mov $18, %ecx
+    push $18
+    pop %rcx
     rep movsb
     pop %rsi
     lea 0x4860(%r8), %rbx
@@ -171,20 +178,19 @@ enum_probe_evaluate:
 enum_probe_done:
     ret
 
-# RBX free control TRBs, EAX request, ECX requested bytes. Exact completion only.
+# RBX fresh zeroed control TRBs, never reused; EAX request, ECX length.
+# Untouched setup/status fields stay zero from the checked EFI allocation.
 enum_probe_descriptor:
     mov %cx, %gs:0x385
     mov %eax, (%rbx)
-    mov %ecx, %eax
-    shl $16, %eax
-    mov %eax, 4(%rbx)
-    movl $8, 8(%rbx)
+    mov %cx, 6(%rbx)       # wLength; wIndex remains zero.
+    movb $8, 8(%rbx)
     movl $0x30840, 12(%rbx) # Withhold Setup ownership until all stages exist.
     lea 0x4c00(%r8), %rax
     mov %rax, 16(%rbx)
     mov %ecx, 24(%rbx)
     movl $0x10c01, 28(%rbx)
-    movl $0x1021, 44(%rbx)
+    movw $0x1021, 44(%rbx)
     sfence
     orb $1, 12(%rbx)
     sfence

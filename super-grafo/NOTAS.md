@@ -1297,8 +1297,8 @@ Estado: QEMU. Anillo: host. Lenguaje: Python.
 Entrada: Capacidad de diagnostico, resultados QEMU y BOOTLOG previo a ExitBootServices.
 Salida: Panel automatico y latest.txt/json con fuentes separadas.
 Depende de: Buses, recursos y DMA (codigo), Escritorio y espacios de trabajo (codigo).
-Aceptacion: QEMU verifica digitos EP0 en alta/completa velocidad y STALL real CC 06 con parada y revocacion; perfiles anteriores sin cambios de bytes. REPORTES SBEF 11453 B, RX 8057 B.
-Pendiente: Confirmar en AMD la publicacion ordenada EP0; foto previa quedo en fase 23. Faltan historial general, excepciones fatales y persistencia FAT32 posterior a UEFI. Fases sincronas visibles al retornar INVOKE.
+Aceptacion: QEMU verifica recuperacion posterior a Address Device, digitos EP0 en alta/completa velocidad y STALL CC 06 con retirada DMA. REPORTES SBEF 11453 B, RX 8057 B; sonda 4096 B.
+Pendiente: Confirmar en AMD la recuperacion tras SET_ADDRESS; foto previa mostro fase 23 sin evento EP0. Faltan historial general, excepciones fatales y persistencia FAT32 posterior a UEFI. Fases sincronas visibles al retornar INVOKE.
 
 ## CASM
 
