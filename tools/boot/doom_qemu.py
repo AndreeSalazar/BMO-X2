@@ -21,6 +21,7 @@ def main():
     parser.add_argument('reference', type=Path)
     parser.add_argument('sbef', type=Path)
     parser.add_argument('--intro', type=Path)
+    parser.add_argument('--desktop-welcome', action='store_true', help='Verify Ring 0 cat, Ring 3 welcome and desktop')
     variants = parser.add_mutually_exclusive_group()
     variants.add_argument('--desktop-present', type=Path)
     variants.add_argument('--session-gate', type=Path)
@@ -35,6 +36,8 @@ def main():
     parser.add_argument('--wad', type=Path)
     parser.add_argument('--qemu', default='C:/Program Files/qemu/qemu-system-x86_64.exe')
     args = parser.parse_args()
+    if args.desktop_welcome and not (args.intro and args.session_gate and args.external_loader):
+        parser.error('La bienvenida requiere intro, sesion y cargador externo')
     if args.rmlui_renderer and (not args.external_loader or not args.session_gate or args.intro):
         parser.error('La sonda Rust requiere cargador externo, puerta de sesion y no usa intro')
     if args.reuse and not args.toolchain_client:
@@ -80,6 +83,8 @@ def main():
         application = f'abi-{args.toolchain_client}'
     run = reference.parent / f'run-{application}-{uuid.uuid4().hex[:12]}'
     run.mkdir()
+    if args.desktop_welcome:
+        (run / 'welcome.txt').write_text('QEMU\n', encoding='ascii')
     if args.rmlui_renderer:
         expected_pixels = args.rmlui_renderer.read_bytes()
         if len(expected_pixels) != 16*16*4:
@@ -137,6 +142,16 @@ def main():
                     '--qemu', qemu, '--halt', '--abi-probe', '--doom-fixture', *extra],
                    check=True, cwd=run, timeout=100)
     report = json.loads((run / 'build/puente-test-results.json').read_text(encoding='utf-8'))
+    if args.desktop_welcome:
+        subprocess.run([sys.executable, '-B', str(scripts / 'probe.py'), '--workspace', str(run),
+                        '--qemu', qemu, '--halt', '--abi-probe', '--doom-fixture', '--welcome-skip'],
+                       check=True, cwd=run, timeout=100)
+        skipped = json.loads((run / 'build/puente-test-results.json').read_text(encoding='utf-8'))
+        for case in skipped['Cases']:
+            case['Case'] = 'welcome-skip'
+        report['Cases'].extend(skipped['Cases'])
+        report['Total'] += skipped['Total']
+        report['Passed'] += skipped['Passed']
     milestone = 'Rust desktop composition in CPL3' if present is not None else 'DoomGeneric fixed arithmetic in CPL3'
     if gate is not None:
         milestone = 'Interactive Rust desktop session in CPL3'
@@ -150,6 +165,8 @@ def main():
         milestone = 'Rust desktop CABINA launches DoomGeneric E1M1 in CPL3'
     if args.rmlui_renderer:
         milestone = 'Shared no_std Rust CPU rasterizer executes in CPL3; full RmlUi engine remains HOST'
+    if args.desktop_welcome:
+        milestone = 'Ring 0 cat, admitted Ring 3 welcome, then desktop; skip preserves first input'
     if args.toolchain_client:
         milestone = f'{args.toolchain_client.upper()} client exercises the CASM ABI in CPL3'
         report['toolchain'] = args.toolchain_client

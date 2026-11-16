@@ -127,6 +127,7 @@
 | [RmlUi + ULTRA-J en HOST](../tools/desktop/rmlui) | host | host | Prueba RmlUi/FreeType en HOST con rasterizador Rust no_std y evento hacia ULTRA-J HOST. |
 | [Dibujo CPU Rust para RmlUi](../userspace/services/desktop/src/rmlui.rs) | qemu | 3 | Dibuja triangulos, texturas RGBA y recorte sobre buffers prestados sin heap ni llamadas de SO. |
 | [Sonda SBEF del dibujador comun](../tools/desktop/rmlui/guest.ps1) | qemu | host | Construye el mismo dibujador como SBEF freestanding y compara pixeles reales de QEMU con HOST. |
+| [Bienvenida del escritorio en Ring 3](../userspace/services/desktop/src/welcome.rs) | qemu | 3 | Muestra tres fases visuales despues de admision y permisos, entre el gato CASM y el escritorio ULTRA-J. |
 
 ## Dependencias declaradas
 
@@ -344,5 +345,7 @@
 | rmlui-host-preview | rmlui-rust-raster | codigo |
 | rmlui-raster-probe | rmlui-rust-raster | codigo |
 | rmlui-raster-probe | abi-probe | verificacion |
+| desktop-welcome | abi-bef2 | codigo |
+| desktop-workspaces | desktop-welcome | codigo |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

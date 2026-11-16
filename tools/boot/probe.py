@@ -37,10 +37,13 @@ parser.add_argument('--paging', action='store_true', help='Check the active page
 parser.add_argument('--user-fault', action='store_true', help='Check CPL3 page fault and cleanup')
 parser.add_argument('--abi-probe', action='store_true', help='Check embedded SBEF and the SYSCALL prototype')
 parser.add_argument('--doom-fixture', action='store_true', help='Verify the run-specific DOOM ABI fixture')
+parser.add_argument('--welcome-skip', action='store_true', help='Skip the explicit Ring 3 welcome fixture with F2')
 parser.add_argument('--hot-unmap', action='store_true', help='Check live revocation and the fault journal')
 parser.add_argument('--splash',action='store_true',help='Capture the three logo frames')
 parser.add_argument('--splash-hd',action='store_true',help='Use the 64-cell logo layout')
 args = parser.parse_args()
+if args.welcome_skip and not (args.doom_fixture and (workspace(args.workspace) / 'welcome.txt').is_file()):
+    parser.error('--welcome-skip requiere el perfil de bienvenida')
 if not args.abi_probe and set(args.casos).intersection(MUTATIONS):
     parser.error('SBEF mutation cases require the ABI probe')
 memory_case = args.memory or args.frame_cycle or args.paging
@@ -205,6 +208,9 @@ def run(case):
                 return verify_engine(command, memory, prefix, external_image, case, desktop=desktop_doom)
             if case == 'external-permissions':
                 return verify_external_rejection(command, memory, external_image)
+            if (ROOT / 'welcome.txt').is_file():
+                from welcome_capture import verify_welcome
+                return verify_welcome(command, memory, prefix, intro_rows, skip=args.welcome_skip)
             if profile == 'rmlui-raster-probe':
                 from rmlui_capture import verify_raster
                 return verify_raster(command, memory, prefix, ROOT / 'raster-expected.bin')

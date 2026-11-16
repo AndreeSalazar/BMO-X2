@@ -1,0 +1,163 @@
+{
+  "evidence": "QEMU",
+  "date": "2026-11-16",
+  "report": {
+    "Passed": 3,
+    "Total": 3,
+    "Cases": [
+      {
+        "Case": "normal",
+        "Passed": true,
+        "Evidence": "QEMU",
+        "Ring0CatFrames": [
+          1,
+          2
+        ],
+        "Ring3WelcomePhases": [
+          0,
+          1,
+          2
+        ],
+        "Cpl3WelcomeCaller": true,
+        "WelcomeUsesWait": true,
+        "WelcomeSkipped": false,
+        "FirstInputReplayed": false,
+        "DesktopReached": true,
+        "FullRmlUiEngine": false,
+        "Scope": "Existing ULTRA-J launcher desktop, not the full RmlUi port"
+      },
+      {
+        "Case": "external-permissions",
+        "Passed": true,
+        "SbefAccepted": false,
+        "UserCodeCopied": false,
+        "UserAddressSpaceActivated": false,
+        "RejectedField": "permissions",
+        "RejectedOffset": 116
+      },
+      {
+        "Case": "welcome-skip",
+        "Passed": true,
+        "Evidence": "QEMU",
+        "Ring0CatFrames": [
+          1,
+          2
+        ],
+        "Ring3WelcomePhases": [
+          0
+        ],
+        "Cpl3WelcomeCaller": true,
+        "WelcomeUsesWait": true,
+        "WelcomeSkipped": true,
+        "FirstInputReplayed": true,
+        "DesktopReached": true,
+        "FullRmlUiEngine": false,
+        "Scope": "Existing ULTRA-J launcher desktop, not the full RmlUi port"
+      }
+    ],
+    "run": "run-desktop-2670f26b4f1a",
+    "evidence": "QEMU",
+    "milestone": "Cat intro then Ring 0 cat, admitted Ring 3 welcome, then desktop; skip preserves first input"
+  },
+  "size": {
+    "FormatVersion": 1,
+    "AbiVersion": 1,
+    "Architecture": "x86-64",
+    "Bytes": 10408,
+    "Entry": "0x40001922",
+    "Regions": [
+      {
+        "Address": "0x40000000",
+        "Offset": 128,
+        "FileBytes": 7131,
+        "MemoryBytes": 7131,
+        "MappedBytes": 8192,
+        "Permissions": "RX"
+      },
+      {
+        "Address": "0x40003000",
+        "Offset": 7259,
+        "FileBytes": 3145,
+        "MemoryBytes": 3145,
+        "MappedBytes": 4096,
+        "Permissions": "R"
+      },
+      {
+        "Address": "0x40004000",
+        "Offset": 10404,
+        "FileBytes": 4,
+        "MemoryBytes": 272,
+        "MappedBytes": 4096,
+        "Permissions": "RW"
+      }
+    ],
+    "SizeReport": {
+      "SourceBytes": 22544,
+      "ContainerBytes": 128,
+      "PayloadBytes": 10280,
+      "MappedRegionBytes": 16384,
+      "ZeroFillBytes": 268,
+      "PagePaddingBytes": 5836
+    }
+  },
+  "source_sha256": {
+    "userspace/services/desktop/src/welcome.rs": "87c9fae40b0d0ae665f48d148fe9360c62fc7602c314ffa8e6d3db1e9d36301f",
+    "tools/desktop/session.rs": "2a39ce9063285a16ba526f78ba90e201c54f266ba7e5e918c5a53f6418eb6dcc",
+    "tools/build-desktop.ps1": "f78b7c862e036a38002d5c23aa4aa6972eda2537107fff330ac94445d7b736d0",
+    "tools/boot/welcome_capture.py": "fe38a5b2d5e687869949f269c1a20c152ffb81abaee6b91415aa8ec6267515ef",
+    "tools/boot/probe.py": "be0e5a547ec6816c2ed852419f8fac3eb34ea4a8dc9ce3c50e499a75ac3deaed",
+    "tools/boot/doom_qemu.py": "f47a8fa9d9050e79f377963ba0f3e7c0dbf0212d8b951592a2bc6e21460760a6"
+  },
+  "sbef_sha256": "0af77bd973888de3adafda866c611c6af8266b8e9b4a6a1f1b30e8cb5c4a0557",
+  "intro_sha256": "9a066c056633335dacb76b1a7a7f3e1eff0b42c2db1cf9040305fccd54e60cbc",
+  "intro_source_unchanged": true,
+  "images": {
+    "puente-normal-skip-welcome-0.png": "04845ccc9380c84681a675f9505aecc9d71714b5e90cc204f9fb00ab7d6fc22d",
+    "puente-normal-welcome-0.png": "04845ccc9380c84681a675f9505aecc9d71714b5e90cc204f9fb00ab7d6fc22d",
+    "puente-normal-welcome-1.png": "b54821bd68cda30d946e6fdf554bb8e2c144aa9b7cc5d3348357e604556d5361",
+    "puente-normal-welcome-2.png": "49b40c51cc9ddffa07bc495e287ee6646eff0f36585599b48ed4050bf9f70dd5"
+  },
+  "scope": "Optional existing ULTRA-J launcher. No complete RmlUi, no USB AMD or METAL validation. Cat is a boot milestone, not a full hardware health check.",
+  "baseline_without_welcome": {
+    "FormatVersion": 1,
+    "AbiVersion": 1,
+    "Architecture": "x86-64",
+    "Bytes": 9625,
+    "Entry": "0x40001682",
+    "Regions": [
+      {
+        "Address": "0x40000000",
+        "Offset": 128,
+        "FileBytes": 6459,
+        "MemoryBytes": 6459,
+        "MappedBytes": 8192,
+        "Permissions": "RX"
+      },
+      {
+        "Address": "0x40003000",
+        "Offset": 6587,
+        "FileBytes": 3034,
+        "MemoryBytes": 3034,
+        "MappedBytes": 4096,
+        "Permissions": "R"
+      },
+      {
+        "Address": "0x40004000",
+        "Offset": 9621,
+        "FileBytes": 4,
+        "MemoryBytes": 272,
+        "MappedBytes": 4096,
+        "Permissions": "RW"
+      }
+    ],
+    "SizeReport": {
+      "SourceBytes": 22432,
+      "ContainerBytes": 128,
+      "PayloadBytes": 9497,
+      "MappedRegionBytes": 16384,
+      "ZeroFillBytes": 268,
+      "PagePaddingBytes": 6619
+    }
+  },
+  "AddedFileBytes": 783
+}

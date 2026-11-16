@@ -13,6 +13,11 @@ RmlUi/FreeType completo aun no vive en Ring 3: la DLL Windows tiene
 importaciones pendientes de adaptar. [Estado y pasos del escritorio permanente](tools/desktop/rmlui/README.md#para-convertirlo-en-el-escritorio-permanente)
 y [evidencia HOST/QEMU](Ultra-J/evidence/rmlui-ring3.json).
 
+El perfil optativo `-Welcome` comprueba la secuencia gato CASM en Ring 0,
+bienvenida Rust en Ring 3 y escritorio. Puede saltarse con entrada, que
+se conserva para la sesion. No sustituye la verificacion de dispositivos
+ni el port de RmlUi. [Recorrido y comandos](userspace/services/desktop/LAYERS.md#gato-ring-0-bienvenida-ring-3-escritorio).
+
 [REPORTES](Reports/README.md) presenta fase, motivo y siguiente paso de
 entrada USB, junto con contadores de Ring 0. El perfil de diagnostico
 aparece sin teclado ni raton y permite conservar un resumen HOST legible.

@@ -9,6 +9,7 @@ param(
     [switch]$UsbMouse,
     [switch]$Sheet,
     [switch]$UltraJ,
+    [switch]$Welcome,
     [switch]$Reports,
     [string]$AbiRun,
     [string]$IntroRun
@@ -20,6 +21,7 @@ if ($UsbProbe -and -not $External) { throw '-UsbProbe requiere -External.' }
 if ($UsbMouse -and -not $UsbProbe) { throw '-UsbMouse requiere -UsbProbe.' }
 if ($Sheet -and (-not $External -or $UsbProbe)) { throw '-Sheet requiere -External y entrada PS/2.' }
 if ($UltraJ -and -not $Sheet) { throw '-UltraJ requiere -Sheet.' }
+if ($Welcome -and -not $UltraJ) { throw '-Welcome requiere -UltraJ: perfil con presupuesto medido para la bienvenida.' }
 if ($Reports -and (-not $External -or $UsbProbe -or $Sheet)) { throw '-Reports requiere -External y no se combina con Sheet ni UsbProbe.' }
 if ($AbiRun -and -not $Guest) { throw '-AbiRun requiere -Guest.' }
 if ($IntroRun -and -not $AbiRun) { throw '-IntroRun requiere -AbiRun.' }
@@ -58,6 +60,11 @@ if ($Session) {
         $guestFlags += @('--cfg','desktop_ultra_j')
         $elf = Join-Path $build.FullName 'desktop-ultra-j.elf'
         $image = Join-Path $build.FullName 'desktop-ultra-j.sbef'
+    }
+    if ($Welcome) {
+        $guestFlags += @('--cfg','desktop_welcome')
+        $elf = Join-Path $build.FullName 'desktop-welcome.elf'
+        $image = Join-Path $build.FullName 'desktop-welcome.sbef'
     }
     if ($UsbProbe) {
         $guestFlags += @('--cfg','usb_probe')

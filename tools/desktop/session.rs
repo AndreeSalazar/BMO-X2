@@ -5,6 +5,9 @@ use core::arch::asm;
 use core::panic::PanicInfo;
 
 mod cabina;
+#[cfg(desktop_welcome)]
+#[path = "../../userspace/services/desktop/src/welcome.rs"]
+mod welcome;
 #[cfg(desktop_reports)]
 mod reports;
 // USB diagnostic profiles reserve the fixed RX budget for the input service.
@@ -263,6 +266,8 @@ extern "C" fn bmo_main() -> ! {
     if invoke(INPUT, 8, 0, 0) != DENIED {
         panic!("session exit permissions");
     }
+    #[cfg(desktop_welcome)]
+    let mut welcome_input = welcome::run();
     paint(VIEWPORT, space, focus[space], false);
     cursor(x, y);
     #[cfg(not(desktop_ultra_j))]
@@ -317,7 +322,10 @@ extern "C" fn bmo_main() -> ! {
             input
         });
         #[cfg(not(usb_probe))]
+        #[cfg(not(desktop_welcome))]
         let raw = invoke(INPUT, READ_INPUT, 0, 0);
+        #[cfg(desktop_welcome)]
+        let raw = welcome_input.take().unwrap_or_else(|| invoke(INPUT, READ_INPUT, 0, 0));
         if raw & 512 != 0 {
             let byte = raw as u8;
             match index {

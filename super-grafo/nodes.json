@@ -2020,6 +2020,23 @@
       "salida": "SBEF de 7085 bytes, captura y reporte QEMU de CPL3; no instala escritorio ni motor completo.",
       "aceptacion": "256 pixeles logicos y 65536 fisicos iguales a HOST; dos casos pasan incluido W+X; ninguna guarda ampliada.",
       "falta": "Pruebas del motor completo, eventos, cierre de recursos, sesion permanente y METAL."
+    },
+    {
+      "id": "desktop-welcome",
+      "titulo": "Bienvenida del escritorio en Ring 3",
+      "ruta": "userspace/services/desktop/src/welcome.rs",
+      "estado": "qemu",
+      "anillo": "3",
+      "lenguaje": "Rust",
+      "posicion": [
+        5900,
+        3100
+      ],
+      "que": "Muestra tres fases visuales despues de admision y permisos, entre el gato CASM y el escritorio ULTRA-J.",
+      "entrada": "Capacidades de pantalla, entrada y reloj; perfil optativo -Welcome.",
+      "salida": "Bienvenida breve con WAIT; primera entrada preservada para el escritorio.",
+      "aceptacion": "QEMU compara dos cuadros del gato, tres fases con llamador CPL3, llegada al escritorio y salto F2 que abre CABINA; rechazo W+X sigue pasando.",
+      "falta": "Presentacion RmlUi completa y validacion en METAL; este perfil no certifica dispositivos USB."
     }
   ],
   "relaciones": [
@@ -3082,6 +3099,16 @@
       "de": "rmlui-raster-probe",
       "a": "abi-probe",
       "clase": "verificacion"
+    },
+    {
+      "de": "desktop-welcome",
+      "a": "abi-bef2",
+      "clase": "codigo"
+    },
+    {
+      "de": "desktop-workspaces",
+      "a": "desktop-welcome",
+      "clase": "codigo"
     }
   ]
 }

@@ -8,6 +8,7 @@ las carpetas de desarrollo. El lector UEFI actual espera esa ruta.
 |---|---|---|
 | Pantalla y recursos | Capacidad de pantalla del ABI y adaptador `tools/desktop/session.rs` | Presentar en el framebuffer mediante las operaciones admitidas. |
 | Composicion | `src/surface.rs` | Superficies, recorte y cuadro en RAM. |
+| Bienvenida Ring 3 | `src/welcome.rs`, perfil `-Welcome` de `tools/build-desktop.ps1` | Entrada visual breve tras la admision y pruebas de permisos, antes del escritorio. |
 | DIRECTOR | `src/lib.rs`, `src/keyboard.rs` | Ventanas, espacios, foco y atajos. |
 | Vistas ULTRA-J | `../../../Ultra-J/ui/view.py` | Interpretar .ujh, comprobar geometria y generar listas UJVI. |
 | Apariencia ULTRA-J | `../../../Ultra-J/ui/style.py` | Interpretar el perfil acotado .ujc, colores y propiedades soportadas. |
@@ -52,3 +53,52 @@ llamada. El mismo codigo paso una sonda SBEF en CPL3 con pixeles identicos
 a HOST. No sustituye UJVI ni instala RmlUi completo en Ring 3: faltan el
 runtime C++, entrada DIRECTOR, acciones nativas y presupuestos del motor.
 Ver el README del adaptador y su evidencia reproducible.
+
+## Gato Ring 0, bienvenida Ring 3, escritorio
+
+El gato CASM permanece intacto. La prueba compara sus dos cuadros de
+entrada y luego confirma que la bienvenida Rust llama WAIT desde CPL3.
+El gato acredita ese hito del arranque, no el funcionamiento de todos
+los dispositivos. La admision SBEF y las comprobaciones de permisos
+preceden a la bienvenida; no hay pantallas que simulen pruebas de hardware.
+
+La bienvenida dibuja la marca BMO X2 y tres segmentos. Dura como maximo
+54 ticks del PIT del perfil normal (aproximadamente 540 ms a 100 Hz),
+con hasta ocho respuestas de protocolo por fase. No gira esperando al
+reloj: usa WAIT. ACK y RESEND PS/2 no cuentan como teclas. La primera
+entrada real omite la animacion y se entrega al decodificador normal,
+incluidos prefijos y bytes de raton. QEMU comprueba F2: abre CABINA al
+entrar y demuestra que la tecla no se perdio. Esto no prueba entrada
+USB en AMD. Se dibujan solo los segmentos nuevos entre fases.
+
+Este perfil es optativo y usa el lanzador ULTRA-J actual; no incluye
+RmlUi completo ni modifica el escritorio instalado en FAT32. La opcion
+`-Welcome` exige `-UltraJ` para conservar los presupuestos actuales.
+La medida QEMU conserva 16 KiB de regiones de usuario y agrega 783 bytes
+al archivo SBEF del perfil base (10,408 frente a 9,625 bytes). La pila,
+framebuffer y estructuras supervisoras no estan incluidos en esas regiones.
+La futura presentacion RmlUi puede sustituir esta apariencia en Ring 3
+sin cambiar el gato ni introducir logica visual en Ring 0.
+
+Desde la raiz, PowerShell 5.1 (usar el Python que tenga instalado):
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\build-desktop.ps1 `
+    -Session -External -Sheet -UltraJ -Welcome `
+    -AbiRun build/CASM/run-20261112-174958-944cb997
+python .\tools\boot\doom_qemu.py build/CASM/run-20261112-174958-944cb997 `
+    build/desktop/desktop-welcome.sbef `
+    --intro build/CASM/run-20261112-045636-c461240e `
+    --session-gate build/desktop/session-gate.bin `
+    --external-loader build/desktop/external-sbef.bin --desktop-welcome
+```
+
+El segundo comando imprime un run aprobado. Para verlo en ventana:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1 -Run <ruta-del-run>
+```
+
+El informe del run conserva tres casos: transicion completa, rechazo
+W+X y salto con F2. La prueba de bienvenida no certifica la VM ULTRA-J,
+DOOM ni las funciones del escritorio que ya tienen sus propias pruebas.

@@ -1186,7 +1186,7 @@ Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-Li
 Estado: QEMU. Anillo: 3. Lenguaje: Rust.
 Entrada: Eventos de entrada, superficies de clientes y capacidad de pantalla.
 Salida: Cuadro en RAM, espacio activo, foco, movimiento de ventanas y peticion de cierre desde CABINA.
-Depende de: Supervisor Rust de Ring 3 (plan), Mezcla y controles de audio (plan), USB HID de Ring 3 (codigo).
+Depende de: Supervisor Rust de Ring 3 (plan), Mezcla y controles de audio (plan), USB HID de Ring 3 (codigo), Bienvenida del escritorio en Ring 3 (codigo).
 Aceptacion: HOST exige presupuesto SBEF y puerta de sesion de hasta 2048 bytes. QEMU registra L1 por CPUID y verifica arranque FAT32, entrada, rechazo de permisos y reuso de cinco marcos.
 Pendiente: Entregar marcos al asignador, cargar un SBEF distinto, aislar procesos y conectar el compositor y el planificador.
 
@@ -1355,6 +1355,17 @@ Depende de: Dibujo CPU Rust para RmlUi (codigo), SBEF ABI 1 y llamadas desde CPL
 Aceptacion: 256 pixeles logicos y 65536 fisicos iguales a HOST; dos casos pasan incluido W+X; ninguna guarda ampliada.
 Pendiente: Pruebas del motor completo, eventos, cierre de recursos, sesion permanente y METAL.
 
+## userspace/services/desktop/src/welcome.rs
+
+Muestra tres fases visuales despues de admision y permisos, entre el gato CASM y el escritorio ULTRA-J.
+
+Estado: QEMU. Anillo: 3. Lenguaje: Rust.
+Entrada: Capacidades de pantalla, entrada y reloj; perfil optativo -Welcome.
+Salida: Bienvenida breve con WAIT; primera entrada preservada para el escritorio.
+Depende de: BEF2 y ABI de BMO-X (codigo).
+Aceptacion: QEMU compara dos cuadros del gato, tres fases con llamador CPL3, llegada al escritorio y salto F2 que abre CABINA; rechazo W+X sigue pasando.
+Pendiente: Presentacion RmlUi completa y validacion en METAL; este perfil no certifica dispositivos USB.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -1377,4 +1388,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-123 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+124 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
