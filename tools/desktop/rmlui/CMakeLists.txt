@@ -15,6 +15,15 @@ set(RMLUI_LUA_BINDINGS OFF CACHE BOOL "" FORCE)
 set(RMLUI_PRECOMPILED_HEADERS OFF CACHE BOOL "" FORCE)
 set(RMLUI_COMPILER_OPTIONS OFF CACHE BOOL "" FORCE)
 add_subdirectory("${BMO_ROOT}/build/deps/RmlUi-6.3" rmlui)
+find_program(RUSTC rustc REQUIRED)
+set(RASTER "${CMAKE_CURRENT_BINARY_DIR}/raster.lib")
+add_custom_command(OUTPUT "${RASTER}"
+  COMMAND "${RUSTC}" --edition=2024 --target=x86_64-pc-windows-msvc --crate-type staticlib -C panic=abort
+    -C opt-level=3 "${CMAKE_CURRENT_SOURCE_DIR}/raster.rs" -o "${RASTER}"
+  DEPENDS raster.rs "${BMO_ROOT}/userspace/services/desktop/src/rmlui.rs"
+  VERBATIM)
+add_custom_target(bmo_raster DEPENDS "${RASTER}")
 add_library(bmo_rmlui_host SHARED preview.cpp)
+add_dependencies(bmo_rmlui_host bmo_raster)
 target_compile_definitions(bmo_rmlui_host PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
-target_link_libraries(bmo_rmlui_host PRIVATE RmlUi::Core)
+target_link_libraries(bmo_rmlui_host PRIVATE RmlUi::Core "${RASTER}")

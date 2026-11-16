@@ -12,6 +12,9 @@ un ejecutable SBEF ni una interfaz instalada en el escritorio de BMO-X2.
 [Construccion, evidencia y limites](../tools/desktop/rmlui/README.md).
 El motor visual C++ no reemplaza a Rust como director del escritorio;
 requiere un puente y servicios adaptados antes de llegar a Ring 3.
+El dibujador comun ya vive en Rust no_std y paso una sonda SBEF en CPL3;
+la vista HOST lo usa con pixeles identicos al backend C++ inicial.
+Esto no implica que RmlUi completo ni su callback Python vivan en el invitado.
 
 ## Por que existe
 

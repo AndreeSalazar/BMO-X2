@@ -31,9 +31,12 @@ def main():
     profiles.add_argument('--doom-engine', action='store_true')
     profiles.add_argument('--desktop-doom', action='store_true')
     profiles.add_argument('--toolchain-client', choices=('gcc', 'clang', 'gcc-cpp', 'clang-cpp', 'rust'))
+    profiles.add_argument('--rmlui-renderer', type=Path, help='Expected 16x16 Rust CPU raster probe, not a full RmlUi port')
     parser.add_argument('--wad', type=Path)
     parser.add_argument('--qemu', default='C:/Program Files/qemu/qemu-system-x86_64.exe')
     args = parser.parse_args()
+    if args.rmlui_renderer and (not args.external_loader or not args.session_gate or args.intro):
+        parser.error('La sonda Rust requiere cargador externo, puerta de sesion y no usa intro')
     if args.reuse and not args.toolchain_client:
         parser.error('--reuse requiere --toolchain-client')
     if args.toolchain_client and (args.session_gate or args.desktop_present or args.external_loader or args.intro):
@@ -77,6 +80,11 @@ def main():
         application = f'abi-{args.toolchain_client}'
     run = reference.parent / f'run-{application}-{uuid.uuid4().hex[:12]}'
     run.mkdir()
+    if args.rmlui_renderer:
+        expected_pixels = args.rmlui_renderer.read_bytes()
+        if len(expected_pixels) != 16*16*4:
+            raise ValueError('Referencia raster invalida')
+        (run / 'raster-expected.bin').write_bytes(expected_pixels)
     if args.wad:
         (run / 'wad-module.bin').write_bytes(struct.pack('<Q', len(wad)) + wad)
     (run / 'reference.x86').write_bytes(base_packet)
@@ -107,6 +115,8 @@ def main():
         profile = 'doom-engine'
     if args.desktop_doom:
         profile = 'desktop-doom'
+    if args.rmlui_renderer:
+        profile = 'rmlui-raster-probe'
     (run / 'profile.txt').write_text(f'{profile}\n', encoding='ascii')
     bridge = ROOT / 'kernel/boot/bridge'
     efi = run / 'build/Puente_Metal/EFI/BOOT/BOOTX64.EFI'
@@ -138,6 +148,8 @@ def main():
         milestone = 'GCC DoomGeneric E1M1 and keyboard in CPL3 from an external SBEF'
     if args.desktop_doom:
         milestone = 'Rust desktop CABINA launches DoomGeneric E1M1 in CPL3'
+    if args.rmlui_renderer:
+        milestone = 'Shared no_std Rust CPU rasterizer executes in CPL3; full RmlUi engine remains HOST'
     if args.toolchain_client:
         milestone = f'{args.toolchain_client.upper()} client exercises the CASM ABI in CPL3'
         report['toolchain'] = args.toolchain_client

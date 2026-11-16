@@ -5,6 +5,14 @@ HOST separado para construir y admitir binarios del destino,
 servicios y aplicaciones en Ring 3, y SUPER GRAFO como mesa de trabajo.
 Autor: Eddi Salazar, Lima, Peru.
 
+RmlUi + ULTRA-J ya tienen una vista real HOST. Su dibujador se separo
+en Rust no_std y el mismo codigo paso una sonda SBEF en CPL3: 7,085 bytes
+de archivo, 12 KiB en regiones RX/R y 4 KiB adicionales de pila de usuario.
+Los pixeles coinciden con HOST y se conserva el rechazo W+X. El motor
+RmlUi/FreeType completo aun no vive en Ring 3: la DLL Windows tiene
+importaciones pendientes de adaptar. [Estado y pasos del escritorio permanente](tools/desktop/rmlui/README.md#para-convertirlo-en-el-escritorio-permanente)
+y [evidencia HOST/QEMU](Ultra-J/evidence/rmlui-ring3.json).
+
 [REPORTES](Reports/README.md) presenta fase, motivo y siguiente paso de
 entrada USB, junto con contadores de Ring 0. El perfil de diagnostico
 aparece sin teclado ni raton y permite conservar un resumen HOST legible.

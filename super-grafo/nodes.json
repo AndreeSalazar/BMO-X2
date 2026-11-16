@@ -1981,11 +1981,45 @@
         5100,
         3100
       ],
-      "que": "Prueba RmlUi/FreeType con rasterizador CPU y evento real hacia ULTRA-J HOST.",
+      "que": "Prueba RmlUi/FreeType en HOST con rasterizador Rust no_std y evento hacia ULTRA-J HOST.",
       "entrada": "RML, RCSS, main.uj y dependencias fijadas por commit.",
       "salida": "Paquete HOST con hashes, dos imagenes y mediciones del proceso; no SBEF.",
       "aceptacion": "Click ejecuta dos metodos UJBC y cierra region; rechazos y reinicializacion pasan; recursos del adaptador liberados.",
-      "falta": "Puente Rust, servicios nativos, presupuestos y pruebas Ring 3 antes de emitir SBEF."
+      "falta": "Motor C++ freestanding, asignador y servicios propios, eventos DIRECTOR/ULTRA-J nativos y perfil de carga medido; DLL Windows rechazada."
+    },
+    {
+      "id": "rmlui-rust-raster",
+      "titulo": "Dibujo CPU Rust para RmlUi",
+      "ruta": "userspace/services/desktop/src/rmlui.rs",
+      "estado": "qemu",
+      "anillo": "3",
+      "lenguaje": "Rust",
+      "posicion": [
+        5500,
+        3100
+      ],
+      "que": "Dibuja triangulos, texturas RGBA y recorte sobre buffers prestados sin heap ni llamadas de SO.",
+      "entrada": "Vertices, textura acotada, superficie XRGB y rectangulo de recorte.",
+      "salida": "Pixeles propios de la superficie; rechazo antes de escribir ante dimensiones o vertices invalidos.",
+      "aceptacion": "Vista HOST identica al backend C++ inicial y sonda CPL3 identica pixel por pixel a HOST; rechazo W+X conservado.",
+      "falta": "Integracion con superficies e invalidacion del escritorio permanente y motor RmlUi completo."
+    },
+    {
+      "id": "rmlui-raster-probe",
+      "titulo": "Sonda SBEF del dibujador comun",
+      "ruta": "tools/desktop/rmlui/guest.ps1",
+      "estado": "qemu",
+      "anillo": "host",
+      "lenguaje": "PowerShell / Rust / Python",
+      "posicion": [
+        5500,
+        3300
+      ],
+      "que": "Construye el mismo dibujador como SBEF freestanding y compara pixeles reales de QEMU con HOST.",
+      "entrada": "Run ABI CASM verificado y codigo Rust compartido.",
+      "salida": "SBEF de 7085 bytes, captura y reporte QEMU de CPL3; no instala escritorio ni motor completo.",
+      "aceptacion": "256 pixeles logicos y 65536 fisicos iguales a HOST; dos casos pasan incluido W+X; ninguna guarda ampliada.",
+      "falta": "Pruebas del motor completo, eventos, cierre de recursos, sesion permanente y METAL."
     }
   ],
   "relaciones": [
@@ -3033,6 +3067,21 @@
       "de": "rmlui-host-preview",
       "a": "ultra-j-recycler",
       "clase": "codigo"
+    },
+    {
+      "de": "rmlui-host-preview",
+      "a": "rmlui-rust-raster",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-raster-probe",
+      "a": "rmlui-rust-raster",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-raster-probe",
+      "a": "abi-probe",
+      "clase": "verificacion"
     }
   ]
 }

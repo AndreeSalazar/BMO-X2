@@ -1324,14 +1324,36 @@ Pendiente: CSS completo y un motor de layout general no estan implementados.
 
 ## tools/desktop/rmlui
 
-Prueba RmlUi/FreeType con rasterizador CPU y evento real hacia ULTRA-J HOST.
+Prueba RmlUi/FreeType en HOST con rasterizador Rust no_std y evento hacia ULTRA-J HOST.
 
 Estado: HOST. Anillo: host. Lenguaje: C++ / Python.
 Entrada: RML, RCSS, main.uj y dependencias fijadas por commit.
 Salida: Paquete HOST con hashes, dos imagenes y mediciones del proceso; no SBEF.
-Depende de: ULTRA-J: compilador inicial (codigo), ULTRA-J: verificador y reciclador (codigo).
+Depende de: ULTRA-J: compilador inicial (codigo), ULTRA-J: verificador y reciclador (codigo), Dibujo CPU Rust para RmlUi (codigo).
 Aceptacion: Click ejecuta dos metodos UJBC y cierra region; rechazos y reinicializacion pasan; recursos del adaptador liberados.
-Pendiente: Puente Rust, servicios nativos, presupuestos y pruebas Ring 3 antes de emitir SBEF.
+Pendiente: Motor C++ freestanding, asignador y servicios propios, eventos DIRECTOR/ULTRA-J nativos y perfil de carga medido; DLL Windows rechazada.
+
+## userspace/services/desktop/src/rmlui.rs
+
+Dibuja triangulos, texturas RGBA y recorte sobre buffers prestados sin heap ni llamadas de SO.
+
+Estado: QEMU. Anillo: 3. Lenguaje: Rust.
+Entrada: Vertices, textura acotada, superficie XRGB y rectangulo de recorte.
+Salida: Pixeles propios de la superficie; rechazo antes de escribir ante dimensiones o vertices invalidos.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: Vista HOST identica al backend C++ inicial y sonda CPL3 identica pixel por pixel a HOST; rechazo W+X conservado.
+Pendiente: Integracion con superficies e invalidacion del escritorio permanente y motor RmlUi completo.
+
+## tools/desktop/rmlui/guest.ps1
+
+Construye el mismo dibujador como SBEF freestanding y compara pixeles reales de QEMU con HOST.
+
+Estado: QEMU. Anillo: host. Lenguaje: PowerShell / Rust / Python.
+Entrada: Run ABI CASM verificado y codigo Rust compartido.
+Salida: SBEF de 7085 bytes, captura y reporte QEMU de CPL3; no instala escritorio ni motor completo.
+Depende de: Dibujo CPU Rust para RmlUi (codigo), SBEF ABI 1 y llamadas desde CPL3 (verificacion).
+Aceptacion: 256 pixeles logicos y 65536 fisicos iguales a HOST; dos casos pasan incluido W+X; ninguna guarda ampliada.
+Pendiente: Pruebas del motor completo, eventos, cierre de recursos, sesion permanente y METAL.
 
 ## CASM
 
@@ -1355,4 +1377,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-121 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+123 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

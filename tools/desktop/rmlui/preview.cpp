@@ -1,5 +1,6 @@
 // HOST Windows proof. RmlUi builds layout/geometry; this adapter rasterizes on CPU.
 #include <RmlUi/Core.h>
+#include "raster.h"
 #include <windows.h>
 #include <algorithm>
 #include <array>
@@ -55,45 +56,22 @@ public:
     }
     void EnableScissorRegion(bool enable) override { clip = enable; }
     void SetScissorRegion(Rml::Rectanglei value) override { region = value; }
-    static float edge(Rml::Vector2f a, Rml::Vector2f b, Rml::Vector2f p) {
-        return (p.x-a.x)*(b.y-a.y) - (p.y-a.y)*(b.x-a.x);
-    }
-    static bool owned(float value, Rml::Vector2f a, Rml::Vector2f b) {
-        return value > 0 || (value == 0 && (a.y < b.y || (a.y == b.y && a.x > b.x)));
-    }
     void RenderGeometry(Rml::CompiledGeometryHandle handle, Rml::Vector2f translation, Rml::TextureHandle texture) override {
-        auto g = reinterpret_cast<Geometry*>(handle); auto t = reinterpret_cast<Texture*>(texture);
-        if (!geometries.count(g) || (t && !textures.count(t))) throw std::runtime_error("render handle");
-        for (size_t n=0; n<g->i.size(); n+=3) {
-            auto a=g->v[g->i[n]], b=g->v[g->i[n+1]], c=g->v[g->i[n+2]];
-            a.position+=translation; b.position+=translation; c.position+=translation;
-            float area=edge(a.position,b.position,c.position);
-            if (!std::isfinite(area) || area == 0) continue;
-            if (area < 0) { std::swap(b,c); area=-area; }
-            int x0=std::max(0,int(std::floor(std::min({a.position.x,b.position.x,c.position.x}))));
-            int x1=std::min(W,int(std::ceil(std::max({a.position.x,b.position.x,c.position.x}))));
-            int y0=std::max(0,int(std::floor(std::min({a.position.y,b.position.y,c.position.y}))));
-            int y1=std::min(H,int(std::ceil(std::max({a.position.y,b.position.y,c.position.y}))));
-            if (clip) { x0=std::max(x0,region.Left()); x1=std::min(x1,region.Right()); y0=std::max(y0,region.Top()); y1=std::min(y1,region.Bottom()); }
-            ++triangles;
-            for (int y=y0;y<y1;++y) for(int x=x0;x<x1;++x) {
-                Rml::Vector2f p(float(x)+.5f,float(y)+.5f);
-                float u=edge(b.position,c.position,p),v=edge(c.position,a.position,p),w=edge(a.position,b.position,p);
-                if (!owned(u,b.position,c.position) || !owned(v,c.position,a.position) || !owned(w,a.position,b.position)) continue;
-                u/=area; v/=area; w/=area;
-                float r=u*a.colour.red+v*b.colour.red+w*c.colour.red;
-                float gr=u*a.colour.green+v*b.colour.green+w*c.colour.green;
-                float bl=u*a.colour.blue+v*b.colour.blue+w*c.colour.blue;
-                float alpha=u*a.colour.alpha+v*b.colour.alpha+w*c.colour.alpha;
-                if (t) {
-                    int tx=std::clamp(int((u*a.tex_coord.x+v*b.tex_coord.x+w*c.tex_coord.x)*t->w),0,t->w-1);
-                    int ty=std::clamp(int((u*a.tex_coord.y+v*b.tex_coord.y+w*c.tex_coord.y)*t->h),0,t->h-1);
-                    auto s=&t->rgba[(ty*t->w+tx)*4]; r*=s[0]/255.f; gr*=s[1]/255.f; bl*=s[2]/255.f; alpha*=s[3]/255.f;
-                }
-                uint32_t dst=pixels[y*W+x]; float inv=1.f-alpha/255.f;
-                auto channel=[](float a){return uint32_t(std::clamp(int(a+.5f),0,255));};
-                pixels[y*W+x]=channel(r+float(dst>>16&255)*inv)<<16 | channel(gr+float(dst>>8&255)*inv)<<8 | channel(bl+float(dst&255)*inv);
+        auto g=reinterpret_cast<Geometry*>(handle); auto t=reinterpret_cast<Texture*>(texture);
+        if(!geometries.count(g) || (t && !textures.count(t))) throw std::runtime_error("render handle");
+        BmoUiRect bounds{0,0,W,H};
+        if(clip) bounds={uint32_t(std::clamp(region.Left(),0,W)),uint32_t(std::clamp(region.Top(),0,H)),
+                         uint32_t(std::clamp(region.Right(),0,W)),uint32_t(std::clamp(region.Bottom(),0,H))};
+        for(size_t n=0;n<g->i.size();n+=3) {
+            BmoUiVertex vertices[3];
+            for(size_t k=0;k<3;++k) {
+                const auto& v=g->v[g->i[n+k]];
+                vertices[k]={v.position.x+translation.x,v.position.y+translation.y,
+                    float(v.colour.red),float(v.colour.green),float(v.colour.blue),float(v.colour.alpha),v.tex_coord.x,v.tex_coord.y};
             }
+            if(bmo_ui_triangle(pixels.data(),pixels.size(),W,H,vertices,t?t->rgba.data():nullptr,
+                t?t->rgba.size():0,t?uint32_t(t->w):0,t?uint32_t(t->h):0,bounds)!=0) throw std::runtime_error("Rust raster rejected geometry");
+            ++triangles;
         }
     }
     void frame(Rml::Context* context) { std::fill(pixels.begin(),pixels.end(),0x0b1019); context->Update(); context->Render(); }
@@ -154,7 +132,7 @@ extern "C" __declspec(dllexport) int bmo_rmlui_preview(const char* assets, const
         button->RemoveEventListener("click",&listener); doc->Close(); Rml::RemoveContext("BMO-X2 HOST");
         Rml::Shutdown(); initialized=false;
         std::ofstream stats(target+"/native.json");
-        stats<<"{\"evidence\":\"HOST\",\"engine\":\"RmlUi 6.3\",\"renderer\":\"CPU\",\"callback_passed\":"<<(passed?"true":"false")
+        stats<<"{\"evidence\":\"HOST\",\"engine\":\"RmlUi 6.3\",\"renderer\":\"Rust no_std CPU\",\"callback_passed\":"<<(passed?"true":"false")
              <<",\"click_events\":"<<listener.calls<<",\"triangles_two_frames\":"<<renderer.triangles<<",\"framebuffer_bytes\":"<<W*H*4
              <<",\"peak_adapter_geometry_bytes\":"<<renderer.peak_geometry<<",\"peak_adapter_texture_bytes\":"<<renderer.peak_texture
              <<",\"first_frame_and_bmp_ms\":"<<std::chrono::duration<double,std::milli>(first-begin).count()

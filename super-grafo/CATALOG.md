@@ -124,7 +124,9 @@
 | [REPORTES de entrada](../Reports) | qemu | host | Expone fase USB, motivo, siguiente paso y pulsos de Ring 0 sin necesitar entrada; exporta evidencia en HOST. |
 | [ULTRA-J: perfil de estilos](../Ultra-J/ui/style.py) | host | host | Valida el perfil UJC acotado y sus propiedades soportadas. |
 | [ULTRA-J: compilador visual](../Ultra-J/ui/view.py) | host | host | Transforma .ujh y reglas en geometria validada y listas UJVI. |
-| [RmlUi + ULTRA-J en HOST](../tools/desktop/rmlui) | host | host | Prueba RmlUi/FreeType con rasterizador CPU y evento real hacia ULTRA-J HOST. |
+| [RmlUi + ULTRA-J en HOST](../tools/desktop/rmlui) | host | host | Prueba RmlUi/FreeType en HOST con rasterizador Rust no_std y evento hacia ULTRA-J HOST. |
+| [Dibujo CPU Rust para RmlUi](../userspace/services/desktop/src/rmlui.rs) | qemu | 3 | Dibuja triangulos, texturas RGBA y recorte sobre buffers prestados sin heap ni llamadas de SO. |
+| [Sonda SBEF del dibujador comun](../tools/desktop/rmlui/guest.ps1) | qemu | host | Construye el mismo dibujador como SBEF freestanding y compara pixeles reales de QEMU con HOST. |
 
 ## Dependencias declaradas
 
@@ -339,5 +341,8 @@
 | ultra-j-view-compiler | ultra-j-format | generacion |
 | rmlui-host-preview | ultra-j-compiler | codigo |
 | rmlui-host-preview | ultra-j-recycler | codigo |
+| rmlui-host-preview | rmlui-rust-raster | codigo |
+| rmlui-raster-probe | rmlui-rust-raster | codigo |
+| rmlui-raster-probe | abi-probe | verificacion |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

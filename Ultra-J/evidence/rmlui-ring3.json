@@ -1,0 +1,448 @@
+{
+  "date": "2026-11-16",
+  "evidence": [
+    "HOST",
+    "QEMU"
+  ],
+  "full_rmlui_ring3_ready": false,
+  "metal_tested": false,
+  "host": {
+    "evidence": "HOST",
+    "native": {
+      "evidence": "HOST",
+      "engine": "RmlUi 6.3",
+      "renderer": "Rust no_std CPU",
+      "callback_passed": true,
+      "click_events": 1,
+      "triangles_two_frames": 3306,
+      "framebuffer_bytes": 4096000,
+      "peak_adapter_geometry_bytes": 80696,
+      "peak_adapter_texture_bytes": 1277952,
+      "first_frame_and_bmp_ms": 24.53,
+      "action_frame_and_bmp_ms": 23.7049,
+      "adapter_geometry_bytes_after_shutdown": 0,
+      "adapter_texture_bytes_after_shutdown": 0
+    },
+    "ultra_j": [
+      {
+        "Evidence": "HOST",
+        "BytecodeBytes": 23,
+        "ThemeBytes": 0,
+        "ArenaBytes": 256,
+        "PeakObjectBytes": 48,
+        "LiveObjectBytes": 0,
+        "Allocations": [
+          {
+            "Class": "Window",
+            "Offset": 0,
+            "Bytes": 32
+          },
+          {
+            "Class": "Button",
+            "Offset": 32,
+            "Bytes": 16
+          }
+        ],
+        "Releases": [
+          {
+            "Region": 1,
+            "Objects": 2,
+            "Bytes": 48
+          }
+        ],
+        "Calls": [
+          {
+            "Receiver": 0,
+            "Method": 1,
+            "Before": 0,
+            "After": 1
+          },
+          {
+            "Receiver": 1,
+            "Method": 2,
+            "Before": 0,
+            "After": 1
+          }
+        ],
+        "Styles": {},
+        "Output": []
+      }
+    ],
+    "baseline_memory": {
+      "working_set_bytes": 30048256,
+      "peak_working_set_bytes": 34172928,
+      "private_bytes": 19312640,
+      "scope": "Whole Python + RmlUi + FreeType + CPU adapter HOST process"
+    },
+    "final_memory": {
+      "working_set_bytes": 30826496,
+      "peak_working_set_bytes": 34938880,
+      "private_bytes": 20094976,
+      "scope": "Whole Python + RmlUi + FreeType + CPU adapter HOST process"
+    },
+    "total_native_call_ms": 61.42539999973451,
+    "packaged_files_bytes": 2954734,
+    "dependency_policy": "Windows CRT/SDK remain runtime dependencies, not included in package bytes",
+    "sbef": false,
+    "ring3_ready": false,
+    "scripted_click": true
+  },
+  "port_audit": {
+    "evidence": "HOST",
+    "engine_ring3_ready": false,
+    "dll_sha256": "85a36497000f82c4c9569f9e6d62d2bc0df56ef1bf70c83455e896df04e38e1d",
+    "native_bytes": 2621440,
+    "imports": [
+      {
+        "library": "KERNEL32.dll",
+        "symbols": [
+          "AcquireSRWLockExclusive",
+          "CloseHandle",
+          "CreateFileA",
+          "CreateFileMappingA",
+          "DisableThreadLibraryCalls",
+          "GetCurrentProcess",
+          "GetCurrentProcessId",
+          "GetCurrentThreadId",
+          "GetFileSizeEx",
+          "GetProcessHeap",
+          "GetSystemTimeAsFileTime",
+          "HeapAlloc",
+          "HeapFree",
+          "HeapReAlloc",
+          "InitializeSListHead",
+          "IsDebuggerPresent",
+          "IsProcessorFeaturePresent",
+          "MapViewOfFile",
+          "OutputDebugStringA",
+          "QueryPerformanceCounter",
+          "ReadFile",
+          "ReleaseSRWLockExclusive",
+          "RtlCaptureContext",
+          "RtlLookupFunctionEntry",
+          "RtlVirtualUnwind",
+          "SetUnhandledExceptionFilter",
+          "SleepConditionVariableSRW",
+          "TerminateProcess",
+          "UnhandledExceptionFilter",
+          "UnmapViewOfFile",
+          "WakeAllConditionVariable"
+        ]
+      },
+      {
+        "library": "MSVCP140.dll",
+        "symbols": [
+          "??0?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAA@XZ",
+          "??0_Lockit@std@@QEAA@H@Z",
+          "??0ios_base@std@@IEAA@XZ",
+          "??1?$basic_streambuf@DU?$char_traits@D@std@@@std@@UEAA@XZ",
+          "??1_Lockit@std@@QEAA@XZ",
+          "??1ios_base@std@@UEAA@XZ",
+          "??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@H@Z",
+          "??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@N@Z",
+          "??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@_K@Z",
+          "?_Fiopen@std@@YAPEAU_iobuf@@PEBDHH@Z",
+          "?_Getcat@?$codecvt@DDU_Mbstatet@@@std@@SA_KPEAPEBVfacet@locale@2@PEBV42@@Z",
+          "?_Getgloballocale@locale@std@@CAPEAV_Locimp@12@XZ",
+          "?_Id_cnt@id@locale@std@@0HA",
+          "?_Osfx@?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAXXZ",
+          "?_Xbad_alloc@std@@YAXXZ",
+          "?_Xbad_function_call@std@@YAXXZ",
+          "?_Xlength_error@std@@YAXPEBD@Z",
+          "?_Xout_of_range@std@@YAXPEBD@Z",
+          "?clear@?$basic_ios@DU?$char_traits@D@std@@@std@@QEAAXH_N@Z",
+          "?fail@ios_base@std@@QEBA_NXZ",
+          "?flush@?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV12@XZ",
+          "?getloc@?$basic_streambuf@DU?$char_traits@D@std@@@std@@QEBA?AVlocale@2@XZ",
+          "?good@ios_base@std@@QEBA_NXZ",
+          "?id@?$codecvt@DDU_Mbstatet@@@std@@2V0locale@2@A",
+          "?init@?$basic_ios@DU?$char_traits@D@std@@@std@@IEAAXPEAV?$basic_streambuf@DU?$char_traits@D@std@@@2@_N@Z",
+          "?showmanyc@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAA_JXZ",
+          "?sputc@?$basic_streambuf@DU?$char_traits@D@std@@@std@@QEAAHD@Z",
+          "?uncaught_exception@std@@YA_NXZ",
+          "?write@?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV12@PEBD_J@Z",
+          "?xsgetn@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAA_JPEAD_J@Z",
+          "?xsputn@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAA_JPEBD_J@Z",
+          "_Query_perf_counter",
+          "_Query_perf_frequency"
+        ]
+      },
+      {
+        "library": "USER32.dll",
+        "symbols": [
+          "MessageBoxA"
+        ]
+      },
+      {
+        "library": "VCRUNTIME140.dll",
+        "symbols": [
+          "_CxxThrowException",
+          "__C_specific_handler",
+          "__CxxFrameHandler3",
+          "__RTtypeid",
+          "__intrinsic_setjmp",
+          "__std_exception_copy",
+          "__std_exception_destroy",
+          "__std_terminate",
+          "__std_type_info_compare",
+          "__std_type_info_destroy_list",
+          "__std_type_info_name",
+          "_purecall",
+          "longjmp",
+          "memchr",
+          "memcmp",
+          "memcpy",
+          "memmove",
+          "memset",
+          "strchr",
+          "strrchr",
+          "strstr"
+        ]
+      },
+      {
+        "library": "VCRUNTIME140_1.dll",
+        "symbols": [
+          "__CxxFrameHandler4"
+        ]
+      },
+      {
+        "library": "api-ms-win-crt-stdio-l1-1-0.dll",
+        "symbols": [
+          "__stdio_common_vsprintf",
+          "__stdio_common_vsscanf",
+          "_fseeki64",
+          "_get_stream_buffer_pointers",
+          "fclose",
+          "fflush",
+          "fgetc",
+          "fgetpos",
+          "fopen",
+          "fputc",
+          "fread",
+          "fseek",
+          "fsetpos",
+          "ftell",
+          "fwrite",
+          "setvbuf",
+          "ungetc"
+        ]
+      },
+      {
+        "library": "api-ms-win-crt-runtime-l1-1-0.dll",
+        "symbols": [
+          "_cexit",
+          "_configure_narrow_argv",
+          "_crt_atexit",
+          "_execute_onexit_table",
+          "_initialize_narrow_environment",
+          "_initialize_onexit_table",
+          "_initterm",
+          "_initterm_e",
+          "_invoke_watson",
+          "_register_onexit_function",
+          "_seh_filter_dll"
+        ]
+      },
+      {
+        "library": "api-ms-win-crt-filesystem-l1-1-0.dll",
+        "symbols": [
+          "_lock_file",
+          "_unlock_file"
+        ]
+      },
+      {
+        "library": "api-ms-win-crt-math-l1-1-0.dll",
+        "symbols": [
+          "acosf",
+          "ceilf",
+          "cosf",
+          "expf",
+          "floor",
+          "floorf",
+          "fmodf",
+          "modff",
+          "powf",
+          "sinf",
+          "sqrtf",
+          "tanf"
+        ]
+      },
+      {
+        "library": "api-ms-win-crt-convert-l1-1-0.dll",
+        "symbols": [
+          "atof",
+          "atoi",
+          "strtof",
+          "strtol",
+          "strtoul"
+        ]
+      },
+      {
+        "library": "api-ms-win-crt-heap-l1-1-0.dll",
+        "symbols": [
+          "_callnewh",
+          "calloc",
+          "free",
+          "malloc",
+          "realloc"
+        ]
+      },
+      {
+        "library": "api-ms-win-crt-environment-l1-1-0.dll",
+        "symbols": [
+          "getenv"
+        ]
+      },
+      {
+        "library": "api-ms-win-crt-utility-l1-1-0.dll",
+        "symbols": [
+          "qsort"
+        ]
+      },
+      {
+        "library": "api-ms-win-crt-string-l1-1-0.dll",
+        "symbols": [
+          "strcat",
+          "strcmp",
+          "strcpy",
+          "strlen",
+          "strncmp",
+          "strncpy",
+          "tolower"
+        ]
+      }
+    ],
+    "admission": {
+      "CanPack": false,
+      "Blockers": [
+        {
+          "Code": "PE-IMAGE-KIND",
+          "Offset": 142,
+          "Field": "Characteristics"
+        }
+      ]
+    },
+    "next_requirements": [
+      "Build freestanding C++/FreeType with audited standard library dependencies",
+      "Bound allocator, file/time/font services and native startup; remove Windows imports",
+      "Rust event/lifetime bridge for DIRECTOR and ULTRA-J native actions",
+      "Dirty surfaces, bounded resource ownership and presentation via existing capabilities",
+      "Separate measured loader profile if engine exceeds current external 16 KiB budget",
+      "QEMU input/render/lifecycle/permission tests before any METAL deployment"
+    ],
+    "shared_rust_probe": {
+      "FormatVersion": 1,
+      "AbiVersion": 1,
+      "Architecture": "x86-64",
+      "Bytes": 7085,
+      "Entry": "0x40001A9E",
+      "Regions": [
+        {
+          "Address": "0x40000000",
+          "Offset": 96,
+          "FileBytes": 6821,
+          "MemoryBytes": 6821,
+          "MappedBytes": 8192,
+          "Permissions": "RX"
+        },
+        {
+          "Address": "0x40003000",
+          "Offset": 6917,
+          "FileBytes": 168,
+          "MemoryBytes": 168,
+          "MappedBytes": 4096,
+          "Permissions": "R"
+        }
+      ],
+      "SHA256": "0abc8a5e7c314b3d1d09bc8a923cd23b53ef58c68cccd200f124e5243b9408af",
+      "AdditionalUserStackMappedBytes": 4096,
+      "UnresolvedSymbols": []
+    }
+  },
+  "qemu": {
+    "Passed": 2,
+    "Total": 2,
+    "Cases": [
+      {
+        "Case": "normal",
+        "Passed": true,
+        "Evidence": "QEMU",
+        "CPL": 3,
+        "SharedRustRasterizer": true,
+        "FullRmlUiEngine": false,
+        "HostGuestPixelsIdentical": true,
+        "LogicalPixelsVerified": 256,
+        "PhysicalPixelsVerified": 65536,
+        "ReferenceSHA256": "e51fe00d24794c2fb566de781c83a0d133ce941acb08294fc3bb0a5376f088b4",
+        "Scope": "Triangle winding, gradient, clipping and premultiplied texture in external SBEF"
+      },
+      {
+        "Case": "external-permissions",
+        "Passed": true,
+        "SbefAccepted": false,
+        "UserCodeCopied": false,
+        "UserAddressSpaceActivated": false,
+        "RejectedField": "permissions",
+        "RejectedOffset": 84
+      }
+    ],
+    "run": "run-desktop-9eb5923f7bca",
+    "evidence": "QEMU",
+    "milestone": "Shared no_std Rust CPU rasterizer executes in CPL3; full RmlUi engine remains HOST"
+  },
+  "migration": {
+    "CppBaselineCommit": "6f61505",
+    "AfterPNG_SHA256": "b7554e370bebc8b39d070c311096d3991ae0145922cb3d2b94871a85892fa5cc",
+    "HostPixelsChanged": 0
+  },
+  "sources": {
+    "tools/desktop/rmlui/audit.py": "b0f2e03848d86bab3f4170c42515c501fd2705598016dfb4c1d0fddc42f0f1da",
+    "tools/desktop/rmlui/build.ps1": "46a927169fb3bf4f05f36cbb4e6d1286c70bf9e1d2deb8bf511437037b23fcaa",
+    "tools/desktop/rmlui/check.py": "aa5c037ea618495b560c70dbb8a76714252489c4751dab1bce5d143ca5c06e4f",
+    "tools/desktop/rmlui/CMakeLists.txt": "a376a198e39a139cf6822179bea39281e941128f5efe98bacd1815454b5ba3db",
+    "tools/desktop/rmlui/dependencies.lock.json": "bd93178ae9a731465fb2df6423ad50766d2a9a669c01b6740cb06929c22aa808",
+    "tools/desktop/rmlui/fetch.ps1": "13a321d62504927841cfaee15f75be74c42f98ed2d9b42bd6af50178aab0cc38",
+    "tools/desktop/rmlui/guest.ld": "f6e8343143f372076922ef5508613dcc45f43fd05222a85978ade0279ac545df",
+    "tools/desktop/rmlui/guest.ps1": "58effb20583474d9e877b1018ca962e713d552252b6f98c7ea3db555a3bcd333",
+    "tools/desktop/rmlui/guest.rs": "ec646beceb47b097781f3aeea899ed51b86e3727076f41ec519b28f63d8e52dc",
+    "tools/desktop/rmlui/host_scene.rs": "67c90b3ef516b3f9a26946eb439667e68611be8f8286843c1001ce091d26d5c4",
+    "tools/desktop/rmlui/preview.cpp": "242520b414b8dfd9140f47b24c8d30f1b44b29ea108e3d4d9aa71e2990b7c5ed",
+    "tools/desktop/rmlui/preview.py": "036a9c845f1ff4c169cb8254db8abd5e9e4769d1c5321e33af237775f8f722e0",
+    "tools/desktop/rmlui/probe_scene.rs": "b4d807b9ba13347794f2475e4626f1f9ca0ea77510684f865eb2a75e8d0f5f21",
+    "tools/desktop/rmlui/raster.h": "b4a2e04afcfd483727d34d2e173bfab5b20c329819e587e49965c55432fd2848",
+    "tools/desktop/rmlui/raster.rs": "766e27653e017fa39f25ba296deb8eca391d4f50bf00961ca651af0ff08573f5",
+    "tools/desktop/rmlui/README.md": "f74900cdf62e7073c2b1ac8ace9b8838a88a1052bfcccc86e2c064ffbf867296",
+    "userspace/services/desktop/src/rmlui.rs": "38e019163a99a580769fcd931291a5e994566a1998f621ca7c8fdfbb70eee8ea",
+    "tools/boot/rmlui_capture.py": "b8566d067a03f7da3cc8b4d8d76b3984eccfc292cbb8a0476010381898401cda",
+    "tools/boot/probe.py": "2ba7c32981404cc9c917c1f1bbdcc683b023b2c9bf1f739cd82d93645e14b275",
+    "tools/boot/doom_qemu.py": "432b2548c3e5a82b670edb2af512c3d6f56e9ce7a4ca85cf5bfaacf50ace9259"
+  },
+  "tests": {
+    "RustDesktop": 17,
+    "UltraJ": 26,
+    "UltraJSkipped": 1,
+    "NativeActionAccepted": true,
+    "NativeActionRejected": true,
+    "NativeReinitialized": true
+  },
+  "guest_sbef_sha256": "0abc8a5e7c314b3d1d09bc8a923cd23b53ef58c68cccd200f124e5243b9408af",
+  "guest_elf_sha256": "d105336af8bded2b9f886df09e84022219e34549a186526d2318d6067c43d226",
+  "scope": "Shared renderer only in CPL3; RmlUi/FreeType layout/fonts and Python action remain HOST. Not a permanent desktop.",
+  "memory_scope": "SBEF regions 12288 bytes plus 4096 user stack; excludes supervisor tables, framebuffer and other services.",
+  "rustc": [
+    "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+    "binary: rustc",
+    "commit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67",
+    "commit-date: 2026-10-13",
+    "host: x86_64-pc-windows-msvc",
+    "release: 1.99.1",
+    "LLVM version: 23.1.1"
+  ],
+  "clang": [
+    "clang version 23.1.2 (https://github.com/llvm/llvm-project 85ac560262434c9ccfc0c183ec22d4138ed647fb)",
+    "Target: x86_64-pc-windows-msvc",
+    "Thread model: posix",
+    "InstalledDir: C:\\Program Files\\LLVM\\bin",
+    "Build config: +alloc:rpmalloc"
+  ]
+}

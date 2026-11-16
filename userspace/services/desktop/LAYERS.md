@@ -46,6 +46,9 @@ del volumen de arranque ni la distribucion del escritorio instalado.
 `tools/desktop/rmlui/` prueba RML/RCSS con RmlUi + FreeType y un
 rasterizador CPU nativo en Windows HOST. Sus recursos viven en
 `Ultra-J/examples/rmlui-desktop/`; la accion usa el runtime HOST actual.
-No sustituye UJVI ni emite SBEF. La integracion Rust, entrada DIRECTOR,
-runtime C++ y presupuestos de memoria son requisitos pendientes para
-portarlo. Ver el README del adaptador y su evidencia reproducible.
+El dibujo comun vive en `src/rmlui.rs`, seguro y no_std. El adaptador
+HOST C++ lo llama mediante `raster.h`/`raster.rs`, prestando buffers por
+llamada. El mismo codigo paso una sonda SBEF en CPL3 con pixeles identicos
+a HOST. No sustituye UJVI ni instala RmlUi completo en Ring 3: faltan el
+runtime C++, entrada DIRECTOR, acciones nativas y presupuestos del motor.
+Ver el README del adaptador y su evidencia reproducible.

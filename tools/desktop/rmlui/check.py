@@ -7,6 +7,8 @@ from preview import package, main
 
 
 def check():
+    if not __debug__:
+        raise RuntimeError('Las comprobaciones requieren Python sin -O')
     assets, _, _ = package()
     library = ctypes.CDLL(str(assets / 'bmo_rmlui_host.dll'))
     callback = ctypes.CFUNCTYPE(ctypes.c_int)

@@ -3,6 +3,7 @@
 
 mod keyboard;
 mod surface;
+pub mod rmlui;
 pub mod usb_hid;
 
 pub use keyboard::{KeyEvent, KeyRoute, Keyboard, MalformedKeyEvent};

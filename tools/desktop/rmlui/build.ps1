@@ -23,7 +23,13 @@ $output = Join-Path $root 'build/rmlui-host/native'
 & cmake -S $PSScriptRoot -B $output -G 'NMake Makefiles' -DCMAKE_BUILD_TYPE=Release "-DCMAKE_C_COMPILER=$clang" "-DCMAKE_CXX_COMPILER=$clang"
 if ($LASTEXITCODE -ne 0) { throw 'Fallo configuracion RmlUi.' }
 $log = Join-Path $output 'compile.log'
-& cmake --build $output *> $log
-if ($LASTEXITCODE -ne 0) { Get-Content -LiteralPath $log -Tail 40; throw 'Fallo compilacion RmlUi.' }
+# PowerShell 5.1 wraps native stderr warnings as errors. Judge the exit code.
+$savedPreference = $ErrorActionPreference
+try {
+    $ErrorActionPreference = 'Continue'
+    & cmake --build $output *> $log
+    $buildExit = $LASTEXITCODE
+} finally { $ErrorActionPreference = $savedPreference }
+if ($buildExit -ne 0) { Get-Content -LiteralPath $log -Tail 40; throw 'Fallo compilacion RmlUi.' }
 Get-Content -LiteralPath $log -Tail 5
 Write-Output "HOST DLL: $output/bmo_rmlui_host.dll"

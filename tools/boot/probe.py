@@ -205,6 +205,9 @@ def run(case):
                 return verify_engine(command, memory, prefix, external_image, case, desktop=desktop_doom)
             if case == 'external-permissions':
                 return verify_external_rejection(command, memory, external_image)
+            if profile == 'rmlui-raster-probe':
+                from rmlui_capture import verify_raster
+                return verify_raster(command, memory, prefix, ROOT / 'raster-expected.bin')
             if external is not None:
                 doom['sbef_sha256'] = hashlib.sha256(external_image).hexdigest()
             if doom_external:
