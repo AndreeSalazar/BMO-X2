@@ -5,6 +5,13 @@ HOST separado para construir y admitir binarios del destino,
 servicios y aplicaciones en Ring 3, y SUPER GRAFO como mesa de trabajo.
 Autor: Eddi Salazar, Lima, Peru.
 
+El nuevo candidato de escritorio conecta RmlUi con DIRECTOR Rust:
+Ctrl+Super+1..4 cambia espacios, Super+Q cierra el panel y F1 lo reabre.
+Arranca desde archivos FAT32 reales en QEMU y dispone de un EFI separado
+para prueba fisica. A: paso CHKDSK en solo lectura; el arranque AMD y
+USB HID todavia no se declaran validados.
+[Ruta de arranque, controles y limites](docs/NATIVE-DESKTOP-BOOT.md).
+
 RmlUi 6.3 y FreeType ya ejecutan su motor real en Ring 3 bajo QEMU,
 con dibujo Rust CPU y accion ULTRA-J nativa. El SBEF del laboratorio
 ocupa 1,849,758 bytes. Se probaron Enter, clic PS/2, cierre de recursos,

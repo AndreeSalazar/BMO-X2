@@ -1,5 +1,13 @@
 # Primer hito: una entrada propia y un fallo explicado
 
+## Candidato actual RmlUi en FAT32
+
+El escritorio nativo nuevo tiene una entrada separada:
+`\EFI\BMO-X2\DESKTOP.EFI`. Ver [controles y prueba fisica](NATIVE-DESKTOP-BOOT.md).
+La entrada anterior no cambia. USB HID AMD sigue pendiente: las pruebas
+QEMU usan PS/2 y no demuestran teclado/raton USB en metal.
+El reporte nuevo se busca en `A:\BMO-X2\DESKTOP\BOOTLOG.TXT`.
+
 ## Prueba de escritorio Hoja
 
 El perfil `-Sheet` agrega un icono de documento arriba a la izquierda.

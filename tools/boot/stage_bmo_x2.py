@@ -12,12 +12,12 @@ from scope import ROOT, workspace
 from wake import HD_PROFILE, SPLASH_PROFILE, assemble, check
 
 
-def bridge_variant():
+def bridge_variant(*, native_ui=False):
     bridge = ROOT / 'kernel/boot/bridge'
     image = bytearray(assemble([bridge / name for name in
                                 ('cabecera.hex', 'entrada.hex', 'datos.hex', 'fuente.hex')]))
     for offset, limit, old, new, encoding in (
-        (0x1840, 0x1880, r'\METAL\INICIO.X86', r'\BMO-X2\INICIO.X86', 'utf-16le'),
+        (0x1840, 0x1880, r'\METAL\INICIO.X86', r'\BMO-X2\DESKTOP\INICIO.X86' if native_ui else r'\BMO-X2\INICIO.X86', 'utf-16le'),
         (0x1980, 0x1a00, 'RED [METAL] no se pudo leer METAL/INICIO.X86\r\n',
          'RED [BMO-X2] no se pudo leer BMO-X2/INICIO.X86\r\n', 'utf-16le'),
         (0x1b00, 0x1c00, 'Orquestador del Metal: cargando codigo propio...\r\n',

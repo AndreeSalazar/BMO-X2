@@ -2,7 +2,7 @@
 [CmdletBinding()]
 param(
     [string]$Run,
-    [ValidateSet('gato-hd','doom-intro','doom-engine','desktop-doom','desktop-intro','desktop-session','desktop-external','rmlui-native')][string]$Profile,
+    [ValidateSet('gato-hd','doom-intro','doom-engine','desktop-doom','desktop-intro','desktop-session','desktop-external','rmlui-native','rmlui-desktop')][string]$Profile,
     [switch]$Wait,
     [string]$Qemu = (Join-Path $env:ProgramFiles 'qemu/qemu-system-x86_64.exe')
 )
@@ -20,6 +20,7 @@ if (-not $Run) {
         'desktop-session' { 'desktop-session' }
         'desktop-external' { 'desktop-external' }
         'rmlui-native' { 'rmlui-native' }
+        'rmlui-desktop' { 'rmlui-desktop-media' }
         default { 'ring0-splash-hd-0.1' }
     }
     foreach ($candidate in (Get-ChildItem -LiteralPath $runs -Directory -Filter 'run-*' | Sort-Object LastWriteTime -Descending)) {
@@ -30,7 +31,8 @@ if (-not $Run) {
             (Test-Path -LiteralPath $result -PathType Leaf)) {
             $report = Get-Content -LiteralPath $result -Raw | ConvertFrom-Json
             if ($report.run -eq $candidate.Name -and $report.Total -gt 0 -and $report.Passed -eq $report.Total -and
-                ($Profile -in @('gato-hd','desktop-session','desktop-external','doom-engine','desktop-doom','rmlui-native') -or @($report.Cases[0].FramesVerified).Count -eq 3) -and
+                ($Profile -in @('gato-hd','desktop-session','desktop-external','doom-engine','desktop-doom','rmlui-native','rmlui-desktop') -or @($report.Cases[0].FramesVerified).Count -eq 3) -and
+                ($Profile -ne 'rmlui-desktop' -or ($report.Cases[0].DirectorRust -and $report.Cases[0].BootLogFat32Verified)) -and
                 ($Profile -ne 'rmlui-native' -or ($report.Cases[0].FullRmlUiEngine -and $report.Cases[0].NativeUltraJAction)) -and
                 ($Profile -ne 'desktop-doom' -or $report.Cases[0].CabinaDoomVerified) -and
                 ($Profile -ne 'doom-engine' -or $report.Cases[0].DoomKeyboardVerified) -and

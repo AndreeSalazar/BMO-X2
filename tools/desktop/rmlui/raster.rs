@@ -1,5 +1,7 @@
 //! HOST/native C ABI wrapper. Drawing is shared safe no_std Ring 3 code.
 #![no_std]
+#[cfg(native_desktop)]
+extern crate bmo_director;
 #[path="../../../userspace/services/desktop/src/rmlui.rs"]
 mod raster;
 use raster::{Vertex, Rect, Texture, Texels};

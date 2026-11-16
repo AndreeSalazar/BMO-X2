@@ -11,6 +11,14 @@ boot_report:
     lea (0x800+report_sbef-report_template)(%rbp), %rdi
     mov 0xb0(%rbp), %eax
     call report_hex32
+#ifdef RMLUI_MEDIA
+    lea (0x800+report_width-report_template)(%rbp), %rdi
+    mov 0x20(%rbp), %eax
+    call report_hex32
+    lea (0x800+report_height-report_template)(%rbp), %rdi
+    mov 0x24(%rbp), %eax
+    call report_hex32
+#endif
     lea (0x800+report_l1-report_template)(%rbp), %rdi
     mov 0xd0(%rbp), %eax
     call report_hex32
@@ -148,8 +156,18 @@ report_hex_store:
     ret
 
 report_template:
+#ifdef RMLUI_MEDIA
+    .ascii "BMO-X2 DESKTOP UEFI PRE-EBS\r\nSBEF="
+#else
     .ascii "BMO-X2 V3 UEFI\r\nSBEF="
+#endif
 report_sbef:
+#ifdef RMLUI_MEDIA
+    .ascii "00000000\r\nGOP_WIDTH="
+report_width:
+    .ascii "00000000\r\nGOP_HEIGHT="
+report_height:
+#endif
     .ascii "00000000\r\nCPUID="
 report_l1:
     .ascii "00000000\r\nPS2="
@@ -164,5 +182,9 @@ report_pci1:
 report_end:
     .p2align 1
 report_path:
+#ifdef RMLUI_MEDIA
+    .short 92,66,77,79,45,88,50,92,68,69,83,75,84,79,80,92,66,79,79,84,76,79,71,46,84,88,84,0
+#else
     # \\BMO-X2\\BOOTLOG.TXT
     .short 92,66,77,79,45,88,50,92,66,79,79,84,76,79,71,46,84,88,84,0
+#endif

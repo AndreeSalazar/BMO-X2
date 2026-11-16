@@ -17,12 +17,14 @@ parser.add_argument('--caso', choices=['normal', 'firma', 'suma', 'ausente', 'ex
 parser.add_argument('--profile',choices=['hello','flappy-preview'],default='hello')
 parser.add_argument('--bmo-x2-folder', action='store_true', help='Use a separate payload folder in the virtual image')
 parser.add_argument('--desktop', type=Path, help='Add the desktop SBEF to the BMO-X2 folder')
+parser.add_argument('--native-ui',action='store_true',help='Explicit large UI profile in BMO-X2/DESKTOP')
 parser.add_argument('--ultra-j-action', type=Path, help='Add ACTION.UJB alongside the desktop SBEF')
 args = parser.parse_args()
 if args.bmo_x2_folder and (args.profile != 'hello' or args.caso != 'normal'):
     parser.error('--bmo-x2-folder requires the normal bridge case')
 if args.desktop and not args.bmo_x2_folder:
     parser.error('--desktop requires --bmo-x2-folder')
+if args.native_ui and not args.desktop:parser.error('--native-ui requires --desktop')
 if args.ultra_j_action and not args.desktop:
     parser.error('--ultra-j-action requires --desktop')
 root = workspace(args.workspace)
@@ -116,6 +118,22 @@ with output.open('r+b') as disk:
     metal_cluster = (struct.unpack_from('<H', metal, 20)[0] << 16) | struct.unpack_from('<H', metal, 26)[0]
     metal_offset = cluster_offset(metal_cluster)
     directory = bytearray(read(metal_offset, cluster_bytes))
+    if args.native_ui:
+        child,=allocate(1)
+        parent=bytearray(cluster_bytes)
+        parent[:32]=entry(b'.          ',0x10,metal_cluster)
+        parent[32:64]=entry(b'..         ',0x10,root_cluster)
+        parent[64:96]=entry(b'DESKTOP    ',0x10,child)
+        write(metal_offset,parent)
+        old=directory;directory=bytearray(cluster_bytes)
+        directory[:32]=entry(b'.          ',0x10,child)
+        directory[32:64]=entry(b'..         ',0x10,metal_cluster)
+        cursor=64
+        for i in range(0,cluster_bytes,32):
+            record=old[i:i+32]
+            if record[0] not in (0,0xe5,ord('.')):
+                directory[cursor:cursor+32]=record;cursor+=32
+        metal_cluster=child;metal_offset=cluster_offset(child)
     packet_pos = next(p for p in range(0, cluster_bytes, 32) if directory[p:p + 11] == b'INICIO  X86')
     if args.profile=='flappy-preview':directory[packet_pos:packet_pos+11]=b'FLAPPY  X86'
     packet_cluster = (struct.unpack_from('<H', directory, packet_pos + 20)[0] << 16) | struct.unpack_from('<H', directory, packet_pos + 26)[0]
@@ -149,7 +167,7 @@ with output.open('r+b') as disk:
         directory[packet_pos:packet_pos + 32] = entry(b'INICIO  X86', 0x20, chain[0], len(oversized))
     if args.desktop:
         desktop = args.desktop.read_bytes()
-        if not 64 <= len(desktop) <= 16512:
+        if not 64 <= len(desktop) <= (2*1024*1024 if args.native_ui else 16512):
             raise ValueError('Tamano invalido del SBEF de escritorio')
         desktop_chain = allocate((len(desktop) + cluster_bytes - 1) // cluster_bytes)
         for n, cluster in enumerate(desktop_chain):

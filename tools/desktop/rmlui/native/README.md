@@ -1,5 +1,10 @@
 # Motor RmlUi nativo en Ring 3 x86-64
 
+`guest.py --desktop` agrega la politica de espacios/foco/cierre de
+DIRECTOR Rust. `media.py` prueba lectura FAT32 por UEFI y produce el
+candidato separado para A:. [Arranque y estado fisico](../../../../docs/NATIVE-DESKTOP-BOOT.md).
+El modo sin --desktop conserva el visor independiente descrito abajo.
+
 Ya se compilan RmlUi 6.3, FreeType 2.14.3 y libc++/libc++abi 19.1.7
 como objetos ELF64 x86-64 con Clang. No se convierte la DLL Windows.
 Esta ruta esta aislada de la prueba HOST. Usa un perfil explicito del

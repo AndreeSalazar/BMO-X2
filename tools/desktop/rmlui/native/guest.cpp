@@ -16,6 +16,10 @@ extern void (*__init_array_start[])(void),(*__init_array_end[])(void);
 struct NativeState { uint64_t magic,phase,frames,clicks,accepted,triangles,heap_live,heap_peak; };
 volatile NativeState bmo_ui_state;
 uint32_t bmo_ui_pixels[1280*800];
+#ifdef BMO_DESKTOP_UI
+void bmo_director_init();uint64_t bmo_director_open();uint64_t bmo_director_state();uint32_t bmo_director_key(uint32_t);
+volatile uint64_t bmo_ui_director;
+#endif
 }
 namespace BmoUi {[[noreturn]] void native_failure(const char* s) {bmo_native_fail(s);}}
 static void log(const char* s) {while(*s)doom_invoke(5,7,(unsigned char)*s++,0);}
@@ -42,6 +46,11 @@ class Action final:public Rml::EventListener {
         log("BMO UI ACTION\n");
     }
 };
+#ifdef BMO_DESKTOP_UI
+class Launcher final:public Rml::EventListener {
+    void ProcessEvent(Rml::Event& e) override {if(e.GetType()=="click")bmo_director_open();}
+};
+#endif
 static void check(bool ok,const char* error) {if(!ok)bmo_native_fail(error);}
 extern "C" void bmo_main() {
     // The loader enters _start with a 16-byte-aligned stack, as for the Rust client.
@@ -83,9 +92,22 @@ extern "C" void bmo_main() {
     doc->SetClass("arrived",true);doc->SetClass("intro-ready",true);
     auto button=doc->GetElementById("activate");check(button,"button");button->AddEventListener("click",&action);
     doc->Show();
+#ifdef BMO_DESKTOP_UI
+    bmo_director_init();bmo_director_open();Launcher launcher;
+    doc->GetElementById("open-app")->AddEventListener("click",&launcher);
+    auto sync_policy=[&]() {
+        auto policy=bmo_director_state();char label[128];
+        snprintf(label,sizeof(label),"Espacio %u / %s",unsigned(policy&255),(policy>>8)?"ULTRA-J activo":"Sin ventanas. Abre ULTRA-J.");
+        doc->GetElementById("desktop-status")->SetInnerRML(label);
+        doc->GetElementById("workspace")->SetProperty("display",(policy>>8)?"flex":"none");
+    };
+#endif
     int pointer_x=640,pointer_y=400,packet_index=0;
     unsigned flags=0,dx=0;bool left=false,pointer_seen=false;
     auto frame=[&]() {
+#ifdef BMO_DESKTOP_UI
+        sync_policy();
+#endif
         renderer.pixels=bmo_ui_pixels;renderer.pixel_count=1280*800;
         renderer.frame(context);renderer.pixels=nullptr;renderer.pixel_count=0;
         if(pointer_seen)for(int y=0;y<14 && pointer_y+y<800;++y)
@@ -96,6 +118,9 @@ extern "C" void bmo_main() {
         bmo_ui_state.triangles=renderer.triangles;
         bmo_ui_state.heap_live=bmo_heap_live;bmo_ui_state.heap_peak=bmo_heap_peak;
         check(doom_invoke(1,9,(uintptr_t)bmo_ui_pixels,0)==0,"present");
+#ifdef BMO_DESKTOP_UI
+        bmo_ui_director=bmo_director_state();
+#endif
     };
     frame();bmo_ui_state.phase=2;log("BMO UI READY\n");
     for(;;) {
@@ -120,8 +145,19 @@ extern "C" void bmo_main() {
                     dirty=true;
                 }
             } else {
-                if(scan==0x1c) {button->Click();dirty=true;}
+#ifdef BMO_DESKTOP_UI
+                auto route=bmo_director_key(scan);
+                if(route&1){dirty|=bool(route&2);continue;}
+                if(scan==0x3b){bmo_director_open();dirty=true;}
+#endif
+                if(scan==0x1c
+#ifdef BMO_DESKTOP_UI
+                   && (bmo_director_state()>>8)
+#endif
+                  ) {button->Click();dirty=true;}
+#ifndef BMO_DESKTOP_UI
                 if(scan==0x01) {closing=true;break;}
+#endif
             }
         }
         if(closing)break;

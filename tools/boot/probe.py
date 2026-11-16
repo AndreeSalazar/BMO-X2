@@ -69,7 +69,8 @@ if args.doom_fixture:
     profile = (ROOT / 'profile.txt').read_text(encoding='ascii').strip()
     desktop_media = profile == 'desktop-media'
     desktop_doom = profile == 'desktop-doom'
-    native_ui = profile == 'rmlui-native'
+    native_media = profile == 'rmlui-desktop-media'
+    native_ui = profile in ('rmlui-native','rmlui-desktop','rmlui-desktop-media')
     doom_engine = profile == 'doom-engine' or desktop_doom or native_ui
     doom_external = profile == 'doom-external' or doom_engine
     desktop_fixture = (present is not None or gate is not None) and not doom_external
@@ -128,11 +129,11 @@ results = []
 
 def run(case):
     payload_case = case in ('normal', 'contexto', *MUTATIONS)
-    disk_case = 'normal' if case == 'external-permissions' and not (args.doom_fixture and desktop_media) else case
+    disk_case = 'normal' if case == 'external-permissions' and not (args.doom_fixture and (desktop_media or native_media)) else case
     image = ROOT / 'build' / f'puente-{disk_case}.img'
     before = hashlib.sha256(image.read_bytes()).hexdigest()
     prefix = ROOT / 'build' / f'puente-{case}'
-    check_bootlog = args.doom_fixture and desktop_media and case == 'normal'
+    check_bootlog = args.doom_fixture and (desktop_media or native_media) and case == 'normal'
     guest_disk = image
     if check_bootlog:
         guest_disk = Path(str(prefix) + '-bootlog.img')
@@ -140,7 +141,7 @@ def run(case):
     variables = Path(str(prefix) + '-vars.fd')
     shutil.copyfile(share / 'edk2-i386-vars.fd', variables)
     module = ROOT / ('sbef-rejected.bin' if case == 'external-permissions' else 'sbef-module.bin')
-    staging = ['-device', f'loader,file={module},addr=0x2000000,force-raw=on'] if external is not None and not desktop_media else []
+    staging = ['-device', f'loader,file={module},addr=0x2000000,force-raw=on'] if external is not None and not (desktop_media or native_media) else []
     wad = ROOT / 'wad-module.bin'
     if wad.is_file():
         staging += ['-device', f'loader,file={wad},addr=0x3000000,force-raw=on']
@@ -163,6 +164,7 @@ def run(case):
         '-drive', f'if=pflash,format=raw,unit=1,file={variables}',
         '-drive', f'file={guest_disk},format=raw,if=ide,snapshot={"off" if check_bootlog else "on"}',
         '-vga', 'std', '-display', 'none', '-serial', f'file:{prefix}-serial.log',
+        *(['-global','VGA.xres=1024','-global','VGA.yres=768'] if (ROOT/'low-gop.txt').is_file() else []),
         '-qmp', 'stdio', '-monitor', 'none', '-no-reboot',
         '-d', 'guest_errors,int', '-D', str(prefix) + '-cpu.log', *staging],
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -436,10 +438,21 @@ def run(case):
 for case in args.casos:
     try:
         result = run(case)
-        if args.doom_fixture and desktop_media and case == 'normal':
+        if args.doom_fixture and (desktop_media or native_media) and case == 'normal':
             from desktop_session_capture import verify_bootlog_file
             prefix = ROOT / 'build' / 'puente-normal'
-            verify_bootlog_file(Path(str(prefix) + '-bootlog.img'), prefix)
+            if native_media:
+                from fat32_read import Fat32
+                fs=Fat32(Path(str(prefix)+'-bootlog.img'))
+                try:
+                    log=fs.file_bytes('BMO-X2/DESKTOP/BOOTLOG.TXT',4096)
+                    loaded=fs.file_bytes('BMO-X2/DESKTOP/DESKTOP.SBF')
+                    if loaded!=external_image or not log.startswith(b'BMO-X2 DESKTOP UEFI PRE-EBS\r\n'):
+                        raise ValueError('Native FAT32 payload/report differs')
+                    Path(str(prefix)+'-BOOTLOG.TXT').write_bytes(log)
+                finally:fs.close()
+            else:
+                verify_bootlog_file(Path(str(prefix) + '-bootlog.img'), prefix)
             result['BootLogFat32Verified'] = True
     except Exception as error:
         result = dict(Case=case, Passed=False, Error=str(error))

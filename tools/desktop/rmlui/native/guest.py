@@ -1,5 +1,6 @@
 """Link the actual C++ engine and Rust CPU backend into a native UI executable."""
 import json
+import argparse
 import hashlib
 import os
 from pathlib import Path
@@ -33,10 +34,13 @@ def check_math_providers(text):
 
 
 def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--desktop',action='store_true')
+    args=parser.parse_args()
     libc.main()
     here=Path(__file__).parent
     llvm=Path(os.environ['ProgramFiles'])/'LLVM/bin'
-    out=OUT/'guest';out.mkdir(exist_ok=True)
+    out=OUT/('desktop' if args.desktop else 'guest');out.mkdir(exist_ok=True)
     includes=generate_headers()
     flags=['--target=x86_64-unknown-none-elf','-Os','-ffreestanding','-fno-builtin',
         '-fno-stack-protector','-fno-pic','-fno-pie','-mno-red-zone','-ffunction-sections',
@@ -48,13 +52,25 @@ def main():
     cppflags=flags+['-std=c++17','-nostdinc++','-fno-exceptions','-fno-rtti','-fno-threadsafe-statics',
         '-fno-use-cxa-atexit','-DBMO_UI_NATIVE','-DRMLUI_STATIC_LIB','-D_LIBCPP_PROVIDES_DEFAULT_RUNE_TABLE']
     cppflags+=['-I'+str(p) for p in [OUT/'runtime/include/c++/v1',*includes,DEPS/'RmlUi-6.3/Include',ROOT/'tools/doom']]
+    if args.desktop:cppflags+=['-DBMO_DESKTOP_UI']
     command([llvm/'clang++.exe',*cppflags,'-c',here/'guest.cpp','-o',out/'guest.o'],'compile-native-guest')
     command([llvm/'clang++.exe',*cppflags,'-c',here/'new.cpp','-o',out/'new.o'],'compile-native-new')
+    rust_extra=[]
+    if args.desktop:
+        command(['rustc','--edition=2024','--target=x86_64-unknown-none','--crate-type=rlib','--crate-name=bmo_director','--cfg','bmo_embedded','-Cpanic=abort',
+            '-Copt-level=z','-Crelocation-model=static','-Cforce-unwind-tables=no',
+            ROOT/'userspace/services/desktop/src/native_policy.rs','-o',out/'libdirector.rlib'],'compile-native-director')
+        rust_extra=['--extern','bmo_director='+str(out/'libdirector.rlib'),'--cfg','native_desktop']
     command(['rustc','--edition=2024','--target=x86_64-unknown-none','--crate-type=staticlib','-Cpanic=abort',
-        '-Copt-level=z','-Crelocation-model=static','-Cforce-unwind-tables=no',
+        '-Copt-level=z','-Crelocation-model=static','-Cforce-unwind-tables=no',*rust_extra,
         here.parent/'raster.rs','-o',out/'libraster.a'],'compile-native-rust')
     assets=ROOT/'Ultra-J/examples/rmlui-desktop'
     text=(assets/'main.rml').read_text().replace('Prueba en HOST.','Motor nativo en Ring 3.').replace('HOST PREVIEW','RING 3 / CPU').replace('VISTA HOST / DIBUJO CPU / SIN CAMBIOS EN EL BOOT','SBEF NATIVO / DIBUJO CPU / RMLUI + ULTRA-J')
+    if args.desktop:
+        text=text.replace('<div class="nav">02 <span>Aplicaciones</span></div>',
+            '<button id="open-app" class="nav" style="width:175px;box-sizing:border-box;margin:0 0 8px;padding:0 14px;text-align:left;font-weight:normal;background:#1a2f39;color:#7de3d2;">02 Abrir ULTRA-J</button>')
+        text=text.replace('<span class="muted">BMO-X2 / DIRECTOR</span>','<span id="desktop-status" class="muted">Espacio 1</span>')
+        text=text.replace('HECHO PARA CRECER','CTRL+SUPER+1..4 / SUPER+Q')
     write_if_changed(out/'main.rml',text)
     paths=[out/'main.rml',assets/'style.rcss',DEPS/'RmlUi-6.3/Samples/assets/LatoLatin-Regular.ttf',DEPS/'RmlUi-6.3/Samples/assets/LatoLatin-Bold.ttf']
     asm='.section .rodata\n'
@@ -92,7 +108,9 @@ def main():
     (out/'admission.json').write_text(json.dumps(report,indent=2)+'\n',encoding='ascii')
     symbols=subprocess.check_output([str(llvm/'llvm-nm.exe'),'--defined-only','--format=posix',str(out/'rmlui.elf')],text=True)
     symbols={s[0]:int(s[2],16) for line in symbols.splitlines() if len(s:=line.split())>=3}
-    (out/'symbols.json').write_text(json.dumps(dict(state=symbols['bmo_ui_state'],pixels=symbols['bmo_ui_pixels']),indent=2)+'\n')
+    manifest=dict(state=symbols['bmo_ui_state'],pixels=symbols['bmo_ui_pixels'],desktop=args.desktop)
+    if args.desktop:manifest['director']=symbols['bmo_ui_director']
+    (out/'symbols.json').write_text(json.dumps(manifest,indent=2)+'\n')
     artifacts={name:hashlib.sha256((out/name).read_bytes()).hexdigest() for name in ('rmlui.elf','rmlui.sbef','symbols.json')}
     (out/'artifacts.json').write_text(json.dumps(artifacts,indent=2)+'\n',encoding='ascii')
     print('Native ELF/SBEF: '+str(out))

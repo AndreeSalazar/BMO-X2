@@ -32,6 +32,22 @@ desktop_media_alloc:
     js finish
     mov 32(%rsp), %rax
     mov %rax, 8(%rbp)
+#ifdef RMLUI_MEDIA
+    # The private large UI loader must own this range before ExitBootServices.
+    movq $0x04000000, 32(%rsp)
+    mov $2, %ecx                 # AllocateAddress
+    mov $2, %edx                 # EfiLoaderData
+    mov $4096, %r8d              # 16 MiB, including the user stack
+    lea 32(%rsp), %r9
+    call *0x28(%r14)
+    test %rax, %rax
+    js finish
+    movabs $0x2131565345524955, %rax # UIRESV1!
+    mov %rax, 0x700(%rbp)
+    movq $0x04000000, 0x708(%rbp)
+    movq $4096, 0x710(%rbp)
+    jmp context_ready
+#else
     # Reserve contiguous pages for the selected xHCI controller.
     # Context offsets B8/C0 describe the reservation, not a DMA grant.
     movq $0x0fffffff, 32(%rsp)
@@ -49,6 +65,7 @@ desktop_media_alloc:
     mov $(512 * XHCI_RESERVE_PAGES), %ecx
     cld
     rep stosq
+#endif
 context_ready:
     movabs $0x2134364c4154454d, %rax
     mov %rax, (%rbp)

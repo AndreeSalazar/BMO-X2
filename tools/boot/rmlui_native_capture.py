@@ -42,18 +42,21 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
     if context[:8]!=b'METAL64!':raise ValueError('Native UI handoff signature')
     fb=struct.unpack_from('<Q',context,16)[0]
     width,height,pitch,order=struct.unpack_from('<IIII',context,32)
-    if not (1280<=width<=4096 and 800<=height<=4096 and width<=pitch<=8192 and order in (0,1)):
+    if not (640<=width<=4096 and 400<=height<=4096 and width<=pitch<=8192 and order in (0,1)):
         raise ValueError('Native UI framebuffer geometry')
     scale=min(width//1280,height//800)
-    x,y=(width-1280*scale)//2,(height-800*scale)//2
-    displayed=memory(fb+(y*pitch+x)*4,((800*scale-1)*pitch+1280*scale)*4,'ui-presented')
-    for row in range(800*scale):
-        expected=raw[(row//scale)*1280*4:(row//scale+1)*1280*4]
+    dw,dh=(1280*scale,800*scale) if scale else (640,400)
+    x,y=(width-dw)//2,(height-dh)//2
+    displayed=memory(fb+(y*pitch+x)*4,((dh-1)*pitch+dw)*4,'ui-presented')
+    for row in range(dh):
+        sy=row//scale if scale else row*2
+        expected=raw[sy*1280*4:(sy+1)*1280*4]
+        if not scale:expected=b''.join(expected[i:i+4] for i in range(0,len(expected),8))
         if order==0:
             converted=bytearray(expected)
             converted[0::4],converted[2::4]=expected[2::4],expected[0::4]
             expected=bytes(converted)
-        if scale!=1:expected=b''.join(expected[i:i+4]*scale for i in range(0,len(expected),4))
+        if scale>1:expected=b''.join(expected[i:i+4]*scale for i in range(0,len(expected),4))
         if displayed[row*pitch*4:row*pitch*4+len(expected)]!=expected:
             raise ValueError('Native UI presentation differs at row '+str(row))
     (Path(str(prefix)+'-ui-xrgb.bin')).write_bytes(raw)
@@ -66,6 +69,44 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
     raw_after=memory(pixels-0x3c000000,1280*800*4,'ui-action-frame')
     if hashlib.sha256(raw_after).hexdigest()==before:raise ValueError('Native action did not change the rendered frame')
     command('screendump',{'filename':str(prefix)+'-ui-action.ppm'})
+    if symbols.get('desktop'):
+        command('input-send-event',{'events':[{'type':'rel','data':{'axis':'y','value':127}}]})
+        time.sleep(.2)
+        command('input-send-event',{'events':[{'type':'btn','data':{'button':'left','down':True}}]})
+        time.sleep(.2)
+        command('input-send-event',{'events':[{'type':'btn','data':{'button':'left','down':False}}]})
+        after=until(3,accepted=2)
+        if after[3:5]!=(2,2):raise ValueError('Desktop mouse activation did not execute once')
+        director=symbols['director']
+        if not 0x40400000<=director<=0x40e00000-8:raise ValueError('DIRECTOR symbol')
+        observed=False
+        def policy(expected):
+            nonlocal observed
+            deadline=time.monotonic()+40
+            while time.monotonic()<deadline:
+                r=regs()
+                observed|='CPL=3' in r and 0x40000000<=register(r,'RIP')<0x40200000
+                state=struct.unpack('<Q',memory(director-0x3c000000,8,'director-state'))[0]
+                if state==expected:return
+                time.sleep(.03)
+            raise ValueError('DIRECTOR did not reach '+hex(expected))
+        def key(*keys):
+            command('send-key',{'keys':[{'type':'qcode','data':k} for k in keys],'hold-time':80})
+        policy(0x101)
+        key('ctrl','meta_l','2');policy(2)
+        key('f1');policy(0x102)
+        key('meta_l','q');policy(2)
+        key('f1');policy(0x102)
+        key('ctrl','meta_l','1');policy(1)
+        key('ctrl','meta_l','2');policy(0x102)
+        if not observed:raise ValueError('No DIRECTOR/RmlUi execution observed in CPL3')
+        command('screendump',{'filename':str(prefix)+'-desktop.ppm'})
+        return dict(Case='normal',Passed=True,Evidence='QEMU',CPL=3,FullRmlUiEngine=True,
+            NativeUltraJAction=True,DirectorRust=True,WorkspaceSwitchVerified=True,
+            SuperQVerified=True,ReopenVerified=True,KeyboardEnterVerified=True,MouseClickVerified=True,ShellRemainsAlive=True,
+            HeapPeakBytes=after[7],HeapLimitBytes=4*1024*1024,FramebufferBytes=len(raw),SbefBytes=len(image),
+            StagedModuleSHA256=hashlib.sha256(struct.pack('<Q',len(image))+image).hexdigest(),
+            PresentedPixelsVerified=dw*dh,GopWidth=width,GopHeight=height,HalfScale=scale==0,FrameSHA256=before)
     command('input-send-event',{'events':[{'type':'rel','data':{'axis':'y','value':127}}]})
     time.sleep(.2)
     command('input-send-event',{'events':[{'type':'btn','data':{'button':'left','down':True}}]})
@@ -85,5 +126,5 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
         Frames=closed[2],Triangles=closed[5],HeapPeakBytes=closed[7],HeapLimitBytes=4*1024*1024,
         FramebufferBytes=len(raw),SbefBytes=len(image),ClosedResources=True,
         StagedModuleSHA256=hashlib.sha256(struct.pack('<Q',len(image))+image).hexdigest(),
-        PresentedPixelsVerified=1280*800*scale*scale,
+        PresentedPixelsVerified=dw*dh,
         FrameSHA256=before,ActionFrameSHA256=hashlib.sha256(raw_after).hexdigest())

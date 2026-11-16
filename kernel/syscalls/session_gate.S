@@ -5,8 +5,8 @@
 #endif
 #define FRAME_W 1280
 #define FRAME_H 800
-#define FRAME_MIN_W 1280
-#define FRAME_MIN_H 800
+#define FRAME_MIN_W 640
+#define FRAME_MIN_H 400
 #else
 #define FRAME_W 320
 #define FRAME_H 200
@@ -462,6 +462,12 @@ present_frame:
     ja denied
     sub $0x3c000000, %rdx
     mov %rdx, %rsi
+#ifdef RMLUI_NATIVE
+    cmp $1280, %edi
+    jb native_half
+    cmp $800, %ecx
+    jb native_half
+#endif
 #ifdef DESKTOP_DOOM
     # Largest whole-pixel scale that fits both axes.
     mov %edi, %eax
@@ -562,6 +568,45 @@ engine_row_ready:
     incl %gs:0x354
     xor %eax, %eax
     jmp finish
+#ifdef RMLUI_NATIVE
+native_half:
+    # Preserve the fixed 1280x800 input contract on smaller direct GOP modes.
+    # Sample alternate columns/rows into a centered 640x400 destination.
+    sub $640, %edi
+    sub $400, %ecx
+    shr %edi
+    shr %ecx
+    imul %r8, %rcx
+    add %rdi, %rcx
+    mov 0x10(%rbp), %r9
+    lea (%r9,%rcx,4), %r9
+    shl $2, %r8
+    mov %cr3, %r11
+    mov %gs:0x318, %rax
+    mov %rax, %cr3
+    mov $400, %edx
+native_half_row:
+    mov %r9, %rdi
+    mov $640, %ecx
+native_half_pixel:
+    lodsl
+    add $4, %rsi
+    cmpl $1, 0x2c(%rbp)
+    je native_half_color
+    bswap %eax
+    shr $8, %eax
+native_half_color:
+    stosl
+    loop native_half_pixel
+    add $5120, %rsi
+    add %r8, %r9
+    dec %edx
+    jnz native_half_row
+    mov %r11, %cr3
+    incl %gs:0x354
+    xor %eax, %eax
+    jmp finish
+#endif
 #endif
 #ifdef DOOM_WAD
 read_wad:

@@ -2095,7 +2095,7 @@
       "entrada": "Vertices, textura acotada, superficie XRGB y rectangulo de recorte.",
       "salida": "Pixeles propios de la superficie; rechazo antes de escribir ante dimensiones o vertices invalidos.",
       "aceptacion": "256 coberturas Alpha8 iguales a RGBA; sonda CPL3 con ambos formatos y pixeles iguales a HOST; rechazo W+X conservado.",
-      "falta": "Integracion con superficies e invalidacion del escritorio permanente y motor RmlUi completo."
+      "falta": "Invalidacion avanzada y sesiones prolongadas; el motor completo ya dibuja en el candidato DIRECTOR de un panel."
     },
     {
       "id": "rmlui-raster-probe",
@@ -2263,9 +2263,9 @@
       ],
       "que": "Carga RML/RCSS/fuentes, dibuja en CPU y ejecuta la VM UJBC nativa con recursos de propiedad acotada.",
       "entrada": "SBEF del perfil rmlui-native-v1, cuatro recursos inmutables y eventos PS2/Enter.",
-      "salida": "Superficie XRGB 1280x800 por operacion privada 9, acciones y cierre de recursos comprobados.",
-      "aceptacion": "Core real en CPL3; clic y Enter ejecutan dos acciones una vez; 1024000 pixeles coinciden con HOST; Esc cierra geometria/texturas/cursores.",
-      "falta": "Integrar como superficie de DIRECTOR con atajos globales, reloj/animacion y arranque permanente; validar entrada USB en METAL."
+      "salida": "Visor independiente o candidato DIRECTOR de un panel; superficie XRGB 1280x800, acciones UJBC nativas y presentacion GOP entera.",
+      "aceptacion": "CPL3, Enter/clic y pixeles iguales a HOST; candidato FAT32 prueba espacios, Super+Q y reapertura sin terminar la base. Evidencia Ultra-J/evidence/rmlui-desktop-fat32.json.",
+      "falta": "Migrar CABINA/DOOM y multiples aplicaciones; reloj/animacion, descarga de procesos y USB HID en METAL."
     },
     {
       "id": "rmlui-native-validation",
@@ -2283,6 +2283,74 @@
       "salida": "Informe QEMU, capturas y comparacion HOST de todos los pixeles; rechazo W+X y huella para visor.",
       "aceptacion": "Dos casos aprobados; permiso invalido rechazado antes de copiar; pixels presentados exactos; teclado/raton y accion nativa; perfiles anteriores conservan bytes.",
       "falta": "Pruebas prolongadas, fallos recuperables y motor permanente en hardware fisico."
+    },
+    {
+      "id": "rmlui-desktop-policy",
+      "titulo": "Politica Rust del escritorio nativo",
+      "ruta": "userspace/services/desktop/src/native_policy.rs",
+      "estado": "qemu",
+      "anillo": "3",
+      "lenguaje": "Rust",
+      "posicion": [
+        7500,
+        3900
+      ],
+      "que": "Adapta DIRECTOR existente a foco, cuatro espacios y nueve posiciones de ventana sin compartir el framebuffer mutable.",
+      "entrada": "Scancodes Set1 y eventos de apertura.",
+      "salida": "Identidad, foco y espacio del panel ULTRA-J; superficie 1x1 solo como marcador de politica.",
+      "aceptacion": "19 tests Rust; cambio de espacio, Super+Q y reapertura observados en CPL3.",
+      "falta": "Multiples aplicaciones, descarga de recursos por proceso y teclado USB fisico."
+    },
+    {
+      "id": "rmlui-fat32-media",
+      "titulo": "Entrada UEFI del escritorio nativo",
+      "ruta": "tools/desktop/rmlui/native/media.py",
+      "estado": "qemu",
+      "anillo": "host",
+      "lenguaje": "Python / CASM",
+      "posicion": [
+        7900,
+        3900
+      ],
+      "que": "Construye un perfil separado que lee el SBEF desde FAT32 con reserva explicita del rango de usuario antes de EBS.",
+      "entrada": "Runs ABI y gato CASM verificados; ELF/SBEF nativo con hashes.",
+      "salida": "EFI de 16384 bytes, INICIO de 3688 bytes y SBEF de 1845846 bytes en carpeta DESKTOP.",
+      "aceptacion": "Dos casos por GOP 1280x800 y 1024x768; W+X rechazado antes de copia; BOOTLOG y SBEF releidos del FAT32.",
+      "falta": "Arranque fisico del candidato; no incorpora el driver xHCI/HID AMD."
+    },
+    {
+      "id": "rmlui-fat32-reader",
+      "titulo": "Inspeccion acotada de FAT32",
+      "ruta": "tools/boot/fat32_read.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [
+        7900,
+        4100
+      ],
+      "que": "Lee la primera particion GPT/FAT32 de imagenes de prueba sin modificarlas.",
+      "entrada": "Imagen con sectores de 512 bytes, dos FAT y rutas 8.3.",
+      "salida": "Bytes del archivo con geometria, limites, espejos y cadenas comprobados.",
+      "aceptacion": "Cuatro tests de cadenas fragmentadas, limites, ciclos y discrepancias entre FAT.",
+      "falta": "No es reparador de discos ni controlador de almacenamiento del invitado."
+    },
+    {
+      "id": "rmlui-metal-candidate",
+      "titulo": "Candidato separado en FAT32 fisico",
+      "ruta": "tools/desktop/rmlui/native/deploy.ps1",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "PowerShell",
+      "posicion": [
+        8300,
+        3900
+      ],
+      "que": "Copia exclusivamente el candidato QEMU aprobado al volumen FAT32 A: y verifica hashes.",
+      "entrada": "Manifiesto aprobado y volumen existente; no formatea ni cambia NVRAM.",
+      "salida": "EFI/BMO-X2/DESKTOP.EFI y BMO-X2/DESKTOP con recibo DEPLOY.JSON.",
+      "aceptacion": "Copia y relectura verificadas; archivos anteriores intactos; CHKDSK solo lectura sin problemas.",
+      "falta": "METAL pendiente: elegir el nuevo EFI, aportar BOOTLOG PRE-EBS y foto; USB HID sigue sin validar."
     }
   ],
   "relaciones": [
@@ -3434,6 +3502,26 @@
     {
       "de": "rmlui-native-validation",
       "a": "rmlui-native-audit",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-native-application",
+      "a": "rmlui-desktop-policy",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-fat32-media",
+      "a": "rmlui-native-application",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-fat32-media",
+      "a": "rmlui-fat32-reader",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-metal-candidate",
+      "a": "rmlui-fat32-media",
       "clase": "codigo"
     }
   ]

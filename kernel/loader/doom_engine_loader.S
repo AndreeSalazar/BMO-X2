@@ -3,9 +3,21 @@
 .globl doom_engine_loader
 doom_engine_loader:
     cld
+#ifdef RMLUI_MEDIA
+    mov 0xa8(%rbp), %rsi
+    mov 0xb0(%rbp), %rdx
+    movabs $0x2131565345524955, %rax
+    cmp %rax, 0x700(%rbp)
+    jne reject
+    cmpq $0x04000000, 0x708(%rbp)
+    jne reject
+    cmpq $4096, 0x710(%rbp)
+    jne reject
+#else
     mov $0x2000000, %esi
     mov (%rsi), %rdx
     add $8, %rsi
+#endif
     cmp $128, %rdx
     jb reject
 #ifdef RMLUI_NATIVE
@@ -83,7 +95,11 @@ check_flags:
 find_range:
     cmp %r8, %rcx
     jb reject
+#ifdef RMLUI_MEDIA
+    cmpl $2, (%rdi)             # UI-owned EfiLoaderData reservation
+#else
     cmpl $7, (%rdi)
+#endif
     jne next_descriptor
     mov 8(%rdi), %rax
     cmp $0x4000000, %rax

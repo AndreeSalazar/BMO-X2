@@ -38,10 +38,11 @@ def generate_headers():
     return [OUT/'headers',musl/'arch/x86_64',musl/'arch/generic',musl/'include']
 
 
-def command(args,name):
+def command(args,name,*,cwd=None):
     log=OUT/(name+'.log')
     with log.open('w') as output:
         result=subprocess.run(list(map(str,args)),stdout=output,stderr=subprocess.STDOUT,
+                              cwd=cwd,
                               env={**os.environ,'PYTHONDONTWRITEBYTECODE':'1'})
     if result.returncode:
         print('\n'.join(log.read_text(errors='replace').splitlines()[-45:]))

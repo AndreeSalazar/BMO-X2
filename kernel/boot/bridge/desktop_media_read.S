@@ -14,14 +14,27 @@ desktop_media_read:
 
     # Preserve the inherited INICIO.X86 length. Use separate context fields.
     sub $40, %rsp
+#ifdef RMLUI_MEDIA
+    movq $0x0fffffff, 0xa8(%rbp)
+    mov $1, %ecx                 # AllocateMaxAddress, inside the identity map
+#else
     xor %ecx, %ecx
+#endif
     mov $2, %edx
+#ifdef RMLUI_MEDIA
+    mov $513, %r8d
+#else
     mov $5, %r8d
+#endif
     lea 0xa8(%rbp), %r9
     call *0x28(%r14)
     test %rax, %rax
     js failed
+#ifdef RMLUI_MEDIA
+    movq $513, 0xc8(%rbp)
+#else
     movq $5, 0xc8(%rbp)
+#endif
     mov 0x88(%rbp), %rcx
     lea 0x38(%rbp), %rdx
     call *8(%rcx)
@@ -35,14 +48,22 @@ desktop_media_read:
     call *8(%rcx)
     test %rax, %rax
     js release
+#ifdef RMLUI_MEDIA
+    movq $0x200001, 0xb0(%rbp)
+#else
     movq $16513, 0xb0(%rbp)
+#endif
     mov 0x40(%rbp), %rcx
     lea 0xb0(%rbp), %rdx
     mov 0xa8(%rbp), %r8
     call *0x20(%rcx)
     test %rax, %rax
     js release
+#ifdef RMLUI_MEDIA
+    cmpq $0x200000, 0xb0(%rbp)
+#else
     cmpq $16512, 0xb0(%rbp)
+#endif
     ja release
     cmpq $64, 0xb0(%rbp)
     jb release
@@ -84,7 +105,11 @@ desktop_media_read:
     mov 0xb0(%rbp), %rax
     add $4095, %rax
     shr $12, %rax
+#ifdef RMLUI_MEDIA
+    mov $513, %edx
+#else
     mov $5, %edx
+#endif
     sub %eax, %edx
     jz staging_ready
     mov %rax, 32(%rsp)
@@ -102,6 +127,7 @@ staging_ready:
     call *0x10(%rcx)
     test %rax, %rax
     js release
+#ifndef RMLUI_MEDIA
     # Copy the xHCI stage to the page between the packet buffer and page tables.
     .byte 0x48, 0x8d, 0x35
     .long 0x4000 - DESKTOP_READER_OFFSET - (. - desktop_media_read) - 4
@@ -109,6 +135,7 @@ staging_ready:
     mov $512, %ecx
     cld
     rep movsq
+#endif
     xor %eax, %eax
     jmp finish
 release:
@@ -130,8 +157,12 @@ done:
     # UEFI accepts CHAR16 paths at aligned addresses.
     .p2align 1
 path:
+#ifdef RMLUI_MEDIA
+    .short 92,66,77,79,45,88,50,92,68,69,83,75,84,79,80,92,68,69,83,75,84,79,80,46,83,66,70,0
+#else
     # \BMO-X2\DESKTOP.SBF
     .short 92,66,77,79,45,88,50,92,68,69,83,75,84,79,80,46,83,66,70,0
+#endif
 #ifdef ULTRA_J_MEDIA
 action_path:
     # \BMO-X2\ACTION.UJB

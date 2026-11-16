@@ -1,0 +1,206 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "scope": "Native desktop candidate, not complete system or physical USB validation",
+  "qemu": {
+    "normal_gop": {
+      "Passed": 2,
+      "Total": 2,
+      "Cases": [
+        {
+          "Case": "normal",
+          "Passed": true,
+          "Evidence": "QEMU",
+          "CPL": 3,
+          "FullRmlUiEngine": true,
+          "NativeUltraJAction": true,
+          "DirectorRust": true,
+          "WorkspaceSwitchVerified": true,
+          "SuperQVerified": true,
+          "ReopenVerified": true,
+          "KeyboardEnterVerified": true,
+          "MouseClickVerified": true,
+          "ShellRemainsAlive": true,
+          "HeapPeakBytes": 3050544,
+          "HeapLimitBytes": 4194304,
+          "FramebufferBytes": 4096000,
+          "SbefBytes": 1845846,
+          "StagedModuleSHA256": "2387a39a075ea853d5a9481616fd703bf1b41a0b25666001dd50754b72270258",
+          "PresentedPixelsVerified": 1024000,
+          "GopWidth": 1280,
+          "GopHeight": 800,
+          "HalfScale": false,
+          "FrameSHA256": "8170f47387ffc42782c8c1aef70627b4c34a74ed90b232ead223a8a53e09593a",
+          "BootLogFat32Verified": true
+        },
+        {
+          "Case": "external-permissions",
+          "Passed": true,
+          "SbefAccepted": false,
+          "UserCodeCopied": false,
+          "UserAddressSpaceActivated": false,
+          "RejectedField": "permissions",
+          "RejectedOffset": 116
+        }
+      ],
+      "run": "run-rmlui-media-197d1a868bd5",
+      "evidence": "QEMU",
+      "disk_sbef": true,
+      "physical_boot": false,
+      "physical_usb_proven": false,
+      "note": "Separate desktop candidate; no QEMU loader device, UEFI reads real FAT32 files.",
+      "files": {
+        "EFI/BMO-X2/DESKTOP.EFI": "c6ea0a5035dadb1d1d439c708c686b56e66fdebefc2dafd1c30b806aece2f09c",
+        "BMO-X2/DESKTOP/INICIO.X86": "867850cfd2cb8c2fbe70e455d3310ea1cc3078df7321baadb3acaf9713dd47c0",
+        "BMO-X2/DESKTOP/DESKTOP.SBF": "626f1d7251a8073fc591fb9f0551dc333aa66eef83cadf91bb8dc9e59e14b1f1"
+      }
+    },
+    "small_gop": {
+      "Passed": 2,
+      "Total": 2,
+      "Cases": [
+        {
+          "Case": "normal",
+          "Passed": true,
+          "Evidence": "QEMU",
+          "CPL": 3,
+          "FullRmlUiEngine": true,
+          "NativeUltraJAction": true,
+          "DirectorRust": true,
+          "WorkspaceSwitchVerified": true,
+          "SuperQVerified": true,
+          "ReopenVerified": true,
+          "KeyboardEnterVerified": true,
+          "ShellRemainsAlive": true,
+          "HeapPeakBytes": 3050544,
+          "HeapLimitBytes": 4194304,
+          "FramebufferBytes": 4096000,
+          "SbefBytes": 1845846,
+          "StagedModuleSHA256": "2387a39a075ea853d5a9481616fd703bf1b41a0b25666001dd50754b72270258",
+          "PresentedPixelsVerified": 256000,
+          "GopWidth": 1024,
+          "GopHeight": 768,
+          "HalfScale": true,
+          "FrameSHA256": "8170f47387ffc42782c8c1aef70627b4c34a74ed90b232ead223a8a53e09593a",
+          "BootLogFat32Verified": true
+        },
+        {
+          "Case": "external-permissions",
+          "Passed": true,
+          "SbefAccepted": false,
+          "UserCodeCopied": false,
+          "UserAddressSpaceActivated": false,
+          "RejectedField": "permissions",
+          "RejectedOffset": 116
+        }
+      ],
+      "run": "run-rmlui-media-43b496f62263",
+      "evidence": "QEMU",
+      "disk_sbef": true,
+      "physical_boot": false,
+      "physical_usb_proven": false,
+      "note": "Separate desktop candidate; no QEMU loader device, UEFI reads real FAT32 files.",
+      "files": {
+        "EFI/BMO-X2/DESKTOP.EFI": "c6ea0a5035dadb1d1d439c708c686b56e66fdebefc2dafd1c30b806aece2f09c",
+        "BMO-X2/DESKTOP/INICIO.X86": "867850cfd2cb8c2fbe70e455d3310ea1cc3078df7321baadb3acaf9713dd47c0",
+        "BMO-X2/DESKTOP/DESKTOP.SBF": "626f1d7251a8073fc591fb9f0551dc333aa66eef83cadf91bb8dc9e59e14b1f1"
+      }
+    }
+  },
+  "deployment": {
+    "Schema": 1,
+    "Evidence": "HOST copy after QEMU FAT32 boot",
+    "Run": "run-rmlui-media-197d1a868bd5",
+    "Volume": "A:\\",
+    "FileSystem": "FAT32",
+    "Files": {
+      "EFI/BMO-X2/DESKTOP.EFI": "c6ea0a5035dadb1d1d439c708c686b56e66fdebefc2dafd1c30b806aece2f09c",
+      "BMO-X2/DESKTOP/INICIO.X86": "867850cfd2cb8c2fbe70e455d3310ea1cc3078df7321baadb3acaf9713dd47c0",
+      "BMO-X2/DESKTOP/DESKTOP.SBF": "626f1d7251a8073fc591fb9f0551dc333aa66eef83cadf91bb8dc9e59e14b1f1"
+    },
+    "LegacyFilesUnchanged": {
+      "EFI/BMO-X2/BMO-X2.EFI": "3911A9364B30CBA7CA78B165065563AB3F585D9385129BFEC8349F117A59FA28",
+      "BMO-X2/INICIO.X86": "6514B8E792758191AE8CC07CFB815070EA6C535A355AD9D3075B8B31975BC1E5",
+      "BMO-X2/BOOTLOG.TXT": "9675389EAEFC9C48777BEF6662E5B13794FD044DD7DA37FF502A386857875F7F",
+      "BMO-X2/DESKTOP.SBF": "44D8F37EB706CFB4054F10342C9C9ABF69ABB151B6A9E99AE0ECDA575D9D9CA4"
+    },
+    "PhysicalBootVerified": false,
+    "PhysicalUsbVerified": false,
+    "BootFile": "\\EFI\\BMO-X2\\DESKTOP.EFI",
+    "ReportFile": "\\BMO-X2\\DESKTOP\\BOOTLOG.TXT",
+    "Note": "Candidato separado. USB HID fisico sigue pendiente; no cambia NVRAM ni el arranque anterior."
+  },
+  "host_filesystem_check": {
+    "command": "chkdsk A:",
+    "read_only": true,
+    "exit_code": 0,
+    "result": "No filesystem problems found; no repair or surface scan",
+    "log_sha256": "fe549bf907038d6f488f3417518fa57c205cdc5ce68f63aafe49a3a16c824054"
+  },
+  "tests": {
+    "rust_policy": 19,
+    "fat32_reader": 4,
+    "sbef": 9,
+    "native_inputs": 6
+  },
+  "default_profile_byte_compatibility": {
+    "baseline_commit": "09ed49b",
+    "results": {
+      "gate": {
+        "IdenticalBytes": true,
+        "Bytes": 982,
+        "SHA256": "aadb7e384a8973333455db1980d71b877cd3a2718196860cb934b08b04ce8bfb"
+      },
+      "doom-gate": {
+        "IdenticalBytes": true,
+        "Bytes": 1348,
+        "SHA256": "97f457520c54a17e6898b610d9728ab58b18a01290eade0205c67c6e8d058aa0"
+      },
+      "doom-loader": {
+        "IdenticalBytes": true,
+        "Bytes": 526,
+        "SHA256": "d0e6cc7e6cb374cdcea4ad72a14efb428f60c35b2a8be43d39176bf966bee5fb"
+      },
+      "allocator": {
+        "IdenticalBytes": true,
+        "Bytes": 207,
+        "SHA256": "685398927cdba1b248deca30e854aeda30e0505f9a19d6fa7676fb15c2ae9b1e"
+      },
+      "reader": {
+        "IdenticalBytes": true,
+        "Bytes": 1486,
+        "SHA256": "2e05be90ca608bbe3c95fc1c65d80023e496fa4971b276e1d0292c4352759e8d"
+      }
+    }
+  },
+  "sizes": {
+    "EFI/BMO-X2/DESKTOP.EFI": 16384,
+    "BMO-X2/DESKTOP/INICIO.X86": 3688,
+    "BMO-X2/DESKTOP/DESKTOP.SBF": 1845846
+  },
+  "physical_boot_verified": false,
+  "physical_usb_verified": false,
+  "limitations": [
+    "Single panel with existing Rust DIRECTOR policy; no complete CABINA/DOOM migration",
+    "PS2 input only in this candidate; AMD USB HID interfaces/endpoints/reports remain pending",
+    "Pre-EBS BOOTLOG is not live Ring0/Ring3 telemetry",
+    "4 MiB heap cap and 16 MiB private mapping are not total system RAM",
+    "Native clock/animation scheduling and process unloading remain pending"
+  ],
+  "source_sha256": {
+    "kernel/boot/bridge/desktop_media_alloc.S": "70166616514072b150c2d597a43c6556ea830a360c5698d65dae788bff3d1476",
+    "kernel/boot/bridge/desktop_media_read.S": "a1c6aa8f4db55a91e9af1ce7ce33d8d60ac75b00ff12d9075cb44b02fcd1b0fd",
+    "kernel/boot/bridge/desktop_boot_report.inc": "ada6d535e65bbe98180d84371c101665340509648666bde871875449522d930c",
+    "kernel/loader/doom_engine_loader.S": "7cc44ad79b2e681e2d5e5d9df0679497db2d92ffb0a44af18ce9bda4925d975d",
+    "kernel/syscalls/session_gate.S": "f43a18474971502143dcee48b732b738366ee3dd720d436cbd3c8755e865ee91",
+    "userspace/services/desktop/src/native_policy.rs": "5a40d1e3e97a05bbbff64763b048c925fcdf656319019c9b6cb85bf5a686d38c",
+    "tools/desktop/rmlui/native/guest.cpp": "bb7d7e7420cc32c7d727e7541aeff85b4ef1d5bd239a2d50e94874ccf2213b2b",
+    "tools/desktop/rmlui/native/guest.py": "e2893c275f32e695d45ce876756d64a1b78cc022dbf0987c62f8f383d8e76868",
+    "tools/desktop/rmlui/native/media.py": "d57070c1f7166bcda317f09a440e8908aadd2fe91877237da6d5a017a73a662f",
+    "tools/desktop/rmlui/native/deploy.ps1": "33930988f575c01a3eb25aab994c8e2bc8feaf25bf06ca26cf1a794db5763658",
+    "tools/boot/fat32_read.py": "1cc67ef626674638decd6a77b581439d277e046ba6338a462dabc884e0b12162",
+    "tools/boot/rmlui_native_capture.py": "210a6a7e2bf4ce6b911caa00c9282b0a144a41461c9003905c499e8a9e89cda2",
+    "tools/boot/probe.py": "a11ad9779cb2e55a1c464b0c73b6603a0282b4a9c82b5334de6bf63c2b006d55",
+    "tools/boot/prepare.py": "9252af94aa4def9dfd8b0127bf1511d2c91f5d431d6a2554ed1b2b167c1f5364"
+  }
+}

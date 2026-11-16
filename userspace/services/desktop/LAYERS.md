@@ -1,5 +1,12 @@
 # Capas del escritorio
 
+El candidato nuevo une la politica DIRECTOR de Rust con RmlUi nativo
+y una lectura UEFI real del SBEF desde FAT32. Sus archivos de prueba
+viven en A:/BMO-X2/DESKTOP/; el arranque anterior permanece separado.
+Ver [arranque nativo y estado del metal](../../../docs/NATIVE-DESKTOP-BOOT.md).
+La politica usa un marcador de superficie inmutable, sin alias al
+framebuffer mutable del motor; el presentador sigue siendo RmlUi/Rust.
+
 La carpeta de fuentes del servicio es `userspace/services/desktop/`.
 El archivo `A:/BMO-X2/DESKTOP.SBF` es un ejecutable generado; no contiene
 las carpetas de desarrollo. El lector UEFI actual espera esa ruta.
@@ -42,7 +49,7 @@ byte por byte. `Ultra-J/view.py` mantiene la CLI y las importaciones que
 usan package.py y los scripts de construccion. No cambia los archivos
 del volumen de arranque ni la distribucion del escritorio instalado.
 
-## Experimento RmlUi, aislado del escritorio instalado
+## Origen del experimento HOST y candidato nativo
 
 `tools/desktop/rmlui/` prueba RML/RCSS con RmlUi + FreeType y un
 rasterizador CPU nativo en Windows HOST. Sus recursos viven en
@@ -50,8 +57,9 @@ rasterizador CPU nativo en Windows HOST. Sus recursos viven en
 El dibujo comun vive en `src/rmlui.rs`, seguro y no_std. El adaptador
 HOST C++ lo llama mediante `raster.h`/`raster.rs`, prestando buffers por
 llamada. El mismo codigo paso una sonda SBEF en CPL3 con pixeles identicos
-a HOST. No sustituye UJVI ni instala RmlUi completo en Ring 3: faltan el
-runtime C++, entrada DIRECTOR, acciones nativas y presupuestos del motor.
+a HOST. La variante nativa posterior ya tiene runtime acotado, acciones
+UJBC nativas y politica DIRECTOR. No sustituye el escritorio antiguo ni
+acredita USB fisico: la migracion completa de aplicaciones sigue pendiente.
 Ver el README del adaptador y su evidencia reproducible.
 
 El adaptador C++ de sesion `tools/desktop/rmlui/engine.cpp` recibe una
