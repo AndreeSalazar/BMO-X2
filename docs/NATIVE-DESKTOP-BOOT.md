@@ -35,6 +35,11 @@ del nano-core ni demuestra que todo BMO-X2 consuma 2 KiB.
 
 ## Prueba fisica preparada
 
+En esta maquina ya se registro una entrada separada del firmware llamada
+**BMO-X2 Desktop (RmlUi)**. Elegir ese nombre en el menu de arranque;
+**BMO-X2** sigue siendo el escritorio anterior de diagnostico USB.
+Los archivos visibles en el Explorador no son entradas del menu UEFI.
+
 En el volumen FAT32 BMO (A: bajo Windows), abrir desde el selector de
 archivos del firmware UEFI:
 
@@ -53,6 +58,12 @@ No seleccionar la entrada antigua esperando ver este candidato: su EFI
 y sus archivos originales siguen intactos. La copia nueva no cambia
 NVRAM, orden de arranque, particiones ni el cargador de Windows.
 `DEPLOY.JSON` identifica los hashes copiados y los originales conservados.
+
+El registro opcional se hace por separado con
+`tools/desktop/rmlui/native/register-desktop.ps1`, en PowerShell elevado.
+Comprueba los tres hashes del candidato, reutiliza una entrada compatible
+o crea una nueva al final de la lista. No selecciona el siguiente arranque
+ni reinicia. Su recibo queda en `build/rmlui-native/firmware-desktop.json`.
 
 El firmware debe ejecutar el EFI x86-64 propio; el procedimiento no cambia
 la politica de Secure Boot. Si el firmware no ofrece abrir archivos,

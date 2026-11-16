@@ -2351,6 +2351,23 @@
       "salida": "EFI/BMO-X2/DESKTOP.EFI y BMO-X2/DESKTOP con recibo DEPLOY.JSON.",
       "aceptacion": "Copia y relectura verificadas; archivos anteriores intactos; CHKDSK solo lectura sin problemas.",
       "falta": "METAL pendiente: elegir el nuevo EFI, aportar BOOTLOG PRE-EBS y foto; USB HID sigue sin validar."
+    },
+    {
+      "id": "rmlui-desktop-firmware-entry",
+      "titulo": "Entrada UEFI del escritorio nuevo",
+      "ruta": "tools/desktop/rmlui/native/register-desktop.ps1",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "PowerShell",
+      "posicion": [
+        8300,
+        4100
+      ],
+      "que": "Registra el candidato validado con un nombre distinto del diagnostico anterior.",
+      "entrada": "Volumen A: FAT32, recibo DEPLOY.JSON y hashes de los tres archivos activos.",
+      "salida": "Entrada BMO-X2 Desktop (RmlUi) al final de la lista UEFI; recibo local.",
+      "aceptacion": "Registro y reuso idempotente verificados en esta maquina; apunta a EFI/BMO-X2/DESKTOP.EFI. No reinicia ni selecciona el siguiente arranque.",
+      "falta": "Usuario debe elegir la entrada nueva; arranque fisico del candidato y USB HID siguen pendientes."
     }
   ],
   "relaciones": [
@@ -3522,6 +3539,11 @@
     {
       "de": "rmlui-metal-candidate",
       "a": "rmlui-fat32-media",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-desktop-firmware-entry",
+      "a": "rmlui-metal-candidate",
       "clase": "codigo"
     }
   ]

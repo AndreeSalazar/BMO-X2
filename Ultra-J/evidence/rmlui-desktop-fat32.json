@@ -233,5 +233,17 @@
     "native_bootlog_present": false,
     "physical_boot_verified": false,
     "observation": "User photo shows legacy USB descriptor diagnostic desktop; native PRE-EBS log absent. New candidate boot not yet demonstrated."
+  },
+  "uefi_registration": {
+    "Name": "BMO-X2 Desktop (RmlUi)",
+    "Identifier": "{57cb174a-7f84-11f1-930d-c3a2d7ca848a}",
+    "Device": "partition=A:",
+    "Path": "\\EFI\\BMO-X2\\DESKTOP.EFI",
+    "Placement": "Last; previous entries preserved",
+    "BootSelected": false,
+    "PhysicalBootVerified": false,
+    "CandidateRun": "run-rmlui-media-197d1a868bd5",
+    "idempotent_reuse_verified": true,
+    "source_sha256": "5b51d198382ff1e89cef46d70cc11b907d491f03390df78eaae83853122b0f45"
   }
 }
