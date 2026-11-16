@@ -12,15 +12,17 @@ aparece sin teclado ni raton y permite conservar un resumen HOST legible.
 BMO-X2 arranca perfiles de prueba independientes en QEMU/OVMF. Hay
 evidencia de Ring 0 y Ring 3, escritorio Rust cargado desde SBEF externo,
 INVOKE, WAIT y revocacion de paginas. El equipo fisico llega al escritorio,
-pero su teclado y raton USB siguen pendientes de enumeracion HID.
-El AMD ya confirmo una respuesta de comando por DMA, dos puertos
-conectados y la parada del controlador. La estabilizacion adaptativa
+pero la recepcion de informes de teclado y raton USB sigue pendiente.
+El AMD confirmo lectura de descriptores en el puerto 2, con CC 01,
+contextos de 64 B y MPS 8. La foto muestra tres puertos conectados.
+La [evidencia METAL](Reports/metal-ep0-20261116.json) separa ese avance
+de la configuracion HID que falta. La estabilizacion adaptativa
 por puerto pasa QEMU. [Prueba y estados visibles](docs/FIRST-BOOT.md#perfil-experimental-de-transporte-xhci).
 
 La nueva fase `--xhci-enum-probe` ya direcciona un dispositivo USB2 y
 lee sus descriptores en QEMU, con ajuste de EP0 y parada comprobados.
-Admite el AMD del equipo, pero esa fase aun necesita confirmacion fisica;
-no configura endpoints HID. [Prueba de enumeracion AMD](docs/FIRST-BOOT.md#enumeracion-inicial-amd-direccion-y-descriptores).
+La lectura de descriptores ya tiene confirmacion fisica en AMD;
+todavia no configura endpoints HID. [Prueba de enumeracion AMD](docs/FIRST-BOOT.md#enumeracion-inicial-amd-direccion-y-descriptores).
 
 El servicio de entrada Ring 3 ya procesa los reportes de las sondas USB
 QEMU: 260 informes de teclado y movimiento y botones del raton, en perfiles

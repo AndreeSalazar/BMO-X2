@@ -791,8 +791,8 @@ Estado: QEMU. Anillo: 0. Lenguaje: CASM.
 Entrada: Inventario PCI, entrega UEFI, BAR, RTSOFF/DBOFF y diez paginas LoaderData.
 Salida: Respuesta No Op, descriptor de dispositivo y configuracion del primer USB2, parada y revocacion DMA en perfiles separados.
 Depende de: Frontera de dispositivos (plan), Espacios y permisos (plan), Prestamo y revocacion DMA (plan).
-Aceptacion: QEMU verifica transporte y enumeracion USB2 de alta/completa velocidad: lectura inicial de 8 B, Evaluate Context EP0, descriptores y parada. Sin dispositivos vence el plazo. Evidencia en evidence/enumeration-qemu.json.
-Pendiente: Metal confirma No Op y dos puertos; falta confirmar direccion y descriptores AMD. Pendientes configuracion de ambos HID, endpoints interrupt, hotplug asincrono e IOMMU.
+Aceptacion: QEMU verifica transporte, seleccion de puertos y rechazos. METAL: foto del 16-11 confirma descriptores en AMD puerto 2, CC 01, CS 64 B y MPS 8; Reports/metal-ep0-20261116.json.
+Pendiente: Pendientes configuracion de interfaces HID, endpoints interrupt, informes de ambos dispositivos, hotplug asincrono e IOMMU.
 
 ## docs/RING0-PLAN.md
 
@@ -1148,14 +1148,14 @@ Pendiente: Agregar metodos de usuario, control de flujo y buffers para el autoco
 
 ## Ultra-J/view.py
 
-Compila estructura y estilos a dos listas binarias de dibujo.
+Mantiene CLI compatible y delega compilacion de estructura y estilos en Ultra-J/ui/.
 
 Estado: QEMU. Anillo: host. Lenguaje: Python.
 Entrada: Vista .ujh, estilos .ujc y atlas de CABINA.
 Salida: Vista UJVI con coordenadas logicas independiente del destino.
-Depende de: ULTRA-J: bytecode y tema (plan).
+Depende de: ULTRA-J: bytecode y tema (plan), ULTRA-J: compilador visual (codigo).
 Aceptacion: QEMU verifica ambos estados, la accion con Enter, el reinicio con Esc y el rechazo de SBEF W+X.
-Pendiente: Conectar eventos por elemento y compositor DIRECTOR.
+Pendiente: Conectar eventos por elemento y compositor DIRECTOR; integrar un motor mas amplio si se requiere CSS completo.
 
 ## Ultra-J/package.py
 
@@ -1276,7 +1276,7 @@ Entrada: Descriptores acotados y reportes recibidos por un transporte autorizado
 Salida: Interfaces, endpoints, solicitudes de configuracion y cambios de entrada.
 Depende de: Contrato de drivers Ring 3 (codigo).
 Aceptacion: HOST verifica 18 casos USB y 14 de escritorio. InputService ejecuta en CPL3 QEMU: teclado 260 reportes y raton 4, perfiles separados; CABINA, WAIT, cierre y rechazo SBEF W+X comprobados. Escritorio normal conserva configuracion.
-Pendiente: Faltan notificacion de desconexion/reconexion desde el transporte, dispositivos simultaneos, proceso SBEF independiente, transporte Ring 3, aislamiento DMA y enumeracion AMD. detach solo probado en HOST.
+Pendiente: Faltan notificacion de desconexion/reconexion, dispositivos simultaneos, proceso SBEF independiente, transporte Ring 3, aislamiento DMA y configuracion HID AMD. detach solo probado en HOST.
 
 ## Ultra-J/driver.py
 
@@ -1298,7 +1298,29 @@ Entrada: Capacidad de diagnostico, resultados QEMU y BOOTLOG previo a ExitBootSe
 Salida: Panel automatico y latest.txt/json con fuentes separadas.
 Depende de: Buses, recursos y DMA (codigo), Escritorio y espacios de trabajo (codigo).
 Aceptacion: QEMU verifica puerto 2 a alta/completa velocidad, contextos EP0 y rechazo de puertos vacio/fuera de rango sin fallback. REPORTES SBEF 11461 B, RX 8073 B; sonda dirigida 4091 B.
-Pendiente: Confirmar puerto 2 en AMD tras corregir MaxPorts y ampliar contexto EP0; foto previa seguia en puerto 1 sin evento. Faltan historial general, excepciones fatales y persistencia FAT32 posterior a UEFI. Fases sincronas visibles al retornar INVOKE.
+Pendiente: METAL confirma descriptores del puerto 2; faltan entrada HID, historial general, excepciones fatales y persistencia FAT32 del runtime.
+
+## Ultra-J/ui/style.py
+
+Valida el perfil UJC acotado y sus propiedades soportadas.
+
+Estado: HOST. Anillo: host. Lenguaje: Python.
+Entrada: Hojas .ujc en HOST.
+Salida: Reglas validadas o error preciso.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: Reorganizacion conserva UJVI byte por byte. Banco ULTRA-J: 26 pruebas, una omitida, sin fallos; evidence/ui-layers-host.json.
+Pendiente: CSS completo y un motor de layout general no estan implementados.
+
+## Ultra-J/ui/view.py
+
+Transforma .ujh y reglas en geometria validada y listas UJVI.
+
+Estado: HOST. Anillo: host. Lenguaje: Python.
+Entrada: Estructura, reglas, atlas y limites de vista.
+Salida: Listas binarias para el presentador Ring 3.
+Depende de: ULTRA-J: perfil de estilos (codigo), ULTRA-J: bytecode y tema (generacion).
+Aceptacion: Reorganizacion conserva UJVI byte por byte. Banco ULTRA-J: 26 pruebas, una omitida, sin fallos; evidence/ui-layers-host.json.
+Pendiente: CSS completo y un motor de layout general no estan implementados.
 
 ## CASM
 
@@ -1322,4 +1344,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-118 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+120 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

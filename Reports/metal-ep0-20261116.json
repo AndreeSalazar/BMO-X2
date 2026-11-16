@@ -1,0 +1,33 @@
+{
+  "evidence": "METAL",
+  "observed_date": "2026-11-16",
+  "build_commit": "6b92825",
+  "source_images": [
+    "codex-clipboard-7ed42612-4834-4bd6-9e81-995c2afd27d9.png",
+    "codex-clipboard-2288cd4a-21a3-429f-abc0-5a6538b045cc.png"
+  ],
+  "observed": {
+    "phase": 28,
+    "message": "USB DESCRIPTORES OK",
+    "root_port": 2,
+    "speed_id": 2,
+    "completion_code": 1,
+    "endpoint_state": 1,
+    "context_bytes": 64,
+    "configured_ep0_mps": 8,
+    "output_dequeue": "0x0FFD98C1",
+    "input_dequeue": "0x0FFD9801",
+    "expected_event_pointer": "0x0FFD98B0",
+    "connected_ports": 3,
+    "keyboard_lighting_reported": true
+  },
+  "limits": {
+    "hid_configuration_by_probe": false,
+    "keyboard_reports_verified": false,
+    "mouse_reports_verified": false,
+    "device_vid_pid_verified": false,
+    "raw_descriptors_persisted": false
+  },
+  "bootlog_sha256": "9675389eaefc9c48777bef6662e5b13794fd044dd7da37ff502a386857875f7f",
+  "attribution": "Several changes and a switch from port 1 to port 2 preceded this observation; it does not isolate one cause."
+}

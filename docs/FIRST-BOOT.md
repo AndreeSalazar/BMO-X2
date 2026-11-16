@@ -200,7 +200,10 @@ QEMU verifica alta velocidad (MPS 64), velocidad completa (MPS 8), los
 descriptores obtenidos, Evaluate Context, parada y retirada de DMA. Sin
 perifericos verifica el plazo de descubrimiento; SBEF W+X sigue rechazado.
 La evidencia esta en `kernel/drivers/bus/evidence/enumeration-qemu.json`.
-Todavia no hay evidencia de esta fase en AMD.
+La foto del 16-11-2026 confirma esta fase en AMD para el puerto 2:
+CC 01, velocidad baja, contextos de 64 B, MPS 8 y DESCRIPTORES OK.
+Se conserva el alcance en [REPORTES](../Reports/metal-ep0-20261116.json).
+Eso no acredita configuracion HID ni recepcion de pulsaciones.
 
 | Aviso al terminar | Fase que debe investigarse |
 |---|---|

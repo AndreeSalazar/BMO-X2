@@ -1,0 +1,18 @@
+{
+  "evidence": "HOST",
+  "scope": "UI frontend split only; no CSS compatibility expansion or runtime change.",
+  "binary_bytes": 1088,
+  "before_sha256": "c156e4e41e8573a00457614acdf203a43883fe9de114ae49bd85f1a48a2197ff",
+  "after_sha256": "c156e4e41e8573a00457614acdf203a43883fe9de114ae49bd85f1a48a2197ff",
+  "tests": {
+    "total": 26,
+    "skipped": 1,
+    "failed": 0
+  },
+  "sources": {
+    "Ultra-J\\view.py": "e7ea68c61cdb22ee094d703d424740c3f793f465526fc0ed929a0d0f62d6553f",
+    "Ultra-J\\ui\\style.py": "489318f684fed84959ade192a069ad736603808f95cd2ec0aba9ff3e16c2b529",
+    "Ultra-J\\ui\\view.py": "9e85753a9d7f3365c24a25b0b68f983c07637aa122b7db5582e91b9d4e3f98b2",
+    "Ultra-J\\ui\\__init__.py": "a07b62dcc0105d8b2beed2103e2597ad227b5d2d5abc9f8858fbbab168d1c935"
+  }
+}

@@ -1,6 +1,9 @@
 {
-  "evidence": "QEMU",
-  "scope": "Explicit root port 2, corrected MaxPorts snapshot and read-only EP0 context diagnostics. Physical HID is still unverified.",
+  "evidence": [
+    "QEMU",
+    "METAL"
+  ],
+  "scope": "QEMU verifies explicit root selection and diagnostics. User METAL observation confirms device and configuration descriptor reads on AMD root port 2; HID input remains unverified.",
   "cases": {
     "root2_high": {
       "Passed": 2,
@@ -452,5 +455,6 @@
     "device_prefix": 0,
     "requested_bytes": 8,
     "connected_ports": 3
-  }
+  },
+  "metal_descriptor_observation": "Reports/metal-ep0-20261116.json"
 }

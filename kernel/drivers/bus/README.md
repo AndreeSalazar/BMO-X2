@@ -10,5 +10,5 @@ Descubre xHCI y prueba transporte de comandos con reserva DMA y MMIO supervisora
 
 - Entrada: Inventario PCI, entrega UEFI, BAR, RTSOFF/DBOFF y diez paginas LoaderData.
 - Salida: Respuesta No Op, descriptor de dispositivo y configuracion del primer USB2, parada y revocacion DMA en perfiles separados.
-- Aceptacion: QEMU verifica transporte y enumeracion USB2 de alta/completa velocidad: lectura inicial de 8 B, Evaluate Context EP0, descriptores y parada. Sin dispositivos vence el plazo. Evidencia en evidence/enumeration-qemu.json.
-- Pendiente: Metal confirma No Op y dos puertos; falta confirmar direccion y descriptores AMD. Pendientes configuracion de ambos HID, endpoints interrupt, hotplug asincrono e IOMMU.
+- Aceptacion: QEMU verifica transporte, seleccion de puertos y rechazos. METAL: foto del 16-11 confirma descriptores en AMD puerto 2, CC 01, CS 64 B y MPS 8; Reports/metal-ep0-20261116.json.
+- Pendiente: Pendientes configuracion de interfaces HID, endpoints interrupt, informes de ambos dispositivos, hotplug asincrono e IOMMU.

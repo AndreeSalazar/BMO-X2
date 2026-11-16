@@ -1238,8 +1238,8 @@
       "que": "Descubre xHCI y prueba transporte de comandos con reserva DMA y MMIO supervisora.",
       "entrada": "Inventario PCI, entrega UEFI, BAR, RTSOFF/DBOFF y diez paginas LoaderData.",
       "salida": "Respuesta No Op, descriptor de dispositivo y configuracion del primer USB2, parada y revocacion DMA en perfiles separados.",
-      "aceptacion": "QEMU verifica transporte y enumeracion USB2 de alta/completa velocidad: lectura inicial de 8 B, Evaluate Context EP0, descriptores y parada. Sin dispositivos vence el plazo. Evidencia en evidence/enumeration-qemu.json.",
-      "falta": "Metal confirma No Op y dos puertos; falta confirmar direccion y descriptores AMD. Pendientes configuracion de ambos HID, endpoints interrupt, hotplug asincrono e IOMMU.",
+      "aceptacion": "QEMU verifica transporte, seleccion de puertos y rechazos. METAL: foto del 16-11 confirma descriptores en AMD puerto 2, CC 01, CS 64 B y MPS 8; Reports/metal-ep0-20261116.json.",
+      "falta": "Pendientes configuracion de interfaces HID, endpoints interrupt, informes de ambos dispositivos, hotplug asincrono e IOMMU.",
       "pagina": true
     },
     {
@@ -1735,11 +1735,11 @@
       "anillo": "host",
       "lenguaje": "Python",
       "posicion": [2740, 2375],
-      "que": "Compila estructura y estilos a dos listas binarias de dibujo.",
+      "que": "Mantiene CLI compatible y delega compilacion de estructura y estilos en Ultra-J/ui/.",
       "entrada": "Vista .ujh, estilos .ujc y atlas de CABINA.",
       "salida": "Vista UJVI con coordenadas logicas independiente del destino.",
       "aceptacion": "QEMU verifica ambos estados, la accion con Enter, el reinicio con Esc y el rechazo de SBEF W+X.",
-      "falta": "Conectar eventos por elemento y compositor DIRECTOR."
+      "falta": "Conectar eventos por elemento y compositor DIRECTOR; integrar un motor mas amplio si se requiere CSS completo."
     },
     {
       "id": "ultra-j-package",
@@ -1900,7 +1900,7 @@
       "entrada": "Descriptores acotados y reportes recibidos por un transporte autorizado.",
       "salida": "Interfaces, endpoints, solicitudes de configuracion y cambios de entrada.",
       "aceptacion": "HOST verifica 18 casos USB y 14 de escritorio. InputService ejecuta en CPL3 QEMU: teclado 260 reportes y raton 4, perfiles separados; CABINA, WAIT, cierre y rechazo SBEF W+X comprobados. Escritorio normal conserva configuracion.",
-      "falta": "Faltan notificacion de desconexion/reconexion desde el transporte, dispositivos simultaneos, proceso SBEF independiente, transporte Ring 3, aislamiento DMA y enumeracion AMD. detach solo probado en HOST."
+      "falta": "Faltan notificacion de desconexion/reconexion, dispositivos simultaneos, proceso SBEF independiente, transporte Ring 3, aislamiento DMA y configuracion HID AMD. detach solo probado en HOST."
     },
     {
       "id": "ultra-j-driver-registration",
@@ -1934,7 +1934,41 @@
       "entrada": "Capacidad de diagnostico, resultados QEMU y BOOTLOG previo a ExitBootServices.",
       "salida": "Panel automatico y latest.txt/json con fuentes separadas.",
       "aceptacion": "QEMU verifica puerto 2 a alta/completa velocidad, contextos EP0 y rechazo de puertos vacio/fuera de rango sin fallback. REPORTES SBEF 11461 B, RX 8073 B; sonda dirigida 4091 B.",
-      "falta": "Confirmar puerto 2 en AMD tras corregir MaxPorts y ampliar contexto EP0; foto previa seguia en puerto 1 sin evento. Faltan historial general, excepciones fatales y persistencia FAT32 posterior a UEFI. Fases sincronas visibles al retornar INVOKE."
+      "falta": "METAL confirma descriptores del puerto 2; faltan entrada HID, historial general, excepciones fatales y persistencia FAT32 del runtime."
+    },
+    {
+      "id": "ultra-j-style-profile",
+      "titulo": "ULTRA-J: perfil de estilos",
+      "ruta": "Ultra-J/ui/style.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [
+        15500,
+        6000
+      ],
+      "que": "Valida el perfil UJC acotado y sus propiedades soportadas.",
+      "entrada": "Hojas .ujc en HOST.",
+      "salida": "Reglas validadas o error preciso.",
+      "aceptacion": "Reorganizacion conserva UJVI byte por byte. Banco ULTRA-J: 26 pruebas, una omitida, sin fallos; evidence/ui-layers-host.json.",
+      "falta": "CSS completo y un motor de layout general no estan implementados."
+    },
+    {
+      "id": "ultra-j-view-compiler",
+      "titulo": "ULTRA-J: compilador visual",
+      "ruta": "Ultra-J/ui/view.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [
+        15500,
+        6250
+      ],
+      "que": "Transforma .ujh y reglas en geometria validada y listas UJVI.",
+      "entrada": "Estructura, reglas, atlas y limites de vista.",
+      "salida": "Listas binarias para el presentador Ring 3.",
+      "aceptacion": "Reorganizacion conserva UJVI byte por byte. Banco ULTRA-J: 26 pruebas, una omitida, sin fallos; evidence/ui-layers-host.json.",
+      "falta": "CSS completo y un motor de layout general no estan implementados."
     }
   ],
   "relaciones": [
@@ -2957,6 +2991,21 @@
       "de": "diagnostic-reports",
       "a": "desktop-workspaces",
       "clase": "codigo"
+    },
+    {
+      "de": "ultra-j-view",
+      "a": "ultra-j-view-compiler",
+      "clase": "codigo"
+    },
+    {
+      "de": "ultra-j-view-compiler",
+      "a": "ultra-j-style-profile",
+      "clase": "codigo"
+    },
+    {
+      "de": "ultra-j-view-compiler",
+      "a": "ultra-j-format",
+      "clase": "generacion"
     }
   ]
 }

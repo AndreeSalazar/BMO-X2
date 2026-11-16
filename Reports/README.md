@@ -1,5 +1,10 @@
 # REPORTES
 
+La [observacion METAL del 16-11-2026](metal-ep0-20261116.json) registra
+descriptores leidos en el puerto 2 del AMD: CC 01, velocidad baja,
+contextos de 64 B y MPS 8. La activacion de interfaces y entrada HID
+sigue pendiente; la iluminacion del teclado no acredita pulsaciones.
+
 Entrada a los diagnosticos de BMO-X2. El perfil de escritorio `-Reports`
 muestra automaticamente motivo, siguiente paso y pulsos obtenidos por
 INVOKE de Ring 0. No requiere teclado ni raton. El aviso inferior conserva

@@ -108,7 +108,7 @@
 | [ULTRA-J: bytecode y tema](../Ultra-J/FORMAT.md) | host | contrato | Fija bytes de instrucciones, estilo por clase y cierre de regiones. |
 | [ULTRA-J: verificador y reciclador](../Ultra-J/runtime.py) | host | host | Verifica los dos archivos y ejecuta la recuperacion por region en HOST. |
 | [ULTRA-J: compilador inicial](../Ultra-J/compiler.py) | host | host | Traduce el perfil de clases y regiones a instrucciones UJBC verificadas. |
-| [ULTRA-J: estructura y estilos](../Ultra-J/view.py) | qemu | host | Compila estructura y estilos a dos listas binarias de dibujo. |
+| [ULTRA-J: estructura y estilos](../Ultra-J/view.py) | qemu | host | Mantiene CLI compatible y delega compilacion de estructura y estilos en Ultra-J/ui/. |
 | [ULTRA-J: paquete por carpetas](../Ultra-J/package.py) | host | host | Resuelve estilos y crates invocados por la estructura del paquete. |
 | [ULTRA-J: presentador x86-64](../Ultra-J/targets/x86_64) | qemu | host | Empaqueta un presentador de Ring 3 para los servicios INVOKE y WAIT de BMO-X2. |
 | [Escritorio y espacios de trabajo](../userspace/services/desktop) | qemu | 3 | Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX. |
@@ -122,6 +122,8 @@
 | [USB HID de Ring 3](../userspace/drivers/usb) | qemu | 3 | Descubre interfaces boot y mantiene fuentes de entrada con colas acotadas y desconexion atomica. |
 | [Registro ULTRA-J de drivers](../Ultra-J/driver.py) | host | host | Valida registros declarativos de driver y solicita recursos sin concederlos. |
 | [REPORTES de entrada](../Reports) | qemu | host | Expone fase USB, motivo, siguiente paso y pulsos de Ring 0 sin necesitar entrada; exporta evidencia en HOST. |
+| [ULTRA-J: perfil de estilos](../Ultra-J/ui/style.py) | host | host | Valida el perfil UJC acotado y sus propiedades soportadas. |
+| [ULTRA-J: compilador visual](../Ultra-J/ui/view.py) | host | host | Transforma .ujh y reglas en geometria validada y listas UJVI. |
 
 ## Dependencias declaradas
 
@@ -331,5 +333,8 @@
 | ultra-j-driver-registration | sbef-host-reader | verificacion |
 | diagnostic-reports | device-bus | codigo |
 | diagnostic-reports | desktop-workspaces | codigo |
+| ultra-j-view | ultra-j-view-compiler | codigo |
+| ultra-j-view-compiler | ultra-j-style-profile | codigo |
+| ultra-j-view-compiler | ultra-j-format | generacion |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

@@ -19,6 +19,13 @@ ejecutable de la VM mediante SBEF.
 
 ## Vision integrada y limites
 
+El compilador visual HOST esta separado en `ui/style.py` (perfil de
+estilos .ujc) y `ui/view.py` (estructura .ujh, geometria y emision UJVI).
+`view.py` conserva la entrada CLI e importaciones existentes. Las capas
+del servicio se describen en [Desktop](../userspace/services/desktop/LAYERS.md).
+La [evidencia HOST](evidence/ui-layers-host.json) registra la equivalencia
+binaria antes/despues y las pruebas de regresion de esta separacion.
+
 El objetivo es un conjunto coherente para aplicaciones: objetos y
 eventos en `.uj`, estructura declarativa en `.ujh`, apariencia en `.ujc`
 y construccion verificable en HOST. Se busca ampliar progresivamente

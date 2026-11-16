@@ -1,5 +1,8 @@
 # Espacios de trabajo del escritorio
 
+La [distribucion por capas](LAYERS.md) enlaza compositor, DIRECTOR,
+estilos, vistas y comportamiento con sus fuentes actuales.
+
 El servicio de escritorio de Ring 3 toma las decisiones de ventanas y
 foco. El supervisor de sesion inicia y recupera el servicio. El
 planificador de Ring 0 administra CPU y el subsistema de entrada entrega
