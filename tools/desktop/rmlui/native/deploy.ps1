@@ -61,10 +61,10 @@ foreach($name in $legacy.Keys){
 $record=[ordered]@{Schema=1;Evidence='HOST copy after QEMU FAT32 boot';Run=$proof.run;Volume=$Volume;FileSystem=$drive.DriveFormat;
     Files=$written;LegacyFilesUnchanged=$legacy;PhysicalBootVerified=$false;PhysicalUsbVerified=$false;
     BootFile='\EFI\BMO-X2\DESKTOP.EFI';ReportFile='\BMO-X2\DESKTOP\BOOTLOG.TXT';
-    Note='Candidato separado. USB HID fisico sigue pendiente; no cambia NVRAM ni el arranque anterior.'}
+    Note='USB HID fisico sigue pendiente; no cambia NVRAM ni archivos ajenos al candidato.'}
 $json=$record | ConvertTo-Json -Depth 8
 Set-Content -LiteralPath (Join-Path $Volume 'BMO-X2/DESKTOP/DEPLOY.JSON') -Value $json -Encoding UTF8
 Set-Content -LiteralPath (Join-Path $runPath 'fat32-deploy.json') -Value $json -Encoding UTF8
-Write-Output 'Candidato copiado y verificado. Arranque anterior conservado.'
+Write-Output 'Candidato copiado y verificado. Archivos ajenos al candidato conservados.'
 Write-Output 'UEFI Boot from file: \EFI\BMO-X2\DESKTOP.EFI'
 Write-Output 'Reporte de la prueba fisica: A:\BMO-X2\DESKTOP\BOOTLOG.TXT'

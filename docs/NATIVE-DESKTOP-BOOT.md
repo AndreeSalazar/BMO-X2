@@ -38,7 +38,9 @@ del nano-core ni demuestra que todo BMO-X2 consuma 2 KiB.
 En esta maquina ya se registro una entrada separada del firmware llamada
 **BMO-X2 Desktop (RmlUi)**. Elegir ese nombre en el menu de arranque.
 Tras la confirmacion de METAL del propietario se retiro la entrada
-antigua **BMO-X2** del firmware; sus archivos se conservan como referencia.
+antigua **BMO-X2** del firmware. Sus cuatro archivos se archivaron con
+SHA256 en `build/archives/retired-bmo-x2` y se retiraron de A: por pedido
+del propietario. Linux/ULTRA y los otros arranques quedan fuera de esa limpieza.
 Los archivos visibles en el Explorador no son entradas del menu UEFI.
 
 En el volumen FAT32 BMO (A: bajo Windows), abrir desde el selector de
@@ -55,9 +57,25 @@ El programa lee exclusivamente:
 \BMO-X2\DESKTOP\DESKTOP.SBF
 ```
 
-Su EFI anterior y sus archivos originales siguen intactos. La copia nueva no cambia
+El despliegue del candidato nuevo no cambia
 NVRAM, orden de arranque, particiones ni el cargador de Windows.
 `DEPLOY.JSON` identifica los hashes copiados y los originales conservados.
+
+La distribucion activa queda asi; las actualizaciones sobreescriben estas
+mismas rutas y los respaldos van al proyecto:
+
+```text
+A:/EFI/BMO-X2/DESKTOP.EFI
+A:/BMO-X2/DESKTOP/INICIO.X86
+A:/BMO-X2/DESKTOP/DESKTOP.SBF
+A:/BMO-X2/DESKTOP/DEPLOY.JSON
+A:/BMO-X2/DESKTOP/BOOTLOG.TXT
+```
+
+`native/retire-legacy.ps1` solo retira los cuatro archivos exactos del
+perfil anterior, tras comprobar la entrada nueva y todas sus huellas.
+Archiva y verifica todos los originales antes de borrar el primero.
+No hace una limpieza general de EFI ni usa borrados recursivos.
 
 El registro opcional se hace por separado con
 `tools/desktop/rmlui/native/register-desktop.ps1`, en PowerShell elevado.

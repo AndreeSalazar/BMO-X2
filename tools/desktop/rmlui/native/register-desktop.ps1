@@ -30,8 +30,10 @@ if($existing.Count -eq 1) {
         $existing[0] -notmatch ('(?im)^path\s+'+[regex]::Escape($path)+'\s*$')) {throw 'Entrada existente incompatible.'}
 } else {
     $legacy=@($blocks | Where-Object {$_ -match '(?m)^description\s+BMO-X2\s*$' -and $_ -match '(?im)^device\s+partition=A:\\?\s*$'})
-    if($legacy.Count -ne 1){throw 'No se identifica la entrada BMO-X2 anterior.'}
-    $legacyId=[regex]::Match($legacy[0],'\{[0-9a-fA-F-]{36}\}').Value
+    if($legacy.Count -gt 1){throw 'Mas de una entrada anterior; revisar antes de registrar.'}
+    # The retired entry/files may already have been cleaned. Copying bootmgr
+    # creates a distinct object; its device/path are replaced below.
+    $legacyId=if($legacy.Count -eq 1){[regex]::Match($legacy[0],'\{[0-9a-fA-F-]{36}\}').Value}else{'{bootmgr}'}
     if(-not $legacyId){throw 'Falta identificador de la entrada anterior.'}
     $copy=Invoke-Bcd @('/copy',$legacyId,'/d',$name)
     $id=[regex]::Match($copy,'\{[0-9a-fA-F-]{36}\}').Value

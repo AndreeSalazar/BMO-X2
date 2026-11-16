@@ -2402,6 +2402,40 @@
       "salida": "Campos xHCI con puntero dequeue cero, que solo el transporte autorizado puede completar.",
       "aceptacion": "Pruebas de endpoint 15, mascara de contexto, intervalos FS/LS 1..255 y HS 1..16; rechazo de direccion, tamano e intervalo invalidos.",
       "falta": "Envio mediante transporte de propietario con anillo DMA reservado y terminacion de Configure Endpoint."
+    },
+    {
+      "id": "usb-ring3-completion",
+      "titulo": "Eventos xHCI al servicio HID",
+      "ruta": "userspace/drivers/usb/src/completion.rs",
+      "estado": "host",
+      "anillo": "3",
+      "lenguaje": "Rust",
+      "posicion": [
+        9100,
+        4100
+      ],
+      "que": "Coteja eventos copiados antes de avanzar Activation o publicar un informe en InputService.",
+      "entrada": "Evento coherente, ciclo consumidor, TRB esperado, slot, endpoint y fuente local vigente.",
+      "salida": "Activacion confirmada o informe unico; conserva el ticket ante presion de cola y deja eventos ajenos a su propietario.",
+      "aceptacion": "27 tests HOST y build no_std: ciclo, pointer, slot, endpoint, tipo, ED, activacion previa, doble entrega y fuente retirada.",
+      "falta": "Lector del anillo real, ERDP, envio de comandos y DMA autorizado del escritorio nativo; sin USB fisico acreditado."
+    },
+    {
+      "id": "rmlui-retire-legacy-files",
+      "titulo": "Retiro del perfil anterior de FAT32",
+      "ruta": "tools/desktop/rmlui/native/retire-legacy.ps1",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "PowerShell",
+      "posicion": [
+        8300,
+        4300
+      ],
+      "que": "Archiva con hash y retira exactamente los cuatro archivos del BMO-X2 anterior desregistrado.",
+      "entrada": "Entrada nueva presente, manifiesto activo y cuatro rutas antiguas exactas.",
+      "salida": "Solo perfil nuevo en BMO-X2; archivo historico dentro del proyecto; Linux/ULTRA y otros EFI fuera de la lista.",
+      "aceptacion": "Cuatro archivos archivados y retirados; tres archivos activos conservan hash. Reports/fat32-retired-legacy.json.",
+      "falta": "No es limpieza general de discos ni de builds; no cambia firmware ni particiones."
     }
   ],
   "relaciones": [
@@ -3588,6 +3622,21 @@
     {
       "de": "usb-ring3-activation",
       "a": "usb-ring3-endpoint-plan",
+      "clase": "codigo"
+    },
+    {
+      "de": "usb-ring3-driver",
+      "a": "usb-ring3-completion",
+      "clase": "codigo"
+    },
+    {
+      "de": "usb-ring3-completion",
+      "a": "usb-ring3-activation",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-retire-legacy-files",
+      "a": "rmlui-metal-candidate",
       "clase": "codigo"
     }
   ]

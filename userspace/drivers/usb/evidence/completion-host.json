@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "evidence": "HOST",
+  "tests_passed": 27,
+  "new_completion_tests": 5,
+  "no_std_target_build": "x86_64-unknown-none",
+  "desktop_hardware_transport_connected": false,
+  "physical_usb_verified": false,
+  "scope": "Copied xHCI event admission wired to Activation and InputService. No live Event Ring reader, MMIO mapping or DMA grants.",
+  "reference": "https://cdrdv2-public.intel.com/625472/625472_xHCI_Rev1_2b.pdf",
+  "sources": {
+    "userspace/drivers/usb/src/activation.rs": "a27819b20b5cb5084a17f790f51aeff184aff93c59b7a13e54855f356a4ea710",
+    "userspace/drivers/usb/src/completion.rs": "605cd31e8cea4626c9908d821b21bd3a3b77a61a3f13cb6f2cf9a8a94ac1ac90",
+    "userspace/drivers/usb/src/completion_tests.rs": "7dfb41900ba29bc0e382b4ce45a9c3f2d4572e32fe69f6ddd44e28eab78f5322",
+    "userspace/drivers/usb/src/input.rs": "e29deee8d8c00a379f75d00fae11cfad4c9c6a7ddfc2cf1ea972a96a819850bf",
+    "userspace/drivers/usb/src/lib.rs": "e150f317b36a6c184bda24bdf714de7f46113a3bc2f47797fbe533f61ce58311"
+  }
+}

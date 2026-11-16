@@ -46,6 +46,7 @@ impl<const N: usize> Activation<N> {
             phase:Phase::Configuration,pending:None})
     }
     pub fn phase(&self)->Phase {self.phase}
+    pub fn slot(&self)->u8 {self.slot}
     pub fn plans(&self)->impl Iterator<Item=&InterruptPlan> {
         self.plans[..self.len].iter().flatten()
     }

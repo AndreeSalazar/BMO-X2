@@ -9,6 +9,7 @@
 | `src/input.rs` | Servicio de entrada con fuentes separadas, cola acotada, cambios atomicos y desconexion con liberacion. | HOST y ejecucion CPL3 en las sondas QEMU de teclado y raton, por separado. Desconexion del servicio comprobada solo en HOST. |
 | `src/activation.rs` | Secuenciar SET_CONFIGURATION, SET_PROTOCOL de cada interfaz y Configure Endpoint; exigir terminaciones del propietario y plazos en microsegundos. | HOST, incluidas interfaz compuesta, respuesta antigua, STALL, residual y expiracion. No conectado aun al transporte del escritorio RmlUi. |
 | `src/xhci.rs` | Admitir endpoint USB2 interrupt IN y calcular DCI, intervalo y campos de contexto sin direcciones DMA. | HOST; validacion de todos los bInterval FS/LS, HS y endpoint 15. |
+| `src/completion.rs` | Cotejar eventos copiados con la transferencia esperada; conectar terminaciones con Activation e informes con InputService. | HOST: ciclo, TRB, slot, endpoint, tipo, ED, presion de cola y fuente retirada. Todavia sin lector del anillo real en el escritorio. |
 | `src/tests.rs` | Rechazos con offset, dispositivo compuesto, alternates, truncamientos, descriptores HID y mutaciones. | HOST. No sustituye enumeracion en hardware. |
 
 El parser no supone interface cero ni endpoint 0x81. Conserva el numero
@@ -99,6 +100,19 @@ La secuencia tiene pruebas HOST y compila sin std para x86-64, pero no
 esta enlazada a INVOKE ni al arranque del escritorio nativo. Por tanto,
 este cambio por si solo no resuelve teclado/raton USB en METAL.
 Los campos siguen la [especificacion xHCI 1.2, seccion 6.2.3](https://cdrdv2-public.intel.com/625472/625472_xHCI_Rev1_2b.pdf).
+
+`PendingActivation` coteja el evento antes de avanzar la secuencia.
+`PendingReport` exige activacion Ready y un endpoint descubierto antes de
+aceptar un informe. Solo publica una vez; ante Backpressure conserva el
+ticket para reintentar despues de drenar la cola. Una fuente desconectada
+se rechaza mediante la generacion de InputService. Los eventos de otro
+endpoint deben enrutarse a su propietario, no descartarse.
+
+Esta capa recibe copias coherentes de eventos ya publicados. No lee MMIO,
+no mueve ERDP ni programa DMA. El transporte real debe conservar esos
+eventos y no reutilizar direcciones de TRB mientras queden operaciones
+antiguas. Pasan 27 pruebas HOST y el build no_std; eso no sustituye una
+transferencia real bajo QEMU o AMD con este backend nuevo.
 
 ## Comprobacion HOST
 

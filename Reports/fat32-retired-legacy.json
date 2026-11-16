@@ -1,0 +1,51 @@
+{
+  "Schema": 1,
+  "RemovedFiles": [
+    {
+      "Archive": "C:\\Users\\Salazar\\Documents\\BMO-X2\\build\\archives\\retired-bmo-x2\\EFI\\BMO-X2\\BMO-X2.EFI.3911a9364b30cba7ca78b165065563ab3f585d9385129bfec8349f117a59fa28",
+      "Source": "A:\\EFI\\BMO-X2\\BMO-X2.EFI",
+      "Bytes": 20480,
+      "SHA256": "3911a9364b30cba7ca78b165065563ab3f585d9385129bfec8349f117a59fa28"
+    },
+    {
+      "Archive": "C:\\Users\\Salazar\\Documents\\BMO-X2\\build\\archives\\retired-bmo-x2\\BMO-X2\\INICIO.X86.6514b8e792758191ae8cc07cfb815070ea6c535a355ad9d3075b8b31975bc1e5",
+      "Source": "A:\\BMO-X2\\INICIO.X86",
+      "Bytes": 3668,
+      "SHA256": "6514b8e792758191ae8cc07cfb815070ea6c535a355ad9d3075b8b31975bc1e5"
+    },
+    {
+      "Archive": "C:\\Users\\Salazar\\Documents\\BMO-X2\\build\\archives\\retired-bmo-x2\\BMO-X2\\DESKTOP.SBF.44d8f37eb706cfb4054f10342c9c9abf69abb151b6a9e99ae0ecda575d9d9ca4",
+      "Source": "A:\\BMO-X2\\DESKTOP.SBF",
+      "Bytes": 11461,
+      "SHA256": "44d8f37eb706cfb4054f10342c9c9abf69abb151b6a9e99ae0ecda575d9d9ca4"
+    },
+    {
+      "Archive": "C:\\Users\\Salazar\\Documents\\BMO-X2\\build\\archives\\retired-bmo-x2\\BMO-X2\\BOOTLOG.TXT.9675389eaefc9c48777bef6662e5b13794fd044dd7da37ff502a386857875f7f",
+      "Source": "A:\\BMO-X2\\BOOTLOG.TXT",
+      "Bytes": 196,
+      "SHA256": "9675389eaefc9c48777bef6662e5b13794fd044dd7da37ff502a386857875f7f"
+    }
+  ],
+  "ActiveFilesUnchanged": {
+    "EFI/BMO-X2/DESKTOP.EFI": "43dfa615e4a3d6fe1a79de44c7c61459c70ae3c04aadfbda080578c9e3e1bdef",
+    "BMO-X2/DESKTOP/INICIO.X86": "867850cfd2cb8c2fbe70e455d3310ea1cc3078df7321baadb3acaf9713dd47c0",
+    "BMO-X2/DESKTOP/DESKTOP.SBF": "626f1d7251a8073fc591fb9f0551dc333aa66eef83cadf91bb8dc9e59e14b1f1"
+  },
+  "ExcludedRoots": [
+    "A:\\ULTRA",
+    "A:\\EFI\\ULTRA",
+    "A:\\EFI\\BOOT",
+    "A:\\EFI\\ORQUESTADOR"
+  ],
+  "FirmwareModified": false,
+  "evidence": "HOST archive, read-back hashes and exact-file removal; no firmware mutation",
+  "bytes_removed": 35805,
+  "date": "2026-11-16",
+  "active_layout": [
+    "EFI/BMO-X2/DESKTOP.EFI",
+    "BMO-X2/DESKTOP/INICIO.X86",
+    "BMO-X2/DESKTOP/DESKTOP.SBF",
+    "BMO-X2/DESKTOP/DEPLOY.JSON",
+    "BMO-X2/DESKTOP/BOOTLOG.TXT"
+  ]
+}
