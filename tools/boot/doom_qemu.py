@@ -33,6 +33,7 @@ def main():
     profiles.add_argument('--desktop-doom', action='store_true')
     profiles.add_argument('--toolchain-client', choices=('gcc', 'clang', 'gcc-cpp', 'clang-cpp', 'rust'))
     profiles.add_argument('--rmlui-renderer', type=Path, help='Expected 16x16 Rust CPU raster probe, not a full RmlUi port')
+    profiles.add_argument('--rmlui-native', type=Path, help='Symbol manifest for the real native UI engine profile')
     parser.add_argument('--wad', type=Path)
     parser.add_argument('--qemu', default='C:/Program Files/qemu/qemu-system-x86_64.exe')
     args = parser.parse_args()
@@ -44,13 +45,13 @@ def main():
         parser.error('--reuse requiere --toolchain-client')
     if args.toolchain_client and (args.session_gate or args.desktop_present or args.external_loader or args.intro):
         parser.error('El cliente ABI usa el paquete CASM embebido')
-    engine = args.doom_engine or args.desktop_doom
+    engine = args.doom_engine or args.desktop_doom or bool(args.rmlui_native)
     doom = args.doom_external or engine
     if doom and not (args.external_loader and args.session_gate):
         parser.error('DOOM externo requiere cargador y puerta de sesion')
     if args.wad and not doom:
         parser.error('El WAD requiere la sonda DOOM externa')
-    if engine and not args.wad:
+    if engine and not args.wad and not args.rmlui_native:
         parser.error('El motor requiere el IWAD')
     if args.wad:
         with args.wad.open('rb') as stream:
@@ -79,6 +80,8 @@ def main():
         packet, _ = prepend_intro(packet, splash)
 
     application = 'desktop' if (present is not None or gate is not None) and not doom else 'doom'
+    if args.rmlui_native:
+        application = 'rmlui'
     if args.toolchain_client:
         application = f'abi-{args.toolchain_client}'
     run = reference.parent / f'run-{application}-{uuid.uuid4().hex[:12]}'
@@ -90,6 +93,8 @@ def main():
         if len(expected_pixels) != 16*16*4:
             raise ValueError('Referencia raster invalida')
         (run / 'raster-expected.bin').write_bytes(expected_pixels)
+    if args.rmlui_native:
+        shutil.copyfile(args.rmlui_native, run / 'ui-symbols.json')
     if args.wad:
         (run / 'wad-module.bin').write_bytes(struct.pack('<Q', len(wad)) + wad)
     (run / 'reference.x86').write_bytes(base_packet)
@@ -122,6 +127,8 @@ def main():
         profile = 'desktop-doom'
     if args.rmlui_renderer:
         profile = 'rmlui-raster-probe'
+    if args.rmlui_native:
+        profile = 'rmlui-native'
     (run / 'profile.txt').write_text(f'{profile}\n', encoding='ascii')
     bridge = ROOT / 'kernel/boot/bridge'
     efi = run / 'build/Puente_Metal/EFI/BOOT/BOOTX64.EFI'
@@ -165,6 +172,8 @@ def main():
         milestone = 'Rust desktop CABINA launches DoomGeneric E1M1 in CPL3'
     if args.rmlui_renderer:
         milestone = 'Shared no_std Rust CPU rasterizer executes in CPL3; full RmlUi engine remains HOST'
+    if args.rmlui_native:
+        milestone = 'Native RmlUi/FreeType C++ engine and Rust CPU drawing, with ULTRA-J action in CPL3'
     if args.desktop_welcome:
         milestone = 'Ring 0 cat, admitted Ring 3 welcome, then desktop; skip preserves first input'
     if args.toolchain_client:

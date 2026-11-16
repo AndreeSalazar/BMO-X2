@@ -6,8 +6,9 @@ eventos mediante `engine.h`. No incluye APIs Windows, reloj de pared,
 escritura de imagenes ni acceso a disco. Su objeto se audita por separado.
 El runtime de esta prueba HOST sigue enlazado para Windows. La ruta
 [native](native/README.md) ya compila por separado el Core real, FreeType
-y libc++ como ELF64 x86-64; aun falta resolver sus servicios C y enlazar
-un ejecutable antes de llevar el motor completo a Ring 3.
+y libc++ como ELF64 x86-64 y resuelve sus servicios C en un ejecutable
+SBEF probado en Ring 3/QEMU. El visor nativo aun esta separado del
+escritorio permanente y conserva un perfil visual CPU acotado.
 
 `live.py` demuestra una sesion real con entrada por opacidad de 200 ms,
 animacion RCSS de 400 ms, transiciones de color, puntero y accion
@@ -81,11 +82,11 @@ Rust puede dirigir el escritorio usando un puente C estrecho al motor
 C++. LLVM/Clang compila ese motor; no sustituye su runtime ni su ABI.
 `audit.py` inventaria las importaciones reales de la DLL y el rechazo
 HOST, sin borrar dependencias ni declarar admitido un binario incompatible.
-Faltan asignador acotado, biblioteca C++/FreeType freestanding, servicios
-de archivo/tiempo, puente de eventos Rust con propietarios de memoria
-explicitos, entrada DIRECTOR y pruebas de aislamiento. El presupuesto actual no alcanza
-por el mero hecho de cambiar de encabezado. Mantenerlo como puerta de
-aceptacion; no debilitar guardas. Ring 0 no incorpora RmlUi ni FreeType.
+El visor nativo ya tiene biblioteca C++/FreeType, asignador acotado,
+servicios explicitos y eventos ULTRA-J reales. Faltan su integracion
+como superficie de DIRECTOR, planificacion y recuperacion de proceso.
+Mantener la admision como puerta de aceptacion; no debilitar guardas.
+Ring 0 no incorpora RmlUi ni FreeType.
 No se modifica el volumen A: ni las entradas UEFI para esta prueba.
 
 ## Primera pieza comprobada en Ring 3
@@ -121,11 +122,11 @@ optimizacion actual: `Ultra-J/evidence/rmlui-memory.json`.
 
 ### Para convertirlo en el escritorio permanente
 
-1. Compilar RmlUi/FreeType y su runtime contra servicios propios; la DLL
-   Windows inventariada sigue rechazada. No mapear sus importaciones a ciegas.
-2. Definir un perfil de carga medido para el motor; el actual tiene
-   limites por region de 8 KiB RX, 4 KiB R y 4 KiB RW. No basta con
-   elevar el limite global de HOST ni renombrar la DLL.
+1. Comprobado en el visor nativo: RmlUi/FreeType y runtime enlazados
+   contra servicios propios. La DLL Windows sigue siendo una prueba separada.
+2. Comprobado: perfil explicito rmlui-native-v1, separado de la sonda
+   pequena y del limite por defecto de 1 MiB; conservados los bytes de
+   los perfiles anteriores. Ver native/README.md para los costes reales.
 3. Conectar entrada DIRECTOR y acciones ULTRA-J nativas al arbol vivo;
    conservar foco, Super+Q, espacios y cierre de recursos. El callback
    Python actual es exclusivamente HOST.
@@ -241,4 +242,6 @@ los recursos de entrada deben tener los mismos hashes. El informe de
 esta migracion conserva la igualdad medida frente al commit `668d2b4`.
 Los tiempos del banco son de llamadas nativas en HOST con reloj de UI
 inyectado; no miden la latencia de entrada fisica ni prometen FPS en METAL.
-El motor RmlUi completo y su planificador aun no estan portados a Ring 3.
+El [visor nativo](native/README.md) ya ejecuta el motor real en Ring 3,
+con movimiento reducido. La politica completa de animacion/planificacion
+y su integracion en DIRECTOR siguen pendientes.

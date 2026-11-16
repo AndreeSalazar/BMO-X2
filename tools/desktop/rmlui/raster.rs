@@ -1,4 +1,4 @@
-//! HOST-only C ABI wrapper. The drawing implementation is safe no_std Ring 3 code.
+//! HOST/native C ABI wrapper. Drawing is shared safe no_std Ring 3 code.
 #![no_std]
 #[path="../../../userspace/services/desktop/src/rmlui.rs"]
 mod raster;

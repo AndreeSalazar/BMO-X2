@@ -2,14 +2,14 @@
 import struct
 
 from ..diagnostics import Rejection
-from ..sbef.format import BASE, END, HEADER, MACHINE, MAX_IMAGE, MAX_REGIONS, PAGE, PERMISSIONS, REGION, inspect
+from ..sbef.format import BASE, END, HEADER, MACHINE, MAX_IMAGE, MAX_REGIONS, PAGE, PERMISSIONS, REGION, inspect, image_limit
 
 MAX_ELF = 16 * MAX_IMAGE
 ELF_HEADER = struct.Struct("<16sHHIQQQIHHHHHH")
 ELF_PROGRAM = struct.Struct("<IIQQQQQQ")
 
 
-def pack_elf(elf, *, abi=0):
+def pack_elf(elf, *, abi=0, profile='default'):
     if not ELF_HEADER.size <= len(elf) <= MAX_ELF:
         raise Rejection('ELF-SIZE', min(len(elf), MAX_ELF), 'file')
     ident, kind, machine, version, entry, table, _, flags, header_size, ph_size, count, *_ = ELF_HEADER.unpack_from(elf)
@@ -57,7 +57,7 @@ def pack_elf(elf, *, abi=0):
 
     cursor = HEADER.size + len(segments) * REGION.size
     size = cursor + sum(segment[2] for segment in segments)
-    if size > MAX_IMAGE:
+    if size > image_limit(profile):
         raise Rejection('ELF-OUTPUT-SIZE', 56, 'e_phnum')
     table = bytearray()
     payload = bytearray()
@@ -66,5 +66,5 @@ def pack_elf(elf, *, abi=0):
         payload.extend(elf[offset:offset+filesz])
         cursor += filesz
     image = HEADER.pack(b'SBEF', 1, abi, MACHINE, len(segments), size, entry, 0, 0) + table + payload
-    inspect(image)
+    inspect(image, profile=profile)
     return image

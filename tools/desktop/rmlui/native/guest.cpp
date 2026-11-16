@@ -1,0 +1,138 @@
+// Actual RmlUi/FreeType and shared Rust rasterizer in one Ring 3 application.
+#include "../renderer.h"
+#include "../memory_files.h"
+#include "guest_invoke.h"
+#include <cstdio>
+#include <cstdlib>
+extern "C" {
+void bmo_native_clock(uint64_t);
+[[noreturn]] void bmo_native_fail(const char*);
+void bmo_native_exit_handlers();
+int bmo_uj_action();
+extern const unsigned char resource_0[], resource_0_end[],resource_1[],resource_1_end[];
+extern const unsigned char resource_2[], resource_2_end[],resource_3[],resource_3_end[];
+extern size_t bmo_heap_live,bmo_heap_peak;
+extern void (*__init_array_start[])(void),(*__init_array_end[])(void);
+struct NativeState { uint64_t magic,phase,frames,clicks,accepted,triangles,heap_live,heap_peak; };
+volatile NativeState bmo_ui_state;
+uint32_t bmo_ui_pixels[1280*800];
+}
+namespace BmoUi {[[noreturn]] void native_failure(const char* s) {bmo_native_fail(s);}}
+static void log(const char* s) {while(*s)doom_invoke(5,7,(unsigned char)*s++,0);}
+class Clock final:public Rml::SystemInterface {
+public: double now=0;
+    double GetElapsedTime() override {return now;}
+    bool LogMessage(Rml::Log::Type type,const Rml::String& text) override {
+        if(type<=Rml::Log::LT_WARNING) {log(text.c_str());log("\n");}
+        return true;
+    }
+};
+class Action final:public Rml::EventListener {
+    void ProcessEvent(Rml::Event& event) override {
+        if(event.GetType()!="click")return;
+        bmo_ui_state.phase=2; // A new action is not observable as complete before presentation.
+        bmo_ui_state.clicks=bmo_ui_state.clicks+1;
+        const int ok=bmo_uj_action();
+        if(ok!=1)bmo_native_fail("ULTRA-J action");
+        bmo_ui_state.accepted=bmo_ui_state.accepted+1;
+        auto doc=event.GetCurrentElement()->GetOwnerDocument();
+        doc->GetElementById("result")->SetInnerRML("ULTRA-J nativo: evento ejecutado y region cerrada.");
+        doc->GetElementById("state")->SetInnerRML("Accion nativa verificada");
+        doc->GetElementById("state")->SetClass("ready",true);
+        log("BMO UI ACTION\n");
+    }
+};
+static void check(bool ok,const char* error) {if(!ok)bmo_native_fail(error);}
+extern "C" void bmo_main() {
+    // The loader enters _start with a 16-byte-aligned stack, as for the Rust client.
+    log("BMO UI CTORS\n");
+    for(auto init=__init_array_start;init!=__init_array_end;++init)(*init)();
+    bmo_ui_state.magic=0x3149554f4d42;
+    bmo_ui_state.phase=1;log("BMO UI START\n");
+    char number[64];snprintf(number,sizeof(number),"%.2f",1.25);
+    check(std::strcmp(number,"1.25")==0,"decimal format");
+    void* aligned=aligned_alloc(64,128);check(aligned && (uintptr_t(aligned)%64)==0,"alignment");free(aligned);
+    auto first=static_cast<unsigned char*>(calloc(1,256));check(first,"calloc");
+    for(size_t n=0;n<256;++n)check(first[n]==0,"calloc zero");
+    first[0]=91;auto moved=static_cast<unsigned char*>(realloc(first,512));
+    check(moved && moved[0]==91,"realloc preservation");
+    check(!realloc(moved,SIZE_MAX) && moved[0]==91,"failed realloc preservation");free(moved);
+    check(!calloc(SIZE_MAX,2) && !malloc(5*1024*1024),"heap bound");
+    check(!fopen("forbidden","rb"),"disk denied");
+    check(doom_invoke(1,9,0,0)==257 && doom_invoke(2,9,(uintptr_t)bmo_ui_pixels,0)==257 &&
+          doom_invoke(1,9,(uintptr_t)bmo_ui_pixels+1,0)==257 &&
+          doom_invoke(1,9,0x40e00000-1280*800*4+4,0)==257 &&
+          doom_invoke(1,6,(uintptr_t)bmo_ui_pixels,0)==257,"presentation boundary");
+    log("BMO UI SELFTEST OK\n");
+    const BmoUiBlob blobs[]={
+        {"main.rml",resource_0,size_t(resource_0_end-resource_0)},
+        {"style.rcss",resource_1,size_t(resource_1_end-resource_1)},
+        {"LatoLatin-Regular.ttf",resource_2,size_t(resource_2_end-resource_2)},
+        {"LatoLatin-Bold.ttf",resource_3,size_t(resource_3_end-resource_3)}};
+    BmoUi::Renderer renderer;BmoUi::MemoryFiles files;Clock clock;Action action;
+    check(files.assign(blobs,4),"resources");
+    Rml::SetRenderInterface(&renderer);Rml::SetSystemInterface(&clock);Rml::SetFileInterface(&files);
+    check(Rml::Initialise(),"initialise");
+    log("BMO UI INITIALISED\n");
+    check(Rml::LoadFontFace("LatoLatin-Regular.ttf") && Rml::LoadFontFace("LatoLatin-Bold.ttf"),"fonts");
+    log("BMO UI FONTS\n");
+    auto context=Rml::CreateContext("BMO-X2 native",{1280,800});check(context,"context");
+    auto doc=context->LoadDocument("main.rml");check(doc && !files.denied,"document");
+    log("BMO UI DOCUMENT\n");
+    doc->SetClass("reduced-motion",true);
+    doc->SetClass("arrived",true);doc->SetClass("intro-ready",true);
+    auto button=doc->GetElementById("activate");check(button,"button");button->AddEventListener("click",&action);
+    doc->Show();
+    int pointer_x=640,pointer_y=400,packet_index=0;
+    unsigned flags=0,dx=0;bool left=false,pointer_seen=false;
+    auto frame=[&]() {
+        renderer.pixels=bmo_ui_pixels;renderer.pixel_count=1280*800;
+        renderer.frame(context);renderer.pixels=nullptr;renderer.pixel_count=0;
+        if(pointer_seen)for(int y=0;y<14 && pointer_y+y<800;++y)
+            for(int x=0;x<=y/2 && pointer_x+x<1280;++x)
+                bmo_ui_pixels[(pointer_y+y)*1280+pointer_x+x]=(x==0 || x==y/2)?0x0b1019:0xe7eef8;
+        check(!files.denied,"resource access");
+        bmo_ui_state.frames=bmo_ui_state.frames+1;
+        bmo_ui_state.triangles=renderer.triangles;
+        bmo_ui_state.heap_live=bmo_heap_live;bmo_ui_state.heap_peak=bmo_heap_peak;
+        check(doom_invoke(1,9,(uintptr_t)bmo_ui_pixels,0)==0,"present");
+    };
+    frame();bmo_ui_state.phase=2;log("BMO UI READY\n");
+    for(;;) {
+        bool dirty=false,closing=false;
+        for(int pending=0;pending<64;++pending) {
+            unsigned scan=doom_invoke(2,2,0,0);
+            if(scan==256)break;
+            if(scan&512) {
+                unsigned byte=scan&255;
+                if(!packet_index) {if((byte&8) && byte!=0xfa){flags=byte;packet_index=1;}}
+                else if(packet_index==1) {dx=byte;packet_index=2;}
+                else {
+                    packet_index=0;if(flags&0xc0)continue;
+                    pointer_x=std::clamp(pointer_x+int(dx)-int(flags&16)*16,0,1279);
+                    pointer_y=std::clamp(pointer_y-int(byte)+int(flags&32)*8,0,799);
+                    pointer_seen=true;context->ProcessMouseMove(pointer_x,pointer_y,0);
+                    bool pressed=(flags&1)!=0;
+                    if(pressed!=left) {
+                        if(pressed)context->ProcessMouseButtonDown(0,0);else context->ProcessMouseButtonUp(0,0);
+                        left=pressed;
+                    }
+                    dirty=true;
+                }
+            } else {
+                if(scan==0x1c) {button->Click();dirty=true;}
+                if(scan==0x01) {closing=true;break;}
+            }
+        }
+        if(closing)break;
+        if(dirty) {frame();if(bmo_ui_state.accepted)bmo_ui_state.phase=3;}
+        // This milestone has reduced motion and only repaints on input.
+        register unsigned long service __asm__("rax")=1;
+        unsigned long cap=2,op=1,duration=1;
+        __asm__ volatile("syscall":"+a"(service),"+D"(cap),"+S"(op),"+d"(duration)::"rcx","r11","r8","r9","r10","memory");
+    }
+    doc->Close();Rml::Shutdown();
+    check(renderer.geometries.empty() && renderer.textures.empty() && files.open_count==0,"shutdown resources");
+    bmo_ui_state.phase=4;log("BMO UI CLOSED\n");
+    for(;;)__asm__ volatile("pause");
+}

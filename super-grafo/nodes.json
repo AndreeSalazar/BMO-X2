@@ -2135,7 +2135,7 @@
       "id": "rmlui-memory-resources",
       "titulo": "Recursos de interfaz en memoria",
       "ruta": "tools/desktop/rmlui/memory_files.h",
-      "estado": "host",
+      "estado": "qemu",
       "anillo": "host",
       "lenguaje": "C++",
       "posicion": [
@@ -2146,7 +2146,7 @@
       "entrada": "Hasta ocho recursos con nombre plano, bytes prestados y longitud.",
       "salida": "Lectura y busqueda acotadas; rechazo de rutas y recursos ausentes.",
       "aceptacion": "La sesion real lee RML/RCSS/fuentes desde memoria; ruta .. y recurso ausente se rechazan sin abrir disco desde el adaptador.",
-      "falta": "Integrar el productor de recursos y asignador del entorno Ring 3; el runtime enlazado aun es Windows."
+      "falta": "Productor de recursos desde paquetes del escritorio; el visor nativo actual usa cuatro recursos incrustados y validados."
     },
     {
       "id": "rmlui-engine-session",
@@ -2163,7 +2163,7 @@
       "entrada": "Tabla de recursos, tiempo inyectado, entrada y callback de accion ULTRA-J.",
       "salida": "Cuadros Rust CPU, plazo de actualizacion y diagnosticos de ciclo de vida y perfil visual.",
       "aceptacion": "Animaciones RCSS de opacidad/ancho/color verificadas; puntero y Enter; reentrada bloqueada; cierre limpio; objeto sin llamadas Kernel32 directas.",
-      "falta": "Runtime C++/FreeType freestanding, perfil de carga medido y conexion DIRECTOR/ULTRA-J nativos; no SBEF ni METAL."
+      "falta": "Conectar la API de sesion y el reloj al escritorio DIRECTOR; guest.cpp ya verifica un arranque nativo independiente sin excepciones."
     },
     {
       "id": "rmlui-live-validation",
@@ -2180,7 +2180,7 @@
       "entrada": "Paquete HOST de RmlUi y UJBC del ejemplo.",
       "salida": "PNG, GIF de cuadros reales e informe HOST con pruebas, recursos y costes.",
       "aceptacion": "Movimiento reducido estable, transiciones interpoladas, accion aceptada/rechazada, repeticion Enter, reinicializacion y ausencia de actualizaciones pendientes al terminar.",
-      "falta": "Prueba del mismo motor completo en Ring 3 y perfil de admision; el callback actual ejecuta la VM HOST Python."
+      "falta": "Planificacion y animacion del escritorio nativo permanente; el motor reducido ya pasa rmlui-native-validation en CPL3."
     },
     {
       "id": "rmlui-memory-budget",
@@ -2197,7 +2197,7 @@
       "entrada": "Sesion real RmlUi, recursos fijados y referencia visual opcional.",
       "salida": "Informe HOST con bytes retenidos, cuadros omitidos, tiempos y coste acotado; no RAM total del sistema.",
       "aceptacion": "15 atlas bajan de 1277952 a 319488 bytes; tres imagenes iguales; 30 cuadros quietos sin triangulos; entrada y animacion redibujan; destino nuevo se refresca.",
-      "falta": "Port del motor completo y politica de reposo al escritorio Ring 3; medir memoria global de runtime y fuentes."
+      "falta": "Medir sesiones prolongadas y politica de reposo permanente. El visor nativo ya limita heap a 4 MiB y comprueba igualdad visual con atlas 256."
     },
     {
       "id": "rmlui-native-build",
@@ -2214,7 +2214,7 @@
       "entrada": "Fuentes oficiales fijadas, Clang ELF, NMake y tipos C de musl sin numeros de syscall Linux.",
       "salida": "282 objetos ELF64 y bibliotecas estaticas; no ejecutable ni SBEF.",
       "aceptacion": "Build completo de Core, fuentes intactas validadas por SHA256/revision y un include de streams omitido explicitamente en copia de build.",
-      "falta": "Implementar servicios C acotados, arranque C++ y adaptador nativo para DIRECTOR/ULTRA-J antes de QEMU."
+      "falta": "Se conserva como etapa de bibliotecas; ejecutable y runtime nativos se comprueban en rmlui-native-application."
     },
     {
       "id": "rmlui-native-audit",
@@ -2231,7 +2231,58 @@
       "entrada": "RmlUi Core, FreeType y libc++ con libc++abi incorporada, compilados para x86-64.",
       "salida": "native-results.json, unresolved.txt y evidencia de rechazo SBEF del ET_REL.",
       "aceptacion": "282 miembros ELF64 maquina 62; 70 simbolos pendientes inventariados; rechazo ELF-HEADER/e_type; tests rechazan COFF, otra CPU y archivos alterados.",
-      "falta": "Enlace final sin simbolos pendientes, presupuesto de archivo/memoria y pruebas CPL3 de motor completo."
+      "falta": "Inventario de bibliotecas aisladas; el ejecutable nuevo resuelve sus servicios C. Conservar las comprobaciones al ampliar el perfil."
+    },
+    {
+      "id": "rmlui-native-runtime",
+      "titulo": "Runtime acotado de la interfaz nativa",
+      "ruta": "tools/desktop/rmlui/native/services.c",
+      "estado": "qemu",
+      "anillo": "3",
+      "lenguaje": "C / C++",
+      "posicion": [
+        7100,
+        3700
+      ],
+      "que": "Une calculo musl sin servicios Linux, heap de 4 MiB y familia new/delete al perfil nativo de un cliente.",
+      "entrada": "Solicitudes de memoria, formato/numeros y recursos del Core RmlUi/FreeType.",
+      "salida": "Asignaciones con propiedad y alineacion, log de fallos y denegacion explicita de disco/entorno.",
+      "aceptacion": "ELF sin simbolos pendientes; pruebas de alineacion, calloc, overflow, realloc fallido y disco denegado; pico de heap 3028176 bytes.",
+      "falta": "Recuperacion de proceso y medicion prolongada; no runtime POSIX general ni seguridad DMA/USB probada por esta interfaz."
+    },
+    {
+      "id": "rmlui-native-application",
+      "titulo": "Interfaz RmlUi y ULTRA-J nativa",
+      "ruta": "tools/desktop/rmlui/native/guest.cpp",
+      "estado": "qemu",
+      "anillo": "3",
+      "lenguaje": "C++ / Rust / ULTRA-J",
+      "posicion": [
+        7500,
+        3700
+      ],
+      "que": "Carga RML/RCSS/fuentes, dibuja en CPU y ejecuta la VM UJBC nativa con recursos de propiedad acotada.",
+      "entrada": "SBEF del perfil rmlui-native-v1, cuatro recursos inmutables y eventos PS2/Enter.",
+      "salida": "Superficie XRGB 1280x800 por operacion privada 9, acciones y cierre de recursos comprobados.",
+      "aceptacion": "Core real en CPL3; clic y Enter ejecutan dos acciones una vez; 1024000 pixeles coinciden con HOST; Esc cierra geometria/texturas/cursores.",
+      "falta": "Integrar como superficie de DIRECTOR con atajos globales, reloj/animacion y arranque permanente; validar entrada USB en METAL."
+    },
+    {
+      "id": "rmlui-native-validation",
+      "titulo": "Prueba real del motor en CPL3",
+      "ruta": "tools/boot/rmlui_native_capture.py",
+      "estado": "qemu",
+      "anillo": "host",
+      "lenguaje": "Python / QMP",
+      "posicion": [
+        7900,
+        3700
+      ],
+      "que": "Observa estados, memoria, framebuffer, acciones y cierre del motor real sin simular servicios del invitado.",
+      "entrada": "QEMU con SBEF nativo, perfil de sesion explicito y simbolos verificados.",
+      "salida": "Informe QEMU, capturas y comparacion HOST de todos los pixeles; rechazo W+X y huella para visor.",
+      "aceptacion": "Dos casos aprobados; permiso invalido rechazado antes de copiar; pixels presentados exactos; teclado/raton y accion nativa; perfiles anteriores conservan bytes.",
+      "falta": "Pruebas prolongadas, fallos recuperables y motor permanente en hardware fisico."
     }
   ],
   "relaciones": [
@@ -3353,6 +3404,36 @@
     {
       "de": "rmlui-engine-session",
       "a": "rmlui-native-build",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-native-application",
+      "a": "rmlui-native-build",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-native-application",
+      "a": "rmlui-native-runtime",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-native-application",
+      "a": "rmlui-rust-raster",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-native-application",
+      "a": "ultra-j-compiler",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-native-validation",
+      "a": "rmlui-native-application",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-native-validation",
+      "a": "rmlui-native-audit",
       "clase": "codigo"
     }
   ]

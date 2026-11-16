@@ -1,0 +1,143 @@
+{
+  "date": "2026-11-16",
+  "evidence": [
+    "HOST",
+    "QEMU"
+  ],
+  "target": "x86-64",
+  "engine_ring3_executed": true,
+  "permanent_desktop": false,
+  "metal_tested": false,
+  "physical_usb_proven": false,
+  "motion": "reduced",
+  "qemu": {
+    "Passed": 2,
+    "Total": 2,
+    "Cases": [
+      {
+        "Case": "normal",
+        "Passed": true,
+        "Evidence": "QEMU",
+        "CPL": 3,
+        "FullRmlUiEngine": true,
+        "RmlUi": "6.3",
+        "FontEngine": "FreeType 2.14.3",
+        "Renderer": "Shared Rust CPU",
+        "NativeUltraJAction": true,
+        "MouseClickVerified": true,
+        "KeyboardEnterVerified": true,
+        "Frames": 4,
+        "Triangles": 6716,
+        "HeapPeakBytes": 3028176,
+        "HeapLimitBytes": 4194304,
+        "FramebufferBytes": 4096000,
+        "SbefBytes": 1849758,
+        "ClosedResources": true,
+        "StagedModuleSHA256": "c0baa36db2cd0d4518c148fe409ea48dcda7c3111d7b3551714a9bd1c71dff7e",
+        "PresentedPixelsVerified": 1024000,
+        "FrameSHA256": "452dff3865e8f9964ec8edeb16c8437be9c5c3b05b3414ab8d90774eb4b2cb1f",
+        "ActionFrameSHA256": "723b210f59964670844eac9922fb788f0ac2766c8758eb4bf67fc3b7f3cc98cc"
+      },
+      {
+        "Case": "external-permissions",
+        "Passed": true,
+        "SbefAccepted": false,
+        "UserCodeCopied": false,
+        "UserAddressSpaceActivated": false,
+        "RejectedField": "permissions",
+        "RejectedOffset": 116
+      }
+    ],
+    "run": "run-rmlui-677fbc483f83",
+    "evidence": "QEMU",
+    "milestone": "Native RmlUi/FreeType C++ engine and Rust CPU drawing, with ULTRA-J action in CPL3"
+  },
+  "visual": {
+    "Evidence": [
+      "HOST",
+      "QEMU"
+    ],
+    "IdenticalPixels": true,
+    "DifferingPixels": 0,
+    "ComparedPixels": 1024000,
+    "FrameSHA256": "452dff3865e8f9964ec8edeb16c8437be9c5c3b05b3414ab8d90774eb4b2cb1f",
+    "HostFrameSHA256": "452dff3865e8f9964ec8edeb16c8437be9c5c3b05b3414ab8d90774eb4b2cb1f",
+    "HostEngineSHA256": "8d4675f1ed393ca7f43bd2688b2b0ea89fb7ea2173114136b81db2876c70c4a5",
+    "Scope": "Same reduced-motion RML/RCSS/fonts; HOST atlas cap 1024, native cap 256; no kernel simulation"
+  },
+  "admission": {
+    "FormatVersion": 1,
+    "AbiVersion": 1,
+    "Architecture": "x86-64",
+    "Bytes": 1849758,
+    "Entry": "0x40000000",
+    "Regions": [
+      {
+        "Address": "0x40000000",
+        "Offset": 128,
+        "FileBytes": 1359438,
+        "MemoryBytes": 1359438,
+        "MappedBytes": 1359872,
+        "Permissions": "RX"
+      },
+      {
+        "Address": "0x40200000",
+        "Offset": 1359566,
+        "FileBytes": 489752,
+        "MemoryBytes": 489752,
+        "MappedBytes": 491520,
+        "Permissions": "R"
+      },
+      {
+        "Address": "0x40400000",
+        "Offset": 1849318,
+        "FileBytes": 440,
+        "MemoryBytes": 8293860,
+        "MappedBytes": 8294400,
+        "Permissions": "RW"
+      }
+    ]
+  },
+  "compatibility": {
+    "BaselineCommit": "2b3badd",
+    "Profiles": {
+      "session-external": {
+        "IdenticalBytes": true,
+        "Bytes": 982,
+        "SHA256": "aadb7e384a8973333455db1980d71b877cd3a2718196860cb934b08b04ce8bfb"
+      },
+      "session-doom": {
+        "IdenticalBytes": true,
+        "Bytes": 1348,
+        "SHA256": "97f457520c54a17e6898b610d9728ab58b18a01290eade0205c67c6e8d058aa0"
+      },
+      "loader-doom": {
+        "IdenticalBytes": true,
+        "Bytes": 526,
+        "SHA256": "d0e6cc7e6cb374cdcea4ad72a14efb428f60c35b2a8be43d39176bf966bee5fb"
+      }
+    }
+  },
+  "user_mapping_bytes": 16777216,
+  "user_mapping_note": "Private 2 MiB-page loader maps 16 MiB including stack; region page sums and heap peak are not total physical usage.",
+  "casm_probe_packet_bytes": 3000,
+  "unresolved_executable_symbols": [],
+  "source_sha256": {
+    "tools/desktop/rmlui/native/arena.c": "da7642437638f51c732bb7e65f8bee6ca556d8a583a8c49d7f094f094ff422dc",
+    "tools/desktop/rmlui/native/services.c": "7f8401f57a1d8faac9faedd6f18783447861f07b6625a1d55cd1d82bbf9bfcfd",
+    "tools/desktop/rmlui/native/new.cpp": "0c09aba30623d5664fe0330fd9378a8bd04a5f70874a2e87007d30de1c6dda14",
+    "tools/desktop/rmlui/native/libc.py": "ebc5f495922f61b448e15fbbfadab5b2be93e812fdf6763fd4c217a86b20c8a2",
+    "tools/desktop/rmlui/native/guest.cpp": "ddae4a052aeb7d5d8a04c95f9b1055ee17f4b45d97f9075b6a63538ba7149058",
+    "tools/desktop/rmlui/native/guest.py": "428b4d27c0e57dfd102651598c4c394c49f5fc28acb49acb4171fbece1df8d93",
+    "tools/desktop/rmlui/native/guest.ld": "841fa6bf99c15b9eb2bea3fe771a64c2493b4869c8d67ccfe755e738129062b5",
+    "tools/desktop/rmlui/native/CMakeLists.txt": "09818331f7677d85d53e47eeb4d99f0f0f7a62888d454ecbda68426d68c5bd1f",
+    "tools/desktop/rmlui/renderer.h": "352a3acc21d476474d0d18de410eb0b0ad891bb28cd80e24657cf87ef2b19cb3",
+    "tools/desktop/rmlui/raster.rs": "3c266d5f60ea7dc23a37c40fc4eab43207523ea7a5109d1297f0252daedc4428",
+    "userspace/services/desktop/src/rmlui.rs": "e525613abd4d81341965fd000d0279b888df2da9308a0eebf6e89189b25cace2",
+    "Ultra-J/targets/x86_64/action_vm.inc": "400039500c75ca59b18180206aa19fd2093c08fd55a4dcd9801636415f6a45c4",
+    "kernel/syscalls/session_gate.S": "68824abf7eb9ecefa2f07220b5bac32fefd6c9685ed5e86f8fae7e30133a73b0",
+    "kernel/loader/doom_engine_loader.S": "e4bbe997f587ba53fede1276e2371c723d3b18931d33acba3b0cba85b9fee15e"
+  },
+  "executable_sha256": "bab2ad6e904ce182de51547271b34251727814d867ced11574516cb372c55693",
+  "sbef_sha256": "7fe32bd998d4ad3162175fe69f3f00987baf2612b4dd19801d7cf6a3a54f9a7d"
+}

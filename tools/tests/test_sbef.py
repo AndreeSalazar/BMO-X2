@@ -13,6 +13,29 @@ from host.diagnostics import Rejection
 
 
 class Sbef(unittest.TestCase):
+    def test_ui_profile_is_explicit_and_preserves_default_limit(self):
+        from host.sbef.format import inspect
+        payload=1024*1024+1
+        ro_offset=((4096+payload+4095)//4096)*4096
+        elf=bytearray(ro_offset+4097)
+        struct.pack_into('<16sHHIQQQIHHHHHH',elf,0,b'\x7fELF\x02\x01\x01',
+                         2,62,1,0x40000000,64,0,0,64,56,3,0,0,0)
+        for i,(offset,address,filesz,memsz,perms) in enumerate([
+            (4096,0x40000000,payload,payload,5),(ro_offset,0x40200000,1,4096,4),
+            (ro_offset+4096,0x40400000,1,4096,6)]):
+            struct.pack_into('<IIQQQQQQ',elf,64+56*i,1,perms,offset,address,0,filesz,memsz,4096)
+        with self.assertRaises(Rejection):sbef.pack_elf(elf,abi=1)
+        image=sbef.pack_elf(elf,abi=1,profile='rmlui-native-v1')
+        with self.assertRaises(Rejection):inspect(image)
+        self.assertEqual(len(inspect(image,profile='rmlui-native-v1')['Regions']),3)
+        changed=bytearray(image);struct.pack_into('<I',changed,32+2*32+20,7)
+        with self.assertRaises(Rejection):inspect(changed,profile='rmlui-native-v1')
+        changed=bytearray(image);struct.pack_into('<Q',changed,32+2*32,0x40600000)
+        with self.assertRaises(Rejection):inspect(changed,profile='rmlui-native-v1')
+        with self.assertRaises(ValueError):inspect(image,profile='invented')
+        changed=bytearray(image);changed.extend(bytes(2*1024*1024-len(changed)+1))
+        with self.assertRaises(Rejection):inspect(changed,profile='rmlui-native-v1')
+
     def setUp(self):
         elf = bytearray(8194)
         struct.pack_into('<16sHHIQQQIHHHHHH', elf, 0, b'\x7fELF\x02\x01\x01',

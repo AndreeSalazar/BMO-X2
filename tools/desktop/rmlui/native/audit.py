@@ -73,7 +73,7 @@ def main():
                   exceptions=False, rtti=False, threads=False, localization=False,
                   relocatable_bytes=combined.stat().st_size, unresolved_symbols=symbols,
                   sbef_rejection=admission,
-                  note='Real RmlUi/FreeType/libc++ objects. Unresolved C services must be implemented before an executable or SBEF exists.')
+                  note='Libraries-only inventory. The separate guest.py executable resolves C services with the bounded native runtime; this relocatable remains non-executable.')
     (OUT / 'native-results.json').write_text(json.dumps(report, indent=2) + '\n', encoding='ascii')
     print(json.dumps(report, indent=2))
 

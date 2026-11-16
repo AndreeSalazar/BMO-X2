@@ -2,7 +2,7 @@
 [CmdletBinding()]
 param(
     [string]$Run,
-    [ValidateSet('gato-hd','doom-intro','doom-engine','desktop-doom','desktop-intro','desktop-session','desktop-external')][string]$Profile,
+    [ValidateSet('gato-hd','doom-intro','doom-engine','desktop-doom','desktop-intro','desktop-session','desktop-external','rmlui-native')][string]$Profile,
     [switch]$Wait,
     [string]$Qemu = (Join-Path $env:ProgramFiles 'qemu/qemu-system-x86_64.exe')
 )
@@ -19,6 +19,7 @@ if (-not $Run) {
         'desktop-intro' { 'desktop-abi-fixture' }
         'desktop-session' { 'desktop-session' }
         'desktop-external' { 'desktop-external' }
+        'rmlui-native' { 'rmlui-native' }
         default { 'ring0-splash-hd-0.1' }
     }
     foreach ($candidate in (Get-ChildItem -LiteralPath $runs -Directory -Filter 'run-*' | Sort-Object LastWriteTime -Descending)) {
@@ -29,7 +30,8 @@ if (-not $Run) {
             (Test-Path -LiteralPath $result -PathType Leaf)) {
             $report = Get-Content -LiteralPath $result -Raw | ConvertFrom-Json
             if ($report.run -eq $candidate.Name -and $report.Total -gt 0 -and $report.Passed -eq $report.Total -and
-                ($Profile -in @('gato-hd','desktop-session','desktop-external','doom-engine','desktop-doom') -or @($report.Cases[0].FramesVerified).Count -eq 3) -and
+                ($Profile -in @('gato-hd','desktop-session','desktop-external','doom-engine','desktop-doom','rmlui-native') -or @($report.Cases[0].FramesVerified).Count -eq 3) -and
+                ($Profile -ne 'rmlui-native' -or ($report.Cases[0].FullRmlUiEngine -and $report.Cases[0].NativeUltraJAction)) -and
                 ($Profile -ne 'desktop-doom' -or $report.Cases[0].CabinaDoomVerified) -and
                 ($Profile -ne 'doom-engine' -or $report.Cases[0].DoomKeyboardVerified) -and
                 ($Profile -ne 'desktop-external' -or $report.Cases[0].ExternalSbef) -and
@@ -87,10 +89,18 @@ $arguments = @(
 if (Test-Path -LiteralPath (Join-Path $runDir.FullName 'xhci-timer-fault.txt')) {
     $arguments[$arguments.IndexOf('pc')] = 'pc,pit=off'
 }
-if ($actualProfile -in @('desktop-external','doom-external','doom-engine','desktop-doom')) {
+if ($actualProfile -in @('desktop-external','doom-external','doom-engine','desktop-doom','rmlui-native')) {
     $module = Get-Item -LiteralPath (Join-Path $runDir.FullName 'sbef-module.bin')
     if (-not ($module -is [IO.FileInfo]) -or ($module.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
         throw 'Falta el modulo SBEF externo del ensayo.'
+    }
+    if ($actualProfile -eq 'rmlui-native') {
+        $proof=$report.Cases | Where-Object { $_.Case -eq 'normal' } | Select-Object -First 1
+        $hash=(Get-FileHash -LiteralPath $module.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+        if (-not $proof.FullRmlUiEngine -or -not $proof.NativeUltraJAction -or
+            $module.Length -gt (2MB+8) -or $hash -ne $proof.StagedModuleSHA256) {
+            throw 'El modulo nativo no coincide con la prueba QEMU aprobada.'
+        }
     }
     $arguments += @('-device', ('"loader,file={0},addr=0x2000000,force-raw=on"' -f $module.FullName))
     $wad = Join-Path $runDir.FullName 'wad-module.bin'

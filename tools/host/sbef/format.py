@@ -14,9 +14,16 @@ REGION = struct.Struct('<QIIIIQ')
 PERMISSIONS = {4: 'R', 5: 'RX', 6: 'RW'}
 
 
-def inspect(image):
-    if not HEADER.size <= len(image) <= MAX_IMAGE:
-        raise Rejection('SBEF-SIZE', min(len(image), MAX_IMAGE), 'file')
+def image_limit(profile):
+    if profile == 'default': return MAX_IMAGE
+    if profile == 'rmlui-native-v1': return 2 * MAX_IMAGE
+    raise ValueError('Unknown SBEF admission profile: '+profile)
+
+
+def inspect(image, *, profile='default'):
+    limit = image_limit(profile)
+    if not HEADER.size <= len(image) <= limit:
+        raise Rejection('SBEF-SIZE', min(len(image), limit), 'file')
     magic, version, abi, machine, count, size, entry, flags, reserved = HEADER.unpack_from(image)
     for value, expected, offset, field in [
             (magic, b'SBEF', 0, 'signature'), (version, 1, 4, 'format_version'),
@@ -60,5 +67,11 @@ def inspect(image):
         raise Rejection('SBEF-TRAILING-DATA', cursor, 'payload')
     if not entry_in_text:
         raise Rejection('SBEF-ENTRY', 16, 'entry')
+    if profile == 'rmlui-native-v1':
+        expected = [('0x40000000', 'RX', 2*MAX_IMAGE), ('0x40200000', 'R', 2*MAX_IMAGE),
+                    ('0x40400000', 'RW', 10*MAX_IMAGE)]
+        if len(regions)!=3 or any((r['Address'],r['Permissions'])!=(a,p) or r['MappedBytes']>n
+                                  for r,(a,p,n) in zip(regions,expected)):
+            raise Rejection('SBEF-UI-LAYOUT', 32, 'regions')
     return dict(FormatVersion=version, AbiVersion=abi, Architecture='x86-64', Bytes=size,
                 Entry=f'0x{entry:X}', Regions=regions)

@@ -69,10 +69,13 @@ if args.doom_fixture:
     profile = (ROOT / 'profile.txt').read_text(encoding='ascii').strip()
     desktop_media = profile == 'desktop-media'
     desktop_doom = profile == 'desktop-doom'
-    doom_engine = profile == 'doom-engine' or desktop_doom
+    native_ui = profile == 'rmlui-native'
+    doom_engine = profile == 'doom-engine' or desktop_doom or native_ui
     doom_external = profile == 'doom-external' or doom_engine
     desktop_fixture = (present is not None or gate is not None) and not doom_external
     image_path = ROOT / ('desktop.sbef' if desktop_fixture else 'doom.sbef')
+    if native_ui:
+        image_path = ROOT / 'rmlui.sbef'
     toolchain_client = profile.startswith('abi-') and profile.endswith('-abi-fixture')
     if toolchain_client:
         image_path = ROOT / f"{profile.removesuffix('-abi-fixture')}.sbef"
@@ -204,6 +207,9 @@ def run(case):
         if doom and doom['session']:
             from desktop_session_capture import verify_external_rejection, verify_session
             if doom_engine:
+                if native_ui:
+                    from rmlui_native_capture import verify_native_ui
+                    return verify_native_ui(command, memory, prefix, external_image, case, ROOT / 'ui-symbols.json')
                 from doom_engine_capture import verify_engine
                 return verify_engine(command, memory, prefix, external_image, case, desktop=desktop_doom)
             if case == 'external-permissions':

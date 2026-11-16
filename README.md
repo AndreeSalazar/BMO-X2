@@ -5,26 +5,31 @@ HOST separado para construir y admitir binarios del destino,
 servicios y aplicaciones en Ring 3, y SUPER GRAFO como mesa de trabajo.
 Autor: Eddi Salazar, Lima, Peru.
 
-RmlUi + ULTRA-J ya tienen una vista real HOST. Su dibujador se separo
-en Rust no_std y el mismo codigo paso una sonda SBEF en CPL3: 7,085 bytes
-de archivo, 12 KiB en regiones RX/R y 4 KiB adicionales de pila de usuario.
-Los pixeles coinciden con HOST y se conserva el rechazo W+X. El motor
-RmlUi/FreeType completo aun no vive en Ring 3: la DLL Windows tiene
-importaciones pendientes de adaptar. [Estado y pasos del escritorio permanente](tools/desktop/rmlui/README.md#para-convertirlo-en-el-escritorio-permanente)
-y [evidencia HOST/QEMU](Ultra-J/evidence/rmlui-ring3.json).
+RmlUi 6.3 y FreeType ya ejecutan su motor real en Ring 3 bajo QEMU,
+con dibujo Rust CPU y accion ULTRA-J nativa. El SBEF del laboratorio
+ocupa 1,849,758 bytes. Se probaron Enter, clic PS/2, cierre de recursos,
+presentacion de 1,024,000 pixeles y rechazo W+X. El primer cuadro coincide
+pixel por pixel con el motor HOST, incluso con atlas nativos mas pequenos.
 
-Ya existe otra ruta que compila RmlUi, FreeType y libc++ como 282 objetos
-ELF64 x86-64, sin convertir la DLL Windows. El enlace relocatable tiene
-70 simbolos pendientes y sigue rechazado como ejecutable SBEF. Esto no
-mide RAM ni habilita aun el motor completo en Ring 3.
-[Build nativo, dependencias y pasos pendientes](tools/desktop/rmlui/native/README.md),
-[evidencia de compilacion](Ultra-J/evidence/rmlui-native.json).
+El heap tiene un limite de 4 MiB y alcanzo 3,028,176 bytes en este ensayo;
+el framebuffer separado reserva 4,096,000 bytes. El cargador experimental
+de paginas grandes mapea 16 MiB de usuario, incluida la pila: el pico del
+heap no es la RAM total del sistema. Este visor es una aplicacion de
+prueba separada del escritorio permanente; no acredita USB en METAL.
+[Comandos, arquitectura y limites](tools/desktop/rmlui/native/README.md),
+[evidencia nativa HOST/QEMU](Ultra-J/evidence/rmlui-native-ring3.json).
+
+La primera sonda del dibujador y el primer build de bibliotecas siguen
+registrados como evidencia historica: [dibujador CPL3](Ultra-J/evidence/rmlui-ring3.json)
+y [bibliotecas ELF64](Ultra-J/evidence/rmlui-native.json). Las bibliotecas
+aisladas conservan dependencias C; el ejecutable nuevo las resuelve con
+su runtime acotado, sin enlazar Windows ni servicios Linux.
 
 La sesion C++ de RmlUi ya recibe recursos en memoria, reloj monotono,
 destino de dibujo prestado y eventos desde HOST. Tiene entrada por
 opacidad, barra animada, transicion de color, movimiento reducido y
 callback ULTRA-J probado. El adaptador no llama APIs Windows directamente;
-el runtime C++ enlazado sigue pendiente de portar. [Sesion y limites](tools/desktop/rmlui/README.md#sesion-c-alimentada-por-host-bmo-ui-memory-v1).
+esa entrada HOST sigue separada de la aplicacion nativa. [Sesion y limites](tools/desktop/rmlui/README.md#sesion-c-alimentada-por-host-bmo-ui-memory-v1).
 
 La optimizacion del dibujador guarda los atlas blancos en Alpha8 sin
 perder pixeles: el ejemplo retiene 319,488 bytes frente a 1,277,952 en

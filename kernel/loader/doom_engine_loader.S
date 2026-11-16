@@ -8,7 +8,11 @@ doom_engine_loader:
     add $8, %rsi
     cmp $128, %rdx
     jb reject
+#ifdef RMLUI_NATIVE
+    cmp $0x200000, %rdx
+#else
     cmp $0x100000, %rdx
+#endif
     ja reject
     movabs $0x0001000146454253, %rax
     cmp %rax, (%rsi)

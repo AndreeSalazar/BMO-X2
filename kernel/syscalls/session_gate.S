@@ -1,4 +1,18 @@
 .text
+#ifdef RMLUI_NATIVE
+#ifndef DESKTOP_DOOM
+#error RMLUI_NATIVE requires the bounded integer-scale presentation path
+#endif
+#define FRAME_W 1280
+#define FRAME_H 800
+#define FRAME_MIN_W 1280
+#define FRAME_MIN_H 800
+#else
+#define FRAME_W 320
+#define FRAME_H 200
+#define FRAME_MIN_W 640
+#define FRAME_MIN_H 400
+#endif
 .globl session_gate
 session_gate:
     swapgs
@@ -20,7 +34,13 @@ session_gate:
     je session_exit
 #endif
 #ifdef DOOM_ENGINE
+#ifdef RMLUI_NATIVE
+    # Private native UI profile: operation 9 is a fixed 1280x800 surface.
+    # Do not reinterpret DOOM's existing 320x200 operation 6.
+    cmp $9, %rsi
+#else
     cmp $6, %rsi
+#endif
     je present_frame
     cmp $7, %rsi
     je serial_byte
@@ -419,7 +439,7 @@ present_frame:
     jne denied
     cmp $0x40400000, %rdx
     jb denied
-    cmp $(0x40e00000-320*200*4), %rdx
+    cmp $(0x40e00000-FRAME_W*FRAME_H*4), %rdx
     ja denied
     test $3, %dl
     jnz denied
@@ -428,9 +448,9 @@ present_frame:
     mov 0x20(%rbp), %edi
     mov 0x24(%rbp), %ecx
     mov 0x28(%rbp), %r8d
-    cmp $640, %edi
+    cmp $FRAME_MIN_W, %edi
     jb denied
-    cmp $400, %ecx
+    cmp $FRAME_MIN_H, %ecx
     jb denied
     cmp $4096, %ecx
     ja denied
@@ -446,19 +466,19 @@ present_frame:
     # Largest whole-pixel scale that fits both axes.
     mov %edi, %eax
     xor %edx, %edx
-    mov $320, %edi
+    mov $FRAME_W, %edi
     div %edi
     mov %eax, %r10d
     mov %ecx, %eax
     xor %edx, %edx
-    mov $200, %edi
+    mov $FRAME_H, %edi
     div %edi
     cmp %eax, %r10d
     cmova %eax, %r10d
     mov 0x20(%rbp), %edi
-    imul $320, %r10d, %eax
+    imul $FRAME_W, %r10d, %eax
     sub %eax, %edi
-    imul $200, %r10d, %eax
+    imul $FRAME_H, %r10d, %eax
     sub %eax, %ecx
 #else
     sub $640, %edi
@@ -478,10 +498,10 @@ present_frame:
 #ifdef DESKTOP_DOOM
     push %r10
 #endif
-    mov $200, %edx
+    mov $FRAME_H, %edx
 engine_row:
     mov %r9, %rdi
-    mov $320, %ecx
+    mov $FRAME_W, %ecx
 engine_pixel:
     lodsl
     cmpl $1, 0x2c(%rbp)
@@ -504,17 +524,24 @@ engine_color:
     mov %rsi, %r10
     mov (%rsp), %esi
     dec %esi
+#ifdef RMLUI_NATIVE
+    # At 1280x800 the native surface has scale 1: no repeated rows.
+    jz engine_row_ready
+#endif
     push %rsi
     mov %r9, %rax
 engine_repeat_row:
     add %r8, %r9
     mov %rax, %rsi
     mov %r9, %rdi
-    imul $320, 8(%rsp), %ecx
+    imul $FRAME_W, 8(%rsp), %ecx
     rep movsl
     decl (%rsp)
     jnz engine_repeat_row
     pop %rsi
+#ifdef RMLUI_NATIVE
+engine_row_ready:
+#endif
     mov %r10, %rsi
 #else
     mov %rsi, %r10

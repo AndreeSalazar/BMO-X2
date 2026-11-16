@@ -8,6 +8,17 @@
 #include <unordered_set>
 #include <vector>
 namespace BmoUi {
+#ifdef BMO_UI_NATIVE
+[[noreturn]] void native_failure(const char*);
+#endif
+[[noreturn]] inline void fail(const char* message) {
+#ifdef BMO_UI_NATIVE
+    native_failure(message);
+#else
+    throw std::runtime_error(message);
+#endif
+}
+
 constexpr int W = 1280, H = 800;
 struct Geometry { std::vector<Rml::Vertex> v; std::vector<int> i; };
 struct Texture { int w, h; bool alpha_only; std::vector<Rml::byte> texels; };
@@ -28,11 +39,11 @@ public:
     bool unsupported_feature=false;
     Rml::Rectanglei region = Rml::Rectanglei::FromPositionSize({0, 0}, {W, H});
     Rml::CompiledGeometryHandle CompileGeometry(Rml::Span<const Rml::Vertex> v, Rml::Span<const int> i) override {
-        if (v.size() > 1000000 || i.size() > 3000000 || i.size() % 3) throw std::runtime_error("geometry bounds");
-        if(geometries.size()>=4096 || geometry_bytes+v.size()*sizeof(Rml::Vertex)+i.size()*sizeof(int)>16*1024*1024) throw std::runtime_error("geometry budget");
+        if (v.size() > 1000000 || i.size() > 3000000 || i.size() % 3) fail("geometry bounds");
+        if(geometries.size()>=4096 || geometry_bytes+v.size()*sizeof(Rml::Vertex)+i.size()*sizeof(int)>16*1024*1024) fail("geometry budget");
         auto owned = std::make_unique<Geometry>(Geometry{{v.begin(), v.end()}, {i.begin(), i.end()}});
         auto g=owned.get();
-        for (int n : g->i) if (n < 0 || size_t(n) >= g->v.size()) throw std::runtime_error("geometry index");
+        for (int n : g->i) if (n < 0 || size_t(n) >= g->v.size()) fail("geometry index");
         geometries.insert(g);
         geometry_bytes += g->v.size() * sizeof(Rml::Vertex) + g->i.size() * sizeof(int);
         peak_geometry = std::max(peak_geometry, geometry_bytes); owned.release();
@@ -40,16 +51,16 @@ public:
     }
     void ReleaseGeometry(Rml::CompiledGeometryHandle handle) override {
         auto g = reinterpret_cast<Geometry*>(handle);
-        if (!geometries.erase(g)) throw std::runtime_error("unknown geometry");
+        if (!geometries.erase(g)) fail("unknown geometry");
         geometry_bytes -= g->v.size() * sizeof(Rml::Vertex) + g->i.size() * sizeof(int); delete g;
     }
     Rml::TextureHandle LoadTexture(Rml::Vector2i&, const Rml::String&) override {
-        throw std::runtime_error("external images unsupported in this profile");
+        fail("external images unsupported in this profile");
     }
     Rml::TextureHandle GenerateTexture(Rml::Span<const Rml::byte> source, Rml::Vector2i dimensions) override {
         if (dimensions.x <= 0 || dimensions.y <= 0 || dimensions.x > 4096 || dimensions.y > 4096 ||
-            source.size() != size_t(dimensions.x) * dimensions.y * 4) throw std::runtime_error("texture bounds");
-        if(textures.size()>=64 || texture_equivalent_bytes+source.size()>16*1024*1024) throw std::runtime_error("texture budget");
+            source.size() != size_t(dimensions.x) * dimensions.y * 4) fail("texture bounds");
+        if(textures.size()>=64 || texture_equivalent_bytes+source.size()>16*1024*1024) fail("texture budget");
         bool alpha=true;
         for(size_t i=0;i<source.size();i+=4) {
             if(source[i]!=source[i+3] || source[i+1]!=source[i+3] || source[i+2]!=source[i+3]) {alpha=false;break;}
@@ -67,7 +78,7 @@ public:
     }
     void ReleaseTexture(Rml::TextureHandle handle) override {
         auto t = reinterpret_cast<Texture*>(handle);
-        if (!textures.erase(t)) throw std::runtime_error("unknown texture");
+        if (!textures.erase(t)) fail("unknown texture");
         texture_bytes -= t->texels.size(); texture_equivalent_bytes-=size_t(t->w)*t->h*4; delete t;
     }
     void SetTransform(const Rml::Matrix4f* value) override { transformed=value!=nullptr; unsupported_transform|=transformed; }
@@ -82,7 +93,7 @@ public:
     void RenderGeometry(Rml::CompiledGeometryHandle handle, Rml::Vector2f translation, Rml::TextureHandle texture) override {
         if(transformed) return;
         auto g=reinterpret_cast<Geometry*>(handle); auto t=reinterpret_cast<Texture*>(texture);
-        if(!geometries.count(g) || (t && !textures.count(t))) throw std::runtime_error("render handle");
+        if(!geometries.count(g) || (t && !textures.count(t))) fail("render handle");
         BmoUiRect bounds{0,0,W,H};
         if(clip) bounds={uint32_t(std::clamp(region.Left(),0,W)),uint32_t(std::clamp(region.Top(),0,H)),
                          uint32_t(std::clamp(region.Right(),0,W)),uint32_t(std::clamp(region.Bottom(),0,H))};
@@ -95,15 +106,15 @@ public:
             }
             auto raster=t && t->alpha_only?bmo_ui_triangle_mask:bmo_ui_triangle;
             if(raster(pixels,pixel_count,W,H,vertices,t?t->texels.data():nullptr,
-                t?t->texels.size():0,t?uint32_t(t->w):0,t?uint32_t(t->h):0,bounds)!=0) throw std::runtime_error("Rust raster rejected geometry");
+                t?t->texels.size():0,t?uint32_t(t->w):0,t?uint32_t(t->h):0,bounds)!=0) fail("Rust raster rejected geometry");
             ++triangles;
         }
     }
     void frame(Rml::Context* context) {
         unsupported_transform=false;
         std::fill(pixels,pixels+pixel_count,0x0b1019); context->Update(); context->Render();
-        if(unsupported_transform) throw std::runtime_error("transforms outside CPU profile");
-        if(unsupported_feature) throw std::runtime_error("layers, masks, filters or shaders outside CPU profile");
+        if(unsupported_transform) fail("transforms outside CPU profile");
+        if(unsupported_feature) fail("layers, masks, filters or shaders outside CPU profile");
     }
 };
 }

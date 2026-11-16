@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 import audit
 import fetch
+import guest
 
 
 def archive(body, name='unit.o/'):
@@ -17,6 +18,20 @@ def archive(body, name='unit.o/'):
 
 
 class Inputs(unittest.TestCase):
+    def test_executable_section_must_live_in_rx(self):
+        elf=bytearray(128)
+        struct.pack_into('<Q',elf,40,64)
+        struct.pack_into('<HH',elf,58,64,1)
+        struct.pack_into('<QQQQ',elf,72,6,0x40000000,0,32)
+        guest.check_sections(elf)
+        struct.pack_into('<Q',elf,80,0x40200000)
+        with self.assertRaisesRegex(ValueError,'outside RX'):guest.check_sections(elf)
+
+    def test_cpp_math_cannot_resolve_to_soft_float_rust_export(self):
+        guest.check_math_providers('Core(Math.obj)\tlibbmo-compute.a(math_cosf.c.o)\tcosf')
+        with self.assertRaisesRegex(ValueError,'floating-point ABI'):
+            guest.check_math_providers('Core(Math.obj)\tlibraster.a(cosf.o)\tcosf')
+
     def test_elf_archive_and_wrong_machine(self):
         body = bytearray(64)
         body[:6] = b'\x7fELF\x02\x01'

@@ -1,5 +1,5 @@
 // Real RmlUi C++ engine adapter. No Windows API, disk I/O, wall clock or image writer.
-// This source is platform-neutral; the linked C++/font runtime is not freestanding yet.
+// This HOST entry uses its HOST runtime. The native guest has a separate entry/lifecycle.
 #include "engine.h"
 #include "renderer.h"
 #include "memory_files.h"
