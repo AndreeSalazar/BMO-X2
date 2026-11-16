@@ -266,6 +266,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     reset_probe = desktop_media and (prefix.parent.parent / 'xhci-reset.txt').is_file()
     transport_probe = desktop_media and (prefix.parent.parent / 'xhci-transport.txt').is_file()
     enum_probe = transport_probe and (prefix.parent.parent / 'xhci-enum.txt').is_file()
+    reports_panel = transport_probe and (prefix.parent.parent / 'reports.txt').is_file()
     mouse_probe = command_probe and (prefix.parent.parent / 'usb-mouse.txt').is_file()
     if mouse_probe:
         wait_until(lambda: logical(52, 99, 0x5ad8ff) and sleeping()
@@ -351,6 +352,8 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
             assert memory(address + 0x1a3c4, 1, 'transport-reservation-validated') == b'\x01'
             empty_ports = (prefix.parent.parent / 'xhci-empty-ports.txt').is_file()
             if empty_ports or (prefix.parent.parent / 'xhci-timer-fault.txt').is_file():
+                if reports_panel:
+                    assert logical(24, 254, 0xff6b7a), 'REPORTES no indica el fallo de descubrimiento'
                 assert memory(address + 0x1a3e0, 4, 'transport-wait-failure') == struct.pack('<I', 19 if empty_ports else 18)
                 assert memory(address + 0x1a379, 2, 'transport-no-command-halted') == b'\x00\x01'
                 assert memory(address + 0x1a3fc, 4, 'transport-bounded-slices') == struct.pack('<I', 100 if empty_ports else 0)
@@ -364,8 +367,17 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                             XhciTimerFailureVerified=not empty_ports,
                             XhciEmptyPortsTimeoutVerified=empty_ports, XhciNoOpCompleted=False,
                             XhciControllerStopped=True, XhciBusMasterRevoked=True,
+                            ReportsPanelVerified=reports_panel,
                             XhciHidConfigured=False, CpuL1=cache)
             assert memory(address + 0x1a379, 2, 'transport-completed-halted') == b'\x01\x01'
+            if reports_panel:
+                assert logical(24, 254, 0xffd166), 'Falta el indicador de hito parcial de REPORTES'
+                assert logical(600, 340, 0x232638), 'Falta el panel de siguiente paso'
+                def pulse_pixels():
+                    return memory(fb + (264*scale*pitch + 470*scale)*4,
+                                  (11*scale*pitch + 130*scale)*4, 'reports-pulse')
+                first_pulse = pulse_pixels()
+                wait_until(lambda: pulse_pixels() != first_pulse)
             assert memory(address + 0x1a3e0, 4, 'transport-state') == struct.pack('<I', 28 if enum_probe else 8)
             if enum_probe:
                 speed = 1 if (prefix.parent.parent / 'usb-full-speed.txt').is_file() else 3
@@ -417,6 +429,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                         XhciDeviceDescriptorVerified=enum_probe, XhciConfigurationRead=enum_probe,
                         XhciFirstDescriptorBytes=8 if enum_probe else 0,
                         XhciEp0Evaluated=enum_probe,
+                        ReportsPanelVerified=reports_panel, ReportsPulseUpdated=reports_panel,
                         UsbDeviceDescriptor=descriptor.hex() if enum_probe else None,
                         UsbConfiguration=config.hex() if enum_probe else None,
                         XhciPortSettleMilliseconds=settle_slices * 10,

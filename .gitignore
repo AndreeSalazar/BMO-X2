@@ -4,3 +4,5 @@
 *.pyc
 /.super-grafo-cache*
 /.super-grafo-vivo.jsonl
+/Reports/latest.json
+/Reports/latest.txt

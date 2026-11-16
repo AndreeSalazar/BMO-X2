@@ -5,6 +5,10 @@ HOST separado para construir y admitir binarios del destino,
 servicios y aplicaciones en Ring 3, y SUPER GRAFO como mesa de trabajo.
 Autor: Eddi Salazar, Lima, Peru.
 
+[REPORTES](Reports/README.md) presenta fase, motivo y siguiente paso de
+entrada USB, junto con contadores de Ring 0. El perfil de diagnostico
+aparece sin teclado ni raton y permite conservar un resumen HOST legible.
+
 BMO-X2 arranca perfiles de prueba independientes en QEMU/OVMF. Hay
 evidencia de Ring 0 y Ring 3, escritorio Rust cargado desde SBEF externo,
 INVOKE, WAIT y revocacion de paginas. El equipo fisico llega al escritorio,

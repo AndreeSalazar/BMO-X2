@@ -9,6 +9,7 @@ param(
     [switch]$UsbMouse,
     [switch]$Sheet,
     [switch]$UltraJ,
+    [switch]$Reports,
     [string]$AbiRun,
     [string]$IntroRun
 )
@@ -19,6 +20,7 @@ if ($UsbProbe -and -not $External) { throw '-UsbProbe requiere -External.' }
 if ($UsbMouse -and -not $UsbProbe) { throw '-UsbMouse requiere -UsbProbe.' }
 if ($Sheet -and (-not $External -or $UsbProbe)) { throw '-Sheet requiere -External y entrada PS/2.' }
 if ($UltraJ -and -not $Sheet) { throw '-UltraJ requiere -Sheet.' }
+if ($Reports -and (-not $External -or $UsbProbe -or $Sheet)) { throw '-Reports requiere -External y no se combina con Sheet ni UsbProbe.' }
 if ($AbiRun -and -not $Guest) { throw '-AbiRun requiere -Guest.' }
 if ($IntroRun -and -not $AbiRun) { throw '-IntroRun requiere -AbiRun.' }
 $root = Split-Path $PSScriptRoot
@@ -66,6 +68,11 @@ if ($Session) {
             $elf = Join-Path $build.FullName 'desktop-usb-mouse.elf'
             $image = Join-Path $build.FullName 'desktop-usb-mouse.sbef'
         }
+    }
+    if ($Reports) {
+        $guestFlags += @('--cfg','desktop_reports')
+        $elf = Join-Path $build.FullName 'desktop-reports.elf'
+        $image = Join-Path $build.FullName 'desktop-reports.sbef'
     }
 }
 $fixtureArguments = @()
@@ -152,7 +159,7 @@ if ($External) {
 }
 Write-Output "Medidas HOST: $sizePath"
 Write-Output "SBEF: $image"
-if ($AbiRun -and -not ($UsbProbe -or $Sheet)) {
+if ($AbiRun -and -not ($UsbProbe -or $Sheet -or $Reports)) {
     $introArguments = @()
     if ($IntroRun) { $introArguments = @('--intro', $IntroRun) }
     & $Python -B (Join-Path $PSScriptRoot 'boot/doom_qemu.py') $AbiRun $image @fixtureArguments @introArguments

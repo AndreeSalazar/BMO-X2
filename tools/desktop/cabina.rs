@@ -68,7 +68,10 @@ pub fn show() {
 #[inline(never)]
 pub fn boot_input(controllers: u32, keyboard: bool, mouse: bool) {
     fill(24, 354, 548, 32, PANEL);
-    let status = match invoke(3, 3, 6, 0) {
+    let code = invoke(3, 3, 6, 0);
+    #[cfg(desktop_reports)]
+    super::reports::show(code);
+    let status = match code {
         1 => b"XHCI OCUPADO".as_slice(),
         2 => b"XHCI PAGINA NO ADMISIBLE",
         3 => b"XHCI DETENIDO",

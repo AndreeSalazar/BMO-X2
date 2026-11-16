@@ -56,10 +56,13 @@ def main():
     parser.add_argument('--ultra-j-action', type=Path)
     parser.add_argument('--ultra-j-launcher', action='store_true')
     parser.add_argument('--usb-desktop', type=Path, help='Desktop SBEF compiled with -UsbProbe')
+    parser.add_argument('--reports-desktop', type=Path, help='Automatic Ring 3 reports panel, built with -Reports')
     parser.add_argument('--usb-full-speed', action='store_true', help='Use USB 1.x in the xHCI probe')
     parser.add_argument('--usb-mouse', action='store_true', help='Probe a USB boot mouse instead of a keyboard')
     args = parser.parse_args()
     enum_probe = args.xhci_enum_probe
+    if args.reports_desktop and not (enum_probe or args.xhci_transport_probe):
+        parser.error('--reports-desktop requiere una sonda de transporte o enumeracion')
     if enum_probe:
         args.xhci_transport_probe = True
     if args.xhci_timer_fault and not args.xhci_transport_probe:
@@ -86,7 +89,9 @@ def main():
     usb_name = 'desktop-usb-mouse.sbef' if args.usb_mouse else 'desktop-usb-probe.sbef'
     if args.usb_desktop and args.usb_desktop.resolve() != (ROOT / 'build/desktop' / usb_name).resolve():
         parser.error('--usb-desktop requiere el resultado local de -UsbProbe')
-    sbef = (args.usb_desktop or args.ultra_j_view or args.sheet_desktop or desktop / 'desktop.sbef').read_bytes()
+    if args.reports_desktop and args.reports_desktop.resolve() != (ROOT / 'build/desktop/desktop-reports.sbef').resolve():
+        parser.error('--reports-desktop requiere el resultado local de -Reports')
+    sbef = (args.reports_desktop or args.usb_desktop or args.ultra_j_view or args.sheet_desktop or desktop / 'desktop.sbef').read_bytes()
     budget = desktop_budget(sbef)
     action = args.ultra_j_action.read_bytes() if args.ultra_j_action else b''
     if args.ultra_j_action:
@@ -200,6 +205,8 @@ def main():
         (run / 'xhci-transport.txt').write_text('AMD 1022:149C / QEMU 1B36:000D\n', encoding='ascii')
     if enum_probe:
         (run / 'xhci-enum.txt').write_text('Finite first USB2 device descriptor; no HID endpoints\n', encoding='ascii')
+    if args.reports_desktop:
+        (run / 'reports.txt').write_text('Ring 0 values presented in Ring 3; no runtime disk writer\n', encoding='ascii')
     if args.xhci_timer_fault:
         (run / 'xhci-timer-fault.txt').write_text('QEMU: PIT disabled\n', encoding='ascii')
     if args.xhci_empty_ports:

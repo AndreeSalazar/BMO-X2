@@ -5,9 +5,11 @@ use core::arch::asm;
 use core::panic::PanicInfo;
 
 mod cabina;
+#[cfg(desktop_reports)]
+mod reports;
 // USB diagnostic profiles reserve the fixed RX budget for the input service.
 // The normal desktop retains its settings panel and icon.
-#[cfg(not(any(desktop_ultra_j, usb_probe)))]
+#[cfg(not(any(desktop_ultra_j, usb_probe, desktop_reports)))]
 mod settings;
 #[cfg(desktop_sheet)]
 mod sheet;
@@ -120,7 +122,7 @@ fn paint(clip: Clip, space: usize, focus: usize, bar: bool) {
     }
     let accent = ACCENTS[space];
     clip.fill(0, 0, 640, 400, 0x0d0e17);
-    #[cfg(not(any(desktop_ultra_j, usb_probe)))]
+    #[cfg(not(any(desktop_ultra_j, usb_probe, desktop_reports)))]
     settings::icon(clip);
     #[cfg(desktop_sheet)]
     sheet::icon(clip);
@@ -235,11 +237,11 @@ extern "C" fn bmo_main() -> ! {
     let mut command = cabina::Command::default();
     let mut bar = None;
     let mut f2_down = false;
-    #[cfg(not(any(desktop_ultra_j, usb_probe)))]
+    #[cfg(not(any(desktop_ultra_j, usb_probe, desktop_reports)))]
     let mut f3_down = false;
-    #[cfg(not(any(desktop_ultra_j, usb_probe)))]
+    #[cfg(not(any(desktop_ultra_j, usb_probe, desktop_reports)))]
     let (mut settings_open, mut pointer_speed) = (false, 1);
-    #[cfg(any(desktop_ultra_j, usb_probe))]
+    #[cfg(any(desktop_ultra_j, usb_probe, desktop_reports))]
     let (settings_open, pointer_speed) = (false, 1);
     #[cfg(desktop_sheet)]
     let (mut sheet_open, mut sheet_click) = (false, None::<u32>);
@@ -267,13 +269,27 @@ extern "C" fn bmo_main() -> ! {
     let controllers = invoke(3, 3, 4, 0);
     #[cfg(usb_probe)]
     let _ = controllers;
-    #[cfg(not(any(desktop_ultra_j, usb_probe)))]
+    #[cfg(not(any(desktop_ultra_j, usb_probe, desktop_reports)))]
     let usb_pending = controllers != DENIED && (1..=65536).contains(&controllers);
     #[cfg(usb_probe)]
     let mut usb = usb_probe::Input::default();
     #[cfg(all(external_session, not(usb_probe), not(desktop_sheet)))]
     let (mut keyboard_seen, mut mouse_seen, mut input_dirty) = (false, false, true);
+    #[cfg(desktop_reports)]
+    let mut report_tick = u32::MAX - 25;
+    #[cfg(desktop_reports)]
+    let mut report_state = u32::MAX;
     loop {
+        #[cfg(desktop_reports)]
+        if !console {
+            let next_tick = reports::pulse(report_tick);
+            if next_tick != report_tick {
+                let state = invoke(3, 3, 6, 0);
+                input_dirty |= state != report_state;
+                report_state = state;
+            }
+            report_tick = next_tick;
+        }
         #[cfg(all(external_session, not(usb_probe), not(desktop_sheet)))]
         if input_dirty && !console && !settings_open {
             cabina::boot_input(if controllers <= 65536 && controllers != DENIED { controllers } else { 0 },
@@ -365,7 +381,7 @@ extern "C" fn bmo_main() -> ! {
                                 sheet_click = None;
                             }
                         }
-                        #[cfg(not(any(desktop_ultra_j, usb_probe)))]
+                        #[cfg(not(any(desktop_ultra_j, usb_probe, desktop_reports)))]
                         if settings::hit(next_x, next_y) {
                             left = pressed;
                             bar = None;
@@ -391,7 +407,7 @@ extern "C" fn bmo_main() -> ! {
                         pending_motion += 1;
                         if pending_motion == 8 {
                             #[cfg(all(external_session, not(usb_probe), not(desktop_sheet)))]
-                            { input_dirty |= displayed.0 < 572 && displayed.1 >= 345; }
+                            { input_dirty |= displayed.0 < if cfg!(desktop_reports) { 616 } else { 572 } && displayed.1 >= if cfg!(desktop_reports) { 245 } else { 345 }; }
                             move_cursor(displayed, (x, y), space, focus[space], bar.is_some());
                             displayed = (x, y);
                             pending_motion = 0;
@@ -404,7 +420,7 @@ extern "C" fn bmo_main() -> ! {
         }
         if pending_motion != 0 {
             #[cfg(all(external_session, not(usb_probe), not(desktop_sheet)))]
-            { input_dirty |= displayed.0 < 572 && displayed.1 >= 345; }
+            { input_dirty |= displayed.0 < if cfg!(desktop_reports) { 616 } else { 572 } && displayed.1 >= if cfg!(desktop_reports) { 245 } else { 345 }; }
             move_cursor(displayed, (x, y), space, focus[space], bar.is_some());
             displayed = (x, y);
             pending_motion = 0;
@@ -418,6 +434,8 @@ extern "C" fn bmo_main() -> ! {
             let wait = bar.map_or(100, |shown| {
                 u64::from(BAR_TICKS.saturating_sub(invoke(3, 3, 0, 0).wrapping_sub(shown))).min(100)
             });
+            #[cfg(desktop_reports)]
+            let wait = wait.min(25);
             wait_input(wait);
             continue;
         }
@@ -529,7 +547,7 @@ extern "C" fn bmo_main() -> ! {
             }
             continue;
         }
-        #[cfg(not(any(desktop_ultra_j, usb_probe)))]
+        #[cfg(not(any(desktop_ultra_j, usb_probe, desktop_reports)))]
         if !extended && key & 0x7f == 0x3d {
             let toggle = down && !f3_down;
             f3_down = down;
@@ -547,7 +565,7 @@ extern "C" fn bmo_main() -> ! {
             }
             continue;
         }
-        #[cfg(not(any(desktop_ultra_j, usb_probe)))]
+        #[cfg(not(any(desktop_ultra_j, usb_probe, desktop_reports)))]
         if settings_open {
             if !extended && down {
                 match key {

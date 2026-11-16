@@ -1289,6 +1289,17 @@ Depende de: Contrato de drivers Ring 3 (codigo), Lector SBEF de referencia (veri
 Aceptacion: HOST rechaza ciclos, escapes, privilegios desconocidos y SBEF o presupuestos invalidos; CLI conserva los crates existentes.
 Pendiente: Integrar registro con concesiones del NANO-CORE, proceso SBEF aislado y transporte de dispositivo.
 
+## Reports
+
+Expone fase USB, motivo, siguiente paso y pulsos de Ring 0 sin necesitar entrada; exporta evidencia en HOST.
+
+Estado: QEMU. Anillo: host. Lenguaje: Python.
+Entrada: Capacidad de diagnostico, resultados QEMU y BOOTLOG previo a ExitBootServices.
+Salida: Panel automatico y latest.txt/json con fuentes separadas.
+Depende de: Buses, recursos y DMA (codigo), Escritorio y espacios de trabajo (codigo).
+Aceptacion: QEMU confirma panel parcial amarillo, pulsos cambiantes y fallo rojo sin dispositivos; escritorio normal conserva F3. SBEF 10581 B, RX 7225 B.
+Pendiente: Historial general, captura de excepciones fatales y persistencia FAT32 posterior a UEFI. Las fases USB sincronas se ven al retornar INVOKE; no es tiempo real duro.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -1311,4 +1322,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-117 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+118 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
