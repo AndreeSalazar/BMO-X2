@@ -4,7 +4,10 @@ Interfaz real RmlUi 6.3, FreeType y rasterizador Rust CPU de 1280x800.
 El adaptador C++ `engine.cpp` recibe recursos en memoria, tiempo y
 eventos mediante `engine.h`. No incluye APIs Windows, reloj de pared,
 escritura de imagenes ni acceso a disco. Su objeto se audita por separado.
-El runtime C++ y las bibliotecas enlazadas todavia dependen de Windows.
+El runtime de esta prueba HOST sigue enlazado para Windows. La ruta
+[native](native/README.md) ya compila por separado el Core real, FreeType
+y libc++ como ELF64 x86-64; aun falta resolver sus servicios C y enlazar
+un ejecutable antes de llevar el motor completo a Ring 3.
 
 `live.py` demuestra una sesion real con entrada por opacidad de 200 ms,
 animacion RCSS de 400 ms, transiciones de color, puntero y accion

@@ -887,7 +887,10 @@
       "ruta": "docs/FIRST-BOOT.md",
       "titulo": "Primer arranque UEFI en hardware",
       "estado": "diseno",
-      "posicion": [2860, -1300],
+      "posicion": [
+        2860,
+        -1300
+      ],
       "anillo": "host",
       "lenguaje": "contrato",
       "que": "Ordena la prueba fisica del puente y la entrada CASM minima.",
@@ -1453,7 +1456,10 @@
       "estado": "qemu",
       "anillo": "0",
       "lenguaje": "CASM",
-      "posicion": [9000, 3500],
+      "posicion": [
+        9000,
+        3500
+      ],
       "que": "Prueba escritura y lectura de un marco convencional tras ExitBootServices.",
       "entrada": "Entrega del puente, mapa UEFI y rango de 256 MiB de la VM.",
       "salida": "Marca de ocho bytes en un marco de 4096 bytes y parada en CPL0.",
@@ -1467,7 +1473,10 @@
       "estado": "host",
       "anillo": "host",
       "lenguaje": "Python control",
-      "posicion": [9000, 3675],
+      "posicion": [
+        9000,
+        3675
+      ],
       "que": "Comprueba la primera direccion elegible, la marca fisica y el contexto.",
       "entrada": "Registros, mapa de memoria y lectura fisica de QEMU.",
       "salida": "Evidencia por caso y bytes convencionales observados.",
@@ -1481,7 +1490,10 @@
       "estado": "host",
       "anillo": "host",
       "lenguaje": "Python control",
-      "posicion": [9000, 3850],
+      "posicion": [
+        9000,
+        3850
+      ],
       "que": "Mide artefactos en disco y lee la RAM configurada de cada VM.",
       "entrada": "Ultima prueba aprobada por perfil y huella del paquete.",
       "salida": "Bytes de HEX, codigo, paquete, puente, imagenes y directorio de prueba.",
@@ -1495,7 +1507,10 @@
       "estado": "qemu",
       "anillo": "0",
       "lenguaje": "CASM",
-      "posicion": [9500, 3500],
+      "posicion": [
+        9500,
+        3500
+      ],
       "que": "Asigna, protege la propiedad, borra y reasigna un marco de 4 KiB.",
       "entrada": "Mapa de arranque y dos propietarios de prueba.",
       "salida": "Estado de seis pasos, propietario final y marco limpio.",
@@ -1509,7 +1524,10 @@
       "estado": "qemu",
       "anillo": "0",
       "lenguaje": "CASM",
-      "posicion": [9500, 3675],
+      "posicion": [
+        9500,
+        3675
+      ],
       "que": "Instala CR3 propio y separa el mapa supervisor de un alias de usuario.",
       "entrada": "Mapa UEFI y seis marcos convencionales contiguos.",
       "salida": "Cinco tablas y una pagina de datos de solo lectura y NX.",
@@ -1523,7 +1541,10 @@
       "estado": "qemu",
       "anillo": "0",
       "lenguaje": "CASM",
-      "posicion": [9500, 3850],
+      "posicion": [
+        9500,
+        3850
+      ],
       "que": "Ejecuta un programa fijo en CPL3 y captura el acceso prohibido en Ring 0.",
       "entrada": "Tablas, GDT, TSS, puerta 14 y programa de prueba.",
       "salida": "Marco hardware de #PF y dos paginas de usuario desmapeadas y borradas.",
@@ -1537,7 +1558,10 @@
       "estado": "host",
       "anillo": "host",
       "lenguaje": "Python control",
-      "posicion": [9600, 4025],
+      "posicion": [
+        9600,
+        4025
+      ],
       "que": "Coordina la inspeccion, admision, diagnostico y publicacion de ejecutables x86-64.",
       "entrada": "ELF64 o PE32+ enlazado y version de ABI.",
       "salida": "SBEF admitido, comparacion de builds por archivo y paginas, o rechazo con campo y offset.",
@@ -1551,7 +1575,10 @@
       "estado": "host",
       "anillo": "host",
       "lenguaje": "Python control",
-      "posicion": [10000, 3850],
+      "posicion": [
+        10000,
+        3850
+      ],
       "que": "Convierte segmentos de un ELF64 estatico a regiones SBEF comprobadas.",
       "entrada": "Ejecutable x86-64 freestanding y contrato binario provisional.",
       "salida": "Cabecera, tabla de regiones y bytes de la imagen SBEF.",
@@ -1565,7 +1592,10 @@
       "estado": "host",
       "anillo": "host",
       "lenguaje": "Python control",
-      "posicion": [10000, 4025],
+      "posicion": [
+        10000,
+        4025
+      ],
       "que": "Valida la imagen SBEF y localiza el campo rechazado.",
       "entrada": "Bytes SBEF y contrato provisional.",
       "salida": "Regiones admitidas o codigo, campo, offset e indice.",
@@ -1579,7 +1609,10 @@
       "estado": "host",
       "anillo": "host",
       "lenguaje": "Python control",
-      "posicion": [10000, 4200],
+      "posicion": [
+        10000,
+        4200
+      ],
       "que": "Expone secciones y directorios PE que requieren adaptacion de ABI.",
       "entrada": "Ejecutable PE32+ x86-64.",
       "salida": "Inventario HOST y motivos que impiden empaquetar.",
@@ -1593,7 +1626,10 @@
       "estado": "diseno",
       "anillo": "3",
       "lenguaje": "Rust",
-      "posicion": [1110, 2200],
+      "posicion": [
+        1110,
+        2200
+      ],
       "que": "Ordena, configura y recupera servicios desde CPL3.",
       "entrada": "Proceso Rust admitido, runtime y capacidades concedidas.",
       "salida": "Servicios iniciados, vigilados y recuperados con autoridad acotada.",
@@ -1608,7 +1644,10 @@
       "estado": "qemu",
       "anillo": "0",
       "lenguaje": "CASM",
-      "posicion": [10500, 3850],
+      "posicion": [
+        10500,
+        3850
+      ],
       "que": "Valida SBEF embebido y ejecuta tres entradas SYSCALL.",
       "entrada": "Una region SBEF RX, contexto y CPU con SYSCALL.",
       "salida": "Echo, capacidad rechazada, estado WAIT y limpieza de usuario.",
@@ -1622,7 +1661,10 @@
       "estado": "qemu",
       "anillo": "host",
       "lenguaje": "Python control",
-      "posicion": [10500, 4025],
+      "posicion": [
+        10500,
+        4025
+      ],
       "que": "Construye un cliente comun y coteja los bytes de los stubs ELF.",
       "entrada": "Cliente C, cabecera ABI 1, compilador y vector HEX.",
       "salida": "SBEF para ELF o inventario de un objeto COFF MSVC.",
@@ -1636,7 +1678,10 @@
       "estado": "qemu",
       "anillo": "0",
       "lenguaje": "CASM",
-      "posicion": [11000, 3850],
+      "posicion": [
+        11000,
+        3850
+      ],
       "que": "Retira una pagina, invalida la traduccion y reanuda CPL3.",
       "entrada": "Pagina de datos usada desde CPL3 y un fallo de proteccion.",
       "salida": "Dos registros de fallo y tres marcos de usuario borrados.",
@@ -1650,7 +1695,10 @@
       "estado": "diseno",
       "anillo": "contrato",
       "lenguaje": "contrato",
-      "posicion": [11000, 4025],
+      "posicion": [
+        11000,
+        4025
+      ],
       "que": "Separa admision, plan de carga, memoria y diagnostico.",
       "entrada": "SBEF y ABI, limites del proceso y copia inmutable.",
       "salida": "Plan de rangos y permisos o rechazo con ubicacion.",
@@ -1664,7 +1712,10 @@
       "estado": "host",
       "anillo": "host",
       "lenguaje": "inventario",
-      "posicion": [11000, 4200],
+      "posicion": [
+        11000,
+        4200
+      ],
       "que": "Agrupa crates del padre por familia y dependencias declaradas.",
       "entrada": "Manifiestos Cargo del commit fijado de BMO-X.",
       "salida": "Inventario de transferencia y dependencias directas del ABI.",
@@ -1678,7 +1729,10 @@
       "estado": "diseno",
       "anillo": "contrato",
       "lenguaje": "contrato",
-      "posicion": [1110, 2375],
+      "posicion": [
+        1110,
+        2375
+      ],
       "que": "Separa runtime, supervisor, servicios y aplicaciones mediante capacidades.",
       "entrada": "SBEF admitido, ABI, dependencias y autoridad explicita.",
       "salida": "Orden de arranque y criterios de admision de componentes.",
@@ -1692,7 +1746,10 @@
       "estado": "host",
       "anillo": "contrato",
       "lenguaje": "contrato",
-      "posicion": [1750, 2375],
+      "posicion": [
+        1750,
+        2375
+      ],
       "que": "Fija bytes de instrucciones, estilo por clase y cierre de regiones.",
       "entrada": "Objetos de interfaz y reglas de propiedad.",
       "salida": "Formatos UJBC y UJTH para el runtime de usuario.",
@@ -1706,7 +1763,10 @@
       "estado": "host",
       "anillo": "host",
       "lenguaje": "Python",
-      "posicion": [2080, 2375],
+      "posicion": [
+        2080,
+        2375
+      ],
       "que": "Verifica los dos archivos y ejecuta la recuperacion por region en HOST.",
       "entrada": "Bytecode UJBC y tema UJTH.",
       "salida": "Rechazo con offset o informe de objetos, estilos y bytes recuperados.",
@@ -1720,7 +1780,10 @@
       "estado": "host",
       "anillo": "host",
       "lenguaje": "Python",
-      "posicion": [2410, 2375],
+      "posicion": [
+        2410,
+        2375
+      ],
       "que": "Traduce el perfil de clases y regiones a instrucciones UJBC verificadas.",
       "entrada": "Fuente .uj con sintaxis estilo Java.",
       "salida": "Binario .ujb reproducible o error con offset del fuente.",
@@ -1734,7 +1797,10 @@
       "estado": "qemu",
       "anillo": "host",
       "lenguaje": "Python",
-      "posicion": [2740, 2375],
+      "posicion": [
+        2740,
+        2375
+      ],
       "que": "Mantiene CLI compatible y delega compilacion de estructura y estilos en Ultra-J/ui/.",
       "entrada": "Vista .ujh, estilos .ujc y atlas de CABINA.",
       "salida": "Vista UJVI con coordenadas logicas independiente del destino.",
@@ -1748,7 +1814,10 @@
       "estado": "host",
       "anillo": "host",
       "lenguaje": "Python",
-      "posicion": [3400, 2375],
+      "posicion": [
+        3400,
+        2375
+      ],
       "que": "Resuelve estilos y crates invocados por la estructura del paquete.",
       "entrada": "Carpeta con accion, vista y dependencias locales versionadas.",
       "salida": "UJBC, UJVI y grafo JSON o diagnostico con archivo y contexto.",
@@ -1762,7 +1831,10 @@
       "estado": "qemu",
       "anillo": "host",
       "lenguaje": "ASM x86-64 y PowerShell",
-      "posicion": [3070, 2375],
+      "posicion": [
+        3070,
+        2375
+      ],
       "que": "Empaqueta un presentador de Ring 3 para los servicios INVOKE y WAIT de BMO-X2.",
       "entrada": "Vista UJVI compilada y ABI x86-64.",
       "salida": "SBEF con presentador y vista; ACTION.UJB separado en FAT32.",
@@ -1776,7 +1848,10 @@
       "estado": "qemu",
       "anillo": "3",
       "lenguaje": "Rust",
-      "posicion": [1480, 2200],
+      "posicion": [
+        1480,
+        2200
+      ],
       "que": "Compone superficies y gestiona ventanas y cuatro espacios inspirados en Ultra-LinuX.",
       "entrada": "Eventos de entrada, superficies de clientes y capacidad de pantalla.",
       "salida": "Cuadro en RAM, espacio activo, foco, movimiento de ventanas y peticion de cierre desde CABINA.",
@@ -1791,7 +1866,10 @@
       "estado": "host",
       "anillo": "3",
       "lenguaje": "Rust",
-      "posicion": [1850, 2200],
+      "posicion": [
+        1850,
+        2200
+      ],
       "que": "Convierte eventos de BMO-X en cambios de espacio, foco numerado y movimiento de ventanas.",
       "entrada": "Scancode normalizado, flanco y modificadores asociados al evento.",
       "salida": "Atajo consumido o evento para el componente enfocado.",
@@ -1805,7 +1883,10 @@
       "estado": "host",
       "anillo": "3",
       "lenguaje": "Rust",
-      "posicion": [2220, 2200],
+      "posicion": [
+        2220,
+        2200
+      ],
       "que": "Traduce informes USB boot en flancos de teclado, movimiento y botones del raton.",
       "entrada": "Informes de endpoints HID con protocolo boot seleccionado.",
       "salida": "Eventos para atajos, cliente enfocado y puntero.",
@@ -1819,7 +1900,10 @@
       "estado": "qemu",
       "anillo": "host",
       "lenguaje": "PowerShell y C",
-      "posicion": [11500, 4200],
+      "posicion": [
+        11500,
+        4200
+      ],
       "que": "Compila la aritmetica original de DoomGeneric y empaqueta un cliente ELF64.",
       "entrada": "m_fixed.c fijado, toolchain x86-64 ELF y portal ABI 1.",
       "salida": "Tabla ELF, doom-fixed.sbef e informe QEMU de ejecucion CPL3.",
@@ -1833,7 +1917,10 @@
       "estado": "qemu",
       "anillo": "host",
       "lenguaje": "PowerShell y C",
-      "posicion": [11500, 4500],
+      "posicion": [
+        11500,
+        4500
+      ],
       "que": "Enlaza DoomGeneric con el runtime C y presenta el juego por CPU.",
       "entrada": "80 unidades GCC, ABI 1 experimental e IWAD local de solo lectura.",
       "salida": "ELF64 estatico, doom-engine.sbef y capturas de E1M1 en QEMU.",
@@ -1847,7 +1934,10 @@
       "estado": "host",
       "anillo": "3",
       "lenguaje": "Rust",
-      "posicion": [12000, 4200],
+      "posicion": [
+        12000,
+        4200
+      ],
       "que": "Mezcla PCM estereo de hasta dieciseis fuentes con ganancia acotada.",
       "entrada": "Bloques PCM, ganancias por canal y volumen general.",
       "salida": "PCM mezclado, picos por canal y contador de saturacion.",
@@ -1861,7 +1951,10 @@
       "estado": "diseno",
       "anillo": "contrato",
       "lenguaje": "contrato",
-      "posicion": [11500, 4025],
+      "posicion": [
+        11500,
+        4025
+      ],
       "que": "Acota los marcos visibles al dispositivo y controla su devolucion.",
       "entrada": "Dominio IOMMU, dispositivo, capacidad y rango.",
       "salida": "Transferencia autorizada o rechazo con fase de diagnostico.",
@@ -2105,6 +2198,40 @@
       "salida": "Informe HOST con bytes retenidos, cuadros omitidos, tiempos y coste acotado; no RAM total del sistema.",
       "aceptacion": "15 atlas bajan de 1277952 a 319488 bytes; tres imagenes iguales; 30 cuadros quietos sin triangulos; entrada y animacion redibujan; destino nuevo se refresca.",
       "falta": "Port del motor completo y politica de reposo al escritorio Ring 3; medir memoria global de runtime y fuentes."
+    },
+    {
+      "id": "rmlui-native-build",
+      "titulo": "Motor RmlUi compilado para x86-64",
+      "ruta": "tools/desktop/rmlui/native/build.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python / CMake / C++",
+      "posicion": [
+        7100,
+        3300
+      ],
+      "que": "Compila Core real RmlUi, FreeType y libc++/libc++abi como bibliotecas ELF64 sin sustituirlas por una DLL Windows.",
+      "entrada": "Fuentes oficiales fijadas, Clang ELF, NMake y tipos C de musl sin numeros de syscall Linux.",
+      "salida": "282 objetos ELF64 y bibliotecas estaticas; no ejecutable ni SBEF.",
+      "aceptacion": "Build completo de Core, fuentes intactas validadas por SHA256/revision y un include de streams omitido explicitamente en copia de build.",
+      "falta": "Implementar servicios C acotados, arranque C++ y adaptador nativo para DIRECTOR/ULTRA-J antes de QEMU."
+    },
+    {
+      "id": "rmlui-native-audit",
+      "titulo": "Dependencias reales del motor nativo",
+      "ruta": "tools/desktop/rmlui/native/audit.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python / LLVM",
+      "posicion": [
+        7500,
+        3300
+      ],
+      "que": "Valida archivos ELF de destino, enlaza de verdad las bibliotecas y expone servicios pendientes sin aceptar un relocatable como programa.",
+      "entrada": "RmlUi Core, FreeType y libc++ con libc++abi incorporada, compilados para x86-64.",
+      "salida": "native-results.json, unresolved.txt y evidencia de rechazo SBEF del ET_REL.",
+      "aceptacion": "282 miembros ELF64 maquina 62; 70 simbolos pendientes inventariados; rechazo ELF-HEADER/e_type; tests rechazan COFF, otra CPU y archivos alterados.",
+      "falta": "Enlace final sin simbolos pendientes, presupuesto de archivo/memoria y pruebas CPL3 de motor completo."
     }
   ],
   "relaciones": [
@@ -3217,6 +3344,16 @@
       "de": "rmlui-memory-budget",
       "a": "rmlui-raster-probe",
       "clase": "verificacion"
+    },
+    {
+      "de": "rmlui-native-build",
+      "a": "rmlui-native-audit",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-engine-session",
+      "a": "rmlui-native-build",
+      "clase": "codigo"
     }
   ]
 }

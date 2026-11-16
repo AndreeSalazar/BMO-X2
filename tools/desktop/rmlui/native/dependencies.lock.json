@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "dependencies": [
+    {
+      "archive": "cmake-19.1.7.src.tar.xz",
+      "url": "https://github.com/llvm/llvm-project/releases/download/llvmorg-19.1.7/cmake-19.1.7.src.tar.xz",
+      "sha256": "11c5a28f90053b0c43d0dec3d0ad579347fc277199c005206b963c19aae514e3",
+      "folder": "llvm-19.1.7/cmake",
+      "prefix": "cmake-19.1.7.src"
+    },
+    {
+      "archive": "libcxx-19.1.7.src.tar.xz",
+      "url": "https://github.com/llvm/llvm-project/releases/download/llvmorg-19.1.7/libcxx-19.1.7.src.tar.xz",
+      "sha256": "b736109650ffc750dbdc506483347b3713ded9d0300f48432b820ad66b6a9052",
+      "folder": "llvm-19.1.7/libcxx",
+      "prefix": "libcxx-19.1.7.src"
+    },
+    {
+      "archive": "libcxxabi-19.1.7.src.tar.xz",
+      "url": "https://github.com/llvm/llvm-project/releases/download/llvmorg-19.1.7/libcxxabi-19.1.7.src.tar.xz",
+      "sha256": "4d25125109e3febe1393e9e30f93153333d82b48ce7bed637bd2daf52bf40172",
+      "folder": "llvm-19.1.7/libcxxabi",
+      "prefix": "libcxxabi-19.1.7.src"
+    },
+    {
+      "archive": "llvm-19.1.7.src.tar.xz",
+      "url": "https://github.com/llvm/llvm-project/releases/download/llvmorg-19.1.7/llvm-19.1.7.src.tar.xz",
+      "sha256": "96f833c6ad99a3e8e1d9aca5f439b8fd2c7efdcf83b664e0af1c0712c5315910",
+      "folder": "llvm-19.1.7/llvm",
+      "prefix": "llvm-19.1.7.src",
+      "select": [
+        "cmake",
+        "include/llvm/Config",
+        "LICENSE.TXT"
+      ]
+    },
+    {
+      "archive": "runtimes-19.1.7.src.tar.xz",
+      "url": "https://github.com/llvm/llvm-project/releases/download/llvmorg-19.1.7/runtimes-19.1.7.src.tar.xz",
+      "sha256": "404c54c2df45a307331eba1372917ec480addf3b77ca9943ed4d7ea445efb08f",
+      "folder": "llvm-19.1.7/runtimes",
+      "prefix": "runtimes-19.1.7.src"
+    },
+    {
+      "archive": "musl-1.2.5.tar.gz",
+      "url": "https://musl.libc.org/releases/musl-1.2.5.tar.gz",
+      "sha256": "a9a118bbe84d8764da0ea0d28b3ab3fae8477fc7e4085d90102b8596fc7c75e4",
+      "folder": "musl-1.2.5",
+      "prefix": "musl-1.2.5"
+    }
+  ]
+}

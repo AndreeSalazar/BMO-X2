@@ -13,6 +13,13 @@ RmlUi/FreeType completo aun no vive en Ring 3: la DLL Windows tiene
 importaciones pendientes de adaptar. [Estado y pasos del escritorio permanente](tools/desktop/rmlui/README.md#para-convertirlo-en-el-escritorio-permanente)
 y [evidencia HOST/QEMU](Ultra-J/evidence/rmlui-ring3.json).
 
+Ya existe otra ruta que compila RmlUi, FreeType y libc++ como 282 objetos
+ELF64 x86-64, sin convertir la DLL Windows. El enlace relocatable tiene
+70 simbolos pendientes y sigue rechazado como ejecutable SBEF. Esto no
+mide RAM ni habilita aun el motor completo en Ring 3.
+[Build nativo, dependencias y pasos pendientes](tools/desktop/rmlui/native/README.md),
+[evidencia de compilacion](Ultra-J/evidence/rmlui-native.json).
+
 La sesion C++ de RmlUi ya recibe recursos en memoria, reloj monotono,
 destino de dibujo prestado y eventos desde HOST. Tiene entrada por
 opacidad, barra animada, transicion de color, movimiento reducido y
