@@ -10,12 +10,13 @@
 namespace BmoUi {
 constexpr int W = 1280, H = 800;
 struct Geometry { std::vector<Rml::Vertex> v; std::vector<int> i; };
-struct Texture { int w, h; std::vector<Rml::byte> rgba; };
+struct Texture { int w, h; bool alpha_only; std::vector<Rml::byte> texels; };
 class Renderer : public Rml::RenderInterface {
 public:
     uint32_t* pixels=nullptr;
     size_t pixel_count=0;
     size_t triangles = 0, peak_geometry = 0, peak_texture = 0, geometry_bytes = 0, texture_bytes = 0;
+    size_t texture_equivalent_bytes=0, peak_texture_equivalent_bytes=0;
     std::unordered_set<Geometry*> geometries;
     std::unordered_set<Texture*> textures;
     ~Renderer() override {
@@ -48,16 +49,26 @@ public:
     Rml::TextureHandle GenerateTexture(Rml::Span<const Rml::byte> source, Rml::Vector2i dimensions) override {
         if (dimensions.x <= 0 || dimensions.y <= 0 || dimensions.x > 4096 || dimensions.y > 4096 ||
             source.size() != size_t(dimensions.x) * dimensions.y * 4) throw std::runtime_error("texture bounds");
-        if(textures.size()>=64 || texture_bytes+source.size()>16*1024*1024) throw std::runtime_error("texture budget");
-        auto owned=std::make_unique<Texture>(Texture{dimensions.x, dimensions.y, {source.begin(), source.end()}});
+        if(textures.size()>=64 || texture_equivalent_bytes+source.size()>16*1024*1024) throw std::runtime_error("texture budget");
+        bool alpha=true;
+        for(size_t i=0;i<source.size();i+=4) {
+            if(source[i]!=source[i+3] || source[i+1]!=source[i+3] || source[i+2]!=source[i+3]) {alpha=false;break;}
+        }
+        auto owned=std::make_unique<Texture>(Texture{dimensions.x, dimensions.y, alpha, {}});
+        if(alpha) {
+            owned->texels.resize(source.size()/4);
+            for(size_t i=0;i<owned->texels.size();++i) owned->texels[i]=source[i*4+3];
+        } else owned->texels.assign(source.begin(),source.end());
         auto t=owned.get(); textures.insert(t);
-        texture_bytes += t->rgba.size(); peak_texture = std::max(peak_texture, texture_bytes); owned.release();
+        texture_bytes += t->texels.size(); peak_texture = std::max(peak_texture, texture_bytes);
+        texture_equivalent_bytes+=source.size(); peak_texture_equivalent_bytes=std::max(peak_texture_equivalent_bytes,texture_equivalent_bytes);
+        owned.release();
         return reinterpret_cast<Rml::TextureHandle>(t);
     }
     void ReleaseTexture(Rml::TextureHandle handle) override {
         auto t = reinterpret_cast<Texture*>(handle);
         if (!textures.erase(t)) throw std::runtime_error("unknown texture");
-        texture_bytes -= t->rgba.size(); delete t;
+        texture_bytes -= t->texels.size(); texture_equivalent_bytes-=size_t(t->w)*t->h*4; delete t;
     }
     void SetTransform(const Rml::Matrix4f* value) override { transformed=value!=nullptr; unsupported_transform|=transformed; }
     void EnableClipMask(bool enabled) override { unsupported_feature|=enabled; }
@@ -82,8 +93,9 @@ public:
                 vertices[k]={v.position.x+translation.x,v.position.y+translation.y,
                     float(v.colour.red),float(v.colour.green),float(v.colour.blue),float(v.colour.alpha),v.tex_coord.x,v.tex_coord.y};
             }
-            if(bmo_ui_triangle(pixels,pixel_count,W,H,vertices,t?t->rgba.data():nullptr,
-                t?t->rgba.size():0,t?uint32_t(t->w):0,t?uint32_t(t->h):0,bounds)!=0) throw std::runtime_error("Rust raster rejected geometry");
+            auto raster=t && t->alpha_only?bmo_ui_triangle_mask:bmo_ui_triangle;
+            if(raster(pixels,pixel_count,W,H,vertices,t?t->texels.data():nullptr,
+                t?t->texels.size():0,t?uint32_t(t->w):0,t?uint32_t(t->h):0,bounds)!=0) throw std::runtime_error("Rust raster rejected geometry");
             ++triangles;
         }
     }

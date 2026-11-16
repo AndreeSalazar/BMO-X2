@@ -1,4 +1,4 @@
-use crate::raster::{triangle, Vertex, Texture, Rect};
+use crate::raster::{triangle, Vertex, Texture, Rect, Texels};
 pub fn scene() -> [u32;256] {
     let mut pixels=[0x0b1019;256];
     let v=|x,y,r,g,b| Vertex{x,y,r,g,b,a:255.0,u:0.0,v:0.0};
@@ -8,8 +8,11 @@ pub fn scene() -> [u32;256] {
     assert!(triangle(&mut pixels,16,16,[a,b,c],None,full).is_ok());
     assert!(triangle(&mut pixels,16,16,[a,d,c],None,full).is_ok());
     let white=|x,y| v(x,y,255.0,255.0,255.0);
-    let t=Texture{width:1,height:1,rgba:&[64,64,64,128]};
+    let t=Texture{width:1,height:1,texels:Texels::Rgba(&[64,64,64,128])};
     assert!(triangle(&mut pixels,16,16,[white(0.0,0.0),white(16.0,0.0),white(0.0,16.0)],Some(t),
         Rect{left:3,top:3,right:13,bottom:13}).is_ok());
+    let t=Texture{width:1,height:1,texels:Texels::Alpha(&[128])};
+    assert!(triangle(&mut pixels,16,16,[white(8.0,0.0),white(16.0,8.0),white(8.0,16.0)],Some(t),
+        Rect{left:10,top:4,right:14,bottom:12}).is_ok());
     pixels
 }

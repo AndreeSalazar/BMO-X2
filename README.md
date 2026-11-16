@@ -19,6 +19,12 @@ opacidad, barra animada, transicion de color, movimiento reducido y
 callback ULTRA-J probado. El adaptador no llama APIs Windows directamente;
 el runtime C++ enlazado sigue pendiente de portar. [Sesion y limites](tools/desktop/rmlui/README.md#sesion-c-alimentada-por-host-bmo-ui-memory-v1).
 
+La optimizacion del dibujador guarda los atlas blancos en Alpha8 sin
+perder pixeles: el ejemplo retiene 319,488 bytes frente a 1,277,952 en
+RGBA. El formato compacto paso la sonda CPL3. La sesion HOST puede
+omitir un cuadro preservado en reposo y reactivarse con entrada;
+no mantiene un segundo framebuffer. [Medidas y alcance](tools/desktop/rmlui/README.md#memoria-y-reposo-medidos).
+
 El perfil optativo `-Welcome` comprueba la secuencia gato CASM en Ring 0,
 bienvenida Rust en Ring 3 y escritorio. Puede saltarse con entrada, que
 se conserva para la sesion. No sustituye la verificacion de dispositivos

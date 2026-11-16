@@ -1998,10 +1998,10 @@
         5500,
         3100
       ],
-      "que": "Dibuja triangulos, texturas RGBA y recorte sobre buffers prestados sin heap ni llamadas de SO.",
+      "que": "Dibuja triangulos con RGBA o Alpha8 blanco premultiplicado sobre buffers prestados, sin heap ni llamadas de SO.",
       "entrada": "Vertices, textura acotada, superficie XRGB y rectangulo de recorte.",
       "salida": "Pixeles propios de la superficie; rechazo antes de escribir ante dimensiones o vertices invalidos.",
-      "aceptacion": "Vista HOST identica al backend C++ inicial y sonda CPL3 identica pixel por pixel a HOST; rechazo W+X conservado.",
+      "aceptacion": "256 coberturas Alpha8 iguales a RGBA; sonda CPL3 con ambos formatos y pixeles iguales a HOST; rechazo W+X conservado.",
       "falta": "Integracion con superficies e invalidacion del escritorio permanente y motor RmlUi completo."
     },
     {
@@ -2017,7 +2017,7 @@
       ],
       "que": "Construye el mismo dibujador como SBEF freestanding y compara pixeles reales de QEMU con HOST.",
       "entrada": "Run ABI CASM verificado y codigo Rust compartido.",
-      "salida": "SBEF de 7085 bytes, captura y reporte QEMU de CPL3; no instala escritorio ni motor completo.",
+      "salida": "SBEF de 7421 bytes, captura y reporte QEMU de CPL3 con RGBA y Alpha8; no instala escritorio ni motor completo.",
       "aceptacion": "256 pixeles logicos y 65536 fisicos iguales a HOST; dos casos pasan incluido W+X; ninguna guarda ampliada.",
       "falta": "Pruebas del motor completo, eventos, cierre de recursos, sesion permanente y METAL."
     },
@@ -2066,7 +2066,7 @@
         6300,
         3300
       ],
-      "que": "Expone reloj monotono, recursos, eventos, movimiento reducido y destino prestado mediante ABI C experimental de aplicacion.",
+      "que": "Expone reloj, recursos, eventos, destino prestado y omision optativa de cuadros preservados sin cambios, mediante ABI C de aplicacion.",
       "entrada": "Tabla de recursos, tiempo inyectado, entrada y callback de accion ULTRA-J.",
       "salida": "Cuadros Rust CPU, plazo de actualizacion y diagnosticos de ciclo de vida y perfil visual.",
       "aceptacion": "Animaciones RCSS de opacidad/ancho/color verificadas; puntero y Enter; reentrada bloqueada; cierre limpio; objeto sin llamadas Kernel32 directas.",
@@ -2088,6 +2088,23 @@
       "salida": "PNG, GIF de cuadros reales e informe HOST con pruebas, recursos y costes.",
       "aceptacion": "Movimiento reducido estable, transiciones interpoladas, accion aceptada/rechazada, repeticion Enter, reinicializacion y ausencia de actualizaciones pendientes al terminar.",
       "falta": "Prueba del mismo motor completo en Ring 3 y perfil de admision; el callback actual ejecuta la VM HOST Python."
+    },
+    {
+      "id": "rmlui-memory-budget",
+      "titulo": "Memoria y reposo de la interfaz",
+      "ruta": "tools/desktop/rmlui/memory.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python / C++ / Rust",
+      "posicion": [
+        6700,
+        3100
+      ],
+      "que": "Mide atlas compactos sin perdida, igualdad visual y trabajo evitado en reposo con reactivacion por entrada.",
+      "entrada": "Sesion real RmlUi, recursos fijados y referencia visual opcional.",
+      "salida": "Informe HOST con bytes retenidos, cuadros omitidos, tiempos y coste acotado; no RAM total del sistema.",
+      "aceptacion": "15 atlas bajan de 1277952 a 319488 bytes; tres imagenes iguales; 30 cuadros quietos sin triangulos; entrada y animacion redibujan; destino nuevo se refresca.",
+      "falta": "Port del motor completo y politica de reposo al escritorio Ring 3; medir memoria global de runtime y fuentes."
     }
   ],
   "relaciones": [
@@ -3190,6 +3207,16 @@
       "de": "rmlui-live-validation",
       "a": "ultra-j-recycler",
       "clase": "codigo"
+    },
+    {
+      "de": "rmlui-memory-budget",
+      "a": "rmlui-engine-session",
+      "clase": "verificacion"
+    },
+    {
+      "de": "rmlui-memory-budget",
+      "a": "rmlui-raster-probe",
+      "clase": "verificacion"
     }
   ]
 }

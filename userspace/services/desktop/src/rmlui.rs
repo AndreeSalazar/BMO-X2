@@ -11,7 +11,8 @@ pub struct Vertex {
 #[derive(Clone, Copy)]
 pub struct Rect { pub left: u32, pub top: u32, pub right: u32, pub bottom: u32 }
 
-pub struct Texture<'a> { pub width: u32, pub height: u32, pub rgba: &'a [u8] }
+pub enum Texels<'a> { Rgba(&'a [u8]), Alpha(&'a [u8]) }
+pub struct Texture<'a> { pub width: u32, pub height: u32, pub texels: Texels<'a> }
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error { Target, Texture, Vertex }
@@ -31,8 +32,9 @@ pub fn triangle(pixels: &mut [u32], width: u32, height: u32,
     if width == 0 || height == 0 || width > 4096 || height > 4096
         || pixels.len() != width as usize * height as usize { return Err(Error::Target); }
     if let Some(t) = &texture {
+        let (length, channels)=match &t.texels {Texels::Rgba(b)=>(b.len(),4),Texels::Alpha(b)=>(b.len(),1)};
         if t.width == 0 || t.height == 0 || t.width > 4096 || t.height > 4096
-            || t.rgba.len() != t.width as usize * t.height as usize * 4 { return Err(Error::Texture); }
+            || length != t.width as usize * t.height as usize * channels { return Err(Error::Texture); }
     }
     for v in &vertices {
         if ![v.x,v.y,v.r,v.g,v.b,v.a,v.u,v.v].iter().all(|f| f.is_finite())
@@ -60,10 +62,20 @@ pub fn triangle(pixels: &mut [u32], width: u32, height: u32,
         if let Some(t)=&texture {
             let tx=((u*a.u+v*b.u+w*c.u)*t.width as f32) as i32;
             let ty=((u*a.v+v*b.v+w*c.v)*t.height as f32) as i32;
-            let index=(ty.clamp(0,t.height as i32-1) as usize*t.width as usize
-                + tx.clamp(0,t.width as i32-1) as usize)*4;
-            r*=t.rgba[index] as f32/255.0; g*=t.rgba[index+1] as f32/255.0;
-            bl*=t.rgba[index+2] as f32/255.0; alpha*=t.rgba[index+3] as f32/255.0;
+            let index=ty.clamp(0,t.height as i32-1) as usize*t.width as usize
+                + tx.clamp(0,t.width as i32-1) as usize;
+            match &t.texels {
+                Texels::Rgba(bytes)=> {
+                    let index=index*4;
+                    r*=bytes[index] as f32/255.0; g*=bytes[index+1] as f32/255.0;
+                    bl*=bytes[index+2] as f32/255.0; alpha*=bytes[index+3] as f32/255.0;
+                }
+                Texels::Alpha(bytes)=> {
+                    // Lossless shorthand for premultiplied white RGBA=(a,a,a,a).
+                    let coverage=bytes[index] as f32/255.0;
+                    r*=coverage; g*=coverage; bl*=coverage; alpha*=coverage;
+                }
+            }
         }
         let index=y as usize*width as usize+x as usize;
         let dst=pixels[index]; let inv=1.0-alpha/255.0;
@@ -88,7 +100,7 @@ mod tests {
     #[test]
     fn borrowed_font_texture_and_scissor() {
         let mut target=[0u32;16];
-        let t=Texture{width:1,height:1,rgba:&[128,128,128,128]};
+        let t=Texture{width:1,height:1,texels:Texels::Rgba(&[128,128,128,128])};
         triangle(&mut target,4,4,[v(0.0,0.0),v(4.0,0.0),v(0.0,4.0)],Some(t),
                  Rect{left:1,top:1,right:2,bottom:2}).unwrap();
         assert_eq!(target.iter().filter(|&&p|p!=0).count(),1);
@@ -98,9 +110,20 @@ mod tests {
     fn invalid_inputs_do_not_change_target() {
         let mut target=[7;16]; let verts=[v(0.0,0.0),v(4.0,0.0),v(0.0,4.0)];
         assert_eq!(triangle(&mut target,5,4,verts,None,CLIP),Err(Error::Target));
-        assert_eq!(triangle(&mut target,4,4,verts,Some(Texture{width:1,height:1,rgba:&[]}),CLIP),Err(Error::Texture));
+        assert_eq!(triangle(&mut target,4,4,verts,Some(Texture{width:1,height:1,texels:Texels::Rgba(&[])}),CLIP),Err(Error::Texture));
+        assert_eq!(triangle(&mut target,4,4,verts,Some(Texture{width:1,height:1,texels:Texels::Alpha(&[])}),CLIP),Err(Error::Texture));
         let mut bad=verts; bad[0].x=f32::NAN;
         assert_eq!(triangle(&mut target,4,4,bad,None,CLIP),Err(Error::Vertex));
         assert_eq!(target,[7;16]);
+    }
+    #[test]
+    fn alpha_atlas_matches_rgba_for_all_coverages() {
+        let verts=[v(0.0,0.0),v(4.0,0.0),v(0.0,4.0)];
+        for alpha in 0..=255 {
+            let mut rgba=[0x123456;16]; let mut mask=rgba;
+            triangle(&mut rgba,4,4,verts,Some(Texture{width:1,height:1,texels:Texels::Rgba(&[alpha;4])}),CLIP).unwrap();
+            triangle(&mut mask,4,4,verts,Some(Texture{width:1,height:1,texels:Texels::Alpha(&[alpha])}),CLIP).unwrap();
+            assert_eq!(rgba,mask,"coverage {alpha}");
+        }
     }
 }

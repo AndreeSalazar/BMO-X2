@@ -63,6 +63,14 @@ entrada por opacidad, animacion de ancho/color, movimiento reducido,
 puntero y callback ULTRA-J HOST, mas cierre y rechazos. El siguiente
 plazo de RmlUi se expone al cliente para integrarlo luego con WAIT.
 
+El dibujador acepta Alpha8 para atlas blancos premultiplicados, con
+RGBA para datos de color. Conserva los pixeles y reduce el payload del
+ejemplo un 75%; el camino Alpha8 tambien paso QEMU en CPL3. La sesion
+HOST ofrece `frame_if_due` para no limpiar ni rasterizar un destino
+preservado cuando no hay cambios ni plazos vencidos. Entrada, animacion
+o un destino perdido fuerzan trabajo. Esta politica de reposo aun no
+forma parte del escritorio instalado ni de la sonda QEMU del motor completo.
+
 ## Gato Ring 0, bienvenida Ring 3, escritorio
 
 El gato CASM permanece intacto. La prueba compara sus dos cuadros de

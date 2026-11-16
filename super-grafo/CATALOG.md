@@ -125,12 +125,13 @@
 | [ULTRA-J: perfil de estilos](../Ultra-J/ui/style.py) | host | host | Valida el perfil UJC acotado y sus propiedades soportadas. |
 | [ULTRA-J: compilador visual](../Ultra-J/ui/view.py) | host | host | Transforma .ujh y reglas en geometria validada y listas UJVI. |
 | [RmlUi + ULTRA-J en HOST](../tools/desktop/rmlui) | host | host | Construye RmlUi/FreeType en HOST y empaqueta recursos, UJBC y DLL; prueba el motor C++ con dibujador Rust. |
-| [Dibujo CPU Rust para RmlUi](../userspace/services/desktop/src/rmlui.rs) | qemu | 3 | Dibuja triangulos, texturas RGBA y recorte sobre buffers prestados sin heap ni llamadas de SO. |
+| [Dibujo CPU Rust para RmlUi](../userspace/services/desktop/src/rmlui.rs) | qemu | 3 | Dibuja triangulos con RGBA o Alpha8 blanco premultiplicado sobre buffers prestados, sin heap ni llamadas de SO. |
 | [Sonda SBEF del dibujador comun](../tools/desktop/rmlui/guest.ps1) | qemu | host | Construye el mismo dibujador como SBEF freestanding y compara pixeles reales de QEMU con HOST. |
 | [Bienvenida del escritorio en Ring 3](../userspace/services/desktop/src/welcome.rs) | qemu | 3 | Muestra tres fases visuales despues de admision y permisos, entre el gato CASM y el escritorio ULTRA-J. |
 | [Recursos de interfaz en memoria](../tools/desktop/rmlui/memory_files.h) | host | host | Sustituye acceso a archivos del adaptador por una tabla de recursos inmutables con cursores acotados. |
-| [Sesion del motor C++ RmlUi](../tools/desktop/rmlui/engine.cpp) | host | host | Expone reloj monotono, recursos, eventos, movimiento reducido y destino prestado mediante ABI C experimental de aplicacion. |
+| [Sesion del motor C++ RmlUi](../tools/desktop/rmlui/engine.cpp) | host | host | Expone reloj, recursos, eventos, destino prestado y omision optativa de cuadros preservados sin cambios, mediante ABI C de aplicacion. |
 | [Prueba de sesion y animacion real](../tools/desktop/rmlui/live.py) | host | host | HOST entrega recursos al motor real, avanza tiempo determinista y verifica pixeles, entrada, acciones y rechazos. |
+| [Memoria y reposo de la interfaz](../tools/desktop/rmlui/memory.py) | host | host | Mide atlas compactos sin perdida, igualdad visual y trabajo evitado en reposo con reactivacion por entrada. |
 
 ## Dependencias declaradas
 
@@ -356,5 +357,7 @@
 | rmlui-live-validation | rmlui-engine-session | verificacion |
 | rmlui-live-validation | ultra-j-compiler | codigo |
 | rmlui-live-validation | ultra-j-recycler | codigo |
+| rmlui-memory-budget | rmlui-engine-session | verificacion |
+| rmlui-memory-budget | rmlui-raster-probe | verificacion |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

@@ -106,13 +106,15 @@ pixeles con HOST (degradado, arista compartida, recorte y textura) y
 verifica rechazo W+X. El bucle final `pause` solo mantiene la sonda
 observable hasta que el capturador termina QEMU; no es el lazo del escritorio.
 
-Resultado medido: SBEF 7,085 bytes, regiones RX/R 12,288 bytes mapeados,
+Resultado inicial: SBEF 7,085 bytes; con Alpha8 y su caso de prueba,
+7,421 bytes. Regiones RX/R: 12,288 bytes mapeados,
 mas 4,096 bytes de pila de usuario reservada por el fixture. No contiene
 RML, fuentes ni el motor C++ completo. El target freestanding usa las
 rutinas de coma flotante de compiler_builtins, sin introducir SSE ni
 requisitos nuevos de contexto SIMD. ELF sin simbolos sin resolver.
 No representa RAM total del sistema; excluye las estructuras supervisoras,
-framebuffer y coste de QEMU. Evidencia: `Ultra-J/evidence/rmlui-ring3.json`.
+framebuffer y coste de QEMU. Evidencia inicial: `Ultra-J/evidence/rmlui-ring3.json`;
+optimizacion actual: `Ultra-J/evidence/rmlui-memory.json`.
 
 ### Para convertirlo en el escritorio permanente
 
@@ -185,3 +187,55 @@ filtros, accion rechazada, reentrada, cierre y reinicializacion. Genera
 informe. El GIF repite la demostracion; la animacion del motor termina.
 Esta es evidencia HOST. La logica ULTRA-J sigue en el runtime Python
 actual; la DLL aun se rechaza para SBEF y no se instala en FAT32.
+
+## Memoria y reposo medidos
+
+El dibujador detecta texturas premultiplicadas blancas cuyos texeles
+son exactamente `(a,a,a,a)` y almacena solo `a`. Rust acepta Alpha8 y
+RGBA; si aparece color, se conserva RGBA integro. No se cuantiza ni
+reduce calidad. El presupuesto de texturas se sigue comprobando contra
+los bytes RGBA originales, sin debilitar la guarda de 16 MiB.
+
+En el ejemplo, 15 atlas pasaron de 1,277,952 a 319,488 bytes retenidos
+en el dibujador: 958,464 bytes menos (75%). Tres cuadros de referencia
+conservan todos sus pixeles. Esto mide el payload del backend; no es una
+reduccion del 75% del proceso, de FreeType ni de BMO-X2 completo.
+El test nativo de almacenamiento conserva el camino RGBA de color y
+verifica el limite de 64 texturas y su liberacion. El test Rust compara
+las 256 coberturas de Alpha8 con su equivalente RGBA. QEMU verifica el
+mismo dibujador no_std con ambos formatos y conserva el rechazo W+X.
+
+`bmo_ui_frame` mantiene su comportamiento: siempre dibuja. La opcion
+`bmo_ui_frame_if_due(ns,pixels,count,preserved,&rendered)` permite omitir
+el trabajo solo cuando el llamador garantiza que el destino conserva
+el ultimo cuadro completo, no hay cambios y no vencio el plazo pedido
+por RmlUi. `rendered=0` deja los pixeles intactos. No se conserva dentro
+del motor una copia ni un puntero al cuadro anterior.
+
+Un destino nuevo o perdido (`preserved=0`) obliga a dibujar; el primer
+cuadro tampoco se omite. Entrada y cambios de movimiento invalidan la
+escena, y las animaciones siguen dibujando cuando corresponde. El reloj
+se valida incluso al omitir, y el siguiente plazo se ajusta al tiempo
+transcurrido. El llamador debe evitar presentar un cuadro omitido de
+nuevo y usar WAIT segun el ABI, respetando su limite de duracion.
+
+En HOST, 30 solicitudes en reposo generaron cero cuadros y cero
+triangulos, evitando al menos 122,880,000 bytes de limpieza de destino.
+Eso es trabajo/escritura evitada, no RAM liberada. El buffer propio del
+cliente sigue ocupando 4,096,000 bytes a 1280x800.
+`bmo_ui_optimization_stats` separa bytes RGBA equivalentes, formatos
+activos y cuadros dibujados/omitidos. No modifica la estructura de
+estadisticas anterior ni el ABI del kernel.
+
+```powershell
+.\build\rmlui-host\native\bmo_ui_storage_test.exe
+python .\tools\desktop\rmlui\memory.py
+```
+
+`memory.py --baseline <results.json>` puede comparar las tres imagenes
+de una ejecucion anterior; los PNG deben estar junto a ese informe y
+los recursos de entrada deben tener los mismos hashes. El informe de
+esta migracion conserva la igualdad medida frente al commit `668d2b4`.
+Los tiempos del banco son de llamadas nativas en HOST con reloj de UI
+inyectado; no miden la latencia de entrada fisica ni prometen FPS en METAL.
+El motor RmlUi completo y su planificador aun no estan portados a Ring 3.

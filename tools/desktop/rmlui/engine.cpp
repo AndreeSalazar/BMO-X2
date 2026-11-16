@@ -65,6 +65,8 @@ struct Session {
     Rml::Context* context=nullptr;
     Rml::ElementDocument* document=nullptr;
     bool initialized=false,poisoned=false;
+    bool dirty=true, rendered=false;
+    uint64_t next_due_ns=0, frames_rendered=0, frames_skipped=0;
     bool shutdown() {
         if(!lease) return true;
         if(initialized) Rml::Shutdown();
@@ -76,6 +78,11 @@ struct Session {
 };
 std::unique_ptr<Session> session;
 int failed(const std::exception& e) { error(e.what()); if(session) session->poisoned=true; return UiEngine; }
+void schedule_update(Session& s) {
+    double delay=s.context->GetNextUpdateDelay();
+    if(!std::isfinite(delay) || delay>=double(UINT64_MAX-s.clock.ns)/1e9) s.next_due_ns=UINT64_MAX;
+    else s.next_due_ns=s.clock.ns+uint64_t(std::ceil(std::max(0.0,delay)*1e9));
+}
 }
 
 int bmo_ui_open(const BmoUiBlob* blobs,size_t count,BmoUiAction callback) {
@@ -120,6 +127,8 @@ int bmo_ui_frame(uint64_t ns,uint32_t* pixels,size_t length) {
         session->renderer.frame(session->context);
         session->renderer.pixels=nullptr; session->renderer.pixel_count=0;
         if(session->clock.warnings) {session->poisoned=true;return UiEngine;}
+        session->dirty=false; session->rendered=true; ++session->frames_rendered;
+        schedule_update(*session);
         return UiOk;
     } catch(const std::exception& e) {
         session->renderer.pixels=nullptr; session->renderer.pixel_count=0;
@@ -127,11 +136,27 @@ int bmo_ui_frame(uint64_t ns,uint32_t* pixels,size_t length) {
     }
 }
 
+int bmo_ui_frame_if_due(uint64_t ns,uint32_t* pixels,size_t length,uint32_t preserved,uint32_t* rendered) {
+    if(busy || !session || session->poisoned) return UiState;
+    if(!rendered || preserved>1 || !pixels || length!=size_t(W)*H || reinterpret_cast<uintptr_t>(pixels)%alignof(uint32_t)) return UiArgument;
+    if(ns<session->clock.ns) return UiTime;
+    if(preserved && session->rendered && !session->dirty &&
+        (session->next_due_ns==UINT64_MAX || ns<session->next_due_ns)) {
+        Busy guard;
+        session->clock.ns=ns; ++session->frames_skipped; *rendered=0;
+        return UiOk;
+    }
+    int status=bmo_ui_frame(ns,pixels,length);
+    *rendered=status==UiOk?1:0;
+    return status;
+}
+
 int bmo_ui_input(uint32_t kind,int32_t x,int32_t y) {
     if(busy || !session || session->poisoned) return UiState;
     if(kind>4 || x<0 || x>=W || y<0 || y>=H) return UiArgument;
     Busy guard;
     try {
+        session->dirty=true;
         if(kind==0) session->context->ProcessMouseMove(x,y,0);
         else if(kind==1) session->context->ProcessMouseButtonDown(0,0);
         else if(kind==2) session->context->ProcessMouseButtonUp(0,0);
@@ -158,15 +183,20 @@ int bmo_ui_motion(uint32_t enabled) {
     if(busy || !session || session->poisoned) return UiState;
     if(enabled>1) return UiArgument;
     Busy guard;
-    try {session->document->SetClass("reduced-motion",enabled==0);return UiOk;}
+    try {session->dirty=true;session->document->SetClass("reduced-motion",enabled==0);return UiOk;}
     catch(const std::exception& e) {return failed(e);}
 }
 
 int bmo_ui_next_delay_ms(uint32_t* delay) {
     if(busy || !session || session->poisoned) return UiState;
     if(!delay) return UiArgument;
-    double seconds=session->context->GetNextUpdateDelay();
-    *delay=std::isfinite(seconds)?uint32_t(std::clamp(std::ceil(seconds*1000.0),0.0,4294967294.0)):UINT32_MAX;
+    if(session->dirty || !session->rendered) *delay=0;
+    else if(session->next_due_ns==UINT64_MAX) *delay=UINT32_MAX;
+    else {
+        uint64_t ns=session->next_due_ns>session->clock.ns?session->next_due_ns-session->clock.ns:0;
+        uint64_t ms=ns/1000000+(ns%1000000!=0);
+        *delay=uint32_t(std::min<uint64_t>(ms,UINT32_MAX-1));
+    }
     return UiOk;
 }
 
@@ -183,5 +213,15 @@ int bmo_ui_close() {
     Busy guard;
     try {bool clean=session->shutdown();session.reset();return clean?UiOk:UiEngine;}
     catch(const std::exception& e) {return failed(e);}
+}
+int bmo_ui_optimization_stats(BmoUiOptimizationStats* stats) {
+    if(busy || !session) return UiState;
+    if(!stats) return UiArgument;
+    auto& s=*session;
+    uint64_t alpha=0;
+    for(auto t:s.renderer.textures) alpha+=t->alpha_only;
+    *stats={s.renderer.texture_equivalent_bytes,s.renderer.peak_texture_equivalent_bytes,
+        alpha,s.renderer.textures.size()-alpha,s.frames_rendered,s.frames_skipped};
+    return UiOk;
 }
 const char* bmo_ui_error() { return error_text; }

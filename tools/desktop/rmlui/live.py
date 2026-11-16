@@ -18,6 +18,12 @@ class Stats(c.Structure):
         'peak_texture_bytes', 'open_files', 'denied_files', 'click_events', 'action_accepted')]
 
 
+class OptimizationStats(c.Structure):
+    _fields_ = [(name, c.c_uint64) for name in (
+        'texture_rgba_equivalent_bytes', 'peak_texture_rgba_equivalent_bytes',
+        'alpha_textures', 'rgba_textures', 'frames_rendered', 'frames_skipped')]
+
+
 class Engine:
     def __init__(self, assets, callback):
         self.assets, self.callback = assets, callback
@@ -26,11 +32,13 @@ class Engine:
         signatures = {
             'open': ([c.POINTER(Blob), c.c_size_t, Callback], c.c_int),
             'frame': ([c.c_uint64, c.POINTER(c.c_uint32), c.c_size_t], c.c_int),
+            'frame_if_due': ([c.c_uint64, c.POINTER(c.c_uint32), c.c_size_t, c.c_uint32, c.POINTER(c.c_uint32)], c.c_int),
             'input': ([c.c_uint32, c.c_int32, c.c_int32], c.c_int),
             'box': ([c.c_char_p, c.POINTER(c.c_float)], c.c_int),
             'motion': ([c.c_uint32], c.c_int),
             'next_delay_ms': ([c.POINTER(c.c_uint32)], c.c_int),
             'stats': ([c.POINTER(Stats)], c.c_int),
+            'optimization_stats': ([c.POINTER(OptimizationStats)], c.c_int),
             'close': ([], c.c_int), 'error': ([], c.c_char_p),
         }
         for name, (args, result) in signatures.items():
@@ -91,6 +99,11 @@ class Engine:
         self.require(self.next_delay_ms(c.byref(delay)))
         return {**{name: getattr(stats, name) for name, _ in Stats._fields_},
                 'next_delay_ms': delay.value}
+
+    def optimization_counters(self):
+        stats = OptimizationStats()
+        self.require(self.optimization_stats(c.byref(stats)))
+        return {name: getattr(stats, name) for name, _ in OptimizationStats._fields_}
 
 
 def main():
@@ -242,6 +255,7 @@ def main():
         final_stats=stats, reduced_motion_stats=reduced_stats, callbacks=callbacks,
         rejected_action_stats=rejected_stats,
         keyboard_stats=keyboard_stats,
+        texture_budget_basis='RGBA-equivalent input bytes before lossless mask packing; original limit unchanged',
         ultra_j=actions, manifest=manifest,
         framebuffer_bytes=W * H * 4, frame_target='borrowed from caller per frame, no second native framebuffer',
         resource_limits=dict(files=8, each_bytes=2*1024*1024, total_bytes=8*1024*1024,

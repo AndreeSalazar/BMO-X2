@@ -1335,13 +1335,13 @@ Pendiente: Motor C++ freestanding, asignador y servicios propios, eventos DIRECT
 
 ## userspace/services/desktop/src/rmlui.rs
 
-Dibuja triangulos, texturas RGBA y recorte sobre buffers prestados sin heap ni llamadas de SO.
+Dibuja triangulos con RGBA o Alpha8 blanco premultiplicado sobre buffers prestados, sin heap ni llamadas de SO.
 
 Estado: QEMU. Anillo: 3. Lenguaje: Rust.
 Entrada: Vertices, textura acotada, superficie XRGB y rectangulo de recorte.
 Salida: Pixeles propios de la superficie; rechazo antes de escribir ante dimensiones o vertices invalidos.
 Depende de: contrato propio sin dependencias en este catalogo.
-Aceptacion: Vista HOST identica al backend C++ inicial y sonda CPL3 identica pixel por pixel a HOST; rechazo W+X conservado.
+Aceptacion: 256 coberturas Alpha8 iguales a RGBA; sonda CPL3 con ambos formatos y pixeles iguales a HOST; rechazo W+X conservado.
 Pendiente: Integracion con superficies e invalidacion del escritorio permanente y motor RmlUi completo.
 
 ## tools/desktop/rmlui/guest.ps1
@@ -1350,7 +1350,7 @@ Construye el mismo dibujador como SBEF freestanding y compara pixeles reales de 
 
 Estado: QEMU. Anillo: host. Lenguaje: PowerShell / Rust / Python.
 Entrada: Run ABI CASM verificado y codigo Rust compartido.
-Salida: SBEF de 7085 bytes, captura y reporte QEMU de CPL3; no instala escritorio ni motor completo.
+Salida: SBEF de 7421 bytes, captura y reporte QEMU de CPL3 con RGBA y Alpha8; no instala escritorio ni motor completo.
 Depende de: Dibujo CPU Rust para RmlUi (codigo), SBEF ABI 1 y llamadas desde CPL3 (verificacion).
 Aceptacion: 256 pixeles logicos y 65536 fisicos iguales a HOST; dos casos pasan incluido W+X; ninguna guarda ampliada.
 Pendiente: Pruebas del motor completo, eventos, cierre de recursos, sesion permanente y METAL.
@@ -1379,7 +1379,7 @@ Pendiente: Integrar el productor de recursos y asignador del entorno Ring 3; el 
 
 ## tools/desktop/rmlui/engine.cpp
 
-Expone reloj monotono, recursos, eventos, movimiento reducido y destino prestado mediante ABI C experimental de aplicacion.
+Expone reloj, recursos, eventos, destino prestado y omision optativa de cuadros preservados sin cambios, mediante ABI C de aplicacion.
 
 Estado: HOST. Anillo: host. Lenguaje: C++.
 Entrada: Tabla de recursos, tiempo inyectado, entrada y callback de accion ULTRA-J.
@@ -1398,6 +1398,17 @@ Salida: PNG, GIF de cuadros reales e informe HOST con pruebas, recursos y costes
 Depende de: Sesion del motor C++ RmlUi (verificacion), ULTRA-J: compilador inicial (codigo), ULTRA-J: verificador y reciclador (codigo).
 Aceptacion: Movimiento reducido estable, transiciones interpoladas, accion aceptada/rechazada, repeticion Enter, reinicializacion y ausencia de actualizaciones pendientes al terminar.
 Pendiente: Prueba del mismo motor completo en Ring 3 y perfil de admision; el callback actual ejecuta la VM HOST Python.
+
+## tools/desktop/rmlui/memory.py
+
+Mide atlas compactos sin perdida, igualdad visual y trabajo evitado en reposo con reactivacion por entrada.
+
+Estado: HOST. Anillo: host. Lenguaje: Python / C++ / Rust.
+Entrada: Sesion real RmlUi, recursos fijados y referencia visual opcional.
+Salida: Informe HOST con bytes retenidos, cuadros omitidos, tiempos y coste acotado; no RAM total del sistema.
+Depende de: Sesion del motor C++ RmlUi (verificacion), Sonda SBEF del dibujador comun (verificacion).
+Aceptacion: 15 atlas bajan de 1277952 a 319488 bytes; tres imagenes iguales; 30 cuadros quietos sin triangulos; entrada y animacion redibujan; destino nuevo se refresca.
+Pendiente: Port del motor completo y politica de reposo al escritorio Ring 3; medir memoria global de runtime y fuentes.
 
 ## CASM
 
@@ -1421,4 +1432,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-127 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+128 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
