@@ -7,6 +7,7 @@ if ((Split-Path $runPath -Parent) -ne (Join-Path $root 'build/CASM')) { throw 'R
 if ((Get-Content -LiteralPath (Join-Path $runPath 'profile.txt') -Raw).Trim() -ne 'rmlui-desktop-media') { throw 'Perfil de arranque incompatible.' }
 $media=Join-Path $runPath 'media'
 $proof=Get-Content -LiteralPath (Join-Path $media 'manifest.json') -Raw | ConvertFrom-Json
+if($proof.qemu_only -or $proof.usb_profile -or (Test-Path -LiteralPath (Join-Path $runPath 'native-usb.txt'))){throw 'El perfil USB QEMU no se instala en METAL.'}
 $normal=$proof.Cases | Where-Object { $_.Case -eq 'normal' } | Select-Object -First 1
 if ($proof.Passed -ne 2 -or $proof.Total -ne 2 -or -not $proof.disk_sbef -or
     -not $normal.DirectorRust -or -not $normal.SuperQVerified -or -not $normal.BootLogFat32Verified) {

@@ -304,6 +304,13 @@ diagnostics:
 #ifdef XHCI_COMMAND_PROBE
     cmp $5, %rdx
     je usb_report
+#ifdef RMLUI_USB
+    cmp $18, %rdx
+    jne usb_not_status
+    movzbl %gs:0x3c8, %eax
+    jmp finish
+usb_not_status:
+#endif
 #endif
 #ifdef DESKTOP_MEDIA
     cmp $4, %rdx

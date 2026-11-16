@@ -14,6 +14,23 @@ desktop_media_read:
 
     # Preserve the inherited INICIO.X86 length. Use separate context fields.
     sub $40, %rsp
+#ifdef RMLUI_USB
+    # Private QEMU USB transport: reserve DMA before the final UEFI map.
+    movq $0x0fffffff, 0xb8(%rbp)
+    mov $1, %ecx
+    mov $2, %edx
+    mov $10, %r8d
+    lea 0xb8(%rbp), %r9
+    call *0x28(%r14)
+    test %rax, %rax
+    js failed
+    movq $10, 0xc0(%rbp)
+    mov 0xb8(%rbp), %rdi
+    xor %eax, %eax
+    mov $5120, %ecx
+    cld
+    rep stosq
+#endif
 #ifdef RMLUI_MEDIA
     movq $0x0fffffff, 0xa8(%rbp)
     mov $1, %ecx                 # AllocateMaxAddress, inside the identity map
@@ -127,7 +144,7 @@ staging_ready:
     call *0x10(%rcx)
     test %rax, %rax
     js release
-#ifndef RMLUI_MEDIA
+#if !defined(RMLUI_MEDIA) || defined(RMLUI_USB)
     # Copy the xHCI stage to the page between the packet buffer and page tables.
     .byte 0x48, 0x8d, 0x35
     .long 0x4000 - DESKTOP_READER_OFFSET - (. - desktop_media_read) - 4

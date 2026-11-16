@@ -14,6 +14,12 @@ la llegada visual al escritorio no acredita teclado/raton USB.
 [Evidencia METAL](Reports/rmlui-desktop-metal-20261116.json).
 [Ruta de arranque, controles y limites](docs/NATIVE-DESKTOP-BOOT.md).
 
+El escritorio ya recibe entrada xHCI en QEMU con teclado y raton en
+perfiles separados, mediante el transporte de diagnostico y el servicio
+HID Rust de Ring 3. Cada prueba desactiva su alternativa PS/2. No acredita
+todavia los USB AMD fisicos ni dos dispositivos USB simultaneos.
+[Estado y comandos de USB nativo](docs/NATIVE-USB.md).
+
 RmlUi 6.3 y FreeType ya ejecutan su motor real en Ring 3 bajo QEMU,
 con dibujo Rust CPU y accion ULTRA-J nativa. El SBEF del laboratorio
 ocupa 1,849,758 bytes. Se probaron Enter, clic PS/2, cierre de recursos,

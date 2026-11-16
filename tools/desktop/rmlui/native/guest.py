@@ -36,11 +36,13 @@ def check_math_providers(text):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--desktop',action='store_true')
+    parser.add_argument('--usb',choices=['keyboard','mouse'])
     args=parser.parse_args()
+    if args.usb and not args.desktop:parser.error('--usb requires --desktop')
     libc.main()
     here=Path(__file__).parent
     llvm=Path(os.environ['ProgramFiles'])/'LLVM/bin'
-    out=OUT/('desktop' if args.desktop else 'guest');out.mkdir(exist_ok=True)
+    out=OUT/('desktop-usb-'+args.usb if args.usb else 'desktop' if args.desktop else 'guest');out.mkdir(exist_ok=True)
     includes=generate_headers()
     flags=['--target=x86_64-unknown-none-elf','-Os','-ffreestanding','-fno-builtin',
         '-fno-stack-protector','-fno-pic','-fno-pie','-mno-red-zone','-ffunction-sections',
@@ -53,6 +55,7 @@ def main():
         '-fno-use-cxa-atexit','-DBMO_UI_NATIVE','-DRMLUI_STATIC_LIB','-D_LIBCPP_PROVIDES_DEFAULT_RUNE_TABLE']
     cppflags+=['-I'+str(p) for p in [OUT/'runtime/include/c++/v1',*includes,DEPS/'RmlUi-6.3/Include',ROOT/'tools/doom']]
     if args.desktop:cppflags+=['-DBMO_DESKTOP_UI']
+    if args.usb:cppflags+=['-DBMO_USB_INPUT']+(['-DBMO_USB_MOUSE'] if args.usb=='mouse' else [])
     command([llvm/'clang++.exe',*cppflags,'-c',here/'guest.cpp','-o',out/'guest.o'],'compile-native-guest')
     command([llvm/'clang++.exe',*cppflags,'-c',here/'new.cpp','-o',out/'new.o'],'compile-native-new')
     rust_extra=[]
@@ -61,6 +64,10 @@ def main():
             '-Copt-level=z','-Crelocation-model=static','-Cforce-unwind-tables=no',
             ROOT/'userspace/services/desktop/src/native_policy.rs','-o',out/'libdirector.rlib'],'compile-native-director')
         rust_extra=['--extern','bmo_director='+str(out/'libdirector.rlib'),'--cfg','native_desktop']
+    if args.usb:
+        command(['rustc','--edition=2024','--target=x86_64-unknown-none','--crate-type=rlib','--crate-name=bmo_x2_usb','-Dwarnings','-Cpanic=abort',
+            '-Copt-level=z','-Crelocation-model=static',ROOT/'userspace/drivers/usb/src/lib.rs','-o',out/'libusb.rlib'],'compile-native-usb')
+        rust_extra+=['--extern','bmo_x2_usb='+str(out/'libusb.rlib'),'--cfg','native_usb']
     command(['rustc','--edition=2024','--target=x86_64-unknown-none','--crate-type=staticlib','-Cpanic=abort',
         '-Copt-level=z','-Crelocation-model=static','-Cforce-unwind-tables=no',*rust_extra,
         here.parent/'raster.rs','-o',out/'libraster.a'],'compile-native-rust')
@@ -110,6 +117,7 @@ def main():
     symbols={s[0]:int(s[2],16) for line in symbols.splitlines() if len(s:=line.split())>=3}
     manifest=dict(state=symbols['bmo_ui_state'],pixels=symbols['bmo_ui_pixels'],desktop=args.desktop)
     if args.desktop:manifest['director']=symbols['bmo_ui_director']
+    if args.usb:manifest.update(usb=args.usb,usb_reports=symbols['bmo_ui_usb_reports'])
     (out/'symbols.json').write_text(json.dumps(manifest,indent=2)+'\n')
     artifacts={name:hashlib.sha256((out/name).read_bytes()).hexdigest() for name in ('rmlui.elf','rmlui.sbef','symbols.json')}
     (out/'artifacts.json').write_text(json.dumps(artifacts,indent=2)+'\n',encoding='ascii')

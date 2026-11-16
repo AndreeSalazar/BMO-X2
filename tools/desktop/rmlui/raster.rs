@@ -2,6 +2,11 @@
 #![no_std]
 #[cfg(native_desktop)]
 extern crate bmo_director;
+#[cfg(native_usb)]
+extern crate bmo_x2_usb;
+#[cfg(native_usb)]
+#[path="native/usb_input.rs"]
+mod usb_input;
 #[path="../../../userspace/services/desktop/src/rmlui.rs"]
 mod raster;
 use raster::{Vertex, Rect, Texture, Texels};

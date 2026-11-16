@@ -20,6 +20,10 @@ uint32_t bmo_ui_pixels[1280*800];
 void bmo_director_init();uint64_t bmo_director_open();uint64_t bmo_director_state();uint32_t bmo_director_key(uint32_t);
 volatile uint64_t bmo_ui_director;
 #endif
+#ifdef BMO_USB_INPUT
+void bmo_usb_init(uint32_t);uint32_t bmo_usb_report(uint64_t);uint64_t bmo_usb_event();
+volatile uint64_t bmo_ui_usb_reports;
+#endif
 }
 namespace BmoUi {[[noreturn]] void native_failure(const char* s) {bmo_native_fail(s);}}
 static void log(const char* s) {while(*s)doom_invoke(5,7,(unsigned char)*s++,0);}
@@ -122,11 +126,57 @@ extern "C" void bmo_main() {
         bmo_ui_director=bmo_director_state();
 #endif
     };
+    #ifdef BMO_USB_INPUT
+    bmo_usb_init(
+    #ifdef BMO_USB_MOUSE
+        1
+    #else
+        0
+    #endif
+    );
+    doom_invoke(3,3,4,0);
+    check(doom_invoke(3,3,18,0)==1,"USB transport start");
+    log("BMO UI USB TRANSPORT READY\n");
+    #endif
+    auto mouse_input=[&](int dx,int dy,unsigned buttons) {
+        pointer_x=std::clamp(pointer_x+dx,0,1279);pointer_y=std::clamp(pointer_y+dy,0,799);
+        pointer_seen=true;context->ProcessMouseMove(pointer_x,pointer_y,0);
+        bool pressed=(buttons&1)!=0;
+        if(pressed!=left) {
+            if(pressed)context->ProcessMouseButtonDown(0,0);else context->ProcessMouseButtonUp(0,0);
+            left=pressed;
+        }
+    };
     frame();bmo_ui_state.phase=2;log("BMO UI READY\n");
     for(;;) {
         bool dirty=false,closing=false;
         for(int pending=0;pending<64;++pending) {
-            unsigned scan=doom_invoke(2,2,0,0);
+            unsigned scan=256;
+#ifdef BMO_USB_INPUT
+            auto usb=bmo_usb_event();
+            if(usb==256) {
+                auto raw=doom_invoke(3,3,5,0);
+                if(raw!=256 && raw!=257 && bmo_usb_report(raw)==0) {
+                    bmo_ui_usb_reports=bmo_ui_usb_reports+1;usb=bmo_usb_event();
+                }
+            }
+            if(usb&(uint64_t(1)<<63)) {
+                mouse_input(int(int8_t(usb>>8)),int(int8_t(usb>>16)),unsigned(usb&7));
+                dirty=true;continue;
+            }
+            if(usb!=256)scan=unsigned(usb);
+#endif
+            if(scan==256) {
+                scan=doom_invoke(2,2,0,0);
+                // Tests cannot satisfy USB input through the PS/2 fallback.
+#ifdef BMO_USB_INPUT
+#ifdef BMO_USB_MOUSE
+                if(scan!=256 && (scan&512))continue;
+#else
+                if(scan!=256 && !(scan&512))continue;
+#endif
+#endif
+            }
             if(scan==256)break;
             if(scan&512) {
                 unsigned byte=scan&255;
@@ -134,14 +184,7 @@ extern "C" void bmo_main() {
                 else if(packet_index==1) {dx=byte;packet_index=2;}
                 else {
                     packet_index=0;if(flags&0xc0)continue;
-                    pointer_x=std::clamp(pointer_x+int(dx)-int(flags&16)*16,0,1279);
-                    pointer_y=std::clamp(pointer_y-int(byte)+int(flags&32)*8,0,799);
-                    pointer_seen=true;context->ProcessMouseMove(pointer_x,pointer_y,0);
-                    bool pressed=(flags&1)!=0;
-                    if(pressed!=left) {
-                        if(pressed)context->ProcessMouseButtonDown(0,0);else context->ProcessMouseButtonUp(0,0);
-                        left=pressed;
-                    }
+                    mouse_input(int(dx)-int(flags&16)*16,-int(byte)+int(flags&32)*8,flags&7);
                     dirty=true;
                 }
             } else {

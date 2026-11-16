@@ -157,6 +157,11 @@ def run(case):
             hid_device = 'usb-mouse' if (ROOT / 'usb-mouse.txt').is_file() else 'usb-kbd'
             staging += ['-device', 'qemu-xhci,id=bmo-xhci-second',
                         '-device', f'{hid_device},bus=bmo-xhci-second.0{usb_version}']
+    if native_media and (ROOT/'native-usb.txt').is_file():
+        usb=(ROOT/'native-usb.txt').read_text().strip()
+        if usb not in ('keyboard','mouse'):raise ValueError('Native USB profile')
+        device='usb-kbd' if usb=='keyboard' else 'usb-mouse'
+        staging+=['-device','qemu-xhci,id=bmo-native-xhci','-device',f'{device},bus=bmo-native-xhci.0']
     process = subprocess.Popen([
         str(qemu), '-machine', 'pc,pit=off' if (ROOT / 'xhci-timer-fault.txt').is_file() else 'pc',
         '-cpu', args.cpu, '-accel', 'tcg', '-m', f'{args.ram_mib}M', '-smp', '1',

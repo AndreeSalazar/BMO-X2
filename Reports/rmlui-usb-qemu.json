@@ -1,0 +1,203 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "evidence": "QEMU: actual xHCI input in native CPL3 desktop, one USB device per profile",
+  "profiles": {
+    "keyboard": {
+      "report": {
+        "Passed": 2,
+        "Total": 2,
+        "Cases": [
+          {
+            "Case": "normal",
+            "Passed": true,
+            "Evidence": "QEMU",
+            "CPL": 3,
+            "FullRmlUiEngine": true,
+            "NativeUltraJAction": true,
+            "DirectorRust": true,
+            "WorkspaceSwitchVerified": true,
+            "SuperQVerified": true,
+            "ReopenVerified": true,
+            "KeyboardEnterVerified": true,
+            "MouseClickVerified": true,
+            "ShellRemainsAlive": true,
+            "HeapPeakBytes": 3050544,
+            "HeapLimitBytes": 4194304,
+            "FramebufferBytes": 4096000,
+            "SbefBytes": 1852246,
+            "StagedModuleSHA256": "762ca434ec0abfc54f2e7deb02f98b957a1502a4c9c40c1c579a56171009a33d",
+            "PresentedPixelsVerified": 1024000,
+            "GopWidth": 1280,
+            "GopHeight": 800,
+            "HalfScale": false,
+            "FrameSHA256": "8170f47387ffc42782c8c1aef70627b4c34a74ed90b232ead223a8a53e09593a",
+            "UsbProfile": "keyboard",
+            "UsbInputVerified": true,
+            "UsbReportCount": 36,
+            "UsbRing3Decoder": true,
+            "UsbDmaSupervisorOnly": true,
+            "UsbPs2FallbackDisabled": true,
+            "UsbDmaReservedBytes": 40960,
+            "UsbMmioSupervisorNxVerified": true,
+            "UsbTransportBackend": "Existing single-device QEMU diagnostic; mediated by Ring0",
+            "PhysicalUsbVerified": false,
+            "BootLogFat32Verified": true
+          },
+          {
+            "Case": "external-permissions",
+            "Passed": true,
+            "SbefAccepted": false,
+            "UserCodeCopied": false,
+            "UserAddressSpaceActivated": false,
+            "RejectedField": "permissions",
+            "RejectedOffset": 116
+          }
+        ],
+        "run": "run-rmlui-media-f0c9e41bffe7",
+        "evidence": "QEMU",
+        "disk_sbef": true,
+        "physical_boot": false,
+        "physical_usb_proven": false,
+        "qemu_only": true,
+        "usb_profile": "keyboard",
+        "note": "Separate desktop candidate; no QEMU loader device, UEFI reads real FAT32 files.",
+        "files": {
+          "EFI/BMO-X2/DESKTOP.EFI": "cbc1497435ac50aafbf3a325bb0548a16423e5c1c0eea060ad3bf2f74ace7199",
+          "BMO-X2/DESKTOP/INICIO.X86": "644b92595fe6adff785363352ae8012012f9c8e41ff6d93481081b193fe478ac",
+          "BMO-X2/DESKTOP/DESKTOP.SBF": "ed2cc77c9b8e3633f01b7416da407bf7ac8683bd36123fed94877b3a818b98ca"
+        }
+      },
+      "component_bytes": {
+        "INICIO.X86": 3785,
+        "gate.bin": 1584,
+        "xhci.bin": 4067,
+        "rmlui.sbef": 1852246
+      },
+      "sha256": {
+        "INICIO.X86": "644b92595fe6adff785363352ae8012012f9c8e41ff6d93481081b193fe478ac",
+        "gate.bin": "efb15d647cd747dda062a05d3f37b5514195be39b38da4a5bab8dfc4abe50083",
+        "xhci.bin": "9e02c845c70576b42b3c1dddfcf8873034fd41bc041a9dde0fd665e4cfa870d5",
+        "rmlui.sbef": "ed2cc77c9b8e3633f01b7416da407bf7ac8683bd36123fed94877b3a818b98ca",
+        "ui-symbols.json": "c65fb9dc00516d2176ab8bc3f8b0c1de7b51aa3b944aa70ac4d2718a2a1558a2"
+      }
+    },
+    "mouse": {
+      "report": {
+        "Passed": 2,
+        "Total": 2,
+        "Cases": [
+          {
+            "Case": "normal",
+            "Passed": true,
+            "Evidence": "QEMU",
+            "CPL": 3,
+            "FullRmlUiEngine": true,
+            "NativeUltraJAction": true,
+            "DirectorRust": true,
+            "WorkspaceSwitchVerified": true,
+            "SuperQVerified": true,
+            "ReopenVerified": true,
+            "KeyboardEnterVerified": true,
+            "MouseClickVerified": true,
+            "ShellRemainsAlive": true,
+            "HeapPeakBytes": 3050544,
+            "HeapLimitBytes": 4194304,
+            "FramebufferBytes": 4096000,
+            "SbefBytes": 1852246,
+            "StagedModuleSHA256": "927658194f987d9df1b7e606abe4c31009ec0ced5b86a0c10f8a7806988c8886",
+            "PresentedPixelsVerified": 1024000,
+            "GopWidth": 1280,
+            "GopHeight": 800,
+            "HalfScale": false,
+            "FrameSHA256": "8170f47387ffc42782c8c1aef70627b4c34a74ed90b232ead223a8a53e09593a",
+            "UsbProfile": "mouse",
+            "UsbInputVerified": true,
+            "UsbReportCount": 3,
+            "UsbRing3Decoder": true,
+            "UsbDmaSupervisorOnly": true,
+            "UsbPs2FallbackDisabled": true,
+            "UsbDmaReservedBytes": 40960,
+            "UsbMmioSupervisorNxVerified": true,
+            "UsbTransportBackend": "Existing single-device QEMU diagnostic; mediated by Ring0",
+            "PhysicalUsbVerified": false,
+            "BootLogFat32Verified": true
+          },
+          {
+            "Case": "external-permissions",
+            "Passed": true,
+            "SbefAccepted": false,
+            "UserCodeCopied": false,
+            "UserAddressSpaceActivated": false,
+            "RejectedField": "permissions",
+            "RejectedOffset": 116
+          }
+        ],
+        "run": "run-rmlui-media-4bbcd036bc84",
+        "evidence": "QEMU",
+        "disk_sbef": true,
+        "physical_boot": false,
+        "physical_usb_proven": false,
+        "qemu_only": true,
+        "usb_profile": "mouse",
+        "note": "Separate desktop candidate; no QEMU loader device, UEFI reads real FAT32 files.",
+        "files": {
+          "EFI/BMO-X2/DESKTOP.EFI": "8c689f3a633dca6392db854ffb6f72f00e88f10009bbcee86994dfe521eafd80",
+          "BMO-X2/DESKTOP/INICIO.X86": "644b92595fe6adff785363352ae8012012f9c8e41ff6d93481081b193fe478ac",
+          "BMO-X2/DESKTOP/DESKTOP.SBF": "2c206e83e4df4209256fbbd5658bc212ec8cd5e8d7edd49c00bd4bfe6c573716"
+        }
+      },
+      "component_bytes": {
+        "INICIO.X86": 3785,
+        "gate.bin": 1584,
+        "xhci.bin": 4096,
+        "rmlui.sbef": 1852246
+      },
+      "sha256": {
+        "INICIO.X86": "644b92595fe6adff785363352ae8012012f9c8e41ff6d93481081b193fe478ac",
+        "gate.bin": "efb15d647cd747dda062a05d3f37b5514195be39b38da4a5bab8dfc4abe50083",
+        "xhci.bin": "3acc8ba3d1b1a63bd2e4c62194dc0a2ad9920e9599891670e8421e014b77200f",
+        "rmlui.sbef": "2c206e83e4df4209256fbbd5658bc212ec8cd5e8d7edd49c00bd4bfe6c573716",
+        "ui-symbols.json": "eb8dac1f2cadc97bed3869e3ac6aedf0242d2af0c4148282ffdc6f44645dc4d2"
+      }
+    }
+  },
+  "adapter_host_tests": 1,
+  "default_byte_compatibility": {
+    "reader": {
+      "identical_bytes": true,
+      "bytes": 1414
+    },
+    "gate": {
+      "identical_bytes": true,
+      "bytes": 1487
+    },
+    "xhci": {
+      "identical_bytes": true,
+      "bytes": 4043
+    }
+  },
+  "compatibility_baseline_commit": "b7aecdd4a6b96f9c24d7982fb1f1aaec780fb8d1",
+  "qemu_only_deployment_guard_verified": true,
+  "physical_usb_verified": false,
+  "limits": [
+    "Keyboard and mouse are separate profiles; complementary device remains PS2",
+    "Legacy one-device QEMU diagnostic transport configures the controller in Ring0; InputService and decoding run in Ring3",
+    "New Activation/PendingActivation user-level configuration is not connected to this backend",
+    "No AMD live HID, multiple USB devices, IOMMU isolation, hotplug or full process revocation proven",
+    "Native UI rendering under software-float TCG may require up to 90 seconds per completed frame; no latency claim"
+  ],
+  "source_sha256": {
+    "kernel/boot/bridge/desktop_media_read.S": "bd7246a95713a119e01e7cc98fcb504988ab40deb115499cde7a46dc4c83155d",
+    "kernel/drivers/bus/xhci_command_probe.inc": "04f426cbfaaf2a0a7dc9b38dfa7d5c751f7db973bb883469bfeb02028c2ff86f",
+    "kernel/drivers/bus/xhci_inventory.inc": "8f435b7c3fc298f4978f5fe2594e6ecfbc0c060bd3c04abab4d34cc49a74395b",
+    "kernel/syscalls/session_gate.S": "0d7bc727b8ead16a35f8ad87f3f53ec204f106e6bb2c55391509498deb90762d",
+    "tools/desktop/rmlui/native/usb_input.rs": "311d79bfb964ddddf83b564f71f7de660025fab2ccd330cb91629c521a577475",
+    "tools/desktop/rmlui/native/guest.cpp": "6f41a9f4a1122b694239a74b55f9cddb60f7a86a8e27548d560d083506a68532",
+    "tools/desktop/rmlui/native/guest.py": "39c32858f567e07e6f37cc8b6aa3b841c8eaf1eaf696f03379bd706fb7303892",
+    "tools/desktop/rmlui/native/media.py": "90f1c9bba99f9349c094a17667853a073dd5d544a380af4770ff6a8c24096f03",
+    "tools/boot/probe.py": "6034093aef7473302dc32768a4f25156d4f71db8a7bf3a62d3ba8d7773fdf4e7",
+    "tools/boot/rmlui_native_capture.py": "497726283baf732f64cf18ac2b6610840b1fad43fd6e51536f5a11b7ddce0742",
+    "tools/desktop/rmlui/native/deploy.ps1": "eb50e439b1a84f40618a654654710508c31f3493878e60689208fd390fe5c30c"
+  }
+}

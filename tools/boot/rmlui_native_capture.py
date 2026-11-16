@@ -19,14 +19,16 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
     serial=Path(str(prefix)+'-serial.log')
     def regs():return command('human-monitor-command',{'command-line':'info registers'})
     def until(phase,accepted=0):
-        deadline=time.monotonic()+45
+        # Software float rasterization under TCG can exceed 45 s after hover
+        # and click invalidation. Still require the completed presented frame.
+        deadline=time.monotonic()+90
         while time.monotonic()<deadline:
             log=serial.read_text(errors='replace') if serial.exists() else ''
             if 'BMO UI FAIL:' in log:raise ValueError(log[-1800:]+'\n'+regs()[:600])
             words=struct.unpack('<8Q',memory(state-0x3c000000,64,'ui-state'))
             if words[0]==0x3149554f4d42 and words[1]==phase and words[4]>=accepted:return words
             time.sleep(.07)
-        raise ValueError('Native UI phase '+str(phase)+' not reached: '+log[-1400:]+'\n'+regs()[:600])
+        raise ValueError('Native UI phase '+str(phase)+' not reached: '+str(words)+' '+log[-1400:]+'\n'+regs()[:600])
     first=until(2)
     if not (first[2]>=1 and first[5]>0 and 0<first[6]<=first[7]<=4*1024*1024):raise ValueError('Invalid UI resource counters')
     raw=memory(pixels-0x3c000000,1280*800*4,'ui-frame')
@@ -101,12 +103,35 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
         key('ctrl','meta_l','2');policy(0x102)
         if not observed:raise ValueError('No DIRECTOR/RmlUi execution observed in CPL3')
         command('screendump',{'filename':str(prefix)+'-desktop.ppm'})
+        usb_proof={}
+        if symbols.get('usb'):
+            address=symbols['usb_reports']
+            if not 0x40400000<=address<=0x40e00000-8:raise ValueError('USB counter symbol')
+            count=struct.unpack('<Q',memory(address-0x3c000000,8,'native-usb-reports'))[0]
+            if count<3:raise ValueError('Missing actual USB reports in native UI')
+            status=memory(context_address+0x1a3c4,5,'native-usb-owner')
+            if status[0]!=1 or status[4]!=1:raise ValueError('USB DMA validation or live ownership missing')
+            dma,pages=struct.unpack('<QQ',memory(context_address+0xb8,16,'native-usb-reservation'))
+            if pages!=10 or dma<0x100000 or dma+pages*4096>0x10000000:
+                raise ValueError('USB reservation outside the private identity map')
+            for index in range(dma//0x200000,(dma+pages*4096-1)//0x200000+1):
+                entry=struct.unpack('<Q',memory(context_address+0x15000+index*8,8,'usb-dma-pde'))[0]
+                if entry&0x85!=0x81 or entry&0x000fffffffe00000!=index*0x200000:
+                    raise ValueError('USB DMA mapping is not supervisor identity memory')
+            aliases=struct.unpack('<3Q',memory(context_address+0x1e000,24,'usb-mmio-aliases'))
+            if any(entry&5!=1 or not entry>>63 for entry in aliases):
+                raise ValueError('USB MMIO alias must remain supervisor NX')
+            usb_proof=dict(UsbProfile=symbols['usb'],UsbInputVerified=True,UsbReportCount=count,
+                UsbRing3Decoder=True,UsbDmaSupervisorOnly=True,UsbPs2FallbackDisabled=True,
+                UsbDmaReservedBytes=pages*4096,UsbMmioSupervisorNxVerified=True,
+                UsbTransportBackend='Existing single-device QEMU diagnostic; mediated by Ring0',
+                PhysicalUsbVerified=False)
         return dict(Case='normal',Passed=True,Evidence='QEMU',CPL=3,FullRmlUiEngine=True,
             NativeUltraJAction=True,DirectorRust=True,WorkspaceSwitchVerified=True,
             SuperQVerified=True,ReopenVerified=True,KeyboardEnterVerified=True,MouseClickVerified=True,ShellRemainsAlive=True,
             HeapPeakBytes=after[7],HeapLimitBytes=4*1024*1024,FramebufferBytes=len(raw),SbefBytes=len(image),
             StagedModuleSHA256=hashlib.sha256(struct.pack('<Q',len(image))+image).hexdigest(),
-            PresentedPixelsVerified=dw*dh,GopWidth=width,GopHeight=height,HalfScale=scale==0,FrameSHA256=before)
+            PresentedPixelsVerified=dw*dh,GopWidth=width,GopHeight=height,HalfScale=scale==0,FrameSHA256=before,**usb_proof)
     command('input-send-event',{'events':[{'type':'rel','data':{'axis':'y','value':127}}]})
     time.sleep(.2)
     command('input-send-event',{'events':[{'type':'btn','data':{'button':'left','down':True}}]})

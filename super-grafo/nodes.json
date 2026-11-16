@@ -1991,9 +1991,9 @@
       ],
       "que": "Descubre interfaces HID boot, decodifica informes y secuencia configuracion/protocolo/endpoints con terminaciones y plazos comprobados.",
       "entrada": "Descriptores acotados y reportes recibidos por un transporte autorizado.",
-      "salida": "Interfaces, endpoints, solicitudes de configuracion y cambios de entrada.",
+      "salida": "InputService y decoders HID enlazados a sondas y al escritorio RmlUi en perfiles USB QEMU separados; Activation/PendingActivation aun sin transporte de configuracion propio.",
       "aceptacion": "HOST verifica 18 casos USB y 14 de escritorio. InputService ejecuta en CPL3 QEMU: teclado 260 reportes y raton 4, perfiles separados; CABINA, WAIT, cierre y rechazo SBEF W+X comprobados. Escritorio normal conserva configuracion.",
-      "falta": "Conectar Activation y el servicio de entrada al transporte xHCI autorizado del escritorio nativo; validar ambos USB AMD en METAL."
+      "falta": "Adaptar el backend vivo a AMD y dos dispositivos simultaneos; conectar activacion de usuario al transporte autorizado; hotplug, parada y recuperacion del escritorio nativo pendientes."
     },
     {
       "id": "ultra-j-driver-registration",
@@ -2281,7 +2281,7 @@
       "que": "Observa estados, memoria, framebuffer, acciones y cierre del motor real sin simular servicios del invitado.",
       "entrada": "QEMU con SBEF nativo, perfil de sesion explicito y simbolos verificados.",
       "salida": "Informe QEMU, capturas y comparacion HOST de todos los pixeles; rechazo W+X y huella para visor.",
-      "aceptacion": "Dos casos aprobados; permiso invalido rechazado antes de copiar; pixels presentados exactos; teclado/raton y accion nativa; perfiles anteriores conservan bytes.",
+      "aceptacion": "SBEF y pixeles nativos comprobados, rechazo W+X antes de copia; perfiles USB separados prueban entrada sin su alternativa PS2 y comprueban reserva DMA/mapeos supervisores.",
       "falta": "Pruebas prolongadas, fallos recuperables y motor permanente en hardware fisico."
     },
     {
@@ -2436,6 +2436,40 @@
       "salida": "Solo perfil nuevo en BMO-X2; archivo historico dentro del proyecto; Linux/ULTRA y otros EFI fuera de la lista.",
       "aceptacion": "Cuatro archivos archivados y retirados; tres archivos activos conservan hash. Reports/fat32-retired-legacy.json.",
       "falta": "No es limpieza general de discos ni de builds; no cambia firmware ni particiones."
+    },
+    {
+      "id": "rmlui-native-usb-input",
+      "titulo": "Informes USB al escritorio nativo",
+      "ruta": "tools/desktop/rmlui/native/usb_input.rs",
+      "estado": "qemu",
+      "anillo": "3",
+      "lenguaje": "Rust / ABI C",
+      "posicion": [
+        9500,
+        4100
+      ],
+      "que": "Recibe informes escalares del transporte mediado y entrega cambios de teclado o raton a RmlUi/DIRECTOR usando InputService real.",
+      "entrada": "Informe boot de un dispositivo QEMU, propietario unico y llamadas C sincronicas.",
+      "salida": "Scancodes con prefijos/liberaciones o movimiento firmado y botones; cola acotada de veinte eventos.",
+      "aceptacion": "CPL3: Enter, espacios, Super+Q/reapertura via USB teclado; movimiento y clic via USB raton; alternativa PS2 del aparato probado descartada. Un test HOST adicional del adaptador.",
+      "falta": "Dos dispositivos USB a la vez, backend vivo AMD, desconexion/reconexion y configuracion propia de usuario; actualmente el backend de diagnostico configura en Ring0."
+    },
+    {
+      "id": "rmlui-native-usb-profile",
+      "titulo": "Perfiles xHCI del escritorio QEMU",
+      "ruta": "tools/desktop/rmlui/native/media.py",
+      "estado": "qemu",
+      "anillo": "host",
+      "lenguaje": "Python / ASM / C++ / Rust",
+      "posicion": [
+        9500,
+        4300
+      ],
+      "que": "Construye por separado teclado USB y raton USB sin reemplazar el escritorio de FAT32 fisico.",
+      "entrada": "ELF/SBEF nativo, runs ABI/gato verificados y seleccion USB explicita.",
+      "salida": "UEFI FAT32 con reserva DMA de diez paginas y etapa xHCI supervisora de una pagina; reportes y captura QEMU.",
+      "aceptacion": "Dos casos por perfil, incluido W+X rechazado. Puerta de 1584 bytes, INICIO 3785 bytes, etapa 4067/4096 bytes. deploy.ps1 rechaza perfiles USB QEMU-only.",
+      "falta": "METAL: DMA supervision no acredita IOMMU ni aislamiento de aparatos hostiles; falta backend AMD vivo y varios slots/endpoints simultaneos."
     }
   ],
   "relaciones": [
@@ -3637,6 +3671,26 @@
     {
       "de": "rmlui-retire-legacy-files",
       "a": "rmlui-metal-candidate",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-native-application",
+      "a": "rmlui-native-usb-input",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-native-usb-input",
+      "a": "usb-ring3-driver",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-native-usb-profile",
+      "a": "device-bus",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-native-usb-profile",
+      "a": "rmlui-native-usb-input",
       "clase": "codigo"
     }
   ]

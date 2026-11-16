@@ -1,5 +1,12 @@
 # USB en Ring 3: estado y frontera
 
+El transporte de las sondas ya esta conectado al escritorio RmlUi en
+dos perfiles QEMU separados, con decodificacion InputService en CPL3 y
+sin alternativa PS/2 para el dispositivo probado. [Comandos, medidas y
+limites AMD](../../../docs/NATIVE-USB.md). La configuracion sigue en el
+backend de diagnostico Ring 0; Activation de Ring 3 permanece pendiente
+de conectar a un transporte de configuracion autorizado.
+
 ## Codigo que ya vive aqui
 
 | Archivo | Responsabilidad | Evidencia |

@@ -249,8 +249,16 @@ xhci_census_invalid:
     xor %eax, %eax
     ret
 xhci_unmap:
+#if defined(RMLUI_USB) && defined(XHCI_MOUSE_PROBE)
+    # Compact zeroing keeps this bounded stage in its one reserved page.
+    # Preserve EAX: inventory ranking returns the connected-port score here.
+    xor %r10d, %r10d
+    mov %r10, 0x15400(%rbp)
+    mov %r10, 0x1e000(%rbp)
+#else
     movq $0, 0x15400(%rbp)
     movq $0, 0x1e000(%rbp)
+#endif
     invlpg (%rdi)
     ret
 

@@ -312,11 +312,23 @@ dma_check_packet:
     cmp %rsi, %r8
     jb dma_invalid
 dma_check_desktop:
+#ifdef RMLUI_USB
+    # The native UI backing range is separately reserved and never DMA storage.
+    cmp $0x05000000, %r8
+    jae dma_check_native_staging
+    cmp $0x04000000, %rax
+    ja dma_invalid
+dma_check_native_staging:
+#endif
     mov 0xa8(%rbp), %rsi
     cmp %rax, %rsi
     jae dma_check_map
     mov 0xc8(%rbp), %rdx
+#ifdef RMLUI_USB
+    cmp $513, %rdx
+#else
     cmp $5, %rdx
+#endif
     ja dma_invalid
     shl $12, %rdx
     add %rdx, %rsi

@@ -2,7 +2,7 @@
 [CmdletBinding()]
 param(
     [string]$Run,
-    [ValidateSet('gato-hd','doom-intro','doom-engine','desktop-doom','desktop-intro','desktop-session','desktop-external','rmlui-native','rmlui-desktop')][string]$Profile,
+    [ValidateSet('gato-hd','doom-intro','doom-engine','desktop-doom','desktop-intro','desktop-session','desktop-external','rmlui-native','rmlui-desktop','rmlui-usb-keyboard','rmlui-usb-mouse')][string]$Profile,
     [switch]$Wait,
     [string]$Qemu = (Join-Path $env:ProgramFiles 'qemu/qemu-system-x86_64.exe')
 )
@@ -21,6 +21,8 @@ if (-not $Run) {
         'desktop-external' { 'desktop-external' }
         'rmlui-native' { 'rmlui-native' }
         'rmlui-desktop' { 'rmlui-desktop-media' }
+        'rmlui-usb-keyboard' { 'rmlui-desktop-media' }
+        'rmlui-usb-mouse' { 'rmlui-desktop-media' }
         default { 'ring0-splash-hd-0.1' }
     }
     foreach ($candidate in (Get-ChildItem -LiteralPath $runs -Directory -Filter 'run-*' | Sort-Object LastWriteTime -Descending)) {
@@ -31,8 +33,10 @@ if (-not $Run) {
             (Test-Path -LiteralPath $result -PathType Leaf)) {
             $report = Get-Content -LiteralPath $result -Raw | ConvertFrom-Json
             if ($report.run -eq $candidate.Name -and $report.Total -gt 0 -and $report.Passed -eq $report.Total -and
-                ($Profile -in @('gato-hd','desktop-session','desktop-external','doom-engine','desktop-doom','rmlui-native','rmlui-desktop') -or @($report.Cases[0].FramesVerified).Count -eq 3) -and
-                ($Profile -ne 'rmlui-desktop' -or ($report.Cases[0].DirectorRust -and $report.Cases[0].BootLogFat32Verified)) -and
+                ($Profile -in @('gato-hd','desktop-session','desktop-external','doom-engine','desktop-doom','rmlui-native','rmlui-desktop','rmlui-usb-keyboard','rmlui-usb-mouse') -or @($report.Cases[0].FramesVerified).Count -eq 3) -and
+                ($Profile -ne 'rmlui-desktop' -or ($report.Cases[0].DirectorRust -and $report.Cases[0].BootLogFat32Verified -and -not $report.qemu_only)) -and
+                ($Profile -ne 'rmlui-usb-keyboard' -or ($report.usb_profile -eq 'keyboard' -and $report.Cases[0].UsbInputVerified)) -and
+                ($Profile -ne 'rmlui-usb-mouse' -or ($report.usb_profile -eq 'mouse' -and $report.Cases[0].UsbInputVerified)) -and
                 ($Profile -ne 'rmlui-native' -or ($report.Cases[0].FullRmlUiEngine -and $report.Cases[0].NativeUltraJAction)) -and
                 ($Profile -ne 'desktop-doom' -or $report.Cases[0].CabinaDoomVerified) -and
                 ($Profile -ne 'doom-engine' -or $report.Cases[0].DoomKeyboardVerified) -and
@@ -127,6 +131,12 @@ if ($actualProfile -eq 'desktop-media') {
         $arguments += @('-device', 'qemu-xhci,id=bmo-xhci-second',
                         '-device', "$usbDevice,bus=bmo-xhci-second.0$usbVersion")
     }
+}
+if (Test-Path -LiteralPath (Join-Path $runDir.FullName 'native-usb.txt')) {
+    $usbKind=(Get-Content -LiteralPath (Join-Path $runDir.FullName 'native-usb.txt') -Raw).Trim()
+    if ($usbKind -notin @('keyboard','mouse')) {throw 'Perfil USB nativo invalido.'}
+    $usbDevice=if($usbKind -eq 'keyboard'){'usb-kbd'}else{'usb-mouse'}
+    $arguments+=@('-device','qemu-xhci,id=bmo-native-xhci','-device',"$usbDevice,bus=bmo-native-xhci.0")
 }
 Write-Output "Arrancando $($runDir.Name) con TCG y framebuffer VGA sin OpenGL."
 $process = Start-Process -FilePath $Qemu -ArgumentList $arguments -WindowStyle Normal -PassThru `
