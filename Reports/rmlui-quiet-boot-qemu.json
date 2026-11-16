@@ -1,0 +1,86 @@
+{
+  "Passed": 2,
+  "Total": 2,
+  "Cases": [
+    {
+      "Case": "normal",
+      "Passed": true,
+      "Evidence": "QEMU",
+      "CPL": 3,
+      "FullRmlUiEngine": true,
+      "NativeUltraJAction": true,
+      "DirectorRust": true,
+      "WorkspaceSwitchVerified": true,
+      "SuperQVerified": true,
+      "ReopenVerified": true,
+      "KeyboardEnterVerified": true,
+      "MouseClickVerified": true,
+      "ShellRemainsAlive": true,
+      "HeapPeakBytes": 3050544,
+      "HeapLimitBytes": 4194304,
+      "FramebufferBytes": 4096000,
+      "SbefBytes": 1845846,
+      "StagedModuleSHA256": "2387a39a075ea853d5a9481616fd703bf1b41a0b25666001dd50754b72270258",
+      "PresentedPixelsVerified": 1024000,
+      "GopWidth": 1280,
+      "GopHeight": 800,
+      "HalfScale": false,
+      "FrameSHA256": "8170f47387ffc42782c8c1aef70627b4c34a74ed90b232ead223a8a53e09593a",
+      "BootLogFat32Verified": true
+    },
+    {
+      "Case": "external-permissions",
+      "Passed": true,
+      "SbefAccepted": false,
+      "UserCodeCopied": false,
+      "UserAddressSpaceActivated": false,
+      "RejectedField": "permissions",
+      "RejectedOffset": 116
+    }
+  ],
+  "run": "run-rmlui-media-0bffdb8be210",
+  "evidence": "QEMU",
+  "disk_sbef": true,
+  "physical_boot": false,
+  "physical_usb_proven": false,
+  "note": "Separate desktop candidate; no QEMU loader device, UEFI reads real FAT32 files.",
+  "files": {
+    "EFI/BMO-X2/DESKTOP.EFI": "43dfa615e4a3d6fe1a79de44c7c61459c70ae3c04aadfbda080578c9e3e1bdef",
+    "BMO-X2/DESKTOP/INICIO.X86": "867850cfd2cb8c2fbe70e455d3310ea1cc3078df7321baadb3acaf9713dd47c0",
+    "BMO-X2/DESKTOP/DESKTOP.SBF": "626f1d7251a8073fc591fb9f0551dc333aa66eef83cadf91bb8dc9e59e14b1f1"
+  },
+  "quiet_success_presentation": true,
+  "evidence_scope": "QEMU quiet candidate and HOST FAT32 copy; user METAL photograph belongs to prior run-197d1a868bd5",
+  "deployment": {
+    "Schema": 1,
+    "Evidence": "HOST copy after QEMU FAT32 boot",
+    "Run": "run-rmlui-media-0bffdb8be210",
+    "Volume": "A:\\",
+    "FileSystem": "FAT32",
+    "Files": {
+      "EFI/BMO-X2/DESKTOP.EFI": "43dfa615e4a3d6fe1a79de44c7c61459c70ae3c04aadfbda080578c9e3e1bdef",
+      "BMO-X2/DESKTOP/INICIO.X86": "867850cfd2cb8c2fbe70e455d3310ea1cc3078df7321baadb3acaf9713dd47c0",
+      "BMO-X2/DESKTOP/DESKTOP.SBF": "626f1d7251a8073fc591fb9f0551dc333aa66eef83cadf91bb8dc9e59e14b1f1"
+    },
+    "LegacyFilesUnchanged": {
+      "EFI/BMO-X2/BMO-X2.EFI": "3911A9364B30CBA7CA78B165065563AB3F585D9385129BFEC8349F117A59FA28",
+      "BMO-X2/INICIO.X86": "6514B8E792758191AE8CC07CFB815070EA6C535A355AD9D3075B8B31975BC1E5",
+      "BMO-X2/BOOTLOG.TXT": "9675389EAEFC9C48777BEF6662E5B13794FD044DD7DA37FF502A386857875F7F",
+      "BMO-X2/DESKTOP.SBF": "44D8F37EB706CFB4054F10342C9C9ABF69ABB151B6A9E99AE0ECDA575D9D9CA4"
+    },
+    "PhysicalBootVerified": false,
+    "PhysicalUsbVerified": false,
+    "BootFile": "\\EFI\\BMO-X2\\DESKTOP.EFI",
+    "ReportFile": "\\BMO-X2\\DESKTOP\\BOOTLOG.TXT",
+    "Note": "Candidato separado. USB HID fisico sigue pendiente; no cambia NVRAM ni el arranque anterior."
+  },
+  "presentation_test": {
+    "passed": 1,
+    "scope": "Only success text/path differ; instructions, context signature, errors unchanged"
+  },
+  "sources": {
+    "tools/boot/stage_bmo_x2.py": "a64ebbb8771a515424674ac9b410dc102df5c9075265667ca351260d06195b6f",
+    "tools/tests/test_native_boot_presentation.py": "9754c04c0a981459a900a852d2421da32eebc02965b3dd430a23014a813bbd9b",
+    "tools/desktop/rmlui/native/deploy.ps1": "dd1d0297ee3143bc27b63dc8d91a93b9fdb4aed8c4b1e2fc9235f8f3d7464925"
+  }
+}

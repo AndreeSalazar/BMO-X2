@@ -1989,11 +1989,11 @@
         15000,
         5250
       ],
-      "que": "Descubre interfaces boot y mantiene fuentes de entrada con colas acotadas y desconexion atomica.",
+      "que": "Descubre interfaces HID boot, decodifica informes y secuencia configuracion/protocolo/endpoints con terminaciones y plazos comprobados.",
       "entrada": "Descriptores acotados y reportes recibidos por un transporte autorizado.",
       "salida": "Interfaces, endpoints, solicitudes de configuracion y cambios de entrada.",
       "aceptacion": "HOST verifica 18 casos USB y 14 de escritorio. InputService ejecuta en CPL3 QEMU: teclado 260 reportes y raton 4, perfiles separados; CABINA, WAIT, cierre y rechazo SBEF W+X comprobados. Escritorio normal conserva configuracion.",
-      "falta": "Faltan notificacion de desconexion/reconexion, dispositivos simultaneos, proceso SBEF independiente, transporte Ring 3, aislamiento DMA y configuracion HID AMD. detach solo probado en HOST."
+      "falta": "Conectar Activation y el servicio de entrada al transporte xHCI autorizado del escritorio nativo; validar ambos USB AMD en METAL."
     },
     {
       "id": "ultra-j-driver-registration",
@@ -2349,8 +2349,8 @@
       "que": "Copia exclusivamente el candidato QEMU aprobado al volumen FAT32 A: y verifica hashes.",
       "entrada": "Manifiesto aprobado y volumen existente; no formatea ni cambia NVRAM.",
       "salida": "EFI/BMO-X2/DESKTOP.EFI y BMO-X2/DESKTOP con recibo DEPLOY.JSON.",
-      "aceptacion": "Copia y relectura verificadas; archivos anteriores intactos; CHKDSK solo lectura sin problemas.",
-      "falta": "METAL pendiente: elegir el nuevo EFI, aportar BOOTLOG PRE-EBS y foto; USB HID sigue sin validar."
+      "aceptacion": "METAL: propietario confirma UI nativa en GOP 1920x1080 con foto y BOOTLOG; Reports/rmlui-desktop-metal-20261116.json. Variante silenciosa nueva: QEMU 2/2 y copia A: verificada.",
+      "falta": "Confirmar variante silenciosa en METAL. USB HID aun sin conectar al candidato nativo."
     },
     {
       "id": "rmlui-desktop-firmware-entry",
@@ -2365,9 +2365,43 @@
       ],
       "que": "Registra el candidato validado con un nombre distinto del diagnostico anterior.",
       "entrada": "Volumen A: FAT32, recibo DEPLOY.JSON y hashes de los tres archivos activos.",
-      "salida": "Entrada BMO-X2 Desktop (RmlUi) al final de la lista UEFI; recibo local.",
+      "salida": "Entrada BMO-X2 Desktop (RmlUi) apunta al candidato; entrada antigua BMO-X2 retirada por pedido del propietario.",
       "aceptacion": "Registro y reuso idempotente verificados en esta maquina; apunta a EFI/BMO-X2/DESKTOP.EFI. No reinicia ni selecciona el siguiente arranque.",
-      "falta": "Usuario debe elegir la entrada nueva; arranque fisico del candidato y USB HID siguen pendientes."
+      "falta": "USB HID pendiente. Cada actualizacion del candidato requiere nueva confirmacion fisica."
+    },
+    {
+      "id": "usb-ring3-activation",
+      "titulo": "Activacion HID con confirmacion",
+      "ruta": "userspace/drivers/usb/src/activation.rs",
+      "estado": "host",
+      "anillo": "3",
+      "lenguaje": "Rust",
+      "posicion": [
+        8700,
+        4100
+      ],
+      "que": "Secuencia configuracion, protocolo por interfaz y endpoints; no supone exito al emitir una peticion.",
+      "entrada": "Descriptores validados, velocidad USB2, slot y generacion del propietario, reloj monotono y terminaciones cotejadas por transporte.",
+      "salida": "Peticiones acotadas y estado Ready solo tras todas las confirmaciones; fallos y expiracion bloquean sin reciclar DMA.",
+      "aceptacion": "22 tests USB HOST; rechazo de propietario/secuencia/fase obsoletos, STALL, residual, expiracion y plazos invalidos. Build no_std x86_64.",
+      "falta": "Conexion real al transporte xHCI del escritorio; sin evidencia de USB HID en METAL."
+    },
+    {
+      "id": "usb-ring3-endpoint-plan",
+      "titulo": "Contexto interrupt IN USB2",
+      "ruta": "userspace/drivers/usb/src/xhci.rs",
+      "estado": "host",
+      "anillo": "3",
+      "lenguaje": "Rust",
+      "posicion": [
+        8700,
+        4300
+      ],
+      "que": "Calcula DCI e intervalo de cada endpoint descubierto, sin asumir endpoint 0x81.",
+      "entrada": "Interfaz HID boot y velocidad low/full/high; perfil de hasta 64 bytes.",
+      "salida": "Campos xHCI con puntero dequeue cero, que solo el transporte autorizado puede completar.",
+      "aceptacion": "Pruebas de endpoint 15, mascara de contexto, intervalos FS/LS 1..255 y HS 1..16; rechazo de direccion, tamano e intervalo invalidos.",
+      "falta": "Envio mediante transporte de propietario con anillo DMA reservado y terminacion de Configure Endpoint."
     }
   ],
   "relaciones": [
@@ -3544,6 +3578,16 @@
     {
       "de": "rmlui-desktop-firmware-entry",
       "a": "rmlui-metal-candidate",
+      "clase": "codigo"
+    },
+    {
+      "de": "usb-ring3-driver",
+      "a": "usb-ring3-activation",
+      "clase": "codigo"
+    },
+    {
+      "de": "usb-ring3-activation",
+      "a": "usb-ring3-endpoint-plan",
       "clase": "codigo"
     }
   ]

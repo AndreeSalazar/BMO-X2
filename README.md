@@ -8,8 +8,10 @@ Autor: Eddi Salazar, Lima, Peru.
 El nuevo candidato de escritorio conecta RmlUi con DIRECTOR Rust:
 Ctrl+Super+1..4 cambia espacios, Super+Q cierra el panel y F1 lo reabre.
 Arranca desde archivos FAT32 reales en QEMU y dispone de un EFI separado
-para prueba fisica. A: paso CHKDSK en solo lectura; el arranque AMD y
-USB HID todavia no se declaran validados.
+para prueba fisica. El 16-11-2026 el propietario confirmo el escritorio
+en METAL AMD a 1920x1080 con fotografia y BOOTLOG. USB HID sigue pendiente;
+la llegada visual al escritorio no acredita teclado/raton USB.
+[Evidencia METAL](Reports/rmlui-desktop-metal-20261116.json).
 [Ruta de arranque, controles y limites](docs/NATIVE-DESKTOP-BOOT.md).
 
 RmlUi 6.3 y FreeType ya ejecutan su motor real en Ring 3 bajo QEMU,

@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "evidence": "HOST",
+  "target": "x86_64-unknown-none",
+  "no_std_build_passed": true,
+  "tests_passed": 22,
+  "new_activation_tests": 4,
+  "native_desktop_transport_connected": false,
+  "physical_usb_verified": false,
+  "scope": "Ring3 configuration/protocol/endpoint activation planning and completion ordering. No hardware access; no MMIO/DMA grants.",
+  "reference": "https://cdrdv2-public.intel.com/625472/625472_xHCI_Rev1_2b.pdf",
+  "sources": {
+    "userspace/drivers/usb/src/lib.rs": "466f41292fb30a474974409282ef6cb4a9391417ddb3ff733d72e205e80a1911",
+    "userspace/drivers/usb/src/activation.rs": "357564f3acbecb53ebbbe1555bb8fad43a1b54af50ff1437737d8259376df4b4",
+    "userspace/drivers/usb/src/xhci.rs": "74299abbabaa67890c036977550806fd825084827da3b6cc9435097bccca9783",
+    "userspace/drivers/usb/src/activation_tests.rs": "570bdbd0827cf7573e3c969b6db63c89a3f0332026625e6db2d05d75e47200ad"
+  }
+}

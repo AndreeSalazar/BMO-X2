@@ -36,8 +36,9 @@ del nano-core ni demuestra que todo BMO-X2 consuma 2 KiB.
 ## Prueba fisica preparada
 
 En esta maquina ya se registro una entrada separada del firmware llamada
-**BMO-X2 Desktop (RmlUi)**. Elegir ese nombre en el menu de arranque;
-**BMO-X2** sigue siendo el escritorio anterior de diagnostico USB.
+**BMO-X2 Desktop (RmlUi)**. Elegir ese nombre en el menu de arranque.
+Tras la confirmacion de METAL del propietario se retiro la entrada
+antigua **BMO-X2** del firmware; sus archivos se conservan como referencia.
 Los archivos visibles en el Explorador no son entradas del menu UEFI.
 
 En el volumen FAT32 BMO (A: bajo Windows), abrir desde el selector de
@@ -54,8 +55,7 @@ El programa lee exclusivamente:
 \BMO-X2\DESKTOP\DESKTOP.SBF
 ```
 
-No seleccionar la entrada antigua esperando ver este candidato: su EFI
-y sus archivos originales siguen intactos. La copia nueva no cambia
+Su EFI anterior y sus archivos originales siguen intactos. La copia nueva no cambia
 NVRAM, orden de arranque, particiones ni el cargador de Windows.
 `DEPLOY.JSON` identifica los hashes copiados y los originales conservados.
 
@@ -84,7 +84,12 @@ Cerrar el panel retira su identidad de DIRECTOR; la base conserva el
 documento/atlas para reabrirlo. No es todavia descarga completa de un
 proceso SBEF ni liberacion del mapeo de usuario.
 
-## Lo que no esta validado en metal
+## Evidencia y limites en metal
+
+El 16-11-2026 el propietario confirmo la presentacion de RmlUi en METAL
+con fotografia y BOOTLOG PRE-EBS, GOP 1920x1080. Ver
+[evidencia del arranque fisico](../Reports/rmlui-desktop-metal-20261116.json).
+Esto acredita lectura UEFI y llegada visual a Ring 3, no entrada USB.
 
 USB HID sigue pendiente: la ruta AMD existente lee descriptores, pero
 faltan configuracion de interfaces/endpoints interrupt y entrega de
@@ -100,8 +105,13 @@ A:\BMO-X2\DESKTOP\BOOTLOG.TXT
 El encabezado es `BMO-X2 DESKTOP UEFI PRE-EBS`. Incluye tamano SBEF,
 GOP_WIDTH/GOP_HEIGHT, CPUID, PS2 y controladores PCI xHCI. Es evidencia
 de lectura/preparacion UEFI, no un registro en vivo de Ring 0/Ring 3.
-Para verificar el arranque fisico hay que aportar ese archivo y una
-foto del escritorio o del error. Hasta entonces physical_boot=false.
+Cada candidato nuevo sigue necesitando su propio archivo y fotografia
+del escritorio o del error para acreditar el arranque fisico.
+
+La nueva variante de presentacion deja el gato CASM como saludo visual,
+sin el texto de exito METAL64/BootServices ni el mensaje de carga UEFI.
+Se preservan las firmas internas del contexto, las rutas de error y los
+diagnosticos de BOOTLOG; el nombre visible no cambia el contrato binario.
 
 CHKDSK A: en solo lectura no encontro problemas. Eso comprueba la
 estructura del FAT32 montado; no es un ensayo de superficie con /R,
@@ -120,6 +130,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1 -P
 ```
 
 Para copiar un run aprobado: `native/deploy.ps1 -Run <RUN> -Volume A:\`.
-La herramienta valida el FAT32 existente, las pruebas y cada hash; copia
-solo el candidato, respalda una version anterior del mismo y verifica
+La herramienta valida el FAT32 existente, las pruebas y cada hash; omite
+archivos identicos, copia solo el candidato y respalda la version anterior
+en `fat32-backups` dentro del run del proyecto, sin llenar A: de respaldos.
+Verifica
 que los archivos de arranque antiguos no hayan cambiado. No formatea.

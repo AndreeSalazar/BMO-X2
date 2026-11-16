@@ -29,6 +29,14 @@ def bridge_variant(*, native_ui=False):
             raise ValueError('Cambio el bloque de texto del puente')
         image[offset:offset + max(len(original), len(replacement))] = replacement.ljust(
             max(len(original), len(replacement)), b'\0')
+    if native_ui:
+        # Presentation only. Preserve context signatures and all failure paths.
+        # The CASM cat is the visual handoff; technical text stays in BOOTLOG.
+        closed = b'METAL64: BootServices cerrados.\r\n\0'
+        if image[0x1c00:0x1c00 + len(closed)] != closed:
+            raise ValueError('Cambio el saludo del puente')
+        image[0x1c00:0x1c00 + len(closed)] = bytes(len(closed))
+        image[0x1b00:0x1c00] = bytes(0x100)
     return image
 
 

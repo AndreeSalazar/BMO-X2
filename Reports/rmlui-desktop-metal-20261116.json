@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "date": "2026-11-16",
+  "evidence": "METAL: user photograph plus UEFI PRE-EBS BOOTLOG",
+  "run": "run-rmlui-media-197d1a868bd5",
+  "boot_file": "EFI/BMO-X2/DESKTOP.EFI",
+  "bootlog_text": "BMO-X2 DESKTOP UEFI PRE-EBS\r\nSBEF=001C2A56\r\nGOP_WIDTH=00000780\r\nGOP_HEIGHT=00000438\r\nCPUID=8000001D\r\nPS2=00000055\r\nXHCI=00000002\r\nBDF ID CMD BAR0_LO BAR0_HI\r\n00000300 43BC1022 00000006 FC6A0004 00000000\r\n00002B03 149C1022 00000007 FC200004 00000000\r\n",
+  "bootlog_sha256": "6ef6fba4bc209d56c30f91794880f4bfa5745cae8a1703714a5994173bddbd1a",
+  "photo_sha256": "266c064d2ef361ddfc368074819ab5e4b309d7e0d8c1db69893ffdb2e343eb9a",
+  "gop": {
+    "width": 1920,
+    "height": 1080
+  },
+  "physical_desktop_presentation_verified": true,
+  "physical_usb_hid_verified": false,
+  "runtime_disk_log": false,
+  "limits": "Photo confirms native Ring3 UI visible. PRE-EBS log alone does not prove Ring3 execution or USB HID input. New quiet candidate needs its own physical confirmation.",
+  "firmware": {
+    "retired_legacy_identifier": "{57cb1749-7f84-11f1-930d-c3a2d7ca848a}",
+    "active_identifier": "{57cb174a-7f84-11f1-930d-c3a2d7ca848a}",
+    "name": "BMO-X2 Desktop (RmlUi)",
+    "legacy_files_preserved": true
+  }
+}

@@ -32,6 +32,11 @@ $written=@{}
 foreach($name in $names) {
     $target=[IO.Path]::GetFullPath((Join-Path $Volume $name))
     if(-not $target.StartsWith($Volume,[StringComparison]::OrdinalIgnoreCase)){throw 'Destino fuera de A:.'}
+    if((Test-Path -LiteralPath $target -PathType Leaf) -and
+        (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant() -eq $proof.files.$name) {
+        $written[$name]=$proof.files.$name
+        continue
+    }
     $parent=Split-Path $target -Parent
     New-Item -ItemType Directory -Path $parent -Force | Out-Null
     if((Get-Item -LiteralPath $parent).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'Destino con redireccion.'}
@@ -40,8 +45,11 @@ foreach($name in $names) {
     $hash=(Get-FileHash -LiteralPath $temp -Algorithm SHA256).Hash.ToLowerInvariant()
     if($hash -ne $proof.files.$name){throw 'Fallo la copia FAT32.'}
     if(Test-Path -LiteralPath $target) {
-        $backup=$target+'.backup-'+[DateTime]::UtcNow.ToString('yyyyMMddHHmmssfff')
+        $previousHash=(Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant()
+        $backup=Join-Path (Join-Path $runPath 'fat32-backups') ($name+'.'+$previousHash)
+        New-Item -ItemType Directory -Path (Split-Path $backup -Parent) -Force | Out-Null
         Copy-Item -LiteralPath $target -Destination $backup
+        if((Get-FileHash -LiteralPath $backup -Algorithm SHA256).Hash.ToLowerInvariant() -ne $previousHash){throw 'Respaldo del candidato no verificado.'}
     }
     Move-Item -LiteralPath $temp -Destination $target -Force
     if((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant() -ne $hash){throw 'Verificacion final FAT32 fallida.'}

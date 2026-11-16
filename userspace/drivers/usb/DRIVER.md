@@ -7,6 +7,8 @@
 | `src/hid.rs` | Decodificar informes boot de teclado y raton, cambios de modificadores y liberacion al desconectar. | Pruebas HOST; el escritorio usa el mismo fuente en sus sondas USB QEMU. |
 | `src/descriptor.rs` | Leer una configuracion acotada y descubrir interfaces HID boot con sus endpoints IN. Generar los paquetes de solicitud SET_CONFIGURATION y SET_PROTOCOL. | HOST con descriptores reales capturados en las sondas QEMU de teclado y raton. |
 | `src/input.rs` | Servicio de entrada con fuentes separadas, cola acotada, cambios atomicos y desconexion con liberacion. | HOST y ejecucion CPL3 en las sondas QEMU de teclado y raton, por separado. Desconexion del servicio comprobada solo en HOST. |
+| `src/activation.rs` | Secuenciar SET_CONFIGURATION, SET_PROTOCOL de cada interfaz y Configure Endpoint; exigir terminaciones del propietario y plazos en microsegundos. | HOST, incluidas interfaz compuesta, respuesta antigua, STALL, residual y expiracion. No conectado aun al transporte del escritorio RmlUi. |
+| `src/xhci.rs` | Admitir endpoint USB2 interrupt IN y calcular DCI, intervalo y campos de contexto sin direcciones DMA. | HOST; validacion de todos los bInterval FS/LS, HS y endpoint 15. |
 | `src/tests.rs` | Rechazos con offset, dispositivo compuesto, alternates, truncamientos, descriptores HID y mutaciones. | HOST. No sustituye enumeracion en hardware. |
 
 El parser no supone interface cero ni endpoint 0x81. Conserva el numero
@@ -58,7 +60,8 @@ del transporte, aunque la biblioteca ya verifica su comportamiento HOST.
 ## Lo que queda antes de entrada USB fisica
 
 1. Enumerar ambos dispositivos y leer sus descriptores EP0 en el AMD.
-   El resultado actual en metal acredita No Op y dos puertos conectados.
+   La sonda METAL ya acredita descriptores del primer dispositivo;
+   no acredita configuracion HID ni dos dispositivos activos a la vez.
 2. Integrar un transporte de driver Ring 3 con concesiones de dispositivo,
    MMIO y buffers DMA y con revocacion comprobada. El contrato actual
    exige IOMMU para conceder DMA directo a un driver de usuario.
@@ -74,6 +77,28 @@ La sonda ASM bajo `kernel/drivers/bus/` sigue siendo diagnostico y
 referencia de transporte. Todavia contiene enumeracion xHCI en Ring 0
 para QEMU. No se declara como arquitectura final de driver ni como una
 implementacion de aislamiento DMA mediante IOMMU.
+
+## Activacion Ring 3, sin confundir peticion con exito
+
+`Activation<N>` prepara primero SET_CONFIGURATION y luego SET_PROTOCOL
+para cada numero de interfaz real. Despues solicita Configure Endpoint
+con la mascara de contextos descubierta. Ready solo se alcanza tras
+confirmar todas las terminaciones; una peticion emitida no cambia a Ready.
+El transporte autorizado debe comprobar TRB, slot, endpoint y propietario
+antes de entregar esa terminacion. Los identificadores locales del modulo
+no sustituyen esa comprobacion ni conceden MMIO/DMA.
+
+Una terminacion con error o plazo vencido bloquea la activacion. No se
+libera ni reutiliza DMA desde este modulo: el transporte debe confirmar
+la parada y revocacion. Un teclado compuesto conserva cada interfaz y
+cada endpoint; no se supone que todo sea interfaz cero y endpoint 0x81.
+Los contextos producidos dejan el puntero de dequeue a cero: solo el
+transporte puede completarlo con un anillo reservado y autorizado.
+
+La secuencia tiene pruebas HOST y compila sin std para x86-64, pero no
+esta enlazada a INVOKE ni al arranque del escritorio nativo. Por tanto,
+este cambio por si solo no resuelve teclado/raton USB en METAL.
+Los campos siguen la [especificacion xHCI 1.2, seccion 6.2.3](https://cdrdv2-public.intel.com/625472/625472_xHCI_Rev1_2b.pdf).
 
 ## Comprobacion HOST
 
