@@ -41,3 +41,20 @@ h3 { font-size:14px; font-weight:bold; margin-bottom:5px; }
 #state.ready { color:#7de3d2; }
 #bottom { display:flex; justify-content:space-between; align-items:center; margin-top:35px; padding-top:23px; border-top:1px #253043; font-size:9px; letter-spacing:1px; }
 .footer-note { color:#64748c; font-size:9px; }
+
+@keyframes desktop-arrival {
+    from { width:32px; background-color:#7de3d2; }
+    to { width:220px; background-color:#ad92ff; }
+}
+@keyframes intro-arrival {
+    from { opacity:0; }
+    to { opacity:1; }
+}
+#intro { opacity:0; animation:0.2s linear-in-out intro-arrival; }
+.intro-ready #intro, .reduced-motion #intro { animation:none; opacity:1; }
+#arrival { height:3px; width:32px; margin-top:18px; background-color:#7de3d2; animation:0.4s linear-in-out desktop-arrival; }
+button { tab-index:auto; transition:background-color 0.12s linear-in-out; }
+#state { transition:color 0.12s linear-in-out; }
+.reduced-motion #arrival { animation:none; width:220px; background-color:#ad92ff; }
+.arrived #arrival { animation:none; width:220px; background-color:#ad92ff; }
+.reduced-motion button, .reduced-motion #state { transition:none; }

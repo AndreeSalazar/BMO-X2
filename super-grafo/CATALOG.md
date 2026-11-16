@@ -124,10 +124,13 @@
 | [REPORTES de entrada](../Reports) | qemu | host | Expone fase USB, motivo, siguiente paso y pulsos de Ring 0 sin necesitar entrada; exporta evidencia en HOST. |
 | [ULTRA-J: perfil de estilos](../Ultra-J/ui/style.py) | host | host | Valida el perfil UJC acotado y sus propiedades soportadas. |
 | [ULTRA-J: compilador visual](../Ultra-J/ui/view.py) | host | host | Transforma .ujh y reglas en geometria validada y listas UJVI. |
-| [RmlUi + ULTRA-J en HOST](../tools/desktop/rmlui) | host | host | Prueba RmlUi/FreeType en HOST con rasterizador Rust no_std y evento hacia ULTRA-J HOST. |
+| [RmlUi + ULTRA-J en HOST](../tools/desktop/rmlui) | host | host | Construye RmlUi/FreeType en HOST y empaqueta recursos, UJBC y DLL; prueba el motor C++ con dibujador Rust. |
 | [Dibujo CPU Rust para RmlUi](../userspace/services/desktop/src/rmlui.rs) | qemu | 3 | Dibuja triangulos, texturas RGBA y recorte sobre buffers prestados sin heap ni llamadas de SO. |
 | [Sonda SBEF del dibujador comun](../tools/desktop/rmlui/guest.ps1) | qemu | host | Construye el mismo dibujador como SBEF freestanding y compara pixeles reales de QEMU con HOST. |
 | [Bienvenida del escritorio en Ring 3](../userspace/services/desktop/src/welcome.rs) | qemu | 3 | Muestra tres fases visuales despues de admision y permisos, entre el gato CASM y el escritorio ULTRA-J. |
+| [Recursos de interfaz en memoria](../tools/desktop/rmlui/memory_files.h) | host | host | Sustituye acceso a archivos del adaptador por una tabla de recursos inmutables con cursores acotados. |
+| [Sesion del motor C++ RmlUi](../tools/desktop/rmlui/engine.cpp) | host | host | Expone reloj monotono, recursos, eventos, movimiento reducido y destino prestado mediante ABI C experimental de aplicacion. |
+| [Prueba de sesion y animacion real](../tools/desktop/rmlui/live.py) | host | host | HOST entrega recursos al motor real, avanza tiempo determinista y verifica pixeles, entrada, acciones y rechazos. |
 
 ## Dependencias declaradas
 
@@ -347,5 +350,11 @@
 | rmlui-raster-probe | abi-probe | verificacion |
 | desktop-welcome | abi-bef2 | codigo |
 | desktop-workspaces | desktop-welcome | codigo |
+| rmlui-host-preview | rmlui-engine-session | codigo |
+| rmlui-engine-session | rmlui-memory-resources | codigo |
+| rmlui-engine-session | rmlui-rust-raster | codigo |
+| rmlui-live-validation | rmlui-engine-session | verificacion |
+| rmlui-live-validation | ultra-j-compiler | codigo |
+| rmlui-live-validation | ultra-j-recycler | codigo |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

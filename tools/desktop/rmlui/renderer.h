@@ -1,0 +1,97 @@
+#pragma once
+#include <RmlUi/Core.h>
+#include "raster.h"
+#include <algorithm>
+#include <cstdint>
+#include <stdexcept>
+#include <memory>
+#include <unordered_set>
+#include <vector>
+namespace BmoUi {
+constexpr int W = 1280, H = 800;
+struct Geometry { std::vector<Rml::Vertex> v; std::vector<int> i; };
+struct Texture { int w, h; std::vector<Rml::byte> rgba; };
+class Renderer : public Rml::RenderInterface {
+public:
+    uint32_t* pixels=nullptr;
+    size_t pixel_count=0;
+    size_t triangles = 0, peak_geometry = 0, peak_texture = 0, geometry_bytes = 0, texture_bytes = 0;
+    std::unordered_set<Geometry*> geometries;
+    std::unordered_set<Texture*> textures;
+    ~Renderer() override {
+        for(auto g:geometries) delete g;
+        for(auto t:textures) delete t;
+    }
+    bool clip = false;
+    bool transformed=false, unsupported_transform=false;
+    bool unsupported_feature=false;
+    Rml::Rectanglei region = Rml::Rectanglei::FromPositionSize({0, 0}, {W, H});
+    Rml::CompiledGeometryHandle CompileGeometry(Rml::Span<const Rml::Vertex> v, Rml::Span<const int> i) override {
+        if (v.size() > 1000000 || i.size() > 3000000 || i.size() % 3) throw std::runtime_error("geometry bounds");
+        if(geometries.size()>=4096 || geometry_bytes+v.size()*sizeof(Rml::Vertex)+i.size()*sizeof(int)>16*1024*1024) throw std::runtime_error("geometry budget");
+        auto owned = std::make_unique<Geometry>(Geometry{{v.begin(), v.end()}, {i.begin(), i.end()}});
+        auto g=owned.get();
+        for (int n : g->i) if (n < 0 || size_t(n) >= g->v.size()) throw std::runtime_error("geometry index");
+        geometries.insert(g);
+        geometry_bytes += g->v.size() * sizeof(Rml::Vertex) + g->i.size() * sizeof(int);
+        peak_geometry = std::max(peak_geometry, geometry_bytes); owned.release();
+        return reinterpret_cast<Rml::CompiledGeometryHandle>(g);
+    }
+    void ReleaseGeometry(Rml::CompiledGeometryHandle handle) override {
+        auto g = reinterpret_cast<Geometry*>(handle);
+        if (!geometries.erase(g)) throw std::runtime_error("unknown geometry");
+        geometry_bytes -= g->v.size() * sizeof(Rml::Vertex) + g->i.size() * sizeof(int); delete g;
+    }
+    Rml::TextureHandle LoadTexture(Rml::Vector2i&, const Rml::String&) override {
+        throw std::runtime_error("external images unsupported in this profile");
+    }
+    Rml::TextureHandle GenerateTexture(Rml::Span<const Rml::byte> source, Rml::Vector2i dimensions) override {
+        if (dimensions.x <= 0 || dimensions.y <= 0 || dimensions.x > 4096 || dimensions.y > 4096 ||
+            source.size() != size_t(dimensions.x) * dimensions.y * 4) throw std::runtime_error("texture bounds");
+        if(textures.size()>=64 || texture_bytes+source.size()>16*1024*1024) throw std::runtime_error("texture budget");
+        auto owned=std::make_unique<Texture>(Texture{dimensions.x, dimensions.y, {source.begin(), source.end()}});
+        auto t=owned.get(); textures.insert(t);
+        texture_bytes += t->rgba.size(); peak_texture = std::max(peak_texture, texture_bytes); owned.release();
+        return reinterpret_cast<Rml::TextureHandle>(t);
+    }
+    void ReleaseTexture(Rml::TextureHandle handle) override {
+        auto t = reinterpret_cast<Texture*>(handle);
+        if (!textures.erase(t)) throw std::runtime_error("unknown texture");
+        texture_bytes -= t->rgba.size(); delete t;
+    }
+    void SetTransform(const Rml::Matrix4f* value) override { transformed=value!=nullptr; unsupported_transform|=transformed; }
+    void EnableClipMask(bool enabled) override { unsupported_feature|=enabled; }
+    void RenderToClipMask(Rml::ClipMaskOperation,Rml::CompiledGeometryHandle,Rml::Vector2f) override { unsupported_feature=true; }
+    Rml::LayerHandle PushLayer() override { unsupported_feature=true; return 1; }
+    void CompositeLayers(Rml::LayerHandle,Rml::LayerHandle,Rml::BlendMode,Rml::Span<const Rml::CompiledFilterHandle>) override { unsupported_feature=true; }
+    Rml::CompiledFilterHandle CompileFilter(const Rml::String&,const Rml::Dictionary&) override {unsupported_feature=true;return 0;}
+    Rml::CompiledShaderHandle CompileShader(const Rml::String&,const Rml::Dictionary&) override {unsupported_feature=true;return 0;}
+    void EnableScissorRegion(bool enable) override { clip = enable; }
+    void SetScissorRegion(Rml::Rectanglei value) override { region = value; }
+    void RenderGeometry(Rml::CompiledGeometryHandle handle, Rml::Vector2f translation, Rml::TextureHandle texture) override {
+        if(transformed) return;
+        auto g=reinterpret_cast<Geometry*>(handle); auto t=reinterpret_cast<Texture*>(texture);
+        if(!geometries.count(g) || (t && !textures.count(t))) throw std::runtime_error("render handle");
+        BmoUiRect bounds{0,0,W,H};
+        if(clip) bounds={uint32_t(std::clamp(region.Left(),0,W)),uint32_t(std::clamp(region.Top(),0,H)),
+                         uint32_t(std::clamp(region.Right(),0,W)),uint32_t(std::clamp(region.Bottom(),0,H))};
+        for(size_t n=0;n<g->i.size();n+=3) {
+            BmoUiVertex vertices[3];
+            for(size_t k=0;k<3;++k) {
+                const auto& v=g->v[g->i[n+k]];
+                vertices[k]={v.position.x+translation.x,v.position.y+translation.y,
+                    float(v.colour.red),float(v.colour.green),float(v.colour.blue),float(v.colour.alpha),v.tex_coord.x,v.tex_coord.y};
+            }
+            if(bmo_ui_triangle(pixels,pixel_count,W,H,vertices,t?t->rgba.data():nullptr,
+                t?t->rgba.size():0,t?uint32_t(t->w):0,t?uint32_t(t->h):0,bounds)!=0) throw std::runtime_error("Rust raster rejected geometry");
+            ++triangles;
+        }
+    }
+    void frame(Rml::Context* context) {
+        unsupported_transform=false;
+        std::fill(pixels,pixels+pixel_count,0x0b1019); context->Update(); context->Render();
+        if(unsupported_transform) throw std::runtime_error("transforms outside CPU profile");
+        if(unsupported_feature) throw std::runtime_error("layers, masks, filters or shaders outside CPU profile");
+    }
+};
+}

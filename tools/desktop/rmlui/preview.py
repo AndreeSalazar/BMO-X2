@@ -47,6 +47,8 @@ def package():
     program = compile_source((output / 'main.uj').read_bytes())
     (output / 'action.ujb').write_bytes(program)
     manifest = dict(schema=1, profile='rmlui-host-windows-x64', sbef=False, ring3_ready=False,
+                    native_api='bmo-ui-memory-v1',
+                    engine_resources=['main.rml', 'style.rcss', 'LatoLatin-Regular.ttf', 'LatoLatin-Bold.ttf'],
                     note='Native Windows proof plus Python HOST VM; no guest executable.',
                     files={p.name: dict(bytes=p.stat().st_size, sha256=sha(p))
                            for p in sorted(output.iterdir()) if p.name in {*files, 'action.ujb'}})

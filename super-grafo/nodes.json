@@ -1981,10 +1981,10 @@
         5100,
         3100
       ],
-      "que": "Prueba RmlUi/FreeType en HOST con rasterizador Rust no_std y evento hacia ULTRA-J HOST.",
+      "que": "Construye RmlUi/FreeType en HOST y empaqueta recursos, UJBC y DLL; prueba el motor C++ con dibujador Rust.",
       "entrada": "RML, RCSS, main.uj y dependencias fijadas por commit.",
       "salida": "Paquete HOST con hashes, dos imagenes y mediciones del proceso; no SBEF.",
-      "aceptacion": "Click ejecuta dos metodos UJBC y cierra region; rechazos y reinicializacion pasan; recursos del adaptador liberados.",
+      "aceptacion": "Sesion en memoria y animacion real pasan live.py; la DLL conserva rechazo SBEF y el objeto del adaptador no importa Kernel32 directamente.",
       "falta": "Motor C++ freestanding, asignador y servicios propios, eventos DIRECTOR/ULTRA-J nativos y perfil de carga medido; DLL Windows rechazada."
     },
     {
@@ -2037,6 +2037,57 @@
       "salida": "Bienvenida breve con WAIT; primera entrada preservada para el escritorio.",
       "aceptacion": "QEMU compara dos cuadros del gato, tres fases con llamador CPL3, llegada al escritorio y salto F2 que abre CABINA; rechazo W+X sigue pasando.",
       "falta": "Presentacion RmlUi completa y validacion en METAL; este perfil no certifica dispositivos USB."
+    },
+    {
+      "id": "rmlui-memory-resources",
+      "titulo": "Recursos de interfaz en memoria",
+      "ruta": "tools/desktop/rmlui/memory_files.h",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "C++",
+      "posicion": [
+        6300,
+        3100
+      ],
+      "que": "Sustituye acceso a archivos del adaptador por una tabla de recursos inmutables con cursores acotados.",
+      "entrada": "Hasta ocho recursos con nombre plano, bytes prestados y longitud.",
+      "salida": "Lectura y busqueda acotadas; rechazo de rutas y recursos ausentes.",
+      "aceptacion": "La sesion real lee RML/RCSS/fuentes desde memoria; ruta .. y recurso ausente se rechazan sin abrir disco desde el adaptador.",
+      "falta": "Integrar el productor de recursos y asignador del entorno Ring 3; el runtime enlazado aun es Windows."
+    },
+    {
+      "id": "rmlui-engine-session",
+      "titulo": "Sesion del motor C++ RmlUi",
+      "ruta": "tools/desktop/rmlui/engine.cpp",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "C++",
+      "posicion": [
+        6300,
+        3300
+      ],
+      "que": "Expone reloj monotono, recursos, eventos, movimiento reducido y destino prestado mediante ABI C experimental de aplicacion.",
+      "entrada": "Tabla de recursos, tiempo inyectado, entrada y callback de accion ULTRA-J.",
+      "salida": "Cuadros Rust CPU, plazo de actualizacion y diagnosticos de ciclo de vida y perfil visual.",
+      "aceptacion": "Animaciones RCSS de opacidad/ancho/color verificadas; puntero y Enter; reentrada bloqueada; cierre limpio; objeto sin llamadas Kernel32 directas.",
+      "falta": "Runtime C++/FreeType freestanding, perfil de carga medido y conexion DIRECTOR/ULTRA-J nativos; no SBEF ni METAL."
+    },
+    {
+      "id": "rmlui-live-validation",
+      "titulo": "Prueba de sesion y animacion real",
+      "ruta": "tools/desktop/rmlui/live.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [
+        6300,
+        3500
+      ],
+      "que": "HOST entrega recursos al motor real, avanza tiempo determinista y verifica pixeles, entrada, acciones y rechazos.",
+      "entrada": "Paquete HOST de RmlUi y UJBC del ejemplo.",
+      "salida": "PNG, GIF de cuadros reales e informe HOST con pruebas, recursos y costes.",
+      "aceptacion": "Movimiento reducido estable, transiciones interpoladas, accion aceptada/rechazada, repeticion Enter, reinicializacion y ausencia de actualizaciones pendientes al terminar.",
+      "falta": "Prueba del mismo motor completo en Ring 3 y perfil de admision; el callback actual ejecuta la VM HOST Python."
     }
   ],
   "relaciones": [
@@ -3108,6 +3159,36 @@
     {
       "de": "desktop-workspaces",
       "a": "desktop-welcome",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-host-preview",
+      "a": "rmlui-engine-session",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-engine-session",
+      "a": "rmlui-memory-resources",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-engine-session",
+      "a": "rmlui-rust-raster",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-live-validation",
+      "a": "rmlui-engine-session",
+      "clase": "verificacion"
+    },
+    {
+      "de": "rmlui-live-validation",
+      "a": "ultra-j-compiler",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-live-validation",
+      "a": "ultra-j-recycler",
       "clase": "codigo"
     }
   ]

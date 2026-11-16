@@ -41,6 +41,17 @@ def main():
             'Dirty surfaces, bounded resource ownership and presentation via existing capabilities',
             'Separate measured loader profile if engine exceeds current external 16 KiB budget',
             'QEMU input/render/lifecycle/permission tests before any METAL deployment'])
+    adapter=ROOT/'build/rmlui-host/native/CMakeFiles/bmo_rmlui_host.dir/engine.cpp.obj'
+    if adapter.exists():
+        symbols=subprocess.check_output([str(args.llvm/'llvm-nm.exe'),'--undefined-only','--format=posix',str(adapter)],text=True)
+        undefined=[line.split()[0] for line in symbols.splitlines() if line.strip()]
+        windows={symbol for library in imports if library['library'].lower()=='kernel32.dll' for symbol in library['symbols']}
+        direct=[symbol for symbol in undefined if symbol.removeprefix('__imp_') in windows]
+        if direct:
+            raise ValueError('Adaptador con dependencia directa de Windows: '+repr(direct))
+        report['engine_adapter_object']=dict(SHA256=hashlib.sha256(adapter.read_bytes()).hexdigest(),
+            UndefinedSymbols=undefined,DirectKernel32Imports=direct,Freestanding=False,
+            Scope='Only engine.cpp object; RmlUi, FreeType, STL and compiler runtime still need adaptation')
     sbef=ROOT/'build/rmlui-guest/raster.sbef'
     if sbef.exists():
         report['shared_rust_probe']=inspect(sbef.read_bytes())

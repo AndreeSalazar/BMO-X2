@@ -15,6 +15,11 @@ requiere un puente y servicios adaptados antes de llegar a Ring 3.
 El dibujador comun ya vive en Rust no_std y paso una sonda SBEF en CPL3;
 la vista HOST lo usa con pixeles identicos al backend C++ inicial.
 Esto no implica que RmlUi completo ni su callback Python vivan en el invitado.
+El perfil `bmo-ui-memory-v1` ya recibe recursos en memoria y tiempo
+inyectado, anima RCSS, procesa puntero y llama a la accion UJBC HOST.
+Prueba movimiento reducido, cierre/reentrada y rechazos de recursos,
+RCSS y funciones graficas fuera del perfil. `tools/desktop/rmlui/live.py`
+genera la demostracion animada real; la evidencia sigue siendo HOST.
 
 ## Por que existe
 

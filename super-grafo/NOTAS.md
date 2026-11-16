@@ -1324,13 +1324,13 @@ Pendiente: CSS completo y un motor de layout general no estan implementados.
 
 ## tools/desktop/rmlui
 
-Prueba RmlUi/FreeType en HOST con rasterizador Rust no_std y evento hacia ULTRA-J HOST.
+Construye RmlUi/FreeType en HOST y empaqueta recursos, UJBC y DLL; prueba el motor C++ con dibujador Rust.
 
 Estado: HOST. Anillo: host. Lenguaje: C++ / Python.
 Entrada: RML, RCSS, main.uj y dependencias fijadas por commit.
 Salida: Paquete HOST con hashes, dos imagenes y mediciones del proceso; no SBEF.
-Depende de: ULTRA-J: compilador inicial (codigo), ULTRA-J: verificador y reciclador (codigo), Dibujo CPU Rust para RmlUi (codigo).
-Aceptacion: Click ejecuta dos metodos UJBC y cierra region; rechazos y reinicializacion pasan; recursos del adaptador liberados.
+Depende de: ULTRA-J: compilador inicial (codigo), ULTRA-J: verificador y reciclador (codigo), Dibujo CPU Rust para RmlUi (codigo), Sesion del motor C++ RmlUi (codigo).
+Aceptacion: Sesion en memoria y animacion real pasan live.py; la DLL conserva rechazo SBEF y el objeto del adaptador no importa Kernel32 directamente.
 Pendiente: Motor C++ freestanding, asignador y servicios propios, eventos DIRECTOR/ULTRA-J nativos y perfil de carga medido; DLL Windows rechazada.
 
 ## userspace/services/desktop/src/rmlui.rs
@@ -1366,6 +1366,39 @@ Depende de: BEF2 y ABI de BMO-X (codigo).
 Aceptacion: QEMU compara dos cuadros del gato, tres fases con llamador CPL3, llegada al escritorio y salto F2 que abre CABINA; rechazo W+X sigue pasando.
 Pendiente: Presentacion RmlUi completa y validacion en METAL; este perfil no certifica dispositivos USB.
 
+## tools/desktop/rmlui/memory_files.h
+
+Sustituye acceso a archivos del adaptador por una tabla de recursos inmutables con cursores acotados.
+
+Estado: HOST. Anillo: host. Lenguaje: C++.
+Entrada: Hasta ocho recursos con nombre plano, bytes prestados y longitud.
+Salida: Lectura y busqueda acotadas; rechazo de rutas y recursos ausentes.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: La sesion real lee RML/RCSS/fuentes desde memoria; ruta .. y recurso ausente se rechazan sin abrir disco desde el adaptador.
+Pendiente: Integrar el productor de recursos y asignador del entorno Ring 3; el runtime enlazado aun es Windows.
+
+## tools/desktop/rmlui/engine.cpp
+
+Expone reloj monotono, recursos, eventos, movimiento reducido y destino prestado mediante ABI C experimental de aplicacion.
+
+Estado: HOST. Anillo: host. Lenguaje: C++.
+Entrada: Tabla de recursos, tiempo inyectado, entrada y callback de accion ULTRA-J.
+Salida: Cuadros Rust CPU, plazo de actualizacion y diagnosticos de ciclo de vida y perfil visual.
+Depende de: Recursos de interfaz en memoria (codigo), Dibujo CPU Rust para RmlUi (codigo).
+Aceptacion: Animaciones RCSS de opacidad/ancho/color verificadas; puntero y Enter; reentrada bloqueada; cierre limpio; objeto sin llamadas Kernel32 directas.
+Pendiente: Runtime C++/FreeType freestanding, perfil de carga medido y conexion DIRECTOR/ULTRA-J nativos; no SBEF ni METAL.
+
+## tools/desktop/rmlui/live.py
+
+HOST entrega recursos al motor real, avanza tiempo determinista y verifica pixeles, entrada, acciones y rechazos.
+
+Estado: HOST. Anillo: host. Lenguaje: Python.
+Entrada: Paquete HOST de RmlUi y UJBC del ejemplo.
+Salida: PNG, GIF de cuadros reales e informe HOST con pruebas, recursos y costes.
+Depende de: Sesion del motor C++ RmlUi (verificacion), ULTRA-J: compilador inicial (codigo), ULTRA-J: verificador y reciclador (codigo).
+Aceptacion: Movimiento reducido estable, transiciones interpoladas, accion aceptada/rechazada, repeticion Enter, reinicializacion y ausencia de actualizaciones pendientes al terminar.
+Pendiente: Prueba del mismo motor completo en Ring 3 y perfil de admision; el callback actual ejecuta la VM HOST Python.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -1388,4 +1421,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-124 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+127 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

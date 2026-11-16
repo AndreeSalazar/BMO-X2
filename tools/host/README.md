@@ -1,5 +1,13 @@
 # HOST de BMO-X2
 
+La sesion visual C++ se construye y prueba en `tools/desktop/rmlui/`.
+Su productor HOST empaqueta RML/RCSS, fuentes, UJBC y DLL con hashes;
+entrega recursos en memoria al contrato `bmo-ui-memory-v1`. No usa
+`pack` como si una DLL Windows fuera SBEF: el lector mantiene su rechazo.
+La auditoria separa el objeto del adaptador sin llamadas Kernel32
+directas del runtime/STL/FreeType que aun requieren adaptacion.
+Ver [sesion, animacion y limites](../desktop/rmlui/README.md).
+
 HOST recibe un ejecutable x86-64 enlazado y decide si cumple el perfil
 de aplicacion. El resultado admitido es un SBEF con un ABI, entrada,
 regiones y permisos definidos. El ejecutable mantiene el codigo de

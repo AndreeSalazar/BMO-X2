@@ -23,7 +23,7 @@ add_custom_command(OUTPUT "${RASTER}"
   DEPENDS raster.rs "${BMO_ROOT}/userspace/services/desktop/src/rmlui.rs"
   VERBATIM)
 add_custom_target(bmo_raster DEPENDS "${RASTER}")
-add_library(bmo_rmlui_host SHARED preview.cpp)
+add_library(bmo_rmlui_host SHARED preview.cpp engine.cpp)
 add_dependencies(bmo_rmlui_host bmo_raster)
 target_compile_definitions(bmo_rmlui_host PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 target_link_libraries(bmo_rmlui_host PRIVATE RmlUi::Core "${RASTER}")

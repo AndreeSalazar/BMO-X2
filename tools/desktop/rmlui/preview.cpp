@@ -1,6 +1,7 @@
 // HOST Windows proof. RmlUi builds layout/geometry; this adapter rasterizes on CPU.
 #include <RmlUi/Core.h>
-#include "raster.h"
+#include "renderer.h"
+#include "owner.h"
 #include <windows.h>
 #include <algorithm>
 #include <array>
@@ -15,72 +16,15 @@
 #include <vector>
 
 namespace {
-constexpr int W = 1280, H = 800;
-struct Geometry { std::vector<Rml::Vertex> v; std::vector<int> i; };
-struct Texture { int w, h; std::vector<Rml::byte> rgba; };
-class Renderer final : public Rml::RenderInterface {
+using namespace BmoUi;
+class PreviewRenderer final : public Renderer {
 public:
-    std::vector<uint32_t> pixels;
-    size_t triangles = 0, peak_geometry = 0, peak_texture = 0, geometry_bytes = 0, texture_bytes = 0;
-    std::unordered_set<Geometry*> geometries;
-    std::unordered_set<Texture*> textures;
-    bool clip = false;
-    Rml::Rectanglei region = Rml::Rectanglei::FromPositionSize({0, 0}, {W, H});
-    Rml::CompiledGeometryHandle CompileGeometry(Rml::Span<const Rml::Vertex> v, Rml::Span<const int> i) override {
-        if (v.size() > 1000000 || i.size() > 3000000 || i.size() % 3) throw std::runtime_error("geometry bounds");
-        auto g = new Geometry{{v.begin(), v.end()}, {i.begin(), i.end()}};
-        for (int n : g->i) if (n < 0 || size_t(n) >= g->v.size()) { delete g; throw std::runtime_error("geometry index"); }
-        geometry_bytes += g->v.size() * sizeof(Rml::Vertex) + g->i.size() * sizeof(int);
-        peak_geometry = std::max(peak_geometry, geometry_bytes); geometries.insert(g);
-        return reinterpret_cast<Rml::CompiledGeometryHandle>(g);
-    }
-    void ReleaseGeometry(Rml::CompiledGeometryHandle handle) override {
-        auto g = reinterpret_cast<Geometry*>(handle);
-        if (!geometries.erase(g)) throw std::runtime_error("unknown geometry");
-        geometry_bytes -= g->v.size() * sizeof(Rml::Vertex) + g->i.size() * sizeof(int); delete g;
-    }
-    Rml::TextureHandle LoadTexture(Rml::Vector2i&, const Rml::String&) override {
-        throw std::runtime_error("external images unsupported in this profile");
-    }
-    Rml::TextureHandle GenerateTexture(Rml::Span<const Rml::byte> source, Rml::Vector2i dimensions) override {
-        if (dimensions.x <= 0 || dimensions.y <= 0 || dimensions.x > 4096 || dimensions.y > 4096 ||
-            source.size() != size_t(dimensions.x) * dimensions.y * 4) throw std::runtime_error("texture bounds");
-        auto t = new Texture{dimensions.x, dimensions.y, {source.begin(), source.end()}};
-        texture_bytes += t->rgba.size(); peak_texture = std::max(peak_texture, texture_bytes); textures.insert(t);
-        return reinterpret_cast<Rml::TextureHandle>(t);
-    }
-    void ReleaseTexture(Rml::TextureHandle handle) override {
-        auto t = reinterpret_cast<Texture*>(handle);
-        if (!textures.erase(t)) throw std::runtime_error("unknown texture");
-        texture_bytes -= t->rgba.size(); delete t;
-    }
-    void EnableScissorRegion(bool enable) override { clip = enable; }
-    void SetScissorRegion(Rml::Rectanglei value) override { region = value; }
-    void RenderGeometry(Rml::CompiledGeometryHandle handle, Rml::Vector2f translation, Rml::TextureHandle texture) override {
-        auto g=reinterpret_cast<Geometry*>(handle); auto t=reinterpret_cast<Texture*>(texture);
-        if(!geometries.count(g) || (t && !textures.count(t))) throw std::runtime_error("render handle");
-        BmoUiRect bounds{0,0,W,H};
-        if(clip) bounds={uint32_t(std::clamp(region.Left(),0,W)),uint32_t(std::clamp(region.Top(),0,H)),
-                         uint32_t(std::clamp(region.Right(),0,W)),uint32_t(std::clamp(region.Bottom(),0,H))};
-        for(size_t n=0;n<g->i.size();n+=3) {
-            BmoUiVertex vertices[3];
-            for(size_t k=0;k<3;++k) {
-                const auto& v=g->v[g->i[n+k]];
-                vertices[k]={v.position.x+translation.x,v.position.y+translation.y,
-                    float(v.colour.red),float(v.colour.green),float(v.colour.blue),float(v.colour.alpha),v.tex_coord.x,v.tex_coord.y};
-            }
-            if(bmo_ui_triangle(pixels.data(),pixels.size(),W,H,vertices,t?t->rgba.data():nullptr,
-                t?t->rgba.size():0,t?uint32_t(t->w):0,t?uint32_t(t->h):0,bounds)!=0) throw std::runtime_error("Rust raster rejected geometry");
-            ++triangles;
-        }
-    }
-    void frame(Rml::Context* context) { std::fill(pixels.begin(),pixels.end(),0x0b1019); context->Update(); context->Render(); }
     void save(const std::string& path) {
         BITMAPFILEHEADER file{}; BITMAPINFOHEADER info{};
         file.bfType=0x4d42; file.bfOffBits=sizeof(file)+sizeof(info); file.bfSize=file.bfOffBits+W*H*4;
         info.biSize=sizeof(info); info.biWidth=W; info.biHeight=-H; info.biPlanes=1; info.biBitCount=32; info.biCompression=BI_RGB;
         std::ofstream out(path,std::ios::binary); out.write(reinterpret_cast<char*>(&file),sizeof(file)); out.write(reinterpret_cast<char*>(&info),sizeof(info));
-        out.write(reinterpret_cast<char*>(pixels.data()),pixels.size()*4); if(!out) throw std::runtime_error("image write");
+        out.write(reinterpret_cast<char*>(pixels),pixel_count*4); if(!out) throw std::runtime_error("image write");
     }
 };
 class System final : public Rml::SystemInterface {
@@ -106,10 +50,11 @@ public:
 }
 
 extern "C" __declspec(dllexport) int bmo_rmlui_preview(const char* assets, const char* output, Action action) noexcept {
+    BmoUi::Lease lease; if(!lease) return 1;
     bool initialized=false;
-    Renderer renderer; System system; Listener listener(action);
+    PreviewRenderer renderer; std::vector<uint32_t> framebuffer; System system; Listener listener(action);
     try {
-        renderer.pixels.resize(W * H);
+        framebuffer.resize(W * H); renderer.pixels=framebuffer.data(); renderer.pixel_count=framebuffer.size();
         Rml::SetRenderInterface(&renderer); Rml::SetSystemInterface(&system);
         if(!Rml::Initialise()) {
             Rml::SetRenderInterface(nullptr); Rml::SetSystemInterface(nullptr);

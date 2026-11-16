@@ -54,6 +54,15 @@ a HOST. No sustituye UJVI ni instala RmlUi completo en Ring 3: faltan el
 runtime C++, entrada DIRECTOR, acciones nativas y presupuestos del motor.
 Ver el README del adaptador y su evidencia reproducible.
 
+El adaptador C++ de sesion `tools/desktop/rmlui/engine.cpp` recibe una
+tabla de recursos en memoria, reloj monotono y destino de dibujo
+prestado; enlaza la geometria con el dibujador Rust. Su objeto se
+audita sin llamadas directas Kernel32. El runtime enlazado sigue siendo
+Windows, no un motor SBEF ya admitido. La prueba `live.py` verifica
+entrada por opacidad, animacion de ancho/color, movimiento reducido,
+puntero y callback ULTRA-J HOST, mas cierre y rechazos. El siguiente
+plazo de RmlUi se expone al cliente para integrarlo luego con WAIT.
+
 ## Gato Ring 0, bienvenida Ring 3, escritorio
 
 El gato CASM permanece intacto. La prueba compara sus dos cuadros de

@@ -21,6 +21,7 @@
         <p class="description">Una interfaz con estructura propia, estilo compartido<br/>y comportamiento conectado a ULTRA-J.</p>
         <button id="activate">Activar ULTRA-J</button>
         <p id="result">Pulsa el boton para ejecutar una accion real.</p>
+        <div id="arrival"></div>
       </div>
       <div id="side-panel">
         <div class="eyebrow">LA BASE</div><h2>Todo tiene su lugar.</h2>

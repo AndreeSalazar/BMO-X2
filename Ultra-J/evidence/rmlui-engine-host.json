@@ -1,0 +1,789 @@
+{
+  "evidence": "HOST",
+  "full_rmlui_ring3_ready": false,
+  "sbef": false,
+  "api": "bmo-ui-memory-v1",
+  "checks": [
+    "missing resource rejected",
+    "path traversal rejected",
+    "invalid RCSS reported instead of silently ignored",
+    "intro opacity interpolates and remains visible after animationend",
+    "legacy entry cannot steal ownership",
+    "RCSS width interpolated with injected time",
+    "clock reversal rejected without writing",
+    "wrong target length rejected without writing",
+    "RCSS text color transition interpolates after ULTRA-J action",
+    "pointer click dispatches ULTRA-J exactly once",
+    "destructive callback reentry rejected",
+    "engine requests no updates after animations settle",
+    "rejected ULTRA-J callback changes view without executing an action",
+    "repeated Enter down plus one release dispatches one additional click",
+    "reduced motion stable without animation",
+    "transform:rotate(1deg): unsupported feature reported, session blocked until close",
+    "filter:blur(2px): unsupported feature reported, session blocked until close",
+    "close releases adapter handles and session can reinitialize"
+  ],
+  "animation_widths": [
+    32.0,
+    55.5,
+    79.0,
+    102.5,
+    126.0,
+    149.5,
+    173.0,
+    196.50001525878906,
+    220.0,
+    220.0
+  ],
+  "timestamps_ms": [
+    0,
+    50,
+    100,
+    150,
+    200,
+    250,
+    300,
+    350,
+    400,
+    450
+  ],
+  "animation_stats": [
+    {
+      "time_ns": 0,
+      "triangles": 1660,
+      "geometry_bytes": 80800,
+      "texture_bytes": 1277952,
+      "peak_geometry_bytes": 80800,
+      "peak_texture_bytes": 1277952,
+      "open_files": 0,
+      "denied_files": 0,
+      "click_events": 0,
+      "action_accepted": 0,
+      "next_delay_ms": 0
+    },
+    {
+      "time_ns": 50000000,
+      "triangles": 3320,
+      "geometry_bytes": 80800,
+      "texture_bytes": 1277952,
+      "peak_geometry_bytes": 80800,
+      "peak_texture_bytes": 1277952,
+      "open_files": 0,
+      "denied_files": 0,
+      "click_events": 0,
+      "action_accepted": 0,
+      "next_delay_ms": 0
+    },
+    {
+      "time_ns": 100000000,
+      "triangles": 4980,
+      "geometry_bytes": 80800,
+      "texture_bytes": 1277952,
+      "peak_geometry_bytes": 80800,
+      "peak_texture_bytes": 1277952,
+      "open_files": 0,
+      "denied_files": 0,
+      "click_events": 0,
+      "action_accepted": 0,
+      "next_delay_ms": 0
+    },
+    {
+      "time_ns": 150000000,
+      "triangles": 6640,
+      "geometry_bytes": 80800,
+      "texture_bytes": 1277952,
+      "peak_geometry_bytes": 80800,
+      "peak_texture_bytes": 1277952,
+      "open_files": 0,
+      "denied_files": 0,
+      "click_events": 0,
+      "action_accepted": 0,
+      "next_delay_ms": 0
+    },
+    {
+      "time_ns": 200000000,
+      "triangles": 8300,
+      "geometry_bytes": 80800,
+      "texture_bytes": 1277952,
+      "peak_geometry_bytes": 80800,
+      "peak_texture_bytes": 1277952,
+      "open_files": 0,
+      "denied_files": 0,
+      "click_events": 0,
+      "action_accepted": 0,
+      "next_delay_ms": 0
+    },
+    {
+      "time_ns": 250000000,
+      "triangles": 9960,
+      "geometry_bytes": 80800,
+      "texture_bytes": 1277952,
+      "peak_geometry_bytes": 80800,
+      "peak_texture_bytes": 1277952,
+      "open_files": 0,
+      "denied_files": 0,
+      "click_events": 0,
+      "action_accepted": 0,
+      "next_delay_ms": 0
+    },
+    {
+      "time_ns": 300000000,
+      "triangles": 11620,
+      "geometry_bytes": 80800,
+      "texture_bytes": 1277952,
+      "peak_geometry_bytes": 80800,
+      "peak_texture_bytes": 1277952,
+      "open_files": 0,
+      "denied_files": 0,
+      "click_events": 0,
+      "action_accepted": 0,
+      "next_delay_ms": 0
+    },
+    {
+      "time_ns": 350000000,
+      "triangles": 13280,
+      "geometry_bytes": 80800,
+      "texture_bytes": 1277952,
+      "peak_geometry_bytes": 80800,
+      "peak_texture_bytes": 1277952,
+      "open_files": 0,
+      "denied_files": 0,
+      "click_events": 0,
+      "action_accepted": 0,
+      "next_delay_ms": 0
+    },
+    {
+      "time_ns": 400000000,
+      "triangles": 14940,
+      "geometry_bytes": 80800,
+      "texture_bytes": 1277952,
+      "peak_geometry_bytes": 80800,
+      "peak_texture_bytes": 1277952,
+      "open_files": 0,
+      "denied_files": 0,
+      "click_events": 0,
+      "action_accepted": 0,
+      "next_delay_ms": 4294967295
+    },
+    {
+      "time_ns": 450000000,
+      "triangles": 16600,
+      "geometry_bytes": 80800,
+      "texture_bytes": 1277952,
+      "peak_geometry_bytes": 80800,
+      "peak_texture_bytes": 1277952,
+      "open_files": 0,
+      "denied_files": 0,
+      "click_events": 0,
+      "action_accepted": 0,
+      "next_delay_ms": 4294967295
+    }
+  ],
+  "final_stats": {
+    "time_ns": 700000000,
+    "triangles": 24850,
+    "geometry_bytes": 80280,
+    "texture_bytes": 1277952,
+    "peak_geometry_bytes": 80800,
+    "peak_texture_bytes": 1277952,
+    "open_files": 0,
+    "denied_files": 0,
+    "click_events": 1,
+    "action_accepted": 1,
+    "next_delay_ms": 4294967295
+  },
+  "reduced_motion_stats": {
+    "time_ns": 700000000,
+    "triangles": 3320,
+    "geometry_bytes": 80800,
+    "texture_bytes": 1277952,
+    "peak_geometry_bytes": 80800,
+    "peak_texture_bytes": 1277952,
+    "open_files": 0,
+    "denied_files": 0,
+    "click_events": 0,
+    "action_accepted": 0,
+    "next_delay_ms": 4294967295
+  },
+  "callbacks": [
+    {
+      "reentrant_close_status": 1
+    },
+    {
+      "rejected": true,
+      "reentrant_close_status": 1
+    },
+    {
+      "rejected": true,
+      "reentrant_close_status": 1
+    }
+  ],
+  "rejected_action_stats": {
+    "time_ns": 200000000,
+    "triangles": 3282,
+    "geometry_bytes": 78824,
+    "texture_bytes": 1277952,
+    "peak_geometry_bytes": 80800,
+    "peak_texture_bytes": 1277952,
+    "open_files": 0,
+    "denied_files": 0,
+    "click_events": 1,
+    "action_accepted": 0,
+    "next_delay_ms": 0
+  },
+  "keyboard_stats": {
+    "time_ns": 300000000,
+    "triangles": 4904,
+    "geometry_bytes": 78824,
+    "texture_bytes": 1277952,
+    "peak_geometry_bytes": 80800,
+    "peak_texture_bytes": 1277952,
+    "open_files": 0,
+    "denied_files": 0,
+    "click_events": 2,
+    "action_accepted": 0,
+    "next_delay_ms": 0
+  },
+  "ultra_j": [
+    {
+      "Evidence": "HOST",
+      "BytecodeBytes": 23,
+      "ThemeBytes": 0,
+      "ArenaBytes": 256,
+      "PeakObjectBytes": 48,
+      "LiveObjectBytes": 0,
+      "Allocations": [
+        {
+          "Class": "Window",
+          "Offset": 0,
+          "Bytes": 32
+        },
+        {
+          "Class": "Button",
+          "Offset": 32,
+          "Bytes": 16
+        }
+      ],
+      "Releases": [
+        {
+          "Region": 1,
+          "Objects": 2,
+          "Bytes": 48
+        }
+      ],
+      "Calls": [
+        {
+          "Receiver": 0,
+          "Method": 1,
+          "Before": 0,
+          "After": 1
+        },
+        {
+          "Receiver": 1,
+          "Method": 2,
+          "Before": 0,
+          "After": 1
+        }
+      ],
+      "Styles": {},
+      "Output": []
+    }
+  ],
+  "manifest": {
+    "schema": 1,
+    "profile": "rmlui-host-windows-x64",
+    "sbef": false,
+    "ring3_ready": false,
+    "native_api": "bmo-ui-memory-v1",
+    "engine_resources": [
+      "main.rml",
+      "style.rcss",
+      "LatoLatin-Regular.ttf",
+      "LatoLatin-Bold.ttf"
+    ],
+    "note": "Native Windows proof plus Python HOST VM; no guest executable.",
+    "files": {
+      "action.ujb": {
+        "bytes": 23,
+        "sha256": "857c10cd4a5f9084693e5035fc60394a4ef1ed15bedbd58f9fdc87b7bff43088"
+      },
+      "bmo_rmlui_host.dll": {
+        "bytes": 2644480,
+        "sha256": "b63e366192bf32b1c22404e63b87187022aac1d4ae49540ce39b336244a38baf"
+      },
+      "dependencies.lock.json": {
+        "bytes": 470,
+        "sha256": "bd93178ae9a731465fb2df6423ad50766d2a9a669c01b6740cb06929c22aa808"
+      },
+      "FreeType-FTL.txt": {
+        "bytes": 6912,
+        "sha256": "308dca54b5aaa4a6ba0880621fe3bcf287956821aa948430263062a8333625c0"
+      },
+      "FreeType-LICENSE.txt": {
+        "bytes": 2196,
+        "sha256": "84f47dc7f0887dd56b05f2f218060581c055e443bd7af18e46677bec3dcc2473"
+      },
+      "HOST-README.md": {
+        "bytes": 10423,
+        "sha256": "84d80c94303f3cc56299d431f6073dec0e20ce594f582f6338d672e7ae93c31c"
+      },
+      "Lato-LICENSE.txt": {
+        "bytes": 15235,
+        "sha256": "bed153b0c43270d88983fbe77f8bee52faf167b37488ff8e3dd8d4bb699d18bd"
+      },
+      "LatoLatin-Bold.ttf": {
+        "bytes": 146156,
+        "sha256": "74dc638cf436cce77a0217a2a55ce7906a4cc9e4c595c6f1dcd9dd858078c1b6"
+      },
+      "LatoLatin-Regular.ttf": {
+        "bytes": 148540,
+        "sha256": "d785334ac4e7810f571def986bbad41161f68ac385db8813f798bf04d71478e1"
+      },
+      "main.rml": {
+        "bytes": 2236,
+        "sha256": "2d4e45e6135318f34a598ebb6fb1c8348a7344a87b002de1cd62ae55864a0e5d"
+      },
+      "main.uj": {
+        "bytes": 260,
+        "sha256": "17e6f921411eae802d841caf72fabe8853bb49b00dd0e24e1e0e38cd71b9a668"
+      },
+      "RmlUi-LICENSE.txt": {
+        "bytes": 1194,
+        "sha256": "02c6fa90f6a2c1cf69124014fbaaf524affc71ebf76dd4176321bc50a5b0746c"
+      },
+      "style.rcss": {
+        "bytes": 4439,
+        "sha256": "9058c17ffd85801d8275e4712e221f93810fbc71cd2759f8c81a97c7afbdab9f"
+      }
+    }
+  },
+  "framebuffer_bytes": 4096000,
+  "frame_target": "borrowed from caller per frame, no second native framebuffer",
+  "resource_limits": {
+    "files": 8,
+    "each_bytes": 2097152,
+    "total_bytes": 8388608,
+    "open_cursors": 32,
+    "geometry_bytes": 16777216,
+    "texture_bytes": 16777216
+  },
+  "limits_scope": "Adapter resources only; not a global bound on RmlUi, FreeType or the C++ runtime",
+  "images": {
+    "animation.gif": "aa6375a59af00e5d61c167a0c0dcaa68d54f155a1de8d7a5776673a42eebd466",
+    "desktop.png": "077a50b78c45f2e42508c170c19736c5d0eedeb2adff9aee7a3a8439697ba6d3",
+    "middle.png": "a5a70179aea87d3f5bd636378788b6c7befc76df87e8e6ab88b067355a2bb229",
+    "start.png": "0e637cc74d72e8455ea13b7b469c3cbd765606b9a4b600b9d51330d1754d17b6"
+  },
+  "date": "2026-11-16",
+  "source_parent_commit": "ca079933504e13887e5b65415fb9c4763beb0517",
+  "port_audit": {
+    "evidence": "HOST",
+    "engine_ring3_ready": false,
+    "dll_sha256": "b63e366192bf32b1c22404e63b87187022aac1d4ae49540ce39b336244a38baf",
+    "native_bytes": 2644480,
+    "imports": [
+      {
+        "library": "KERNEL32.dll",
+        "symbols": [
+          "AcquireSRWLockExclusive",
+          "CloseHandle",
+          "CreateFileA",
+          "CreateFileMappingA",
+          "DisableThreadLibraryCalls",
+          "GetCurrentProcess",
+          "GetCurrentProcessId",
+          "GetCurrentThreadId",
+          "GetFileSizeEx",
+          "GetProcessHeap",
+          "GetSystemTimeAsFileTime",
+          "HeapAlloc",
+          "HeapFree",
+          "HeapReAlloc",
+          "InitializeSListHead",
+          "IsDebuggerPresent",
+          "IsProcessorFeaturePresent",
+          "MapViewOfFile",
+          "OutputDebugStringA",
+          "QueryPerformanceCounter",
+          "ReadFile",
+          "ReleaseSRWLockExclusive",
+          "RtlCaptureContext",
+          "RtlLookupFunctionEntry",
+          "RtlVirtualUnwind",
+          "SetUnhandledExceptionFilter",
+          "SleepConditionVariableSRW",
+          "TerminateProcess",
+          "UnhandledExceptionFilter",
+          "UnmapViewOfFile",
+          "WakeAllConditionVariable"
+        ]
+      },
+      {
+        "library": "MSVCP140.dll",
+        "symbols": [
+          "??0?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAA@XZ",
+          "??0_Lockit@std@@QEAA@H@Z",
+          "??0ios_base@std@@IEAA@XZ",
+          "??1?$basic_streambuf@DU?$char_traits@D@std@@@std@@UEAA@XZ",
+          "??1_Lockit@std@@QEAA@XZ",
+          "??1ios_base@std@@UEAA@XZ",
+          "??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@H@Z",
+          "??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@N@Z",
+          "??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@_K@Z",
+          "?_Fiopen@std@@YAPEAU_iobuf@@PEBDHH@Z",
+          "?_Getcat@?$codecvt@DDU_Mbstatet@@@std@@SA_KPEAPEBVfacet@locale@2@PEBV42@@Z",
+          "?_Getgloballocale@locale@std@@CAPEAV_Locimp@12@XZ",
+          "?_Id_cnt@id@locale@std@@0HA",
+          "?_Osfx@?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAXXZ",
+          "?_Xbad_alloc@std@@YAXXZ",
+          "?_Xbad_function_call@std@@YAXXZ",
+          "?_Xlength_error@std@@YAXPEBD@Z",
+          "?_Xout_of_range@std@@YAXPEBD@Z",
+          "?clear@?$basic_ios@DU?$char_traits@D@std@@@std@@QEAAXH_N@Z",
+          "?fail@ios_base@std@@QEBA_NXZ",
+          "?flush@?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV12@XZ",
+          "?getloc@?$basic_streambuf@DU?$char_traits@D@std@@@std@@QEBA?AVlocale@2@XZ",
+          "?good@ios_base@std@@QEBA_NXZ",
+          "?id@?$codecvt@DDU_Mbstatet@@@std@@2V0locale@2@A",
+          "?init@?$basic_ios@DU?$char_traits@D@std@@@std@@IEAAXPEAV?$basic_streambuf@DU?$char_traits@D@std@@@2@_N@Z",
+          "?showmanyc@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAA_JXZ",
+          "?sputc@?$basic_streambuf@DU?$char_traits@D@std@@@std@@QEAAHD@Z",
+          "?uncaught_exception@std@@YA_NXZ",
+          "?write@?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV12@PEBD_J@Z",
+          "?xsgetn@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAA_JPEAD_J@Z",
+          "?xsputn@?$basic_streambuf@DU?$char_traits@D@std@@@std@@MEAA_JPEBD_J@Z",
+          "_Query_perf_counter",
+          "_Query_perf_frequency"
+        ]
+      },
+      {
+        "library": "USER32.dll",
+        "symbols": [
+          "MessageBoxA"
+        ]
+      },
+      {
+        "library": "VCRUNTIME140.dll",
+        "symbols": [
+          "_CxxThrowException",
+          "__C_specific_handler",
+          "__CxxFrameHandler3",
+          "__RTtypeid",
+          "__intrinsic_setjmp",
+          "__std_exception_copy",
+          "__std_exception_destroy",
+          "__std_terminate",
+          "__std_type_info_compare",
+          "__std_type_info_destroy_list",
+          "__std_type_info_name",
+          "_purecall",
+          "longjmp",
+          "memchr",
+          "memcmp",
+          "memcpy",
+          "memmove",
+          "memset",
+          "strchr",
+          "strrchr",
+          "strstr"
+        ]
+      },
+      {
+        "library": "VCRUNTIME140_1.dll",
+        "symbols": [
+          "__CxxFrameHandler4"
+        ]
+      },
+      {
+        "library": "api-ms-win-crt-stdio-l1-1-0.dll",
+        "symbols": [
+          "__stdio_common_vsprintf",
+          "__stdio_common_vsscanf",
+          "_fseeki64",
+          "_get_stream_buffer_pointers",
+          "fclose",
+          "fflush",
+          "fgetc",
+          "fgetpos",
+          "fopen",
+          "fputc",
+          "fread",
+          "fseek",
+          "fsetpos",
+          "ftell",
+          "fwrite",
+          "setvbuf",
+          "ungetc"
+        ]
+      },
+      {
+        "library": "api-ms-win-crt-runtime-l1-1-0.dll",
+        "symbols": [
+          "_cexit",
+          "_configure_narrow_argv",
+          "_crt_atexit",
+          "_execute_onexit_table",
+          "_initialize_narrow_environment",
+          "_initialize_onexit_table",
+          "_initterm",
+          "_initterm_e",
+          "_invoke_watson",
+          "_register_onexit_function",
+          "_seh_filter_dll"
+        ]
+      },
+      {
+        "library": "api-ms-win-crt-filesystem-l1-1-0.dll",
+        "symbols": [
+          "_lock_file",
+          "_unlock_file"
+        ]
+      },
+      {
+        "library": "api-ms-win-crt-math-l1-1-0.dll",
+        "symbols": [
+          "acosf",
+          "ceil",
+          "ceilf",
+          "cosf",
+          "expf",
+          "floor",
+          "floorf",
+          "fmodf",
+          "modff",
+          "powf",
+          "sinf",
+          "sqrtf",
+          "tanf"
+        ]
+      },
+      {
+        "library": "api-ms-win-crt-convert-l1-1-0.dll",
+        "symbols": [
+          "atof",
+          "atoi",
+          "strtof",
+          "strtol",
+          "strtoul"
+        ]
+      },
+      {
+        "library": "api-ms-win-crt-heap-l1-1-0.dll",
+        "symbols": [
+          "_callnewh",
+          "calloc",
+          "free",
+          "malloc",
+          "realloc"
+        ]
+      },
+      {
+        "library": "api-ms-win-crt-environment-l1-1-0.dll",
+        "symbols": [
+          "getenv"
+        ]
+      },
+      {
+        "library": "api-ms-win-crt-utility-l1-1-0.dll",
+        "symbols": [
+          "qsort"
+        ]
+      },
+      {
+        "library": "api-ms-win-crt-string-l1-1-0.dll",
+        "symbols": [
+          "strcat",
+          "strcmp",
+          "strcpy",
+          "strlen",
+          "strncmp",
+          "strncpy",
+          "tolower"
+        ]
+      }
+    ],
+    "admission": {
+      "CanPack": false,
+      "Blockers": [
+        {
+          "Code": "PE-IMAGE-KIND",
+          "Offset": 142,
+          "Field": "Characteristics"
+        }
+      ]
+    },
+    "next_requirements": [
+      "Build freestanding C++/FreeType with audited standard library dependencies",
+      "Bound allocator, file/time/font services and native startup; remove Windows imports",
+      "Rust event/lifetime bridge for DIRECTOR and ULTRA-J native actions",
+      "Dirty surfaces, bounded resource ownership and presentation via existing capabilities",
+      "Separate measured loader profile if engine exceeds current external 16 KiB budget",
+      "QEMU input/render/lifecycle/permission tests before any METAL deployment"
+    ],
+    "engine_adapter_object": {
+      "SHA256": "a59a626d4db29d92c90e74b2649393cd7feb490acde4ca981bc20497e84d14b2",
+      "UndefinedSymbols": [
+        "??0FileInterface@Rml@@QEAA@XZ",
+        "??0RenderInterface@Rml@@QEAA@XZ",
+        "??0SystemInterface@Rml@@QEAA@XZ",
+        "??1FileInterface@Rml@@UEAA@XZ",
+        "??1RenderInterface@Rml@@UEAA@XZ",
+        "??1SystemInterface@Rml@@UEAA@XZ",
+        "??2@YAPEAX_K@Z",
+        "??3@YAXPEAX_K@Z",
+        "??_7type_info@@6B@",
+        "?ActivateKeyboard@SystemInterface@Rml@@UEAAXV?$Vector2@M@2@M@Z",
+        "?AddEventListener@Element@Rml@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEAVEventListener@2@_N@Z",
+        "?Click@Element@Rml@@QEAAXXZ",
+        "?CreateContext@Rml@@YAPEAVContext@1@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$Vector2@H@1@PEAVRenderInterface@1@PEAVTextInputHandler@1@@Z",
+        "?DeactivateKeyboard@SystemInterface@Rml@@UEAAXXZ",
+        "?DeallocateObserverPtrBlockIfEmpty@Detail@Rml@@YAXPEAUObserverPtrBlock@12@@Z",
+        "?GetAbsoluteOffset@Element@Rml@@QEAA?AV?$Vector2@M@2@W4BoxArea@2@@Z",
+        "?GetBox@Element@Rml@@QEAAAEBVBox@2@XZ",
+        "?GetClipboardText@SystemInterface@Rml@@UEAAXAEAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "?GetCurrentElement@Event@Rml@@QEBAPEAVElement@2@XZ",
+        "?GetElementById@Element@Rml@@QEAAPEAV12@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "?GetId@Element@Rml@@QEBAAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ",
+        "?GetNextUpdateDelay@Context@Rml@@QEBANXZ",
+        "?GetOwnerDocument@Element@Rml@@QEBAPEAVElementDocument@2@XZ",
+        "?GetSize@Box@Rml@@QEBA?AV?$Vector2@M@2@XZ",
+        "?GetType@Event@Rml@@QEBAAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ",
+        "?Initialise@Rml@@YA_NXZ",
+        "?JoinPath@SystemInterface@Rml@@UEAAXAEAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AEBV34@1@Z",
+        "?LoadDocument@Context@Rml@@QEAAPEAVElementDocument@2@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "?LoadFile@FileInterface@Rml@@UEAA_NAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AEAV34@@Z",
+        "?LoadFontFace@Rml@@YA_NAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@_NW4FontWeight@Style@1@H@Z",
+        "?PopLayer@RenderInterface@Rml@@UEAAXXZ",
+        "?ProcessKeyDown@Context@Rml@@QEAA_NW4KeyIdentifier@Input@2@H@Z",
+        "?ProcessKeyUp@Context@Rml@@QEAA_NW4KeyIdentifier@Input@2@H@Z",
+        "?ProcessMouseButtonDown@Context@Rml@@QEAA_NHH@Z",
+        "?ProcessMouseButtonUp@Context@Rml@@QEAA_NHH@Z",
+        "?ProcessMouseMove@Context@Rml@@QEAA_NHHH@Z",
+        "?ReleaseFilter@RenderInterface@Rml@@UEAAX_K@Z",
+        "?ReleaseShader@RenderInterface@Rml@@UEAAX_K@Z",
+        "?Render@Context@Rml@@QEAA_NXZ",
+        "?RenderShader@RenderInterface@Rml@@UEAAX_K0V?$Vector2@M@2@0@Z",
+        "?SaveLayerAsMaskImage@RenderInterface@Rml@@UEAA_KXZ",
+        "?SaveLayerAsTexture@RenderInterface@Rml@@UEAA_KXZ",
+        "?SetClass@Element@Rml@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@_N@Z",
+        "?SetClipboardText@SystemInterface@Rml@@UEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "?SetFileInterface@Rml@@YAXPEAVFileInterface@1@@Z",
+        "?SetMouseCursor@SystemInterface@Rml@@UEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "?SetRenderInterface@Rml@@YAXPEAVRenderInterface@1@@Z",
+        "?SetSystemInterface@Rml@@YAXPEAVSystemInterface@1@@Z",
+        "?Show@ElementDocument@Rml@@QEAAXW4ModalFlag@2@W4FocusFlag@2@W4ScrollFlag@2@@Z",
+        "?Shutdown@Rml@@YAXXZ",
+        "?StopImmediatePropagation@Event@Rml@@QEAAXXZ",
+        "?TranslateString@SystemInterface@Rml@@UEAAHAEAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AEBV34@@Z",
+        "?Update@Context@Rml@@QEAA_NXZ",
+        "?_Xlength_error@std@@YAXPEBD@Z",
+        "_CxxThrowException",
+        "__CxxFrameHandler3",
+        "__imp___stdio_common_vsscanf",
+        "__imp__invoke_watson",
+        "__security_check_cookie",
+        "__security_cookie",
+        "__std_exception_copy",
+        "__std_exception_destroy",
+        "__std_terminate",
+        "_fltused",
+        "_purecall",
+        "atexit",
+        "bmo_ui_triangle",
+        "ceil",
+        "ceilf",
+        "memcmp",
+        "memcpy",
+        "memmove",
+        "memset",
+        "strcmp",
+        "strlen",
+        "strstr"
+      ],
+      "DirectKernel32Imports": [],
+      "Freestanding": false,
+      "Scope": "Only engine.cpp object; RmlUi, FreeType, STL and compiler runtime still need adaptation"
+    },
+    "shared_rust_probe": {
+      "FormatVersion": 1,
+      "AbiVersion": 1,
+      "Architecture": "x86-64",
+      "Bytes": 7085,
+      "Entry": "0x40001A9E",
+      "Regions": [
+        {
+          "Address": "0x40000000",
+          "Offset": 96,
+          "FileBytes": 6821,
+          "MemoryBytes": 6821,
+          "MappedBytes": 8192,
+          "Permissions": "RX"
+        },
+        {
+          "Address": "0x40003000",
+          "Offset": 6917,
+          "FileBytes": 168,
+          "MemoryBytes": 168,
+          "MappedBytes": 4096,
+          "Permissions": "R"
+        }
+      ],
+      "SHA256": "0abc8a5e7c314b3d1d09bc8a923cd23b53ef58c68cccd200f124e5243b9408af",
+      "AdditionalUserStackMappedBytes": 4096,
+      "UnresolvedSymbols": []
+    }
+  },
+  "sources": {
+    "tools/desktop/rmlui/audit.py": "9cc1eb35bdcb44955b119f60ad60bbfcc04c2d367eb08e9940859b5893481e5b",
+    "tools/desktop/rmlui/build.ps1": "46a927169fb3bf4f05f36cbb4e6d1286c70bf9e1d2deb8bf511437037b23fcaa",
+    "tools/desktop/rmlui/check.py": "aa5c037ea618495b560c70dbb8a76714252489c4751dab1bce5d143ca5c06e4f",
+    "tools/desktop/rmlui/CMakeLists.txt": "fc8548bc3748221391cf1ccf9093c024f3a7f13779cd9d21abf368f57bc9ccf2",
+    "tools/desktop/rmlui/dependencies.lock.json": "bd93178ae9a731465fb2df6423ad50766d2a9a669c01b6740cb06929c22aa808",
+    "tools/desktop/rmlui/engine.cpp": "82e3376b4791eef2d2d138e5bf492b8fb9d0c8a0bbaeccb75da2f9f415cb12c2",
+    "tools/desktop/rmlui/engine.h": "e352248406b882e12e5a81321d2b31aeede8039fde67662de56753768ae8689e",
+    "tools/desktop/rmlui/fetch.ps1": "13a321d62504927841cfaee15f75be74c42f98ed2d9b42bd6af50178aab0cc38",
+    "tools/desktop/rmlui/guest.ld": "f6e8343143f372076922ef5508613dcc45f43fd05222a85978ade0279ac545df",
+    "tools/desktop/rmlui/guest.ps1": "58effb20583474d9e877b1018ca962e713d552252b6f98c7ea3db555a3bcd333",
+    "tools/desktop/rmlui/guest.rs": "ec646beceb47b097781f3aeea899ed51b86e3727076f41ec519b28f63d8e52dc",
+    "tools/desktop/rmlui/host_scene.rs": "67c90b3ef516b3f9a26946eb439667e68611be8f8286843c1001ce091d26d5c4",
+    "tools/desktop/rmlui/live.py": "ff4a4c3d3d8dc16ab75da380876eca5e356614830610886c22c989f15e3e9394",
+    "tools/desktop/rmlui/memory_files.h": "df9d918e8e7229e1c9afb6b4ab0f63a2a420ae0548417b29ac530f0b2284688e",
+    "tools/desktop/rmlui/owner.h": "c3ec48b879dd4dacf0d069e8754e84aacaba73ff1c182cd1588b7da3d76b20d8",
+    "tools/desktop/rmlui/preview.cpp": "4dfaba73d81ad911ac9dc4b60052dd1c1b495a0c0be17e02c6e945cae7a883fd",
+    "tools/desktop/rmlui/preview.py": "d85340133176c6c5f20f90089f96ca976ac5a52a218e6f7de6965e47703cec7d",
+    "tools/desktop/rmlui/probe_scene.rs": "b4d807b9ba13347794f2475e4626f1f9ca0ea77510684f865eb2a75e8d0f5f21",
+    "tools/desktop/rmlui/raster.h": "b4a2e04afcfd483727d34d2e173bfab5b20c329819e587e49965c55432fd2848",
+    "tools/desktop/rmlui/raster.rs": "766e27653e017fa39f25ba296deb8eca391d4f50bf00961ca651af0ff08573f5",
+    "tools/desktop/rmlui/README.md": "84d80c94303f3cc56299d431f6073dec0e20ce594f582f6338d672e7ae93c31c",
+    "tools/desktop/rmlui/renderer.h": "ee728dbda4e88d9508e99fca00e17eaca04e65cb0dc82d42a82c7a1a34002833",
+    "Ultra-J/examples/rmlui-desktop/main.rml": "2d4e45e6135318f34a598ebb6fb1c8348a7344a87b002de1cd62ae55864a0e5d",
+    "Ultra-J/examples/rmlui-desktop/main.uj": "17e6f921411eae802d841caf72fabe8853bb49b00dd0e24e1e0e38cd71b9a668",
+    "Ultra-J/examples/rmlui-desktop/style.rcss": "9058c17ffd85801d8275e4712e221f93810fbc71cd2759f8c81a97c7afbdab9f"
+  },
+  "dependency_pins": {
+    "schema": 1,
+    "dependencies": [
+      {
+        "name": "RmlUi",
+        "repository": "https://github.com/mikke89/RmlUi.git",
+        "tag": "6.3",
+        "commit": "ba95ffe8bfb6370efb2cdcca927eaad4710c5413",
+        "folder": "RmlUi-6.3"
+      },
+      {
+        "name": "FreeType",
+        "repository": "https://github.com/freetype/freetype.git",
+        "tag": "VER-2-14-3",
+        "commit": "0a0221a1347e2f1e07c395263540026e9a0aa7c7",
+        "folder": "freetype-2.14.3"
+      }
+    ]
+  },
+  "regression_checks": {
+    "LegacyNativeActionAndRejects": true,
+    "UltraJTests": 26,
+    "UltraJSkipped": 1,
+    "WorkspaceErrors": 0
+  },
+  "scope": "HOST C++ engine session and Python ULTRA-J action. Shared Rust rasterizer has earlier CPL3 evidence; full engine is not SBEF or METAL ready."
+}
