@@ -47,6 +47,7 @@ def main():
     probes.add_argument('--xhci-command', action='store_true', help='Run the QEMU-only xHCI command probe')
     probes.add_argument('--xhci-reset-probe', action='store_true', help='Test reset without arming USB DMA')
     probes.add_argument('--xhci-transport-probe', action='store_true', help='Test one No Op command on AMD 149C or QEMU, then revoke DMA')
+    probes.add_argument('--xhci-enum-probe', action='store_true', help='Address the first USB2 device and read its descriptor on AMD 149C or QEMU; then stop')
     parser.add_argument('--xhci-timer-fault', action='store_true', help='QEMU-only: remove PIT to verify finite USB wait failure')
     parser.add_argument('--xhci-empty-ports', action='store_true', help='QEMU-only: verify the USB discovery deadline with no attached devices')
     probes.add_argument('--reuse-session', action='store_true', help='Run the QEMU-only desktop frame reuse probe')
@@ -58,6 +59,9 @@ def main():
     parser.add_argument('--usb-full-speed', action='store_true', help='Use USB 1.x in the xHCI probe')
     parser.add_argument('--usb-mouse', action='store_true', help='Probe a USB boot mouse instead of a keyboard')
     args = parser.parse_args()
+    enum_probe = args.xhci_enum_probe
+    if enum_probe:
+        args.xhci_transport_probe = True
     if args.xhci_timer_fault and not args.xhci_transport_probe:
         parser.error('--xhci-timer-fault requiere --xhci-transport-probe')
     if args.xhci_empty_ports and (not args.xhci_transport_probe or args.xhci_timer_fault):
@@ -75,8 +79,8 @@ def main():
     check(splash)
     if args.xhci_command != (args.usb_desktop is not None):
         parser.error('--xhci-command requiere --usb-desktop')
-    if args.usb_full_speed and not args.xhci_command:
-        parser.error('--usb-full-speed requiere --xhci-command')
+    if args.usb_full_speed and not (args.xhci_command or enum_probe):
+        parser.error('--usb-full-speed requiere --xhci-command o --xhci-enum-probe')
     if args.usb_mouse and not args.xhci_command:
         parser.error('--usb-mouse requiere --xhci-command')
     usb_name = 'desktop-usb-mouse.sbef' if args.usb_mouse else 'desktop-usb-probe.sbef'
@@ -119,6 +123,8 @@ def main():
         flags.append('-DXHCI_RESET_PROBE')
     if args.xhci_transport_probe:
         flags.append('-DXHCI_TRANSPORT_PROBE')
+    if enum_probe:
+        flags.append('-DXHCI_ENUM_PROBE')
     if args.usb_mouse:
         flags.append('-DXHCI_MOUSE_PROBE')
     subprocess.run([llvm / 'clang.exe', '--target=x86_64-unknown-none-elf', '-x', 'assembler-with-cpp',
@@ -192,6 +198,8 @@ def main():
         (run / 'xhci-reset.txt').write_text('AMD 1022:149C / QEMU 1B36:000D\n', encoding='ascii')
     if args.xhci_transport_probe:
         (run / 'xhci-transport.txt').write_text('AMD 1022:149C / QEMU 1B36:000D\n', encoding='ascii')
+    if enum_probe:
+        (run / 'xhci-enum.txt').write_text('Finite first USB2 device descriptor; no HID endpoints\n', encoding='ascii')
     if args.xhci_timer_fault:
         (run / 'xhci-timer-fault.txt').write_text('QEMU: PIT disabled\n', encoding='ascii')
     if args.xhci_empty_ports:

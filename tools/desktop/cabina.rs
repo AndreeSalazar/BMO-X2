@@ -88,6 +88,16 @@ pub fn boot_input(controllers: u32, keyboard: bool, mouse: bool) {
         17 => b"XHCI DMA SCRATCHPADS",
         18 => b"XHCI RELOJ ESPERA",
         19 => b"XHCI PUERTOS ESPERA",
+        20 => b"USB RESET PUERTO",
+        21 => b"USB ENABLE SLOT",
+        22 => b"USB ADDRESS DEVICE",
+        23 => b"USB EP0 CABECERA",
+        24 => b"USB EP0 EVALUATE",
+        25 => b"USB DEVICE DESCRIPTOR",
+        26 => b"USB CONFIG CABECERA",
+        27 => b"USB CONFIG COMPLETA",
+        28 => b"USB DESCRIPTORES OK",
+        29 => b"USB FALLO PARADA",
         _ => b"XHCI SIN ESTADO",
     };
     text(36, 359, status);

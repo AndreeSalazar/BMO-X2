@@ -265,6 +265,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     command_probe = desktop_media and (prefix.parent.parent / 'xhci-command.txt').is_file()
     reset_probe = desktop_media and (prefix.parent.parent / 'xhci-reset.txt').is_file()
     transport_probe = desktop_media and (prefix.parent.parent / 'xhci-transport.txt').is_file()
+    enum_probe = transport_probe and (prefix.parent.parent / 'xhci-enum.txt').is_file()
     mouse_probe = command_probe and (prefix.parent.parent / 'usb-mouse.txt').is_file()
     if mouse_probe:
         wait_until(lambda: logical(52, 99, 0x5ad8ff) and sleeping()
@@ -365,22 +366,37 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                             XhciControllerStopped=True, XhciBusMasterRevoked=True,
                             XhciHidConfigured=False, CpuL1=cache)
             assert memory(address + 0x1a379, 2, 'transport-completed-halted') == b'\x01\x01'
-            assert memory(address + 0x1a3e0, 4, 'transport-state') == struct.pack('<I', 8)
-            assert memory(address + 0x1a380, 8, 'transport-no-device-slots') == bytes(8)
+            assert memory(address + 0x1a3e0, 4, 'transport-state') == struct.pack('<I', 28 if enum_probe else 8)
+            if enum_probe:
+                speed = 1 if (prefix.parent.parent / 'usb-full-speed.txt').is_file() else 3
+                assert memory(address + 0x1a380, 5, 'enum-device-state') == bytes([5, speed, 1, 1, 1])
+                descriptor = reserved[0x4e20:0x4e32]
+                assert descriptor[:2] == bytes([18, 1]) and descriptor[7] == (8 if speed == 1 else 64) and descriptor[17] >= 1
+                total = struct.unpack('<I', memory(address + 0x1a38c, 4, 'enum-configuration-size'))[0]
+                config = reserved[0x4c00:0x4c00 + total]
+                assert 9 <= total <= 512 and config[:4] == struct.pack('<BBH', 9, 2, total)
+                assert config[9:11] == bytes([9, 4]) and config[14:17] == bytes([3, 1, 1])
+                assert struct.unpack_from('<I', reserved, 0x4804)[0] == 8 << 16
+                assert struct.unpack_from('<I', reserved, 0x4834)[0] == 18 << 16
+                assert struct.unpack_from('<I', reserved, 0x103c)[0] == 0x01003401
+                assert struct.unpack_from('<I', reserved, 0x580c)[0] >> 27 & 0x1f == 2
+            else:
+                assert memory(address + 0x1a380, 8, 'transport-no-device-slots') == bytes(8)
             assert memory(address + 0x1a3c8, 1, 'transport-no-live-hid') == bytes(1)
             assert struct.unpack_from('<I', reserved, 0x100c)[0] == 0x5c01
             events = [struct.unpack_from('<QII', reserved, offset) for offset in range(0x2000, 0x2100, 16)]
             completions = [event for event in events if event[2] & 0xfc01 == 0x8401]
-            assert len(completions) == 1 and completions[0][0] == dma + 0x1000
+            assert len(completions) == (4 if enum_probe else 1) and completions[0][0] == dma + 0x1000
             assert completions[0][1] >> 24 == 1
-            assert reserved[0x4000:0x6000] == bytes(0x2000), 'El perfil de transporte no enumera dispositivos'
+            if not enum_probe:
+                assert reserved[0x4000:0x6000] == bytes(0x2000), 'El perfil de transporte no enumera dispositivos'
             original, restored = struct.unpack('<HH', memory(address + 0x1a37c, 4, 'transport-busmaster'))
             assert restored == original & ~4
             assert memory(address + 0x15400, 8, 'transport-alias-pde') == bytes(8)
             assert memory(address + 0x1e000, 24, 'transport-alias-pte') == bytes(24)
             assert memory(address + 0x1a3e8, 4, 'transport-connected-ports') == struct.pack('<I', 3)
             settle_slices = struct.unpack('<I', memory(address + 0x1a3fc, 4, 'transport-real-time-slices'))[0]
-            assert 11 <= settle_slices <= 100
+            assert 11 <= settle_slices <= (200 if enum_probe else 100)
             running_status = struct.unpack('<I', memory(address + 0x1a3ec, 4, 'transport-census-status'))[0]
             assert running_status & 0x801 == 0, 'El censo requiere xHC activo y CNR despejado'
             devices = [device for bus in command('query-pci') for device in bus['devices']]
@@ -398,6 +414,11 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                         XhciTransportVerified=True, XhciNoOpCompleted=True, XhciControllerStopped=True,
                         XhciBusMasterRevoked=True, XhciReservedBytes=pages * 4096,
                         XhciConnectedPorts=2, XhciHidConfigured=False, CpuL1=cache,
+                        XhciDeviceDescriptorVerified=enum_probe, XhciConfigurationRead=enum_probe,
+                        XhciFirstDescriptorBytes=8 if enum_probe else 0,
+                        XhciEp0Evaluated=enum_probe,
+                        UsbDeviceDescriptor=descriptor.hex() if enum_probe else None,
+                        UsbConfiguration=config.hex() if enum_probe else None,
                         XhciPortSettleMilliseconds=settle_slices * 10,
                         XhciAdaptiveDebounceVerified=True, XhciRunningCensusVerified=True)
         if command_probe:

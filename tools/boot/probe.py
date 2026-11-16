@@ -141,8 +141,9 @@ def run(case):
     if args.doom_fixture and desktop_media:
         staging += ['-device', 'qemu-xhci,id=bmo-xhci']
         if ((ROOT / 'xhci-reset.txt').is_file() or (ROOT / 'xhci-transport.txt').is_file()) and not (ROOT / 'xhci-empty-ports.txt').is_file():
-            staging += ['-device', 'usb-kbd,bus=bmo-xhci.0,port=1',
-                        '-device', 'usb-mouse,bus=bmo-xhci.0,port=2']
+            usb_version = ',usb_version=1' if (ROOT / 'usb-full-speed.txt').is_file() else ''
+            staging += ['-device', f'usb-kbd,bus=bmo-xhci.0,port=1{usb_version}',
+                        '-device', f'usb-mouse,bus=bmo-xhci.0,port=2{usb_version}']
         if (ROOT / 'xhci-command.txt').is_file():
             usb_version = ',usb_version=1' if (ROOT / 'usb-full-speed.txt').is_file() else ''
             hid_device = 'usb-mouse' if (ROOT / 'usb-mouse.txt').is_file() else 'usb-kbd'

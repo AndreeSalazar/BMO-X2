@@ -13,6 +13,11 @@ El AMD ya confirmo una respuesta de comando por DMA, dos puertos
 conectados y la parada del controlador. La estabilizacion adaptativa
 por puerto pasa QEMU. [Prueba y estados visibles](docs/FIRST-BOOT.md#perfil-experimental-de-transporte-xhci).
 
+La nueva fase `--xhci-enum-probe` ya direcciona un dispositivo USB2 y
+lee sus descriptores en QEMU, con ajuste de EP0 y parada comprobados.
+Admite el AMD del equipo, pero esa fase aun necesita confirmacion fisica;
+no configura endpoints HID. [Prueba de enumeracion AMD](docs/FIRST-BOOT.md#enumeracion-inicial-amd-direccion-y-descriptores).
+
 El servicio de entrada Ring 3 ya procesa los reportes de las sondas USB
 QEMU: 260 informes de teclado y movimiento y botones del raton, en perfiles
 separados, con CABINA, WAIT y cierre comprobados. Conserva colas acotadas

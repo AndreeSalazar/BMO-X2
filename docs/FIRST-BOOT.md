@@ -170,6 +170,68 @@ Ese archivo se escribe antes de ExitBootServices y no registra el resultado
 posterior del transporte. El siguiente paso, tras confirmar `XHCI DMA OK`
 en AMD, es direccionar ambos HID y armar sus endpoints de interrupcion.
 
+### Enumeracion inicial AMD: direccion y descriptores
+
+`--xhci-enum-probe` es una fase distinta del No Op. Conserva la admision
+AMD `1022:149C` / QEMU `1B36:000D`, los bancos MMIO descubiertos, el
+debounce y la reserva DMA de 40 KiB. Selecciona el primer puerto raiz
+USB2 conectado con velocidad estandar baja, completa o alta. Solicita
+reset sin copiar PED ni los bits RW1C, permite recuperacion del puerto,
+habilita una ranura y ejecuta Address Device. No atraviesa hubs.
+
+Lee primero 8 bytes del descriptor de dispositivo con el MPS por defecto
+de la velocidad. Comprueba bMaxPacketSize0 y ejecuta Evaluate Context
+sobre EP0 antes de leer los 18 bytes completos. Despues lee la cabecera
+de configuracion y su contenido completo, limitado a 512 bytes. Es la
+secuencia indicada para EP0 por la [especificacion xHCI, secciones 4.6.5
+y 4.6.7](https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/extensible-host-controler-interface-usb-xhci.pdf).
+Las terminaciones deben coincidir en tipo, ranura, puntero y codigo;
+los cambios de puerto intermedios se consumen sin confundirlos con ellas.
+Las transferencias requieren longitud exacta. No se reutiliza el anillo
+ni se permite rebasar su segmento de eventos en este ensayo finito.
+
+La sonda ocupa 4090 B dentro de su pagina RX de 4096 B. No se ha ampliado
+esa guarda ni el limite de 2 KiB de la puerta de syscall. Tras la prueba,
+tanto si tiene exito como si falla, se solicita parada, se revoca Bus
+Master y se retiran los alias MMIO. Las esperas de reset y terminaciones
+siguen acotadas por iteraciones; su plazo real en AMD no esta medido.
+
+QEMU verifica alta velocidad (MPS 64), velocidad completa (MPS 8), los
+descriptores obtenidos, Evaluate Context, parada y retirada de DMA. Sin
+perifericos verifica el plazo de descubrimiento; SBEF W+X sigue rechazado.
+La evidencia esta en `kernel/drivers/bus/evidence/enumeration-qemu.json`.
+Todavia no hay evidencia de esta fase en AMD.
+
+| Aviso al terminar | Fase que debe investigarse |
+|---|---|
+| `USB RESET PUERTO` | Seleccion o reset del puerto raiz USB2. |
+| `USB ENABLE SLOT` | Terminacion de Enable Slot. |
+| `USB ADDRESS DEVICE` | Direccion y contexto inicial EP0. |
+| `USB EP0 CABECERA` | Lectura inicial de 8 bytes o MPS no admitido. |
+| `USB EP0 EVALUATE` | Actualizacion del MPS de EP0. |
+| `USB DEVICE DESCRIPTOR` | Descriptor completo de dispositivo. |
+| `USB CONFIG CABECERA` | Cabecera, longitud o solicitud de configuracion. |
+| `USB CONFIG COMPLETA` | Transferencia completa o longitud inconsistente. |
+| `USB DESCRIPTORES OK` | Se leyeron dispositivo y configuracion; xHC detenido. |
+| `USB FALLO PARADA` | No se confirmo HCHalted; Bus Master revocado igualmente. |
+
+Este resultado no configura HID ni habilita el teclado o raton. Tampoco
+enumera ambos a la vez. Faltan validar interfaces de los descriptores en
+Ring 3, SET_CONFIGURATION, SET_PROTOCOL, los endpoints interrupt IN y la
+recepcion continua de ambos dispositivos. Leer una configuracion no
+equivale a seleccionarla. La siguiente prueba AMD debe conservar una
+foto de la fase visible; BOOTLOG V3 se escribe antes de ExitBootServices
+y no contiene estos resultados posteriores.
+
+```powershell
+$usbPython = Join-Path $env:USERPROFILE '.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe'
+& $usbPython -B tools/boot/stage_desktop_media.py build/CASM/run-20261112-174958-944cb997 build/CASM/run-20261112-045636-c461240e build/CASM/run-desktop-ab5e8222cf60 --xhci-enum-probe --ram-mib 256
+```
+
+El directorio `diagnostic-media/` impreso contiene los tres archivos de
+esta prueba. Los casos sin perifericos o con fallo PIT quedan solamente
+en `qemu-only/`; no son imagenes para desplegar en metal.
+
 ### Diagnostico visible de teclado y raton
 
 El puente UEFI escribe `\BMO-X2\BOOTLOG.TXT` en el volumen de arranque

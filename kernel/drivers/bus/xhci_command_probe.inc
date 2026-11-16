@@ -198,6 +198,10 @@ transport_completion:
 transport_ack:
     or $8, %rax
     mov %rax, 0x38(%r9)
+#ifdef XHCI_ENUM_PROBE
+    lea 16(%rsi), %rsi
+    call xhci_enumerate_device
+#endif
     jmp command_stop
 #else
     mov $100000, %ecx
@@ -233,11 +237,18 @@ command_stop:
     mov $1, %esi
     call command_poll
     setz %gs:0x37a
+#ifdef XHCI_ENUM_PROBE
+    je enum_probe_halted
+    movl $29, %gs:0x3e0
+enum_probe_halted:
+#endif
 #ifdef XHCI_TRANSPORT_PROBE
     jne transport_stop_failed
     cmpb $1, %gs:0x379
     jne transport_stop_failed
+#ifndef XHCI_ENUM_PROBE
     movl $8, %gs:0x3e0        # No Op verified AND controller halted.
+#endif
 transport_stop_failed:
 #endif
     pop %rax
@@ -842,6 +853,9 @@ enum_failed:
 #include "xhci_transport_layout.inc"
 #include "xhci_transport_mmio.inc"
 #include "xhci_transport_ports.inc"
+#ifdef XHCI_ENUM_PROBE
+#include "xhci_enumerate_device.inc"
+#endif
 xhci_live_report:
     mov $256, %eax
 xhci_live_stop:
