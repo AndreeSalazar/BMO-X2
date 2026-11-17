@@ -17,27 +17,26 @@ y distingue identidad (211), transferencia (212) y puerto (213).
 K y M indican configuracion; USB ON indica que el controlador sigue activo.
 El raton del perfil conjunto reserva el tamano maximo anunciado por su
 endpoint. Solicita protocolo Report y lee su descriptor HID. Ring 3
-usa el ID, la longitud y los campos declarados para separar botones y
-ejes relativos de hasta 16 bits. Los campos usados deben caber en los
+usa el ID, la longitud y los campos declarados para separar el giro de
+la rueda, los tres botones y los ejes relativos de hasta 16 bits. Cada
+informe actualiza solo los campos que declara. Los campos usados deben caber en los
 primeros ocho bytes y el informe debe contener todos los bytes declarados.
 Si el formato queda fuera de ese perfil, se registra el rechazo.
 Este cambio sigue el precedente de BMO-X en `uhid/src/formato.rs`.
 
 Una segunda prueba AMD mostro USB ON y movimiento del puntero, con
-latencia alta. Al mover el puntero sin cambiar el boton resaltado, el escritorio
+latencia alta. Al mover el puntero, el escritorio
 restaura los pixeles bajo la flecha y compone su nueva posicion sin
-rasterizar RmlUi. Los clicks y cambios de resaltado dibujan la escena.
+rasterizar RmlUi. Las acciones que modifican el documento dibujan la escena.
 El recorrido abarca el escritorio logico de 1280x800 y sus margenes
 dependen del GOP.
 
 ## Cursor y presentacion por regiones
 
-El boton Activar ULTRA-J tiene un color `button:hover` mas claro. Entrar
-o salir de un boton tambien ejecuta un render completo de RmlUi. El
-punto activo sigue siendo la punta de la flecha. El codigo aplica los
-deltas del raton en las mismas coordenadas antes y despues del hover.
-Una pausa al volver a dibujar la escena puede hacer que el movimiento
-parezca un salto. La latencia en esa transicion requiere medicion fisica.
+El escritorio nativo cambia el color de la flecha al pasar sobre un
+boton o al pulsar el primario. La flecha conserva su punto activo y el
+mismo recorrido de entrada. Entrar y salir del boton usa las mismas
+cajas del puntero, sin volver a rasterizar el documento.
 
 BMO-X guarda los pixeles bajo el cursor en DIRECTOR (`scene/cursor.rs`).
 Su presentador de software agrupa hasta ocho cajas modificadas en
@@ -58,8 +57,8 @@ evita que un salto largo convierta el area intermedia en escrituras GOP.
 Ring 3 conserva la composicion y el punto activo. INVOKE 10 valida
 limites, paso de fila, formato y escala antes de copiar cada caja.
 Los modos con otra escala usan la presentacion completa de INVOKE 9.
-El resaltado aun redibuja la escena. La latencia fisica del puntero y
-del resaltado se miden por separado en AMD.
+La latencia fisica del puntero y del resaltado sigue pendiente de medir
+en AMD.
 
 El perfil reserva 57344 bytes DMA y dos paginas de codigo supervisor.
 No cubre hubs, reconexion automatica ni aislamiento IOMMU. Las notas

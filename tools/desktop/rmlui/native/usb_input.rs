@@ -17,13 +17,16 @@ static MOUSE_FORMAT:MouseFormat=MouseFormat(UnsafeCell::new(None));
 #[unsafe(no_mangle)] pub unsafe extern "C" fn bmo_mouse_format(bytes:*const u8,length:usize)->u32 {
     if bytes.is_null() || length==0 || length>512 {return 0;}
     let layout=MouseReport::parse(unsafe{core::slice::from_raw_parts(bytes,length)});
+    let ready=layout.is_some();
     unsafe{*MOUSE_FORMAT.0.get()=layout;}
-    u32::from(layout.is_some())
+    u32::from(ready)
 }
 
 #[unsafe(no_mangle)] pub extern "C" fn bmo_mouse_decode(raw:u64,length:u32)->u64 {
-    let Some((dx,dy,buttons))=(unsafe{*MOUSE_FORMAT.0.get()}).and_then(|layout|layout.decode(raw,length)) else{return 0;};
-    1u64<<63 | u64::from(buttons) | (u64::from(dx as u16)<<8) | (u64::from(dy as u16)<<24)
+    let Some(event)=(unsafe{&*MOUSE_FORMAT.0.get()}).as_ref().and_then(|layout|layout.decode(raw,length)) else{return 0;};
+    1u64<<63 | u64::from(event.buttons) | (u64::from(event.button_mask)<<3) |
+        (u64::from(event.dx as u16)<<8) | (u64::from(event.dy as u16)<<24) |
+        (u64::from(event.wheel as u16)<<40)
 }
 #[unsafe(no_mangle)] pub extern "C" fn bmo_usb_init(mode:u32) {
     let mut service=InputService::default();

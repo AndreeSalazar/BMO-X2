@@ -119,7 +119,9 @@ def main():
     manifest=dict(state=symbols['bmo_ui_state'],pixels=symbols['bmo_ui_pixels'],desktop=args.desktop)
     if args.desktop:manifest['director']=symbols['bmo_ui_director']
     if args.usb:manifest.update(usb=args.usb,usb_reports=symbols['bmo_ui_usb_reports'])
-    if args.usb=='both':manifest.update(usb_keyboard_reports=symbols['bmo_ui_usb_keyboard_reports'],usb_mouse_reports=symbols['bmo_ui_usb_mouse_reports'])
+    if args.usb=='both':
+        manifest.update(usb_keyboard_reports=symbols['bmo_ui_usb_keyboard_reports'],
+            usb_mouse_reports=symbols['bmo_ui_usb_mouse_reports'],mouse_edges=symbols['bmo_ui_mouse_edges'])
     (out/'symbols.json').write_text(json.dumps(manifest,indent=2)+'\n')
     artifacts={name:hashlib.sha256((out/name).read_bytes()).hexdigest() for name in ('rmlui.elf','rmlui.sbef','symbols.json')}
     (out/'artifacts.json').write_text(json.dumps(artifacts,indent=2)+'\n',encoding='ascii')

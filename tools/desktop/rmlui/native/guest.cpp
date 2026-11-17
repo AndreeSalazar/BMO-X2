@@ -27,6 +27,7 @@ volatile uint64_t bmo_ui_usb_reports;
 uint32_t bmo_usb_report_kind(uint64_t,uint32_t);uint32_t bmo_usb_disconnect();
 uint32_t bmo_mouse_format(const uint8_t*,size_t);uint64_t bmo_mouse_decode(uint64_t,uint32_t);
 volatile uint64_t bmo_ui_usb_keyboard_reports,bmo_ui_usb_mouse_reports;
+volatile uint64_t bmo_ui_mouse_edges[4];
 #endif
 #endif
 }
@@ -98,6 +99,7 @@ extern "C" void bmo_main() {
     auto doc=context->LoadDocument("main.rml");check(doc && !files.denied,"document");
     log("BMO UI DOCUMENT\n");
     doc->SetClass("reduced-motion",true);
+    doc->SetClass("native-pointer",true);
     doc->SetClass("arrived",true);doc->SetClass("intro-ready",true);
     auto button=doc->GetElementById("activate");check(button,"button");button->AddEventListener("click",&action);
     doc->Show();
@@ -117,7 +119,13 @@ extern "C" void bmo_main() {
     };
 #endif
     int pointer_x=640,pointer_y=400,packet_index=0;
-    unsigned flags=0,dx=0;bool left=false;
+    unsigned flags=0,dx=0,held_buttons=0;
+    auto cursor_color=[&]() -> uint32_t {
+        for(auto* element=context->GetHoverElement();element;element=element->GetParentNode())
+            if(element->GetTagName()=="button" || element->GetId()=="open-app")
+                return held_buttons&1?0x43bbaa:0xa2f4e6;
+        return 0xf4f8ff;
+    };
     static constexpr char pointer[][13]={
         "#           ", "##          ", "#.#         ", "#..#        ",
         "#...#       ", "#....#      ", "#.....#     ", "#......#    ",
@@ -127,13 +135,15 @@ extern "C" void bmo_main() {
     };
     uint32_t under_pointer[17][12];
     int drawn_x=pointer_x,drawn_y=pointer_y;
+    uint32_t drawn_color=0;
     auto draw_pointer=[&]() {
         drawn_x=pointer_x;drawn_y=pointer_y;
+        drawn_color=cursor_color();
         for(int y=0;y<17 && drawn_y+y<800;++y)
             for(int x=0;x<12 && drawn_x+x<1280;++x) {
                 auto& pixel=bmo_ui_pixels[(drawn_y+y)*1280+drawn_x+x];
                 under_pointer[y][x]=pixel;
-                if(pointer[y][x]!=' ')pixel=pointer[y][x]=='#'?0x0b1019:0xf4f8ff;
+                if(pointer[y][x]!=' ')pixel=pointer[y][x]=='#'?0x0b1019:drawn_color;
             }
     };
     auto present=[&]() {
@@ -184,22 +194,38 @@ extern "C" void bmo_main() {
     log("BMO UI USB TRANSPORT READY\n");
 #endif
     #endif
-    auto hovered_button=[&]() -> Rml::Element* {
-        for(auto* element=context->GetHoverElement();element;element=element->GetParentNode())
-            if(element->GetTagName()=="button")return element;
-        return nullptr;
-    };
-    auto mouse_input=[&](int dx,int dy,unsigned buttons) {
-        pointer_x=std::clamp(pointer_x+dx,0,1279);pointer_y=std::clamp(pointer_y+dy,0,799);
-        // Only buttons use hover styles in the bundled desktop document.
-        auto* hover=hovered_button();
-        context->ProcessMouseMove(pointer_x,pointer_y,0);
-        bool pressed=(buttons&1)!=0;
-        const bool redraw=hover!=hovered_button() || pressed!=left;
-        if(pressed!=left) {
-            if(pressed)context->ProcessMouseButtonDown(0,0);else context->ProcessMouseButtonUp(0,0);
-            left=pressed;
+    auto mouse_input=[&](int dx,int dy,unsigned buttons,unsigned mask=7,int wheel=0) {
+        if(dx || dy) {
+            pointer_x=std::clamp(pointer_x+dx,0,1279);pointer_y=std::clamp(pointer_y+dy,0,799);
+            context->ProcessMouseMove(pointer_x,pointer_y,0);
         }
+        auto accepted=bmo_ui_state.accepted;
+#ifdef BMO_DESKTOP_UI
+        auto policy=bmo_director_state();
+#endif
+        const unsigned next=(held_buttons&~mask) | buttons;
+        const unsigned changed=held_buttons^next;
+        held_buttons=next;
+        for(int index=0;index<3;++index) {
+            const unsigned bit=1u<<index;
+            if(!(changed&bit))continue;
+            if(next&bit)context->ProcessMouseButtonDown(index,0);
+            else context->ProcessMouseButtonUp(index,0);
+#ifdef BMO_USB_DUAL
+            bmo_ui_mouse_edges[index]=bmo_ui_mouse_edges[index]+1;
+#endif
+        }
+        bool redraw=false;
+        if(wheel) {
+            redraw=!context->ProcessMouseWheel(Rml::Vector2f{0.f,-float(wheel)},0);
+#ifdef BMO_USB_DUAL
+            bmo_ui_mouse_edges[3]=bmo_ui_mouse_edges[3]+1;
+#endif
+        }
+#ifdef BMO_DESKTOP_UI
+        redraw|=policy!=bmo_director_state();
+#endif
+        redraw|=accepted!=bmo_ui_state.accepted;
         return redraw;
     };
     context->ProcessMouseMove(pointer_x,pointer_y,0);
@@ -222,7 +248,8 @@ extern "C" void bmo_main() {
                 if(kind==2 && mouse_format_ready) {
                     const auto motion=bmo_mouse_decode(raw,uint32_t(metadata>>32));
                     if(motion) {
-                        dirty|=mouse_input(int(int16_t(motion>>8)),int(int16_t(motion>>24)),unsigned(motion&7));
+                        dirty|=mouse_input(int(int16_t(motion>>8)),int(int16_t(motion>>24)),
+                            unsigned(motion&7),unsigned((motion>>3)&7),int(int16_t(motion>>40)));
                         bmo_ui_usb_mouse_reports=bmo_ui_usb_mouse_reports+1;
                         bmo_ui_usb_reports=bmo_ui_usb_reports+1;
                         continue;
@@ -293,7 +320,7 @@ extern "C" void bmo_main() {
         }
         if(closing)break;
         if(dirty) frame();
-        else if(drawn_x!=pointer_x || drawn_y!=pointer_y) {
+        else if(drawn_x!=pointer_x || drawn_y!=pointer_y || drawn_color!=cursor_color()) {
 #ifdef BMO_USB_DUAL
             const auto old_position=unsigned(drawn_x)|(unsigned(drawn_y)<<16);
 #endif

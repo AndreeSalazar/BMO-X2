@@ -2450,9 +2450,9 @@
       ],
       "que": "Recibe informes escalares del transporte mediado y entrega cambios de teclado o raton a RmlUi/DIRECTOR usando InputService real.",
       "entrada": "Teclado boot y descriptor HID del raton en modo Report, con longitud por transferencia xHCI.",
-      "salida": "Scancodes y desplazamiento relativo con signo y botones separados; Ring 3 recorta al escritorio.",
-      "aceptacion": "CPL3: Enter, espacios, Super+Q/reapertura via USB teclado; movimiento y clic via USB raton; alternativa PS2 del aparato probado descartada. Un test HOST adicional del adaptador.",
-      "falta": "Confirmar el descriptor y comportamiento del raton fisico. El perfil actual requiere X, Y y el boton primario en el mismo informe, con los campos usados dentro de ocho bytes."
+      "salida": "Scancodes, ejes y rueda relativos, y transiciones de los tres botones aun con ID HID separados. Ring 3 recorta al escritorio.",
+      "aceptacion": "CPL3: Enter, espacios, Super+Q/reapertura via USB teclado; movimiento, resaltado sin raster, clic primario, transiciones derecha/central y rueda via USB raton.",
+      "falta": "Confirmar el descriptor y comportamiento del raton fisico. Los campos usados deben estar dentro de los primeros ocho bytes."
     },
     {
       "id": "rmlui-native-usb-profile",

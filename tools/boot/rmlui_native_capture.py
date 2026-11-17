@@ -143,11 +143,39 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
     command('screendump',{'filename':str(prefix)+'-ui-action.ppm'})
     command('cont')
     if symbols.get('desktop'):
-        command('input-send-event',{'events':[{'type':'rel','data':{'axis':'y','value':127}}]})
+        def mouse_event(event_type, **data):
+            command('input-send-event',{'events':[{'type':event_type,'data':data}]})
+        def wait_mouse(check, message):
+            deadline=time.monotonic()+10
+            while time.monotonic()<deadline:
+                if check():return
+                time.sleep(.02)
+            raise ValueError(message)
+        mouse_event('rel',axis='y',value=127)
+        mouse_edges=symbols.get('mouse_edges')
+        if mouse_edges:
+            px,py=642,531
+            gx=x+(px*scale if scale else px//2)
+            gy=y+(py*scale if scale else py//2)
+            hover_color=0xa2f4e6 if order==1 else 0xe6f4a2
+            wait_mouse(lambda: struct.unpack('<I',memory(fb+(gy*pitch+gx)*4,4,'button-hover'))[0]==hover_color,
+                'Cursor did not highlight over Activate')
+            words=struct.unpack('<8Q',memory(state-0x3c000000,64,'hover-frame-state'))
+            if words[2]!=after[2]:raise ValueError('Button hover rasterized the desktop')
+            def edges():
+                return struct.unpack('<4Q',memory(mouse_edges-0x3c000000,32,'mouse-edges'))
+            for index,name in ((1,'right'),(2,'middle'),(3,'wheel-up')):
+                initial=edges()[index]
+                mouse_event('btn',button=name,down=True)
+                wait_mouse(lambda: edges()[index]==initial+1,'Missing '+name+' event')
+                mouse_event('btn',button=name,down=False)
+                if index!=3:
+                    wait_mouse(lambda: edges()[index]==initial+2,'Missing '+name+' release')
+        else:
+            time.sleep(.2)
+        mouse_event('btn',button='left',down=True)
         time.sleep(.2)
-        command('input-send-event',{'events':[{'type':'btn','data':{'button':'left','down':True}}]})
-        time.sleep(.2)
-        command('input-send-event',{'events':[{'type':'btn','data':{'button':'left','down':False}}]})
+        mouse_event('btn',button='left',down=False)
         after=until(3,accepted=2)
         if after[3:5]!=(2,2):raise ValueError('Desktop mouse activation did not execute once')
         director=symbols['director']
@@ -223,7 +251,8 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
                     raise ValueError('Dual stop/revocation incomplete')
                 usb_proof.update(UsbBothDevicesVerified=True,UsbKeyboardReports=keyboard,UsbMouseReports=mouse,
                     PointerBeforeInputVerified=True,
-                    MouseReportDescriptorDecoded=True,
+                    MouseReportDescriptorDecoded=True, MouseButtonHoverWithoutRasterVerified=bool(mouse_edges),
+                    MouseRightMiddleWheelVerified=bool(mouse_edges),
                     PointerMoveWithoutRasterVerified=True,
                     PointerRegionPixelsForTwoMoves=copied,
                     UsbStopVerified=True,UsbBusMasterRevoked=True,UsbMmioRevoked=True,

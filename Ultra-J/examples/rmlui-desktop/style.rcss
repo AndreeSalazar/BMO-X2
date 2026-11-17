@@ -28,6 +28,7 @@ h2 { font-size:24px; font-weight:bold; margin-bottom:12px; }
 .description { color:#94a4bb; line-height:25px; font-size:14px; }
 button { display:block; background:#7de3d2; color:#10232b; border-width:0; border-radius:9px; padding:14px 23px; margin-top:24px; font-family:LatoLatin; font-weight:bold; font-size:14px; }
 button:hover { background:#a2f4e6; }
+.native-pointer button:hover { background:#7de3d2; }
 #result { color:#8598af; font-size:12px; margin-top:16px; }
 #side-panel { width:356px; margin-left:24px; padding:27px 28px; box-sizing:border-box; background:#131a28; border:1px #2a3044; border-radius:18px; }
 #side-panel h2 { font-size:22px; margin-bottom:26px; }
