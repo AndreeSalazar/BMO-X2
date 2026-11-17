@@ -194,8 +194,16 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
         def key(*keys):
             command('send-key',{'keys':[{'type':'qcode','data':k} for k in keys],'hold-time':80})
         policy(0x101)
+        focus_address=symbols.get('keyboard_focus')
+        if focus_address:
+            if not 0x40400000<=focus_address<=0x40e00000-8:raise ValueError('Keyboard focus symbol')
+            def focus_count():
+                return struct.unpack('<Q',memory(focus_address-0x3c000000,8,'keyboard-focus'))[0]
+            initial_focus=focus_count()
+            key('meta_l','1')
+            wait_mouse(lambda: focus_count()==initial_focus+1,'Super+1 did not focus the RmlUi window')
         key('ctrl','meta_l','2');policy(2)
-        key('f1');policy(0x102)
+        key(*(['meta_l','spc'] if focus_address else ['f1']));policy(0x102)
         key('meta_l','q');policy(2)
         key('f1');policy(0x102)
         key('ctrl','meta_l','1');policy(1)
@@ -259,7 +267,8 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
                     UsbTransportBackend='Dynamic USB2 two-slot mediated transport',UsbCodePages=2)
         return dict(Case='normal',Passed=True,Evidence='QEMU',CPL=3,FullRmlUiEngine=True,
             NativeUltraJAction=True,DirectorRust=True,WorkspaceSwitchVerified=True,
-            SuperQVerified=True,ReopenVerified=True,KeyboardEnterVerified=True,MouseClickVerified=True,ShellRemainsAlive=True,
+            SuperQVerified=True,SuperDigitFocusVerified=bool(focus_address),SuperSpaceLauncherVerified=bool(focus_address),
+            ReopenVerified=True,KeyboardEnterVerified=True,MouseClickVerified=True,ShellRemainsAlive=True,
             HeapPeakBytes=after[7],HeapLimitBytes=4*1024*1024,FramebufferBytes=len(raw),SbefBytes=len(image),
             StagedModuleSHA256=hashlib.sha256(struct.pack('<Q',len(image))+image).hexdigest(),
             PresentedPixelsVerified=dw*dh,GopWidth=width,GopHeight=height,HalfScale=scale==0,FrameSHA256=before,**usb_proof)

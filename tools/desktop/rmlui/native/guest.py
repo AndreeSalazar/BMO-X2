@@ -117,7 +117,8 @@ def main():
     symbols=subprocess.check_output([str(llvm/'llvm-nm.exe'),'--defined-only','--format=posix',str(out/'rmlui.elf')],text=True)
     symbols={s[0]:int(s[2],16) for line in symbols.splitlines() if len(s:=line.split())>=3}
     manifest=dict(state=symbols['bmo_ui_state'],pixels=symbols['bmo_ui_pixels'],desktop=args.desktop)
-    if args.desktop:manifest['director']=symbols['bmo_ui_director']
+    if args.desktop:
+        manifest.update(director=symbols['bmo_ui_director'],keyboard_focus=symbols['bmo_ui_keyboard_focus'])
     if args.usb:manifest.update(usb=args.usb,usb_reports=symbols['bmo_ui_usb_reports'])
     if args.usb=='both':
         manifest.update(usb_keyboard_reports=symbols['bmo_ui_usb_keyboard_reports'],

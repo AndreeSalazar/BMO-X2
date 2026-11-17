@@ -48,10 +48,10 @@ actualizacion de posicion. Vacia el movimiento pendiente antes de
 un boton, rueda o tecla y entrega cada movimiento durante arrastre.
 El avance USB sigue ligado al bucle del escritorio. El sondeo
 independiente, la recuperacion automatica y los LED USB quedan
-pendientes en este perfil. La tabla Boot HID cubre letras, numeros,
-teclas de edicion basicas, F1-F12 y flechas. Para escritura general
-faltan puntuacion, teclado numerico y una capa de distribucion y
-repeticion para el escritorio.
+pendientes en este perfil. La tabla Boot HID traduce tambien las teclas
+fisicas de puntuacion, navegacion, bloqueos y teclado numerico. Interpretar
+caracteres segun la distribucion, repetir teclas y controlar los LED
+requiere trabajo adicional.
 
 ## Cursor y presentacion por regiones
 

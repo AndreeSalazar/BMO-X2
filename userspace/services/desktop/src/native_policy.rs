@@ -5,9 +5,13 @@
 pub use model::{Desktop, Workspace};
 use model::{Keyboard, KeyEvent, KeyRoute, Surface};
 use core::cell::UnsafeCell;
-struct Policy { desktop: Desktop<'static,9>, keyboard:Keyboard, modifiers:u8, extended:bool }
+struct Policy {
+    desktop: Desktop<'static,9>, keyboard:Keyboard, modifiers:u8, extended:bool,
+    space_down:bool, space_captured:bool,
+}
 impl Policy {
-    fn new()->Self {Self{desktop:Desktop::new(),keyboard:Keyboard::default(),modifiers:0,extended:false}}
+    fn new()->Self {Self{desktop:Desktop::new(),keyboard:Keyboard::default(),modifiers:0,extended:false,
+        space_down:false,space_captured:false}}
     fn snapshot(&self)->u64 {u64::from(self.desktop.active().number()) | (u64::from(self.desktop.focused().unwrap_or(0))<<8)}
     fn open(&mut self) {
         static PIXEL:[u32;1]=[0];
@@ -21,19 +25,38 @@ impl Policy {
     fn key(&mut self,byte:u8)->u32 {
         if byte==0xe0 {self.extended=true;return 1;}
         let code=byte&0x7f;let pressed=byte&0x80==0;
-        let mask=match (self.extended,code) {
+        let extended=core::mem::take(&mut self.extended);
+        let mask=match (extended,code) {
             (false,0x2a)=>1, (false,0x36)=>2,
             (false,0x1d)=>4, (true,0x1d)=>8,
             (true,0x5b)=>16, (true,0x5c)=>32,
+            (false,0x38)=>64, (true,0x38)=>128,
             _=>0,
         };
-        self.extended=false;
         if mask!=0 {if pressed {self.modifiers|=mask;}else{self.modifiers&=!mask;}return 1;}
         let before=self.snapshot();
         let modifiers=u8::from(self.modifiers&3!=0) |
-            (u8::from(self.modifiers&12!=0)<<1) | (u8::from(self.modifiers&48!=0)<<5);
+            (u8::from(self.modifiers&12!=0)<<1) | (u8::from(self.modifiers&192!=0)<<2) |
+            (u8::from(self.modifiers&48!=0)<<5);
+        // Extended navigation shares codes with the keypad, never with shortcuts.
+        if extended {return 0;}
+        if code==0x39 {
+            if !pressed {
+                self.space_down=false;
+                return u32::from(core::mem::take(&mut self.space_captured));
+            }
+            if self.space_down {return u32::from(self.space_captured);}
+            self.space_down=true;
+            if modifiers==32 {
+                self.space_captured=true;
+                self.open();
+                return 1 | (u32::from(self.snapshot()!=before)<<1) | 4;
+            }
+        }
         let consumed=matches!(self.keyboard.route(&mut self.desktop,KeyEvent{scancode:code,pressed},modifiers),KeyRoute::Consumed);
-        u32::from(consumed) | (u32::from(self.snapshot()!=before)<<1)
+        let focus=consumed && pressed && modifiers==32 && (2..=10).contains(&code) &&
+            self.desktop.focused_shortcut()==Some(code-1);
+        u32::from(consumed) | (u32::from(self.snapshot()!=before)<<1) | (u32::from(focus)<<2)
     }
 }
 struct Owner(UnsafeCell<Option<Policy>>);
@@ -48,6 +71,22 @@ static OWNER:Owner=Owner(UnsafeCell::new(None));
 #[panic_handler] fn panic(_: &core::panic::PanicInfo<'_>)->! {unsafe{core::arch::asm!("ud2",options(noreturn))}}
 #[cfg(test)] mod native_tests {
     use super::*;
+    #[test] fn native_super_shortcuts_preserve_space_and_focus_semantics() {
+        let mut p=Policy::new();
+        p.open();
+        for b in [0xe0,0x5b,0x10,0x90] {p.key(b);}
+        assert_eq!(p.snapshot(),1);
+        assert_eq!(p.key(2),1); // Super+1 never opens a missing slot.
+        p.key(0x82);
+        assert_eq!(p.key(0x39),7);
+        assert_eq!(p.key(0x39),1);
+        assert_eq!(p.key(0xb9),1);
+        assert_eq!(p.key(2),5);
+        p.key(0x82);
+        p.key(0x38);
+        assert_eq!(p.key(2),0); // Super+Alt+1 is a distinct chord.
+        assert_eq!(p.snapshot(),0x101);
+    }
     #[test] fn releasing_left_control_keeps_right_control_active() {
         let mut p=Policy::new();
         p.open();

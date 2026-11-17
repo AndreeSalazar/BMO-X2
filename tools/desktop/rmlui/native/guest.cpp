@@ -19,6 +19,7 @@ uint32_t bmo_ui_pixels[1280*800];
 #ifdef BMO_DESKTOP_UI
 void bmo_director_init();uint64_t bmo_director_open();uint64_t bmo_director_state();uint32_t bmo_director_key(uint32_t);
 volatile uint64_t bmo_ui_director;
+volatile uint64_t bmo_ui_keyboard_focus;
 #endif
 #ifdef BMO_USB_INPUT
 void bmo_usb_init(uint32_t);uint32_t bmo_usb_report(uint64_t);uint64_t bmo_usb_event();
@@ -246,6 +247,9 @@ extern "C" void bmo_main() {
 #endif
     for(;;) {
         bool dirty=false,closing=false;
+#ifdef BMO_DESKTOP_UI
+        bool focus_window=false;
+#endif
         for(int pending=0;pending<64;++pending) {
             unsigned scan=256;
 #ifdef BMO_USB_INPUT
@@ -317,7 +321,7 @@ extern "C" void bmo_main() {
 #endif
 #ifdef BMO_DESKTOP_UI
                 auto route=bmo_director_key(scan);
-                if(route&1){dirty|=bool(route&2);continue;}
+                if(route&1){dirty|=bool(route&2);focus_window|=bool(route&4);continue;}
                 if(scan==0x3b){bmo_director_open();dirty=true;}
 #endif
                 if(scan==0x1c
@@ -350,6 +354,10 @@ extern "C" void bmo_main() {
             present();
 #endif
         }
+#ifdef BMO_DESKTOP_UI
+        if(focus_window && (bmo_director_state()>>8) && button->Focus())
+            bmo_ui_keyboard_focus=bmo_ui_keyboard_focus+1;
+#endif
         register unsigned long service __asm__("rax")=1;
         unsigned long cap=2,op=1,duration=1;
         __asm__ volatile("syscall":"+a"(service),"+D"(cap),"+S"(op),"+d"(duration)::"rcx","r11","r8","r9","r10","memory");

@@ -39,14 +39,17 @@ sirven como referencia para las interfaces de BMO-X2.
 ## Atajos
 
 El perfil inicial ofrece cuatro espacios numerados. La referencia de
-Ultra-LinuX es `src/rootfs/desktop/hyprland.lua`, revision `7c275c1`,
-que usa Super con numeros para enfocar y Super+Shift para mover ventanas.
+Ultra-LinuX es `src/rootfs/desktop/hyprland.lua`. Alli Super con numeros
+cambia de espacio. En BMO-X2 esa accion usa Ctrl+Super y Super con
+numeros enfoca ventanas dentro del espacio visible.
 
 | Atajo | Operacion |
 |---|---|
 | Ctrl+Super+1-4 | Cambiar el espacio visible y restaurar su ultimo foco. |
 | Super+1-9 | Enfocar la ventana numerada del espacio activo. |
 | Super+Shift+1, Super+Shift+2, Super+Shift+3, Super+Shift+4 | Mover la ventana activa al espacio indicado y conservar el espacio visible. |
+| Super+Q | Cerrar la ventana activa. |
+| Super+Espacio | Abrir o traer ULTRA-J en el escritorio RmlUi, que por ahora tiene un lanzador de una aplicacion. |
 
 Cambiar de espacio conserva los procesos y las ventanas de los demas
 espacios. Si se cerro la ventana enfocada, se usa la siguiente ventana
