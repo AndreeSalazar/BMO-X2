@@ -27,6 +27,7 @@ def main():
     parser.add_argument('--pe-link', metavar='LINK_EXE', help='Link the MSVC COFF client and Rust Win64 portal into a PE inspection fixture')
     parser.add_argument('--coff-as', default='clang', help='Clang assembler for the Win64 entry and QEMU terminal')
     parser.add_argument('--msvc-sections', action='store_true', help='Test MSVC RX/R/RW and the native Rust clock in QEMU')
+    parser.add_argument('--msvc-window', action='store_true', help='Present and capture the MSVC graphic fixture in QEMU')
     parser.add_argument('--msvc-sdk-lib', default='kernel32.lib', help='Windows x64 SDK import library for the clock fixture')
     parser.add_argument('--reuse', action='store_true', help='Run two distinct embedded SBEFs on the same pages')
     args = parser.parse_args()
@@ -34,6 +35,8 @@ def main():
         parser.error('--pe-link requiere msvc')
     if args.msvc_sections and not (args.toolchain == 'msvc' and args.pe_link and args.abi_run):
         parser.error('--msvc-sections requiere msvc, --pe-link y --abi-run')
+    if args.msvc_window and not args.msvc_sections:
+        parser.error('--msvc-window requiere --msvc-sections')
     if args.toolchain == 'msvc' and args.abi_run and not args.pe_link:
         parser.error('MSVC --abi-run requiere --pe-link')
     if args.reuse and (not args.abi_run or args.toolchain == 'msvc'):
@@ -49,9 +52,9 @@ def main():
     cc = args.cc or ('cl' if args.toolchain == 'msvc' else args.toolchain)
     if args.toolchain == 'msvc':
         if args.msvc_sections:
-            verify_msvc_sections(ROOT, out/'sections-qemu', args.abi_run, cc=cc,
+            verify_msvc_sections(ROOT, out/('window-qemu' if args.msvc_window else 'sections-qemu'), args.abi_run, cc=cc,
                                  linker=args.pe_link, assembler=args.coff_as, objcopy=args.objcopy,
-                                 sdk_lib=args.msvc_sdk_lib)
+                                 sdk_lib=args.msvc_sdk_lib, window=args.msvc_window)
             return
         report, sbef = build_msvc(out, CLIENT, ABI, ROOT/'tools/doom/complete.S', cc=cc,
                                   linker=args.pe_link, assembler=args.coff_as, qemu=bool(args.abi_run))

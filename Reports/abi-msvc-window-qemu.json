@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "qemu": {
+    "Passed": 2,
+    "Total": 2,
+    "Cases": [
+      {
+        "Case": "normal",
+        "Passed": true,
+        "Evidence": "QEMU",
+        "CPL": 3,
+        "InitializedDataVerified": true,
+        "ZeroFillVerified": true,
+        "RustClockVerified": true,
+        "FirstMs": 0,
+        "SecondMs": 30,
+        "SerialHelloVerified": true,
+        "WrittenBytes": 39,
+        "WindowFrameVerified": true,
+        "WindowPixelsVerified": 1024000,
+        "Screenshot": "puente-normal-msvc-window.ppm",
+        "ScreenshotSHA256": "beb7bf8f9ecc765d593ed8f9dea3c26c81009ce8008d073bcd600ebfa6f3004d"
+      },
+      {
+        "Case": "external-permissions",
+        "Passed": true,
+        "SbefAccepted": false,
+        "UserCodeCopied": false,
+        "UserAddressSpaceActivated": false,
+        "RejectedField": "permissions",
+        "RejectedOffset": 116
+      }
+    ],
+    "run": "run-msvc-sections-949417a084d7",
+    "evidence": "QEMU",
+    "milestone": "MSVC C++ PE32+ converted to SBEF uses the Rust session clock and stdout in CPL3"
+  },
+  "screenshot": "abi-msvc-window.png",
+  "screenshot_png_sha256": "e2915fc7d99b02137c8b79f160c58121940faa5067ce1c1252c118bfe2bf0f48",
+  "scope": "C++ CPU-drawn panel through the native session portal and GOP; no window manager or Direct3D API exercised"
+}

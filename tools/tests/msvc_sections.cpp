@@ -1,4 +1,7 @@
 #include "../../userspace/runtime/abi/include/bmo_abi.h"
+#ifdef BMO_MSVC_WINDOW
+#include "msvc_window.h"
+#endif
 
 extern "C" {
 __declspec(dllimport) unsigned long long GetTickCount64(void);
@@ -24,7 +27,11 @@ void bmo_main(void) {
     if (WriteFile(nullptr, hello, sizeof(hello)-1, &written, nullptr) || written) for (;;) {}
     if (second_ms >= first_ms + 20 && scratch[1] == 'M' &&
         WriteFile(GetStdHandle(static_cast<unsigned long>(-11)), hello, sizeof(hello)-1, &written, nullptr) &&
-        written == sizeof(hello)-1)
+        written == sizeof(hello)-1
+#ifdef BMO_MSVC_WINDOW
+        && draw_window()
+#endif
+        )
         phase = 0x53454332;
     for (;;) {}
 }

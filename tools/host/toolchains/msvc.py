@@ -58,17 +58,22 @@ def build_msvc(out, client, abi, completion, *, cc, linker, assembler, qemu):
     return report, sbef
 
 
-def verify_msvc_sections(root, out, reference, *, cc, linker, assembler, objcopy, sdk_lib):
+def verify_msvc_sections(root, out, reference, *, cc, linker, assembler, objcopy, sdk_lib, window):
     out.mkdir(parents=True, exist_ok=True)
     abi = root/'userspace/runtime/abi/win64'
     obj, pe, sbef = (out/name for name in ('client.obj', 'client.exe', 'client.sbef'))
-    subprocess.run([cc, '/nologo', '/std:c++17', '/c', '/O2', '/GS-', '/Zl', f'/Fo{obj}',
+    # The visual fixture uses the existing no-chain unwind admission profile.
+    flags = ['/Od', '/DBMO_MSVC_WINDOW'] if window else ['/O2']
+    subprocess.run([cc, '/nologo', '/std:c++17', '/c', '/GS-', '/Zl', *flags, f'/Fo{obj}',
                     str(root/'tools/tests/msvc_sections.cpp')], check=True, cwd=out)
     entry = out/'entry.obj'
     subprocess.run([assembler, '--target=x86_64-pc-windows-msvc', '-c', str(abi/'entry.S'),
                     '-o', str(entry)], check=True)
     objects = [entry, obj]
-    for unit in ('portal', 'session_clock', 'session_console'):
+    units = ('portal', 'session_clock', 'session_console')
+    if window:
+        units += ('session_present',)
+    for unit in units:
         target = out/(unit+'.obj')
         subprocess.run(['rustc', '--edition=2024', '--target=x86_64-pc-windows-msvc',
                         '--crate-type=lib', '--emit=obj', '-Cpanic=abort', '-Copt-level=2',
@@ -81,6 +86,8 @@ def verify_msvc_sections(root, out, reference, *, cc, linker, assembler, objcopy
                     *('/include:'+name for name in SESSION_EXPORTS.values()),
                     f'/map:{link_map}', f'/out:{pe}', *map(str, objects), sdk_lib], check=True)
     names = ('phase', 'first_ms', 'second_ms', 'scratch', 'written', *SESSION_EXPORTS.values())
+    if window:
+        names += ('window_pixels',)
     pattern = r'^\s+[0-9A-Fa-f]+:[0-9A-Fa-f]+\s+(' + '|'.join(names) + r')\s+([0-9A-Fa-f]+)\b'
     symbols = {name: int(address, 16) for name, address in re.findall(pattern, link_map.read_text(), re.M)}
     if set(symbols) != set(names):
