@@ -13,6 +13,7 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
         if memory(0x4000000,4096,'ui-rejected-code')!=bytes(4096):raise ValueError('UI copied before permission validation')
         return result
     symbols=json.loads(symbols_path.read_text())
+    empty_usb=(prefix.parent.parent/'native-usb-empty.txt').is_file()
     state,pixels=symbols['state'],symbols['pixels']
     if not (0x40400000<=state<=0x40e00000-64 and 0x40400000<=pixels<=0x40e00000-1280*800*4):
         raise ValueError('UI symbol range')
@@ -29,10 +30,17 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
             if words[0]==0x3149554f4d42 and words[1]==phase and words[4]>=accepted:return words
             time.sleep(.07)
         raise ValueError('Native UI phase '+str(phase)+' not reached: '+str(words)+' '+log[-1400:]+'\n'+regs()[:600])
-    first=until(2)
+    def freeze_frame(phase,accepted=0):
+        for _ in range(4):
+            until(phase,accepted)
+            command('stop')
+            words=struct.unpack('<8Q',memory(state-0x3c000000,64,'ui-frozen-state'))
+            if words[1]==phase and words[4]>=accepted:return words
+            command('cont')
+        raise ValueError('Could not pause a completed native frame')
+    first=freeze_frame(2)
     if not (first[2]>=1 and first[5]>0 and 0<first[6]<=first[7]<=4*1024*1024):raise ValueError('Invalid UI resource counters')
     raw=memory(pixels-0x3c000000,1280*800*4,'ui-frame')
-    command('stop')
     registers=regs()
     if 'CPL=0' in registers:
         context_address=register(registers,'RBP')
@@ -42,6 +50,24 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
     if not 0x100000<=context_address<=0xffe0000:raise ValueError('Native UI handoff address')
     context=memory(context_address,0x30,'ui-context')
     if context[:8]!=b'METAL64!':raise ValueError('Native UI handoff signature')
+    if symbols.get('usb')=='both':
+        live=memory(context_address+0x1a3c8,1,'dual-live')[0]
+        roles=memory(context_address+0x1a770,1,'dual-roles')[0]
+        if empty_usb:
+            halt=memory(context_address+0x1a37a,1,'empty-usb-halted')[0]
+            pci=struct.unpack('<H',memory(context_address+0x1a37e,2,'empty-usb-pci'))[0]
+            if live or roles or halt!=1 or pci&4 or memory(context_address+0x1e000,24,'empty-usb-aliases')!=bytes(24):
+                raise ValueError('Empty USB startup did not revoke controller ownership')
+        elif live!=1 or roles!=3:
+            phase=struct.unpack('<I',memory(context_address+0x1a7ac,4,'dual-phase'))[0]
+            cc=memory(context_address+0x1a7a0,1,'dual-cc')[0]
+            debug=memory(context_address+0x1a000,4096,'dual-debug-state')
+            memory(context_address+0x1e000,4096,'dual-debug-aliases')
+            pointers=struct.unpack_from('<3Q',debug,0x740)
+            reset=debug[0x3b9]
+            dma=struct.unpack_from('<Q',debug,0x758)[0]
+            if 0x100000<=dma<=0x10000000-14*4096:memory(dma,14*4096,'dual-debug-dma')
+            raise ValueError(f'Dual USB init incomplete: live={live} roles={roles} phase={phase} CC={cc} reset={reset} regs={pointers}')
     fb=struct.unpack_from('<Q',context,16)[0]
     width,height,pitch,order=struct.unpack_from('<IIII',context,32)
     if not (640<=width<=4096 and 400<=height<=4096 and width<=pitch<=8192 and order in (0,1)):
@@ -64,13 +90,19 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
     (Path(str(prefix)+'-ui-xrgb.bin')).write_bytes(raw)
     command('screendump',{'filename':str(prefix)+'-ui.ppm'})
     command('cont')
+    if empty_usb:
+        return dict(Case='normal',Passed=True,Evidence='QEMU',CPL=3,FullRmlUiEngine=True,
+            UsbEmptyPortsRejected=True,UsbControllerStopped=True,UsbBusMasterRevoked=True,
+            UsbMmioRevoked=True,UsbBothDevicesVerified=False,PhysicalUsbVerified=False,
+            PresentedPixelsVerified=dw*dh,FrameSHA256=hashlib.sha256(raw).hexdigest())
     before=hashlib.sha256(raw).hexdigest()
     command('send-key',{'keys':[{'type':'qcode','data':'ret'}],'hold-time':60})
-    after=until(3)
+    after=freeze_frame(3)
     if after[3:5]!=(1,1):raise ValueError('Native ULTRA-J action did not execute once')
     raw_after=memory(pixels-0x3c000000,1280*800*4,'ui-action-frame')
     if hashlib.sha256(raw_after).hexdigest()==before:raise ValueError('Native action did not change the rendered frame')
     command('screendump',{'filename':str(prefix)+'-ui-action.ppm'})
+    command('cont')
     if symbols.get('desktop'):
         command('input-send-event',{'events':[{'type':'rel','data':{'axis':'y','value':127}}]})
         time.sleep(.2)
@@ -112,7 +144,8 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
             status=memory(context_address+0x1a3c4,5,'native-usb-owner')
             if status[0]!=1 or status[4]!=1:raise ValueError('USB DMA validation or live ownership missing')
             dma,pages=struct.unpack('<QQ',memory(context_address+0xb8,16,'native-usb-reservation'))
-            if pages!=10 or dma<0x100000 or dma+pages*4096>0x10000000:
+            expected_pages=14 if symbols['usb']=='both' else 10
+            if pages!=expected_pages or dma<0x100000 or dma+pages*4096>0x10000000:
                 raise ValueError('USB reservation outside the private identity map')
             for index in range(dma//0x200000,(dma+pages*4096-1)//0x200000+1):
                 entry=struct.unpack('<Q',memory(context_address+0x15000+index*8,8,'usb-dma-pde'))[0]
@@ -126,6 +159,32 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
                 UsbDmaReservedBytes=pages*4096,UsbMmioSupervisorNxVerified=True,
                 UsbTransportBackend='Existing single-device QEMU diagnostic; mediated by Ring0',
                 PhysicalUsbVerified=False)
+            if symbols['usb']=='both':
+                keyboard=struct.unpack('<Q',memory(symbols['usb_keyboard_reports']-0x3c000000,8,'dual-keyboard-count'))[0]
+                mouse=struct.unpack('<Q',memory(symbols['usb_mouse_reports']-0x3c000000,8,'dual-mouse-count'))[0]
+                slots=memory(dma+0x9800,128,'dual-slot-owners')
+                if keyboard<2 or mouse<3 or {slots[3],slots[67]}!={1,2} or slots[14]!=1 or slots[78]!=1 or slots[1]==slots[65]:
+                    raise ValueError('Two distinct active USB devices not proven')
+                code,code_pages=struct.unpack('<QQ',memory(context_address+0x728,16,'dual-code-reservation'))
+                if code_pages!=2 or code&4095 or code<0x100000 or code+8192>0x10000000:
+                    raise ValueError('Dual code reservation')
+                stage=(prefix.parent.parent/'xhci.bin').read_bytes()
+                if memory(code,8192,'dual-code-copy')!=stage.ljust(8192,b'\0'):raise ValueError('Dual code copy')
+                # Exercise the real application stop path, then require BM revoke
+                # and alias removal. Buffers stay pinned, never silently reused.
+                key('f12')
+                deadline=time.monotonic()+45
+                while time.monotonic()<deadline:
+                    if memory(context_address+0x1a3c8,1,'dual-stopped')==b'\0':break
+                    time.sleep(.03)
+                else:raise ValueError('Dual controller did not stop')
+                halt=memory(context_address+0x1a37a,1,'dual-halted')[0]
+                pci=struct.unpack('<H',memory(context_address+0x1a37e,2,'dual-bus-master'))[0]
+                if halt!=1 or pci&4 or memory(context_address+0x15400,8,'dual-alias-pde')!=bytes(8) or memory(context_address+0x1e000,24,'dual-alias-revoked')!=bytes(24):
+                    raise ValueError('Dual stop/revocation incomplete')
+                usb_proof.update(UsbBothDevicesVerified=True,UsbKeyboardReports=keyboard,UsbMouseReports=mouse,
+                    UsbStopVerified=True,UsbBusMasterRevoked=True,UsbMmioRevoked=True,
+                    UsbTransportBackend='Dynamic USB2 two-slot mediated transport',UsbCodePages=2)
         return dict(Case='normal',Passed=True,Evidence='QEMU',CPL=3,FullRmlUiEngine=True,
             NativeUltraJAction=True,DirectorRust=True,WorkspaceSwitchVerified=True,
             SuperQVerified=True,ReopenVerified=True,KeyboardEnterVerified=True,MouseClickVerified=True,ShellRemainsAlive=True,

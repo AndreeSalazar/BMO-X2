@@ -2470,6 +2470,23 @@
       "salida": "UEFI FAT32 con reserva DMA de diez paginas y etapa xHCI supervisora de una pagina; reportes y captura QEMU.",
       "aceptacion": "Dos casos por perfil, incluido W+X rechazado. Puerta de 1584 bytes, INICIO 3785 bytes, etapa 4067/4096 bytes. deploy.ps1 rechaza perfiles USB QEMU-only.",
       "falta": "METAL: DMA supervision no acredita IOMMU ni aislamiento de aparatos hostiles; falta backend AMD vivo y varios slots/endpoints simultaneos."
+    },
+    {
+      "id": "rmlui-usb-dual",
+      "titulo": "xHCI USB2 con dos dispositivos",
+      "ruta": "kernel/drivers/bus/native/controller.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "posicion": [
+        9900,
+        4300
+      ],
+      "que": "Descubre bancos MMIO, configura dos slots y entrega informes HID mediados al escritorio.",
+      "entrada": "Controlador xHCI admitido, dos puertos directos USB2 y reserva UEFI supervisora.",
+      "salida": "Informes escalares para Ring 3 y diagnostico visible de fase y terminacion.",
+      "aceptacion": "QEMU verifica teclado y raton simultaneos, rechazo W+X, puertos vacios y parada con revocacion PCI/MMIO.",
+      "falta": "AMD fisico pendiente. No hay hubs, reconexion automatica ni IOMMU en este perfil."
     }
   ],
   "relaciones": [
@@ -3690,6 +3707,11 @@
     },
     {
       "de": "rmlui-native-usb-profile",
+      "a": "rmlui-native-usb-input",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-usb-dual",
       "a": "rmlui-native-usb-input",
       "clase": "codigo"
     }

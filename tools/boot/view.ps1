@@ -134,9 +134,14 @@ if ($actualProfile -eq 'desktop-media') {
 }
 if (Test-Path -LiteralPath (Join-Path $runDir.FullName 'native-usb.txt')) {
     $usbKind=(Get-Content -LiteralPath (Join-Path $runDir.FullName 'native-usb.txt') -Raw).Trim()
-    if ($usbKind -notin @('keyboard','mouse')) {throw 'Perfil USB nativo invalido.'}
-    $usbDevice=if($usbKind -eq 'keyboard'){'usb-kbd'}else{'usb-mouse'}
-    $arguments+=@('-device','qemu-xhci,id=bmo-native-xhci','-device',"$usbDevice,bus=bmo-native-xhci.0")
+    if ($usbKind -notin @('keyboard','mouse','both')) {throw 'Perfil USB nativo invalido.'}
+    $arguments+=@('-device','qemu-xhci,id=bmo-native-xhci')
+    if($usbKind -eq 'both') {
+        $arguments+=@('-device','usb-kbd,bus=bmo-native-xhci.0,port=1','-device','usb-mouse,bus=bmo-native-xhci.0,port=2')
+    } else {
+        $usbDevice=if($usbKind -eq 'keyboard'){'usb-kbd'}else{'usb-mouse'}
+        $arguments+=@('-device',"$usbDevice,bus=bmo-native-xhci.0")
+    }
 }
 Write-Output "Arrancando $($runDir.Name) con TCG y framebuffer VGA sin OpenGL."
 $process = Start-Process -FilePath $Qemu -ArgumentList $arguments -WindowStyle Normal -PassThru `

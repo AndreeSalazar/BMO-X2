@@ -310,6 +310,14 @@ diagnostics:
     movzbl %gs:0x3c8, %eax
     jmp finish
 usb_not_status:
+#ifdef XHCI_NATIVE_DUAL
+    cmp $19, %rdx
+    je native_usb_stop
+    cmp $20, %rdx
+    je native_usb_kind
+    cmp $21, %rdx
+    je native_usb_status
+#endif
 #endif
 #endif
 #ifdef DESKTOP_MEDIA
@@ -351,7 +359,12 @@ diagnostics_result:
     jmp finish
 #ifdef DESKTOP_MEDIA
 usb_controllers:
+#ifdef XHCI_NATIVE_DUAL
+    call native_usb_code
+    jc denied
+#else
     lea 0x12000(%rbp), %rax
+#endif
     call *%rax
     jmp finish
 #ifndef XHCI_COMMAND_PROBE
@@ -414,10 +427,58 @@ usb_port_speed:
 #ifdef XHCI_COMMAND_PROBE
 usb_report:
     push %rbx
+#ifdef XHCI_NATIVE_DUAL
+    call native_usb_code
+    jc native_usb_invalid
+    add $5, %rax
+#else
     lea 0x12005(%rbp), %rax
+#endif
     call *%rax
     pop %rbx
     jmp finish
+#ifdef XHCI_NATIVE_DUAL
+native_usb_invalid:
+    pop %rbx
+    jmp denied
+native_usb_kind:
+    mov %gs:0x798, %eax
+    jmp finish
+native_usb_status:
+    mov %gs:0x7ac, %eax
+    movzbl %gs:0x770, %edx
+    shl $8, %edx
+    or %edx, %eax
+    movzbl %gs:0x7a0, %edx
+    shl $16, %edx
+    or %edx, %eax
+    movzbl %gs:0x3c8, %edx
+    shl $24, %edx
+    or %edx, %eax
+    jmp finish
+native_usb_stop:
+    call native_usb_code
+    jc denied
+    add $10, %rax
+    call *%rax
+    movzbl %gs:0x37a, %eax
+    jmp finish
+native_usb_code:
+    cmpq $2, 0x730(%rbp)
+    jne native_usb_bad_code
+    mov 0x728(%rbp), %rax
+    test $4095, %eax
+    jnz native_usb_bad_code
+    cmp $0x100000, %rax
+    jb native_usb_bad_code
+    cmp $0x0fffe000, %rax
+    ja native_usb_bad_code
+    clc
+    ret
+native_usb_bad_code:
+    stc
+    ret
+#endif
 #endif
 #ifdef DOOM_ENGINE
 serial_byte:

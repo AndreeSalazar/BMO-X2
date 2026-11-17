@@ -15,19 +15,43 @@ desktop_media_read:
     # Preserve the inherited INICIO.X86 length. Use separate context fields.
     sub $40, %rsp
 #ifdef RMLUI_USB
+#ifdef XHCI_NATIVE_DUAL
+    # Separate LoaderCode pages: the legacy one-page stage remains unchanged.
+    movq $0x0fffffff, 0x728(%rbp)
+    mov $1, %ecx
+    mov $1, %edx
+    mov $2, %r8d
+    lea 0x728(%rbp), %r9
+    call *0x28(%r14)
+    test %rax, %rax
+    js failed
+    movq $2, 0x730(%rbp)
+#endif
     # Private QEMU USB transport: reserve DMA before the final UEFI map.
     movq $0x0fffffff, 0xb8(%rbp)
     mov $1, %ecx
     mov $2, %edx
+#ifdef XHCI_NATIVE_DUAL
+    mov $14, %r8d
+#else
     mov $10, %r8d
+#endif
     lea 0xb8(%rbp), %r9
     call *0x28(%r14)
     test %rax, %rax
     js failed
+#ifdef XHCI_NATIVE_DUAL
+    movq $14, 0xc0(%rbp)
+#else
     movq $10, 0xc0(%rbp)
+#endif
     mov 0xb8(%rbp), %rdi
     xor %eax, %eax
+#ifdef XHCI_NATIVE_DUAL
+    mov $7168, %ecx
+#else
     mov $5120, %ecx
+#endif
     cld
     rep stosq
 #endif
@@ -148,8 +172,13 @@ staging_ready:
     # Copy the xHCI stage to the page between the packet buffer and page tables.
     .byte 0x48, 0x8d, 0x35
     .long 0x4000 - DESKTOP_READER_OFFSET - (. - desktop_media_read) - 4
+#ifdef XHCI_NATIVE_DUAL
+    mov 0x728(%rbp), %rdi
+    mov $1024, %ecx
+#else
     lea 0x12000(%rbp), %rdi
     mov $512, %ecx
+#endif
     cld
     rep movsq
 #endif

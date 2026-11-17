@@ -1,3 +1,6 @@
+#ifdef XHCI_NATIVE_DUAL
+#define XHCI_TRANSPORT_PROBE
+#endif
 #ifdef XHCI_TRANSPORT_PROBE
 #define XHCI_COMMAND_PROBE
 #endif
@@ -348,7 +351,15 @@ caps_done:
     ret
 
 #ifdef XHCI_COMMAND_PROBE
+#ifdef XHCI_NATIVE_DUAL
+#include "native/controller.inc"
+#include "xhci_validate_dma.inc"
+#include "xhci_transport_layout.inc"
+#include "xhci_transport_mmio.inc"
+#include "xhci_transport_ports.inc"
+#else
 #include "xhci_command_probe.inc"
+#endif
 #include "xhci_reset.inc"
 #else
 #include "xhci_preflight.inc"

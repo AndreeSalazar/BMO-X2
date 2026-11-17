@@ -36,7 +36,7 @@ def check_math_providers(text):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--desktop',action='store_true')
-    parser.add_argument('--usb',choices=['keyboard','mouse'])
+    parser.add_argument('--usb',choices=['keyboard','mouse','both'])
     args=parser.parse_args()
     if args.usb and not args.desktop:parser.error('--usb requires --desktop')
     libc.main()
@@ -56,6 +56,7 @@ def main():
     cppflags+=['-I'+str(p) for p in [OUT/'runtime/include/c++/v1',*includes,DEPS/'RmlUi-6.3/Include',ROOT/'tools/doom']]
     if args.desktop:cppflags+=['-DBMO_DESKTOP_UI']
     if args.usb:cppflags+=['-DBMO_USB_INPUT']+(['-DBMO_USB_MOUSE'] if args.usb=='mouse' else [])
+    if args.usb=='both':cppflags+=['-DBMO_USB_DUAL']
     command([llvm/'clang++.exe',*cppflags,'-c',here/'guest.cpp','-o',out/'guest.o'],'compile-native-guest')
     command([llvm/'clang++.exe',*cppflags,'-c',here/'new.cpp','-o',out/'new.o'],'compile-native-new')
     rust_extra=[]
@@ -118,6 +119,7 @@ def main():
     manifest=dict(state=symbols['bmo_ui_state'],pixels=symbols['bmo_ui_pixels'],desktop=args.desktop)
     if args.desktop:manifest['director']=symbols['bmo_ui_director']
     if args.usb:manifest.update(usb=args.usb,usb_reports=symbols['bmo_ui_usb_reports'])
+    if args.usb=='both':manifest.update(usb_keyboard_reports=symbols['bmo_ui_usb_keyboard_reports'],usb_mouse_reports=symbols['bmo_ui_usb_mouse_reports'])
     (out/'symbols.json').write_text(json.dumps(manifest,indent=2)+'\n')
     artifacts={name:hashlib.sha256((out/name).read_bytes()).hexdigest() for name in ('rmlui.elf','rmlui.sbef','symbols.json')}
     (out/'artifacts.json').write_text(json.dumps(artifacts,indent=2)+'\n',encoding='ascii')

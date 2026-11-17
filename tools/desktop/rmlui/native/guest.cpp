@@ -23,6 +23,10 @@ volatile uint64_t bmo_ui_director;
 #ifdef BMO_USB_INPUT
 void bmo_usb_init(uint32_t);uint32_t bmo_usb_report(uint64_t);uint64_t bmo_usb_event();
 volatile uint64_t bmo_ui_usb_reports;
+#ifdef BMO_USB_DUAL
+uint32_t bmo_usb_report_kind(uint64_t,uint32_t);uint32_t bmo_usb_disconnect();
+volatile uint64_t bmo_ui_usb_keyboard_reports,bmo_ui_usb_mouse_reports;
+#endif
 #endif
 }
 namespace BmoUi {[[noreturn]] void native_failure(const char* s) {bmo_native_fail(s);}}
@@ -102,6 +106,11 @@ extern "C" void bmo_main() {
     auto sync_policy=[&]() {
         auto policy=bmo_director_state();char label[128];
         snprintf(label,sizeof(label),"Espacio %u / %s",unsigned(policy&255),(policy>>8)?"ULTRA-J activo":"Sin ventanas. Abre ULTRA-J.");
+#ifdef BMO_USB_DUAL
+        auto usb=doom_invoke(3,3,21,0);
+        snprintf(label,sizeof(label),"Espacio %u / USB %s / K:%s M:%s / fase %u CC %u",unsigned(policy&255),
+            (usb>>24)&1?"ON":"OFF",usb&0x100?"OK":"espera",usb&0x200?"OK":"espera",unsigned(usb&255),unsigned((usb>>16)&255));
+#endif
         doc->GetElementById("desktop-status")->SetInnerRML(label);
         doc->GetElementById("workspace")->SetProperty("display",(policy>>8)?"flex":"none");
     };
@@ -109,6 +118,7 @@ extern "C" void bmo_main() {
     int pointer_x=640,pointer_y=400,packet_index=0;
     unsigned flags=0,dx=0;bool left=false,pointer_seen=false;
     auto frame=[&]() {
+        bmo_ui_state.phase=1;
 #ifdef BMO_DESKTOP_UI
         sync_policy();
 #endif
@@ -125,18 +135,26 @@ extern "C" void bmo_main() {
 #ifdef BMO_DESKTOP_UI
         bmo_ui_director=bmo_director_state();
 #endif
+        bmo_ui_state.phase=bmo_ui_state.accepted?3:2;
     };
     #ifdef BMO_USB_INPUT
     bmo_usb_init(
-    #ifdef BMO_USB_MOUSE
+    #ifdef BMO_USB_DUAL
+        2
+    #elif defined(BMO_USB_MOUSE)
         1
     #else
         0
     #endif
     );
     doom_invoke(3,3,4,0);
+#ifdef BMO_USB_DUAL
+    if(doom_invoke(3,3,18,0)!=1)log("BMO UI USB TRANSPORT PENDING\n");
+    else log("BMO UI USB TRANSPORT READY\n");
+#else
     check(doom_invoke(3,3,18,0)==1,"USB transport start");
     log("BMO UI USB TRANSPORT READY\n");
+#endif
     #endif
     auto mouse_input=[&](int dx,int dy,unsigned buttons) {
         pointer_x=std::clamp(pointer_x+dx,0,1279);pointer_y=std::clamp(pointer_y+dy,0,799);
@@ -148,6 +166,9 @@ extern "C" void bmo_main() {
         }
     };
     frame();bmo_ui_state.phase=2;log("BMO UI READY\n");
+#ifdef BMO_USB_DUAL
+    bool transport_lost=false;
+#endif
     for(;;) {
         bool dirty=false,closing=false;
         for(int pending=0;pending<64;++pending) {
@@ -156,9 +177,25 @@ extern "C" void bmo_main() {
             auto usb=bmo_usb_event();
             if(usb==256) {
                 auto raw=doom_invoke(3,3,5,0);
-                if(raw!=256 && raw!=257 && bmo_usb_report(raw)==0) {
+                uint32_t admitted=1;
+                if(raw!=256 && raw!=257) {
+#ifdef BMO_USB_DUAL
+                    auto kind=doom_invoke(3,3,20,0);
+                    admitted=bmo_usb_report_kind(raw,uint32_t(kind));
+                    if(admitted==0 && kind==1)bmo_ui_usb_keyboard_reports=bmo_ui_usb_keyboard_reports+1;
+                    if(admitted==0 && kind==2)bmo_ui_usb_mouse_reports=bmo_ui_usb_mouse_reports+1;
+#else
+                    admitted=bmo_usb_report(raw);
+#endif
+                }
+                if(admitted==0) {
                     bmo_ui_usb_reports=bmo_ui_usb_reports+1;usb=bmo_usb_event();
                 }
+#ifdef BMO_USB_DUAL
+                if(!transport_lost && doom_invoke(3,3,18,0)!=1) {
+                    transport_lost=true;bmo_usb_disconnect();dirty=true;
+                }
+#endif
             }
             if(usb&(uint64_t(1)<<63)) {
                 mouse_input(int(int8_t(usb>>8)),int(int8_t(usb>>16)),unsigned(usb&7));
@@ -170,7 +207,9 @@ extern "C" void bmo_main() {
                 scan=doom_invoke(2,2,0,0);
                 // Tests cannot satisfy USB input through the PS/2 fallback.
 #ifdef BMO_USB_INPUT
-#ifdef BMO_USB_MOUSE
+#ifdef BMO_USB_DUAL
+                if(scan!=256)continue;
+#elif defined(BMO_USB_MOUSE)
                 if(scan!=256 && (scan&512))continue;
 #else
                 if(scan!=256 && !(scan&512))continue;
@@ -188,6 +227,9 @@ extern "C" void bmo_main() {
                     dirty=true;
                 }
             } else {
+#ifdef BMO_USB_DUAL
+                if(scan==0x58) {doom_invoke(3,3,19,0);bmo_usb_disconnect();transport_lost=true;dirty=true;continue;}
+#endif
 #ifdef BMO_DESKTOP_UI
                 auto route=bmo_director_key(scan);
                 if(route&1){dirty|=bool(route&2);continue;}

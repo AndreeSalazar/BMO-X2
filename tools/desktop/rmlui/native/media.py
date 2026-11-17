@@ -21,8 +21,10 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('abi_run',type=Path);p.add_argument('splash_run',type=Path)
     p.add_argument('--low-gop',action='store_true')
-    p.add_argument('--usb',choices=['keyboard','mouse'],help='QEMU-only mediated xHCI input profile')
+    p.add_argument('--usb',choices=['keyboard','mouse','both'],help='Mediated xHCI profile; both uses the dynamic USB2 root transport')
+    p.add_argument('--usb-empty-ports',action='store_true',help='QEMU rejection test; never a metal candidate')
     args=p.parse_args()
+    if args.usb_empty_ports and args.usb!='both':p.error('--usb-empty-ports requires --usb both')
     abi,splash=args.abi_run.resolve(),args.splash_run.resolve()
     for path in (abi,splash):
         if path.parent!=ROOT/'build/CASM':raise ValueError('Run outside build/CASM')
@@ -36,11 +38,13 @@ def main():
     run=ROOT/'build/CASM'/('run-rmlui-media-'+uuid.uuid4().hex[:12]);run.mkdir()
     if args.low_gop:(run/'low-gop.txt').write_text('QEMU VGA preferred 1024x768\n',encoding='ascii')
     if args.usb:(run/'native-usb.txt').write_text(args.usb+'\n',encoding='ascii')
+    if args.usb_empty_ports:(run/'native-usb-empty.txt').write_text('QEMU fault test\n',encoding='ascii')
     llvm=Path(os.environ['ProgramFiles'])/'LLVM/bin'
     units=[('allocator','kernel/boot/bridge/desktop_media_alloc.S'),('reader','kernel/boot/bridge/desktop_media_read.S'),
         ('gate','kernel/syscalls/session_gate.S'),('loader','kernel/loader/doom_engine_loader.S')]
     for name,source in units:
         flags=['-DRMLUI_USB','-DDESKTOP_MEDIA','-DXHCI_COMMAND_PROBE'] if args.usb else []
+        if args.usb=='both':flags+=['-DXHCI_NATIVE_DUAL']
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf','-DRMLUI_MEDIA','-DRMLUI_NATIVE','-DDOOM_ENGINE','-DDESKTOP_DOOM',*flags,
             '-c',ROOT/source,'-o',run/(name+'.o')],'compile-media-'+name)
         command([llvm/'llvm-objcopy.exe','-O','binary','--only-section=.text',run/(name+'.o'),run/(name+'.bin')],'extract-media-'+name)
@@ -53,19 +57,20 @@ def main():
     if len(image)!=0x3000 or len(reader)>4096 or len(allocator)>0xf0 or image[0x267:0x26c]!=bytes.fromhex('e894050000'):
         raise ValueError('Native EFI extension exceeds verified slots')
     struct.pack_into('<i',image,0x268,0x3000-0x267-5)
-    extra=8192 if args.usb else 4096
+    extra=12288 if args.usb=='both' else 8192 if args.usb else 4096
     for offset,old in ((0x5c,0x2e00),(0x90,0x4000),(0x150,0x2e00),(0x158,0x2e00)):
         if struct.unpack_from('<I',image,offset)[0]!=old:raise ValueError('EFI PE header changed')
         struct.pack_into('<I',image,offset,old+extra)
     image.extend(reader.ljust(4096,b'\0'))
     if args.usb:
-        flags=['-DRMLUI_USB','-DXHCI_COMMAND_PROBE']+(['-DXHCI_MOUSE_PROBE'] if args.usb=='mouse' else [])
+        flags=['-DRMLUI_USB']+(['-DXHCI_NATIVE_DUAL'] if args.usb=='both' else ['-DXHCI_COMMAND_PROBE'])+(['-DXHCI_MOUSE_PROBE'] if args.usb=='mouse' else [])
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf','-x','assembler-with-cpp',*flags,'-c',
             ROOT/'kernel/drivers/bus/xhci_inventory.inc','-o',run/'xhci.o'],'compile-native-xhci')
         command([llvm/'llvm-objcopy.exe','-O','binary','--only-section=.text',run/'xhci.o',run/'xhci.bin'],'extract-native-xhci')
         stage=(run/'xhci.bin').read_bytes()
-        if not 0<len(stage)<=4096:raise ValueError('USB stage exceeds reserved supervisor page')
-        image.extend(stage.ljust(4096,b'\0'))
+        budget=8192 if args.usb=='both' else 4096
+        if not 0<len(stage)<=budget:raise ValueError('USB stage exceeds its explicit reserved code pages')
+        image.extend(stage.ljust(budget,b'\0'))
     image[0x400:0x400+len(allocator)]=allocator
     files={'reference.x86':reference,'rmlui.sbef':sbef,'session-gate.bin':gate,'external-loader.bin':loader,
         'INICIO.X86':packet,'intro.x86':intro,'intro.casm':(splash/'source.casm').read_bytes(),'profile.txt':b'rmlui-desktop-media\n',
@@ -94,6 +99,8 @@ def main():
         target=media/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(data)
     report.update(run=run.name,evidence='QEMU',disk_sbef=True,physical_boot=False,physical_usb_proven=False,
         qemu_only=bool(args.usb),usb_profile=args.usb,
+        usb_empty_ports=args.usb_empty_ports,
+        hardware_profile='amd149c-usb2-root-experimental' if args.usb=='both' and not args.usb_empty_ports else None,
         note='Separate desktop candidate; no QEMU loader device, UEFI reads real FAT32 files.',
         files={name:hashlib.sha256(data).hexdigest() for name,data in staged.items()})
     (run/'qemu-results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='ascii')

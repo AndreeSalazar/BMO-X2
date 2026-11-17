@@ -1,7 +1,11 @@
 /* Page counts shared by the EFI reservation and the xHCI stage. */
 #define XHCI_QUEUE_PAGES 5
 #define XHCI_SCRATCHPAD_LIMIT 4
+#ifdef XHCI_NATIVE_DUAL
+#define XHCI_PROBE_QUEUE_PAGES 10
+#else
 #define XHCI_PROBE_QUEUE_PAGES (XHCI_QUEUE_PAGES + 1)
+#endif
 #define XHCI_PROBE_PAGES (XHCI_PROBE_QUEUE_PAGES + XHCI_SCRATCHPAD_LIMIT)
 #define XHCI_SCRATCHPAD_TABLE 0x800
 #define XHCI_INPUT_CONTEXT 0x5000

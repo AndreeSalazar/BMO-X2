@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][string]$Run,[ValidateSet('A:\')][string]$Volume='A:\')
+param([Parameter(Mandatory=$true)][string]$Run,[ValidateSet('A:\')][string]$Volume='A:\',[switch]$ExperimentalUsb,[switch]$Check)
 $ErrorActionPreference='Stop'
 $root=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
 $runPath=(Get-Item -LiteralPath $Run).FullName
@@ -7,8 +7,17 @@ if ((Split-Path $runPath -Parent) -ne (Join-Path $root 'build/CASM')) { throw 'R
 if ((Get-Content -LiteralPath (Join-Path $runPath 'profile.txt') -Raw).Trim() -ne 'rmlui-desktop-media') { throw 'Perfil de arranque incompatible.' }
 $media=Join-Path $runPath 'media'
 $proof=Get-Content -LiteralPath (Join-Path $media 'manifest.json') -Raw | ConvertFrom-Json
-if($proof.qemu_only -or $proof.usb_profile -or (Test-Path -LiteralPath (Join-Path $runPath 'native-usb.txt'))){throw 'El perfil USB QEMU no se instala en METAL.'}
 $normal=$proof.Cases | Where-Object { $_.Case -eq 'normal' } | Select-Object -First 1
+if($proof.qemu_only -or $proof.usb_profile -or (Test-Path -LiteralPath (Join-Path $runPath 'native-usb.txt'))) {
+    if(-not $ExperimentalUsb -or $proof.usb_profile -ne 'both' -or $proof.usb_empty_ports -or
+        $proof.hardware_profile -ne 'amd149c-usb2-root-experimental' -or
+        -not $normal.UsbBothDevicesVerified -or -not $normal.UsbStopVerified -or
+        -not $normal.UsbBusMasterRevoked -or -not $normal.UsbMmioRevoked -or
+        -not $normal.UsbMmioSupervisorNxVerified -or -not $normal.UsbPs2FallbackDisabled -or
+        $normal.UsbDmaReservedBytes -ne 57344 -or $normal.UsbCodePages -ne 2) {
+        throw 'El perfil USB QEMU no se instala en METAL. El candidato AMD requiere perfil conjunto y pruebas adicionales explicitas.'
+    }
+}
 if ($proof.Passed -ne 2 -or $proof.Total -ne 2 -or -not $proof.disk_sbef -or
     -not $normal.DirectorRust -or -not $normal.SuperQVerified -or -not $normal.BootLogFat32Verified) {
     throw 'Faltan las pruebas QEMU de escritorio y lectura FAT32.'
@@ -24,12 +33,29 @@ foreach($name in $names) {
         throw "Fuente modificada: $name"
     }
 }
+if($Check){Write-Output 'Preflight correcto: perfil, pruebas, FAT32 y tres hashes verificados; sin escrituras.';return}
 $legacy=@{}
 foreach($name in @('EFI/BMO-X2/BMO-X2.EFI','BMO-X2/INICIO.X86','BMO-X2/DESKTOP.SBF','BMO-X2/BOOTLOG.TXT')) {
     $path=Join-Path $Volume $name
     if(Test-Path -LiteralPath $path -PathType Leaf){$legacy[$name]=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash}
 }
 $written=@{}
+$previous=@{}
+$previousRunReceipt=Join-Path $runPath 'fat32-deploy.json'
+if(Test-Path -LiteralPath $previousRunReceipt -PathType Leaf) {
+    $saved=Get-Content -LiteralPath $previousRunReceipt -Raw | ConvertFrom-Json
+    if($saved.Run -eq $proof.run -and $saved.PreviousFiles) {
+        foreach($property in $saved.PreviousFiles.PSObject.Properties){$previous[$property.Name]=$property.Value}
+    }
+}
+$previousReceipt=Join-Path $Volume 'BMO-X2/DESKTOP/DEPLOY.JSON'
+if(Test-Path -LiteralPath $previousReceipt -PathType Leaf) {
+    $receiptArchive=Join-Path $runPath 'fat32-backups/DEPLOY.before.json'
+    if(-not (Test-Path -LiteralPath $receiptArchive)) {
+        New-Item -ItemType Directory -Path (Split-Path $receiptArchive -Parent) -Force | Out-Null
+        Copy-Item -LiteralPath $previousReceipt -Destination $receiptArchive
+    }
+}
 foreach($name in $names) {
     $target=[IO.Path]::GetFullPath((Join-Path $Volume $name))
     if(-not $target.StartsWith($Volume,[StringComparison]::OrdinalIgnoreCase)){throw 'Destino fuera de A:.'}
@@ -51,6 +77,7 @@ foreach($name in $names) {
         New-Item -ItemType Directory -Path (Split-Path $backup -Parent) -Force | Out-Null
         Copy-Item -LiteralPath $target -Destination $backup
         if((Get-FileHash -LiteralPath $backup -Algorithm SHA256).Hash.ToLowerInvariant() -ne $previousHash){throw 'Respaldo del candidato no verificado.'}
+        if(-not $previous.ContainsKey($name)){$previous[$name]=@{SHA256=$previousHash;Archive=$backup}}
     }
     Move-Item -LiteralPath $temp -Destination $target -Force
     if((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant() -ne $hash){throw 'Verificacion final FAT32 fallida.'}
@@ -61,6 +88,7 @@ foreach($name in $legacy.Keys){
 }
 $record=[ordered]@{Schema=1;Evidence='HOST copy after QEMU FAT32 boot';Run=$proof.run;Volume=$Volume;FileSystem=$drive.DriveFormat;
     Files=$written;LegacyFilesUnchanged=$legacy;PhysicalBootVerified=$false;PhysicalUsbVerified=$false;
+    PreviousFiles=$previous;ExperimentalUsb=[bool]$ExperimentalUsb;HardwareProfile=$proof.hardware_profile;
     BootFile='\EFI\BMO-X2\DESKTOP.EFI';ReportFile='\BMO-X2\DESKTOP\BOOTLOG.TXT';
     Note='USB HID fisico sigue pendiente; no cambia NVRAM ni archivos ajenos al candidato.'}
 $json=$record | ConvertTo-Json -Depth 8

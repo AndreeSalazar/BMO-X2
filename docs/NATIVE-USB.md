@@ -1,5 +1,18 @@
 # USB xHCI conectado al escritorio RmlUi
 
+`--usb both` agrega el perfil con dos dispositivos USB2 directos, con
+registros MMIO dinamicos y buffers separados. QEMU verifica ambos a la
+vez sin PS/2, la revocacion al parar y la salida segura con puertos vacios.
+El candidato experimental AMD esta instalado en las rutas existentes de
+A:, con respaldo verificado. [Evidencia](../Reports/rmlui-usb-dual.json).
+La prueba fisica de teclado y raton sigue pendiente. Conectarlos antes
+de arrancar; el estado superior muestra K, M, fase y CC. F12 detiene
+el controlador; la recuperacion de entrada requiere reiniciar.
+
+El perfil reserva 57344 bytes DMA y dos paginas de codigo supervisor.
+No cubre hubs, reconexion automatica ni aislamiento IOMMU. Las notas
+siguientes sobre perfiles separados describen las sondas anteriores.
+
 ## Evidencia actual
 
 El escritorio nativo ya recibe informes xHCI reales en QEMU. Hay dos
@@ -62,7 +75,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1 -P
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1 -Profile rmlui-usb-mouse
 ```
 
-## Lo que falta para AMD
+## Limites de las sondas anteriores
 
 Los perfiles son QEMU-only: el backend vivo actual acepta el xHCI
 emulado con su geometria conocida. `deploy.ps1` rechaza su instalacion
