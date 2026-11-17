@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "qemu": {
+    "Passed": 2,
+    "Total": 2,
+    "Cases": [
+      {
+        "Case": "normal",
+        "Passed": true,
+        "Evidence": "QEMU",
+        "CPL": 3,
+        "InitializedDataVerified": true,
+        "ZeroFillVerified": true,
+        "RustClockVerified": true,
+        "FirstMs": 0,
+        "SecondMs": 30,
+        "SerialHelloVerified": true,
+        "WrittenBytes": 39,
+        "DirectorCloseVerified": true,
+        "DirectorReopenVerified": true,
+        "ClosedScreenshotSHA256": "4ac1ac4a44d40b7b58c018771370ab3af7acf8c592b2eb04017b7486f3d6dc06",
+        "WindowFrameVerified": true,
+        "WindowPixelsVerified": 1024000,
+        "Screenshot": "puente-normal-msvc-window.ppm",
+        "ScreenshotSHA256": "0d6882d0f7ac8c8d8724da3d70f5a22aabeba9eea9eceef5df144ea66ce68468"
+      },
+      {
+        "Case": "external-permissions",
+        "Passed": true,
+        "SbefAccepted": false,
+        "UserCodeCopied": false,
+        "UserAddressSpaceActivated": false,
+        "RejectedField": "permissions",
+        "RejectedOffset": 116
+      }
+    ],
+    "run": "run-msvc-sections-b191f20b901b",
+    "evidence": "QEMU",
+    "milestone": "MSVC C++ PE32+ converted to SBEF uses the Rust session clock and stdout in CPL3"
+  },
+  "screenshot": "abi-msvc-director.png",
+  "screenshot_png_sha256": "5a66c6d1ed2f14003d96cb4c9f8bd1c6a36826b3d228fa090b445a21f9dcac55",
+  "scope": "Embedded Rust DIRECTOR model in a Win64 QEMU session. CPU presentation; no DXGI, Direct3D or installed RmlUi desktop exercised."
+}

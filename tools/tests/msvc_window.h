@@ -1,7 +1,7 @@
 #pragma once
 
 extern "C" {
-unsigned long long bmo_session_present(const unsigned int*);
+[[noreturn]] void bmo_director_window(unsigned int*);
 unsigned int window_pixels[320 * 200];
 }
 
@@ -60,13 +60,13 @@ void label(int x, int y, const char* text, int scale, unsigned int color) {
     }
 }
 
-bool draw_window() {
+void draw_window() {
     for (int y = 0; y < 200; ++y)
         rect(0, y, 320, 1, 0x0b101f + (y / 14) * 0x010102);
     rect(0, 0, 320, 23, 0x10192b);
     rect(0, 23, 320, 1, 0x324267);
     label(14, 8, "BMO-X2", 1, 0xeaf2ff);
-    label(230, 8, "QEMU / RING 3", 1, 0x93aace);
+    label(200, 8, "DIRECTOR / RING 3", 1, 0x93aace);
 
     rect(25, 47, 272, 116, 0x0b1021);
     rect(24, 44, 272, 116, 0x455581);
@@ -86,6 +86,5 @@ bool draw_window() {
     rect(24, 178, 272, 1, 0x455581);
     label(25, 185, "HOST / WIN64", 1, 0xa8bad5);
     label(233, 185, "GOP / CPU", 1, 0x8de8da);
-    return bmo_session_present(window_pixels) == 0;
 }
 }

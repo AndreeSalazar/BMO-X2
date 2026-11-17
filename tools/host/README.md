@@ -110,13 +110,14 @@ La prueba confirma el saludo, los bytes escritos, el avance despues de
 WAIT y el rechazo de W+X. [Evidencia](../../Reports/abi-msvc-hello-qemu.json).
 
 Con `--msvc-sections --msvc-window` el mismo cliente dibuja un panel y un
-triangulo en una superficie propia de 320x200. Usa el portal Win64 de
-BMO-X2 y GOP. El banco coteja la captura QEMU con todos los pixeles
-de la superficie escalada. El perfil visual usa `/Od` por el limite
-de metadatos unwind encadenados. Quedan pendientes la ventana
-administrada por DIRECTOR y las llamadas DXGI/Direct3D.
-[Captura](../../Reports/abi-msvc-window.png) y
-[evidencia](../../Reports/abi-msvc-window-qemu.json).
+triangulo por CPU. El modelo Rust de DIRECTOR compone el panel en una
+superficie de 320x200 y la presenta mediante GOP. Super+Q retira el panel
+y F1 lo reabre. El banco coteja los tres cuadros en QEMU, incluido el
+fondo restaurado. El perfil visual usa `/Od` por el limite de metadatos
+unwind encadenados. Sigue pendiente integrar el cliente en la sesion
+RmlUi de escritorio y anadir las llamadas DXGI/Direct3D.
+[Captura](../../Reports/abi-msvc-director.png) y
+[evidencia](../../Reports/abi-msvc-director-qemu.json).
 
 ## Referencia de BMO-X para compatibilidad y graficos
 

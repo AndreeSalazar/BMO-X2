@@ -73,10 +73,18 @@ def verify_msvc_sections(root, out, reference, *, cc, linker, assembler, objcopy
     units = ('portal', 'session_clock', 'session_console')
     if window:
         units += ('session_present',)
-    for unit in units:
-        target = out/(unit+'.obj')
+        model = out/'libbmo_director.rlib'
         subprocess.run(['rustc', '--edition=2024', '--target=x86_64-pc-windows-msvc',
-                        '--crate-type=lib', '--emit=obj', '-Cpanic=abort', '-Copt-level=2',
+                        '--crate-type=rlib', '--crate-name=bmo_director', '-Cpanic=abort', '-Copt-level=2',
+                        str(root/'userspace/services/desktop/src/lib.rs'), '-o', str(model)], check=True)
+    for unit in units:
+        director = unit == 'session_present'
+        target = out/(unit+('.lib' if director else '.obj'))
+        dependencies = ['--extern', f'bmo_director={model}', '-Clto=fat', '-Ccodegen-units=1'] if director else []
+        subprocess.run(['rustc', '--edition=2024', '--target=x86_64-pc-windows-msvc',
+                        ('--crate-type=staticlib' if director else '--crate-type=lib'),
+                        ('--emit=link' if director else '--emit=obj'),
+                        '-Cpanic=abort', '-Copt-level=2', *dependencies,
                         str(abi/(unit+'.rs')), '-o', str(target)], check=True)
         objects.append(target)
     link_map = out/'client.map'
@@ -87,7 +95,7 @@ def verify_msvc_sections(root, out, reference, *, cc, linker, assembler, objcopy
                     f'/map:{link_map}', f'/out:{pe}', *map(str, objects), sdk_lib], check=True)
     names = ('phase', 'first_ms', 'second_ms', 'scratch', 'written', *SESSION_EXPORTS.values())
     if window:
-        names += ('window_pixels',)
+        names += ('director_pixels', 'director_state')
     pattern = r'^\s+[0-9A-Fa-f]+:[0-9A-Fa-f]+\s+(' + '|'.join(names) + r')\s+([0-9A-Fa-f]+)\b'
     symbols = {name: int(address, 16) for name, address in re.findall(pattern, link_map.read_text(), re.M)}
     if set(symbols) != set(names):

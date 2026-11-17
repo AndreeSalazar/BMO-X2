@@ -27,12 +27,13 @@ void bmo_main(void) {
     if (WriteFile(nullptr, hello, sizeof(hello)-1, &written, nullptr) || written) for (;;) {}
     if (second_ms >= first_ms + 20 && scratch[1] == 'M' &&
         WriteFile(GetStdHandle(static_cast<unsigned long>(-11)), hello, sizeof(hello)-1, &written, nullptr) &&
-        written == sizeof(hello)-1
-#ifdef BMO_MSVC_WINDOW
-        && draw_window()
-#endif
-        )
+        written == sizeof(hello)-1) {
         phase = 0x53454332;
+#ifdef BMO_MSVC_WINDOW
+        draw_window();
+        bmo_director_window(window_pixels);
+#endif
+    }
     for (;;) {}
 }
 }

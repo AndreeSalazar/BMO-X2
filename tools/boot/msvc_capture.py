@@ -18,8 +18,8 @@ def verify_sections(command, memory, prefix, image, case, symbols_path):
     symbols = json.loads(symbols_path.read_text(encoding='ascii'))
     rw_end = 0x40400000 + struct.unpack_from('<I', image, 112)[0]
     fields = [('phase', 8), ('first_ms', 8), ('second_ms', 8), ('scratch', 6000), ('written', 4)]
-    if 'window_pixels' in symbols:
-        fields.append(('window_pixels', 320*200*4))
+    if 'director_pixels' in symbols:
+        fields.extend((('director_pixels', 320*200*4), ('director_state', 8)))
     if any(not 0x40400000 <= symbols[name] <= rw_end - size for name, size in fields):
         raise ValueError('MSVC fixture symbols outside RW budget')
 
@@ -29,9 +29,10 @@ def verify_sections(command, memory, prefix, image, case, symbols_path):
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
         if word('phase') == 0x53454332:
-            regs = command('human-monitor-command', {'command-line': 'info registers'})
-            if 'CPL=3' not in regs or not 0x40000000 <= register(regs, 'RIP') < 0x40200000:
-                raise ValueError('MSVC fixture outside CPL3')
+            if 'director_pixels' not in symbols:
+                regs = command('human-monitor-command', {'command-line': 'info registers'})
+                if 'CPL=3' not in regs or not 0x40000000 <= register(regs, 'RIP') < 0x40200000:
+                    raise ValueError('MSVC fixture outside CPL3')
             first, second = word('first_ms'), word('second_ms')
             scratch = memory(symbols['scratch'] - 0x3c000000, 6000, 'scratch')
             if second < first + 20 or scratch != b'\0M' + bytes(5998):
@@ -45,21 +46,51 @@ def verify_sections(command, memory, prefix, image, case, symbols_path):
                         InitializedDataVerified=True, ZeroFillVerified=True,
                         RustClockVerified=True, FirstMs=first, SecondMs=second,
                         SerialHelloVerified=True, WrittenBytes=written)
-            if 'window_pixels' in symbols:
-                result.update(capture_window(command, memory, prefix, symbols['window_pixels']))
+            if 'director_pixels' in symbols:
+                result.update(verify_director(command, memory, prefix, symbols, word))
             return result
         time.sleep(.03)
     raise ValueError('MSVC session fixture never completed')
 
 
-def capture_window(command, memory, prefix, address):
+def verify_director(command, memory, prefix, symbols, word):
+    def wait_for(state):
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            if word('director_state') == state:
+                return
+            time.sleep(.02)
+        raise ValueError(f'DIRECTOR did not publish state {state}')
+
+    def key(*names):
+        command('send-key', {'keys': [{'type': 'qcode', 'data': name} for name in names],
+                             'hold-time': 80})
+
+    address = symbols['director_pixels']
+    wait_for(3)
+    before = capture_window(command, memory, prefix, address, 'msvc-open', True)
+    key('meta_l', 'q')
+    wait_for(4)
+    closed = capture_window(command, memory, prefix, address, 'msvc-closed', False)
+    time.sleep(.12)
+    key('f1')
+    wait_for(7)
+    reopened = capture_window(command, memory, prefix, address, 'msvc-window', True)
+    if reopened['ScreenshotSHA256'] != before['ScreenshotSHA256']:
+        raise ValueError('DIRECTOR did not reproduce the original frame')
+    return dict(DirectorCloseVerified=True, DirectorReopenVerified=True,
+                ClosedScreenshotSHA256=closed['ScreenshotSHA256'], **reopened)
+
+
+def capture_window(command, memory, prefix, address, label, visible):
     if not 0x40400000 <= address <= 0x40600000 - 320*200*4:
         raise ValueError('MSVC frame buffer outside RW region')
-    raw = memory(address - 0x3c000000, 320*200*4, 'msvc-window-pixels')
-    for x, y, color in ((0, 0, 0x10192b), (26, 50, 0x202c49), (256, 90, 0x74e0ce)):
+    raw = memory(address - 0x3c000000, 320*200*4, label+'-pixels')
+    samples = ((26, 50, 0x202c49), (256, 90, 0x74e0ce)) if visible else ((26, 50, 0x0e1325),)
+    for x, y, color in ((0, 0, 0x10192b), *samples):
         if struct.unpack_from('<I', raw, (y*320+x)*4)[0] != color:
             raise ValueError('MSVC window color mismatch')
-    path = Path(str(prefix)+'-msvc-window.ppm')
+    path = Path(str(prefix)+'-'+label+'.ppm')
     command('screendump', {'filename': str(path)})
     screenshot = path.read_bytes()
     magic, dimensions, maximum, rgb = screenshot.split(b'\n', 3)
