@@ -1,14 +1,15 @@
-"""Inventory PE32+ and admit a fixed, single-region freestanding profile."""
+"""Inventory PE32+ and admit fixed-address freestanding profiles."""
 import struct
 
 from ..diagnostics import Rejection
-from ..sbef.format import BASE, HEADER, MACHINE, PAGE, REGION, inspect
+from ..sbef.format import BASE, HEADER, MACHINE, MAX_IMAGE, PAGE, REGION, inspect
 from .pe_imports import inventory_imports
 
 
 COFF = struct.Struct('<HHIIIHH')
 SECTION = struct.Struct('<8sIIIIIIHHI')
 SECTION_ALIGNMENT = 0x10000
+SEPARATE_ALIGNMENT = 0x200000
 DIRECTORIES = {
     1: ('imports', 'PE-IMPORTS'),
     3: ('exceptions', 'PE-EXCEPTIONS'),
@@ -97,7 +98,13 @@ def _admit(data, result, opt, table, flags):
         raise Rejection('PE-SECTION-PADDING', offset + size, 'RawData', 0)
     if not rva <= result['EntryRVA'] < rva + size:
         raise Rejection('PE-ENTRY', opt + 16, 'AddressOfEntryPoint')
-    end = rva + size
+    _metadata(data, result, opt, section, section)
+    return [(BASE, data[offset:offset + size], size, 5)]
+
+
+def _metadata(data, result, opt, text, readonly):
+    rva, offset, size = (readonly[k] for k in ('RVA', 'FileOffset', 'VirtualBytes'))
+    end = rva + min(size, readonly['FileBytes'])
     debug = result['Directories'].get('debug')
     if debug:
         start, length = debug['RVA'], debug['Bytes']
@@ -114,17 +121,72 @@ def _admit(data, result, opt, table, flags):
         start, length = exceptions['RVA'], exceptions['Bytes']
         if start % 4 or not length or length % 12 or not rva <= start < start + length <= end:
             raise Rejection('PE-EXCEPTIONS', opt + 136, 'DataDirectory.exceptions')
-        previous_end = rva
+        code_start = text['RVA']
+        code_end = code_start + min(text['VirtualBytes'], text['FileBytes'])
+        previous_end = code_start
         for at in range(offset + start - rva, offset + start - rva + length, 12):
             begin, finish, unwind = struct.unpack_from('<III', data, at)
-            if not previous_end <= begin < finish <= end or unwind % 4 or not rva <= unwind <= end - 4:
+            if not previous_end <= begin < finish <= code_end or unwind % 4 or not rva <= unwind <= end - 4:
                 raise Rejection('PE-UNWIND-RANGE', at, 'RUNTIME_FUNCTION')
             info = offset + unwind - rva
             version_flags, prolog, slots, _ = struct.unpack_from('<BBBB', data, info)
             if version_flags != 1 or prolog > finish - begin or unwind + 4 + ((slots + 1) & ~1) * 2 > end:
                 raise Rejection('PE-UNWIND-INFO', info, 'UNWIND_INFO')
             previous_end = finish
-    return data[offset:offset + size]
+
+
+def _admit_separate(data, result, opt, table, flags):
+    alignment, file_alignment = struct.unpack_from('<II', data, opt + 32)
+    image_size, header_size = struct.unpack_from('<II', data, opt + 56)
+    if (not flags & 1 or result['Subsystem'] != 3 or alignment != SEPARATE_ALIGNMENT
+            or file_alignment != 512 or image_size != 4 * alignment):
+        raise Rejection('PE-FIXED-PROFILE', opt + 24, 'ImageBase/Alignment/SizeOfImage/Subsystem')
+    sections = result['Sections']
+    if len(sections) != 3:
+        raise Rejection('PE-REGION-COUNT', opt - 18, 'NumberOfSections')
+    if not table + 3 * SECTION.size <= header_size <= len(data) or header_size % file_alignment:
+        raise Rejection('PE-OPTIONAL-SIZE', opt + 60, 'SizeOfHeaders')
+    file_cursor = header_size
+    segments = []
+    for index, (section, (name, permissions)) in enumerate(zip(sections, (
+        ('.text', 5), ('.rdata', 4), ('.data', 6),
+    ))):
+        record = table + SECTION.size * index
+        actual = (4 * section['Readable'] + 2 * section['Writable'] + section['Executable'])
+        if section['Name'] != name or actual != permissions:
+            raise Rejection('PE-PERMISSIONS', record + 36, 'Characteristics', index)
+        rva, offset, size, raw = (section[k] for k in ('RVA', 'FileOffset', 'VirtualBytes', 'FileBytes'))
+        # The linked image reserves a 2 MiB slot for each section.
+        if (rva != (index + 1) * alignment or not 0 < size <= alignment
+                or (permissions != 6 and raw < size)):
+            raise Rejection('PE-SECTION-LAYOUT', record + 8, 'VirtualSize/RVA', index)
+        if raw:
+            if offset != file_cursor or raw % file_alignment:
+                raise Rejection('PE-SECTION-LAYOUT', record + 16, 'RawData', index)
+            if any(data[offset + min(size, raw):offset + raw]):
+                raise Rejection('PE-SECTION-PADDING', offset + size, 'RawData', index)
+            file_cursor += raw
+        elif offset or permissions != 6:
+            raise Rejection('PE-SECTION-LAYOUT', record + 16, 'RawData', index)
+        segments.append((result['ImageBase'] + rva, data[offset:offset + min(size, raw)], size, permissions))
+    if file_cursor != len(data):
+        raise Rejection('PE-TRAILING-DATA', file_cursor, 'RawData')
+    text = sections[0]
+    if not text['RVA'] <= result['EntryRVA'] < text['RVA'] + len(segments[0][1]):
+        raise Rejection('PE-ENTRY', opt + 16, 'AddressOfEntryPoint')
+    _metadata(data, result, opt, text, sections[1])
+    return segments
+
+
+def _regions(data, result, opt, table, flags):
+    if result['ImageBase'] == BASE - SEPARATE_ALIGNMENT:
+        segments = _admit_separate(data, result, opt, table, flags)
+    else:
+        segments = _admit(data, result, opt, table, flags)
+    total = HEADER.size + REGION.size * len(segments) + sum(len(payload) for _, payload, _, _ in segments)
+    if total > MAX_IMAGE:
+        raise Rejection('PE-OUTPUT-SIZE', opt + 56, 'SizeOfImage', actual=total, limit=MAX_IMAGE)
+    return segments, total
 
 
 def probe_pe(data):
@@ -137,7 +199,7 @@ def probe_pe(data):
             result['ImportInventoryError'] = error.report()
     if not result['Blockers']:
         try:
-            _admit(data, result, opt, table, flags)
+            _regions(data, result, opt, table, flags)
         except Rejection as error:
             result['Blockers'].append(error.report())
     result['CanPack'] = not result['Blockers']
@@ -149,12 +211,16 @@ def pack_pe(data, *, abi):
     if result['Blockers']:
         blocker = result['Blockers'][0]
         raise Rejection(blocker['Code'], blocker['Offset'], blocker['Field'])
-    payload = _admit(data, result, opt, table, flags)
+    segments, total = _regions(data, result, opt, table, flags)
     if abi != 1:
         raise Rejection('PE-ABI', 0, 'abi_version')
-    offset = HEADER.size + REGION.size
-    image = HEADER.pack(b'SBEF', 1, abi, MACHINE, 1, offset + len(payload),
+    offset = HEADER.size + REGION.size * len(segments)
+    table_bytes = bytearray()
+    for address, payload, size, permissions in segments:
+        table_bytes.extend(REGION.pack(address, offset, len(payload), size, permissions, 0))
+        offset += len(payload)
+    image = HEADER.pack(b'SBEF', 1, abi, MACHINE, len(segments), total,
                         result['ImageBase'] + result['EntryRVA'], 0, 0)
-    image += REGION.pack(BASE, offset, len(payload), len(payload), 5, 0) + payload
+    image += table_bytes + b''.join(payload for _, payload, _, _ in segments)
     inspect(image)
     return image

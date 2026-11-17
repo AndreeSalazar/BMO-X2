@@ -39,7 +39,7 @@ limites de recursos, pruebas de rechazo y evidencia de ejecucion.
 | `toolchains/abi.py` | Coordinar el banco ABI y cotejar el portal SysV con su vector HEX. |
 | `toolchains/msvc.py` | Compilar COFF con MSVC, enlazar el portal Rust Win64 y preparar el cliente PE para el banco. |
 | `importers/elf.py` | Validar ELF64 estatico y extraer los segmentos cargables. |
-| `importers/pe.py` | Inventariar PE32+, validar el perfil fijo de una region RX y explicar rechazos. |
+| `importers/pe.py` | Inventariar PE32+, validar perfiles fijos RX o RX/R/RW y explicar rechazos. |
 | `importers/pe_imports.py` | Censar DLL, simbolos y ordinales de importaciones normales, con limites de lectura. |
 | `sbef/format.py` | Definir y validar cabecera, tabla, rangos, permisos y entrada SBEF. |
 | `diagnostics.py` | Identificar cada rechazo por codigo, campo, offset e indice cuando aplica. |
@@ -97,6 +97,14 @@ rechaza DLL, importaciones, relocaciones, TLS, regiones RW y directorios
 fuera de su contrato. Win32 y DirectX requieren servicios propios
 en Ring 3. [Evidencia QEMU](../../Reports/abi-msvc-qemu.json).
 
+`--msvc-sections` junto a `--pe-link` y `--abi-run` prueba un segundo
+perfil. HOST conserva `.text`, `.rdata` y `.data` con permisos RX,
+R y RW. El cargador existente comprueba los permisos y pone a cero
+el resto de `.data`. El cliente llama al reloj Rust enlazado en el
+mismo PE, cuya fuente son los ticks PIT de la sonda de sesion.
+La prueba confirma el avance despues de WAIT y el rechazo de una
+imagen W+X. [Evidencia](../../Reports/abi-msvc-sections-qemu.json).
+
 ## Referencia de BMO-X para compatibilidad y graficos
 
 Revision leida del padre: `6076bdefe`. Sus rutas se indican desde la
@@ -126,8 +134,8 @@ un PE enlazado por MSVC que importa `KERNEL32.dll!GetTickCount64` y con
 la regresion QEMU del cliente freestanding. No carga DLL ni ejecuta sus
 funciones. Las importaciones diferidas conservan su diagnostico propio.
 
-Para BMO-X2, el siguiente ensayo es un cliente MSVC con paginas RX, R
-y RW e importacion declarada hacia un servicio Rust de Ring 3. El
+El siguiente ensayo debe enlazar una importacion declarada hacia un
+servicio Rust de Ring 3 a traves de la IAT. El
 informe HOST debe mostrar la dependencia y su resolucion, o identificar
 la DLL y el simbolo pendientes. El paso grafico siguiente es un ejemplo
 pequeno con DXGI/D3D12, un ejecutor CPU y una superficie de DIRECTOR.

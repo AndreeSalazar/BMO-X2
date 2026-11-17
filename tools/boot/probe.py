@@ -71,12 +71,15 @@ if args.doom_fixture:
     desktop_doom = profile == 'desktop-doom'
     native_media = profile == 'rmlui-desktop-media'
     native_ui = profile in ('rmlui-native','rmlui-desktop','rmlui-desktop-media')
-    doom_engine = profile == 'doom-engine' or desktop_doom or native_ui
+    msvc_sections = profile == 'msvc-sections'
+    doom_engine = profile == 'doom-engine' or desktop_doom or native_ui or msvc_sections
     doom_external = profile == 'doom-external' or doom_engine
     desktop_fixture = (present is not None or gate is not None) and not doom_external
     image_path = ROOT / ('desktop.sbef' if desktop_fixture else 'doom.sbef')
     if native_ui:
         image_path = ROOT / 'rmlui.sbef'
+    if msvc_sections:
+        image_path = ROOT / 'msvc-sections.sbef'
     toolchain_client = profile.startswith('abi-') and profile.endswith('-abi-fixture')
     if toolchain_client:
         image_path = ROOT / f"{profile.removesuffix('-abi-fixture')}.sbef"
@@ -219,6 +222,9 @@ def run(case):
         if doom and doom['session']:
             from desktop_session_capture import verify_external_rejection, verify_session
             if doom_engine:
+                if msvc_sections:
+                    from msvc_capture import verify_sections
+                    return verify_sections(command, memory, external_image, case, ROOT / 'msvc-symbols.json')
                 if native_ui:
                     from rmlui_native_capture import verify_native_ui
                     return verify_native_ui(command, memory, prefix, external_image, case, ROOT / 'ui-symbols.json')

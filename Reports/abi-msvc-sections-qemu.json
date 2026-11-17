@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "pe_sha256": "42343ebb4e6c7419c318e14963d0370f3196800ababa1f315d6380ad2647a467",
+  "sbef_sha256": "c62e0f802ff87ee8ad10c9b147bc3cba943bbc5cdeecbc66697206e3f929fa39",
+  "sbef": {
+    "FormatVersion": 1,
+    "AbiVersion": 1,
+    "Architecture": "x86-64",
+    "Bytes": 1364,
+    "Entry": "0x40000000",
+    "Regions": [
+      {
+        "Address": "0x40000000",
+        "Offset": 128,
+        "FileBytes": 308,
+        "MemoryBytes": 308,
+        "MappedBytes": 4096,
+        "Permissions": "RX"
+      },
+      {
+        "Address": "0x40200000",
+        "Offset": 436,
+        "FileBytes": 416,
+        "MemoryBytes": 416,
+        "MappedBytes": 4096,
+        "Permissions": "R"
+      },
+      {
+        "Address": "0x40400000",
+        "Offset": 852,
+        "FileBytes": 512,
+        "MemoryBytes": 6048,
+        "MappedBytes": 8192,
+        "Permissions": "RW"
+      }
+    ]
+  },
+  "clock": "Statically linked Rust function reading the QEMU session PIT diagnostic; normal PE imports remain rejected.",
+  "physical_boot_verified": false,
+  "qemu": {
+    "Passed": 2,
+    "Total": 2,
+    "Cases": [
+      {
+        "Case": "normal",
+        "Passed": true,
+        "Evidence": "QEMU",
+        "CPL": 3,
+        "InitializedDataVerified": true,
+        "ZeroFillVerified": true,
+        "RustClockVerified": true,
+        "FirstMs": 0,
+        "SecondMs": 30
+      },
+      {
+        "Case": "external-permissions",
+        "Passed": true,
+        "SbefAccepted": false,
+        "UserCodeCopied": false,
+        "UserAddressSpaceActivated": false,
+        "RejectedField": "permissions",
+        "RejectedOffset": 116
+      }
+    ],
+    "run": "run-msvc-sections-3761808b4415",
+    "evidence": "QEMU",
+    "milestone": "MSVC three-region PE32+ converted to SBEF reads the Rust session clock in CPL3"
+  }
+}
