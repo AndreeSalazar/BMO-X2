@@ -31,6 +31,28 @@ rasterizar RmlUi. Las acciones que modifican el documento dibujan la escena.
 El recorrido abarca el escritorio logico de 1280x800 y sus margenes
 dependen del GOP.
 
+## Teclado y ritmo de entrada
+
+BMO-X mantiene el sondeo en un hilo del bus separado del escritorio.
+El modulo HID compara informes consecutivos, entrega pulsaciones y
+liberaciones, y envia el estado de los LED con SET_REPORT. El bus
+conserva eventos de otros endpoints, recupera endpoints detenidos y
+revisa cambios de puerto. Ultra-LinuX entrega la entrada de Linux a
+libinput y Cage en su sesion Wayland, con render CPU mediante Pixman
+sobre simpledrm en su perfil inicial.
+
+BMO-X2 conserva el teclado Boot HID y resuelve los atajos en DIRECTOR.
+Ctrl, Mayus y Super mantienen los dos lados por separado. El bucle
+de RmlUi agrupa los informes consecutivos de movimiento libre en una
+actualizacion de posicion. Vacia el movimiento pendiente antes de
+un boton, rueda o tecla y entrega cada movimiento durante arrastre.
+El avance USB sigue ligado al bucle del escritorio. El sondeo
+independiente, la recuperacion automatica y los LED USB quedan
+pendientes en este perfil. La tabla Boot HID cubre letras, numeros,
+teclas de edicion basicas, F1-F12 y flechas. Para escritura general
+faltan puntuacion, teclado numerico y una capa de distribucion y
+repeticion para el escritorio.
+
 ## Cursor y presentacion por regiones
 
 El escritorio nativo cambia el color de la flecha al pasar sobre un

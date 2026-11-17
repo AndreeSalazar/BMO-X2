@@ -194,17 +194,28 @@ extern "C" void bmo_main() {
     log("BMO UI USB TRANSPORT READY\n");
 #endif
     #endif
+    bool motion_pending=false;
+    auto flush_motion=[&]() {
+        if(!motion_pending)return;
+        context->ProcessMouseMove(pointer_x,pointer_y,0);
+        motion_pending=false;
+    };
     auto mouse_input=[&](int dx,int dy,unsigned buttons,unsigned mask=7,int wheel=0) {
         if(dx || dy) {
-            pointer_x=std::clamp(pointer_x+dx,0,1279);pointer_y=std::clamp(pointer_y+dy,0,799);
-            context->ProcessMouseMove(pointer_x,pointer_y,0);
+            const int x=std::clamp(pointer_x+dx,0,1279);
+            const int y=std::clamp(pointer_y+dy,0,799);
+            motion_pending|=x!=pointer_x || y!=pointer_y;
+            pointer_x=x;pointer_y=y;
         }
+        const unsigned next=(held_buttons&~mask) | buttons;
+        const unsigned changed=held_buttons^next;
+        // Keep drag and button/scroll ordering. Idle motion can share one hit test.
+        if(held_buttons || changed || wheel)flush_motion();
+        if(!changed && !wheel)return false;
         auto accepted=bmo_ui_state.accepted;
 #ifdef BMO_DESKTOP_UI
         auto policy=bmo_director_state();
 #endif
-        const unsigned next=(held_buttons&~mask) | buttons;
-        const unsigned changed=held_buttons^next;
         held_buttons=next;
         for(int index=0;index<3;++index) {
             const unsigned bit=1u<<index;
@@ -300,6 +311,7 @@ extern "C" void bmo_main() {
                     dirty|=mouse_input(int(dx)-int(flags&16)*16,-int(byte)+int(flags&32)*8,flags&7);
                 }
             } else {
+                flush_motion();
 #ifdef BMO_USB_DUAL
                 if(scan==0x58) {doom_invoke(3,3,19,0);bmo_usb_disconnect();mouse_input(0,0,0);transport_lost=true;dirty=true;continue;}
 #endif
@@ -319,6 +331,7 @@ extern "C" void bmo_main() {
             }
         }
         if(closing)break;
+        flush_motion();
         if(dirty) frame();
         else if(drawn_x!=pointer_x || drawn_y!=pointer_y || drawn_color!=cursor_color()) {
 #ifdef BMO_USB_DUAL

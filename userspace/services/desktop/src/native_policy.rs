@@ -21,11 +21,18 @@ impl Policy {
     fn key(&mut self,byte:u8)->u32 {
         if byte==0xe0 {self.extended=true;return 1;}
         let code=byte&0x7f;let pressed=byte&0x80==0;
-        let mask=match (self.extended,code) {(true,0x5b|0x5c)=>32,(_,0x1d)=>2,(_,0x2a|0x36)=>1,_=>0};
+        let mask=match (self.extended,code) {
+            (false,0x2a)=>1, (false,0x36)=>2,
+            (false,0x1d)=>4, (true,0x1d)=>8,
+            (true,0x5b)=>16, (true,0x5c)=>32,
+            _=>0,
+        };
         self.extended=false;
         if mask!=0 {if pressed {self.modifiers|=mask;}else{self.modifiers&=!mask;}return 1;}
         let before=self.snapshot();
-        let consumed=matches!(self.keyboard.route(&mut self.desktop,KeyEvent{scancode:code,pressed},self.modifiers),KeyRoute::Consumed);
+        let modifiers=u8::from(self.modifiers&3!=0) |
+            (u8::from(self.modifiers&12!=0)<<1) | (u8::from(self.modifiers&48!=0)<<5);
+        let consumed=matches!(self.keyboard.route(&mut self.desktop,KeyEvent{scancode:code,pressed},modifiers),KeyRoute::Consumed);
         u32::from(consumed) | (u32::from(self.snapshot()!=before)<<1)
     }
 }
@@ -41,6 +48,14 @@ static OWNER:Owner=Owner(UnsafeCell::new(None));
 #[panic_handler] fn panic(_: &core::panic::PanicInfo<'_>)->! {unsafe{core::arch::asm!("ud2",options(noreturn))}}
 #[cfg(test)] mod native_tests {
     use super::*;
+    #[test] fn releasing_left_control_keeps_right_control_active() {
+        let mut p=Policy::new();
+        p.open();
+        for b in [0x1d,0xe0,0x1d,0x9d,0xe0,0x5c,3] { p.key(b); }
+        assert_eq!(p.snapshot(),2);
+        for b in [0x83,0xe0,0x9d,2] { p.key(b); }
+        assert_eq!(p.snapshot(),2);
+    }
     #[test] fn policy_preserves_window_ownership_and_global_shortcuts() {
         let mut p=Policy::new();p.open();assert_eq!(p.snapshot(),0x101);
         for b in [0xe0,0x5b,0x1d,3] {p.key(b);}
