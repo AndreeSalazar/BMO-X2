@@ -2484,9 +2484,9 @@
       ],
       "que": "Descubre bancos MMIO, configura dos slots y entrega informes HID mediados al escritorio.",
       "entrada": "Controlador xHCI admitido, dos puertos directos USB2 y reserva UEFI supervisora.",
-      "salida": "Informes escalares para Ring 3 y diagnostico visible de fase y terminacion.",
+      "salida": "Informes escalares para Ring 3, puntero visible desde el primer cuadro y diagnostico de identidad, transferencia o puerto.",
       "aceptacion": "QEMU verifica teclado y raton simultaneos, rechazo W+X, puertos vacios y parada con revocacion PCI/MMIO.",
-      "falta": "AMD fisico pendiente. No hay hubs, reconexion automatica ni IOMMU en este perfil."
+      "falta": "AMD fisico configure ambos dispositivos y luego mostro USB OFF en fase 210. Volver a probar con recepcion de hasta MPS y diagnostico detallado."
     }
   ],
   "relaciones": [

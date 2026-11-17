@@ -116,7 +116,14 @@ extern "C" void bmo_main() {
     };
 #endif
     int pointer_x=640,pointer_y=400,packet_index=0;
-    unsigned flags=0,dx=0;bool left=false,pointer_seen=false;
+    unsigned flags=0,dx=0;bool left=false;
+    static constexpr char pointer[][13]={
+        "#           ", "##          ", "#.#         ", "#..#        ",
+        "#...#       ", "#....#      ", "#.....#     ", "#......#    ",
+        "#.......#   ", "#........#  ", "#.....##### ", "#..#..#     ",
+        "#.# #..#    ", "##  #..#    ", "#    #..#   ", "     #..#   ",
+        "      ##    ",
+    };
     auto frame=[&]() {
         bmo_ui_state.phase=1;
 #ifdef BMO_DESKTOP_UI
@@ -124,9 +131,11 @@ extern "C" void bmo_main() {
 #endif
         renderer.pixels=bmo_ui_pixels;renderer.pixel_count=1280*800;
         renderer.frame(context);renderer.pixels=nullptr;renderer.pixel_count=0;
-        if(pointer_seen)for(int y=0;y<14 && pointer_y+y<800;++y)
-            for(int x=0;x<=y/2 && pointer_x+x<1280;++x)
-                bmo_ui_pixels[(pointer_y+y)*1280+pointer_x+x]=(x==0 || x==y/2)?0x0b1019:0xe7eef8;
+        for(int y=0;y<17 && pointer_y+y<800;++y)
+            for(int x=0;x<12 && pointer_x+x<1280;++x) {
+                const char pixel=pointer[y][x];
+                if(pixel!=' ')bmo_ui_pixels[(pointer_y+y)*1280+pointer_x+x]=pixel=='#'?0x0b1019:0xf4f8ff;
+            }
         check(!files.denied,"resource access");
         bmo_ui_state.frames=bmo_ui_state.frames+1;
         bmo_ui_state.triangles=renderer.triangles;
@@ -158,7 +167,7 @@ extern "C" void bmo_main() {
     #endif
     auto mouse_input=[&](int dx,int dy,unsigned buttons) {
         pointer_x=std::clamp(pointer_x+dx,0,1279);pointer_y=std::clamp(pointer_y+dy,0,799);
-        pointer_seen=true;context->ProcessMouseMove(pointer_x,pointer_y,0);
+        context->ProcessMouseMove(pointer_x,pointer_y,0);
         bool pressed=(buttons&1)!=0;
         if(pressed!=left) {
             if(pressed)context->ProcessMouseButtonDown(0,0);else context->ProcessMouseButtonUp(0,0);

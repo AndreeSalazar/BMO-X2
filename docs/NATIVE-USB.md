@@ -9,6 +9,15 @@ La prueba fisica de teclado y raton sigue pendiente. Conectarlos antes
 de arrancar; el estado superior muestra K, M, fase y CC. F12 detiene
 el controlador; la recuperacion de entrada requiere reiniciar.
 
+El puntero comienza centrado y aparece desde el primer cuadro, incluso
+si USB esta detenido. La foto del primer ensayo AMD mostro K:OK, M:OK
+y fase 210. Esa compilacion mostraba el CC anterior a la transferencia
+fallida. El transporte ahora registra el CC de la transferencia cotejada
+y distingue identidad (211), transferencia (212) y puerto (213).
+K y M indican configuracion; USB ON indica que el controlador sigue activo.
+El raton reserva el tamano maximo anunciado por su endpoint y entrega
+solo botones y desplazamiento del informe boot al escritorio.
+
 El perfil reserva 57344 bytes DMA y dos paginas de codigo supervisor.
 No cubre hubs, reconexion automatica ni aislamiento IOMMU. Las notas
 siguientes sobre perfiles separados describen las sondas anteriores.

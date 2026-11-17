@@ -41,6 +41,10 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
     first=freeze_frame(2)
     if not (first[2]>=1 and first[5]>0 and 0<first[6]<=first[7]<=4*1024*1024):raise ValueError('Invalid UI resource counters')
     raw=memory(pixels-0x3c000000,1280*800*4,'ui-frame')
+    if symbols.get('usb')=='both':
+        for x,y,color in ((640,400,0x0b1019),(641,402,0xf4f8ff)):
+            if struct.unpack_from('<I',raw,(y*1280+x)*4)[0]!=color:
+                raise ValueError('Pointer missing before first input')
     registers=regs()
     if 'CPL=0' in registers:
         context_address=register(registers,'RBP')
@@ -183,6 +187,7 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
                 if halt!=1 or pci&4 or memory(context_address+0x15400,8,'dual-alias-pde')!=bytes(8) or memory(context_address+0x1e000,24,'dual-alias-revoked')!=bytes(24):
                     raise ValueError('Dual stop/revocation incomplete')
                 usb_proof.update(UsbBothDevicesVerified=True,UsbKeyboardReports=keyboard,UsbMouseReports=mouse,
+                    PointerBeforeInputVerified=True,
                     UsbStopVerified=True,UsbBusMasterRevoked=True,UsbMmioRevoked=True,
                     UsbTransportBackend='Dynamic USB2 two-slot mediated transport',UsbCodePages=2)
         return dict(Case='normal',Passed=True,Evidence='QEMU',CPL=3,FullRmlUiEngine=True,

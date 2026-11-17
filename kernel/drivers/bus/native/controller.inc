@@ -241,18 +241,31 @@ native_live_again:
     shr $16, %edx
     and $31, %edx
     cmp NS_DCI(%rbx), %dl
-    jne native_live_failed
+    jne native_live_identity_failed
     mov NS_PENDING(%rbx), %rax
     cmp %rax, (%rsi)
-    jne native_live_failed
+    jne native_live_identity_failed
     mov 8(%rsi), %eax
-    test $0xffffff, %eax
-    jnz native_live_failed
+    mov %eax, %edx
+    and $0xffffff, %edx
+    mov %edx, %gs:0x7a4
     shr $24, %eax
+    mov %al, %gs:0x7a0
     cmp $1, %eax
-    je native_live_copy
+    je native_live_length
     cmp $13, %eax
-    jne native_live_failed
+    jne native_live_transfer_failed
+native_live_length:
+    movzwl NS_MPS(%rbx), %eax
+    sub %edx, %eax
+    jb native_live_transfer_failed
+    movzwl NS_LENGTH(%rbx), %edx
+    cmp %edx, %eax
+    jb native_live_transfer_failed
+    cmpb $2, NS_KIND(%rbx)
+    je native_live_copy
+    cmp %edx, %eax
+    jne native_live_transfer_failed
 native_live_copy:
     mov NS_BUFFER(%rbx), %rax
     pushq (%rax)
@@ -266,13 +279,14 @@ native_live_copy:
     pop %rax
     cmpl $2, %gs:0x798
     jne native_live_return
+    and $0xffffff, %eax     # Only the three boot-mouse bytes cross the ABI.
     bts $63, %rax
 native_live_return:
     pop %rbx
     ret
 native_live_rearm_failed:
     pop %rax
-    jmp native_live_failed
+    jmp native_live_port_failed
 native_live_port_change:
     mov (%rsi), %eax
     shr $24, %eax
@@ -295,7 +309,7 @@ native_live_bound_port:
     mov 0x400(%r11,%rax), %edx
     and $3, %edx
     cmp $3, %edx
-    jne native_live_failed
+    jne native_live_port_failed
 native_live_ack_port:
     mov (%rsi), %eax
     shr $24, %eax
@@ -312,6 +326,16 @@ native_live_ack_port:
     jmp native_live_empty
 native_live_failed:
     movl $210, %gs:0x7ac
+    jmp native_live_stop_failed
+native_live_identity_failed:
+    movl $211, %gs:0x7ac
+    jmp native_live_stop_failed
+native_live_transfer_failed:
+    movl $212, %gs:0x7ac
+    jmp native_live_stop_failed
+native_live_port_failed:
+    movl $213, %gs:0x7ac
+native_live_stop_failed:
     call xhci_live_stop
 native_live_empty:
     mov $256, %eax
@@ -333,7 +357,7 @@ native_arm_if_configured:
     mov %rax, NS_PENDING(%rbx)
     mov NS_BUFFER(%rbx), %rdx
     mov %rdx, (%rax)
-    movzwl NS_LENGTH(%rbx), %edx
+    movzwl NS_MPS(%rbx), %edx
     mov %edx, 8(%rax)
     movzbl NS_CYCLE(%rbx), %edx
     or $0x424, %edx
