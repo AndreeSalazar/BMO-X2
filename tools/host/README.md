@@ -40,6 +40,7 @@ limites de recursos, pruebas de rechazo y evidencia de ejecucion.
 | `toolchains/msvc.py` | Compilar COFF con MSVC, enlazar el portal Rust Win64 y preparar el cliente PE para el banco. |
 | `importers/elf.py` | Validar ELF64 estatico y extraer los segmentos cargables. |
 | `importers/pe.py` | Inventariar PE32+, validar el perfil fijo de una region RX y explicar rechazos. |
+| `importers/pe_imports.py` | Censar DLL, simbolos y ordinales de importaciones normales, con limites de lectura. |
 | `sbef/format.py` | Definir y validar cabecera, tabla, rangos, permisos y entrada SBEF. |
 | `diagnostics.py` | Identificar cada rechazo por codigo, campo, offset e indice cuando aplica. |
 | `cli.py` | Leer entradas acotadas y publicar el SBEF solo tras validarlo. |
@@ -116,6 +117,14 @@ En la corrida medida la RTX dibujo cero lotes del juego. El camino
 observado uso las funciones D3D12 de PROTON-X y el dibujo de la casa.
 Vulkan figura como otra API posible sobre un backend y tiene su propio
 plan en `platform/drivers/gpu/rdna4/PLAN_VULKAN.md`.
+
+La primera adaptacion para BMO-X2 es el censo previo del padre.
+`tools/sbef.py probe` muestra las importaciones normales, por DLL y
+simbolo u ordinal, aunque el empaquetado quede rechazado. Un censo
+invalido se informa por separado con el campo y offset. Se verifico con
+un PE enlazado por MSVC que importa `KERNEL32.dll!GetTickCount64` y con
+la regresion QEMU del cliente freestanding. No carga DLL ni ejecuta sus
+funciones. Las importaciones diferidas conservan su diagnostico propio.
 
 Para BMO-X2, el siguiente ensayo es un cliente MSVC con paginas RX, R
 y RW e importacion declarada hacia un servicio Rust de Ring 3. El

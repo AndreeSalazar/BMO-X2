@@ -3,6 +3,7 @@ import struct
 
 from ..diagnostics import Rejection
 from ..sbef.format import BASE, HEADER, MACHINE, PAGE, REGION, inspect
+from .pe_imports import inventory_imports
 
 
 COFF = struct.Struct('<HHIIIHH')
@@ -14,6 +15,8 @@ DIRECTORIES = {
     5: ('base_relocations', 'PE-RELOCATIONS'),
     6: ('debug', 'PE-DEBUG'),
     9: ('tls', 'PE-TLS'),
+    11: ('bound_imports', 'PE-BOUND-IMPORTS'),
+    12: ('iat', 'PE-IAT'),
     13: ('delay_imports', 'PE-DELAY-IMPORTS'),
     14: ('clr', 'PE-CLR'),
 }
@@ -126,6 +129,12 @@ def _admit(data, result, opt, table, flags):
 
 def probe_pe(data):
     result, opt, table, flags = _inventory(data)
+    imports = result['Directories'].get('imports')
+    if imports:
+        try:
+            result['Imports'] = inventory_imports(data, result['Sections'], imports, opt + 120)
+        except Rejection as error:
+            result['ImportInventoryError'] = error.report()
     if not result['Blockers']:
         try:
             _admit(data, result, opt, table, flags)

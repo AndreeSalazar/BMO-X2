@@ -1615,7 +1615,7 @@
       ],
       "que": "Inspecciona PE32+ y empaqueta el perfil fijo de una pagina RX.",
       "entrada": "Ejecutable PE32+ x86-64.",
-      "salida": "Inventario, SBEF admitido o rechazo con campo y offset.",
+      "salida": "Inventario con DLL, simbolos y ordinales; SBEF admitido o rechazo con campo y offset.",
       "aceptacion": "QEMU ejecuta el PE de cl/link convertido a SBEF. Valida metadatos de unwind sin manejadores.",
       "falta": "Regiones multiples, relocaciones, importaciones, TLS y servicios Win32."
     },

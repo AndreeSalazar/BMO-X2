@@ -144,7 +144,7 @@ class Sbef(unittest.TestCase):
                          dict(Code='SBEF-PERMISSIONS', Offset=52, Field='permissions', RegionIndex=0))
 
     def test_pe_probe_reports_imports_and_pack_rejects(self):
-        image = bytearray(0x204)
+        image = bytearray(0x400)
         image[:2] = b'MZ'
         struct.pack_into('<I', image, 0x3c, 0x80)
         image[0x80:0x84] = b'PE\0\0'
@@ -154,9 +154,13 @@ class Sbef(unittest.TestCase):
         struct.pack_into('<I', image, opt + 16, 0x1000)
         struct.pack_into('<Q', image, opt + 24, 0x140000000)
         struct.pack_into('<I', image, opt + 108, 2)
-        struct.pack_into('<II', image, opt + 120, 0x1000, 4)
-        struct.pack_into('<8sIIIIIIHHI', image, opt + 128, b'.text', 4, 0x1000,
-                         4, 0x200, 0, 0, 0, 0, 0x60000000)
+        struct.pack_into('<II', image, opt + 120, 0x1000, 40)
+        struct.pack_into('<8sIIIIIIHHI', image, opt + 128, b'.text', 512, 0x1000,
+                         512, 0x200, 0, 0, 0, 0, 0x60000000)
+        struct.pack_into('<IIIII', image, 0x200, 0x1040, 0, 0, 0x1030, 0x1090)
+        image[0x230:0x23d] = b'KERNEL32.dll\0'
+        struct.pack_into('<QQQ', image, 0x240, 0x1080, 0x8000000000000007, 0)
+        image[0x282:0x288] = b'Sleep\0'
         with tempfile.TemporaryDirectory() as path:
             source, output = Path(path)/'app.exe', Path(path)/'app.sbef'
             source.write_bytes(image)
@@ -167,10 +171,18 @@ class Sbef(unittest.TestCase):
             self.assertTrue(inventory['Sections'][0]['Executable'])
             expected = dict(Code='PE-IMPORTS', Offset=opt + 120, Field='DataDirectory.imports')
             self.assertEqual(inventory['Blockers'], [expected])
+            self.assertEqual(inventory['Imports'], [
+                dict(DLL='KERNEL32.dll', Symbols=[dict(Name='Sleep'), dict(Ordinal=7)])
+            ])
             result = subprocess.run([*base, 'pack', str(source), str(output)], capture_output=True)
             self.assertEqual(result.returncode, 1)
             self.assertEqual(json.loads(result.stderr), expected)
             self.assertFalse(output.exists())
+            struct.pack_into('<Q', image, 0x240, 0x1200)
+            rejected = probe_pe(image)
+            self.assertFalse(rejected['CanPack'])
+            self.assertEqual(rejected['ImportInventoryError'], dict(
+                Code='PE-IMPORT-RVA', Offset=0x240, Field='ImportByName'))
 
     def test_fixed_pe_keeps_exact_payload_and_rejects_invalid_layout(self):
         image = bytearray(0x400)
