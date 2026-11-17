@@ -41,6 +41,7 @@ limites de recursos, pruebas de rechazo y evidencia de ejecucion.
 | `importers/elf.py` | Validar ELF64 estatico y extraer los segmentos cargables. |
 | `importers/pe.py` | Inventariar PE32+, validar perfiles fijos RX o RX/R/RW y explicar rechazos. |
 | `importers/pe_imports.py` | Censar DLL, simbolos y ordinales de importaciones normales, con limites de lectura. |
+| `importers/pe_bindings.py` | Resolver la unica importacion admitida en el banco MSVC, en la IAT de solo lectura del SBEF. |
 | `sbef/format.py` | Definir y validar cabecera, tabla, rangos, permisos y entrada SBEF. |
 | `diagnostics.py` | Identificar cada rechazo por codigo, campo, offset e indice cuando aplica. |
 | `cli.py` | Leer entradas acotadas y publicar el SBEF solo tras validarlo. |
@@ -100,10 +101,13 @@ en Ring 3. [Evidencia QEMU](../../Reports/abi-msvc-qemu.json).
 `--msvc-sections` junto a `--pe-link` y `--abi-run` prueba un segundo
 perfil. HOST conserva `.text`, `.rdata` y `.data` con permisos RX,
 R y RW. El cargador existente comprueba los permisos y pone a cero
-el resto de `.data`. El cliente llama al reloj Rust enlazado en el
-mismo PE, cuya fuente son los ticks PIT de la sonda de sesion.
-La prueba confirma el avance despues de WAIT y el rechazo de una
-imagen W+X. [Evidencia](../../Reports/abi-msvc-sections-qemu.json).
+el resto de `.data`. MSVC y `kernel32.lib` del SDK generan una
+importacion normal de `GetTickCount64`. El banco lee la direccion de la
+implementacion Rust del mapa de su propio enlace. HOST comprueba la
+entrada IAT y la resuelve al codigo Rust antes de emitir el SBEF.
+El reloj lee los ticks PIT de la sesion QEMU. La prueba confirma el
+avance despues de WAIT y el rechazo de W+X.
+[Evidencia](../../Reports/abi-msvc-clock-import-qemu.json).
 
 ## Referencia de BMO-X para compatibilidad y graficos
 
@@ -134,10 +138,9 @@ un PE enlazado por MSVC que importa `KERNEL32.dll!GetTickCount64` y con
 la regresion QEMU del cliente freestanding. No carga DLL ni ejecuta sus
 funciones. Las importaciones diferidas conservan su diagnostico propio.
 
-El siguiente ensayo debe enlazar una importacion declarada hacia un
-servicio Rust de Ring 3 a traves de la IAT. El
-informe HOST debe mostrar la dependencia y su resolucion, o identificar
-la DLL y el simbolo pendientes. El paso grafico siguiente es un ejemplo
+El siguiente ensayo debe ampliar la tabla de servicios y comprobar
+que cada importacion admitida conserva su semantica. El paso grafico
+siguiente es un ejemplo
 pequeno con DXGI/D3D12, un ejecutor CPU y una superficie de DIRECTOR.
 Para darlo por valido en QEMU se comprueba el cuadro y la finalizacion
 de la cola. Vulkan y el emisor SM86 tienen pruebas propias de backend.

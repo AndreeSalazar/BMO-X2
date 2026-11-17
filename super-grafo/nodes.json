@@ -1617,7 +1617,7 @@
       "entrada": "Ejecutable PE32+ x86-64.",
       "salida": "Inventario con DLL, simbolos y ordinales; SBEF admitido o rechazo con campo y offset.",
       "aceptacion": "QEMU ejecuta el PE de cl/link convertido a SBEF. Valida metadatos de unwind sin manejadores.",
-      "falta": "Relocaciones, resolucion IAT, TLS y servicios Win32."
+      "falta": "Relocaciones, TLS y ampliar la resolucion IAT mas alla del reloj de prueba."
     },
     {
       "id": "userspace-supervisor",

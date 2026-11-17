@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "pe_sha256": "86e001d988b897613ef679eac317ff60674235b38db7d39bb834333b60e3ac13",
+  "sbef_sha256": "7e7bfe4157c1a937c23075fe24feba91dcfba702364f0455cdecab0660d00442",
+  "sbef": {
+    "FormatVersion": 1,
+    "AbiVersion": 1,
+    "Architecture": "x86-64",
+    "Bytes": 1572,
+    "Entry": "0x40000000",
+    "Regions": [
+      {
+        "Address": "0x40000000",
+        "Offset": 128,
+        "FileBytes": 308,
+        "MemoryBytes": 308,
+        "MappedBytes": 4096,
+        "Permissions": "RX"
+      },
+      {
+        "Address": "0x40200000",
+        "Offset": 436,
+        "FileBytes": 624,
+        "MemoryBytes": 624,
+        "MappedBytes": 4096,
+        "Permissions": "R"
+      },
+      {
+        "Address": "0x40400000",
+        "Offset": 1060,
+        "FileBytes": 512,
+        "MemoryBytes": 6048,
+        "MappedBytes": 8192,
+        "Permissions": "RW"
+      }
+    ]
+  },
+  "binding": "KERNEL32.dll!GetTickCount64 -> bmo_session_tick_ms",
+  "binding_rejections": 4,
+  "physical_boot_verified": false,
+  "qemu": {
+    "Passed": 2,
+    "Total": 2,
+    "Cases": [
+      {
+        "Case": "normal",
+        "Passed": true,
+        "Evidence": "QEMU",
+        "CPL": 3,
+        "InitializedDataVerified": true,
+        "ZeroFillVerified": true,
+        "RustClockVerified": true,
+        "FirstMs": 0,
+        "SecondMs": 30
+      },
+      {
+        "Case": "external-permissions",
+        "Passed": true,
+        "SbefAccepted": false,
+        "UserCodeCopied": false,
+        "UserAddressSpaceActivated": false,
+        "RejectedField": "permissions",
+        "RejectedOffset": 116
+      }
+    ],
+    "run": "run-msvc-sections-67c497a200ea",
+    "evidence": "QEMU",
+    "milestone": "MSVC three-region PE32+ converted to SBEF reads the Rust session clock in CPL3"
+  }
+}

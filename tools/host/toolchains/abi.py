@@ -27,6 +27,7 @@ def main():
     parser.add_argument('--pe-link', metavar='LINK_EXE', help='Link the MSVC COFF client and Rust Win64 portal into a PE inspection fixture')
     parser.add_argument('--coff-as', default='clang', help='Clang assembler for the Win64 entry and QEMU terminal')
     parser.add_argument('--msvc-sections', action='store_true', help='Test MSVC RX/R/RW and the native Rust clock in QEMU')
+    parser.add_argument('--msvc-sdk-lib', default='kernel32.lib', help='Windows x64 SDK import library for the clock fixture')
     parser.add_argument('--reuse', action='store_true', help='Run two distinct embedded SBEFs on the same pages')
     args = parser.parse_args()
     if args.pe_link and args.toolchain != 'msvc':
@@ -49,7 +50,8 @@ def main():
     if args.toolchain == 'msvc':
         if args.msvc_sections:
             verify_msvc_sections(ROOT, out/'sections-qemu', args.abi_run, cc=cc,
-                                 linker=args.pe_link, assembler=args.coff_as, objcopy=args.objcopy)
+                                 linker=args.pe_link, assembler=args.coff_as, objcopy=args.objcopy,
+                                 sdk_lib=args.msvc_sdk_lib)
             return
         report, sbef = build_msvc(out, CLIENT, ABI, ROOT/'tools/doom/complete.S', cc=cc,
                                   linker=args.pe_link, assembler=args.coff_as, qemu=bool(args.abi_run))

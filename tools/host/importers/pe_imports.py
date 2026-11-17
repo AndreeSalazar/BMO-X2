@@ -11,7 +11,7 @@ MAX_SYMBOLS = 4096
 MAX_NAME = 256
 
 
-def inventory_imports(data, sections, directory, directory_offset):
+def inventory_imports(data, sections, directory, directory_offset, *, include_slots=False):
     def locate(rva, size, source, field):
         matches = []
         for section in sections:
@@ -46,6 +46,8 @@ def inventory_imports(data, sections, directory, directory_offset):
             raise Rejection('PE-IMPORT-LIMIT', at, 'ImportDescriptors')
         if not module or not iat or (not lookup and timestamp):
             raise Rejection('PE-IMPORT-DESCRIPTOR', at, 'ImportDescriptor')
+        if include_slots and (timestamp or forwarder or not lookup or lookup == iat):
+            raise Rejection('PE-IMPORT-DESCRIPTOR', at, 'ImportDescriptor')
         dll = name(module, 0, at + 12, 'Name')
         cursor, available = locate(lookup or iat, THUNK.size, at, 'OriginalFirstThunk/FirstThunk')
         symbols = []
@@ -62,6 +64,8 @@ def inventory_imports(data, sections, directory, directory_offset):
                 symbols.append(dict(Ordinal=value & 0xffff))
             else:
                 symbols.append(dict(Name=name(value, 2, entry, 'ImportByName')))
+            if include_slots:
+                symbols[-1].update(IatRVA=iat + slot * THUNK.size, LookupValue=value)
             total += 1
         else:
             raise Rejection('PE-IMPORT-TERMINATOR', cursor, 'ImportLookup')
