@@ -47,11 +47,27 @@ de RmlUi agrupa los informes consecutivos de movimiento libre en una
 actualizacion de posicion. Vacia el movimiento pendiente antes de
 un boton, rueda o tecla y entrega cada movimiento durante arrastre.
 El avance USB sigue ligado al bucle del escritorio. El sondeo
-independiente, la recuperacion automatica y los LED USB quedan
-pendientes en este perfil. La tabla Boot HID traduce tambien las teclas
+independiente y la recuperacion automatica quedan pendientes en este
+perfil. La tabla Boot HID traduce tambien las teclas
 fisicas de puntuacion, navegacion, bloqueos y teclado numerico. Interpretar
-caracteres segun la distribucion, repetir teclas y controlar los LED
-requiere trabajo adicional.
+caracteres segun la distribucion y repetir teclas requiere trabajo
+adicional. Bloq Num, Bloq Mayus y Bloq Despl se alternan en Ring 3 por
+flanco y se muestran en la barra del escritorio.
+
+En el perfil conjunto, diagnostico 22 con selector 0x200 a 0x207
+admite el byte Boot HID de los LED. Ring 0 usa la interfaz enumerada y
+publica un SET_REPORT Output de un byte en el EP0 del teclado. Mantiene
+una solicitud en vuelo y alterna dos TD en el anillo de control. Un
+rechazo del dispositivo desactiva esta salida; el anillo de eventos
+compartido sigue atendiendo teclado y raton. Las lecturas del descriptor
+del raton conservan los selectores anteriores. El lector admite relleno
+cero al final del informe Boot del teclado y descarta otros tamanos
+invalidos mientras rearma su endpoint.
+
+La barra violeta, los cuatro indicadores de espacios y los tres
+bloqueos usan RmlUi y raster por CPU en Ring 3. El tema mantiene los
+recursos actuales. Desenfoque, shaders y composicion GPU requieren un
+backend de render independiente.
 
 ## Cursor y presentacion por regiones
 

@@ -8,10 +8,11 @@ use core::cell::UnsafeCell;
 struct Policy {
     desktop: Desktop<'static,9>, keyboard:Keyboard, modifiers:u8, extended:bool,
     space_down:bool, space_captured:bool,
+    locks:u8, locks_down:u8,
 }
 impl Policy {
     fn new()->Self {Self{desktop:Desktop::new(),keyboard:Keyboard::default(),modifiers:0,extended:false,
-        space_down:false,space_captured:false}}
+        space_down:false,space_captured:false,locks:0,locks_down:0}}
     fn snapshot(&self)->u64 {u64::from(self.desktop.active().number()) | (u64::from(self.desktop.focused().unwrap_or(0))<<8)}
     fn open(&mut self) {
         static PIXEL:[u32;1]=[0];
@@ -40,6 +41,17 @@ impl Policy {
             (u8::from(self.modifiers&48!=0)<<5);
         // Extended navigation shares codes with the keypad, never with shortcuts.
         if extended {return 0;}
+        let lock=match code {0x45=>1,0x3a=>2,0x46=>4,_=>0};
+        if lock!=0 {
+            if !pressed {
+                self.locks_down&=!lock;
+                return 1;
+            }
+            if self.locks_down&lock!=0 {return 1;}
+            self.locks_down|=lock;
+            self.locks^=lock;
+            return 3;
+        }
         if code==0x39 {
             if !pressed {
                 self.space_down=false;
@@ -67,10 +79,20 @@ static OWNER:Owner=Owner(UnsafeCell::new(None));
 #[unsafe(no_mangle)] pub extern "C" fn bmo_director_open()->u64 {unsafe{let p=(*OWNER.0.get()).as_mut().unwrap();p.open();p.snapshot()}}
 #[unsafe(no_mangle)] pub extern "C" fn bmo_director_key(byte:u32)->u32 {if byte>255{return 1;}unsafe{(*OWNER.0.get()).as_mut().unwrap().key(byte as u8)}}
 #[unsafe(no_mangle)] pub extern "C" fn bmo_director_state()->u64 {unsafe{(*OWNER.0.get()).as_ref().unwrap().snapshot()}}
+#[unsafe(no_mangle)] pub extern "C" fn bmo_director_locks()->u32 {unsafe{u32::from((*OWNER.0.get()).as_ref().unwrap().locks)}}
 #[cfg(not(any(test,bmo_embedded)))]
 #[panic_handler] fn panic(_: &core::panic::PanicInfo<'_>)->! {unsafe{core::arch::asm!("ud2",options(noreturn))}}
 #[cfg(test)] mod native_tests {
     use super::*;
+    #[test] fn lock_keys_toggle_once_and_leave_super_chords_available() {
+        let mut p=Policy::new();
+        p.open();
+        for b in [0x45,0x45,0xc5,0x3a,0xba,0x46,0xc6] {p.key(b);}
+        assert_eq!(p.locks,7);
+        for b in [0xe0,0x5b,2,0x82,0xe0,0xdb,0x45,0xc5] {p.key(b);}
+        assert_eq!(p.snapshot(),0x101);
+        assert_eq!(p.locks,6);
+    }
     #[test] fn native_super_shortcuts_preserve_space_and_focus_semantics() {
         let mut p=Policy::new();
         p.open();

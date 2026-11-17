@@ -145,8 +145,8 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
     if symbols.get('desktop'):
         def mouse_event(event_type, **data):
             command('input-send-event',{'events':[{'type':event_type,'data':data}]})
-        def wait_mouse(check, message):
-            deadline=time.monotonic()+10
+        def wait_input(check, message, timeout=10):
+            deadline=time.monotonic()+timeout
             while time.monotonic()<deadline:
                 if check():return
                 time.sleep(.02)
@@ -158,7 +158,7 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
             gx=x+(px*scale if scale else px//2)
             gy=y+(py*scale if scale else py//2)
             hover_color=0xa2f4e6 if order==1 else 0xe6f4a2
-            wait_mouse(lambda: struct.unpack('<I',memory(fb+(gy*pitch+gx)*4,4,'button-hover'))[0]==hover_color,
+            wait_input(lambda: struct.unpack('<I',memory(fb+(gy*pitch+gx)*4,4,'button-hover'))[0]==hover_color,
                 'Cursor did not highlight over Activate')
             words=struct.unpack('<8Q',memory(state-0x3c000000,64,'hover-frame-state'))
             if words[2]!=after[2]:raise ValueError('Button hover rasterized the desktop')
@@ -167,10 +167,10 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
             for index,name in ((1,'right'),(2,'middle'),(3,'wheel-up')):
                 initial=edges()[index]
                 mouse_event('btn',button=name,down=True)
-                wait_mouse(lambda: edges()[index]==initial+1,'Missing '+name+' event')
+                wait_input(lambda: edges()[index]==initial+1,'Missing '+name+' event')
                 mouse_event('btn',button=name,down=False)
                 if index!=3:
-                    wait_mouse(lambda: edges()[index]==initial+2,'Missing '+name+' release')
+                    wait_input(lambda: edges()[index]==initial+2,'Missing '+name+' release')
         else:
             time.sleep(.2)
         mouse_event('btn',button='left',down=True)
@@ -201,13 +201,25 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
                 return struct.unpack('<Q',memory(focus_address-0x3c000000,8,'keyboard-focus'))[0]
             initial_focus=focus_count()
             key('meta_l','1')
-            wait_mouse(lambda: focus_count()==initial_focus+1,'Super+1 did not focus the RmlUi window')
+            wait_input(lambda: focus_count()==initial_focus+1,'Super+1 did not focus the RmlUi window')
         key('ctrl','meta_l','2');policy(2)
         key(*(['meta_l','spc'] if focus_address else ['f1']));policy(0x102)
         key('meta_l','q');policy(2)
         key('f1');policy(0x102)
         key('ctrl','meta_l','1');policy(1)
         key('ctrl','meta_l','2');policy(0x102)
+        locks_verified=False
+        if symbols.get('usb')=='both' and symbols.get('keyboard_leds'):
+            def led_state():
+                data=memory(context_address+0x1a7f0,16,'usb-keyboard-led')
+                return struct.unpack_from('<Q',data)[0],data[9],data[10],data[11]
+            wait_input(lambda: led_state()==(1,0,0,0),'Initial keyboard LED report failed')
+            for count,(lock,mask) in enumerate(
+                (('num_lock',1),('caps_lock',3),('scroll_lock',7),('caps_lock',5),
+                 ('scroll_lock',1),('num_lock',0)),2):
+                key(lock)
+                wait_input(lambda: led_state()==(count,0,0,mask),'Keyboard LED report failed for '+lock,45)
+            locks_verified=True
         if not observed:raise ValueError('No DIRECTOR/RmlUi execution observed in CPL3')
         command('screendump',{'filename':str(prefix)+'-desktop.ppm'})
         usb_proof={}
@@ -260,6 +272,7 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
                 usb_proof.update(UsbBothDevicesVerified=True,UsbKeyboardReports=keyboard,UsbMouseReports=mouse,
                     PointerBeforeInputVerified=True,
                     MouseReportDescriptorDecoded=True, MouseButtonHoverWithoutRasterVerified=bool(mouse_edges),
+                    KeyboardLedOutputReportsVerified=locks_verified,
                     MouseRightMiddleWheelVerified=bool(mouse_edges),
                     PointerMoveWithoutRasterVerified=True,
                     PointerRegionPixelsForTwoMoves=copied,

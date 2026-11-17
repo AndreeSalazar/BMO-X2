@@ -2298,7 +2298,7 @@
       "que": "Adapta DIRECTOR existente a foco, cuatro espacios y nueve posiciones de ventana sin compartir el framebuffer mutable.",
       "entrada": "Scancodes Set1 y eventos de apertura.",
       "salida": "Identidad, foco y espacio del panel ULTRA-J; Super+numero solicita foco RmlUi y Super+Espacio abre el panel.",
-      "aceptacion": "21 tests Rust; QEMU comprueba foco, cambio de espacio, Super+Q y apertura desde el teclado USB.",
+      "aceptacion": "QEMU comprueba foco, cambio de espacio, Super+Q, apertura y bloqueos desde el teclado USB.",
       "falta": "Multiples aplicaciones, descarga de recursos por proceso, distribucion de teclado y verificacion USB fisica."
     },
     {
@@ -2450,7 +2450,7 @@
       ],
       "que": "Recibe informes escalares del transporte mediado y entrega cambios de teclado o raton a RmlUi/DIRECTOR usando InputService real.",
       "entrada": "Teclado boot y descriptor HID del raton en modo Report, con longitud por transferencia xHCI.",
-      "salida": "Scancodes, ejes y rueda relativos, y transiciones de los tres botones aun con ID HID separados. Ring 3 recorta al escritorio.",
+      "salida": "Scancodes, ejes y rueda relativos, y transiciones de los tres botones aun con ID HID separados. Ring 3 recorta al escritorio y calcula el byte de LED del teclado.",
       "aceptacion": "CPL3: Enter, espacios, Super+Q/reapertura via USB teclado; movimiento, resaltado sin raster, clic primario, transiciones derecha/central y rueda via USB raton.",
       "falta": "Confirmar el descriptor y comportamiento del raton fisico. Los campos usados deben estar dentro de los primeros ocho bytes."
     },

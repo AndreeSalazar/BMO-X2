@@ -59,3 +59,14 @@ button { tab-index:auto; transition:background-color 0.12s linear-in-out; }
 .reduced-motion #arrival { animation:none; width:220px; background-color:#ad92ff; }
 .arrived #arrival { animation:none; width:220px; background-color:#ad92ff; }
 .reduced-motion button, .reduced-motion #state { transition:none; }
+
+.native-desktop { background:#101024; }
+.native-desktop #rail { background:#17152e; border-right-color:#393358; }
+.native-desktop #focus-panel { background:#181831; border-color:#58538a; }
+.native-desktop #side-panel { background:#17162e; border-color:#413b68; }
+.native-desktop #top { background:#191832; border:1px #453e72; border-radius:15px; padding:0 10px; }
+.native-desktop #desktop-status { color:#c0b8dd; letter-spacing:0; }
+.native-desktop #host-badge { padding:3px 8px; }
+#space-strip, #lock-strip { display:flex; align-items:center; }
+.key-chip { padding:3px 7px; margin:0 2px; border-radius:7px; background:#282446; color:#a19abc; letter-spacing:0; }
+.key-chip.on { background:#b99aff; color:#181128; }

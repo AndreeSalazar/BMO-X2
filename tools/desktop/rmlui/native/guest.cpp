@@ -18,6 +18,7 @@ volatile NativeState bmo_ui_state;
 uint32_t bmo_ui_pixels[1280*800];
 #ifdef BMO_DESKTOP_UI
 void bmo_director_init();uint64_t bmo_director_open();uint64_t bmo_director_state();uint32_t bmo_director_key(uint32_t);
+uint32_t bmo_director_locks();
 volatile uint64_t bmo_ui_director;
 volatile uint64_t bmo_ui_keyboard_focus;
 #endif
@@ -109,6 +110,14 @@ extern "C" void bmo_main() {
     doc->GetElementById("open-app")->AddEventListener("click",&launcher);
     auto sync_policy=[&]() {
         auto policy=bmo_director_state();char label[128];
+        const unsigned locks=bmo_director_locks();
+        doc->GetElementById("lock-num")->SetClass("on",locks&1);
+        doc->GetElementById("lock-caps")->SetClass("on",locks&2);
+        doc->GetElementById("lock-scroll")->SetClass("on",locks&4);
+        for(unsigned w=1;w<=4;++w) {
+            char id[]="space-1";id[6]=char('0'+w);
+            doc->GetElementById(id)->SetClass("on",(policy&255)==w);
+        }
         snprintf(label,sizeof(label),"Espacio %u / %s",unsigned(policy&255),(policy>>8)?"ULTRA-J activo":"Sin ventanas. Abre ULTRA-J.");
 #ifdef BMO_USB_DUAL
         auto usb=doom_invoke(3,3,21,0);
@@ -244,6 +253,7 @@ extern "C" void bmo_main() {
     frame();bmo_ui_state.phase=2;log("BMO UI READY\n");
 #ifdef BMO_USB_DUAL
     bool transport_lost=false;
+    unsigned queued_leds=8;
 #endif
     for(;;) {
         bool dirty=false,closing=false;
@@ -336,6 +346,11 @@ extern "C" void bmo_main() {
         }
         if(closing)break;
         flush_motion();
+#ifdef BMO_USB_DUAL
+        const unsigned locks=bmo_director_locks();
+        if(!transport_lost && queued_leds!=locks && doom_invoke(3,3,22,0x200|locks)!=256)
+            queued_leds=locks;
+#endif
         if(dirty) frame();
         else if(drawn_x!=pointer_x || drawn_y!=pointer_y || drawn_color!=cursor_color()) {
 #ifdef BMO_USB_DUAL

@@ -241,6 +241,8 @@ native_live_again:
     jne native_live_failed
     shr $16, %edx
     and $31, %edx
+    cmp $1, %edx
+    je native_keyboard_led_event
     cmp NS_DCI(%rbx), %dl
     jne native_live_identity_failed
     mov NS_PENDING(%rbx), %rax
@@ -262,11 +264,20 @@ native_live_length:
     jb native_live_transfer_failed
     movzwl NS_LENGTH(%rbx), %edx
     cmp %edx, %eax
-    jb native_live_transfer_failed
-    cmpb $2, NS_KIND(%rbx)
+    jb native_live_report_shape
+    cmpb $1, NS_KIND(%rbx)
+    jne native_live_copy
+    cmp $8, %eax
     je native_live_copy
-    cmp %edx, %eax
-    jne native_live_transfer_failed
+    # A boot keyboard may pad its fixed-size interrupt packet with zeroes.
+    mov NS_BUFFER(%rbx), %rcx
+    mov $8, %edx
+native_live_padding:
+    cmpb $0, (%rcx,%rdx)
+    jne native_live_ignore_keyboard
+    inc %edx
+    cmp %eax, %edx
+    jb native_live_padding
 native_live_copy:
     mov %eax, %gs:0x7ec     # Actual report length, before rearming.
     mov NS_BUFFER(%rbx), %rax
@@ -282,12 +293,25 @@ native_live_copy:
 native_live_return:
     pop %rbx
     ret
+native_live_report_shape:
+    cmpb $1, NS_KIND(%rbx)
+    jne native_live_transfer_failed
+native_live_ignore_keyboard:
+    incl %gs:0x7fc
+    call native_event_advance
+    call native_arm_if_configured
+    jne native_live_port_failed
+    decl %gs:0x7d8
+    jnz native_live_again
+    jmp native_live_empty
 
 # R10 = aligned byte offset, or -1 to query the descriptor length.
 native_mouse_descriptor:
     mov %gs:0x7e8, %eax
     cmp $-1, %r10
     je native_mouse_descriptor_done
+    cmp $0x200, %r10
+    jae native_keyboard_led_request
     cmp %rax, %r10
     jae native_mouse_descriptor_denied
     test $7, %r10b
@@ -440,3 +464,4 @@ native_stop_return:
 
 #include "events.inc"
 #include "enumerate.inc"
+#include "keyboard_led.inc"

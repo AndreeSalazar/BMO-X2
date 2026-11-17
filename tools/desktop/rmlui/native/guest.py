@@ -77,7 +77,14 @@ def main():
     if args.desktop:
         text=text.replace('<div class="nav">02 <span>Aplicaciones</span></div>',
             '<button id="open-app" class="nav" style="width:175px;box-sizing:border-box;margin:0 0 8px;padding:0 14px;text-align:left;font-weight:normal;background:#1a2f39;color:#7de3d2;">02 Abrir ULTRA-J</button>')
-        text=text.replace('<span class="muted">BMO-X2 / DIRECTOR</span>','<span id="desktop-status" class="muted">Espacio 1</span>')
+        text=text.replace('<body>', '<body class="native-desktop">')
+        bar=('<span id="desktop-status" class="muted">Espacio 1</span>'
+            '<div id="space-strip" aria-label="Espacios de trabajo">'
+            + ''.join(f'<span id="space-{n}" class="key-chip">{n}</span>' for n in range(1,5))
+            + '</div><div id="lock-strip" aria-label="Bloqueos del teclado">'
+            '<span id="lock-num" class="key-chip">NUM</span><span id="lock-caps" class="key-chip">MAYUS</span>'
+            '<span id="lock-scroll" class="key-chip">DESPL</span></div>')
+        text=text.replace('<span class="muted">BMO-X2 / DIRECTOR</span>',bar)
         text=text.replace('HECHO PARA CRECER','CTRL+SUPER+1..4 / SUPER+Q')
     write_if_changed(out/'main.rml',text)
     paths=[out/'main.rml',assets/'style.rcss',DEPS/'RmlUi-6.3/Samples/assets/LatoLatin-Regular.ttf',DEPS/'RmlUi-6.3/Samples/assets/LatoLatin-Bold.ttf']
@@ -122,7 +129,8 @@ def main():
     if args.usb:manifest.update(usb=args.usb,usb_reports=symbols['bmo_ui_usb_reports'])
     if args.usb=='both':
         manifest.update(usb_keyboard_reports=symbols['bmo_ui_usb_keyboard_reports'],
-            usb_mouse_reports=symbols['bmo_ui_usb_mouse_reports'],mouse_edges=symbols['bmo_ui_mouse_edges'])
+            usb_mouse_reports=symbols['bmo_ui_usb_mouse_reports'],mouse_edges=symbols['bmo_ui_mouse_edges'],
+            keyboard_leds=True)
     (out/'symbols.json').write_text(json.dumps(manifest,indent=2)+'\n')
     artifacts={name:hashlib.sha256((out/name).read_bytes()).hexdigest() for name in ('rmlui.elf','rmlui.sbef','symbols.json')}
     (out/'artifacts.json').write_text(json.dumps(artifacts,indent=2)+'\n',encoding='ascii')
