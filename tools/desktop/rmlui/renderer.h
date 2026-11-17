@@ -38,6 +38,7 @@ public:
     bool transformed=false, unsupported_transform=false;
     bool unsupported_feature=false;
     Rml::Rectanglei region = Rml::Rectanglei::FromPositionSize({0, 0}, {W, H});
+    int first_row=0, end_row=H;
     Rml::CompiledGeometryHandle CompileGeometry(Rml::Span<const Rml::Vertex> v, Rml::Span<const int> i) override {
         if (v.size() > 1000000 || i.size() > 3000000 || i.size() % 3) fail("geometry bounds");
         if(geometries.size()>=4096 || geometry_bytes+v.size()*sizeof(Rml::Vertex)+i.size()*sizeof(int)>16*1024*1024) fail("geometry budget");
@@ -94,9 +95,12 @@ public:
         if(transformed) return;
         auto g=reinterpret_cast<Geometry*>(handle); auto t=reinterpret_cast<Texture*>(texture);
         if(!geometries.count(g) || (t && !textures.count(t))) fail("render handle");
-        BmoUiRect bounds{0,0,W,H};
+        BmoUiRect bounds{0,uint32_t(first_row),W,uint32_t(end_row)};
         if(clip) bounds={uint32_t(std::clamp(region.Left(),0,W)),uint32_t(std::clamp(region.Top(),0,H)),
                          uint32_t(std::clamp(region.Right(),0,W)),uint32_t(std::clamp(region.Bottom(),0,H))};
+        bounds.top=std::max(bounds.top,uint32_t(first_row));
+        bounds.bottom=std::min(bounds.bottom,uint32_t(end_row));
+        if(bounds.top>=bounds.bottom)return;
         for(size_t n=0;n<g->i.size();n+=3) {
             BmoUiVertex vertices[3];
             for(size_t k=0;k<3;++k) {
@@ -110,9 +114,12 @@ public:
             ++triangles;
         }
     }
-    void frame(Rml::Context* context) {
+    void frame(Rml::Context* context,int top=0,int bottom=H) {
         unsupported_transform=false;
-        std::fill(pixels,pixels+pixel_count,0x0b1019); context->Update(); context->Render();
+        first_row=top;end_row=bottom;
+        std::fill(pixels+top*W,pixels+bottom*W,0x0b1019);
+        context->Update();context->Render();
+        first_row=0;end_row=H;
         if(unsupported_transform) fail("transforms outside CPU profile");
         if(unsupported_feature) fail("layers, masks, filters or shaders outside CPU profile");
     }

@@ -108,12 +108,15 @@ extern "C" void bmo_main() {
 #ifdef BMO_DESKTOP_UI
     bmo_director_init();bmo_director_open();Launcher launcher;
     doc->GetElementById("open-app")->AddEventListener("click",&launcher);
-    auto sync_policy=[&]() {
-        auto policy=bmo_director_state();char label[128];
+    auto sync_locks=[&]() {
         const unsigned locks=bmo_director_locks();
         doc->GetElementById("lock-num")->SetClass("on",locks&1);
         doc->GetElementById("lock-caps")->SetClass("on",locks&2);
         doc->GetElementById("lock-scroll")->SetClass("on",locks&4);
+    };
+    auto sync_policy=[&]() {
+        auto policy=bmo_director_state();char label[128];
+        sync_locks();
         for(unsigned w=1;w<=4;++w) {
             char id[]="space-1";id[6]=char('0'+w);
             doc->GetElementById(id)->SetClass("on",(policy&255)==w);
@@ -258,7 +261,7 @@ extern "C" void bmo_main() {
     for(;;) {
         bool dirty=false,closing=false;
 #ifdef BMO_DESKTOP_UI
-        bool focus_window=false;
+        bool focus_window=false,locks_dirty=false;
 #endif
         for(int pending=0;pending<64;++pending) {
             unsigned scan=256;
@@ -331,7 +334,7 @@ extern "C" void bmo_main() {
 #endif
 #ifdef BMO_DESKTOP_UI
                 auto route=bmo_director_key(scan);
-                if(route&1){dirty|=bool(route&2);focus_window|=bool(route&4);continue;}
+                if(route&1){dirty|=bool(route&2);focus_window|=bool(route&4);locks_dirty|=bool(route&8);continue;}
                 if(scan==0x3b){bmo_director_open();dirty=true;}
 #endif
                 if(scan==0x1c
@@ -352,22 +355,39 @@ extern "C" void bmo_main() {
             queued_leds=locks;
 #endif
         if(dirty) frame();
-        else if(drawn_x!=pointer_x || drawn_y!=pointer_y || drawn_color!=cursor_color()) {
+        else {
+#ifdef BMO_DESKTOP_UI
+            const bool redraw_locks=locks_dirty;
+#else
+            const bool redraw_locks=false;
+#endif
+            const bool move_cursor=drawn_x!=pointer_x || drawn_y!=pointer_y || drawn_color!=cursor_color();
+            if(redraw_locks || move_cursor) {
 #ifdef BMO_USB_DUAL
             const auto old_position=unsigned(drawn_x)|(unsigned(drawn_y)<<16);
 #endif
             for(int y=0;y<17 && drawn_y+y<800;++y)
                 for(int x=0;x<12 && drawn_x+x<1280;++x)
                     bmo_ui_pixels[(drawn_y+y)*1280+drawn_x+x]=under_pointer[y][x];
+#ifdef BMO_DESKTOP_UI
+            if(redraw_locks) {
+                sync_locks();
+                renderer.pixels=bmo_ui_pixels;renderer.pixel_count=1280*800;
+                renderer.frame(context,0,80);
+                renderer.pixels=nullptr;renderer.pixel_count=0;
+            }
+#endif
             draw_pointer();
 #ifdef BMO_USB_DUAL
             const auto new_position=unsigned(drawn_x)|(unsigned(drawn_y)<<16);
-            if(doom_invoke(1,10,(uintptr_t)bmo_ui_pixels,old_position)!=0 ||
-                doom_invoke(1,10,(uintptr_t)bmo_ui_pixels,new_position)!=0)
+            if((redraw_locks && doom_invoke(1,10,(uintptr_t)bmo_ui_pixels,0x80000000)!=0) ||
+                (move_cursor && (doom_invoke(1,10,(uintptr_t)bmo_ui_pixels,old_position)!=0 ||
+                 doom_invoke(1,10,(uintptr_t)bmo_ui_pixels,new_position)!=0)))
                 present();
 #else
             present();
 #endif
+            }
         }
 #ifdef BMO_DESKTOP_UI
         if(focus_window && (bmo_director_state()>>8) && button->Focus())

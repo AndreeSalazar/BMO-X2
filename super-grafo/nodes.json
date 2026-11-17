@@ -1616,8 +1616,8 @@
       "que": "Expone secciones y directorios PE que requieren adaptacion de ABI.",
       "entrada": "Ejecutable PE32+ x86-64.",
       "salida": "Inventario HOST y motivos que impiden empaquetar.",
-      "aceptacion": "Muestra importaciones, TLS y reubicaciones cuando estan declarados.",
-      "falta": "Implementar y probar un perfil PE freestanding para conversion."
+      "aceptacion": "Inspecciona el PE de cl/link con portal Rust Win64, y expone importaciones, TLS, excepciones y reubicaciones declaradas.",
+      "falta": "Implementar y probar conversion PE freestanding y tratamiento de .pdata."
     },
     {
       "id": "userspace-supervisor",
@@ -2490,7 +2490,7 @@
     },
     {
       "id": "rmlui-gop-cursor-region",
-      "titulo": "Presentacion GOP del cursor por regiones",
+      "titulo": "Presentacion GOP del cursor y barra por regiones",
       "ruta": "kernel/drivers/bus/native/gop_cursor.inc",
       "estado": "qemu",
       "anillo": "0",
@@ -2499,11 +2499,11 @@
         10200,
         4300
       ],
-      "que": "Copia al GOP un rectangulo de cursor acotado por cada INVOKE 10 en escala 1.",
+      "que": "Copia al GOP una caja de cursor o la franja superior fija por INVOKE 10 en escala 1.",
       "entrada": "Superficie XRGB validada de 1280x800, punto de origen y geometria GOP.",
-      "salida": "Hasta 204 pixeles por rectangulo; Ring 3 restaura la caja anterior y dibuja la nueva.",
-      "aceptacion": "QEMU compara los pixeles del fondo restaurado, verifica dos movimientos y cuenta las escrituras de cuatro rectangulos.",
-      "falta": "Medir latencia fisica y acotar el redibujado del resaltado del boton."
+      "salida": "Hasta 204 pixeles por caja de cursor y 102400 por franja de estado.",
+      "aceptacion": "QEMU comprueba restauracion del cursor y que los bloqueos actualizan la franja sin cuadro completo.",
+      "falta": "Medir latencia fisica y especializar la copia en otras escalas GOP."
     }
   ],
   "relaciones": [

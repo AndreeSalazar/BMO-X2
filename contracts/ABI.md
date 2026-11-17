@@ -87,8 +87,9 @@ python -B tools/abi_toolchain.py clang --cc "$llvm/clang.exe" --ld "$llvm/ld.lld
 En un entorno con GCC x86-64 ELF y LLVM binutils, ejecutar
 `python3 -B tools/abi_toolchain.py gcc`. En una consola de Visual
 Studio x64, `python -B tools/abi_toolchain.py msvc` prueba el
-encabezado y produce COFF para inventario. El adaptador ELF y el
-COFF usan convenciones de llamada de funciones distintas. El COFF
-queda pendiente de su propio adaptador y perfil de importacion.
+encabezado y produce COFF para inventario. Con `--pe-link link.exe`
+el cliente enlaza con el portal de [Microsoft x64](../userspace/runtime/abi/win64.rs)
+para inspeccion PE. La ejecucion PE y su perfil de importacion siguen
+pendientes. La frontera del kernel conserva el ABI nativo.
 
 [SBEF HOST](SBEF-HOST.md) | [Ensayo QEMU](../kernel/syscalls/ABI-PROBE.md)

@@ -50,7 +50,7 @@ impl Policy {
             if self.locks_down&lock!=0 {return 1;}
             self.locks_down|=lock;
             self.locks^=lock;
-            return 3;
+            return 9; // Consume the edge and update only the lock indicators.
         }
         if code==0x39 {
             if !pressed {

@@ -209,17 +209,28 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
         key('ctrl','meta_l','1');policy(1)
         key('ctrl','meta_l','2');policy(0x102)
         locks_verified=False
+        lock_strip_verified=False
         if symbols.get('usb')=='both' and symbols.get('keyboard_leds'):
             def led_state():
                 data=memory(context_address+0x1a7f0,16,'usb-keyboard-led')
                 return struct.unpack_from('<Q',data)[0],data[9],data[10],data[11]
             wait_input(lambda: led_state()==(1,0,0,0),'Initial keyboard LED report failed')
+            frame_count=struct.unpack('<Q',memory(state-0x3c000000+16,8,'lock-frame-count'))[0]
+            region_counter=context_address+0x1a7e0
+            def region_pixels():
+                return struct.unpack('<Q',memory(region_counter,8,'lock-region-count'))[0]
+            pixels_before=region_pixels()
             for count,(lock,mask) in enumerate(
                 (('num_lock',1),('caps_lock',3),('scroll_lock',7),('caps_lock',5),
                  ('scroll_lock',1),('num_lock',0)),2):
                 key(lock)
                 wait_input(lambda: led_state()==(count,0,0,mask),'Keyboard LED report failed for '+lock,45)
             locks_verified=True
+            frames_after=struct.unpack('<Q',memory(state-0x3c000000+16,8,'lock-frame-count'))[0]
+            if frames_after!=frame_count:raise ValueError('Lock keys rendered the full desktop')
+            if scale==1 and region_pixels()-pixels_before!=6*1280*80:
+                raise ValueError('Lock indicators copied outside the GOP status strip')
+            lock_strip_verified=True
         if not observed:raise ValueError('No DIRECTOR/RmlUi execution observed in CPL3')
         command('screendump',{'filename':str(prefix)+'-desktop.ppm'})
         usb_proof={}
@@ -273,6 +284,7 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
                     PointerBeforeInputVerified=True,
                     MouseReportDescriptorDecoded=True, MouseButtonHoverWithoutRasterVerified=bool(mouse_edges),
                     KeyboardLedOutputReportsVerified=locks_verified,
+                    LockIndicatorsWithoutFullRasterVerified=lock_strip_verified,
                     MouseRightMiddleWheelVerified=bool(mouse_edges),
                     PointerMoveWithoutRasterVerified=True,
                     PointerRegionPixelsForTwoMoves=copied,

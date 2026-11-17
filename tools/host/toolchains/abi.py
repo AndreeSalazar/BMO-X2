@@ -7,6 +7,7 @@ import subprocess
 import sys
 
 from ..importers.elf import pack_elf
+from ..importers.pe import probe_pe
 from ..sbef.format import inspect
 
 
@@ -23,8 +24,11 @@ def main():
     parser.add_argument('--objcopy', default='llvm-objcopy')
     parser.add_argument('--abi-run', type=Path, help='Execute the common client in the CASM ABI QEMU fixture')
     parser.add_argument('--language', choices=['c', 'cpp', 'rust'], default='c')
+    parser.add_argument('--pe-link', metavar='LINK_EXE', help='Link the MSVC COFF client and Rust Win64 portal into a PE inspection fixture')
     parser.add_argument('--reuse', action='store_true', help='Run two distinct embedded SBEFs on the same pages')
     args = parser.parse_args()
+    if args.pe_link and args.toolchain != 'msvc':
+        parser.error('--pe-link requiere msvc')
     if args.reuse and (not args.abi_run or args.toolchain == 'msvc'):
         parser.error('--reuse requiere --abi-run y un ensamblador ELF64')
     if args.language != 'c' and (not args.abi_run or args.toolchain == 'msvc'):
@@ -45,8 +49,23 @@ def main():
         data = obj.read_bytes()
         if data[:2] != b'\x64\x86' or not all(name in data for name in (b'bmo_invoke', b'bmo_wait')):
             raise ValueError('ABI-TOOLCHAIN: objeto COFF o simbolos de llamada invalidos')
-        print(json.dumps(dict(Toolchain='msvc', Stage='COFF', Bytes=len(data),
-                              SHA256=hashlib.sha256(data).hexdigest()), indent=2))
+        report = dict(Toolchain='msvc', Stage='COFF', Bytes=len(data),
+                      SHA256=hashlib.sha256(data).hexdigest())
+        if args.pe_link:
+            portal, pe = out/'portal-win64.obj', out/'client.exe'
+            subprocess.run(['rustc', '--edition=2024', '--target=x86_64-pc-windows-msvc',
+                            '--crate-type=lib', '--emit=obj', '-Cpanic=abort', '-Copt-level=2',
+                            str(ABI/'win64.rs'), '-o', str(portal)], check=True, cwd=out)
+            subprocess.run([args.pe_link, '/nologo', '/machine:x64', '/nodefaultlib',
+                            '/entry:bmo_main', '/subsystem:console', '/incremental:no',
+                            f'/out:{pe}', str(obj), str(portal)], check=True, cwd=out)
+            pe_bytes = pe.read_bytes()
+            image = probe_pe(pe_bytes)
+            if any(name in image['Directories'] for name in ('imports', 'delay_imports', 'tls')):
+                raise ValueError('ABI-TOOLCHAIN: PE freestanding con dependencias inesperadas')
+            report.update(Stage='PE32+ inspection', Image=image, PESHA256=hashlib.sha256(pe_bytes).hexdigest(),
+                          RustPortalBytes=portal.stat().st_size)
+        print(json.dumps(report, indent=2))
         return
 
     target = ['--target=x86_64-unknown-none-elf'] if args.toolchain == 'clang' else ['-m64']

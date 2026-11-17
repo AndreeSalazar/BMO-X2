@@ -69,6 +69,12 @@ bloqueos usan RmlUi y raster por CPU en Ring 3. El tema mantiene los
 recursos actuales. Desenfoque, shaders y composicion GPU requieren un
 backend de render independiente.
 
+Un cambio de bloqueo redibuja solo las primeras 80 filas logicas.
+GOP copia esa franja en escala 1:1, con 102400 pixeles en vez de
+1024000. Las otras escalas conservan el presentador completo con
+raster parcial. El tiempo fisico de respuesta depende tambien del
+intervalo USB y de la recepcion de la confirmacion del dispositivo.
+
 ## Cursor y presentacion por regiones
 
 El escritorio nativo cambia el color de la flecha al pasar sobre un

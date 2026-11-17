@@ -74,5 +74,12 @@ y a cero antes de volver a usarlos. El paquete con Clang pesa 1980 bytes.
 La etapa de reuso es una extension ensamblada de la sonda CASM. Faltan
 el cargador externo general, los propietarios de proceso y la
 revocacion de capacidades por proceso.
-El perfil PE32+ freestanding de MSVC queda por implementar. HOST
-expone dependencias de DLL, TLS y otros directorios en `probe`.
+En la consola x64 de Visual Studio, `python -B tools/abi_toolchain.py
+msvc --pe-link link.exe` compila C a COFF, enlaza el portal Rust
+`extern "win64"` y entrega un PE32+ x86-64 de inspeccion sin CRT,
+DLL importadas ni TLS. El portal traduce los argumentos y el retorno
+de Microsoft x64 al contrato INVOKE/WAIT. El binario requiere la ABI de
+BMO-X2. El perfil de importacion PE queda pendiente: HOST informa
+`.pdata`, permisos de seccion y dependencias antes de admitir un PE.
+Las APIs Win32, DLL, TLS y el runtime de C/C++ exigen servicios
+adicionales en Ring 3.

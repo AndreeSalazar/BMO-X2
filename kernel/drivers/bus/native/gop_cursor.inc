@@ -1,5 +1,6 @@
 # Copy a clipped 12x17 cursor box from the complete 1280x800 XRGB surface.
-# RDX: user surface, R10: packed 16-bit x and y. Other scales use op 9.
+# RDX: user surface, R10: packed 16-bit x/y or 0x80000000 for the top 80 rows.
+# Other scales use op 9.
 gop_cursor_region:
     cmp $0x40400000, %rdx
     jb gop_cursor_denied
@@ -41,6 +42,8 @@ gop_cursor_scale_one:
     add %eax, %ecx
     lea (%rdi,%rcx,4), %rdi
     lea -0x3c000000(%rdx), %rsi
+    cmpl $0x80000000, %r10d
+    je gop_status_strip
     movzwl %r10w, %eax
     shr $16, %r10d
     cmp $1280, %eax
@@ -64,6 +67,11 @@ gop_cursor_scale_one:
     mov $12, %ecx
     cmp %ecx, %r10d
     cmova %ecx, %r10d
+    jmp gop_region_copy
+gop_status_strip:
+    mov $80, %edx
+    mov $1280, %r10d
+gop_region_copy:
     mov %edx, %eax
     imul %r10d, %eax
     add %rax, %gs:0x7e0
