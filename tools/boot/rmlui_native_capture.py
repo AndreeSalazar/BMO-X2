@@ -100,6 +100,8 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
             UsbMmioRevoked=True,UsbBothDevicesVerified=False,PhysicalUsbVerified=False,
             PresentedPixelsVerified=dw*dh,FrameSHA256=hashlib.sha256(raw).hexdigest())
     if symbols.get('usb')=='both':
+        cursor_counter=context_address+0x1a7e0
+        start=struct.unpack('<Q',memory(cursor_counter,8,'cursor-copy-baseline'))[0]
         for delta,target in ((24,664),(-24,640)):
             command('input-send-event',{'events':[{'type':'rel','data':{'axis':'x','value':delta}}]})
             deadline=time.monotonic()+30
@@ -118,6 +120,20 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
                 raise ValueError(f'Pointer did not reach {target}')
             words=struct.unpack('<8Q',memory(state-0x3c000000,64,'fast-pointer-state'))
             if words[2]!=first[2]:raise ValueError('Pointer movement triggered a full RmlUi render')
+        copied=struct.unpack('<Q',memory(cursor_counter,8,'cursor-copy-total'))[0]-start
+        if scale==1 and copied!=4*12*17:raise ValueError('Wrong GOP cursor-region pixel count')
+        if scale!=1 and copied:raise ValueError('Cursor region accepted an unsupported scale')
+        if scale==1:
+            old_x,old_y=664,400
+            for row in range(17):
+                actual=memory(fb+((y+old_y+row)*pitch+x+old_x)*4,48,'cursor-background')
+                offset=((old_y+row)*1280+old_x)*4
+                expected=raw[offset:offset+48]
+                if order==0:
+                    colors=bytearray(expected)
+                    colors[0::4],colors[2::4]=expected[2::4],expected[0::4]
+                    expected=bytes(colors)
+                if actual!=expected:raise ValueError('Old cursor box did not restore the background')
     before=hashlib.sha256(raw).hexdigest()
     command('send-key',{'keys':[{'type':'qcode','data':'ret'}],'hold-time':60})
     after=freeze_frame(3)
@@ -208,6 +224,7 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
                 usb_proof.update(UsbBothDevicesVerified=True,UsbKeyboardReports=keyboard,UsbMouseReports=mouse,
                     PointerBeforeInputVerified=True,
                     PointerMoveWithoutRasterVerified=True,
+                    PointerRegionPixelsForTwoMoves=copied,
                     UsbStopVerified=True,UsbBusMasterRevoked=True,UsbMmioRevoked=True,
                     UsbTransportBackend='Dynamic USB2 two-slot mediated transport',UsbCodePages=2)
         return dict(Case='normal',Passed=True,Evidence='QEMU',CPL=3,FullRmlUiEngine=True,

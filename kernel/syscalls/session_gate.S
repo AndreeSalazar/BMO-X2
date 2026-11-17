@@ -42,6 +42,10 @@ session_gate:
     cmp $6, %rsi
 #endif
     je present_frame
+#ifdef XHCI_NATIVE_DUAL
+    cmp $10, %rsi
+    je present_cursor_region
+#endif
     cmp $7, %rsi
     je serial_byte
 #endif
@@ -502,6 +506,16 @@ serial_out:
     xor %eax, %eax
     jmp finish
 
+#ifdef XHCI_NATIVE_DUAL
+present_cursor_region:
+    cmp $1, %rdi
+    jne denied
+    call native_usb_code
+    jc denied
+    add $15, %rax
+    call *%rax
+    jmp finish
+#endif
 present_frame:
     cmp $1, %rdi
     jne denied

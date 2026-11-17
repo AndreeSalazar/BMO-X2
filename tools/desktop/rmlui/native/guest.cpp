@@ -276,11 +276,21 @@ extern "C" void bmo_main() {
         if(closing)break;
         if(dirty) frame();
         else if(drawn_x!=pointer_x || drawn_y!=pointer_y) {
+#ifdef BMO_USB_DUAL
+            const auto old_position=unsigned(drawn_x)|(unsigned(drawn_y)<<16);
+#endif
             for(int y=0;y<17 && drawn_y+y<800;++y)
                 for(int x=0;x<12 && drawn_x+x<1280;++x)
                     bmo_ui_pixels[(drawn_y+y)*1280+drawn_x+x]=under_pointer[y][x];
             draw_pointer();
+#ifdef BMO_USB_DUAL
+            const auto new_position=unsigned(drawn_x)|(unsigned(drawn_y)<<16);
+            if(doom_invoke(1,10,(uintptr_t)bmo_ui_pixels,old_position)!=0 ||
+                doom_invoke(1,10,(uintptr_t)bmo_ui_pixels,new_position)!=0)
+                present();
+#else
             present();
+#endif
         }
         register unsigned long service __asm__("rax")=1;
         unsigned long cap=2,op=1,duration=1;

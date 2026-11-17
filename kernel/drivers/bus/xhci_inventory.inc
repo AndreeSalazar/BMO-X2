@@ -12,6 +12,10 @@
     .long xhci_live_report - . - 4
     .byte 0xe9
     .long xhci_live_stop - . - 4
+#ifdef XHCI_NATIVE_DUAL
+    .byte 0xe9
+    .long gop_cursor_region - . - 4
+#endif
 #endif
 # Inventory each xHC before choosing a controller. Restore PCI selector.
 # One scan per boot, including bridges and multifunction devices.
@@ -353,6 +357,7 @@ caps_done:
 #ifdef XHCI_COMMAND_PROBE
 #ifdef XHCI_NATIVE_DUAL
 #include "native/controller.inc"
+#include "native/gop_cursor.inc"
 #include "xhci_validate_dma.inc"
 #include "xhci_transport_layout.inc"
 #include "xhci_transport_mmio.inc"

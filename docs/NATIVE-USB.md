@@ -22,8 +22,8 @@ Una segunda prueba AMD mostro USB ON y movimiento del puntero, con
 latencia alta. Al mover el puntero sin cambiar el boton resaltado, el escritorio
 restaura los pixeles bajo la flecha y compone su nueva posicion sin
 rasterizar RmlUi. Los clicks y cambios de resaltado dibujan la escena.
-La presentacion sigue copiando la superficie completa. El recorrido
-abarca el escritorio logico de 1280x800 y sus margenes dependen del GOP.
+El recorrido abarca el escritorio logico de 1280x800 y sus margenes
+dependen del GOP.
 
 ## Cursor y presentacion por regiones
 
@@ -43,19 +43,18 @@ separa la superficie del cursor de la aplicacion y fija su punto activo.
 [DRM/KMS](https://docs.kernel.org/gpu/drm-kms.html),
 [protocolo Wayland](https://wayland.freedesktop.org/docs/html/apa.html).
 
-En BMO-X2 el siguiente paso es presentar por separado la caja anterior
-y la nueva, recortadas al escritorio. A escala 1, la copia completa
+El perfil USB conjunto presenta por separado la caja anterior y la
+nueva, recortadas al escritorio. A escala 1, la copia completa
 escribe 4096000 bytes. Dos cajas de 12x17 escriben como maximo 1632
 bytes, unas 2510 veces menos datos para ese movimiento. Esta relacion
 mide volumen, no tiempo ni fotogramas. Conservar las cajas separadas
 evita que un salto largo convierta el area intermedia en escrituras GOP.
 
-Ring 3 conserva la composicion y el punto activo. La presentacion debe
-validar limites, paso de fila, formato y escala, y copiar las filas
-recortadas. Para el resaltado, acotar tambien el area del boton cuando
-su geometria y los efectos visuales lo permitan. Medir por separado el
-tiempo de dibujo y el de copia en AMD y verificar en QEMU el color, la
-restauracion del fondo, las esquinas y el cambio de resaltado.
+Ring 3 conserva la composicion y el punto activo. INVOKE 10 valida
+limites, paso de fila, formato y escala antes de copiar cada caja.
+Los modos con otra escala usan la presentacion completa de INVOKE 9.
+El resaltado aun redibuja la escena. La latencia fisica del puntero y
+del resaltado se miden por separado en AMD.
 
 El perfil reserva 57344 bytes DMA y dos paginas de codigo supervisor.
 No cubre hubs, reconexion automatica ni aislamiento IOMMU. Las notas

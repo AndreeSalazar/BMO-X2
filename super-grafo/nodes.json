@@ -2487,6 +2487,23 @@
       "salida": "Informes escalares para Ring 3, puntero visible desde el primer cuadro y diagnostico de identidad, transferencia o puerto.",
       "aceptacion": "QEMU verifica teclado y raton simultaneos, rechazo W+X, puertos vacios y parada con revocacion PCI/MMIO.",
       "falta": "Prueba AMD del 17-11: USB ON, fase 199, CC 13 y puntero en movimiento con latencia. Falta medir respuesta fisica del puntero tras reducir el redibujado."
+    },
+    {
+      "id": "rmlui-gop-cursor-region",
+      "titulo": "Presentacion GOP del cursor por regiones",
+      "ruta": "kernel/drivers/bus/native/gop_cursor.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "posicion": [
+        10200,
+        4300
+      ],
+      "que": "Copia al GOP un rectangulo de cursor acotado por cada INVOKE 10 en escala 1.",
+      "entrada": "Superficie XRGB validada de 1280x800, punto de origen y geometria GOP.",
+      "salida": "Hasta 204 pixeles por rectangulo; Ring 3 restaura la caja anterior y dibuja la nueva.",
+      "aceptacion": "QEMU compara los pixeles del fondo restaurado, verifica dos movimientos y cuenta las escrituras de cuatro rectangulos.",
+      "falta": "Medir latencia fisica y acotar el redibujado del resaltado del boton."
     }
   ],
   "relaciones": [
@@ -3713,6 +3730,11 @@
     {
       "de": "rmlui-usb-dual",
       "a": "rmlui-native-usb-input",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-gop-cursor-region",
+      "a": "rmlui-usb-dual",
       "clase": "codigo"
     }
   ]
