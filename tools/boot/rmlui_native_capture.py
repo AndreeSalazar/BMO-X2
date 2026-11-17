@@ -99,6 +99,25 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
             UsbEmptyPortsRejected=True,UsbControllerStopped=True,UsbBusMasterRevoked=True,
             UsbMmioRevoked=True,UsbBothDevicesVerified=False,PhysicalUsbVerified=False,
             PresentedPixelsVerified=dw*dh,FrameSHA256=hashlib.sha256(raw).hexdigest())
+    if symbols.get('usb')=='both':
+        for delta,target in ((24,664),(-24,640)):
+            command('input-send-event',{'events':[{'type':'rel','data':{'axis':'x','value':delta}}]})
+            deadline=time.monotonic()+30
+            # The white pixel is sampled by both the full and half-scale paths.
+            px=target+2
+            py=404
+            gx=x+(px*scale if scale else px//2)
+            gy=y+(py*scale if scale else py//2)
+            while time.monotonic()<deadline:
+                pixel=struct.unpack('<I',memory(fb+(gy*pitch+gx)*4,4,'fast-pointer'))[0]
+                if pixel==(0xf4f8ff if order==1 else 0xfff8f4):break
+                time.sleep(.02)
+            else:
+                memory(fb+gy*pitch*4,pitch*4,'fast-pointer-row')
+                memory(state-0x3c000000,64,'fast-pointer-timeout-state')
+                raise ValueError(f'Pointer did not reach {target}')
+            words=struct.unpack('<8Q',memory(state-0x3c000000,64,'fast-pointer-state'))
+            if words[2]!=first[2]:raise ValueError('Pointer movement triggered a full RmlUi render')
     before=hashlib.sha256(raw).hexdigest()
     command('send-key',{'keys':[{'type':'qcode','data':'ret'}],'hold-time':60})
     after=freeze_frame(3)
@@ -188,6 +207,7 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
                     raise ValueError('Dual stop/revocation incomplete')
                 usb_proof.update(UsbBothDevicesVerified=True,UsbKeyboardReports=keyboard,UsbMouseReports=mouse,
                     PointerBeforeInputVerified=True,
+                    PointerMoveWithoutRasterVerified=True,
                     UsbStopVerified=True,UsbBusMasterRevoked=True,UsbMmioRevoked=True,
                     UsbTransportBackend='Dynamic USB2 two-slot mediated transport',UsbCodePages=2)
         return dict(Case='normal',Passed=True,Evidence='QEMU',CPL=3,FullRmlUiEngine=True,

@@ -576,6 +576,14 @@ present_frame:
 engine_row:
     mov %r9, %rdi
     mov $FRAME_W, %ecx
+#ifdef RMLUI_NATIVE
+    cmpq $1, (%rsp)
+    jne engine_pixel
+    cmpl $1, 0x2c(%rbp)
+    jne engine_pixel
+    rep movsl
+    jmp engine_row_done
+#endif
 engine_pixel:
     lodsl
     cmpl $1, 0x2c(%rbp)
@@ -594,6 +602,9 @@ engine_color:
     stosl
 #endif
     loop engine_pixel
+#ifdef RMLUI_NATIVE
+engine_row_done:
+#endif
 #ifdef DESKTOP_DOOM
     mov %rsi, %r10
     mov (%rsp), %esi

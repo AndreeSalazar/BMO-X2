@@ -124,6 +124,20 @@ extern "C" void bmo_main() {
         "#.# #..#    ", "##  #..#    ", "#    #..#   ", "     #..#   ",
         "      ##    ",
     };
+    uint32_t under_pointer[17][12];
+    int drawn_x=pointer_x,drawn_y=pointer_y;
+    auto draw_pointer=[&]() {
+        drawn_x=pointer_x;drawn_y=pointer_y;
+        for(int y=0;y<17 && drawn_y+y<800;++y)
+            for(int x=0;x<12 && drawn_x+x<1280;++x) {
+                auto& pixel=bmo_ui_pixels[(drawn_y+y)*1280+drawn_x+x];
+                under_pointer[y][x]=pixel;
+                if(pointer[y][x]!=' ')pixel=pointer[y][x]=='#'?0x0b1019:0xf4f8ff;
+            }
+    };
+    auto present=[&]() {
+        check(doom_invoke(1,9,(uintptr_t)bmo_ui_pixels,0)==0,"present");
+    };
     auto frame=[&]() {
         bmo_ui_state.phase=1;
 #ifdef BMO_DESKTOP_UI
@@ -131,16 +145,12 @@ extern "C" void bmo_main() {
 #endif
         renderer.pixels=bmo_ui_pixels;renderer.pixel_count=1280*800;
         renderer.frame(context);renderer.pixels=nullptr;renderer.pixel_count=0;
-        for(int y=0;y<17 && pointer_y+y<800;++y)
-            for(int x=0;x<12 && pointer_x+x<1280;++x) {
-                const char pixel=pointer[y][x];
-                if(pixel!=' ')bmo_ui_pixels[(pointer_y+y)*1280+pointer_x+x]=pixel=='#'?0x0b1019:0xf4f8ff;
-            }
+        draw_pointer();
         check(!files.denied,"resource access");
         bmo_ui_state.frames=bmo_ui_state.frames+1;
         bmo_ui_state.triangles=renderer.triangles;
         bmo_ui_state.heap_live=bmo_heap_live;bmo_ui_state.heap_peak=bmo_heap_peak;
-        check(doom_invoke(1,9,(uintptr_t)bmo_ui_pixels,0)==0,"present");
+        present();
 #ifdef BMO_DESKTOP_UI
         bmo_ui_director=bmo_director_state();
 #endif
@@ -165,15 +175,25 @@ extern "C" void bmo_main() {
     log("BMO UI USB TRANSPORT READY\n");
 #endif
     #endif
+    auto hovered_button=[&]() -> Rml::Element* {
+        for(auto* element=context->GetHoverElement();element;element=element->GetParentNode())
+            if(element->GetTagName()=="button")return element;
+        return nullptr;
+    };
     auto mouse_input=[&](int dx,int dy,unsigned buttons) {
         pointer_x=std::clamp(pointer_x+dx,0,1279);pointer_y=std::clamp(pointer_y+dy,0,799);
+        // Only buttons use hover styles in the bundled desktop document.
+        auto* hover=hovered_button();
         context->ProcessMouseMove(pointer_x,pointer_y,0);
         bool pressed=(buttons&1)!=0;
+        const bool redraw=hover!=hovered_button() || pressed!=left;
         if(pressed!=left) {
             if(pressed)context->ProcessMouseButtonDown(0,0);else context->ProcessMouseButtonUp(0,0);
             left=pressed;
         }
+        return redraw;
     };
+    context->ProcessMouseMove(pointer_x,pointer_y,0);
     frame();bmo_ui_state.phase=2;log("BMO UI READY\n");
 #ifdef BMO_USB_DUAL
     bool transport_lost=false;
@@ -207,8 +227,8 @@ extern "C" void bmo_main() {
 #endif
             }
             if(usb&(uint64_t(1)<<63)) {
-                mouse_input(int(int8_t(usb>>8)),int(int8_t(usb>>16)),unsigned(usb&7));
-                dirty=true;continue;
+                dirty|=mouse_input(int(int8_t(usb>>8)),int(int8_t(usb>>16)),unsigned(usb&7));
+                continue;
             }
             if(usb!=256)scan=unsigned(usb);
 #endif
@@ -232,8 +252,7 @@ extern "C" void bmo_main() {
                 else if(packet_index==1) {dx=byte;packet_index=2;}
                 else {
                     packet_index=0;if(flags&0xc0)continue;
-                    mouse_input(int(dx)-int(flags&16)*16,-int(byte)+int(flags&32)*8,flags&7);
-                    dirty=true;
+                    dirty|=mouse_input(int(dx)-int(flags&16)*16,-int(byte)+int(flags&32)*8,flags&7);
                 }
             } else {
 #ifdef BMO_USB_DUAL
@@ -255,8 +274,14 @@ extern "C" void bmo_main() {
             }
         }
         if(closing)break;
-        if(dirty) {frame();if(bmo_ui_state.accepted)bmo_ui_state.phase=3;}
-        // This milestone has reduced motion and only repaints on input.
+        if(dirty) frame();
+        else if(drawn_x!=pointer_x || drawn_y!=pointer_y) {
+            for(int y=0;y<17 && drawn_y+y<800;++y)
+                for(int x=0;x<12 && drawn_x+x<1280;++x)
+                    bmo_ui_pixels[(drawn_y+y)*1280+drawn_x+x]=under_pointer[y][x];
+            draw_pointer();
+            present();
+        }
         register unsigned long service __asm__("rax")=1;
         unsigned long cap=2,op=1,duration=1;
         __asm__ volatile("syscall":"+a"(service),"+D"(cap),"+S"(op),"+d"(duration)::"rcx","r11","r8","r9","r10","memory");

@@ -2486,7 +2486,7 @@
       "entrada": "Controlador xHCI admitido, dos puertos directos USB2 y reserva UEFI supervisora.",
       "salida": "Informes escalares para Ring 3, puntero visible desde el primer cuadro y diagnostico de identidad, transferencia o puerto.",
       "aceptacion": "QEMU verifica teclado y raton simultaneos, rechazo W+X, puertos vacios y parada con revocacion PCI/MMIO.",
-      "falta": "AMD fisico configure ambos dispositivos y luego mostro USB OFF en fase 210. Volver a probar con recepcion de hasta MPS y diagnostico detallado."
+      "falta": "Prueba AMD del 17-11: USB ON, fase 199, CC 13 y puntero en movimiento con latencia. Falta medir respuesta fisica del puntero tras reducir el redibujado."
     }
   ],
   "relaciones": [

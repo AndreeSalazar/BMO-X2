@@ -18,6 +18,13 @@ K y M indican configuracion; USB ON indica que el controlador sigue activo.
 El raton reserva el tamano maximo anunciado por su endpoint y entrega
 solo botones y desplazamiento del informe boot al escritorio.
 
+Una segunda prueba AMD mostro USB ON y movimiento del puntero, con
+latencia alta. Al mover el puntero sin cambiar el boton resaltado, el escritorio
+restaura los pixeles bajo la flecha y compone su nueva posicion sin
+rasterizar RmlUi. Los clicks y cambios de resaltado dibujan la escena.
+La presentacion sigue copiando la superficie completa. El recorrido
+abarca el escritorio logico de 1280x800 y sus margenes dependen del GOP.
+
 El perfil reserva 57344 bytes DMA y dos paginas de codigo supervisor.
 No cubre hubs, reconexion automatica ni aislamiento IOMMU. Las notas
 siguientes sobre perfiles separados describen las sondas anteriores.
