@@ -23,6 +23,7 @@
 #define NS_DCI 12
 #define NS_CYCLE 13
 #define NS_CONFIGURED 14
+#define NS_DESCRIPTOR_LEN 52
 #define NS_CONTROL 16
 #define NS_RING 24
 #define NS_PENDING 32

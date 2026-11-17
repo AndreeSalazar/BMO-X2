@@ -206,6 +206,7 @@ native_state_return:
 # A normal report is copied before rearming the same device buffer.
 xhci_live_report:
     push %rbx
+    movl $0, %gs:0x798
     cmpb $1, %gs:0x3c8
     jne native_live_empty
     mov %gs:0x758, %r8
@@ -267,6 +268,7 @@ native_live_length:
     cmp %edx, %eax
     jne native_live_transfer_failed
 native_live_copy:
+    mov %eax, %gs:0x7ec     # Actual report length, before rearming.
     mov NS_BUFFER(%rbx), %rax
     pushq (%rax)
     movzbl NS_KIND(%rbx), %eax
@@ -277,12 +279,25 @@ native_live_copy:
     call native_arm_if_configured
     jne native_live_rearm_failed
     pop %rax
-    cmpl $2, %gs:0x798
-    jne native_live_return
-    and $0xffffff, %eax     # Only the three boot-mouse bytes cross the ABI.
-    bts $63, %rax
 native_live_return:
     pop %rbx
+    ret
+
+# R10 = aligned byte offset, or -1 to query the descriptor length.
+native_mouse_descriptor:
+    mov %gs:0x7e8, %eax
+    cmp $-1, %r10
+    je native_mouse_descriptor_done
+    cmp %rax, %r10
+    jae native_mouse_descriptor_denied
+    test $7, %r10b
+    jnz native_mouse_descriptor_denied
+    mov %gs:0x758, %rax
+    mov 0x9a00(%rax,%r10), %rax
+native_mouse_descriptor_done:
+    ret
+native_mouse_descriptor_denied:
+    xor %eax, %eax
     ret
 native_live_rearm_failed:
     pop %rax
@@ -338,6 +353,7 @@ native_live_port_failed:
 native_live_stop_failed:
     call xhci_live_stop
 native_live_empty:
+    movl $0, %gs:0x798
     mov $256, %eax
     jmp native_live_return
 

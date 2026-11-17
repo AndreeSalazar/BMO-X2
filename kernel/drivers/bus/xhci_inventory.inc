@@ -15,6 +15,8 @@
 #ifdef XHCI_NATIVE_DUAL
     .byte 0xe9
     .long gop_cursor_region - . - 4
+    .byte 0xe9
+    .long native_mouse_descriptor - . - 4
 #endif
 #endif
 # Inventory each xHC before choosing a controller. Restore PCI selector.

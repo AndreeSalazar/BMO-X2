@@ -321,6 +321,8 @@ usb_not_status:
     je native_usb_kind
     cmp $21, %rdx
     je native_usb_status
+    cmp $22, %rdx
+    je native_usb_descriptor
 #endif
 #endif
 #endif
@@ -446,7 +448,16 @@ native_usb_invalid:
     pop %rbx
     jmp denied
 native_usb_kind:
-    mov %gs:0x798, %eax
+    mov %gs:0x7ec, %eax
+    shl $32, %rax
+    mov %gs:0x798, %edx
+    or %rdx, %rax
+    jmp finish
+native_usb_descriptor:
+    call native_usb_code
+    jc denied
+    add $20, %rax
+    call *%rax
     jmp finish
 native_usb_status:
     mov %gs:0x7ac, %eax

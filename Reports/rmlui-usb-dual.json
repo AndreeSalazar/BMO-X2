@@ -514,5 +514,121 @@
       "Note": "USB HID fisico sigue pendiente; no cambia NVRAM ni archivos ajenos al candidato."
     },
     "physical_latency_verified": false
+  },
+  "mouse_report_descriptor_update": {
+    "prior_metal_observation": "Erratic pointer motion and click not working after the GOP region update. The physical mouse report format remains unverified.",
+    "qemu": {
+      "Passed": 2,
+      "Total": 2,
+      "Cases": [
+        {
+          "Case": "normal",
+          "Passed": true,
+          "Evidence": "QEMU",
+          "CPL": 3,
+          "FullRmlUiEngine": true,
+          "NativeUltraJAction": true,
+          "DirectorRust": true,
+          "WorkspaceSwitchVerified": true,
+          "SuperQVerified": true,
+          "ReopenVerified": true,
+          "KeyboardEnterVerified": true,
+          "MouseClickVerified": true,
+          "ShellRemainsAlive": true,
+          "HeapPeakBytes": 3054800,
+          "HeapLimitBytes": 4194304,
+          "FramebufferBytes": 4096000,
+          "SbefBytes": 1858582,
+          "StagedModuleSHA256": "f05fce3034e29de102966dd36f2f5d9c789ed0641ec559773d51d4193d978b71",
+          "PresentedPixelsVerified": 1024000,
+          "GopWidth": 1280,
+          "GopHeight": 800,
+          "HalfScale": false,
+          "FrameSHA256": "be5406a89192816f090f8f977e6d6d7a0cecb2fdecbef6ae5c569f2100d298f7",
+          "UsbProfile": "both",
+          "UsbInputVerified": true,
+          "UsbReportCount": 39,
+          "UsbRing3Decoder": true,
+          "UsbDmaSupervisorOnly": true,
+          "UsbPs2FallbackDisabled": true,
+          "UsbDmaReservedBytes": 57344,
+          "UsbMmioSupervisorNxVerified": true,
+          "UsbTransportBackend": "Dynamic USB2 two-slot mediated transport",
+          "PhysicalUsbVerified": false,
+          "UsbBothDevicesVerified": true,
+          "UsbKeyboardReports": 36,
+          "UsbMouseReports": 5,
+          "PointerBeforeInputVerified": true,
+          "MouseReportDescriptorDecoded": true,
+          "PointerMoveWithoutRasterVerified": true,
+          "PointerRegionPixelsForTwoMoves": 816,
+          "UsbStopVerified": true,
+          "UsbBusMasterRevoked": true,
+          "UsbMmioRevoked": true,
+          "UsbCodePages": 2,
+          "BootLogFat32Verified": true
+        },
+        {
+          "Case": "external-permissions",
+          "Passed": true,
+          "SbefAccepted": false,
+          "UserCodeCopied": false,
+          "UserAddressSpaceActivated": false,
+          "RejectedField": "permissions",
+          "RejectedOffset": 116
+        }
+      ],
+      "run": "run-rmlui-media-82bcac3d9a46",
+      "evidence": "QEMU",
+      "disk_sbef": true,
+      "physical_boot": false,
+      "physical_usb_proven": false,
+      "qemu_only": true,
+      "usb_profile": "both",
+      "usb_empty_ports": false,
+      "hardware_profile": "amd149c-usb2-root-experimental",
+      "note": "Separate desktop candidate; no QEMU loader device, UEFI reads real FAT32 files.",
+      "files": {
+        "EFI/BMO-X2/DESKTOP.EFI": "9c8ff3f666e7ac903c8206f422fdd7c11b52f779417399659e66b40da98688ab",
+        "BMO-X2/DESKTOP/INICIO.X86": "bc28c79ba4ba54a612006da8fb71df483c43808c22dca8b968767c0da538ce3d",
+        "BMO-X2/DESKTOP/DESKTOP.SBF": "b1a5b26c3af4e0958a384d69b1a287fa05a78d3ba03f03e067e760a8dddee280"
+      }
+    },
+    "deployment": {
+      "Schema": 1,
+      "Evidence": "HOST copy after QEMU FAT32 boot",
+      "Run": "run-rmlui-media-82bcac3d9a46",
+      "Volume": "A:\\",
+      "FileSystem": "FAT32",
+      "Files": {
+        "EFI/BMO-X2/DESKTOP.EFI": "9c8ff3f666e7ac903c8206f422fdd7c11b52f779417399659e66b40da98688ab",
+        "BMO-X2/DESKTOP/INICIO.X86": "bc28c79ba4ba54a612006da8fb71df483c43808c22dca8b968767c0da538ce3d",
+        "BMO-X2/DESKTOP/DESKTOP.SBF": "b1a5b26c3af4e0958a384d69b1a287fa05a78d3ba03f03e067e760a8dddee280"
+      },
+      "LegacyFilesUnchanged": {},
+      "PhysicalBootVerified": false,
+      "PhysicalUsbVerified": false,
+      "PreviousFiles": {
+        "EFI/BMO-X2/DESKTOP.EFI": {
+          "SHA256": "a39a6bd9c036969d663817e08df36749383707d3c54d05d0eaee2dd3e6002295",
+          "Archive": "C:\\Users\\Salazar\\Documents\\BMO-X2\\build\\CASM\\run-rmlui-media-82bcac3d9a46\\fat32-backups\\EFI\\BMO-X2\\DESKTOP.EFI.a39a6bd9c036969d663817e08df36749383707d3c54d05d0eaee2dd3e6002295"
+        },
+        "BMO-X2/DESKTOP/INICIO.X86": {
+          "SHA256": "470ee9cc82545d14c2fb3b119d67751efb1c3d913d140909d309bcabde002c9b",
+          "Archive": "C:\\Users\\Salazar\\Documents\\BMO-X2\\build\\CASM\\run-rmlui-media-82bcac3d9a46\\fat32-backups\\BMO-X2\\DESKTOP\\INICIO.X86.470ee9cc82545d14c2fb3b119d67751efb1c3d913d140909d309bcabde002c9b"
+        },
+        "BMO-X2/DESKTOP/DESKTOP.SBF": {
+          "SHA256": "c037882224585bc474c88deb6c4fce8dd9aaa42f75eb83801c21f0958147656a",
+          "Archive": "C:\\Users\\Salazar\\Documents\\BMO-X2\\build\\CASM\\run-rmlui-media-82bcac3d9a46\\fat32-backups\\BMO-X2\\DESKTOP\\DESKTOP.SBF.c037882224585bc474c88deb6c4fce8dd9aaa42f75eb83801c21f0958147656a"
+        }
+      },
+      "ExperimentalUsb": true,
+      "HardwareProfile": "amd149c-usb2-root-experimental",
+      "BootFile": "\\EFI\\BMO-X2\\DESKTOP.EFI",
+      "ReportFile": "\\BMO-X2\\DESKTOP\\BOOTLOG.TXT",
+      "Note": "USB HID fisico sigue pendiente; no cambia NVRAM ni archivos ajenos al candidato."
+    },
+    "host_wide_report_test_passed": true,
+    "physical_mouse_verified": false
   }
 }

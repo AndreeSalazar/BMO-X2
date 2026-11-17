@@ -25,6 +25,7 @@ void bmo_usb_init(uint32_t);uint32_t bmo_usb_report(uint64_t);uint64_t bmo_usb_e
 volatile uint64_t bmo_ui_usb_reports;
 #ifdef BMO_USB_DUAL
 uint32_t bmo_usb_report_kind(uint64_t,uint32_t);uint32_t bmo_usb_disconnect();
+uint32_t bmo_mouse_format(const uint8_t*,size_t);uint64_t bmo_mouse_decode(uint64_t,uint32_t);
 volatile uint64_t bmo_ui_usb_keyboard_reports,bmo_ui_usb_mouse_reports;
 #endif
 #endif
@@ -168,6 +169,14 @@ extern "C" void bmo_main() {
     );
     doom_invoke(3,3,4,0);
 #ifdef BMO_USB_DUAL
+    uint64_t descriptor[64]={};
+    const auto descriptor_size=doom_invoke(3,3,22,~0UL);
+    bool mouse_format_ready=false;
+    if(descriptor_size && descriptor_size<=sizeof(descriptor)) {
+        for(size_t i=0;i<descriptor_size;i+=8)descriptor[i/8]=doom_invoke(3,3,22,i);
+        mouse_format_ready=bmo_mouse_format(reinterpret_cast<const uint8_t*>(descriptor),descriptor_size)==1;
+    }
+    if(!mouse_format_ready)log("BMO UI USB MOUSE FORMAT UNSUPPORTED\n");
     if(doom_invoke(3,3,18,0)!=1)log("BMO UI USB TRANSPORT PENDING\n");
     else log("BMO UI USB TRANSPORT READY\n");
 #else
@@ -207,22 +216,31 @@ extern "C" void bmo_main() {
             if(usb==256) {
                 auto raw=doom_invoke(3,3,5,0);
                 uint32_t admitted=1;
-                if(raw!=256 && raw!=257) {
 #ifdef BMO_USB_DUAL
-                    auto kind=doom_invoke(3,3,20,0);
-                    admitted=bmo_usb_report_kind(raw,uint32_t(kind));
-                    if(admitted==0 && kind==1)bmo_ui_usb_keyboard_reports=bmo_ui_usb_keyboard_reports+1;
-                    if(admitted==0 && kind==2)bmo_ui_usb_mouse_reports=bmo_ui_usb_mouse_reports+1;
-#else
-                    admitted=bmo_usb_report(raw);
-#endif
+                const auto metadata=doom_invoke(3,3,20,0);
+                const auto kind=uint32_t(metadata);
+                if(kind==2 && mouse_format_ready) {
+                    const auto motion=bmo_mouse_decode(raw,uint32_t(metadata>>32));
+                    if(motion) {
+                        dirty|=mouse_input(int(int16_t(motion>>8)),int(int16_t(motion>>24)),unsigned(motion&7));
+                        bmo_ui_usb_mouse_reports=bmo_ui_usb_mouse_reports+1;
+                        bmo_ui_usb_reports=bmo_ui_usb_reports+1;
+                        continue;
+                    }
                 }
+                if(kind==1) {
+                    admitted=bmo_usb_report_kind(raw,1);
+                    if(admitted==0)bmo_ui_usb_keyboard_reports=bmo_ui_usb_keyboard_reports+1;
+                }
+#else
+                if(raw!=256 && raw!=257) admitted=bmo_usb_report(raw);
+#endif
                 if(admitted==0) {
                     bmo_ui_usb_reports=bmo_ui_usb_reports+1;usb=bmo_usb_event();
                 }
 #ifdef BMO_USB_DUAL
                 if(!transport_lost && doom_invoke(3,3,18,0)!=1) {
-                    transport_lost=true;bmo_usb_disconnect();dirty=true;
+                    transport_lost=true;bmo_usb_disconnect();mouse_input(0,0,0);dirty=true;
                 }
 #endif
             }
@@ -256,7 +274,7 @@ extern "C" void bmo_main() {
                 }
             } else {
 #ifdef BMO_USB_DUAL
-                if(scan==0x58) {doom_invoke(3,3,19,0);bmo_usb_disconnect();transport_lost=true;dirty=true;continue;}
+                if(scan==0x58) {doom_invoke(3,3,19,0);bmo_usb_disconnect();mouse_input(0,0,0);transport_lost=true;dirty=true;continue;}
 #endif
 #ifdef BMO_DESKTOP_UI
                 auto route=bmo_director_key(scan);

@@ -2449,10 +2449,10 @@
         4100
       ],
       "que": "Recibe informes escalares del transporte mediado y entrega cambios de teclado o raton a RmlUi/DIRECTOR usando InputService real.",
-      "entrada": "Informe boot de un dispositivo QEMU, propietario unico y llamadas C sincronicas.",
-      "salida": "Scancodes con prefijos/liberaciones o movimiento firmado y botones; cola acotada de veinte eventos.",
+      "entrada": "Teclado boot y descriptor HID del raton en modo Report, con longitud por transferencia xHCI.",
+      "salida": "Scancodes y desplazamiento relativo con signo y botones separados; Ring 3 recorta al escritorio.",
       "aceptacion": "CPL3: Enter, espacios, Super+Q/reapertura via USB teclado; movimiento y clic via USB raton; alternativa PS2 del aparato probado descartada. Un test HOST adicional del adaptador.",
-      "falta": "Dos dispositivos USB a la vez, backend vivo AMD, desconexion/reconexion y configuracion propia de usuario; actualmente el backend de diagnostico configura en Ring0."
+      "falta": "Confirmar el descriptor y comportamiento del raton fisico. El perfil actual requiere X, Y y el boton primario en el mismo informe, con los campos usados dentro de ocho bytes."
     },
     {
       "id": "rmlui-native-usb-profile",

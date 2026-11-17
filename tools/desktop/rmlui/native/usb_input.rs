@@ -1,11 +1,30 @@
 //! Single-owner native HID adapter; Ring0 retains MMIO and DMA ownership.
 use bmo_x2_usb::{descriptor::Kind,input::{InputService,Payload,Token}};
 use core::cell::UnsafeCell;
+#[path = "mouse_report.rs"]
+mod mouse_report;
+use mouse_report::MouseReport;
 struct Input {service:InputService<2,40>,keyboard:Option<Token>,mouse:Option<Token>,mode:u32,prefix:Option<u8>}
 struct Owner(UnsafeCell<Option<Input>>);
 // Only the synchronous UI thread enters this ABI; no reference crosses C.
 unsafe impl Sync for Owner {}
 static OWNER:Owner=Owner(UnsafeCell::new(None));
+struct MouseFormat(UnsafeCell<Option<MouseReport>>);
+unsafe impl Sync for MouseFormat {}
+static MOUSE_FORMAT:MouseFormat=MouseFormat(UnsafeCell::new(None));
+
+// The single UI owner supplies an initialized local descriptor buffer.
+#[unsafe(no_mangle)] pub unsafe extern "C" fn bmo_mouse_format(bytes:*const u8,length:usize)->u32 {
+    if bytes.is_null() || length==0 || length>512 {return 0;}
+    let layout=MouseReport::parse(unsafe{core::slice::from_raw_parts(bytes,length)});
+    unsafe{*MOUSE_FORMAT.0.get()=layout;}
+    u32::from(layout.is_some())
+}
+
+#[unsafe(no_mangle)] pub extern "C" fn bmo_mouse_decode(raw:u64,length:u32)->u64 {
+    let Some((dx,dy,buttons))=(unsafe{*MOUSE_FORMAT.0.get()}).and_then(|layout|layout.decode(raw,length)) else{return 0;};
+    1u64<<63 | u64::from(buttons) | (u64::from(dx as u16)<<8) | (u64::from(dy as u16)<<24)
+}
 #[unsafe(no_mangle)] pub extern "C" fn bmo_usb_init(mode:u32) {
     let mut service=InputService::default();
     let keyboard=if mode!=1 {Some(service.bind(Kind::Keyboard).unwrap())}else{None};

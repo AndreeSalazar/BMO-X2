@@ -195,9 +195,28 @@ native_ep0_evaluate:
     movzbl NS_INTERFACE(%rbx), %eax
     shl $32, %rax
     or $0x0b21, %rax
+    cmpb $2, NS_KIND(%rbx)
+    jne native_set_protocol
+    or $0x10000, %rax       # Mouse uses its declared Report protocol.
+native_set_protocol:
     xor %edx, %edx
     call native_control
     jne native_port_drop
+    cmpb $2, NS_KIND(%rbx)
+    jne native_configure_hid
+    movzwl NS_DESCRIPTOR_LEN(%rbx), %edx
+    movzbl NS_INTERFACE(%rbx), %eax
+    shl $32, %rax
+    or $0x22000681, %rax
+    call native_control
+    jne native_port_drop
+    lea 0x9500(%r8), %rsi
+    lea 0x9a00(%r8), %rdi
+    movzwl NS_DESCRIPTOR_LEN(%rbx), %ecx
+    rep movsb
+    movzwl NS_DESCRIPTOR_LEN(%rbx), %eax
+    mov %eax, %gs:0x7e8
+native_configure_hid:
     call native_configure_endpoint
     jne native_port_drop
     movb $1, NS_CONFIGURED(%rbx)
@@ -305,6 +324,10 @@ native_descriptor_hid:
     jne native_hid_missing
     cmpw $0, 7(%rsi)
     je native_hid_missing
+    movzwl 7(%rsi), %ecx
+    cmp $512, %ecx
+    ja native_hid_missing
+    mov %cx, NS_DESCRIPTOR_LEN(%rbx)
     or $0x100, %edi
     jmp native_descriptor_advance
 native_descriptor_endpoint:
@@ -335,7 +358,7 @@ native_packet_minimum:
     movw $8, NS_LENGTH(%rbx)
     cmpb $1, NS_KIND(%rbx)
     je native_packet_check
-    movw $3, NS_LENGTH(%rbx)
+    movw $1, NS_LENGTH(%rbx)
 native_packet_check:
     cmp NS_LENGTH(%rbx), %cx
     jb native_hid_missing

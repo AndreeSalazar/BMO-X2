@@ -223,6 +223,7 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
                     raise ValueError('Dual stop/revocation incomplete')
                 usb_proof.update(UsbBothDevicesVerified=True,UsbKeyboardReports=keyboard,UsbMouseReports=mouse,
                     PointerBeforeInputVerified=True,
+                    MouseReportDescriptorDecoded=True,
                     PointerMoveWithoutRasterVerified=True,
                     PointerRegionPixelsForTwoMoves=copied,
                     UsbStopVerified=True,UsbBusMasterRevoked=True,UsbMmioRevoked=True,

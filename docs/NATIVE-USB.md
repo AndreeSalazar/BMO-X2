@@ -15,8 +15,13 @@ y fase 210. Esa compilacion mostraba el CC anterior a la transferencia
 fallida. El transporte ahora registra el CC de la transferencia cotejada
 y distingue identidad (211), transferencia (212) y puerto (213).
 K y M indican configuracion; USB ON indica que el controlador sigue activo.
-El raton reserva el tamano maximo anunciado por su endpoint y entrega
-solo botones y desplazamiento del informe boot al escritorio.
+El raton del perfil conjunto reserva el tamano maximo anunciado por su
+endpoint. Solicita protocolo Report y lee su descriptor HID. Ring 3
+usa el ID, la longitud y los campos declarados para separar botones y
+ejes relativos de hasta 16 bits. Los campos usados deben caber en los
+primeros ocho bytes y el informe debe contener todos los bytes declarados.
+Si el formato queda fuera de ese perfil, se registra el rechazo.
+Este cambio sigue el precedente de BMO-X en `uhid/src/formato.rs`.
 
 Una segunda prueba AMD mostro USB ON y movimiento del puntero, con
 latencia alta. Al mover el puntero sin cambiar el boton resaltado, el escritorio
