@@ -95,3 +95,32 @@ admite registros de version 1 sin manejadores ni cadenas. El perfil
 rechaza DLL, importaciones, relocaciones, TLS, regiones RW y directorios
 fuera de su contrato. Win32 y DirectX requieren servicios propios
 en Ring 3. [Evidencia QEMU](../../Reports/abi-msvc-qemu.json).
+
+## Referencia de BMO-X para compatibilidad y graficos
+
+Revision leida del padre: `6076bdefe`. Sus rutas se indican desde la
+raiz de BMO-X.
+
+| Componente del padre | Responsabilidad que sirve de referencia |
+|---|---|
+| `platform/shared/proton-x` | Inspeccion PE32+, reservas, relocaciones e importaciones. El cliente de Ring 3 aporta la memoria y el salto a la entrada. |
+| `platform/shared/proton-x-casa` | Exportaciones Win64, incluidas Win32, DXGI y D3D12. Su interfaz `Plataforma` conecta las funciones con reloj, archivos, memoria, ventanas y dibujo. |
+| `platform/shared/prometeo` y `platform/shared/verrano-trama` | Representacion de programas graficos, interpretacion y raster por CPU. |
+| `platform/shared/verrano/src/dibujo.rs` | Contrato `DrawBackend` y comprobaciones compartidas para los ejecutores. |
+| `platform/shared/proton-x-sm86` | Emisor SASS para SM86 y simulador para el banco HOST. La ejecucion en la RTX se verifica por separado. |
+| `Ultra_userspace/apps/proton-x` | Carga, resuelve servicios y conecta la presentacion con DIRECTOR. Su censo informa dependencias antes de arrancar el programa. |
+
+El parte `docs/metal/METAL_2026-10-13.md`, seccion 5, registra la intro
+de Cyberpunk 2077 a 1280x720 por CPU, alrededor de 16 s por fotograma.
+En la corrida medida la RTX dibujo cero lotes del juego. El camino
+observado uso las funciones D3D12 de PROTON-X y el dibujo de la casa.
+Vulkan figura como otra API posible sobre un backend y tiene su propio
+plan en `platform/drivers/gpu/rdna4/PLAN_VULKAN.md`.
+
+Para BMO-X2, el siguiente ensayo es un cliente MSVC con paginas RX, R
+y RW e importacion declarada hacia un servicio Rust de Ring 3. El
+informe HOST debe mostrar la dependencia y su resolucion, o identificar
+la DLL y el simbolo pendientes. El paso grafico siguiente es un ejemplo
+pequeno con DXGI/D3D12, un ejecutor CPU y una superficie de DIRECTOR.
+Para darlo por valido en QEMU se comprueba el cuadro y la finalizacion
+de la cola. Vulkan y el emisor SM86 tienen pruebas propias de backend.
