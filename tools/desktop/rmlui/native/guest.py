@@ -36,13 +36,17 @@ def check_math_providers(text):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--desktop',action='store_true')
+    parser.add_argument('--msvc-panel-cc', help='Optional cl.exe for the trusted Win64 panel')
     parser.add_argument('--usb',choices=['keyboard','mouse','both'])
     args=parser.parse_args()
     if args.usb and not args.desktop:parser.error('--usb requires --desktop')
+    if args.msvc_panel_cc and not args.desktop:parser.error('--msvc-panel-cc requires --desktop')
     libc.main()
     here=Path(__file__).parent
     llvm=Path(os.environ['ProgramFiles'])/'LLVM/bin'
-    out=OUT/('desktop-usb-'+args.usb if args.usb else 'desktop' if args.desktop else 'guest');out.mkdir(exist_ok=True)
+    variant='desktop-usb-'+args.usb if args.usb else 'desktop' if args.desktop else 'guest'
+    out=OUT/(variant + ('-msvc' if args.msvc_panel_cc else ''))
+    out.mkdir(exist_ok=True)
     includes=generate_headers()
     flags=['--target=x86_64-unknown-none-elf','-Os','-ffreestanding','-fno-builtin',
         '-fno-stack-protector','-fno-pic','-fno-pie','-mno-red-zone','-ffunction-sections',
@@ -57,6 +61,7 @@ def main():
     if args.desktop:cppflags+=['-DBMO_DESKTOP_UI']
     if args.usb:cppflags+=['-DBMO_USB_INPUT']+(['-DBMO_USB_MOUSE'] if args.usb=='mouse' else [])
     if args.usb=='both':cppflags+=['-DBMO_USB_DUAL']
+    if args.msvc_panel_cc:cppflags+=['-DBMO_MSVC_PANEL']
     command([llvm/'clang++.exe',*cppflags,'-c',here/'guest.cpp','-o',out/'guest.o'],'compile-native-guest')
     command([llvm/'clang++.exe',*cppflags,'-c',here/'new.cpp','-o',out/'new.o'],'compile-native-new')
     rust_extra=[]
@@ -86,11 +91,22 @@ def main():
             '<span id="lock-scroll" class="key-chip">DESPL</span></div>')
         text=text.replace('<span class="muted">BMO-X2 / DIRECTOR</span>',bar)
         text=text.replace('HECHO PARA CRECER','CTRL+SUPER+1..4 / SUPER+Q')
+    if args.msvc_panel_cc:
+        text=text.replace('<div class="nav">03 <span>Archivos</span></div>',
+            '<button id="open-msvc" class="nav">Abrir panel MSVC</button>')
+        text=text.replace('<div id="bottom">', '<div id="msvc-panel" style="display:none;">'
+            '<h2>Hola ventana</h2><p class="description">C++ / MSVC</p>'
+            '<div id="msvc-surface"></div></div><div id="bottom">')
     write_if_changed(out/'main.rml',text)
     paths=[out/'main.rml',assets/'style.rcss',DEPS/'RmlUi-6.3/Samples/assets/LatoLatin-Regular.ttf',DEPS/'RmlUi-6.3/Samples/assets/LatoLatin-Bold.ttf']
     asm='.section .rodata\n'
     for i,p in enumerate(paths):
         asm+=f'.globl resource_{i},resource_{i}_end\nresource_{i}:\n.incbin "{p.as_posix()}"\nresource_{i}_end:\n'
+    if args.msvc_panel_cc:
+        sys.path.insert(0,str(ROOT/'tools'))
+        from host.toolchains.msvc import build_desktop_panel
+        panel=build_desktop_panel(ROOT,out,args.msvc_panel_cc,llvm/'llvm-nm.exe')
+        asm+=f'.section .text.msvc_panel,"ax",@progbits\n.balign 16\n.globl bmo_msvc_panel\nbmo_msvc_panel:\n.incbin "{panel.as_posix()}"\n.section .rodata\n'
     sys.path.insert(0,str(ROOT/'Ultra-J'))
     from compiler import compile_source
     action=compile_source((assets/'main.uj').read_bytes())
@@ -126,6 +142,8 @@ def main():
     manifest=dict(state=symbols['bmo_ui_state'],pixels=symbols['bmo_ui_pixels'],desktop=args.desktop)
     if args.desktop:
         manifest.update(director=symbols['bmo_ui_director'],keyboard_focus=symbols['bmo_ui_keyboard_focus'])
+    if args.msvc_panel_cc:
+        manifest['msvc_panel_draws']=symbols['bmo_ui_msvc_draws']
     if args.usb:manifest.update(usb=args.usb,usb_reports=symbols['bmo_ui_usb_reports'])
     if args.usb=='both':
         manifest.update(usb_keyboard_reports=symbols['bmo_ui_usb_keyboard_reports'],

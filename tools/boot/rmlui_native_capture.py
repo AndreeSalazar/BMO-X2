@@ -208,6 +208,38 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
         key('f1');policy(0x102)
         key('ctrl','meta_l','1');policy(1)
         key('ctrl','meta_l','2');policy(0x102)
+        msvc_result={}
+        if symbols.get('msvc_panel_draws'):
+            address=symbols['msvc_panel_draws']
+            if not 0x40400000<=address<=0x40e00000-8:raise ValueError('MSVC draw symbol')
+            key('f3');policy(0x202)
+            draws=struct.unpack('<Q',memory(address-0x3c000000,8,'msvc-draws'))[0]
+            if draws<1:raise ValueError('MSVC client did not execute')
+            msvc_frame=memory(pixels-0x3c000000,1280*800*4,'msvc-desktop-frame')
+            if msvc_frame.count(bytes.fromhex('d5e77e00'))<9:raise ValueError('MSVC triangle missing')
+            shot=Path(str(prefix)+'-msvc-rmlui.png')
+            command('screendump',{'filename':str(shot),'format':'png'})
+            key('meta_l','q');policy(0x102)
+            for i in range(5):
+                events=[{'type':'rel','data':{'axis':'x','value':-106}}]
+                if i<2:
+                    events.append({'type':'rel','data':{'axis':'y','value':-113}})
+                command('input-send-event',{'events':events})
+                time.sleep(.12)
+            gx=x+(112*scale if scale else 56)
+            gy=y+(305*scale if scale else 152)
+            hover_color=0xa2f4e6 if order==1 else 0xe6f4a2
+            wait_input(lambda: struct.unpack('<I',memory(fb+(gy*pitch+gx)*4,4,'msvc-launcher-pointer'))[0]==hover_color,
+                       'Pointer did not reach the MSVC launcher')
+            mouse_event('btn',button='left',down=True)
+            time.sleep(.15)
+            mouse_event('btn',button='left',down=False)
+            policy(0x202)
+            key('meta_l','q');policy(0x102)
+            msvc_result=dict(MsvcPanelInRmlUiVerified=True,MsvcPanelCloseVerified=True,
+                             MsvcMouseLauncherVerified=True,
+                             MsvcPanelDraws=draws,MsvcScreenshot=shot.name,
+                             MsvcScreenshotSHA256=hashlib.sha256(shot.read_bytes()).hexdigest())
         locks_verified=False
         lock_strip_verified=False
         if symbols.get('usb')=='both' and symbols.get('keyboard_leds'):
@@ -296,7 +328,7 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
             ReopenVerified=True,KeyboardEnterVerified=True,MouseClickVerified=True,ShellRemainsAlive=True,
             HeapPeakBytes=after[7],HeapLimitBytes=4*1024*1024,FramebufferBytes=len(raw),SbefBytes=len(image),
             StagedModuleSHA256=hashlib.sha256(struct.pack('<Q',len(image))+image).hexdigest(),
-            PresentedPixelsVerified=dw*dh,GopWidth=width,GopHeight=height,HalfScale=scale==0,FrameSHA256=before,**usb_proof)
+            PresentedPixelsVerified=dw*dh,GopWidth=width,GopHeight=height,HalfScale=scale==0,FrameSHA256=before,**usb_proof,**msvc_result)
     command('input-send-event',{'events':[{'type':'rel','data':{'axis':'y','value':127}}]})
     time.sleep(.2)
     command('input-send-event',{'events':[{'type':'btn','data':{'button':'left','down':True}}]})

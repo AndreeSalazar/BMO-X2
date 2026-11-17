@@ -70,3 +70,7 @@ button { tab-index:auto; transition:background-color 0.12s linear-in-out; }
 #space-strip, #lock-strip { display:flex; align-items:center; }
 .key-chip { padding:3px 7px; margin:0 2px; border-radius:7px; background:#282446; color:#a19abc; letter-spacing:0; }
 .key-chip.on { background:#b99aff; color:#181128; }
+#open-msvc { width:175px; box-sizing:border-box; margin:0 0 8px; padding:0 14px; text-align:left; background:#282446; color:#e2d6ff; }
+.native-pointer #open-msvc:hover { background:#282446; }
+#msvc-panel { height:393px; background:#17162e; border:1px #534578; border-radius:18px; padding:20px 25px; box-sizing:border-box; }
+#msvc-surface { width:480px; height:300px; margin-top:8px; }

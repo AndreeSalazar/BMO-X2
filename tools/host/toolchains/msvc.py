@@ -2,12 +2,47 @@
 import hashlib
 import json
 import re
+import struct
 import subprocess
 import sys
 
 from ..importers.pe import pack_pe, probe_pe
 from ..importers.pe_bindings import SESSION_EXPORTS
 from ..sbef.format import inspect
+
+
+def build_desktop_panel(root, out, cc, nm):
+    """Extract a trusted in-process MSVC function, with no COFF fixups."""
+    obj = out/'msvc-panel.obj'
+    subprocess.run([cc, '/nologo', '/std:c++17', '/c', '/Od', '/GS-', '/Zl',
+                    f'/Fo{obj}', str(root/'tools/tests/msvc_desktop_panel.cpp')],
+                   check=True, cwd=out)
+    data = obj.read_bytes()
+    header = struct.Struct('<HHIIIHH')
+    section = struct.Struct('<8sIIIIIIHHI')
+    if len(data) < header.size:
+        raise ValueError('MSVC panel COFF header')
+    machine, count, _, _, _, optional, _ = header.unpack_from(data)
+    if machine != 0x8664 or optional or header.size + count * section.size > len(data):
+        raise ValueError('MSVC panel COFF header')
+    executable = []
+    for i in range(count):
+        name, _, _, size, offset, _, _, relocations, _, flags = section.unpack_from(
+            data, header.size + i * section.size)
+        if flags & 0x20000000:
+            if (name.rstrip(b'\0') not in (b'.text', b'.text$mn') or relocations
+                    or flags & 0x80000000 or not 0 < size <= 4096
+                    or not header.size + count * section.size <= offset <= len(data) - size):
+                raise ValueError('MSVC panel requires one relocation-free .text')
+            executable.append(data[offset:offset+size])
+    names = subprocess.check_output([str(nm), '--format=posix', str(obj)], text=True)
+    symbols = [line.split() for line in names.splitlines() if len(line.split()) >= 2]
+    entries = [row for row in symbols if row[0] == 'bmo_msvc_panel' and row[1] == 'T']
+    if len(executable) != 1 or len(entries) != 1 or int(entries[0][2], 16) != 0 or any(row[1]=='U' for row in symbols):
+        raise ValueError('MSVC panel symbol or dependencies')
+    binary = out/'msvc-panel.bin'
+    binary.write_bytes(executable[0])
+    return binary
 
 
 def build_msvc(out, client, abi, completion, *, cc, linker, assembler, qemu):

@@ -15,12 +15,15 @@ impl Policy {
         space_down:false,space_captured:false,locks:0,locks_down:0}}
     fn snapshot(&self)->u64 {u64::from(self.desktop.active().number()) | (u64::from(self.desktop.focused().unwrap_or(0))<<8)}
     fn open(&mut self) {
+        self.open_app(1);
+    }
+    fn open_app(&mut self,id:u32) {
         static PIXEL:[u32;1]=[0];
         // Metadata-only surface: RmlUi owns the actual pixels, never aliased here.
         let current=self.desktop.active();
-        if self.desktop.open(1,0,0,Surface::new(1,1,&PIXEL).unwrap()).is_err() {
-            for n in 1..=4 {self.desktop.switch(Workspace::new(n).unwrap());if self.desktop.focus(1){self.desktop.move_focused(current);break;}}
-            self.desktop.switch(current);self.desktop.focus(1);
+        if self.desktop.open(id,0,0,Surface::new(1,1,&PIXEL).unwrap()).is_err() {
+            for n in 1..=4 {self.desktop.switch(Workspace::new(n).unwrap());if self.desktop.focus(id){self.desktop.move_focused(current);break;}}
+            self.desktop.switch(current);self.desktop.focus(id);
         }
     }
     fn key(&mut self,byte:u8)->u32 {
@@ -77,6 +80,7 @@ unsafe impl Sync for Owner {}
 static OWNER:Owner=Owner(UnsafeCell::new(None));
 #[unsafe(no_mangle)] pub extern "C" fn bmo_director_init() {unsafe{*OWNER.0.get()=Some(Policy::new());}}
 #[unsafe(no_mangle)] pub extern "C" fn bmo_director_open()->u64 {unsafe{let p=(*OWNER.0.get()).as_mut().unwrap();p.open();p.snapshot()}}
+#[unsafe(no_mangle)] pub extern "C" fn bmo_director_open_msvc()->u64 {unsafe{let p=(*OWNER.0.get()).as_mut().unwrap();p.open_app(2);p.snapshot()}}
 #[unsafe(no_mangle)] pub extern "C" fn bmo_director_key(byte:u32)->u32 {if byte>255{return 1;}unsafe{(*OWNER.0.get()).as_mut().unwrap().key(byte as u8)}}
 #[unsafe(no_mangle)] pub extern "C" fn bmo_director_state()->u64 {unsafe{(*OWNER.0.get()).as_ref().unwrap().snapshot()}}
 #[unsafe(no_mangle)] pub extern "C" fn bmo_director_locks()->u32 {unsafe{u32::from((*OWNER.0.get()).as_ref().unwrap().locks)}}

@@ -21,6 +21,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('abi_run',type=Path);p.add_argument('splash_run',type=Path)
     p.add_argument('--low-gop',action='store_true')
+    p.add_argument('--msvc-panel',action='store_true',help='Use the optional MSVC desktop build')
     p.add_argument('--usb',choices=['keyboard','mouse','both'],help='Mediated xHCI profile; both uses the dynamic USB2 root transport')
     p.add_argument('--usb-empty-ports',action='store_true',help='QEMU rejection test; never a metal candidate')
     args=p.parse_args()
@@ -31,7 +32,8 @@ def main():
         check(path)
     if (abi/'profile.txt').read_text(encoding='utf-8-sig').strip()!='ring0-abi-probe-0.1' or (splash/'profile.txt').read_text(encoding='utf-8-sig').strip()!='ring0-splash-0.1':
         raise ValueError('ABI probe and compact CASM cat required')
-    app=OUT/('desktop-usb-'+args.usb if args.usb else 'desktop')
+    variant='desktop-usb-'+args.usb if args.usb else 'desktop'
+    app=OUT/(variant + ('-msvc' if args.msvc_panel else ''))
     hashes=json.loads((app/'artifacts.json').read_text())
     for name,digest in hashes.items():
         if hashlib.sha256((app/name).read_bytes()).hexdigest()!=digest:raise ValueError('Stale desktop build: '+name)

@@ -114,10 +114,21 @@ triangulo por CPU. El modelo Rust de DIRECTOR compone el panel en una
 superficie de 320x200 y la presenta mediante GOP. Super+Q retira el panel
 y F1 lo reabre. El banco coteja los tres cuadros en QEMU, incluido el
 fondo restaurado. El perfil visual usa `/Od` por el limite de metadatos
-unwind encadenados. Sigue pendiente integrar el cliente en la sesion
-RmlUi de escritorio y anadir las llamadas DXGI/Direct3D.
+unwind encadenados.
 [Captura](../../Reports/abi-msvc-director.png) y
 [evidencia](../../Reports/abi-msvc-director-qemu.json).
+
+El perfil opcional `guest.py --desktop --usb both --msvc-panel-cc cl.exe`
+agrega **Abrir panel MSVC** y F3 al escritorio RmlUi. Para construir su
+imagen QEMU se usa `media.py --usb both --msvc-panel`. HOST compila una
+unidad de confianza, comprueba que sea una funcion COFF x64 sin
+relocaciones ni simbolos externos e incorpora su codigo a la region RX
+del SBEF del escritorio. DIRECTOR le asigna su propio identificador
+de ventana. RmlUi llama la funcion Win64 y presenta el resultado por CPU.
+[Captura](../../Reports/abi-msvc-rmlui.png) y
+[evidencia QEMU](../../Reports/abi-msvc-rmlui-qemu.json).
+Esta integracion comparte el proceso del escritorio. La admision de
+aplicaciones externas en procesos propios y DXGI/Direct3D siguen pendientes.
 
 ## Referencia de BMO-X para compatibilidad y graficos
 

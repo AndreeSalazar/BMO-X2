@@ -21,6 +21,11 @@ void bmo_director_init();uint64_t bmo_director_open();uint64_t bmo_director_stat
 uint32_t bmo_director_locks();
 volatile uint64_t bmo_ui_director;
 volatile uint64_t bmo_ui_keyboard_focus;
+#ifdef BMO_MSVC_PANEL
+uint64_t bmo_director_open_msvc();
+__attribute__((ms_abi)) unsigned bmo_msvc_panel(unsigned*, unsigned);
+volatile uint64_t bmo_ui_msvc_draws;
+#endif
 #endif
 #ifdef BMO_USB_INPUT
 void bmo_usb_init(uint32_t);uint32_t bmo_usb_report(uint64_t);uint64_t bmo_usb_event();
@@ -60,7 +65,10 @@ class Action final:public Rml::EventListener {
 };
 #ifdef BMO_DESKTOP_UI
 class Launcher final:public Rml::EventListener {
-    void ProcessEvent(Rml::Event& e) override {if(e.GetType()=="click")bmo_director_open();}
+    uint64_t (*open)();
+public:
+    explicit Launcher(uint64_t (*action)()):open(action) {}
+    void ProcessEvent(Rml::Event& e) override {if(e.GetType()=="click")open();}
 };
 #endif
 static void check(bool ok,const char* error) {if(!ok)bmo_native_fail(error);}
@@ -106,8 +114,15 @@ extern "C" void bmo_main() {
     auto button=doc->GetElementById("activate");check(button,"button");button->AddEventListener("click",&action);
     doc->Show();
 #ifdef BMO_DESKTOP_UI
-    bmo_director_init();bmo_director_open();Launcher launcher;
+    bmo_director_init();bmo_director_open();Launcher launcher(bmo_director_open);
     doc->GetElementById("open-app")->AddEventListener("click",&launcher);
+#ifdef BMO_MSVC_PANEL
+    Launcher msvc_launcher(bmo_director_open_msvc);
+    doc->GetElementById("open-msvc")->AddEventListener("click",&msvc_launcher);
+    auto* msvc_panel=doc->GetElementById("msvc-panel");
+    auto* msvc_surface=doc->GetElementById("msvc-surface");
+    static unsigned msvc_pixels[160*100];
+#endif
     auto sync_locks=[&]() {
         const unsigned locks=bmo_director_locks();
         doc->GetElementById("lock-num")->SetClass("on",locks&1);
@@ -128,7 +143,10 @@ extern "C" void bmo_main() {
             (usb>>24)&1?"ON":"OFF",usb&0x100?"OK":"espera",usb&0x200?"OK":"espera",unsigned(usb&255),unsigned((usb>>16)&255));
 #endif
         doc->GetElementById("desktop-status")->SetInnerRML(label);
-        doc->GetElementById("workspace")->SetProperty("display",(policy>>8)?"flex":"none");
+        doc->GetElementById("workspace")->SetProperty("display",(policy>>8)==1?"flex":"none");
+#ifdef BMO_MSVC_PANEL
+        msvc_panel->SetProperty("display",(policy>>8)==2?"block":"none");
+#endif
     };
 #endif
     int pointer_x=640,pointer_y=400,packet_index=0;
@@ -169,6 +187,18 @@ extern "C" void bmo_main() {
 #endif
         renderer.pixels=bmo_ui_pixels;renderer.pixel_count=1280*800;
         renderer.frame(context);renderer.pixels=nullptr;renderer.pixel_count=0;
+#ifdef BMO_MSVC_PANEL
+        if((bmo_director_state()>>8)==2) {
+            const auto position=msvc_surface->GetAbsoluteOffset(Rml::BoxArea::Content);
+            const int x=int(position.x), y=int(position.y);
+            check(x>=0 && y>=0 && x+480<=1280 && y+300<=800,"MSVC layout");
+            check(bmo_msvc_panel(msvc_pixels,160*100)==1,"MSVC draw");
+            for(int row=0;row<300;++row)
+                for(int col=0;col<480;++col)
+                    bmo_ui_pixels[(y+row)*1280+x+col]=msvc_pixels[(row/3)*160+col/3];
+            bmo_ui_msvc_draws=bmo_ui_msvc_draws+1;
+        }
+#endif
         draw_pointer();
         check(!files.denied,"resource access");
         bmo_ui_state.frames=bmo_ui_state.frames+1;
@@ -336,10 +366,13 @@ extern "C" void bmo_main() {
                 auto route=bmo_director_key(scan);
                 if(route&1){dirty|=bool(route&2);focus_window|=bool(route&4);locks_dirty|=bool(route&8);continue;}
                 if(scan==0x3b){bmo_director_open();dirty=true;}
+#ifdef BMO_MSVC_PANEL
+                if(scan==0x3d){bmo_director_open_msvc();dirty=true;}
+#endif
 #endif
                 if(scan==0x1c
 #ifdef BMO_DESKTOP_UI
-                   && (bmo_director_state()>>8)
+                   && (bmo_director_state()>>8)==1
 #endif
                   ) {button->Click();dirty=true;}
 #ifndef BMO_DESKTOP_UI
@@ -390,7 +423,7 @@ extern "C" void bmo_main() {
             }
         }
 #ifdef BMO_DESKTOP_UI
-        if(focus_window && (bmo_director_state()>>8) && button->Focus())
+        if(focus_window && (bmo_director_state()>>8)==1 && button->Focus())
             bmo_ui_keyboard_focus=bmo_ui_keyboard_focus+1;
 #endif
         register unsigned long service __asm__("rax")=1;

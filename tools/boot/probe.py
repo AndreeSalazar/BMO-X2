@@ -212,8 +212,17 @@ def run(case):
 
     def memory(address, size, label):
         path = Path(str(prefix) + '-' + label + '.bin')
-        command('pmemsave', dict(val=address, size=size, filename=str(path)))
-        return path.read_bytes()
+        # Windows scanners can temporarily hold a dump between QMP polls.
+        for attempt in range(5):
+            try:
+                command('pmemsave', dict(val=address, size=size, filename=str(path)))
+                return path.read_bytes()
+            except (RuntimeError, PermissionError) as error:
+                transient = isinstance(error, PermissionError) or (
+                    'Could not open' in str(error) and 'Permission denied' in str(error))
+                if attempt == 4 or not transient:
+                    raise
+                time.sleep(0.05 * (attempt + 1))
 
     captured = None
     frames = set()

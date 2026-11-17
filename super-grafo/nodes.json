@@ -2297,9 +2297,9 @@
       ],
       "que": "Adapta DIRECTOR existente a foco, cuatro espacios y nueve posiciones de ventana sin compartir el framebuffer mutable.",
       "entrada": "Scancodes Set1 y eventos de apertura.",
-      "salida": "Identidad, foco y espacio del panel ULTRA-J; Super+numero solicita foco RmlUi y Super+Espacio abre el panel.",
-      "aceptacion": "QEMU comprueba foco, cambio de espacio, Super+Q, apertura y bloqueos desde el teclado USB.",
-      "falta": "Multiples aplicaciones, descarga de recursos por proceso, distribucion de teclado y verificacion USB fisica."
+      "salida": "Identidad, foco y espacio de los paneles ULTRA-J y MSVC en el escritorio; Super+Espacio abre ULTRA-J y F3 abre MSVC en el perfil opcional.",
+      "aceptacion": "QEMU comprueba foco, cambio de espacio, Super+Q y bloqueos desde el teclado USB, y verifica los pixeles del panel compilado con MSVC.",
+      "falta": "Aplicaciones en procesos separados, descarga de recursos por proceso, distribucion de teclado y verificacion USB fisica."
     },
     {
       "id": "rmlui-fat32-media",
