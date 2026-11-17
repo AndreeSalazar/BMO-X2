@@ -25,6 +25,38 @@ rasterizar RmlUi. Los clicks y cambios de resaltado dibujan la escena.
 La presentacion sigue copiando la superficie completa. El recorrido
 abarca el escritorio logico de 1280x800 y sus margenes dependen del GOP.
 
+## Cursor y presentacion por regiones
+
+El boton Activar ULTRA-J tiene un color `button:hover` mas claro. Entrar
+o salir de un boton tambien ejecuta un render completo de RmlUi. El
+punto activo sigue siendo la punta de la flecha. El codigo aplica los
+deltas del raton en las mismas coordenadas antes y despues del hover.
+Una pausa al volver a dibujar la escena puede hacer que el movimiento
+parezca un salto. La latencia en esa transicion requiere medicion fisica.
+
+BMO-X guarda los pixeles bajo el cursor en DIRECTOR (`scene/cursor.rs`).
+Su presentador de software agrupa hasta ocho cajas modificadas en
+`sin_gpu/sucio.rs` y fusiona dos cuando el area extra compensa el coste
+de la copia. Linux DRM/KMS ofrece regiones modificadas mediante
+`FB_DAMAGE_CLIPS` y un plano de cursor segun el controlador. Wayland
+separa la superficie del cursor de la aplicacion y fija su punto activo.
+[DRM/KMS](https://docs.kernel.org/gpu/drm-kms.html),
+[protocolo Wayland](https://wayland.freedesktop.org/docs/html/apa.html).
+
+En BMO-X2 el siguiente paso es presentar por separado la caja anterior
+y la nueva, recortadas al escritorio. A escala 1, la copia completa
+escribe 4096000 bytes. Dos cajas de 12x17 escriben como maximo 1632
+bytes, unas 2510 veces menos datos para ese movimiento. Esta relacion
+mide volumen, no tiempo ni fotogramas. Conservar las cajas separadas
+evita que un salto largo convierta el area intermedia en escrituras GOP.
+
+Ring 3 conserva la composicion y el punto activo. La presentacion debe
+validar limites, paso de fila, formato y escala, y copiar las filas
+recortadas. Para el resaltado, acotar tambien el area del boton cuando
+su geometria y los efectos visuales lo permitan. Medir por separado el
+tiempo de dibujo y el de copia en AMD y verificar en QEMU el color, la
+restauracion del fondo, las esquinas y el cambio de resaltado.
+
 El perfil reserva 57344 bytes DMA y dos paginas de codigo supervisor.
 No cubre hubs, reconexion automatica ni aislamiento IOMMU. Las notas
 siguientes sobre perfiles separados describen las sondas anteriores.
