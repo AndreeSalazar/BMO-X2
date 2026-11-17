@@ -4,7 +4,7 @@ import struct
 from ..diagnostics import Rejection
 from ..sbef.format import BASE, HEADER, MACHINE, MAX_IMAGE, PAGE, REGION, inspect
 from .pe_imports import inventory_imports
-from .pe_bindings import bind_session_clock
+from .pe_bindings import bind_session_imports
 
 
 COFF = struct.Struct('<HHIIIHH')
@@ -207,20 +207,20 @@ def probe_pe(data):
     return result
 
 
-def pack_pe(data, *, abi, clock_target=None):
+def pack_pe(data, *, abi, bindings=None):
     result, opt, table, flags = _inventory(data)
     blockers = [b for b in result['Blockers']
-                if clock_target is None or b['Code'] not in ('PE-IMPORTS', 'PE-IAT')]
+                if bindings is None or b['Code'] not in ('PE-IMPORTS', 'PE-IAT')]
     if blockers:
         blocker = blockers[0]
         raise Rejection(blocker['Code'], blocker['Offset'], blocker['Field'])
     segments, total = _regions(data, result, opt, table, flags)
     if abi != 1:
         raise Rejection('PE-ABI', 0, 'abi_version')
-    if clock_target is not None:
+    if bindings is not None:
         if len(segments) != 3:
-            raise Rejection('PE-CLOCK-PROFILE', opt + 24, 'ImageBase')
-        bind_session_clock(data, result, opt, segments, clock_target)
+            raise Rejection('PE-SESSION-PROFILE', opt + 24, 'ImageBase')
+        bind_session_imports(data, result, opt, segments, bindings)
     offset = HEADER.size + REGION.size * len(segments)
     table_bytes = bytearray()
     for address, payload, size, permissions in segments:

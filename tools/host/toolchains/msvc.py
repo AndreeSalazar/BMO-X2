@@ -6,6 +6,7 @@ import subprocess
 import sys
 
 from ..importers.pe import pack_pe, probe_pe
+from ..importers.pe_bindings import SESSION_EXPORTS
 from ..sbef.format import inspect
 
 
@@ -61,13 +62,13 @@ def verify_msvc_sections(root, out, reference, *, cc, linker, assembler, objcopy
     out.mkdir(parents=True, exist_ok=True)
     abi = root/'userspace/runtime/abi/win64'
     obj, pe, sbef = (out/name for name in ('client.obj', 'client.exe', 'client.sbef'))
-    subprocess.run([cc, '/nologo', '/c', '/O2', '/GS-', '/Zl', f'/Fo{obj}',
-                    str(root/'tools/tests/msvc_sections.c')], check=True, cwd=out)
+    subprocess.run([cc, '/nologo', '/std:c++17', '/c', '/O2', '/GS-', '/Zl', f'/Fo{obj}',
+                    str(root/'tools/tests/msvc_sections.cpp')], check=True, cwd=out)
     entry = out/'entry.obj'
     subprocess.run([assembler, '--target=x86_64-pc-windows-msvc', '-c', str(abi/'entry.S'),
                     '-o', str(entry)], check=True)
     objects = [entry, obj]
-    for unit in ('portal', 'session_clock'):
+    for unit in ('portal', 'session_clock', 'session_console'):
         target = out/(unit+'.obj')
         subprocess.run(['rustc', '--edition=2024', '--target=x86_64-pc-windows-msvc',
                         '--crate-type=lib', '--emit=obj', '-Cpanic=abort', '-Copt-level=2',
@@ -77,15 +78,16 @@ def verify_msvc_sections(root, out, reference, *, cc, linker, assembler, objcopy
     subprocess.run([linker, '/nologo', '/machine:x64', '/nodefaultlib', '/subsystem:console',
                     '/entry:bmo_win64_start', '/base:0x3fe00000', '/align:2097152',
                     '/fixed', '/Brepro', '/incremental:no', '/merge:.pdata=.rdata',
-                    '/include:bmo_session_tick_ms',
+                    *('/include:'+name for name in SESSION_EXPORTS.values()),
                     f'/map:{link_map}', f'/out:{pe}', *map(str, objects), sdk_lib], check=True)
-    names = ('phase', 'first_ms', 'second_ms', 'scratch', 'bmo_session_tick_ms')
+    names = ('phase', 'first_ms', 'second_ms', 'scratch', 'written', *SESSION_EXPORTS.values())
     pattern = r'^\s+[0-9A-Fa-f]+:[0-9A-Fa-f]+\s+(' + '|'.join(names) + r')\s+([0-9A-Fa-f]+)\b'
     symbols = {name: int(address, 16) for name, address in re.findall(pattern, link_map.read_text(), re.M)}
     if set(symbols) != set(names):
         raise ValueError('Missing MSVC fixture symbols')
     pe_bytes = pe.read_bytes()
-    payload = pack_pe(pe_bytes, abi=1, clock_target=symbols.pop('bmo_session_tick_ms'))
+    bindings = {api: symbols.pop(name) for api, name in SESSION_EXPORTS.items()}
+    payload = pack_pe(pe_bytes, abi=1, bindings=bindings)
     sbef.write_bytes(payload)
     manifest = out/'symbols.json'
     manifest.write_text(json.dumps(symbols), encoding='ascii')

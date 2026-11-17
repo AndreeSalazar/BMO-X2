@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "qemu": {
+    "Passed": 2,
+    "Total": 2,
+    "Cases": [
+      {
+        "Case": "normal",
+        "Passed": true,
+        "Evidence": "QEMU",
+        "CPL": 3,
+        "InitializedDataVerified": true,
+        "ZeroFillVerified": true,
+        "RustClockVerified": true,
+        "FirstMs": 0,
+        "SecondMs": 30,
+        "SerialHelloVerified": true,
+        "WrittenBytes": 39
+      },
+      {
+        "Case": "external-permissions",
+        "Passed": true,
+        "SbefAccepted": false,
+        "UserCodeCopied": false,
+        "UserAddressSpaceActivated": false,
+        "RejectedField": "permissions",
+        "RejectedOffset": 116
+      }
+    ],
+    "run": "run-msvc-sections-290797ef7c59",
+    "evidence": "QEMU",
+    "milestone": "MSVC C++ PE32+ converted to SBEF uses the Rust session clock and stdout in CPL3"
+  },
+  "sbef": {
+    "FormatVersion": 1,
+    "AbiVersion": 1,
+    "Architecture": "x86-64",
+    "Bytes": 2074,
+    "Entry": "0x40000000",
+    "Regions": [
+      {
+        "Address": "0x40000000",
+        "Offset": 128,
+        "FileBytes": 678,
+        "MemoryBytes": 678,
+        "MappedBytes": 4096,
+        "Permissions": "RX"
+      },
+      {
+        "Address": "0x40200000",
+        "Offset": 806,
+        "FileBytes": 756,
+        "MemoryBytes": 756,
+        "MappedBytes": 4096,
+        "Permissions": "R"
+      },
+      {
+        "Address": "0x40400000",
+        "Offset": 1562,
+        "FileBytes": 512,
+        "MemoryBytes": 6048,
+        "MappedBytes": 8192,
+        "Permissions": "RW"
+      }
+    ]
+  },
+  "sbef_sha256": "7cc1362669683ec540cc7dc96ebafd80242b9848e9e0bbc30a131b635e3c2114",
+  "pe_sha256": "e2d3d0ac917d625ab3beee0caf5b7746c18f9678154b5990eca4f19b970c854f",
+  "imports": [
+    {
+      "DLL": "KERNEL32.dll",
+      "Symbols": [
+        {
+          "Name": "GetStdHandle"
+        },
+        {
+          "Name": "WriteFile"
+        },
+        {
+          "Name": "GetTickCount64"
+        }
+      ]
+    }
+  ],
+  "windows_stdout_reference": "Hola mundo desde C++ / MSVC en BMO-X2",
+  "windows_reference_exit_code": 0,
+  "physical_boot_verified": false
+}

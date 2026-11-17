@@ -41,7 +41,7 @@ limites de recursos, pruebas de rechazo y evidencia de ejecucion.
 | `importers/elf.py` | Validar ELF64 estatico y extraer los segmentos cargables. |
 | `importers/pe.py` | Inventariar PE32+, validar perfiles fijos RX o RX/R/RW y explicar rechazos. |
 | `importers/pe_imports.py` | Censar DLL, simbolos y ordinales de importaciones normales, con limites de lectura. |
-| `importers/pe_bindings.py` | Resolver la unica importacion admitida en el banco MSVC, en la IAT de solo lectura del SBEF. |
+| `importers/pe_bindings.py` | Resolver las importaciones del catalogo del banco MSVC, en la IAT de solo lectura del SBEF. |
 | `sbef/format.py` | Definir y validar cabecera, tabla, rangos, permisos y entrada SBEF. |
 | `diagnostics.py` | Identificar cada rechazo por codigo, campo, offset e indice cuando aplica. |
 | `cli.py` | Leer entradas acotadas y publicar el SBEF solo tras validarlo. |
@@ -101,13 +101,13 @@ en Ring 3. [Evidencia QEMU](../../Reports/abi-msvc-qemu.json).
 `--msvc-sections` junto a `--pe-link` y `--abi-run` prueba un segundo
 perfil. HOST conserva `.text`, `.rdata` y `.data` con permisos RX,
 R y RW. El cargador existente comprueba los permisos y pone a cero
-el resto de `.data`. MSVC y `kernel32.lib` del SDK generan una
-importacion normal de `GetTickCount64`. El banco lee la direccion de la
-implementacion Rust del mapa de su propio enlace. HOST comprueba la
-entrada IAT y la resuelve al codigo Rust antes de emitir el SBEF.
-El reloj lee los ticks PIT de la sesion QEMU. La prueba confirma el
-avance despues de WAIT y el rechazo de W+X.
-[Evidencia](../../Reports/abi-msvc-clock-import-qemu.json).
+el resto de `.data`. MSVC compila C++17 y `kernel32.lib` del SDK
+genera importaciones de `GetTickCount64`, `GetStdHandle` y `WriteFile`.
+HOST comprueba la IAT y enlaza los tres servicios Rust del mapa del
+enlace antes de emitir el SBEF. El reloj lee los ticks PIT de la sesion
+QEMU. La consola admite stdout sincronico por puerto serie.
+La prueba confirma el saludo, los bytes escritos, el avance despues de
+WAIT y el rechazo de W+X. [Evidencia](../../Reports/abi-msvc-hello-qemu.json).
 
 ## Referencia de BMO-X para compatibilidad y graficos
 

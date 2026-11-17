@@ -224,7 +224,7 @@ def run(case):
             if doom_engine:
                 if msvc_sections:
                     from msvc_capture import verify_sections
-                    return verify_sections(command, memory, external_image, case, ROOT / 'msvc-symbols.json')
+                    return verify_sections(command, memory, prefix, external_image, case, ROOT / 'msvc-symbols.json')
                 if native_ui:
                     from rmlui_native_capture import verify_native_ui
                     return verify_native_ui(command, memory, prefix, external_image, case, ROOT / 'ui-symbols.json')

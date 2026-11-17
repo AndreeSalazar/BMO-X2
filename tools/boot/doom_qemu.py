@@ -176,7 +176,7 @@ def main():
     if args.doom_engine:
         milestone = 'GCC DoomGeneric E1M1 and keyboard in CPL3 from an external SBEF'
     if args.msvc_sections:
-        milestone = 'MSVC three-region PE32+ converted to SBEF reads the Rust session clock in CPL3'
+        milestone = 'MSVC C++ PE32+ converted to SBEF uses the Rust session clock and stdout in CPL3'
     if args.desktop_doom:
         milestone = 'Rust desktop CABINA launches DoomGeneric E1M1 in CPL3'
     if args.rmlui_renderer:
