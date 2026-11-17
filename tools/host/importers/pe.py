@@ -12,15 +12,22 @@ SECTION = struct.Struct('<8sIIIIIIHHI')
 SECTION_ALIGNMENT = 0x10000
 SEPARATE_ALIGNMENT = 0x200000
 DIRECTORIES = {
+    0: ('exports', 'PE-EXPORTS'),
     1: ('imports', 'PE-IMPORTS'),
+    2: ('resources', 'PE-RESOURCES'),
     3: ('exceptions', 'PE-EXCEPTIONS'),
+    4: ('security', 'PE-SECURITY'),
     5: ('base_relocations', 'PE-RELOCATIONS'),
     6: ('debug', 'PE-DEBUG'),
+    7: ('architecture', 'PE-ARCHITECTURE'),
+    8: ('global_pointer', 'PE-GLOBAL-POINTER'),
     9: ('tls', 'PE-TLS'),
+    10: ('load_config', 'PE-LOAD-CONFIG'),
     11: ('bound_imports', 'PE-BOUND-IMPORTS'),
     12: ('iat', 'PE-IAT'),
     13: ('delay_imports', 'PE-DELAY-IMPORTS'),
     14: ('clr', 'PE-CLR'),
+    15: ('reserved', 'PE-RESERVED'),
 }
 
 
@@ -34,7 +41,7 @@ def _inventory(data):
     machine, count, _, _, _, opt_size, flags = COFF.unpack_from(data, coff)
     if machine != 0x8664:
         raise Rejection('PE-MACHINE', coff, 'Machine')
-    if flags & 0x2000 or not flags & 2:
+    if not flags & 2:
         raise Rejection('PE-IMAGE-KIND', coff + 18, 'Characteristics')
     opt = coff + COFF.size
     section_table = opt + opt_size
@@ -61,7 +68,9 @@ def _inventory(data):
                              RVA=rva, VirtualBytes=memsz, FileOffset=offset, FileBytes=filesz,
                              Readable=bool(perms & 0x40000000), Writable=bool(perms & 0x80000000),
                              Executable=bool(perms & 0x20000000)))
-    blockers = []
+    is_dll = bool(flags & 0x2000)
+    blockers = ([Rejection('PE-IMAGE-KIND', coff + 18, 'Characteristics').report()]
+                if is_dll else [])
     directories = {}
     for index in range(directory_count):
         name, code = DIRECTORIES.get(index, (f'directory_{index}', 'PE-UNSUPPORTED-DIRECTORY'))
@@ -72,7 +81,8 @@ def _inventory(data):
             if index not in (3, 6):
                 blockers.append(Rejection(code, record, f'DataDirectory.{name}').report())
     result = dict(SourceFormat='PE32+', Architecture='x86-64', EntryRVA=entry, ImageBase=base,
-                  Subsystem=subsystem, Sections=sections, Directories=directories,
+                  ImageKind='DLL' if is_dll else 'EXE', Subsystem=subsystem,
+                  Sections=sections, Directories=directories,
                   CanPack=False, Blockers=blockers)
     return result, opt, section_table, flags
 

@@ -1604,7 +1604,7 @@
     },
     {
       "id": "sbef-host-pe",
-      "titulo": "Inspeccion PE32+",
+      "titulo": "Inspeccion PE32+ MSVC",
       "ruta": "tools/host/importers/pe.py",
       "estado": "qemu",
       "anillo": "host",
@@ -1613,11 +1613,11 @@
         10000,
         4200
       ],
-      "que": "Inspecciona PE32+ y empaqueta los perfiles fijos RX o RX/R/RW.",
-      "entrada": "Ejecutable PE32+ x86-64.",
-      "salida": "Inventario con DLL, simbolos y ordinales; SBEF admitido o rechazo con campo y offset.",
-      "aceptacion": "QEMU ejecuta el PE de cl/link convertido a SBEF. Valida metadatos de unwind sin manejadores.",
-      "falta": "Relocaciones, TLS y ampliar la resolucion IAT mas alla del reloj y stdout de prueba."
+      "que": "Inspecciona ejecutables y DLL PE32+ producidos por MSVC antes de admitir los perfiles fijos RX o RX/R/RW.",
+      "entrada": "Ruta de un PE32+ x86-64 pasado al comando de intake de PowerShell.",
+      "salida": "Informe con hash, tipo, secciones, directorios, modulos, simbolos y ordinales; SBEF admitido o rechazo con campo y offset.",
+      "aceptacion": "tools/host/msvc.ps1 inspecciona PE EXE y DLL con PowerShell 5.1; QEMU ejecuta el perfil PE de cl/link convertido a SBEF y valida unwind sin manejadores.",
+      "falta": "Relocaciones, TLS, tabla de exportaciones, resolucion IAT mas alla del reloj y stdout de prueba, y procesos externos generales."
     },
     {
       "id": "userspace-supervisor",

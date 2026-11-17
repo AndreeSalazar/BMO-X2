@@ -129,6 +129,9 @@ de ventana. RmlUi llama la funcion Win64 y presenta el resultado por CPU.
 [evidencia QEMU](../../Reports/abi-msvc-rmlui-qemu.json).
 Esta integracion comparte el proceso del escritorio. La admision de
 aplicaciones externas en procesos propios y DXGI/Direct3D siguen pendientes.
+El boton **Abrir panel MSVC** valida una funcion C++ COFF confiable dentro
+del escritorio. Para que HOST inspeccione un `.exe` MSVC se usa el intake
+PowerShell descrito arriba.
 
 ## Referencia de BMO-X para compatibilidad y graficos
 
@@ -158,6 +161,35 @@ invalido se informa por separado con el campo y offset. Se verifico con
 un PE enlazado por MSVC que importa `KERNEL32.dll!GetTickCount64` y con
 la regresion QEMU del cliente freestanding. No carga DLL ni ejecuta sus
 funciones. Las importaciones diferidas conservan su diagnostico propio.
+
+Para inspeccionar un ejecutable MSVC propio desde PowerShell 5.1, compilarlo
+en la consola x64 de Visual Studio y pasar su ruta al comando de intake:
+
+```powershell
+cl /nologo /MD /EHsc .\app.cpp /Fe:app.exe
+.\tools\host\msvc.ps1 -Archivo .\app.exe
+```
+
+El intake guarda un informe JSON con el SHA-256, secciones, directorios,
+importaciones y bloqueos del perfil actual en `build/msvc-intake/`.
+No ejecuta el PE. `-Empaquetar` crea un SBEF solo cuando pasa todas las
+guardas existentes. Una aplicacion MSVC de escritorio normalmente muestra
+servicios como CRT, Win32 y relocaciones que aun debe implementar HOST.
+El informe identifica el primer trabajo concreto para ampliar.
+
+La prueba local con Visual Studio 2022 compilo `tools/tests/msvc_standard_probe.cpp`
+con `/MD /EHsc`. HOST reconocio diez modulos de importacion y sesenta simbolos, y explico por
+que el ejecutable no entra todavia en SBEF. El caso requiere importaciones
+CRT/Win32, relocaciones, load config e IAT. El informe conserva el hash de
+esa entrada en [msvc-standard-intake.json](../../Reports/msvc-standard-intake.json).
+Al empaquetar, el intake deja el SBEF sin crear y referencia esos bloqueos.
+
+El siguiente tramo de compatibilidad MSVC necesita aplicar relocaciones y
+mapear las secciones PE, resolver la IAT con contratos API-set, y proveer
+los servicios importados de UCRT, VCRUNTIME, MSVCP y Win32. Luego necesita
+inicializar TLS y unwind, y cargar cada modulo en su propio proceso Ring 3.
+Los servicios graficos como Win32 GUI, DXGI y Direct3D pertenecen a etapas
+posteriores de ese mismo mapa de servicios.
 
 El siguiente ensayo debe ampliar la tabla de servicios y comprobar
 que cada importacion admitida conserva su semantica. El paso grafico

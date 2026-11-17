@@ -1,0 +1,353 @@
+﻿{
+  "Schema": 1,
+  "Source": "msvc-standard.exe",
+  "SourceBytes": 13312,
+  "SourceSHA256": "fb3d2f6dc34a4086f7ff262fb540fd58836f1b6e07f18328271708a2dcfbff7e",
+  "ProbeExitCode": 0,
+  "Probe": {
+    "SourceFormat": "PE32+",
+    "Architecture": "x86-64",
+    "EntryRVA": 6352,
+    "ImageBase": 5368709120,
+    "ImageKind": "EXE",
+    "Subsystem": 3,
+    "Sections": [
+      {
+        "Name": ".text",
+        "RVA": 4096,
+        "VirtualBytes": 4942,
+        "FileOffset": 1024,
+        "FileBytes": 5120,
+        "Readable": true,
+        "Writable": false,
+        "Executable": true
+      },
+      {
+        "Name": ".rdata",
+        "RVA": 12288,
+        "VirtualBytes": 5202,
+        "FileOffset": 6144,
+        "FileBytes": 5632,
+        "Readable": true,
+        "Writable": false,
+        "Executable": false
+      },
+      {
+        "Name": ".data",
+        "RVA": 20480,
+        "VirtualBytes": 304,
+        "FileOffset": 11776,
+        "FileBytes": 512,
+        "Readable": true,
+        "Writable": true,
+        "Executable": false
+      },
+      {
+        "Name": ".pdata",
+        "RVA": 24576,
+        "VirtualBytes": 444,
+        "FileOffset": 12288,
+        "FileBytes": 512,
+        "Readable": true,
+        "Writable": false,
+        "Executable": false
+      },
+      {
+        "Name": ".reloc",
+        "RVA": 28672,
+        "VirtualBytes": 44,
+        "FileOffset": 12800,
+        "FileBytes": 512,
+        "Readable": true,
+        "Writable": false,
+        "Executable": false
+      }
+    ],
+    "Directories": {
+      "imports": {
+        "RVA": 14540,
+        "Bytes": 220
+      },
+      "exceptions": {
+        "RVA": 24576,
+        "Bytes": 444
+      },
+      "base_relocations": {
+        "RVA": 28672,
+        "Bytes": 44
+      },
+      "debug": {
+        "RVA": 13360,
+        "Bytes": 28
+      },
+      "load_config": {
+        "RVA": 13040,
+        "Bytes": 320
+      },
+      "iat": {
+        "RVA": 12288,
+        "Bytes": 560
+      }
+    },
+    "CanPack": false,
+    "Blockers": [
+      {
+        "Code": "PE-IMPORTS",
+        "Offset": 376,
+        "Field": "DataDirectory.imports"
+      },
+      {
+        "Code": "PE-RELOCATIONS",
+        "Offset": 408,
+        "Field": "DataDirectory.base_relocations"
+      },
+      {
+        "Code": "PE-LOAD-CONFIG",
+        "Offset": 448,
+        "Field": "DataDirectory.load_config"
+      },
+      {
+        "Code": "PE-IAT",
+        "Offset": 464,
+        "Field": "DataDirectory.iat"
+      }
+    ],
+    "Imports": [
+      {
+        "DLL": "MSVCP140.dll",
+        "Symbols": [
+          {
+            "Name": "?put@?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV12@D@Z"
+          },
+          {
+            "Name": "?cout@std@@3V?$basic_ostream@DU?$char_traits@D@std@@@1@A"
+          },
+          {
+            "Name": "??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV01@P6AAEAV01@AEAV01@@Z@Z"
+          },
+          {
+            "Name": "?_Osfx@?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAXXZ"
+          },
+          {
+            "Name": "?widen@?$basic_ios@DU?$char_traits@D@std@@@std@@QEBADD@Z"
+          },
+          {
+            "Name": "?fill@?$basic_ios@DU?$char_traits@D@std@@@std@@QEBADXZ"
+          },
+          {
+            "Name": "?rdbuf@?$basic_ios@DU?$char_traits@D@std@@@std@@QEBAPEAV?$basic_streambuf@DU?$char_traits@D@std@@@2@XZ"
+          },
+          {
+            "Name": "?tie@?$basic_ios@DU?$char_traits@D@std@@@std@@QEBAPEAV?$basic_ostream@DU?$char_traits@D@std@@@2@XZ"
+          },
+          {
+            "Name": "?setstate@?$basic_ios@DU?$char_traits@D@std@@@std@@QEAAXH_N@Z"
+          },
+          {
+            "Name": "?sputn@?$basic_streambuf@DU?$char_traits@D@std@@@std@@QEAA_JPEBD_J@Z"
+          },
+          {
+            "Name": "?sputc@?$basic_streambuf@DU?$char_traits@D@std@@@std@@QEAAHD@Z"
+          },
+          {
+            "Name": "?width@ios_base@std@@QEAA_J_J@Z"
+          },
+          {
+            "Name": "?width@ios_base@std@@QEBA_JXZ"
+          },
+          {
+            "Name": "?flags@ios_base@std@@QEBAHXZ"
+          },
+          {
+            "Name": "?good@ios_base@std@@QEBA_NXZ"
+          },
+          {
+            "Name": "?flush@?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV12@XZ"
+          },
+          {
+            "Name": "?uncaught_exception@std@@YA_NXZ"
+          }
+        ]
+      },
+      {
+        "DLL": "KERNEL32.dll",
+        "Symbols": [
+          {
+            "Name": "IsProcessorFeaturePresent"
+          },
+          {
+            "Name": "SetUnhandledExceptionFilter"
+          },
+          {
+            "Name": "UnhandledExceptionFilter"
+          },
+          {
+            "Name": "IsDebuggerPresent"
+          },
+          {
+            "Name": "RtlVirtualUnwind"
+          },
+          {
+            "Name": "RtlLookupFunctionEntry"
+          },
+          {
+            "Name": "RtlCaptureContext"
+          },
+          {
+            "Name": "InitializeSListHead"
+          },
+          {
+            "Name": "GetSystemTimeAsFileTime"
+          },
+          {
+            "Name": "GetCurrentThreadId"
+          },
+          {
+            "Name": "GetCurrentProcessId"
+          },
+          {
+            "Name": "QueryPerformanceCounter"
+          },
+          {
+            "Name": "GetModuleHandleW"
+          }
+        ]
+      },
+      {
+        "DLL": "VCRUNTIME140_1.dll",
+        "Symbols": [
+          {
+            "Name": "__CxxFrameHandler4"
+          }
+        ]
+      },
+      {
+        "DLL": "VCRUNTIME140.dll",
+        "Symbols": [
+          {
+            "Name": "memset"
+          },
+          {
+            "Name": "__C_specific_handler"
+          },
+          {
+            "Name": "__current_exception"
+          },
+          {
+            "Name": "__current_exception_context"
+          },
+          {
+            "Name": "memcpy"
+          }
+        ]
+      },
+      {
+        "DLL": "api-ms-win-crt-string-l1-1-0.dll",
+        "Symbols": [
+          {
+            "Name": "strlen"
+          }
+        ]
+      },
+      {
+        "DLL": "api-ms-win-crt-runtime-l1-1-0.dll",
+        "Symbols": [
+          {
+            "Name": "_initterm"
+          },
+          {
+            "Name": "_initterm_e"
+          },
+          {
+            "Name": "exit"
+          },
+          {
+            "Name": "_exit"
+          },
+          {
+            "Name": "_get_initial_narrow_environment"
+          },
+          {
+            "Name": "__p___argc"
+          },
+          {
+            "Name": "__p___argv"
+          },
+          {
+            "Name": "_initialize_narrow_environment"
+          },
+          {
+            "Name": "_configure_narrow_argv"
+          },
+          {
+            "Name": "_register_thread_local_exe_atexit_callback"
+          },
+          {
+            "Name": "_c_exit"
+          },
+          {
+            "Name": "_set_app_type"
+          },
+          {
+            "Name": "_seh_filter_exe"
+          },
+          {
+            "Name": "_initialize_onexit_table"
+          },
+          {
+            "Name": "_register_onexit_function"
+          },
+          {
+            "Name": "_crt_atexit"
+          },
+          {
+            "Name": "terminate"
+          },
+          {
+            "Name": "_cexit"
+          }
+        ]
+      },
+      {
+        "DLL": "api-ms-win-crt-math-l1-1-0.dll",
+        "Symbols": [
+          {
+            "Name": "__setusermatherr"
+          }
+        ]
+      },
+      {
+        "DLL": "api-ms-win-crt-stdio-l1-1-0.dll",
+        "Symbols": [
+          {
+            "Name": "__p__commode"
+          },
+          {
+            "Name": "_set_fmode"
+          }
+        ]
+      },
+      {
+        "DLL": "api-ms-win-crt-locale-l1-1-0.dll",
+        "Symbols": [
+          {
+            "Name": "_configthreadlocale"
+          }
+        ]
+      },
+      {
+        "DLL": "api-ms-win-crt-heap-l1-1-0.dll",
+        "Symbols": [
+          {
+            "Name": "_set_new_mode"
+          }
+        ]
+      }
+    ]
+  },
+  "Package": {
+    "ExitCode": 1,
+    "Path": null,
+    "Result": "HOST rechazo el perfil. Consulta Probe.Blockers."
+  }
+}
