@@ -1,4 +1,4 @@
-#include "../../userspace/runtime/abi/bmo_abi.h"
+#include "../../userspace/runtime/abi/include/bmo_abi.h"
 
 #ifdef __cplusplus
 extern "C" {

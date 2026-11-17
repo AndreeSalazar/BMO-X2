@@ -31,7 +31,7 @@ def main():
     profiles.add_argument('--doom-external', action='store_true')
     profiles.add_argument('--doom-engine', action='store_true')
     profiles.add_argument('--desktop-doom', action='store_true')
-    profiles.add_argument('--toolchain-client', choices=('gcc', 'clang', 'gcc-cpp', 'clang-cpp', 'rust'))
+    profiles.add_argument('--toolchain-client', choices=('gcc', 'clang', 'gcc-cpp', 'clang-cpp', 'rust', 'msvc'))
     profiles.add_argument('--rmlui-renderer', type=Path, help='Expected 16x16 Rust CPU raster probe, not a full RmlUi port')
     profiles.add_argument('--rmlui-native', type=Path, help='Symbol manifest for the real native UI engine profile')
     parser.add_argument('--wad', type=Path)

@@ -10,6 +10,7 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import sbef
 from host.diagnostics import Rejection
+from host.importers.pe import pack_pe, probe_pe
 
 
 class Sbef(unittest.TestCase):
@@ -170,6 +171,38 @@ class Sbef(unittest.TestCase):
             self.assertEqual(result.returncode, 1)
             self.assertEqual(json.loads(result.stderr), expected)
             self.assertFalse(output.exists())
+
+    def test_fixed_pe_keeps_exact_payload_and_rejects_invalid_layout(self):
+        image = bytearray(0x400)
+        image[:2] = b'MZ'
+        struct.pack_into('<I', image, 0x3c, 0x80)
+        image[0x80:0x84] = b'PE\0\0'
+        opt = 0x98
+        table = opt + 112
+        struct.pack_into('<HHIIIHH', image, 0x84, 0x8664, 1, 0, 0, 0, 112, 3)
+        struct.pack_into('<H', image, opt, 0x20b)
+        struct.pack_into('<I', image, opt + 16, 0x10000)
+        struct.pack_into('<QII', image, opt + 24, 0x3fff0000, 0x10000, 512)
+        struct.pack_into('<II', image, opt + 56, 0x20000, 0x200)
+        struct.pack_into('<H', image, opt + 68, 3)
+        struct.pack_into('<8sIIIIIIHHI', image, table, b'.text', 2, 0x10000,
+                         512, 0x200, 0, 0, 0, 0, 0x60000020)
+        image[0x200:0x202] = bytes.fromhex('0f0b')
+        self.assertTrue(probe_pe(image)['CanPack'])
+        result = pack_pe(image, abi=1)
+        self.assertEqual(result[64:], bytes.fromhex('0f0b'))
+        self.assertEqual(sbef.inspect(result)['Regions'][0]['Permissions'], 'RX')
+        for offset, value, code in (
+            (table + 36, 0xe0000020, 'PE-PERMISSIONS'),
+            (opt + 16, 0x10002, 'PE-ENTRY'),
+            (0x202, 1, 'PE-SECTION-PADDING'),
+        ):
+            with self.subTest(code=code):
+                bad = bytearray(image)
+                struct.pack_into('<I', bad, offset, value)
+                with self.assertRaises(Rejection) as error:
+                    pack_pe(bad, abi=1)
+                self.assertEqual(error.exception.code, code)
 
 
 if __name__ == '__main__':

@@ -88,8 +88,9 @@ En un entorno con GCC x86-64 ELF y LLVM binutils, ejecutar
 `python3 -B tools/abi_toolchain.py gcc`. En una consola de Visual
 Studio x64, `python -B tools/abi_toolchain.py msvc` prueba el
 encabezado y produce COFF para inventario. Con `--pe-link link.exe`
-el cliente enlaza con el portal de [Microsoft x64](../userspace/runtime/abi/win64.rs)
-para inspeccion PE. La ejecucion PE y su perfil de importacion siguen
-pendientes. La frontera del kernel conserva el ABI nativo.
+el cliente enlaza con el portal de [Microsoft x64](../userspace/runtime/abi/win64/portal.rs)
+para inspeccion PE. Con `--abi-run`, HOST empaqueta el perfil fijo
+como SBEF y prueba el cliente en CPL3. La frontera del kernel conserva
+el ABI nativo.
 
 [SBEF HOST](SBEF-HOST.md) | [Ensayo QEMU](../kernel/syscalls/ABI-PROBE.md)

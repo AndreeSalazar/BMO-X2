@@ -1606,18 +1606,18 @@
       "id": "sbef-host-pe",
       "titulo": "Inspeccion PE32+",
       "ruta": "tools/host/importers/pe.py",
-      "estado": "host",
+      "estado": "qemu",
       "anillo": "host",
       "lenguaje": "Python control",
       "posicion": [
         10000,
         4200
       ],
-      "que": "Expone secciones y directorios PE que requieren adaptacion de ABI.",
+      "que": "Inspecciona PE32+ y empaqueta el perfil fijo de una pagina RX.",
       "entrada": "Ejecutable PE32+ x86-64.",
-      "salida": "Inventario HOST y motivos que impiden empaquetar.",
-      "aceptacion": "Inspecciona el PE de cl/link con portal Rust Win64, y expone importaciones, TLS, excepciones y reubicaciones declaradas.",
-      "falta": "Implementar y probar conversion PE freestanding y tratamiento de .pdata."
+      "salida": "Inventario, SBEF admitido o rechazo con campo y offset.",
+      "aceptacion": "QEMU ejecuta el PE de cl/link convertido a SBEF. Valida metadatos de unwind sin manejadores.",
+      "falta": "Regiones multiples, relocaciones, importaciones, TLS y servicios Win32."
     },
     {
       "id": "userspace-supervisor",
@@ -1667,9 +1667,9 @@
       ],
       "que": "Construye un cliente comun y coteja los bytes de los stubs ELF.",
       "entrada": "Cliente C, cabecera ABI 1, compilador y vector HEX.",
-      "salida": "SBEF para ELF o inventario de un objeto COFF MSVC.",
-      "aceptacion": "GCC C, Clang C/C++ y Rust verifican INVOKE, WAIT y limpieza tras fallo en QEMU en un paquete de hasta 2048 bytes. MSVC se inspecciona como COFF.",
-      "falta": "El reuso de dos paginas entre dos SBEF pasa en QEMU. Faltan cargador externo general, revocacion por proceso y PE32+ freestanding."
+      "salida": "SBEF desde ELF o PE32+ freestanding, y opciones de inspeccion COFF.",
+      "aceptacion": "GCC C, Clang C/C++, Rust y MSVC verifican el ABI en CPL3. MSVC PE produce un paquete de 1887 bytes.",
+      "falta": "Cargador externo general, revocacion por proceso y perfiles PE que requieran servicios de Windows."
     },
     {
       "id": "hot-unmap",

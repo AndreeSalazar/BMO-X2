@@ -194,7 +194,7 @@ void bmo_main(void) {
     }
 }
 #else
-#include "../../userspace/runtime/abi/bmo_abi.h"
+#include "../../userspace/runtime/abi/include/bmo_abi.h"
 
 extern _Noreturn void doom_probe_complete(void);
 

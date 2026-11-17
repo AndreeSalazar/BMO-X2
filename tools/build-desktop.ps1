@@ -117,7 +117,7 @@ if ($UsbProbe) {
 }
 & rustc @flags --crate-name bmo_x2_desktop --crate-type rlib (Join-Path $desktop 'src/lib.rs') -o $library
 if ($LASTEXITCODE -ne 0) { throw 'Fallo el build Rust. Verifica rustup target add x86_64-unknown-none.' }
-& (Join-Path $Llvm 'clang.exe') --target=x86_64-unknown-none-elf -c (Join-Path $root 'userspace/runtime/abi/portal.S') -o $portal
+& (Join-Path $Llvm 'clang.exe') --target=x86_64-unknown-none-elf -c (Join-Path $root 'userspace/runtime/abi/sysv/portal.S') -o $portal
 if ($LASTEXITCODE -ne 0) { throw 'Fallo el stub ABI.' }
 $linkFlags = @('-C', "linker=$linker", '-C', 'linker-flavor=ld', '-C', 'lto=fat',
                '-C', "link-arg=-T$linkScript", '-C', "link-arg=$portal")

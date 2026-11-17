@@ -7,7 +7,7 @@ import tempfile
 
 from .diagnostics import Rejection
 from .importers.elf import MAX_ELF, pack_elf
-from .importers.pe import probe_pe
+from .importers.pe import pack_pe, probe_pe
 from .sbef.format import MAX_IMAGE, inspect
 
 
@@ -101,12 +101,11 @@ def run(args):
     if len(data) > MAX_ELF:
         raise Rejection('IMPORT-SIZE', MAX_ELF, 'file')
     if data.startswith(b'MZ'):
-        inventory = probe_pe(data)
         if args.action == 'probe':
-            return inventory
-        blocker = inventory['Blockers'][0]
-        raise Rejection(blocker['Code'], blocker['Offset'], blocker['Field'])
-    image = pack_elf(data, abi=getattr(args, 'abi', 0))
+            return probe_pe(data)
+        image = pack_pe(data, abi=args.abi)
+    else:
+        image = pack_elf(data, abi=getattr(args, 'abi', 0))
     report = inspect(image)
     if args.action == 'probe':
         return dict(SourceFormat='ELF64', CanPack=True, SBEF=report)

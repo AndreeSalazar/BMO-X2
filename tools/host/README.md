@@ -36,9 +36,10 @@ limites de recursos, pruebas de rechazo y evidencia de ejecucion.
 
 | Carpeta o archivo | Responsabilidad |
 |---|---|
-| `toolchains/abi.py` | Compilar un cliente ABI comun con GCC o Clang y cotejar el portal con el vector HEX. Inventariar el objeto COFF de MSVC. |
+| `toolchains/abi.py` | Coordinar el banco ABI y cotejar el portal SysV con su vector HEX. |
+| `toolchains/msvc.py` | Compilar COFF con MSVC, enlazar el portal Rust Win64 y preparar el cliente PE para el banco. |
 | `importers/elf.py` | Validar ELF64 estatico y extraer los segmentos cargables. |
-| `importers/pe.py` | Inventariar PE32+ y explicar sus bloqueos de admision. |
+| `importers/pe.py` | Inventariar PE32+, validar el perfil fijo de una region RX y explicar rechazos. |
 | `sbef/format.py` | Definir y validar cabecera, tabla, rangos, permisos y entrada SBEF. |
 | `diagnostics.py` | Identificar cada rechazo por codigo, campo, offset e indice cuando aplica. |
 | `cli.py` | Leer entradas acotadas y publicar el SBEF solo tras validarlo. |
@@ -78,8 +79,19 @@ En la consola x64 de Visual Studio, `python -B tools/abi_toolchain.py
 msvc --pe-link link.exe` compila C a COFF, enlaza el portal Rust
 `extern "win64"` y entrega un PE32+ x86-64 de inspeccion sin CRT,
 DLL importadas ni TLS. El portal traduce los argumentos y el retorno
-de Microsoft x64 al contrato INVOKE/WAIT. El binario requiere la ABI de
-BMO-X2. El perfil de importacion PE queda pendiente: HOST informa
-`.pdata`, permisos de seccion y dependencias antes de admitir un PE.
-Las APIs Win32, DLL, TLS y el runtime de C/C++ exigen servicios
-adicionales en Ring 3.
+de Microsoft x64 al contrato INVOKE/WAIT de BMO-X2.
+
+Para recorrer la ruta completa desde la consola x64 de Visual Studio,
+con Clang y el target Rust `x86_64-pc-windows-msvc`:
+
+```powershell
+python -B tools/abi_toolchain.py msvc --pe-link link.exe --abi-run build/CASM/run-20261112-174958-944cb997
+```
+
+El perfil de la sonda enlaza una region RX en `0x40000000`, con entrada
+Win64 y metadatos inertes comprobados. HOST extrae el contenido virtual
+y descarta cabeceras y relleno de archivo. El directorio de excepciones
+admite registros de version 1 sin manejadores ni cadenas. El perfil
+rechaza DLL, importaciones, relocaciones, TLS, regiones RW y directorios
+fuera de su contrato. Win32 y DirectX requieren servicios propios
+en Ring 3. [Evidencia QEMU](../../Reports/abi-msvc-qemu.json).

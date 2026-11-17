@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "scope": "Freestanding fixed PE32+ linked by MSVC and converted by HOST to SBEF ABI 1",
+  "qemu_runs": [
+    "run-abi-msvc-d82300cca117",
+    "run-abi-msvc-dd75ebbd9b71"
+  ],
+  "pe_sha256": "605d74aeb1b28cfd183e3e9252cbc1bf2cf231d79a2aa5ed38333bd1ea0e4f50",
+  "sbef_sha256": "94b7208245f3b6603cfbd998bcde793ebcf0acf0962c35d53d13c2b5106bd11f",
+  "identical_pe_and_sbef_across_two_builds": true,
+  "cli_matches_toolchain_sbef": true,
+  "physical_boot_verified": false,
+  "scope_exclusions": [
+    "PE imports",
+    "Windows runtime",
+    "DirectX",
+    "GPU"
+  ],
+  "qemu": {
+    "Passed": 1,
+    "Total": 1,
+    "Cases": [
+      {
+        "Case": "normal",
+        "Passed": true,
+        "BootServicesExited": true,
+        "PayloadReturned": false,
+        "OwnHalt": true,
+        "InstructionPointerOffset": 896,
+        "InterruptsMasked": true,
+        "Ring": 0,
+        "OwnFramebufferTextVerified": true,
+        "Context": "0xDE38000",
+        "PayloadSHA256": "de781cc789bea5b82bd424da95ef899c234f860215549019caac58e5f95f91f2",
+        "ContextAccepted": true,
+        "UserCPL": 3,
+        "UserFaultHandled": true,
+        "FaultVector": 14,
+        "FaultErrorCode": 5,
+        "FaultAddress": "0x100000",
+        "SavedUserRIP": "0x400001E1",
+        "SavedUserRSP": "0x40001FF8",
+        "KernelFaultRSP": "0xDE52FD0",
+        "ActiveCR3": "0xDE4B000",
+        "FrameBytes": 32768,
+        "ReclaimedPages": 2,
+        "ScrubbedBytes": 8192,
+        "AbiVersion": 1,
+        "EmbeddedSbefBytes": 792,
+        "SyscallCount": 3,
+        "InvokeEcho": true,
+        "InvalidCapabilityRejected": true,
+        "WaitStatus": -4,
+        "SbefSHA256": "94b7208245f3b6603cfbd998bcde793ebcf0acf0962c35d53d13c2b5106bd11f",
+        "CommonAbiClientVerified": true
+      }
+    ],
+    "toolchain": "msvc",
+    "minimal_system_budget": {
+      "limit_bytes": 2048,
+      "packet_bytes": 1887,
+      "packet_header_bytes": 24,
+      "embedded_sbef_bytes": 792,
+      "ring0_body_bytes": 1071,
+      "packet_headroom_bytes": 161,
+      "uefi_bridge_bytes": 12288,
+      "packet_and_bridge_bytes": 14175,
+      "guest_ram_mib": 256
+    },
+    "run": "run-abi-msvc-dd75ebbd9b71",
+    "evidence": "QEMU",
+    "milestone": "MSVC client exercises the CASM ABI in CPL3"
+  }
+}

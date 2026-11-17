@@ -7,7 +7,7 @@ import subprocess
 import sys
 
 from ..importers.elf import pack_elf
-from ..importers.pe import probe_pe
+from .msvc import build_msvc
 from ..sbef.format import inspect
 
 
@@ -25,10 +25,13 @@ def main():
     parser.add_argument('--abi-run', type=Path, help='Execute the common client in the CASM ABI QEMU fixture')
     parser.add_argument('--language', choices=['c', 'cpp', 'rust'], default='c')
     parser.add_argument('--pe-link', metavar='LINK_EXE', help='Link the MSVC COFF client and Rust Win64 portal into a PE inspection fixture')
+    parser.add_argument('--coff-as', default='clang', help='Clang assembler for the Win64 entry and QEMU terminal')
     parser.add_argument('--reuse', action='store_true', help='Run two distinct embedded SBEFs on the same pages')
     args = parser.parse_args()
     if args.pe_link and args.toolchain != 'msvc':
         parser.error('--pe-link requiere msvc')
+    if args.toolchain == 'msvc' and args.abi_run and not args.pe_link:
+        parser.error('MSVC --abi-run requiere --pe-link')
     if args.reuse and (not args.abi_run or args.toolchain == 'msvc'):
         parser.error('--reuse requiere --abi-run y un ensamblador ELF64')
     if args.language != 'c' and (not args.abi_run or args.toolchain == 'msvc'):
@@ -41,31 +44,13 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     cc = args.cc or ('cl' if args.toolchain == 'msvc' else args.toolchain)
     if args.toolchain == 'msvc':
-        if args.abi_run:
-            parser.error('--abi-run requires GCC or Clang ELF64')
-        obj = out/'client.obj'
-        subprocess.run([cc, '/nologo', '/std:c11', '/c', '/O2', '/GS-', '/Zl',
-                        f'/Fo{obj}', str(CLIENT)], check=True, cwd=out)
-        data = obj.read_bytes()
-        if data[:2] != b'\x64\x86' or not all(name in data for name in (b'bmo_invoke', b'bmo_wait')):
-            raise ValueError('ABI-TOOLCHAIN: objeto COFF o simbolos de llamada invalidos')
-        report = dict(Toolchain='msvc', Stage='COFF', Bytes=len(data),
-                      SHA256=hashlib.sha256(data).hexdigest())
-        if args.pe_link:
-            portal, pe = out/'portal-win64.obj', out/'client.exe'
-            subprocess.run(['rustc', '--edition=2024', '--target=x86_64-pc-windows-msvc',
-                            '--crate-type=lib', '--emit=obj', '-Cpanic=abort', '-Copt-level=2',
-                            str(ABI/'win64.rs'), '-o', str(portal)], check=True, cwd=out)
-            subprocess.run([args.pe_link, '/nologo', '/machine:x64', '/nodefaultlib',
-                            '/entry:bmo_main', '/subsystem:console', '/incremental:no',
-                            f'/out:{pe}', str(obj), str(portal)], check=True, cwd=out)
-            pe_bytes = pe.read_bytes()
-            image = probe_pe(pe_bytes)
-            if any(name in image['Directories'] for name in ('imports', 'delay_imports', 'tls')):
-                raise ValueError('ABI-TOOLCHAIN: PE freestanding con dependencias inesperadas')
-            report.update(Stage='PE32+ inspection', Image=image, PESHA256=hashlib.sha256(pe_bytes).hexdigest(),
-                          RustPortalBytes=portal.stat().st_size)
-        print(json.dumps(report, indent=2))
+        report, sbef = build_msvc(out, CLIENT, ABI, ROOT/'tools/doom/complete.S', cc=cc,
+                                  linker=args.pe_link, assembler=args.coff_as, qemu=bool(args.abi_run))
+        print(json.dumps(report, indent=2), flush=True)
+        if sbef is not None:
+            subprocess.run([sys.executable, '-B', str(ROOT/'tools/boot/doom_qemu.py'),
+                            str(args.abi_run.resolve()), str(sbef), '--toolchain-client', 'msvc'],
+                           check=True)
         return
 
     target = ['--target=x86_64-unknown-none-elf'] if args.toolchain == 'clang' else ['-m64']
@@ -83,9 +68,9 @@ def main():
     else:
         language = ['-x', 'c++', '-fno-exceptions', '-fno-rtti'] if args.language == 'cpp' else []
         subprocess.run([cc, *target, *flags, *language, '-c', str(CLIENT), '-o', str(obj)], check=True, cwd=out)
-    subprocess.run([cc, *target, '-c', str(ABI/'portal.S'), '-o', str(portal)], check=True, cwd=out)
+    subprocess.run([cc, *target, '-c', str(ABI/'sysv/portal.S'), '-o', str(portal)], check=True, cwd=out)
     subprocess.run([args.objcopy, '-O', 'binary', '--only-section=.text', str(portal), str(raw)], check=True, cwd=out)
-    if raw.read_bytes() != bytes.fromhex((ABI/'portal.hex').read_text(encoding='ascii')):
+    if raw.read_bytes() != bytes.fromhex((ABI/'sysv/portal.hex').read_text(encoding='ascii')):
         raise ValueError('ABI-TOOLCHAIN: los bytes de las puertas difieren del vector')
     script = ROOT/'userspace/sbef.ld'
     objects = [obj, portal]

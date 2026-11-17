@@ -11,7 +11,7 @@ if ($LASTEXITCODE -ne 0) {throw 'Fallo referencia Rust HOST.'}
 & (Join-Path $output 'host-scene.exe') (Join-Path $output 'expected.bin')
 if ($LASTEXITCODE -ne 0) {throw 'Fallo imagen de referencia.'}
 foreach ($unit in @(
-    @{Source='userspace/runtime/abi/portal.S'; Name='portal'; Flags=@()},
+    @{Source='userspace/runtime/abi/sysv/portal.S'; Name='portal'; Flags=@()},
     @{Source='kernel/syscalls/session_gate.S';Name='session-gate';Flags=@('-DDESKTOP_EXTERNAL')},
     @{Source='kernel/loader/external_sbef.S';Name='external-loader';Flags=@()}
 )) {

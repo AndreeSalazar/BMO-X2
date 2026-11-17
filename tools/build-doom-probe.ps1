@@ -51,7 +51,7 @@ $flags = @('-O2','-ffreestanding','-fno-pic','-fno-pie','-fno-stack-protector',
            '-fno-unwind-tables','-fno-asynchronous-unwind-tables',"-I$headers","-I$DoomSource")
 $objects = @()
 if ($External) { $flags += '-DBMO_EXTERNAL' }
-$units = @($source, $probe, $runtime, (Join-Path $PSScriptRoot 'doom/complete.S'), (Join-Path $root 'userspace/runtime/abi/portal.S'))
+$units = @($source, $probe, $runtime, (Join-Path $PSScriptRoot 'doom/complete.S'), (Join-Path $root 'userspace/runtime/abi/sysv/portal.S'))
 if ($Wad) {
     $flags += @('-DBMO_WAD', "-I$(Join-Path $PSScriptRoot 'doom/engine_include')")
     $units += Join-Path $PSScriptRoot 'doom/wad_stdio.c'

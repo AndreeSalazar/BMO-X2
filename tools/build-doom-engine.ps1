@@ -65,7 +65,7 @@ $elf = Join-Path $out 'doom-engine.elf'
 $sbef = Join-Path $out 'doom-engine.sbef'
 if ($Desktop) {
     $portal = Join-Path $out 'portal.o'
-    & (Join-Path $Llvm 'clang.exe') --target=x86_64-unknown-none-elf -c (Join-Path $root 'userspace/runtime/abi/portal.S') -o $portal
+    & (Join-Path $Llvm 'clang.exe') --target=x86_64-unknown-none-elf -c (Join-Path $root 'userspace/runtime/abi/sysv/portal.S') -o $portal
     if ($LASTEXITCODE -ne 0) { throw 'Fallo el stub ABI del escritorio.' }
     $link = @("-Clinker=$(Join-Path $Llvm 'ld.lld.exe')", '-Clinker-flavor=ld',
         "-Clink-arg=-T$(Join-Path $PSScriptRoot 'doom/engine.ld')", "-Clink-arg=$portal", "-Clink-arg=$engine")

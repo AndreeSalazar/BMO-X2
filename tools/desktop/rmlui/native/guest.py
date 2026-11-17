@@ -102,7 +102,7 @@ def main():
     if vm.count(old)!=1:raise ValueError('Review action VM resource address')
     vm=vm.replace(old,'    lea bmo_action_blob(%rip), %rsi')
     write_if_changed(out/'action.S','.text\n.globl bmo_uj_action\nbmo_uj_action:\n'+vm+'\ninvalid:\n xor %eax,%eax\n ret\n.bss\n.balign 16\narena: .zero 256\n')
-    for name,path in [('assets',out/'assets.S'),('action',out/'action.S'),('portal',ROOT/'userspace/runtime/abi/portal.S')]:
+    for name,path in [('assets',out/'assets.S'),('action',out/'action.S'),('portal',ROOT/'userspace/runtime/abi/sysv/portal.S')]:
         command([llvm/'clang.exe',*flags,'-c',path,'-o',out/(name+'.o')],'compile-ui-'+name)
     # C++ uses the SysV SSE floating-point ABI. Resolve its libm symbols before
     # Rust's soft-float compiler-builtins archive, which also exports weak libm names.
