@@ -82,6 +82,8 @@ header:
     jb reject
     cmp $8192, %eax
     ja reject
+    cmp $4096, %eax
+    seta %r15b
     mov 16(%rsi), %r12
     mov %r12, %rax
     sub $0x40000000, %rax
@@ -160,9 +162,13 @@ payload_checked:
     lea 0x5005(%r11), %rax
     mov %rax, 0x4000(%r11)
 #endif
+    # Map the second RX page only when the SBEF memory span needs it.
+    testb %r15b, %r15b
+    jz .Lcode_pages_ready
     # The old stack page becomes the second immutable code page.
     lea 0x6005(%r11), %rax
     mov %rax, 0x4008(%r11)
+.Lcode_pages_ready:
     lea 0x8007(%r11), %rax
     bts $63, %rax
     mov %rax, 0x4010(%r11)

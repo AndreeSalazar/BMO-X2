@@ -3,10 +3,16 @@ import hashlib
 import re
 from pathlib import Path
 import struct
+import sys
 import time
 
 from cpu_config import l1_cache_profile, register
 from splash_capture import compare_frame
+
+TOOLS = str(Path(__file__).resolve().parents[1])
+if TOOLS not in sys.path:
+    sys.path.insert(0, TOOLS)
+from host.sbef.format import load_plan as make_load_plan
 
 
 def verify_bootlog_file(image, prefix):
@@ -68,6 +74,86 @@ def verify_external_rejection(command, memory, image):
     raise ValueError(f'El cargador externo no rechazo W+X: {regs[:420]}')
 
 
+def verify_external_mapping(memory, context_address, image):
+    plan = make_load_plan(image)
+    if plan['AbiVersion'] != 1 or not 1 <= plan['RegionCount'] <= 3:
+        raise ValueError('La sonda de escritorio solo ejecuta SBEF ABI 1 de una a tres regiones')
+
+    layouts = {1: ['RX'], 2: ['RX', 'R'], 3: ['RX', 'R', 'RW']}
+    if [region['Permissions'] for region in plan['Regions']] != layouts[plan['RegionCount']]:
+        raise ValueError('La sonda actual solo admite las secuencias RX, RX/R y RX/R/RW')
+
+    page_table = struct.unpack('<512Q', memory(context_address + 0x17000, 4096, 'external-user-pte'))
+    slots = {'RX': 0x40000000, 'R': 0x40003000, 'RW': 0x40004000}
+    frames = {
+        'RX': (context_address + 0x18000, context_address + 0x19000),
+        'R': (context_address + 0x1c000,),
+        'RW': (context_address + 0x1d000,),
+    }
+    mapped_slots = set()
+    mapped_frames = set()
+    page_count = 0
+    zero_fill_bytes = 0
+    physical_mask = 0x000ffffffffff000
+    permission_mask = (1 << 63) | 7
+    hardware_mutable_mask = 0x60
+
+    for region in plan['Regions']:
+        permissions = region['Permissions']
+        if permissions not in slots or region['VirtualStart'] != slots[permissions]:
+            raise ValueError(f'La sonda actual no admite region SBEF {permissions} en 0x{region["VirtualStart"]:X}')
+        if not region['User']:
+            raise ValueError(f'La region SBEF {region["Index"]} no esta marcada como usuario en el plan HOST')
+        if region['PageCount'] > len(frames[permissions]):
+            raise ValueError(f'La region SBEF {permissions} excede las paginas reservadas por la sonda')
+        if permissions in ('R', 'RW') and region['PageCount'] != 1:
+            raise ValueError(f'La sonda actual requiere una pagina para la region {permissions}')
+
+        expected_permissions = 5 | (2 if region['Writable'] else 0)
+        if region['NoExecute']:
+            expected_permissions |= 1 << 63
+        actual_region = bytearray()
+        for page in range(region['PageCount']):
+            virtual = region['VirtualStart'] + page * 4096
+            slot = (virtual - 0x40000000) // 4096
+            if slot >= len(page_table) or slot == 2 or slot in mapped_slots:
+                raise ValueError(f'La region SBEF colisiona con una entrada reservada: VA 0x{virtual:X}')
+            pte = page_table[slot]
+            if pte & permission_mask != expected_permissions:
+                raise ValueError(f'Permisos PTE distintos del plan HOST en VA 0x{virtual:X}')
+            physical = pte & physical_mask
+            expected_frame = frames[permissions][page]
+            expected_pte = expected_frame | expected_permissions
+            if physical != expected_frame or physical in mapped_frames:
+                raise ValueError(f'Marco fisico distinto del plan SBEF en VA 0x{virtual:X}')
+            if (pte & ~hardware_mutable_mask) != expected_pte:
+                raise ValueError(f'Flags PTE inesperados respecto al plan HOST en VA 0x{virtual:X}')
+            mapped_slots.add(slot)
+            mapped_frames.add(physical)
+            actual_region.extend(memory(physical, 4096, f'external-region-{region["Index"]}-page-{page}'))
+
+        expected_bytes = image[region['FileOffset']:region['FileEnd']]
+        expected_bytes = expected_bytes.ljust(region['MappedBytes'], b'\0')
+        if bytes(actual_region) != expected_bytes:
+            raise ValueError(f'Contenido, BSS o cola de pagina distinto del plan HOST en region {region["Index"]}')
+        page_count += region['PageCount']
+        zero_fill_bytes += region['ZeroFillBytes']
+
+    stack = page_table[2]
+    expected_stack = (context_address + 0x1b000) | (1 << 63) | 7
+    if (stack & ~hardware_mutable_mask) != expected_stack:
+        raise ValueError('La pila separada no tiene permiso RW/NX de usuario en su pagina reservada')
+    for slot, pte in enumerate(page_table):
+        if slot not in mapped_slots and slot != 2 and pte:
+            raise ValueError(f'La sonda dejo un mapeo de usuario fuera del plan HOST en la pagina {slot}')
+
+    return plan, page_table[:5], dict(
+        SbefMappingPlanVerified=True,
+        SbefMappedPagesVerified=page_count,
+        SbefZeroFillBytesVerified=zero_fill_bytes,
+    )
+
+
 def verify_session(command, memory, prefix, packet, intro, fixture, external_image=None, *, desktop_media=False):
     def registers():
         return command('human-monitor-command', {'command-line': 'info registers'})
@@ -104,6 +190,14 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 return address, context, code
 
     address, context, code = wait_until(started)
+    map_evidence = dict(SbefMappingPlanVerified=False, SbefMappedPagesVerified=0,
+                        SbefZeroFillBytesVerified=0)
+    mapping_plan = None
+    entries = None
+    count = None
+    if external_image is not None:
+        mapping_plan, entries, map_evidence = verify_external_mapping(memory, address, external_image)
+        count = mapping_plan['RegionCount']
     if intro and frames != {1, 2}:
         def through_intro():
             started()
@@ -690,26 +784,10 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     assert memory(code, len(packet)-24, 'session-code') == packet[24:]
     if external_image is not None:
         assert external_image not in packet, 'SBEF externo embebido en el paquete'
-        count = struct.unpack_from('<H', external_image, 10)[0]
-        offset, size = struct.unpack_from('<II', external_image, 40)
-        payload = external_image[offset:offset+size]
-        assert memory(address + 0x18000, 8192, 'external-text') == payload.ljust(8192, b'\0')
-        if count >= 2:
-            offset, size = struct.unpack_from('<II', external_image, 72)
-            payload = external_image[offset:offset+size]
-            assert memory(address + 0x1c000, 4096, 'external-rodata') == payload.ljust(4096, b'\0')
-            entries = struct.unpack('<QQQQQ', memory(address + 0x17000, 40, 'external-pte'))
-            base = address + 0x13000
-            assert tuple(entry & ~0x60 for entry in entries) == (
-                (base + 0x5000) | 5, (base + 0x6000) | 5,
-                (base + 0x8000) | (1 << 63) | 7, (base + 0x9000) | (1 << 63) | 5,
-                (base + 0xa000) | (1 << 63) | 7 if count == 3 else 0)
         if count == 3:
-            offset, file_size, memory_size = struct.unpack_from('<III', external_image, 104)
-            assert (file_size, memory_size) == (4, 8)
-            assert external_image[offset:offset+4] == struct.pack('<I', 0x424d4f32)
-            assert memory(address + 0x1d000, 4096, 'external-data') == (
-                struct.pack('<II', 0x52334441, 0x52334253).ljust(4096, b'\0'))
+            data_region = mapping_plan['Regions'][2]
+            assert (data_region['FileBytes'], data_region['MemoryBytes']) == (4, 8)
+            assert external_image[data_region['FileOffset']:data_region['FileEnd']] == struct.pack('<I', 0x424d4f32)
     for digit, x, color in [('2', 272, 0xad92ff), ('3', 328, 0x6ee7b7), ('4', 384, 0xff7c98)]:
         key('ctrl', 'meta_l', digit)
         wait_until(lambda: logical(x, 33, color) and logical(52, 99, color))
@@ -849,7 +927,9 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
 
         close_session()
         verify_closed()
-        closed = dict(SessionClosed=True, SyscallGateDisabled=True, UserPagesUnmapped=5, UserBytesScrubbed=20480)
+        closed = dict(SessionClosed=True, SyscallGateDisabled=True,
+                      UserPagesUnmapped=map_evidence['SbefMappedPagesVerified'] + 1,
+                      UserBytesScrubbed=20480)
         if reuse:
             def owner(expected):
                 return memory(descriptor + 0x3a8, 1, 'session-owner') == bytes([expected])
@@ -877,6 +957,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 PointerBurstEvents=48,
                 WaitHalted=True, WaitTimeoutVerified=True, WaitInputVerified=True,
                 ExternalSbef=external_image is not None,
+                **map_evidence,
                 ReadOnlyNxRegionVerified=external_image is not None and count >= 2,
                 WritableNxRegionVerified=external_image is not None and count == 3,
                 UserDataAndBssVerified=external_image is not None and count == 3,

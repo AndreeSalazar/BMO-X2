@@ -45,12 +45,20 @@ con LLVM comprueba ABI 1, codigo RX de hasta dos paginas, constantes
 R/NX de una pagina y datos RW/NX de una pagina. El perfil conserva
 las variantes con una o dos regiones. Valida toda la tabla antes
 de copiar y deja a cero los bytes posteriores al contenido.
-QEMU coteja los permisos, verifica las escrituras CPL3 en datos
-y BSS, y comprueba el rechazo W+X en el offset 116 antes de copiar
-o activar CR3. Este validador solo reconoce sus perfiles fijos de una a
-tres regiones; no admite aun las direcciones RVA y las cuatro o mas
-regiones que puede emitir el nuevo perfil PE generico de HOST. Empaquetar
-un PE generico no significa que QEMU o el kernel ya puedan ejecutarlo.
+El verificador de captura de QEMU usa `load_plan` como referencia y
+coteja la tabla completa de 512 PTE: marcos fisicos, permisos y flags
+(ignorando solo A/D, que actualiza la CPU). Tambien compara todos los
+bytes de paginas mapeadas con el archivo, BSS y cola a cero, verifica
+la pila RW/NX y rechaza entradas PTE adicionales. El perfil de captura
+acepta unicamente RX, RX/R o RX/R/RW en las direcciones y reservas
+actuales. QEMU verifica las escrituras CPL3 en datos y BSS, y el rechazo
+W+X en el offset 116 antes de copiar o activar CR3. Esta comprobacion
+instrumenta la sonda LLVM; no sustituye el cargador CASM general.
+
+El validador solo reconoce sus perfiles fijos de una a tres regiones;
+no admite aun las direcciones RVA ni las cuatro o mas regiones que puede
+emitir el nuevo perfil PE generico de HOST. Empaquetar un PE generico no
+significa que QEMU o el kernel ya puedan ejecutarlo.
 
 El perfil de escritorio lee `DESKTOP.SBF` desde FAT32 mediante UEFI y
 entrega sus bytes a este validador. El escritorio ya se observo en
