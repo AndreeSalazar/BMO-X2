@@ -97,7 +97,7 @@
 | [HOST: del ejecutable a SBEF](../tools/host) | host | host | Coordina la inspeccion, admision, diagnostico y publicacion de ejecutables x86-64. |
 | [Empaquetador ELF64 a SBEF](../tools/host/importers/elf.py) | host | host | Convierte segmentos de un ELF64 estatico a regiones SBEF comprobadas. |
 | [Lector SBEF de referencia](../tools/host/sbef/format.py) | host | host | Valida la imagen SBEF y localiza el campo rechazado. |
-| [Inspeccion PE32+](../tools/host/importers/pe.py) | host | host | Expone secciones y directorios PE que requieren adaptacion de ABI. |
+| [Inspeccion PE32+](../tools/host/importers/pe.py) | host | host | Aplica relocaciones DIR64 internas y convierte perfiles PE freestanding limitados a SBEF. |
 | [Supervisor Rust de Ring 3](../userspace/supervisor) | diseno | 3 | Ordena, configura y recupera servicios desde CPL3. |
 | [SBEF ABI 1 y llamadas desde CPL3](../kernel/syscalls/main.casm) | qemu | 0 | Valida SBEF embebido y ejecuta tres entradas SYSCALL. |
 | [Banco de toolchains del ABI](../tools/host/toolchains/abi.py) | qemu | host | Construye un cliente comun y coteja los bytes de los stubs ELF. |

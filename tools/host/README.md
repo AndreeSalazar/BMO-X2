@@ -39,7 +39,7 @@ limites de recursos, pruebas de rechazo y evidencia de ejecucion.
 | `toolchains/abi.py` | Coordinar el banco ABI y cotejar el portal SysV con su vector HEX. |
 | `toolchains/msvc.py` | Compilar COFF con MSVC, enlazar el portal Rust Win64 y preparar el cliente PE para el banco. |
 | `importers/elf.py` | Validar ELF64 estatico y extraer los segmentos cargables. |
-| `importers/pe.py` | Inventariar PE32+, validar perfiles fijos RX o RX/R/RW y explicar rechazos. |
+| `importers/pe.py` | Inventariar PE32+, rebajar DIR64 interno y emitir perfiles PE freestanding validados. |
 | `importers/pe_imports.py` | Censar DLL, simbolos y ordinales de importaciones normales, con limites de lectura. |
 | `importers/pe_bindings.py` | Resolver las importaciones del catalogo del banco MSVC, en la IAT de solo lectura del SBEF. |
 | `sbef/format.py` | Definir y validar cabecera, tabla, rangos, permisos y entrada SBEF. |
@@ -171,25 +171,49 @@ cl /nologo /MD /EHsc .\app.cpp /Fe:app.exe
 ```
 
 El intake guarda un informe JSON con el SHA-256, secciones, directorios,
-importaciones y bloqueos del perfil actual en `build/msvc-intake/`.
+importaciones, relocaciones DIR64 y bloqueos en `build/msvc-intake/`.
 No ejecuta el PE. `-Empaquetar` crea un SBEF solo cuando pasa todas las
-guardas existentes. Una aplicacion MSVC de escritorio normalmente muestra
-servicios como CRT, Win32 y relocaciones que aun debe implementar HOST.
-El informe identifica el primer trabajo concreto para ampliar.
+guardas.
 
-La prueba local con Visual Studio 2022 compilo `tools/tests/msvc_standard_probe.cpp`
-con `/MD /EHsc`. HOST reconocio diez modulos de importacion y sesenta simbolos, y explico por
-que el ejecutable no entra todavia en SBEF. El caso requiere importaciones
-CRT/Win32, relocaciones, load config e IAT. El informe conserva el hash de
-esa entrada en [msvc-standard-intake.json](../../Reports/msvc-standard-intake.json).
-Al empaquetar, el intake deja el SBEF sin crear y referencia esos bloqueos.
+El HOST admite ademas un perfil PE32+ freestanding limitado: EXE de consola,
+hasta ocho secciones ordenadas y alineadas a pagina, regiones R/RX/RW sin
+W+X, imagen virtual de hasta 16 MiB y SBEF de hasta 1 MiB. Si el ImageBase
+cambia, exige DYNAMIC_BASE y relocaciones DIR64 validas que apunten dentro
+de las secciones mapeadas. Comprueba relleno, rangos, solapes, entrada,
+permisos y los registros de depuracion REPRO/VC_FEATURE. Rechaza por ahora
+importaciones/IAT, DLL, TLS, load config, unwind/excepciones y otros
+directorios que necesiten semantica de ejecucion.
 
-El siguiente tramo de compatibilidad MSVC necesita aplicar relocaciones y
-mapear las secciones PE, resolver la IAT con contratos API-set, y proveer
-los servicios importados de UCRT, VCRUNTIME, MSVCP y Win32. Luego necesita
-inicializar TLS y unwind, y cargar cada modulo en su propio proceso Ring 3.
-Los servicios graficos como Win32 GUI, DXGI y Direct3D pertenecen a etapas
-posteriores de ese mismo mapa de servicios.
+La prueba real con Visual Studio 2022 compilo
+`tools/tests/msvc_rebase_probe.cpp` sin CRT ni DLL. HOST leyo una relocacion
+DIR64, rebajo cuatro regiones al espacio SBEF y produjo un archivo de 388
+bytes desde un PE de 3072 bytes. El paquete paso `inspect`; la evidencia
+esta en [msvc-rebase-intake.json](../../Reports/msvc-rebase-intake.json).
+Es una prueba de admision y conversion en HOST, no de ejecucion: el cargador
+externo de QEMU descrito en [SBEF-LOADER](../../contracts/SBEF-LOADER.md)
+solo admite los perfiles actuales de una a tres regiones con direcciones
+fijas. No se afirma que este SBEF generico arranque en QEMU ni en metal.
+
+Para repetir el fixture desde Developer PowerShell x64 de Visual Studio:
+
+```powershell
+$out = 'build\msvc-intake\rebase'
+New-Item -ItemType Directory -Path $out -Force | Out-Null
+cl /nologo /c /O1 /GS- /GR- /EHs-c- /Zl "/Fo$out\rebase.obj" tools\tests\msvc_rebase_probe.cpp
+link /nologo /nodefaultlib /subsystem:console /entry:entry /base:0x140000000 /dynamicbase /fixed:no /incremental:no "/out:$out\rebase.exe" "$out\rebase.obj"
+.\tools\host\msvc.ps1 -Archivo "$out\rebase.exe" -Empaquetar
+$hash = (Get-FileHash "$out\rebase.exe" -Algorithm SHA256).Hash.ToLowerInvariant().Substring(0, 12)
+python -B tools\sbef.py inspect "build\msvc-intake\rebase-$hash.SBEF"
+```
+
+El ejecutable estandar `/MD /EHsc` sigue rechazado. Su informe actualizado
+conserva diez modulos y sesenta simbolos, e identifica imports de CRT/Win32,
+load config e IAT en [msvc-standard-intake.json](../../Reports/msvc-standard-intake.json).
+El siguiente tramo es definir el cargador generico de varias regiones en
+Ring 3 y un mapa versionado de servicios para imports. UCRT, VCRUNTIME,
+MSVCP y Win32 se habilitaran uno a uno con semantica y pruebas propias.
+Luego vendran TLS, unwind y procesos externos. Win32 GUI, DXGI y Direct3D
+siguen siendo trabajo posterior; el intake PE no implementa esas APIs.
 
 El siguiente ensayo debe ampliar la tabla de servicios y comprobar
 que cada importacion admitida conserva su semantica. El paso grafico

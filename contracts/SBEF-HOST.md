@@ -50,9 +50,13 @@ ordenada del proceso se definira en el ABI de Ring 3.
 `probe` muestra si la entrada ELF64 cumple el perfil y que regiones
 tendria su SBEF. Para PE32+ muestra el punto de entrada, las secciones,
 los permisos y directorios relevantes como importaciones, TLS y
-reubicaciones. `pack --abi 1` admite los perfiles PE freestanding de
-una region RX y de tres regiones RX/R/RW descritos en
-[HOST](../tools/host/README.md).
+reubicaciones. `pack --abi 1` admite los perfiles PE freestanding fijos
+RX y RX/R/RW y un perfil PE32+ EXE de consola limitado. Este ultimo puede
+mapear hasta ocho secciones ordenadas, sin W+X, y aplicar solo
+relocaciones DIR64 a direcciones internas mapeadas. Requiere DYNAMIC_BASE
+si cambia la base. Rechaza imports/IAT, DLL, TLS, load config, unwind y
+directorios que aun no tienen contrato de ejecucion. Vease el alcance y
+la evidencia MSVC en [HOST](../tools/host/README.md).
 `--json-errors` antes de la accion devuelve por
 stderr codigo, campo y offset de archivo, con indice de region
 cuando corresponde. El archivo se escribe solo despues de admitirlo.

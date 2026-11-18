@@ -33,7 +33,10 @@ las variantes con una o dos regiones. Valida toda la tabla antes
 de copiar y deja a cero los bytes posteriores al contenido.
 QEMU coteja los permisos, verifica las escrituras CPL3 en datos
 y BSS, y comprueba el rechazo W+X en el offset 116 antes de copiar
-o activar CR3.
+o activar CR3. Este validador solo reconoce sus perfiles fijos de una a
+tres regiones; no admite aun las direcciones RVA y las cuatro o mas
+regiones que puede emitir el nuevo perfil PE generico de HOST. Empaquetar
+un PE generico no significa que QEMU o el kernel ya puedan ejecutarlo.
 
 El perfil de escritorio lee `DESKTOP.SBF` desde FAT32 mediante UEFI y
 entrega sus bytes a este validador. El escritorio ya se observo en

@@ -1,4 +1,4 @@
-﻿{
+{
   "Schema": 1,
   "Source": "msvc-standard.exe",
   "SourceBytes": 13312,
@@ -11,6 +11,11 @@
     "ImageBase": 5368709120,
     "ImageKind": "EXE",
     "Subsystem": 3,
+    "DllCharacteristics": 33120,
+    "SectionAlignment": 4096,
+    "FileAlignment": 512,
+    "ImageSize": 32768,
+    "HeaderSize": 1024,
     "Sections": [
       {
         "Name": ".text",
@@ -20,7 +25,8 @@
         "FileBytes": 5120,
         "Readable": true,
         "Writable": false,
-        "Executable": true
+        "Executable": true,
+        "Characteristics": 1610612768
       },
       {
         "Name": ".rdata",
@@ -30,7 +36,8 @@
         "FileBytes": 5632,
         "Readable": true,
         "Writable": false,
-        "Executable": false
+        "Executable": false,
+        "Characteristics": 1073741888
       },
       {
         "Name": ".data",
@@ -40,7 +47,8 @@
         "FileBytes": 512,
         "Readable": true,
         "Writable": true,
-        "Executable": false
+        "Executable": false,
+        "Characteristics": 3221225536
       },
       {
         "Name": ".pdata",
@@ -50,7 +58,8 @@
         "FileBytes": 512,
         "Readable": true,
         "Writable": false,
-        "Executable": false
+        "Executable": false,
+        "Characteristics": 1073741888
       },
       {
         "Name": ".reloc",
@@ -60,7 +69,8 @@
         "FileBytes": 512,
         "Readable": true,
         "Writable": false,
-        "Executable": false
+        "Executable": false,
+        "Characteristics": 1107296320
       }
     ],
     "Directories": {
@@ -95,11 +105,6 @@
         "Code": "PE-IMPORTS",
         "Offset": 376,
         "Field": "DataDirectory.imports"
-      },
-      {
-        "Code": "PE-RELOCATIONS",
-        "Offset": 408,
-        "Field": "DataDirectory.base_relocations"
       },
       {
         "Code": "PE-LOAD-CONFIG",
@@ -343,7 +348,14 @@
           }
         ]
       }
-    ]
+    ],
+    "Relocations": {
+      "Count": 18,
+      "Types": [
+        "DIR64"
+      ],
+      "TargetLoadBase": "0x40000000"
+    }
   },
   "Package": {
     "ExitCode": 1,

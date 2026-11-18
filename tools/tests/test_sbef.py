@@ -216,6 +216,57 @@ class Sbef(unittest.TestCase):
                     pack_pe(bad, abi=1)
                 self.assertEqual(error.exception.code, code)
 
+    def test_pe64_rebases_only_internal_dir64_targets_into_sbef(self):
+        image = bytearray(0x800)
+        image[:2] = b'MZ'
+        struct.pack_into('<I', image, 0x3c, 0x80)
+        image[0x80:0x84] = b'PE\0\0'
+        opt = 0x98
+        table = opt + 240
+        struct.pack_into('<HHIIIHH', image, 0x84, 0x8664, 3, 0, 0, 0, 240, 2)
+        struct.pack_into('<H', image, opt, 0x20b)
+        struct.pack_into('<I', image, opt + 16, 0x1000)
+        struct.pack_into('<Q', image, opt + 24, 0x140000000)
+        struct.pack_into('<II', image, opt + 32, 0x1000, 0x200)
+        struct.pack_into('<II', image, opt + 56, 0x4000, 0x200)
+        struct.pack_into('<H', image, opt + 68, 3)
+        struct.pack_into('<H', image, opt + 70, 0x40)
+        struct.pack_into('<I', image, opt + 108, 16)
+        struct.pack_into('<II', image, opt + 112 + 5 * 8, 0x3000, 12)
+        sections = (
+            (b'.text', 0x100, 0x1000, 0x200, 0x200, 0x60000020),
+            (b'.data', 0x100, 0x2000, 0x200, 0x400, 0xC0000040),
+            (b'.reloc', 12, 0x3000, 0x200, 0x600, 0x40000040),
+        )
+        for index, (name, virtual, rva, raw, offset, flags) in enumerate(sections):
+            struct.pack_into('<8sIIIIIIHHI', image, table + index * 40, name, virtual,
+                             rva, raw, offset, 0, 0, 0, 0, flags)
+        image[0x200] = 0xC3
+        struct.pack_into('<Q', image, 0x420, 0x140001000)
+        struct.pack_into('<IIHH', image, 0x600, 0x2000, 12, 0xA020, 0)
+
+        probe = probe_pe(image)
+        self.assertTrue(probe['CanPack'], probe['Blockers'])
+        self.assertEqual(probe['Relocations']['Count'], 1)
+        packed = pack_pe(image, abi=1)
+        info = sbef.inspect(packed)
+        self.assertEqual(info['Entry'], '0x40001000')
+        data_region = info['Regions'][1]
+        self.assertEqual(struct.unpack_from('<Q', packed, data_region['Offset'] + 0x20)[0],
+                         0x40001000)
+
+        unsupported = bytearray(image)
+        struct.pack_into('<H', unsupported, 0x608, 0x3020)
+        rejected = probe_pe(unsupported)
+        self.assertFalse(rejected['CanPack'])
+        self.assertEqual(rejected['RelocationInventoryError']['Code'], 'PE-RELOCATION-TYPE')
+
+        without_table = bytearray(image)
+        struct.pack_into('<II', without_table, opt + 112 + 5 * 8, 0, 0)
+        rejected = probe_pe(without_table)
+        self.assertFalse(rejected['CanPack'])
+        self.assertEqual(rejected['Blockers'][0]['Code'], 'PE-RELOCATIONS-MISSING')
+
 
 if __name__ == '__main__':
     unittest.main()

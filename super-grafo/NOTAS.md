@@ -1027,14 +1027,14 @@ Pendiente: Compartir vectores de admision y diagnostico con CASM.
 
 ## tools/host/importers/pe.py
 
-Expone secciones y directorios PE que requieren adaptacion de ABI.
+Inspecciona PE32+, rebaja relocaciones DIR64 internas y admite perfiles PE freestanding limitados.
 
 Estado: HOST. Anillo: host. Lenguaje: Python control.
 Entrada: Ejecutable PE32+ x86-64.
-Salida: Inventario HOST y motivos que impiden empaquetar.
+Salida: Inventario y SBEF admitido o rechazo preciso por campo y offset.
 Depende de: contrato propio sin dependencias en este catalogo.
-Aceptacion: Muestra importaciones, TLS y reubicaciones cuando estan declarados.
-Pendiente: Implementar y probar un perfil PE freestanding para conversion.
+Aceptacion: MSVC real produce una imagen rebajada con DIR64 y cuatro regiones; QEMU conserva el perfil fijo anterior.
+Pendiente: Cargador SBEF general, imports/IAT, TLS, load config, unwind y procesos externos.
 
 ## userspace/supervisor
 

@@ -1,0 +1,146 @@
+{
+  "Schema": 1,
+  "Source": "rebase.exe",
+  "SourceBytes": 3072,
+  "SourceSHA256": "571d9bb80299ae866ec5b502290ab7658d3b1ae5a7d64d6941efc337bf071332",
+  "ProbeExitCode": 0,
+  "Probe": {
+    "SourceFormat": "PE32+",
+    "Architecture": "x86-64",
+    "EntryRVA": 4096,
+    "ImageBase": 5368709120,
+    "ImageKind": "EXE",
+    "Subsystem": 3,
+    "DllCharacteristics": 33120,
+    "SectionAlignment": 4096,
+    "FileAlignment": 512,
+    "ImageSize": 20480,
+    "HeaderSize": 1024,
+    "Sections": [
+      {
+        "Name": ".text",
+        "RVA": 4096,
+        "VirtualBytes": 24,
+        "FileOffset": 1024,
+        "FileBytes": 512,
+        "Readable": true,
+        "Writable": false,
+        "Executable": true,
+        "Characteristics": 1610612768
+      },
+      {
+        "Name": ".rdata",
+        "RVA": 8192,
+        "VirtualBytes": 176,
+        "FileOffset": 1536,
+        "FileBytes": 512,
+        "Readable": true,
+        "Writable": false,
+        "Executable": false,
+        "Characteristics": 1073741888
+      },
+      {
+        "Name": ".data",
+        "RVA": 12288,
+        "VirtualBytes": 16,
+        "FileOffset": 2048,
+        "FileBytes": 512,
+        "Readable": true,
+        "Writable": true,
+        "Executable": false,
+        "Characteristics": 3221225536
+      },
+      {
+        "Name": ".reloc",
+        "RVA": 16384,
+        "VirtualBytes": 12,
+        "FileOffset": 2560,
+        "FileBytes": 512,
+        "Readable": true,
+        "Writable": false,
+        "Executable": false,
+        "Characteristics": 1107296320
+      }
+    ],
+    "Directories": {
+      "base_relocations": {
+        "RVA": 16384,
+        "Bytes": 12
+      },
+      "debug": {
+        "RVA": 8192,
+        "Bytes": 28
+      }
+    },
+    "CanPack": true,
+    "Blockers": [],
+    "Relocations": {
+      "Count": 1,
+      "Types": [
+        "DIR64"
+      ],
+      "TargetLoadBase": "0x40000000"
+    }
+  },
+  "Package": {
+    "ExitCode": 0,
+    "Path": "build/msvc-intake/rebase-571d9bb80299.SBEF",
+    "Result": {
+      "FormatVersion": 1,
+      "AbiVersion": 1,
+      "Architecture": "x86-64",
+      "Bytes": 388,
+      "Entry": "0x40001000",
+      "Regions": [
+        {
+          "Address": "0x40001000",
+          "Offset": 160,
+          "FileBytes": 24,
+          "MemoryBytes": 24,
+          "MappedBytes": 4096,
+          "Permissions": "RX"
+        },
+        {
+          "Address": "0x40002000",
+          "Offset": 184,
+          "FileBytes": 176,
+          "MemoryBytes": 176,
+          "MappedBytes": 4096,
+          "Permissions": "R"
+        },
+        {
+          "Address": "0x40003000",
+          "Offset": 360,
+          "FileBytes": 16,
+          "MemoryBytes": 16,
+          "MappedBytes": 4096,
+          "Permissions": "RW"
+        },
+        {
+          "Address": "0x40004000",
+          "Offset": 376,
+          "FileBytes": 12,
+          "MemoryBytes": 12,
+          "MappedBytes": 4096,
+          "Permissions": "R"
+        }
+      ],
+      "SizeReport": {
+        "SourceBytes": 3072,
+        "ContainerBytes": 160,
+        "PayloadBytes": 228,
+        "MappedRegionBytes": 16384,
+        "ZeroFillBytes": 0,
+        "PagePaddingBytes": 16156
+      }
+    }
+  },
+  "FixtureSource": "tools/tests/msvc_rebase_probe.cpp",
+  "Toolchain": "Visual Studio 2022 Developer PowerShell",
+  "RelocationCheck": {
+    "TargetRVA": "0x3008",
+    "SourcePointer": "0x140003000",
+    "SBEFPointer": "0x40003000"
+  },
+  "QEMU": "Not executed: the current external loader accepts only the fixed one-to-three-region profiles."
+}
