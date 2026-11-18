@@ -53,10 +53,10 @@ productores -> adaptadores -> IR BMO -> backend x86-64 -> SBEF x86-64 -> NANO-CO
 ```
 
 Los perfiles `x86-64-v1` a `v4` describen capacidades de x86-64; no son una
-IR ni describen POWER. Una funcion de compilador que
-requiera una instruccion o semantica no disponible en el destino debe
-traducirse de forma definida o rechazarse con un diagnóstico concreto. La IR
-comun no promete que todo programa pueda compilar a todas las ISA.
+IR ni describen POWER. Una funcion de compilador que requiera una instruccion
+o semantica no disponible en el destino debe traducirse de forma definida o
+rechazarse con un diagnostico concreto. La IR comun no promete que todo
+programa pueda compilar a todas las ISA.
 
 Un PE/ELF ya enlazado contiene codigo maquina para una ISA concreta. El
 empaquetador actual puede validar y admitir los casos x86-64 que entiende,

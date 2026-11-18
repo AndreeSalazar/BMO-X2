@@ -23,9 +23,13 @@ fuente o IR de productor
 ```
 
 La IR BMO es el modelo semantico; su serializacion binaria se especificara
-despues de fijar las operaciones y reglas. El paquete ejecutable final es
-distinto y especifico del destino. Para BMO-X2 actual ese paquete es SBEF
-x86-64, con el encabezado y perfil ISA descritos en [SBEF](SBEF.md).
+despues de fijar las operaciones y reglas. Su inspiracion es el rol de una IR
+de compilador, como el modelo de generacion de codigo de
+[LLVM](https://llvm.org/docs/CodeGenerator.html); BMO definira sus propias
+operaciones, reglas y codificacion. No depende de LLVM bitcode ni lo instala
+en Ring 0. El paquete ejecutable final es distinto y especifico del destino.
+Para BMO-X2 actual ese paquete es SBEF x86-64, con el encabezado y perfil ISA
+descritos en [SBEF](SBEF.md).
 
 ## Limite de entrada
 
@@ -52,7 +56,7 @@ definido dentro del perfil y runtime declarados.
 Si una construccion no tiene semantica especificada, excede el perfil o
 necesita un servicio no implementado, el HOST la rechaza con diagnostico
 identificable. No descarta silenciosamente la operacion ni afirma que un
-binario arbitrario quedo “limpio”. Cada adaptador registra origen,
+binario arbitrario quedo "limpio". Cada adaptador registra origen,
 versiones/opciones disponibles, features requeridos y evidencia asociada.
 
 ## Separacion por destino

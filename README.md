@@ -32,32 +32,61 @@ Es una prueba de un cliente C freestanding, no una prueba de Windows completo
 ni de un cargador generico. [Informe QEMU](Reports/host-msvc-qemu.json) |
 [Matriz detallada y limites](tools/host/README.md).
 
-### Crecimiento futuro por ISA
+## Principio: compilador primero, destino explicito
 
-La arquitectura futura del HOST comparte adaptadores, diagnósticos y una
-representación intermedia BMO versionada. Su semántica y serialización aún
-están pendientes de especificación e implementación. Desde una IR validada,
-cada ISA tendrá su propio backend, contrato de paquete, ABI y NANO-CORE. El
-HOST x86-64 actual solo admite sus perfiles x86-64; no traduce instrucciones
-x86 a POWER.
+La regla de diseno de BMO-X2 es automatizar el trabajo con compiladores y
+HOSTs por destino. La frase del proyecto "compilador, no portabilidad" resume
+la interpretacion del autor, no es una cita literal de Grace Hopper. La
+inspiracion es el trabajo de Hopper en compiladores: A-0 traducia codigo
+matematico a instrucciones legibles por la maquina, y FLOW-MATIC acerco la
+programacion a terminos de negocio. [Biografia de Yale](https://president.yale.edu/biography-grace-murray-hopper),
+[historia del Computer History Museum](https://www.computerhistory.org/timeline/software-languages/).
+
+El objetivo no es meter todos los compiladores dentro de Ring 0. Ring 0
+recibe un paquete nativo, con ISA y ABI declarados, y aplica sus reglas de
+memoria y capacidades. El HOST ejecuta antes del arranque el trabajo de
+adaptar productores, validar semantica, optimizar y emitir el paquete. Es una
+herramienta del entorno de desarrollo: el kernel no necesita compilar ni
+llevar dentro MSVC, LLVM, GCC o `rustc`. No se busca un ejecutable universal;
+cada destino recibe un paquete nativo propio.
+
+| Etapa | Objetivo simple | Estado y salida |
+|---|---|---|
+| Productor | Producir codigo desde C/C++, Rust, ULTRA-J u otro lenguaje. | MSVC, LLVM/Clang, GCC y `rustc` tienen rutas de prueba limitadas; el nombre no implica admision general. |
+| Adaptador | Entender el formato/version de un productor y extraer lo que el HOST sabe interpretar. | Hoy hay importacion acotada de ELF64/PE x86-64. Adaptadores de productores a IR BMO estan pendientes. |
+| IR BMO | Guardar operaciones y reglas del programa sin fijarlas a registros/instrucciones x86. | Diseno acordado; semantica y codificacion binaria pendientes. Lo desconocido debe diagnosticarse. |
+| HOST | Validar, informar, optimizar de forma semantica y elegir el perfil del destino. | Ya hace admision/empaquetado acotados para x86-64; normalizacion/optimizacion general sobre IR aun pendiente. |
+| Backend | Traducir IR a instrucciones, registros, ABI y relocaciones de una ISA. | La ruta actual empaqueta codigo x86 ya generado. Backend IR-BMO a x86-64 pendiente; POWER/Cell requieren backends separados. |
+| Paquete | Describir codigo, regiones, permisos, arquitectura, ABI y requisitos. | BMO-X2 usa SBEF x86-64. Cada arquitectura futura necesita un contrato de paquete propio. |
+| NANO-CORE | Verificar el paquete, preparar memoria/capacidades y entrar a Ring 3. | Kernel CASM exclusivo x86-64; la comprobacion general de perfil ISA en CASM y el cargador externo siguen parciales. No interpreta C, Rust ni LLVM. |
+| Runtime Ring 3 | Dar al programa sus servicios, bibliotecas y ABI de usuario. | Hay servicios y fixtures concretos; runtimes generales de MSVC, Linux o cualquier lenguaje siguen pendientes. |
 
 ```text
-MSVC / LLVM / GCC / Rust -> adaptadores -> IR BMO validada
-                                          +-> backend x86-64 -> SBEF x86-64 -> NANO-CORE x86
-                                          +-> backend POWER  -> SBEF POWER  -> NANO-CORE POWER
+Ruta actual comprobada:
+GCC -> ELF64 x86-64 -> HOST/importador x86 -> SBEF x86-64 -> NANO-CORE x86 -> Ring 3
+
+Ruta futura desde IR BMO:
+productores -> adaptadores -> IR BMO binaria -> HOST valida/optimiza
+                                            +-> backend x86-64 -> SBEF x86-64 -> NANO-CORE x86
+                                            +-> backend POWER  -> paquete POWER -> NANO-CORE POWER
+                                            +-> backend Cell   -> paquete Cell  -> NANO-CORE Cell
 ```
 
-La IR común solo contendrá operaciones cuya semántica el HOST pueda
-representar y validar. Una operacion especifica de una ISA se baja a una
-equivalente si existe una traduccion definida; de lo contrario, el productor
-debe ofrecer una ruta compatible o el HOST la rechaza con diagnostico.
-Un ELF/PE ya enlazado conserva codigo maquina de su ISA: para cambiarlo de
-arquitectura hace falta su fuente/IR o un traductor binario separado. Esta
-direccion futura no cambia el alcance actual: BMO-X2 y su SBEF siguen siendo
-exclusivamente x86-64.
+La ruta actual recibe codigo maquina x86-64 y el HOST lo admite/empaqueta
+segun sus reglas. Para emitir otra ISA, el adaptador debe entregar fuente o
+IR antes de la generacion de instrucciones x86. Un ELF/PE nativo ya enlazado
+no cambia de ISA al reescribir su encabezado: moverlo a otro destino
+requeriria un traductor binario aparte. Si el juego usa ABI, runtime,
+graficos, audio o entrada especificos, el destino tambien debe ofrecer esos
+servicios. Su logica y recursos pueden permanecer iguales cuando la IR y
+esos contratos preserven el comportamiento requerido.
 
-El contrato de diseño está en [IR BMO](contracts/IR-BMO.md); sus etapas son
-un plan, no capacidades ya disponibles para todos los toolchains.
+La IR comun solo contendra operaciones cuya semantica el HOST pueda
+representar y validar. Una operacion especifica de una ISA se traduce si
+existe una regla definida; si no, el HOST emite un diagnostico. El alcance
+actual de BMO-X2 y SBEF sigue siendo exclusivamente x86-64. El contrato de
+diseno esta en [IR BMO](contracts/IR-BMO.md); no declara admision de todos los
+toolchains.
 
 ### Que falta para ampliar la admision
 
