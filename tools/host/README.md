@@ -41,6 +41,8 @@ comun; este proyecto sigue limitado a x86-64.
 
 La direccion de crecimiento es compartir adaptadores de productores y una
 IR BMO versionada, despues de normalizar y validar la semantica admitida.
+La semantica y el formato binario de IR BMO aun no estan implementados;
+consulta su [contrato de diseno](../../contracts/IR-BMO.md).
 Desde ahi se separan backends por ISA. Cada backend selecciona instrucciones,
 convencion de llamadas, relocaciones y requisitos que puede sostener, y emite
 el paquete definido para su destino:

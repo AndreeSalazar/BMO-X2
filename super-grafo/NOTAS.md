@@ -994,25 +994,25 @@ Pendiente: Reutilizar los marcos con el asignador general y ejecutar un segundo 
 
 ## tools/host
 
-Coordina la inspeccion, admision, diagnostico y publicacion de ejecutables x86-64.
+Coordina la inspeccion, admision, diagnostico y publicacion de ejecutables x86-64; define el futuro flujo adaptadores -> IR BMO -> backend por ISA.
 
 Estado: HOST. Anillo: host. Lenguaje: Python control.
-Entrada: ELF64 o PE32+ enlazado y version de ABI.
+Entrada: ELF64 o PE32+ enlazado para los importadores actuales; fuente/IR de productor mediante adaptadores futuros.
 Salida: SBEF admitido, comparacion de builds por archivo y paginas, o rechazo con campo y offset.
 Depende de: Empaquetador ELF64 a SBEF (codigo), Perfiles y capas del HOST x86-64 (codigo), Lector SBEF de referencia (codigo), Inspeccion PE32+ x86-64 (codigo).
 Aceptacion: profiles publica CapabilityCatalog. El intake MSVC liga la declaracion al hash PE y el SBEF emitido por PowerShell ejecuto el fixture ABI en CPL3 bajo QEMU; evidencia Reports/host-msvc-qemu.json; toolchain no atestado.
-Pendiente: Automatizar la procedencia, importar COFF .obj y definir enlace propio; cerrar la carga externa SBEF en Ring 3 y anadir imports/runtime solo con semantica propia.
+Pendiente: Implementar y serializar IR BMO, definir semantica y adaptar productores; la admision de todo compilador no existe. Automatizar procedencia, importar COFF .obj, definir enlace propio, cerrar carga externa SBEF en Ring 3 y anadir imports/runtime solo con semantica propia.
 
 ## tools/host/profiles.py
 
-Registra productores, formatos, reglas PE/ELF y destino actual exclusivamente x86-64; declara x86-64-v1 como base y niveles SBEF v2 v1-v4. Documenta IR BMO futura con backends, paquetes, ABI y NANO-CORE separados por ISA; no traduce codigo maquina entre CPU.
+Registra productores, formatos, reglas PE/ELF y destino actual exclusivamente x86-64; declara x86-64-v1 como base y niveles SBEF v2 v1-v4. Enlaza el contrato de diseno IR BMO; backends, paquetes, ABI y NANO-CORE seran especificos por ISA.
 
 Estado: HOST. Anillo: host. Lenguaje: Python.
 Entrada: Perfiles de MSVC, LLVM/Clang, GCC y Rust; manifiesto opcional ligado al hash PE.
 Salida: Matriz y catalogo de capacidades consultables con `python -B tools/sbef.py profiles`, politica ISA y estado de procedencia.
 Depende de: Empaquetador ELF64 a SBEF (codigo), Lector SBEF de referencia (codigo), Inspeccion PE32+ x86-64 (codigo).
 Aceptacion: profiles exporta CapabilityCatalog, politica ISA y niveles acumulativos. SBEF v2 escribe el ID ISA en offset 24; v1 heredado implica x86-64-v1; los IDs desconocidos se rechazan.
-Pendiente: La etiqueta SBEF no verifica los opcodes. Falta compilar y validar en QEMU las sondas LLVM, ligar opciones de productor y fixtures a cada nivel, cerrar el chequeo general CASM tras la puerta 1, generar procedencia automaticamente, admitir objetos COFF, certificar clang-cl/lld-link y ejecutar SBEF externo en Ring 3. Una IR BMO compartida y backends para otras ISA quedan para una etapa/proyecto futuro.
+Pendiente: IR BMO y su serializacion binaria aun no estan implementadas; tampoco la admision de todos los compiladores. La etiqueta SBEF no verifica los opcodes. Falta compilar y validar en QEMU las sondas LLVM, ligar opciones de productor y fixtures a cada nivel, cerrar el chequeo general CASM tras la puerta 1, generar procedencia automaticamente, admitir objetos COFF, certificar clang-cl/lld-link y ejecutar SBEF externo en Ring 3.
 
 ## tools/host/importers/elf.py
 

@@ -38,6 +38,10 @@ ELF64 estatico -> SBEF. El [ABI 1](ABI.md) y la admision CASM ya se
 ejercitan en QEMU con un SBEF embebido de una region. El cargador de
 imagenes externas y el bloqueo de WAIT siguen pendientes.
 
+La direccion futura de productores y destinos se especifica en
+[IR BMO](IR-BMO.md). La IR es entrada del HOST; Ring 0 recibe el paquete
+nativo de su propia ISA y ABI.
+
 [Responsabilidades del cargador y del gestor de memoria](SBEF-LOADER.md).
 
 ## Encabezado y perfil ISA

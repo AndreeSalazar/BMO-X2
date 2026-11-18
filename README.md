@@ -34,11 +34,12 @@ ni de un cargador generico. [Informe QEMU](Reports/host-msvc-qemu.json) |
 
 ### Crecimiento futuro por ISA
 
-El HOST puede compartir adaptadores de productores, diagnósticos y una
-representacion intermedia BMO versionada. Desde esa representacion, cada ISA
-tendra su propio backend, contrato SBEF, ABI y NANO-CORE. El HOST x86-64 actual
-solo admite sus perfiles x86-64; no es un traductor de instrucciones x86 a
-POWER.
+La arquitectura futura del HOST comparte adaptadores, diagnósticos y una
+representación intermedia BMO versionada. Su semántica y serialización aún
+están pendientes de especificación e implementación. Desde una IR validada,
+cada ISA tendrá su propio backend, contrato de paquete, ABI y NANO-CORE. El
+HOST x86-64 actual solo admite sus perfiles x86-64; no traduce instrucciones
+x86 a POWER.
 
 ```text
 MSVC / LLVM / GCC / Rust -> adaptadores -> IR BMO validada
@@ -46,7 +47,7 @@ MSVC / LLVM / GCC / Rust -> adaptadores -> IR BMO validada
                                           +-> backend POWER  -> SBEF POWER  -> NANO-CORE POWER
 ```
 
-La IR común solo contendrá operaciones cuya semantica el HOST pueda
+La IR común solo contendrá operaciones cuya semántica el HOST pueda
 representar y validar. Una operacion especifica de una ISA se baja a una
 equivalente si existe una traduccion definida; de lo contrario, el productor
 debe ofrecer una ruta compatible o el HOST la rechaza con diagnostico.
@@ -54,6 +55,9 @@ Un ELF/PE ya enlazado conserva codigo maquina de su ISA: para cambiarlo de
 arquitectura hace falta su fuente/IR o un traductor binario separado. Esta
 direccion futura no cambia el alcance actual: BMO-X2 y su SBEF siguen siendo
 exclusivamente x86-64.
+
+El contrato de diseño está en [IR BMO](contracts/IR-BMO.md); sus etapas son
+un plan, no capacidades ya disponibles para todos los toolchains.
 
 ### Que falta para ampliar la admision
 

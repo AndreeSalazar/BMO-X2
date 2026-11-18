@@ -19,6 +19,11 @@ revision aqui exige una decision escrita; no copiar sus numeros sin contrato.
 para congelarlo junto con el ABI. [BEF2 y ABI de BMO-X](ABI-BEF2.md)
 conserva la referencia del padre.
 
+[IR BMO](IR-BMO.md) describe el contrato futuro entre adaptadores de
+productores, una representacion semantica comun y backends/paquetes
+especificos por ISA. Su implementacion y serializacion binaria siguen
+pendientes.
+
 El [backlog de implementacion](../docs/RING0-PLAN.md) conserva el trabajo
 pendiente. Los documentos duplicados por subsistema fueron eliminados.
 
