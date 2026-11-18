@@ -30,6 +30,7 @@ python -B tools/sbef.py pack app.elf app-legacy.sbef --format-version 1
 python -B tools/sbef.py pack app.elf app-abi1.sbef --abi 1
 python -B tools/sbef.py --json-errors pack app.elf app-limited.sbef --abi 1 --max-file-bytes 512 --max-mapped-bytes 8192
 python -B tools/sbef.py inspect app.sbef
+python -B tools/sbef.py plan app.sbef
 python -B tools/sbef.py compare baseline.sbef candidate.sbef
 python -B tools/sbef.py probe app.elf
 python -B tools/sbef.py probe app.exe
@@ -101,6 +102,12 @@ Muestra el tamano de cada SBEF y el total mapeado, con el delta
 candidato menos base. Identifica regiones por direccion y permisos y
 desglosa sus bytes de archivo, memoria y paginas. Un cambio de direccion
 o permisos aparece como una region retirada y otra agregada.
+
+`plan` vuelve a validar el SBEF y emite el mapa de paginas de usuario que
+el cargador deberia construir: rangos, permisos, bytes copiados y puestos
+a cero, y ubicacion de entrada. Es la salida de referencia HOST para la
+implementacion CASM; no ejecuta el archivo ni sustituye la asignacion de
+pila y la gestion de vida del proceso.
 
 El importador copia los bytes de segmentos PT_LOAD. Los metadatos y
 simbolos fuera de esos segmentos quedan en el ELF para diagnostico.

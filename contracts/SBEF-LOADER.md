@@ -24,6 +24,18 @@ los permisos al mapear. La admision no certifica la logica de las
 instrucciones. El aislamiento, las capacidades y la recuperacion tras
 fallos limitan lo que puede hacer el codigo una vez admitido.
 
+HOST puede emitir una referencia de mapeo validada con
+`python -B tools/sbef.py plan app.sbef`. El plan schema 1 detalla, por
+region, el rango virtual alineado, paginas, tramo de archivo, BSS, cola
+de pagina y total que debe quedar a cero, codigo de permisos y la
+region/desplazamiento de entrada. La pila queda como asignacion separada
+por proceso, sin fijar aun su tamano. Este resultado sirve para comparar
+la futura admision CASM; no reserva memoria ni cuenta como carga en Ring 0.
+
+`ZeroFillBytes` cubre desde el fin de los bytes del archivo hasta el fin
+de las paginas mapeadas; incluye `BssBytes` y `PageTailBytes`. El mapa
+describe permisos de usuario efectivos, no bits PTE ni marcos fisicos.
+
 El ensayo externo en QEMU entrega el SBEF como modulo aparte. El
 dispositivo loader de QEMU deposita longitud y bytes en 0x02000000
 en una VM con 256 MiB. Un validador provisional x86-64 ensamblado

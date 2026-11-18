@@ -105,6 +105,12 @@ de que todos los productores que emiten ese formato sean compatibles. Del
 mismo modo, el manifiesto ligado a hash registra una declaracion; no autentica
 por si mismo el compilador. Cada cierre conserva evidencia QEMU y limites.
 
+La puerta 1 ya tiene un primer artefacto de referencia en HOST:
+`python -B tools/sbef.py plan app.sbef` vuelve a validar el paquete y
+produce el mapa de usuario por paginas, incluida la inicializacion a cero.
+La ruta de CASM aun no consume ni compara ese plan; por eso el cargador
+externo sigue parcial y no se marca como cerrado.
+
 ## Catalogo de capacidades x86-64
 
 Este catalogo es la "tabla periodica" del HOST: elementos pequenos con un

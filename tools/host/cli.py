@@ -9,7 +9,14 @@ from .diagnostics import Rejection
 from .importers.elf import MAX_ELF, pack_elf
 from .importers.pe import pack_pe, probe_pe
 from .profiles import profile_report
-from .sbef.format import FORMAT_VERSION, LEGACY_FORMAT_VERSION, MAX_IMAGE, inspect
+from .sbef.format import (
+    FORMAT_VERSION,
+    LEGACY_FORMAT_VERSION,
+    MAX_IMAGE,
+    image_limit,
+    inspect,
+    load_plan,
+)
 from .sbef.isa import PROFILES
 
 
@@ -41,6 +48,9 @@ def main():
     pack.add_argument('--max-mapped-bytes', type=positive_bytes)
     pack.add_argument('--size-report', action='store_true', help='Show file and memory costs by region')
     commands.add_parser('inspect').add_argument('input', type=Path)
+    plan = commands.add_parser('plan', help='Emit the validated per-process mapping plan')
+    plan.add_argument('input', type=Path)
+    plan.add_argument('--profile', choices=['default', 'rmlui-native-v1'], default='default')
     compare = commands.add_parser('compare', help='Compare the size of two validated SBEF builds')
     compare.add_argument('input', type=Path, metavar='baseline')
     compare.add_argument('candidate', type=Path)
@@ -111,6 +121,10 @@ def run(args):
         return profile_report()
     if args.action == 'inspect':
         return inspect_file(args.input)
+    if args.action == 'plan':
+        with args.input.open('rb') as file:
+            image = file.read(image_limit(args.profile) + 1)
+        return load_plan(image, profile=args.profile)
     if args.action == 'compare':
         return compare_builds(inspect_file(args.input), inspect_file(args.candidate))
     if args.format_version == LEGACY_FORMAT_VERSION and args.isa_profile != 'x86-64-v1':

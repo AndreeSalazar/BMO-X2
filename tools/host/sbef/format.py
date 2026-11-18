@@ -101,3 +101,62 @@ def inspect(image, *, profile='default'):
                 IsaProfile=profile_name(isa_profile_id), IsaProfileId=isa_profile_id,
                 IsaRequirements=profile_requirements(isa_profile_id), Bytes=size,
                 Entry=f'0x{entry:X}', Regions=regions)
+
+
+def load_plan(image, *, profile='default'):
+    """Return the validated, page-level mapping plan used as the HOST oracle."""
+    report = inspect(image, profile=profile)
+    entry = int(report['Entry'], 16)
+    planned_regions = []
+    entry_region = None
+    for index, region in enumerate(report['Regions']):
+        address = int(region['Address'], 16)
+        permissions = region['Permissions']
+        file_bytes = region['FileBytes']
+        memory_bytes = region['MemoryBytes']
+        mapped_bytes = region['MappedBytes']
+        permission_code = REGION.unpack_from(image, HEADER.size + index * REGION.size)[4]
+        contains_entry = permissions == 'RX' and address <= entry < address + file_bytes
+        if contains_entry:
+            entry_region = index
+        planned_regions.append(dict(
+            Index=index,
+            RecordOffset=HEADER.size + index * REGION.size,
+            VirtualStart=address,
+            VirtualEnd=address + mapped_bytes,
+            PageCount=mapped_bytes // PAGE,
+            FileOffset=region['Offset'],
+            FileEnd=region['Offset'] + file_bytes,
+            FileBytes=file_bytes,
+            MemoryBytes=memory_bytes,
+            BssBytes=memory_bytes - file_bytes,
+            PageTailBytes=mapped_bytes - memory_bytes,
+            ZeroFillBytes=mapped_bytes - file_bytes,
+            MappedBytes=mapped_bytes,
+            Permissions=permissions,
+            PermissionCode=permission_code,
+            User=True,
+            Writable='W' in permissions,
+            Executable='X' in permissions,
+            NoExecute='X' not in permissions,
+            EntryOffset=entry - address if contains_entry else None,
+        ))
+    # inspect() already rejects entries outside file-backed RX bytes. Keep this
+    # assertion local so future changes cannot silently emit an incomplete plan.
+    if entry_region is None:
+        raise Rejection('SBEF-ENTRY', 16, 'entry')
+    return dict(
+        Schema=1,
+        Plan='SBEF-USER-MAP',
+        Architecture=report['Architecture'],
+        FormatVersion=report['FormatVersion'],
+        AbiVersion=report['AbiVersion'],
+        IsaProfile=report['IsaProfile'],
+        IsaProfileId=report['IsaProfileId'],
+        ImageBytes=report['Bytes'],
+        Entry=entry,
+        EntryRegion=entry_region,
+        RegionCount=len(planned_regions),
+        Regions=planned_regions,
+        Stack=dict(IncludedInImage=False, Allocation='separate-per-process', SizeBytes=None),
+    )
