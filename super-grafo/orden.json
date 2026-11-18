@@ -28,6 +28,10 @@
       "rgb": [90, 200, 140],
       "motivo": "HOST: admision, diagnostico y publicacion de SBEF x86-64."
     },
+    "tools/host/profiles.py": {
+      "rgb": [90, 220, 255],
+      "motivo": "HOST: separa productor, formato, perfil x86-64 y evidencia de ejecucion."
+    },
     "docs/FIRST-BOOT.md": {
       "rgb": [255, 194, 79],
       "motivo": "Arranque fisico UEFI: preparacion, evidencia y retorno."
@@ -882,6 +886,10 @@
     "tools/host/importers/pe.py": [
       10000,
       4200
+    ],
+    "tools/host/profiles.py": [
+      10000,
+      4375
     ],
     "userspace/supervisor": [
       1110,

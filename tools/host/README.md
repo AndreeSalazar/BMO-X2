@@ -1,5 +1,44 @@
 # HOST de BMO-X2
 
+## Capas y perfiles x86-64
+
+HOST separa productor, formato, destino y ejecucion. No mantiene un
+empaquetador SBEF distinto para cada compilador: MSVC y `clang-cl` pueden
+compartir el lector de imagen PE32+; Clang, GCC y Rust comparten el lector
+ELF64 cuando producen una imagen estatica que satisface el perfil. El lector
+PE no es un importador general de objetos COFF. La identidad del productor
+debe adjuntarse a la evidencia de build; hoy el HOST no la adivina ni la
+certifica a partir de los bytes PE o ELF.
+
+```powershell
+python -B tools/sbef.py profiles
+```
+
+El comando imprime la matriz de productores, lectores, estado de admision,
+evidencia de ejecucion y pendientes. Los estados de admision y ejecucion son
+independientes: emitir un SBEF admitido no demuestra que el cargador de Ring 3
+pueda ejecutarlo. La matriz viva esta en `profiles.py`.
+
+| Capa | Responsabilidad | Limite |
+|---|---|---|
+| Productor | MSVC, LLVM/Clang, GCC, Rust u otro toolchain; define la evidencia de version, opciones y hashes. | La captura automatica por build sigue pendiente; el lenguaje no define las APIs disponibles. |
+| Formato | Un lector compartido para imagen PE32+ o ELF64 estatico. | El lector PE no procesa objetos COFF arbitrarios; PE y ELF tienen reglas de carga distintas. |
+| Perfil x86-64 | Admite solo secciones, relocaciones, permisos, imports y limites descritos. | Lo que no tiene semantica BMO-X2 se rechaza con diagnostico. |
+| Paquete SBEF | Emite y vuelve a leer el paquete antes de publicarlo. | El paquete no incorpora automaticamente CRT, Win32 ni otros runtimes. |
+| Ejecucion invitada | El cargador y los servicios de proceso viven en Ring 3; Ring 0 aplica el contrato y las capacidades. | La admision HOST no acredita el cargador externo generico. |
+
+MSVC PE32+ ya tiene intake y perfiles limitados. LLVM Clang/LLD ELF64 usa el
+lector estatico comun. `clang-cl`/`lld-link` puede pasar por el lector PE por
+formato, pero aun necesita su propio build registrado y comparacion de salida
+antes de declararse productor certificado. GCC y Rust tambien comparten el
+lector ELF; sus pruebas concretas no implican compatibilidad con todos sus
+programas o bibliotecas. BMO-X2 conserva destino x86-64; otras arquitecturas
+requieren otro proyecto y backend, no una carpeta vacia aqui.
+
+El siguiente cierre es un cargador externo SBEF general en Ring 3 y luego un
+perfil de consola con imports versionados. UCRT/VCRuntime, Win32, TLS,
+excepciones, GUI y DirectX se agregan solo con servicios y evidencia propios.
+
 La sesion visual C++ se construye y prueba en `tools/desktop/rmlui/`.
 Su productor HOST empaqueta RML/RCSS, fuentes, UJBC y DLL con hashes;
 entrega recursos en memoria al contrato `bmo-ui-memory-v1`. No usa

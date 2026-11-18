@@ -94,10 +94,11 @@
 | [Propiedad y devolucion de un marco](../kernel/mm/physical/lifecycle/main.casm) | qemu | 0 | Asigna, protege la propiedad, borra y reasigna un marco de 4 KiB. |
 | [Tablas propias y alias de datos](../kernel/mm/virtual/main.casm) | qemu | 0 | Instala CR3 propio y separa el mapa supervisor de un alias de usuario. |
 | [Fallo de proteccion desde CPL3](../kernel/mm/user/main.casm) | qemu | 0 | Ejecuta un programa fijo en CPL3 y captura el acceso prohibido en Ring 0. |
-| [HOST: del ejecutable a SBEF](../tools/host) | host | host | Coordina la inspeccion, admision, diagnostico y publicacion de ejecutables x86-64. |
+| [HOST: del ejecutable a SBEF](../tools/host) | host | host | Separa productor, formato, admision y evidencia de ejecucion para x86-64. |
+| [Perfiles y capas del HOST x86-64](../tools/host/profiles.py) | host | host | Declara estados y limites de admision y ejecucion sin confundir paquete y ejecucion. |
 | [Empaquetador ELF64 a SBEF](../tools/host/importers/elf.py) | host | host | Convierte segmentos de un ELF64 estatico a regiones SBEF comprobadas. |
 | [Lector SBEF de referencia](../tools/host/sbef/format.py) | host | host | Valida la imagen SBEF y localiza el campo rechazado. |
-| [Inspeccion PE32+](../tools/host/importers/pe.py) | host | host | Aplica relocaciones DIR64 internas y convierte perfiles PE freestanding limitados a SBEF. |
+| [Inspeccion PE32+ x86-64](../tools/host/importers/pe.py) | host | host | Aplica relocaciones DIR64 internas y convierte perfiles PE freestanding limitados a SBEF. |
 | [Supervisor Rust de Ring 3](../userspace/supervisor) | diseno | 3 | Ordena, configura y recupera servicios desde CPL3. |
 | [SBEF ABI 1 y llamadas desde CPL3](../kernel/syscalls/main.casm) | qemu | 0 | Valida SBEF embebido y ejecuta tres entradas SYSCALL. |
 | [Banco de toolchains del ABI](../tools/host/toolchains/abi.py) | qemu | host | Construye un cliente comun y coteja los bytes de los stubs ELF. |
@@ -145,8 +146,12 @@
 | ultra-j-recycler | ultra-j-format | verificacion |
 | ultra-j-recycler | desktop-workspaces | plan |
 | host-pipeline | sbef-host-pack | codigo |
+| host-pipeline | host-profile-registry | codigo |
 | host-pipeline | sbef-host-reader | codigo |
 | host-pipeline | sbef-host-pe | codigo |
+| host-profile-registry | sbef-host-pack | codigo |
+| host-profile-registry | sbef-host-reader | codigo |
+| host-profile-registry | sbef-host-pe | codigo |
 | abi-toolchains | host-pipeline | verificacion |
 | desktop-usb-hid | desktop-keyboard | codigo |
 | physical-boot | boot-bridge | plan |

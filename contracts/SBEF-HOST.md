@@ -4,6 +4,13 @@ La estructura del [HOST](../tools/host/README.md) separa importadores,
 formato SBEF, diagnosticos y banco de toolchains. Los comandos de este
 contrato conservan sus puntos de entrada.
 
+El registro ejecutable `python -B tools/sbef.py profiles` distingue productor,
+formato, destino x86-64, admision y evidencia de ejecucion. MSVC PE y
+LLVM/GCC/Rust ELF reutilizan lectores de formato cuando corresponde; la
+procedencia debe adjuntarse al informe de build y no se infiere del ejecutable.
+Un perfil admitido por HOST no equivale a un proceso cargable: el cargador
+Ring 3 y sus servicios tienen evidencia independiente.
+
 `tools/sbef.py pack` toma un ELF64 x86-64 estatico y enlazado,
 extrae los segmentos PT_LOAD y construye un SBEF. `inspect` comprueba
 el contenedor resultante desde sus bytes. El mismo paso puede consumir

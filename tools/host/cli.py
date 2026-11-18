@@ -8,6 +8,7 @@ import tempfile
 from .diagnostics import Rejection
 from .importers.elf import MAX_ELF, pack_elf
 from .importers.pe import pack_pe, probe_pe
+from .profiles import profile_report
 from .sbef.format import MAX_IMAGE, inspect
 
 
@@ -25,6 +26,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--json-errors', action='store_true', help='Write structured rejection to stderr')
     commands = parser.add_subparsers(dest='action', required=True)
+    commands.add_parser('profiles', help='Lista capas HOST y perfiles productores x86-64')
     pack = commands.add_parser('pack')
     pack.add_argument('input', type=Path)
     pack.add_argument('output', type=Path)
@@ -92,6 +94,8 @@ def compare_builds(baseline, candidate):
 
 
 def run(args):
+    if args.action == 'profiles':
+        return profile_report()
     if args.action == 'inspect':
         return inspect_file(args.input)
     if args.action == 'compare':

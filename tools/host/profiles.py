@@ -1,0 +1,143 @@
+"""Registro machine-readable de productores, formatos y perfiles x86-64."""
+
+HOST_TARGET = 'x86-64'
+
+LAYERS = [
+    {
+        'Id': 'producer',
+        'Name': 'Productor y procedencia',
+        'Responsibility': 'Define evidencia del compilador, enlazador, versiones, opciones y huellas de entrada.',
+        'Status': 'La matriz esta declarada; el informe automatico de procedencia por build sigue pendiente.',
+        'Boundary': 'El lenguaje y el compilador no demuestran compatibilidad de runtime.',
+    },
+    {
+        'Id': 'artifact-format',
+        'Name': 'Formato de objeto y ejecutable',
+        'Responsibility': 'Selecciona un lector acotado de imagen PE32+ o ELF64 estatico.',
+        'Status': 'Existen lectores PE32+ y ELF64; no hay intake general de objetos COFF.',
+        'Boundary': 'El lector PE se comparte entre productores PE32+; el enlace de objetos depende del toolchain.',
+    },
+    {
+        'Id': 'target-profile',
+        'Name': 'Perfil de admision x86-64',
+        'Responsibility': 'Comprueba maquina, secciones, relocaciones, imports, permisos y limites.',
+        'Status': 'Hay reglas parciales por perfil; no se asume compatibilidad general.',
+        'Boundary': 'Cada perfil admite solo funciones con semantica definida en BMO-X2.',
+    },
+    {
+        'Id': 'sbef-package',
+        'Name': 'Emision y lectura SBEF',
+        'Responsibility': 'Emite SBEF y vuelve a validar sus bytes antes de publicarlo.',
+        'Status': 'El lector HOST existe; la carga invitada se acredita por separado.',
+        'Boundary': 'Empaquetar no demuestra que el cargador invitado pueda ejecutarlo.',
+    },
+    {
+        'Id': 'guest-execution',
+        'Name': 'Cargador y runtime Ring 3',
+        'Responsibility': 'Mapea el proceso y ofrece solo los servicios declarados.',
+        'Status': 'La carga externa general y el runtime amplio siguen pendientes.',
+        'Boundary': 'Esta funcion pertenece al invitado; no la ofrece el empaquetador HOST.',
+    },
+    {
+        'Id': 'ring0-boundary',
+        'Name': 'Frontera NANO-CORE',
+        'Responsibility': 'Valida SBEF/ABI y media las capacidades declaradas.',
+        'Status': 'El contrato es acotado; los runtimes viven en Ring 3.',
+        'Boundary': 'Win32, CRT, LLVM y detalles de compilador no entran a Ring 0.',
+    },
+]
+
+PROFILES = [
+    {
+        'Id': 'msvc-x86_64-pe32plus',
+        'Producer': 'MSVC cl.exe + link.exe',
+        'ObjectFormat': 'COFF x86-64',
+        'ExecutableFormat': 'PE32+',
+        'Target': HOST_TARGET,
+        'Admission': 'partial',
+        'AdmissionEvidence': 'Intake PE, perfiles freestanding acotados y empaquetado de relocacion DIR64 interna.',
+        'Execution': 'fixture-specific',
+        'ExecutionEvidence': 'Las pruebas ABI y de servicios declarados tienen evidencia QEMU. El paquete generico de cuatro regiones aun no tiene evidencia de carga generica en QEMU.',
+        'SharedImplementation': [
+            'tools/host/toolchains/msvc.py',
+            'tools/host/importers/pe.py',
+            'tools/host/importers/pe_imports.py',
+            'tools/host/importers/pe_bindings.py',
+            'tools/host/sbef/format.py',
+        ],
+        'KnownGaps': ['imports generales y carga de DLL', 'TLS', 'configuracion de carga y CFG', 'unwind y excepciones generales', 'servicios generales UCRT/VCRuntime/MSVCP y Win32'],
+    },
+    {
+        'Id': 'llvm-clang-x86_64-elf64-static',
+        'Producer': 'LLVM Clang + LLD, x86_64-unknown-none-elf',
+        'ObjectFormat': 'ELF64 x86-64',
+        'ExecutableFormat': 'static ELF64 ET_EXEC',
+        'Target': HOST_TARGET,
+        'Admission': 'format-profile-implemented',
+        'AdmissionEvidence': 'El lector ELF compartido admite layouts estaticos PT_LOAD acotados y emite SBEF; no infiere el productor a partir de ELF.',
+        'Execution': 'generic-external-load-not-established',
+        'ExecutionEvidence': 'Existen pruebas concretas de compilador y ABI; no demuestran ejecucion general de programas ELF empaquetados externamente.',
+        'SharedImplementation': ['tools/host/importers/elf.py', 'tools/host/sbef/format.py'],
+        'KnownGaps': ['carga generica de procesos SBEF externos', 'servicios de runtime que requiere cada programa'],
+    },
+    {
+        'Id': 'llvm-clang-cl-x86_64-pe32plus',
+        'Producer': 'LLVM clang-cl + lld-link',
+        'ObjectFormat': 'COFF x86-64',
+        'ExecutableFormat': 'PE32+',
+        'Target': HOST_TARGET,
+        'Admission': 'format-reader-shared-producer-profile-unverified',
+        'AdmissionEvidence': 'El lector PE compartido puede inspeccionar PE; este par productor/enlazador aun no esta certificado como perfil propio.',
+        'Execution': 'not-established',
+        'ExecutionEvidence': 'No hay una afirmacion de ejecucion QEMU especifica de este productor.',
+        'SharedImplementation': ['tools/host/importers/pe.py', 'tools/host/sbef/format.py'],
+        'KnownGaps': ['fixture de intake clang-cl/lld-link', 'registro de procedencia del productor', 'carga generica de procesos SBEF externos'],
+    },
+    {
+        'Id': 'gcc-x86_64-elf64-static',
+        'Producer': 'GCC + ELF linker',
+        'ObjectFormat': 'ELF64 x86-64',
+        'ExecutableFormat': 'static ELF64 ET_EXEC',
+        'Target': HOST_TARGET,
+        'Admission': 'producer-neutral-format-profile',
+        'AdmissionEvidence': 'La salida GCC solo se admite si cumple el perfil ELF estatico compartido; el lector no infiere procedencia GCC.',
+        'Execution': 'fixture-specific',
+        'ExecutionEvidence': 'Una ruta concreta GCC/DOOM no acredita programas o bibliotecas GCC arbitrarios.',
+        'SharedImplementation': ['tools/host/importers/elf.py', 'tools/host/sbef/format.py'],
+        'KnownGaps': ['matriz de productores GCC por version', 'servicios de runtime que requiere cada programa', 'carga generica de procesos SBEF externos'],
+    },
+    {
+        'Id': 'rustc-x86_64-elf64-static',
+        'Producer': 'rustc, freestanding x86-64 target',
+        'ObjectFormat': 'ELF64 x86-64',
+        'ExecutableFormat': 'static ELF64 ET_EXEC',
+        'Target': HOST_TARGET,
+        'Admission': 'producer-neutral-format-profile',
+        'AdmissionEvidence': 'Los artefactos Rust usan los contratos ELF/SBEF compartidos cuando cumplen el perfil estatico.',
+        'Execution': 'fixture-specific',
+        'ExecutionEvidence': 'El escritorio y las pruebas ABI en Rust tienen evidencia acotada; no demuestran un cargador general de procesos externos.',
+        'SharedImplementation': ['tools/host/importers/elf.py', 'tools/host/sbef/format.py'],
+        'KnownGaps': ['carga generica de procesos SBEF externos', 'servicios de runtime que requiere cada programa'],
+    },
+]
+
+
+def profile_report():
+    """Return the current x86-64 HOST layer and producer matrix."""
+    return {
+        'Schema': 1,
+        'Target': HOST_TARGET,
+        'ProducerIdentityRule': 'La evidencia del build debe registrar versiones de herramientas, opciones y hashes; el registro no infiere ni certifica productor desde PE/ELF.',
+        'StatusLegend': {
+            'partial': 'Reglas acotadas implementadas; no implica compatibilidad general.',
+            'format-profile-implemented': 'El lector admite el formato bajo un perfil; no acredita todas las salidas del productor.',
+            'format-reader-shared-producer-profile-unverified': 'El lector de formato puede inspeccionar el archivo; falta validar el productor propio.',
+            'producer-neutral-format-profile': 'Se valida el formato sin identificar el compilador que lo produjo.',
+            'fixture-specific': 'Solo hay evidencia para las pruebas nombradas, no para cualquier programa.',
+            'generic-external-load-not-established': 'No se ha demostrado la carga generica del paquete externo.',
+            'not-established': 'No hay evidencia de ejecucion para este perfil.',
+        },
+        'Layers': LAYERS,
+        'Profiles': PROFILES,
+        'OtherArchitectures': 'Out of scope for BMO-X2; this project remains x86-64 only.',
+    }

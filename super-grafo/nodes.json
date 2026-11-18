@@ -1565,8 +1565,25 @@
       "que": "Coordina la inspeccion, admision, diagnostico y publicacion de ejecutables x86-64.",
       "entrada": "ELF64 o PE32+ enlazado y version de ABI.",
       "salida": "SBEF admitido, comparacion de builds por archivo y paginas, o rechazo con campo y offset.",
-      "aceptacion": "El vector ELF conserva sus bytes, pack exige los presupuestos y compare distingue bytes de archivo de paginas mapeadas.",
-      "falta": "Ejecutar el cliente comun de varios productores y admitir PE32+ freestanding."
+      "aceptacion": "El comando profiles separa productor, formato, destino, admision y evidencia de ejecucion. pack e inspect validan SBEF; PE/COFF y ELF64 reutilizan lectores comunes.",
+      "falta": "Cargar SBEF externo de forma general en Ring 3; validar clang-cl/lld-link como productor; anadir imports y runtimes solo con semantica propia."
+    },
+    {
+      "id": "host-profile-registry",
+      "titulo": "Perfiles y capas del HOST x86-64",
+      "ruta": "tools/host/profiles.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [
+        10000,
+        4375
+      ],
+      "que": "Registra por separado productores, formatos, destino, reglas de admision y evidencia de ejecucion; no confunde empaquetar con ejecutar.",
+      "entrada": "Perfiles declarados de MSVC, LLVM/Clang, GCC y Rust para artefactos x86-64.",
+      "salida": "Matriz consultable con `python -B tools/sbef.py profiles`.",
+      "aceptacion": "MSVC PE32+ limitado, LLVM ELF64 estatico, clang-cl PE pendiente de validacion propia y productores GCC/Rust sobre lectores compartidos tienen estados distintos de admision y ejecucion.",
+      "falta": "Anadir informes de procedencia por compilacion, certificar clang-cl/lld-link y ejecutar paquetes externos con el cargador general de Ring 3."
     },
     {
       "id": "sbef-host-pack",
@@ -1582,8 +1599,8 @@
       "que": "Convierte segmentos de un ELF64 estatico a regiones SBEF comprobadas.",
       "entrada": "Ejecutable x86-64 freestanding y contrato binario provisional.",
       "salida": "Cabecera, tabla de regiones y bytes de la imagen SBEF.",
-      "aceptacion": "Vector fijo y rechazos de truncado, solape, permisos y entrada; pruebas C y C++.",
-      "falta": "Cotejar la admision general contra el cargador CASM. El escritorio Rust ya usa ELF64 y SBEF."
+      "aceptacion": "Admite ELF64 x86-64 estatico dentro del perfil y conserva bytes PT_LOAD; las pruebas de productores se informan por separado.",
+      "falta": "Probar el mismo paquete externo con el cargador general de Ring 3; los casos Rust, Clang y GCC no acreditan todo su runtime."
     },
     {
       "id": "sbef-host-reader",
@@ -1604,7 +1621,7 @@
     },
     {
       "id": "sbef-host-pe",
-      "titulo": "Inspeccion PE32+ MSVC",
+      "titulo": "Inspeccion PE32+ x86-64",
       "ruta": "tools/host/importers/pe.py",
       "estado": "qemu",
       "anillo": "host",
@@ -1613,11 +1630,11 @@
         10000,
         4200
       ],
-      "que": "Inspecciona PE32+ MSVC, aplica relocaciones DIR64 internas y admite perfiles SBEF fijos o freestanding limitados.",
+      "que": "Inspecciona PE32+ independientemente del productor, aplica relocaciones DIR64 internas y admite perfiles SBEF fijos o freestanding limitados.",
       "entrada": "Ruta de un PE32+ x86-64 pasado al comando de intake de PowerShell.",
       "salida": "Informe con hash, tipo, secciones, directorios, imports, relocaciones y SBEF admitido o rechazo preciso.",
-      "aceptacion": "PowerShell inspecciona PE EXE y DLL; una prueba real de MSVC aplica una relocacion DIR64 y empaqueta cuatro regiones en 388 bytes. QEMU conserva su perfil PE fijo anterior.",
-      "falta": "El cargador QEMU aun no acepta el SBEF RVA generico. Faltan imports e IAT, TLS, load config, unwind, exports, servicios de runtime y procesos externos."
+      "aceptacion": "PowerShell inspecciona PE EXE y DLL; una prueba real de MSVC aplica DIR64 y empaqueta cuatro regiones en 388 bytes. La admision por formato no certifica el compilador que genero el PE.",
+      "falta": "El cargador QEMU aun no acepta el SBEF RVA generico. Faltan imports e IAT, TLS, load config, unwind, exports, servicios de runtime, procesos externos y un fixture propio de clang-cl/lld-link."
     },
     {
       "id": "userspace-supervisor",
@@ -2545,6 +2562,26 @@
     {
       "de": "host-pipeline",
       "a": "sbef-host-pack",
+      "clase": "codigo"
+    },
+    {
+      "de": "host-pipeline",
+      "a": "host-profile-registry",
+      "clase": "codigo"
+    },
+    {
+      "de": "host-profile-registry",
+      "a": "sbef-host-pack",
+      "clase": "codigo"
+    },
+    {
+      "de": "host-profile-registry",
+      "a": "sbef-host-reader",
+      "clase": "codigo"
+    },
+    {
+      "de": "host-profile-registry",
+      "a": "sbef-host-pe",
       "clase": "codigo"
     },
     {
