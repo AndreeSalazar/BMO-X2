@@ -5,6 +5,63 @@ HOST separado para construir y admitir binarios del destino,
 servicios y aplicaciones en Ring 3, y SUPER GRAFO como mesa de trabajo.
 Autor: Eddi Salazar, Lima, Peru.
 
+> **Destino actual:** x86-64. **Nucleo:** CASM en Ring 0. **Aplicaciones y
+> servicios:** principalmente Rust en Ring 3. **HOST:** prepara artefactos de
+> productores externos y los admite solo si cumplen el perfil BMO-X2.
+
+## Estado de HOST y toolchains
+
+HOST todavia no reemplaza a MSVC, LLVM, GCC ni `rustc`. El compilador y el
+enlazador producen un PE32+ o ELF64; HOST inspecciona ese resultado, aplica
+las reglas x86-64 y el ABI de BMO-X2, y empaqueta los casos admitidos como
+SBEF. SBEF transporta codigo nativo x86-64 y sus regiones/permisos; no es
+bytecode universal ni hace compatible por si solo el runtime de otro sistema.
+
+| Productor y perfil | Estado comprobado | Limite actual |
+|---|---|---|
+| MSVC `cl.exe` + `link.exe`, PE32+ | Cliente C freestanding: PE -> HOST -> SBEF -> CPL3 en QEMU. | No es C++ general, Win32, DLL ni DirectX. El manifiesto ligado al hash no atesta el toolchain. |
+| LLVM Clang + LLD, ELF64 estatico | Lector ELF64 y perfiles estaticos acotados. | No acredita todos los programas ni runtimes LLVM. |
+| LLVM `clang-cl` + `lld-link`, PE32+ | Puede usar el lector PE compartido. | Falta fixture y validacion propia del productor. |
+| GCC, ELF64 estatico | Perfil ELF compartido y ruta concreta de DOOM en QEMU. | No cubre versiones, bibliotecas ni programas GCC arbitrarios. |
+| `rustc`, ELF64 estatico | Rust sostiene servicios/escritorio y comparte el perfil ELF si cumple sus reglas. | No acredita carga general de paquetes externos ni cualquier crate/runtime. |
+
+La prueba MSVC mas reciente empaqueto un PE de 1,536 bytes como SBEF de
+792 bytes y paso en QEMU 11.1.0: ejecucion CPL3, tres llamadas ABI,
+rechazo de capacidad invalida, WAIT y recuperacion/limpieza tras fallo.
+Es una prueba de un cliente C freestanding, no una prueba de Windows completo
+ni de un cargador generico. [Informe QEMU](Reports/host-msvc-qemu.json) |
+[Matriz detallada y limites](tools/host/README.md).
+
+### Que falta para ampliar la admision
+
+1. **Fijar el perfil x86-64:** congelar el nivel de instrucciones base y hacer
+   que SBEF declare los requisitos; comprobar CPUID y rechazar instrucciones
+   que el equipo no soporte.
+2. **Completar los lectores y el enlace:** validar relocaciones y secciones
+   necesarias por perfil; crear intake COFF general donde haga falta y no
+   confundir leer PE con enlazar objetos `.obj`.
+3. **Terminar la carga de procesos externos:** mapa de regiones, entrada,
+   pila, BSS, permisos W^X, salida controlada, liberacion y limpieza por
+   proceso dentro de Ring 3, con Ring 0 validando el contrato.
+4. **Definir ABI y puentes:** registrar convenciones Microsoft x64 y SysV,
+   contratos Rust/C/C++ y thunks permitidos. El lenguaje no garantiza que
+   dos binarios compartan ABI.
+5. **Resolver runtimes por partes:** inicio de proceso, libc/CRT, memoria,
+   TLS, excepciones/`unwind`, RTTI y bibliotecas. Si una importacion o servicio
+   no esta implementado, HOST debe identificarlo y rechazarlo.
+6. **Automatizar procedencia y regresion:** producir manifiestos desde el build,
+   registrar versiones/opciones/hashes y mantener casos positivos y negativos
+   por productor, version, formato y runtime en QEMU.
+
+La siguiente etapa habilitadora es terminar la carga general de procesos
+SBEF externos. Despues se cierra un perfil freestanding y sin imports por
+productor, comparando sus salidas y rechazos; a continuacion se agregan
+runtimes versionados. MSVC, LLVM, GCC y Rust comparten lectores cuando usan
+el mismo formato, pero cada pareja de productor/enlazador debe tener su
+propia evidencia.
+
+## Escritorio, entrada y arranque
+
 El nuevo candidato de escritorio conecta RmlUi con DIRECTOR Rust:
 Ctrl+Super+1..4 cambia espacios, Super+Q cierra el panel y F1 lo reabre.
 Arranca desde archivos FAT32 reales en QEMU y dispone de un EFI separado
@@ -140,34 +197,26 @@ codigo de usuario autorizado. La cabecera por si sola no resuelve las
 llamadas, bibliotecas ni instrucciones de un programa de otro sistema.
 HOST debe adaptar o rechazar cada dependencia no satisfecha.
 
-### Maduracion del HOST: x86-64 primero, MSVC como primer frente
+### Maduracion del HOST: x86-64 primero
 
-La meta inmediata es ampliar HOST para admitir mas productores y formatos que
-apunten a x86-64, empezando por los artefactos de MSVC. Cada productor entra por
-una capa propia; despues se aplican lectores, perfiles de instrucciones,
-relocaciones, imports y contratos de runtime compartidos cuando sus reglas
-coincidan. Esto permite aprender de MSVC sin hacer que Ring 0 conozca MSVC,
-Windows, COFF o sus bibliotecas.
+Cada productor entra por una capa propia. Los lectores, las reglas de formato,
+las comprobaciones de seguridad y los servicios se comparten solo donde sus
+contratos coinciden. Ring 0 no necesita conocer MSVC, Windows, COFF ni las
+bibliotecas de cada toolchain: valida SBEF, memoria y capacidades.
 
-El primer paso no ejecuta cualquier programa de Windows: inspecciona PE32+,
-registra procedencia declarada y admite solo las regiones y dependencias con
-semantica definida para BMO-X2. El manifiesto opcional queda ligado al hash del
-PE, pero no prueba que `cl.exe` y `link.exe` lo hayan generado. La carga general,
-los imports y el runtime C/C++ siguen siendo hitos separados.
+El primer recorrido MSVC prueba un cliente C freestanding, no cualquier
+programa de Windows. El manifiesto opcional queda ligado al hash del PE, pero
+no prueba que `cl.exe` y `link.exe` lo hayan generado. Imports generales,
+runtime C/C++ y carga externa general siguen pendientes.
 
-HOST puede cambiar el contenedor, validar sus metadatos y emitir SBEF. Eso no
-traduce las instrucciones x86-64 a otra CPU: el codigo de maquina admitido
-continua siendo x86-64 y lo ejecuta una CPU x86-64. Una futura arquitectura
-necesitaria su backend e instrucciones propias, fuera de este proyecto.
-Detalles y etapas del primer perfil MSVC estan en [HOST](tools/host/README.md#direccion-msvc-hacia-bmo-x2-x86-64).
-El registro de capacidades funciona como una tabla de elementos: cada lector,
-ABI, relocalizacion, import y runtime tiene estado y limite propio
-([catalogo x86-64](tools/host/README.md#catalogo-de-capacidades-x86-64)). Un HOST
-futuro para otra CPU podria reutilizar contratos y diagnosticos, pero necesita
-su propio backend, ISA y ABI.
-El primer recorrido completo MSVC x86-64, desde PE32+ con manifiesto ligado al
-hash hasta SBEF ejecutado en CPL3 bajo QEMU, esta en la
-[evidencia](Reports/host-msvc-qemu.json).
+HOST cambia el contenedor y valida metadatos; no traduce instrucciones x86-64
+a otra CPU. El codigo admitido sigue siendo x86-64 y lo ejecuta una CPU x86-64.
+Una variante para POWER u otra arquitectura necesita su propio HOST, backend,
+ISA y ABI, fuera de este proyecto. El catalogo de capacidades funciona como
+una tabla de elementos con estado y limite por formato, ABI, relocacion,
+import y runtime ([catalogo x86-64](tools/host/README.md#catalogo-de-capacidades-x86-64)).
+El proceso MSVC esta en el [informe QEMU](Reports/host-msvc-qemu.json) y la
+[guia HOST](tools/host/README.md#direccion-msvc-hacia-bmo-x2-x86-64).
 
 El presupuesto de 2 KiB corresponde a un nucleo o perfil cuyo contenido
 se delimite y mida. Las tablas, pilas, estado, controladores, puentes y
@@ -341,15 +390,19 @@ PCM, volumen y medicion en HOST. La salida virtual y USB quedan pendientes.
 1. **Carga externa.** El cargador CASM valida un SBEF producido por el
    toolchain, mapea sus regiones con permisos y ejecuta la entrada.
    Se prueba una imagen admitida y los rechazos comparados con el lector HOST.
-2. **Escritorio Rust en Ring 3.** QEMU ya prueba la sesion interactiva con
+2. **HOST multi-productor x86-64.** Congelar el nivel ISA, crear fixtures
+   freestanding y sin imports para MSVC, LLVM/Clang, GCC y Rust, y registrar
+   versiones, opciones y hashes desde el build. Despues ampliar imports y
+   runtimes de forma versionada, con rechazos explicitos.
+3. **Escritorio Rust en Ring 3.** QEMU ya prueba la sesion interactiva con
    composicion por CPU, teclado y espacios en el perfil de ensayo.
    Queda integrarla con el cargador CASM propio y recuperar sus recursos
    al cerrar el proceso.
-3. **Ciclo de vida y ABI.** WAIT debe bloquear y despertar por senal o
+4. **Ciclo de vida y ABI.** WAIT debe bloquear y despertar por senal o
    plazo. Se prueba reutilizar marcos en un segundo proceso antes de
    fijar el ABI. SMP y DMA requieren confirmacion de revocacion antes
    de reutilizar memoria compartida.
-4. **Arranque fisico de prueba.** El primer hito es entrar en Ring 0
+5. **Arranque fisico de prueba.** El primer hito es entrar en Ring 0
    desde el EFI separado en el volumen A: y registrar una parada controlada.
    La FAT32 dedicada junto a PERSONAL es un paso posterior.
    [Orden y evidencia de arranque](docs/FIRST-BOOT.md).
