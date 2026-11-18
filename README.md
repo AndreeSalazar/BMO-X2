@@ -160,6 +160,14 @@ traduce las instrucciones x86-64 a otra CPU: el codigo de maquina admitido
 continua siendo x86-64 y lo ejecuta una CPU x86-64. Una futura arquitectura
 necesitaria su backend e instrucciones propias, fuera de este proyecto.
 Detalles y etapas del primer perfil MSVC estan en [HOST](tools/host/README.md#direccion-msvc-hacia-bmo-x2-x86-64).
+El registro de capacidades funciona como una tabla de elementos: cada lector,
+ABI, relocalizacion, import y runtime tiene estado y limite propio
+([catalogo x86-64](tools/host/README.md#catalogo-de-capacidades-x86-64)). Un HOST
+futuro para otra CPU podria reutilizar contratos y diagnosticos, pero necesita
+su propio backend, ISA y ABI.
+El primer recorrido completo MSVC x86-64, desde PE32+ con manifiesto ligado al
+hash hasta SBEF ejecutado en CPL3 bajo QEMU, esta en la
+[evidencia](Reports/host-msvc-qemu.json).
 
 El presupuesto de 2 KiB corresponde a un nucleo o perfil cuyo contenido
 se delimite y mida. Las tablas, pilas, estado, controladores, puentes y

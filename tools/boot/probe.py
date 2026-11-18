@@ -59,6 +59,8 @@ doom = None
 intro_size = 0
 intro_rows = None
 external = None
+desktop_media = desktop_doom = native_media = native_ui = msvc_sections = False
+doom_engine = doom_external = desktop_fixture = toolchain_client = False
 if args.doom_fixture:
     from doom_fixture import make_packet, prepend_intro
     reference = (ROOT / 'reference.x86').read_bytes()

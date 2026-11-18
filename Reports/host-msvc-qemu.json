@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "milestone": "MSVC PE32+ -> HOST intake with hash-bound manifest -> SBEF -> Ring 3 under QEMU",
+  "evidence": "QEMU",
+  "producer": "MSVC cl.exe + link.exe",
+  "compiler_version": "19.44.35228.0",
+  "linker_version": "14.44.35228.0",
+  "target": "x86-64",
+  "pe": {
+    "bytes": 1536,
+    "sha256": "605d74aeb1b28cfd183e3e9252cbc1bf2cf231d79a2aa5ed38333bd1ea0e4f50",
+    "format": "PE32+",
+    "host_can_pack": true
+  },
+  "producer_manifest": {
+    "sha256": "ab3459e3d0d95fb4127d06096d65e5fd5085c00fcb50246731f2bb1f7e10c231",
+    "declared_output_hash_matches": true,
+    "toolchain_identity_attested": false
+  },
+  "sbef": {
+    "bytes": 792,
+    "sha256": "94b7208245f3b6603cfbd998bcde793ebcf0acf0962c35d53d13c2b5106bd11f",
+    "architecture": "x86-64",
+    "regions": 1,
+    "permissions": "RX"
+  },
+  "qemu": {
+    "version": "11.1.0",
+    "cpu": "qemu64",
+    "ram_mib": 256,
+    "ring0_reference_run": "run-20261117-215144-66f2e0a9",
+    "run": "run-abi-msvc-d92edcccc64d",
+    "passed": true,
+    "cpl": 3,
+    "syscall_count": 3,
+    "invoke_echo": true,
+    "invalid_capability_rejected": true,
+    "wait_status": -4,
+    "user_fault_handled": true,
+    "reclaimed_pages": 2,
+    "scrubbed_bytes": 8192
+  },
+  "ring0_qemu_probe": {
+    "run": "run-20261117-215144-66f2e0a9",
+    "profile": "ring0-abi-probe-0.1",
+    "passed": 4,
+    "total": 4,
+    "body_bytes": 1239,
+    "packet_bytes": 1263,
+    "source_sha256": "8c678084915695590470a7c1cf6872be5d0186229b809f1cbe59504584106f87",
+    "packet_sha256": "9d855ddfcc00a4afcb9501cecae2b04108a50ce0328c248631fe83416da6bdf6",
+    "qemu_version": "11.1.0",
+    "cases": ["normal", "contexto", "sbef-abi", "sbef-permisos"]
+  },
+  "scope_limits": [
+    "C freestanding ABI fixture; not arbitrary MSVC C++ or Win32 software",
+    "The manifest is a declaration tied to the PE hash, not compiler attestation",
+    "Generic external SBEF process loading is not established",
+    "No physical boot evidence"
+  ]
+}

@@ -910,10 +910,10 @@
       ],
       "anillo": "host",
       "lenguaje": "herramienta/evidencia",
-      "que": "Prepara imagenes virtuales por run y registra entorno; nunca instala al PC.",
+      "que": "Prepara imagenes virtuales por run, delega los casos a la sonda QEMU y registra entorno; nunca instala al PC.",
       "entrada": "Paquete Genesis comprobado, puente heredado y QEMU/OVMF.",
       "salida": "Ejecucion o evidencia de la ruta provisional.",
-      "aceptacion": "Siete casos pasan y las huellas corresponden a esta fuente y paquete.",
+      "aceptacion": "El perfil actual ring0-abi-probe-0.1 pasa normal, contexto, rechazo ABI y permisos en QEMU; la sonda inicializa banderas de otros perfiles para no contaminar el caso.",
       "falta": "Arranque autonomo, excepciones y memoria propias; prueba fisica no realizada."
     },
     {
@@ -1565,7 +1565,7 @@
       "que": "Coordina la inspeccion, admision, diagnostico y publicacion de ejecutables x86-64.",
       "entrada": "ELF64 o PE32+ enlazado y version de ABI.",
       "salida": "SBEF admitido, comparacion de builds por archivo y paginas, o rechazo con campo y offset.",
-      "aceptacion": "profiles separa productor, formato, destino, admision y ejecucion. MSVC puede ligar un manifiesto manual al hash PE; el toolchain no queda atestado. pack e inspect validan SBEF.",
+      "aceptacion": "profiles publica CapabilityCatalog. El intake MSVC liga la declaracion al hash PE y el SBEF emitido por PowerShell ejecuto el fixture ABI en CPL3 bajo QEMU; evidencia Reports/host-msvc-qemu.json; toolchain no atestado.",
       "falta": "Automatizar la procedencia, importar COFF .obj y definir enlace propio; cerrar la carga externa SBEF en Ring 3 y anadir imports/runtime solo con semantica propia."
     },
     {
@@ -1581,8 +1581,8 @@
       ],
       "que": "Registra productores, formatos, reglas PE/ELF y destino x86-64; separa admision de ejecucion y declara la politica ISA sin prometer traduccion a otras CPU.",
       "entrada": "Perfiles de MSVC, LLVM/Clang, GCC y Rust; manifiesto opcional ligado al hash PE.",
-      "salida": "Matriz consultable con `python -B tools/sbef.py profiles`, politica ISA y estado de procedencia.",
-      "aceptacion": "MSVC PE32+ limitado acepta un manifiesto manual cuyo hash coincide; el informe marca que la identidad del toolchain no esta atestada. La base x86-64 candidata y extensiones quedan distinguibles.",
+      "salida": "Matriz y catalogo de capacidades consultables con `python -B tools/sbef.py profiles`, politica ISA y estado de procedencia.",
+      "aceptacion": "profiles exporta CapabilityCatalog, politica ISA y perfiles. El intake MSVC acepta un manifiesto con hash coincidente y ese SBEF pasa fixture QEMU; identidad del toolchain no atestada.",
       "falta": "Generar y verificar procedencia automaticamente, admitir objetos COFF, fijar la base ISA y codificar requisitos CPU en una extension versionada SBEF; certificar clang-cl/lld-link y ejecutar SBEF externo en Ring 3."
     },
     {
@@ -1633,7 +1633,7 @@
       "que": "Inspecciona PE32+ independientemente del productor, aplica relocaciones DIR64 internas y admite perfiles SBEF fijos o freestanding limitados.",
       "entrada": "Ruta de un PE32+ x86-64 pasado al comando de intake de PowerShell.",
       "salida": "Informe con hash, tipo, secciones, directorios, imports, relocaciones y SBEF admitido o rechazo preciso.",
-      "aceptacion": "PowerShell inspecciona PE EXE y DLL; una prueba real de MSVC aplica DIR64 y empaqueta cuatro regiones en 388 bytes. El manifiesto opcional liga el informe al hash PE, no certifica el compilador.",
+      "aceptacion": "PowerShell inspecciona PE EXE y DLL; una prueba real de MSVC aplica DIR64 y empaqueta cuatro regiones en 388 bytes. El intake con manifiesto emitio SBEF de 792 bytes que ejecuto el ABI en CPL3/QEMU; evidencia Reports/host-msvc-qemu.json; el manifiesto no certifica el compilador.",
       "falta": "El cargador QEMU aun no acepta el SBEF RVA generico. Faltan imports e IAT, TLS, load config, unwind, exports, servicios de runtime, procesos externos, intake de objetos COFF y un fixture propio de clang-cl/lld-link."
     },
     {

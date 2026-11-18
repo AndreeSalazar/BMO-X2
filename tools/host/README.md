@@ -51,6 +51,31 @@ Fuente y dependencias -> productor (MSVC/LLVM/GCC/Rust)
   -> cargador y runtime Ring 3 de BMO-X2 -> NANO-CORE / CPU
 ```
 
+## Catalogo de capacidades x86-64
+
+Este catalogo es la "tabla periodica" del HOST: elementos pequenos con un
+identificador, estado, implementacion y limite. Sirve para combinar formatos,
+ABI, relocaciones, imports y runtime por perfiles, sin marcar una capacidad
+completa solo porque existe un lector o un fixture.
+
+| Elemento | Estado actual | Limite principal |
+|---|---|---|
+| MSVC x64 | Fixture QEMU y perfiles parciales | No acepta cualquier programa MSVC ni certifica productor desde el PE. |
+| PE32+ | Inspeccion general; empaquetado acotado | No es un cargador completo de EXE/DLL. |
+| COFF `.obj` x64 | Fixtures y extraccion confiable limitada | Falta importador y enlace general de objetos. |
+| ELF64 estatico | Perfil limitado | El formato aceptado no trae automaticamente su runtime. |
+| x86-64 ISA | `x86-64-v1` candidata; no congelada | SBEF aun no declara requisitos de CPU; v2-v4 no se asumen. |
+| Relocacion PE DIR64 | Parcial | Solo se permiten destinos internos definidos por el perfil. |
+| Imports y runtime | Servicios seleccionados | UCRT, VCRuntime, Win32 general y DLL no estan completos. |
+| Carga SBEF externa | Fixtures concretos en QEMU | El cargador generico de procesos Ring 3 sigue pendiente. |
+
+La matriz de maquina vive en `profiles.py` y se exporta como
+`CapabilityCatalog` mediante `python -B tools/sbef.py profiles`. En una
+variante futura para POWER u otra CPU pueden reutilizarse especificaciones,
+formatos neutrales, diagnosticos y evidencia; ISA, ABI, instrucciones,
+relocaciones y backend pertenecen al HOST de esa CPU. Este catalogo no afirma que BMO-X2 x86-64
+ejecute binarios de otra arquitectura.
+
 El objetivo inicial es x86-64 base. Las extensiones opcionales de CPU se
 deben declarar y comprobar por perfil; SBEF aun no codifica esos requisitos.
 El mismo nombre x86-64 no garantiza AVX, AVX2 o AVX-512. Antes de declarar
@@ -103,6 +128,15 @@ forma; reemplazar versiones, opciones y hash por los del build real:
   "OutputSHA256": "hash SHA-256 de 64 digitos hexadecimales"
 }
 ```
+
+El recorrido integrado se verifico en QEMU: un cliente C freestanding
+compilado con MSVC paso por el manifiesto y el intake PowerShell, HOST emitio
+el mismo SBEF de 792 bytes que el banco, y ese paquete ejecuto el ABI en CPL3.
+INVOKE, rechazo de capacidad, WAIT y recuperacion por fallo pasaron. Esta
+evidencia no extiende el perfil a programas MSVC arbitrarios:
+[host-msvc-qemu.json](../../Reports/host-msvc-qemu.json).
+Para el recorrido actual tambien se compilo el perfil CASM `ring0-abi-probe-0.1`
+desde la fuente vigente y pasaron sus cuatro casos QEMU antes de ejecutar MSVC.
 
 El siguiente cierre de ejecucion sigue siendo un cargador externo SBEF general
 en Ring 3 y luego un perfil de consola con imports versionados. UCRT/VCRuntime,

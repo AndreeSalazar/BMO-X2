@@ -576,13 +576,13 @@ Pendiente: El propietario observo gato y escritorio en el equipo. F2 y raton fis
 
 ## tools/boot/wake.py
 
-Prepara imagenes virtuales por run y registra entorno; nunca instala al PC.
+Prepara imagenes virtuales por run, delega los casos a la sonda QEMU y registra entorno; nunca instala al PC.
 
 Estado: HOST. Anillo: host. Lenguaje: herramienta/evidencia.
 Entrada: Paquete Genesis comprobado, puente heredado y QEMU/OVMF.
 Salida: Ejecucion o evidencia de la ruta provisional.
 Depende de: Puente UEFI provisional (generacion), Genesis: guardian de bytes y tamano (verificacion).
-Aceptacion: Siete casos pasan y las huellas corresponden a esta fuente y paquete.
+Aceptacion: El perfil actual ring0-abi-probe-0.1 pasa normal, contexto, rechazo ABI y permisos en QEMU; la sonda inicializa banderas de otros perfiles para no contaminar el caso.
 Pendiente: Arranque autonomo, excepciones y memoria propias; prueba fisica no realizada.
 
 ## kernel/boot/genesis/evidence/qemu.json
@@ -1000,7 +1000,7 @@ Estado: HOST. Anillo: host. Lenguaje: Python control.
 Entrada: ELF64 o PE32+ enlazado y version de ABI.
 Salida: SBEF admitido, comparacion de builds por archivo y paginas, o rechazo con campo y offset.
 Depende de: Empaquetador ELF64 a SBEF (codigo), Perfiles y capas del HOST x86-64 (codigo), Lector SBEF de referencia (codigo), Inspeccion PE32+ x86-64 (codigo).
-Aceptacion: profiles separa productor, formato, destino, admision y ejecucion. MSVC puede ligar un manifiesto manual al hash PE, sin atestar el toolchain; pack e inspect validan SBEF.
+Aceptacion: profiles publica CapabilityCatalog. El intake MSVC liga la declaracion al hash PE y el SBEF emitido por PowerShell ejecuto el fixture ABI en CPL3 bajo QEMU; evidencia Reports/host-msvc-qemu.json; toolchain no atestado.
 Pendiente: Automatizar procedencia, admitir COFF .obj y enlace propio, cerrar la carga externa SBEF en Ring 3, validar clang-cl/lld-link y anadir imports con semantica propia.
 
 ## tools/host/profiles.py
@@ -1009,9 +1009,9 @@ Registra por separado productores, formatos, destino, reglas de admision y evide
 
 Estado: HOST. Anillo: host. Lenguaje: Python.
 Entrada: Perfiles declarados de MSVC, LLVM/Clang, GCC y Rust para artefactos x86-64.
-Salida: Matriz consultable con `python -B tools/sbef.py profiles`.
+Salida: Matriz y catalogo de capacidades consultables con `python -B tools/sbef.py profiles`.
 Depende de: Empaquetador ELF64 a SBEF (codigo), Lector SBEF de referencia (codigo), Inspeccion PE32+ x86-64 (codigo).
-Aceptacion: MSVC PE32+ limitado acepta una declaracion manual ligada al hash, pero no atesta la identidad del toolchain. La base x86-64 candidata se distingue de extensiones opcionales.
+Aceptacion: profiles exporta CapabilityCatalog, politica ISA y perfiles. El intake MSVC acepta un manifiesto con hash coincidente y ese SBEF pasa fixture QEMU; identidad del toolchain no atestada.
 Pendiente: Generar y verificar procedencia automaticamente, admitir objetos COFF, fijar la base ISA y codificar requisitos de CPU en una extension SBEF versionada; validar clang-cl/lld-link y cargar SBEF externo en Ring 3.
 
 ## tools/host/importers/elf.py
@@ -1044,7 +1044,7 @@ Estado: HOST. Anillo: host. Lenguaje: Python control.
 Entrada: Ejecutable PE32+ x86-64.
 Salida: Inventario y SBEF admitido o rechazo preciso por campo y offset.
 Depende de: contrato propio sin dependencias en este catalogo.
-Aceptacion: PowerShell inspecciona PE EXE y DLL; una prueba real de MSVC aplica DIR64 y empaqueta cuatro regiones en 388 bytes. El manifiesto opcional liga el informe al hash PE, no certifica el compilador.
+Aceptacion: PowerShell inspecciona PE EXE y DLL; una prueba real de MSVC aplica DIR64 y empaqueta cuatro regiones en 388 bytes. El intake con manifiesto emitio SBEF de 792 bytes que ejecuto el ABI en CPL3/QEMU; evidencia Reports/host-msvc-qemu.json; el manifiesto no certifica el compilador.
 Pendiente: Cargador SBEF general, imports/IAT, TLS, load config, unwind, procesos externos, intake de objetos COFF y un fixture propio de clang-cl/lld-link.
 
 ## userspace/supervisor

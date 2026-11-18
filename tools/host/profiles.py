@@ -9,6 +9,65 @@ ISA_POLICY = {
     'SBEFRequirements': 'El encabezado SBEF actual no codifica requisitos de instrucciones; falta una extension versionada.',
 }
 
+CAPABILITY_CATALOG = [
+    {
+        'Id': 'producer-msvc',
+        'Family': 'producer',
+        'State': 'fixture-specific',
+        'Implementation': ['tools/host/toolchains/msvc.py', 'tools/host/msvc.ps1'],
+        'Boundary': 'El intake recibe PE32+ x86-64; el productor declarado no se infiere ni se atesta desde sus bytes.',
+    },
+    {
+        'Id': 'format-pe32plus',
+        'Family': 'container',
+        'State': 'partial',
+        'Implementation': ['tools/host/importers/pe.py'],
+        'Boundary': 'Inspeccion general PE y admision freestanding limitada; no equivale a cargar cualquier EXE o DLL.',
+    },
+    {
+        'Id': 'object-coff-x64',
+        'Family': 'object',
+        'State': 'fixture-only',
+        'Implementation': ['tools/host/toolchains/msvc.py'],
+        'Boundary': 'Hay fixtures enlazados por MSVC y extraccion acotada de una funcion confiable; no existe importador general de objetos COFF.',
+    },
+    {
+        'Id': 'format-elf64-static',
+        'Family': 'container',
+        'State': 'profile-limited',
+        'Implementation': ['tools/host/importers/elf.py'],
+        'Boundary': 'Admite ELF64 x86-64 estatico bajo el perfil; no acredita los runtimes del productor.',
+    },
+    {
+        'Id': 'isa-x86-64',
+        'Family': 'instruction-set',
+        'State': 'baseline-candidate-not-frozen',
+        'Implementation': ['tools/host/profiles.py'],
+        'Boundary': 'x86-64-v1 candidata; niveles v2-v4 opcionales. SBEF aun no codifica requisitos ISA.',
+    },
+    {
+        'Id': 'relocation-pe-dir64',
+        'Family': 'relocation',
+        'State': 'partial',
+        'Implementation': ['tools/host/importers/pe.py'],
+        'Boundary': 'DIR64 interna validada dentro de regiones mapeadas; no hay relocacion PE general.',
+    },
+    {
+        'Id': 'imports-and-runtime',
+        'Family': 'abi-runtime',
+        'State': 'selected-services-only',
+        'Implementation': ['tools/host/importers/pe_imports.py', 'tools/host/importers/pe_bindings.py'],
+        'Boundary': 'Catalogo acotado de servicios para fixtures; UCRT, VCRuntime, Win32 general y DLL siguen pendientes.',
+    },
+    {
+        'Id': 'sbef-external-process',
+        'Family': 'execution',
+        'State': 'fixture-specific',
+        'Implementation': ['tools/host/sbef/format.py', 'kernel/loader/doom_engine_loader.S'],
+        'Boundary': 'Hay recorridos QEMU concretos; el cargador generico de procesos SBEF externos en Ring 3 no esta demostrado.',
+    },
+]
+
 LAYERS = [
     {
         'Id': 'producer',
@@ -137,6 +196,7 @@ def profile_report():
         'Schema': 1,
         'Target': HOST_TARGET,
         'InstructionSetPolicy': ISA_POLICY,
+        'CapabilityCatalog': CAPABILITY_CATALOG,
         'ProducerIdentityRule': 'El intake MSVC acepta un manifiesto para PE32+ ligado al hash; la declaracion no prueba que esas herramientas hayan generado el archivo.',
         'StatusLegend': {
             'partial': 'Reglas acotadas implementadas; no implica compatibilidad general.',
