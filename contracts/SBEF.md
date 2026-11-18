@@ -33,25 +33,34 @@ paginas y pila, y entrega el punto de entrada a la CPU en CPL3.
 Las bibliotecas y el runtime de COBOL se enlazan para ese ABI. La
 prueba de compatibilidad exige un programa real y sus dependencias.
 
-El [perfil provisional](SBEF-HOST.md) implementa el puente de build
+El [perfil x86-64 del HOST](SBEF-HOST.md) implementa el puente de build
 ELF64 estatico -> SBEF. El [ABI 1](ABI.md) y la admision CASM ya se
 ejercitan en QEMU con un SBEF embebido de una region. El cargador de
 imagenes externas y el bloqueo de WAIT siguen pendientes.
 
 [Responsabilidades del cargador y del gestor de memoria](SBEF-LOADER.md).
 
-## Encabezado candidato
+## Encabezado y perfil ISA
 
-- Prefijo identificable, version del formato y version del ABI por separado.
-  Definir tamanos, offsets, endianidad, alineacion y campos reservados con
-  vectores binarios independientes antes de fijar el layout.
+- La cabecera es little-endian de 32 bytes. SBEF v1 heredado requiere cero
+  en flags/reservado y significa `x86-64-v1`; SBEF v2 conserva los mismos
+  offsets y almacena el ID ISA en el u32 del offset 24. Los IDs 1-4 significan
+  `x86-64-v1` a `x86-64-v4`; el u32 del offset 28 sigue reservado y debe ser
+  cero. La arquitectura de maquina sigue siendo ELF 62, exclusivamente x86-64.
+- ABI, version de contenedor y perfil ISA son campos distintos. Un ID ISA
+  desconocido se rechaza antes de mapear.
 - Regiones de codigo RX, constantes R+NX, datos RW+NX y memoria a cero
   RW+NX. Los permisos se derivan de la clase de region. La entrada debe
   caer dentro del codigo ejecutable. Separar las regiones a nivel de pagina.
-- Un indice acotado puede describir anexos y requisitos de CPU. Cada
-  extension debe declarar si es obligatoria u opcional. El lector
-  rechaza las obligatorias desconocidas y omite el contenido de las
-  opcionales desconocidas despues de comprobar sus rangos.
+- La declaracion ISA identifica el nivel minimo requerido; no demuestra por
+  desensamblado que todos los opcodes del productor respeten ese nivel. El
+  HOST registra opciones y fixtures del productor. El contrato exige que Ring 0
+  compruebe CPUID, CR4 y XCR0 antes de ejecutar; los niveles v1-v4 siguen la
+  jerarquia del
+  [x86-64 psABI](https://gitlab.com/x86-psABIs/x86-64-ABI/blob/master/x86-64-ABI/low-level-sys-info.tex).
+- Extensiones de fabricante y requisitos no representados por los cuatro
+  niveles se rechazan o quedan fuera del perfil; no se infieren del nombre
+  x86-64.
 - La primera imagen de prueba sera estatica y minima. Las relocaciones,
   los anexos y las dependencias que se admitan se deciden segun el primer
   programa real que los necesite.

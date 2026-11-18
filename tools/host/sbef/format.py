@@ -2,6 +2,7 @@
 import struct
 
 from ..diagnostics import Rejection
+from .isa import PROFILE_BY_ID, profile_id, profile_name, profile_requirements
 
 PAGE = 4096
 BASE = 0x40000000
@@ -9,6 +10,8 @@ END = BASE + 16 * 1024 * 1024
 MAX_IMAGE = 1024 * 1024
 MAX_REGIONS = 8
 MACHINE = 62
+FORMAT_VERSION = 2
+LEGACY_FORMAT_VERSION = 1
 HEADER = struct.Struct('<4sHHHHIQII')
 REGION = struct.Struct('<QIIIIQ')
 PERMISSIONS = {4: 'R', 5: 'RX', 6: 'RW'}
@@ -20,17 +23,38 @@ def image_limit(profile):
     raise ValueError('Unknown SBEF admission profile: '+profile)
 
 
+def encode_header(abi, region_count, file_size, entry, *, isa_profile='x86-64-v1',
+                  format_version=FORMAT_VERSION):
+    if format_version not in (LEGACY_FORMAT_VERSION, FORMAT_VERSION):
+        raise Rejection('SBEF-FORMAT-VERSION', 4, 'format_version')
+    identifier = profile_id(isa_profile)
+    if format_version == LEGACY_FORMAT_VERSION and identifier != 1:
+        raise Rejection('SBEF-ISA-VERSION', 24, 'isa_profile')
+    flags = 0 if format_version == LEGACY_FORMAT_VERSION else identifier
+    return HEADER.pack(b'SBEF', format_version, abi, MACHINE, region_count,
+                       file_size, entry, flags, 0)
+
+
 def inspect(image, *, profile='default'):
     limit = image_limit(profile)
     if not HEADER.size <= len(image) <= limit:
         raise Rejection('SBEF-SIZE', min(len(image), limit), 'file')
     magic, version, abi, machine, count, size, entry, flags, reserved = HEADER.unpack_from(image)
     for value, expected, offset, field in [
-            (magic, b'SBEF', 0, 'signature'), (version, 1, 4, 'format_version'),
-            (machine, MACHINE, 8, 'architecture'),
-            (flags, 0, 24, 'flags'), (reserved, 0, 28, 'reserved')]:
+            (magic, b'SBEF', 0, 'signature'), (machine, MACHINE, 8, 'architecture'),
+            (reserved, 0, 28, 'reserved')]:
         if value != expected:
             raise Rejection('SBEF-HEADER', offset, field)
+    if version == LEGACY_FORMAT_VERSION:
+        if flags != 0:
+            raise Rejection('SBEF-HEADER', 24, 'flags')
+        isa_profile_id = 1
+    elif version == FORMAT_VERSION:
+        isa_profile_id = flags
+        if isa_profile_id not in PROFILE_BY_ID:
+            raise Rejection('SBEF-ISA-PROFILE', 24, 'isa_profile')
+    else:
+        raise Rejection('SBEF-HEADER', 4, 'format_version')
     if abi not in (0, 1):
         raise Rejection('SBEF-HEADER', 6, 'abi_version')
     cursor = HEADER.size + count * REGION.size
@@ -73,5 +97,7 @@ def inspect(image, *, profile='default'):
         if len(regions)!=3 or any((r['Address'],r['Permissions'])!=(a,p) or r['MappedBytes']>n
                                   for r,(a,p,n) in zip(regions,expected)):
             raise Rejection('SBEF-UI-LAYOUT', 32, 'regions')
-    return dict(FormatVersion=version, AbiVersion=abi, Architecture='x86-64', Bytes=size,
+    return dict(FormatVersion=version, AbiVersion=abi, Architecture='x86-64',
+                IsaProfile=profile_name(isa_profile_id), IsaProfileId=isa_profile_id,
+                IsaRequirements=profile_requirements(isa_profile_id), Bytes=size,
                 Entry=f'0x{entry:X}', Regions=regions)

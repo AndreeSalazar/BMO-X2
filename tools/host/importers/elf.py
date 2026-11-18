@@ -2,14 +2,17 @@
 import struct
 
 from ..diagnostics import Rejection
-from ..sbef.format import BASE, END, HEADER, MACHINE, MAX_IMAGE, MAX_REGIONS, PAGE, PERMISSIONS, REGION, inspect, image_limit
+from ..sbef.format import (BASE, END, FORMAT_VERSION, HEADER, MACHINE, MAX_IMAGE,
+                           MAX_REGIONS, PAGE, PERMISSIONS, REGION, encode_header,
+                           inspect, image_limit)
 
 MAX_ELF = 16 * MAX_IMAGE
 ELF_HEADER = struct.Struct("<16sHHIQQQIHHHHHH")
 ELF_PROGRAM = struct.Struct("<IIQQQQQQ")
 
 
-def pack_elf(elf, *, abi=0, profile='default'):
+def pack_elf(elf, *, abi=0, profile='default', isa_profile='x86-64-v1',
+             format_version=FORMAT_VERSION):
     if not ELF_HEADER.size <= len(elf) <= MAX_ELF:
         raise Rejection('ELF-SIZE', min(len(elf), MAX_ELF), 'file')
     ident, kind, machine, version, entry, table, _, flags, header_size, ph_size, count, *_ = ELF_HEADER.unpack_from(elf)
@@ -65,6 +68,8 @@ def pack_elf(elf, *, abi=0, profile='default'):
         table.extend(REGION.pack(address, cursor, filesz, memsz, perms, 0))
         payload.extend(elf[offset:offset+filesz])
         cursor += filesz
-    image = HEADER.pack(b'SBEF', 1, abi, MACHINE, len(segments), size, entry, 0, 0) + table + payload
+    header = encode_header(abi, len(segments), size, entry,
+                           isa_profile=isa_profile, format_version=format_version)
+    image = header + table + payload
     inspect(image, profile=profile)
     return image

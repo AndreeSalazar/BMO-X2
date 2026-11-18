@@ -803,7 +803,7 @@ Entrada: Cargador externo CASM, perfil ISA, fixtures por productor, puentes ABI,
 Salida: Contrato congelable con casos de oro, rechazos y medidas.
 Depende de: Presupuesto de la entrada Ring 0 (plan), Cargador SBEF (plan).
 Aceptacion: QEMU prueba las puertas 1 a 4 de tools/host/profiles.py: carga externa, ISA declarada, fixtures por productor y puentes ABI; varios productores ejecutan el mismo contrato con rechazos comparables.
-Pendiente: La puerta 1 sigue parcial, la ISA base no esta congelada, faltan fixtures de algunas parejas productor/enlazador y el ABI entre productores no esta cerrado. Los runtimes/imports se agregan despues bajo la puerta 5.
+Pendiente: La puerta 1 sigue parcial. La base x86-64-v1 y el campo ISA SBEF v2 ya estan fijados; falta integrar el chequeo CPUID/XCR0 en el cargador general CASM, cerrar fixtures de algunas parejas productor/enlazador y el ABI entre productores. Los runtimes/imports se agregan despues bajo la puerta 5.
 
 ## heritage/RING3-TRANSFER.md
 
@@ -825,7 +825,7 @@ Entrada: CPU x86-64 en modo largo y CPL0 tras el puente.
 Salida: Registros CPUID preservados en la parada de 8 bytes.
 Depende de: CPU x86-64 (codigo), Verificador independiente de parada (verificacion).
 Aceptacion: Dos modelos QEMU ejecutan el mismo HEX y reportan sus valores propios.
-Pendiente: Ampliar hojas segun lo que necesita la inicializacion.
+Pendiente: Ampliar CASM con CPUID por perfil y cotejarlo con la sonda LLVM kernel/arch/x86_64/cpu/isa_profile_check.inc al cerrar la puerta 1.
 
 ## tools/boot/cpu_config.py
 
@@ -1005,14 +1005,14 @@ Pendiente: Automatizar la procedencia, importar COFF .obj y definir enlace propi
 
 ## tools/host/profiles.py
 
-Registra productores, formatos, reglas PE/ELF y destino x86-64; separa admision de ejecucion y declara la politica ISA sin prometer traduccion a otras CPU.
+Registra productores, formatos, reglas PE/ELF y destino exclusivamente x86-64; declara x86-64-v1 como base y niveles SBEF v2 v1-v4 sin prometer traduccion a otras CPU.
 
 Estado: HOST. Anillo: host. Lenguaje: Python.
 Entrada: Perfiles de MSVC, LLVM/Clang, GCC y Rust; manifiesto opcional ligado al hash PE.
 Salida: Matriz y catalogo de capacidades consultables con `python -B tools/sbef.py profiles`, politica ISA y estado de procedencia.
 Depende de: Empaquetador ELF64 a SBEF (codigo), Lector SBEF de referencia (codigo), Inspeccion PE32+ x86-64 (codigo).
-Aceptacion: profiles exporta CapabilityCatalog, politica ISA y perfiles. El intake MSVC acepta un manifiesto con hash coincidente y ese SBEF pasa fixture QEMU; identidad del toolchain no atestada.
-Pendiente: Generar y verificar procedencia automaticamente, admitir objetos COFF, fijar la base ISA y codificar requisitos CPU en una extension versionada SBEF; certificar clang-cl/lld-link y ejecutar SBEF externo en Ring 3.
+Aceptacion: profiles exporta CapabilityCatalog, politica ISA y niveles acumulativos. SBEF v2 escribe el ID ISA en offset 24; v1 heredado implica x86-64-v1; los IDs desconocidos se rechazan.
+Pendiente: La etiqueta SBEF no verifica los opcodes. Falta compilar y validar en QEMU las sondas LLVM, ligar opciones de productor y fixtures a cada nivel, cerrar el chequeo general CASM tras la puerta 1, generar procedencia automaticamente, admitir objetos COFF, certificar clang-cl/lld-link y ejecutar SBEF externo en Ring 3.
 
 ## tools/host/importers/elf.py
 
@@ -1033,8 +1033,8 @@ Estado: HOST. Anillo: host. Lenguaje: Python control.
 Entrada: Bytes SBEF y contrato provisional.
 Salida: Regiones admitidas o codigo, campo, offset e indice.
 Depende de: contrato propio sin dependencias en este catalogo.
-Aceptacion: Coteja el vector y rechaza permisos, truncado y solapes.
-Pendiente: Compartir vectores de admision y diagnostico con CASM.
+Aceptacion: Lee SBEF v1 como x86-64-v1 y v2 con IDs ISA 1-4; rechaza perfil desconocido, version/reservado invalidos, permisos, truncado y solapes.
+Pendiente: Compartir vectores ISA, admision y diagnostico con el cargador CASM general; la sonda LLVM aun no lo sustituye.
 
 ## tools/host/importers/pe.py
 

@@ -26,14 +26,31 @@ doom_engine_loader:
     cmp $0x100000, %rdx
 #endif
     ja reject
-    movabs $0x0001000146454253, %rax
-    cmp %rax, (%rsi)
+    cmpl $0x46424553, (%rsi)
     jne reject
+    cmpw $1, 6(%rsi)
+    jne reject
+    cmpw $1, 4(%rsi)
+    je .Llegacy_isa_profile
+    cmpw $2, 4(%rsi)
+    jne reject
+    mov 24(%rsi), %r15d
+    cmpl $0, 28(%rsi)
+    jne reject_isa_reserved
+    jmp .Lcheck_isa_profile
+.Llegacy_isa_profile:
+    cmpq $0, 24(%rsi)
+    jne reject_isa_profile
+    mov $1, %r15d
+.Lcheck_isa_profile:
+    push %rdx
+    mov %r15d, %edi
+    call .Lx2_isa_profile_check
+    pop %rdx
+    jc reject_isa_profile
     cmpl $0x3003e, 8(%rsi)
     jne reject
     cmp %edx, 12(%rsi)
-    jne reject
-    cmpq $0, 24(%rsi)
     jne reject
     mov 16(%rsi), %r12
     mov %r12, %rax
@@ -151,9 +168,20 @@ reject_permissions:
     sub %rsi, %rdi
     add $20, %edi
     mov %edi, 0x350(%r10)
+    jmp reject
+reject_isa_reserved:
+    movl $28, 0x350(%r10)
+    jmp reject
+reject_isa_profile:
+    movl $24, 0x350(%r10)
 reject:
     xor %r12d, %r12d
     mov %rbp, %rdi
     hlt
 exit:
+    jmp .Lstaging_return
     # The packet builder appends the jump to the CASM GDT setup.
+
+#include "../arch/x86_64/cpu/isa_profile_check.inc"
+
+.Lstaging_return:

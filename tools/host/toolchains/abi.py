@@ -8,7 +8,7 @@ import sys
 
 from ..importers.elf import pack_elf
 from .msvc import build_msvc, verify_msvc_sections
-from ..sbef.format import inspect
+from ..sbef.format import LEGACY_FORMAT_VERSION, inspect
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -95,7 +95,9 @@ def main():
         objects.append(complete)
     subprocess.run([args.ld, '-static', '-T', str(script), *map(str, objects),
                     '-o', str(elf)], check=True, cwd=out)
-    image = pack_elf(elf.read_bytes(), abi=1)
+    # This frozen embedded ABI fixture predates SBEF v2. Keep it as a
+    # legacy x86-64-v1 package; external loaders use the current v2 format.
+    image = pack_elf(elf.read_bytes(), abi=1, format_version=LEGACY_FORMAT_VERSION)
     sbef.write_bytes(image)
     producer = {'c': args.toolchain, 'cpp': f'{args.toolchain}-cpp', 'rust': 'rust'}[args.language]
     print(json.dumps(dict(Toolchain=producer, Stage='SBEF', PortalBytes=raw.stat().st_size,
@@ -112,7 +114,8 @@ def main():
                            check=True)
             subprocess.run([args.ld, '-static', '-T', str(script), *map(str, (second_obj, portal, complete)),
                             '-o', str(second_elf)], check=True)
-            second.write_bytes(pack_elf(second_elf.read_bytes(), abi=1))
+            second.write_bytes(pack_elf(second_elf.read_bytes(), abi=1,
+                                        format_version=LEGACY_FORMAT_VERSION))
             command.extend(['--reuse', str(stage), str(second)])
         subprocess.run(command, check=True)
 

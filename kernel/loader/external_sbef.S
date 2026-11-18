@@ -22,9 +22,28 @@ external_sbef:
     jb reject
     cmp $16512, %rdx
     ja reject
-    movabs $0x0001000146454253, %rax
-    cmp %rax, (%rsi)
+    cmpl $0x46424553, (%rsi)
     jne reject
+    cmpw $1, 6(%rsi)
+    jne reject
+    cmpw $1, 4(%rsi)
+    je .Llegacy_isa_profile
+    cmpw $2, 4(%rsi)
+    jne reject
+    mov 24(%rsi), %r15d
+    cmpl $0, 28(%rsi)
+    jne reject_isa_reserved
+    jmp .Lcheck_isa_profile
+.Llegacy_isa_profile:
+    cmpq $0, 24(%rsi)
+    jne reject_isa_profile
+    mov $1, %r15d
+.Lcheck_isa_profile:
+    push %rdx
+    mov %r15d, %edi
+    call .Lx2_isa_profile_check
+    pop %rdx
+    jc reject_isa_profile
     mov 8(%rsi), %eax
     cmp $0x1003e, %eax
     je one_region
@@ -43,8 +62,6 @@ header:
     cmp %r8d, %edx
     jb reject
     cmp %edx, 12(%rsi)
-    jne reject
-    cmpq $0, 24(%rsi)
     jne reject
     cmpq $0x40000000, 32(%rsi)
     jne reject
@@ -195,6 +212,12 @@ reject_rodata_permissions:
     jmp reject
 reject_permissions:
     movl $52, 0x350(%r10)
+    jmp reject
+reject_isa_reserved:
+    movl $28, 0x350(%r10)
+    jmp reject
+reject_isa_profile:
+    movl $24, 0x350(%r10)
 reject:
     xor %r12d, %r12d
     mov %rbp, %rdi
@@ -244,4 +267,9 @@ exit:
     iretq
 first_entry:
 #endif
+    jmp .Lstaging_return
+
+#include "../arch/x86_64/cpu/isa_profile_check.inc"
+
+.Lstaging_return:
     # The packet builder appends the jump to the ABI fixture's GDT setup.

@@ -1,12 +1,19 @@
 """Registro machine-readable de productores, formatos y perfiles x86-64."""
 
+from .sbef.isa import PROFILES as ISA_PROFILES
+
 HOST_TARGET = 'x86-64'
 ISA_POLICY = {
-    'BaselineCandidate': 'x86-64-v1',
-    'BaselineFrozen': False,
-    'OptionalLevels': ['x86-64-v2', 'x86-64-v3', 'x86-64-v4'],
-    'RuntimeDetection': 'Consultar CPUID y el estado habilitado por el sistema para extensiones que lo requieran.',
-    'SBEFRequirements': 'El encabezado SBEF actual no codifica requisitos de instrucciones; falta una extension versionada.',
+    'Baseline': 'x86-64-v1',
+    'BaselineFrozen': True,
+    'FeatureListsAreAdditions': True,
+    'Levels': ISA_PROFILES,
+    'SBEFFormatVersion': 2,
+    'LegacySBEF': 'Format v1 has flags=0 and means x86-64-v1.',
+    'RuntimeDetection': 'Ring 0 checks CPUID, CR4.OSFXSR, and XCR0 where required before entry.',
+    'DeclarationSemantics': 'The SBEF field declares the minimum ISA profile; HOST does not disassemble or prove that every instruction obeys the declaration.',
+    'ProbeStatus': 'The checker is wired into two LLVM assembly QEMU staging loaders; build/QEMU evidence is pending, and generic CASM enforcement remains pending.',
+    'ExtensionsOutsideLevels': 'Vendor-specific and unlisted extensions are not declared by this profile table.',
 }
 
 CAPABILITY_CATALOG = [
@@ -41,9 +48,10 @@ CAPABILITY_CATALOG = [
     {
         'Id': 'isa-x86-64',
         'Family': 'instruction-set',
-        'State': 'baseline-candidate-not-frozen',
-        'Implementation': ['tools/host/profiles.py'],
-        'Boundary': 'x86-64-v1 candidata; niveles v2-v4 opcionales. SBEF aun no codifica requisitos ISA.',
+        'State': 'partial',
+        'Implementation': ['tools/host/sbef/isa.py', 'tools/host/sbef/format.py',
+                           'kernel/arch/x86_64/cpu/isa_profile_check.inc'],
+        'Boundary': 'SBEF v2 declara x86-64-v1..v4 y el codigo del chequeo CPU/estado esta integrado en dos cargadores LLVM de staging; falta evidencia de build/QEMU y la integracion CASM del cargador general.',
     },
     {
         'Id': 'relocation-pe-dir64',
@@ -207,12 +215,13 @@ ADMISSION_POLICY = [
         'Order': 2,
         'Id': 'x86-64-baseline-in-sbef',
         'Name': 'Perfil ISA x86-64 congelado y declarado en SBEF',
-        'State': 'pending',
-        'CurrentLimit': 'x86-64-v1 es candidata y no esta congelada; SBEF actual no declara requisitos de instrucciones.',
+        'State': 'partial',
+        'CurrentLimit': 'x86-64-v1 esta fijado como base; SBEF v2 codifica cuatro niveles y el codigo de dos cargadores LLVM de staging consulta CPUID/CR4/XCR0. Falta compilar y probar esas sondas; la comprobacion general CASM depende de cerrar primero la puerta 1. La declaracion SBEF no es una prueba por desensamblado.',
         'ExitCriteria': [
-            'Publicar el conjunto base de instrucciones y el esquema/version de requisitos SBEF.',
-            'HOST verifica el perfil del binario y el NANO-CORE comprueba las capacidades CPU necesarias antes de ejecutar.',
-            'QEMU y fixtures prueban admision en CPU compatible y rechazo determinista cuando falta una capacidad.',
+            'Mantener publicada la tabla x86-64-v1..v4 y el esquema versionado de requisitos SBEF; el formato v1 heredado implica x86-64-v1.',
+            'Al cerrar la puerta 1, integrar en CASM el mismo chequeo CPUID/CR4/XCR0 antes de mapear o ejecutar.',
+            'QEMU y fixtures prueban cada nivel admitido y rechazan de forma determinista CPU o estado insuficiente; HOST y CASM coinciden.',
+            'Cada productor declara y demuestra su nivel mediante opciones de build registradas y fixtures; una etiqueta SBEF sola no acredita el contenido de instrucciones.',
         ],
     },
     {
@@ -291,5 +300,6 @@ def profile_report():
         },
         'Layers': LAYERS,
         'Profiles': PROFILES,
+        'IsaProfiles': ISA_PROFILES,
         'OtherArchitectures': 'Fuera del alcance de BMO-X2; este proyecto sigue siendo exclusivo x86-64.',
     }

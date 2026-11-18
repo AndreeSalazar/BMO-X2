@@ -9,7 +9,8 @@ from .diagnostics import Rejection
 from .importers.elf import MAX_ELF, pack_elf
 from .importers.pe import pack_pe, probe_pe
 from .profiles import profile_report
-from .sbef.format import MAX_IMAGE, inspect
+from .sbef.format import FORMAT_VERSION, LEGACY_FORMAT_VERSION, MAX_IMAGE, inspect
+from .sbef.isa import PROFILES
 
 
 def positive_bytes(value):
@@ -31,6 +32,11 @@ def main():
     pack.add_argument('input', type=Path)
     pack.add_argument('output', type=Path)
     pack.add_argument('--abi', type=int, choices=[0, 1], default=0)
+    pack.add_argument('--isa-profile', choices=[profile['Name'] for profile in PROFILES],
+                      default='x86-64-v1', help='Declare the minimum x86-64 instruction profile')
+    pack.add_argument('--format-version', type=int,
+                      choices=[LEGACY_FORMAT_VERSION, FORMAT_VERSION], default=FORMAT_VERSION,
+                      help='SBEF wire version; v1 is legacy and implies x86-64-v1')
     pack.add_argument('--max-file-bytes', type=positive_bytes)
     pack.add_argument('--max-mapped-bytes', type=positive_bytes)
     pack.add_argument('--size-report', action='store_true', help='Show file and memory costs by region')
@@ -38,7 +44,12 @@ def main():
     compare = commands.add_parser('compare', help='Compare the size of two validated SBEF builds')
     compare.add_argument('input', type=Path, metavar='baseline')
     compare.add_argument('candidate', type=Path)
-    commands.add_parser('probe').add_argument('input', type=Path)
+    probe = commands.add_parser('probe')
+    probe.add_argument('input', type=Path)
+    probe.add_argument('--isa-profile', choices=[profile['Name'] for profile in PROFILES],
+                       default='x86-64-v1')
+    probe.add_argument('--format-version', type=int,
+                       choices=[LEGACY_FORMAT_VERSION, FORMAT_VERSION], default=FORMAT_VERSION)
     args = parser.parse_args()
     try:
         result = run(args)
@@ -86,6 +97,8 @@ def compare_builds(baseline, candidate):
     return dict(
         Architecture=baseline['Architecture'],
         AbiVersion=baseline['AbiVersion'],
+        IsaProfiles=dict(Baseline=baseline['IsaProfile'], Candidate=candidate['IsaProfile'],
+                         Same=baseline['IsaProfile'] == candidate['IsaProfile']),
         File=delta(baseline['Bytes'], candidate['Bytes']),
         MappedRegions=delta(sum(region['MappedBytes'] for region in before.values()),
                             sum(region['MappedBytes'] for region in after.values())),
@@ -100,16 +113,24 @@ def run(args):
         return inspect_file(args.input)
     if args.action == 'compare':
         return compare_builds(inspect_file(args.input), inspect_file(args.candidate))
+    if args.format_version == LEGACY_FORMAT_VERSION and args.isa_profile != 'x86-64-v1':
+        raise Rejection('SBEF-ISA-VERSION', 24, 'isa_profile')
     with args.input.open('rb') as file:
         data = file.read(MAX_ELF + 1)
     if len(data) > MAX_ELF:
         raise Rejection('IMPORT-SIZE', MAX_ELF, 'file')
     if data.startswith(b'MZ'):
         if args.action == 'probe':
-            return probe_pe(data)
-        image = pack_pe(data, abi=args.abi)
+            result = probe_pe(data)
+            result['RequestedIsaProfile'] = args.isa_profile
+            result['RequestedSBEFFormatVersion'] = args.format_version
+            result['ProbeNote'] = 'PE probe inventories the source only; pack emits and validates the declared SBEF profile.'
+            return result
+        image = pack_pe(data, abi=args.abi, isa_profile=args.isa_profile,
+                        format_version=args.format_version)
     else:
-        image = pack_elf(data, abi=getattr(args, 'abi', 0))
+        image = pack_elf(data, abi=getattr(args, 'abi', 0), isa_profile=args.isa_profile,
+                         format_version=args.format_version)
     report = inspect(image)
     if args.action == 'probe':
         return dict(SourceFormat='ELF64', CanPack=True, SBEF=report)

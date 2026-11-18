@@ -65,7 +65,7 @@ python -B tools/sbef.py profiles
 | Orden | Puerta | Estado | Criterio de cierre |
 |---:|---|---|---|
 | 1 | Cargador externo SBEF | Parcial | CASM valida y mapea SBEF externos, prepara pila/BSS, entra a CPL3 y recupera paginas. QEMU comprueba casos validos, rechazos y concordancia HOST/CASM. |
-| 2 | Perfil ISA x86-64 | Pendiente | Congelar instrucciones base, declarar requisitos en SBEF y rechazar por CPUID si la CPU no satisface el perfil. |
+| 2 | Perfil ISA x86-64 | Parcial | Tabla y campo SBEF v2 definidos; falta integrar CPUID/XCR0 en el cargador general CASM y probar niveles con fixtures/QEMU. |
 | 3 | Fixtures freestanding por productor | Parcial | Muestras sin imports para MSVC, Clang/LLD, clang-cl/lld-link, GCC y Rust; registrar target, versiones, opciones y hashes de forma automatica. |
 | 4 | Puentes ABI | Parcial | Definir ABI BMO-X2 y probar Microsoft x64, SysV y los bordes C/Rust, incluidos registros, pila, retorno y errores. |
 | 5 | Runtimes e imports versionados | Parcial | Resolver solo servicios publicados; ampliar CRT, memoria, TLS, excepciones, RTTI y bibliotecas por perfil. Rechazar imports desconocidos con codigo, campo y offset. |
@@ -88,7 +88,7 @@ completa solo porque existe un lector o un fixture.
 | PE32+ | Inspeccion general; empaquetado acotado | No es un cargador completo de EXE/DLL. |
 | COFF `.obj` x64 | Fixtures y extraccion confiable limitada | Falta importador y enlace general de objetos. |
 | ELF64 estatico | Perfil limitado | El formato aceptado no trae automaticamente su runtime. |
-| x86-64 ISA | `x86-64-v1` candidata; no congelada | SBEF aun no declara requisitos de CPU; v2-v4 no se asumen. |
+| x86-64 ISA | Base `x86-64-v1` fijada; SBEF v2 declara v1-v4 | La declaracion no prueba el contenido del binario; la comprobacion general CASM sigue pendiente junto a la puerta 1. |
 | Relocacion PE DIR64 | Parcial | Solo se permiten destinos internos definidos por el perfil. |
 | Imports y runtime | Servicios seleccionados | UCRT, VCRuntime, Win32 general y DLL no estan completos. |
 | Carga SBEF externa | Fixtures concretos en QEMU | El cargador generico de procesos Ring 3 sigue pendiente. |
@@ -100,12 +100,16 @@ formatos neutrales, diagnosticos y evidencia; ISA, ABI, instrucciones,
 relocaciones y backend pertenecen al HOST de esa CPU. Este catalogo no afirma que BMO-X2 x86-64
 ejecute binarios de otra arquitectura.
 
-El objetivo inicial es x86-64 base. Las extensiones opcionales de CPU se
-deben declarar y comprobar por perfil; SBEF aun no codifica esos requisitos.
-El mismo nombre x86-64 no garantiza AVX, AVX2 o AVX-512. Antes de declarar
-compatibilidad amplia hay que fijar el nivel base, consultar CPUID y rechazar
-una imagen que pida funciones no disponibles. Clang documenta niveles
-`x86-64-v1` a `v4` y el manual AMD64 describe CPUID: [niveles LLVM/Clang](https://clang.llvm.org/docs/UsersManual.html), [manual AMD64](https://docs.amd.com/api/khub/documents/68GKiN0gMEd6bMddsmhPwg/content).
+El destino de BMO-X2 es exclusivamente x86-64. La base fijada es
+`x86-64-v1`; cada SBEF v2 declara el minimo `v1`, `v2`, `v3` o `v4`. El
+codigo de las sondas LLVM compara ese requisito con CPUID y con el estado
+habilitado por el sistema (`CR4.OSFXSR` y `XCR0` cuando corresponda); falta
+compilarlo y validarlo en QEMU. La integracion productiva CASM se hara al
+cerrar la puerta 1. La declaracion no desensambla instrucciones:
+cada productor debe usar opciones de compilacion coherentes y aportar
+fixtures. Extensiones de fabricante o fuera de estos niveles quedan sin
+declarar. La jerarquia v1-v4 sigue los niveles de microarquitectura del
+[x86-64 psABI](https://gitlab.com/x86-psABIs/x86-64-ABI/blob/master/x86-64-ABI/low-level-sys-info.tex).
 
 La maduracion MSVC va por cierres comprobables:
 

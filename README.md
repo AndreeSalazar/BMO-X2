@@ -38,8 +38,9 @@ ni de un cargador generico. [Informe QEMU](Reports/host-msvc-qemu.json) |
    regiones SBEF segun el contrato, preparar pila/BSS, entrar a CPL3 y recuperar
    todas las paginas en salida o fallo. HOST y CASM deben coincidir en mapa y
    rechazos bajo QEMU.
-2. **Perfil x86-64:** congelar el nivel de instrucciones base, versionar en
-   SBEF los requisitos ISA y comprobar que CPUID los satisface antes de ejecutar.
+2. **Perfil x86-64:** la base `x86-64-v1` ya esta fijada y SBEF v2 declara
+   perfiles v1-v4; falta llevar el chequeo CPUID/XCR0 de las sondas LLVM al
+   cargador CASM general despues de cerrar la puerta 1.
 3. **Fixtures por productor:** cerrar muestras freestanding sin imports para
    MSVC, Clang/LLD, clang-cl/lld-link, GCC y Rust. Registrar automaticamente
    versiones, opciones y hashes; cada pareja de productor/enlazador necesita

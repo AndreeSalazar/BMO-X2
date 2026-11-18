@@ -2,7 +2,8 @@
 import struct
 
 from ..diagnostics import Rejection
-from ..sbef.format import BASE, END, HEADER, MACHINE, MAX_IMAGE, PAGE, REGION, inspect
+from ..sbef.format import (BASE, END, FORMAT_VERSION, HEADER, MACHINE, MAX_IMAGE,
+                           PAGE, REGION, encode_header, inspect)
 from .pe_imports import inventory_imports
 from .pe_bindings import bind_session_imports
 
@@ -426,7 +427,8 @@ def probe_pe(data):
     return result
 
 
-def pack_pe(data, *, abi, bindings=None):
+def pack_pe(data, *, abi, bindings=None, isa_profile='x86-64-v1',
+            format_version=FORMAT_VERSION):
     result, opt, table, flags = _inventory(data)
     blockers = [b for b in result['Blockers']
                 if bindings is None or b['Code'] not in ('PE-IMPORTS', 'PE-IAT')]
@@ -449,8 +451,8 @@ def pack_pe(data, *, abi, bindings=None):
         entry = result['ImageBase'] + result['EntryRVA']
     else:
         entry = BASE + result['EntryRVA']
-    image = HEADER.pack(b'SBEF', 1, abi, MACHINE, len(segments), total,
-                        entry, 0, 0)
+    image = encode_header(abi, len(segments), total, entry,
+                          isa_profile=isa_profile, format_version=format_version)
     image += table_bytes + b''.join(payload for _, payload, _, _ in segments)
     inspect(image)
     return image

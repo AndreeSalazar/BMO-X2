@@ -1,4 +1,4 @@
-# SBEF provisional en HOST
+# SBEF x86-64 en HOST
 
 La estructura del [HOST](../tools/host/README.md) separa importadores,
 formato SBEF, diagnosticos y banco de toolchains. Los comandos de este
@@ -17,13 +17,16 @@ el contenedor resultante desde sus bytes. El mismo paso puede consumir
 la salida enlazada de C, C++ o Rust. Cada productor aporta su inicio
 `_start` y sus dependencias de runtime. El ABI 0 reserva la prueba
 freestanding con inicio explicito, sin TLS, constructores automaticos
-ni desenrollado de pila. El formato y el ABI son provisionales.
+ni desenrollado de pila. SBEF sigue sujeto a las puertas de admision, pero
+el perfil ISA y su representacion en el encabezado quedan fijados aqui.
 
 ```powershell
 $llvm = Join-Path $env:ProgramFiles 'LLVM/bin'
 & "$llvm/clang.exe" --target=x86_64-unknown-none-elf -ffreestanding -fno-pic -fno-pie -fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables -O2 -c app.c -o app.o
 & "$llvm/ld.lld.exe" -static -T userspace/sbef.ld app.o -o app.elf
 python -B tools/sbef.py pack app.elf app.sbef
+python -B tools/sbef.py pack app.elf app-v2.sbef --isa-profile x86-64-v2
+python -B tools/sbef.py pack app.elf app-legacy.sbef --format-version 1
 python -B tools/sbef.py pack app.elf app-abi1.sbef --abi 1
 python -B tools/sbef.py --json-errors pack app.elf app-limited.sbef --abi 1 --max-file-bytes 512 --max-mapped-bytes 8192
 python -B tools/sbef.py inspect app.sbef
@@ -68,6 +71,25 @@ la evidencia MSVC en [HOST](../tools/host/README.md).
 stderr codigo, campo y offset de archivo, con indice de region
 cuando corresponde. El archivo se escribe solo despues de admitirlo.
 
+### Perfil ISA
+
+El destino x86-64 de BMO-X2 tiene una base `x86-64-v1` y cuatro niveles
+declarables. Cada nivel suma requisitos al anterior:
+
+| Nivel | Requisitos agregados |
+|---|---|
+| `x86-64-v1` | CMOV, CX8, FPU, FXSR, MMX, SCE, SSE, SSE2 y estado OSFXSR habilitado |
+| `x86-64-v2` | CMPXCHG16B, LAHF-SAHF, POPCNT, SSE3, SSE4.1, SSE4.2, SSSE3 |
+| `x86-64-v3` | AVX, AVX2, BMI1, BMI2, F16C, FMA, LZCNT, MOVBE, OSXSAVE y XCR0 para AVX |
+| `x86-64-v4` | AVX512F, AVX512BW, AVX512CD, AVX512DQ, AVX512VL y XCR0 para ZMM |
+
+La tabla sigue los niveles de microarquitectura del [x86-64 psABI](https://gitlab.com/x86-psABIs/x86-64-ABI/blob/master/x86-64-ABI/low-level-sys-info.tex).
+El campo SBEF declara el minimo requerido; no es una auditoria de opcodes.
+El HOST no desensambla ni corrige automaticamente instrucciones por encima
+del nivel declarado. El codigo de las sondas LLVM consulta CPU y estado; falta
+compilarlo y validarlo en QEMU. La comprobacion CASM del cargador general aun
+depende de cerrar la puerta 1.
+
 Los limites opcionales de `pack` miden el archivo SBEF completo y la
 suma de paginas de sus regiones. Incluyen el BSS en el presupuesto
 mapeado. Pila, tablas y recursos externos tienen cuentas propias.
@@ -93,13 +115,21 @@ de 32 bytes y el contenido de los segmentos concatenado.
 | Offset | Campo | Tipo |
 |---:|---|---|
 | 0 | Firma ASCII SBEF | 4 bytes |
-| 4 | Version de formato 1 | u16 |
+| 4 | Version de formato, 1 heredada o 2 actual | u16 |
 | 6 | Version de ABI (0 de build, 1 candidato de llamadas) | u16 |
 | 8 | Arquitectura x86-64, 62 | u16 |
 | 10 | Cantidad de regiones | u16 |
 | 12 | Tamano del archivo | u32 |
 | 16 | Punto de entrada virtual | u64 |
-| 24 | Flags y reservado, ambos cero | 2 x u32 |
+| 24 | v1: flags cero; v2: identificador ISA | u32 |
+| 28 | Reservado cero | u32 |
+
+En formato 2, el identificador ISA en el offset 24 es: 1=`x86-64-v1`,
+2=`x86-64-v2`, 3=`x86-64-v3`, 4=`x86-64-v4`. Otros valores se rechazan.
+En formato 1, el campo debe ser cero y el paquete se interpreta como
+`x86-64-v1`, manteniendo compatibilidad con paquetes heredados. La version
+del ABI permanece independiente de la version del formato y del perfil ISA.
+SBEF mantiene arquitectura ELF 62 (x86-64); no admite otra ISA.
 
 Cada region usa direccion virtual u64, offset de archivo u32, bytes
 de archivo u32, bytes en memoria u32, permisos u32 y reservado u64 a
