@@ -56,7 +56,7 @@
 | [Genesis: colores y flujo vertical](../super-grafo/genesis.json) | host | host | Define posiciones y colores por responsabilidad, con un motivo visible por archivo. |
 | [Puente UEFI provisional](../kernel/boot/bridge) | heredado | host | Bootstrap HEX manual importado de TALK-CPU; recibe firmware y entrega contexto metal64 al payload CASM. |
 | [Primer arranque UEFI en hardware](../docs/FIRST-BOOT.md) | diseno | host | Ordena la prueba fisica del puente y la entrada CASM minima. |
-| [Genesis: prueba aislada en QEMU](../tools/boot/wake.py) | host | host | Prepara imagenes por run y delega casos a la sonda QEMU; no instala al PC. El perfil ABI actual pasa 4/4. |
+| [Genesis: prueba aislada en QEMU](../tools/boot/wake.py) | host | host | Prepara imagenes virtuales por run, delega los casos a la sonda QEMU y registra entorno; nunca instala al PC. |
 | [Genesis: evidencia de ejecucion](../kernel/boot/genesis/evidence/qemu.json) | qemu | host | Siete casos observados en QEMU: cuerpo cargado exacto, texto, CPL=0, retorno y rechazos. |
 | [Rutas host compatibles 5.1 y 7](../tools/paths.ps1) | host | host | Forma nombres relativos para registrar huellas; rechaza rutas externas sin usar GetRelativePath de .NET Core. |
 | [Regresion de rutas y versiones host](../tools/tests/paths.ps1) | host | host | Comprueba nombres con espacios, normalizacion y rechazos de rutas externas en Windows PowerShell 5.1 y PowerShell 7. |
@@ -94,11 +94,11 @@
 | [Propiedad y devolucion de un marco](../kernel/mm/physical/lifecycle/main.casm) | qemu | 0 | Asigna, protege la propiedad, borra y reasigna un marco de 4 KiB. |
 | [Tablas propias y alias de datos](../kernel/mm/virtual/main.casm) | qemu | 0 | Instala CR3 propio y separa el mapa supervisor de un alias de usuario. |
 | [Fallo de proteccion desde CPL3](../kernel/mm/user/main.casm) | qemu | 0 | Ejecuta un programa fijo en CPL3 y captura el acceso prohibido en Ring 0. |
-| [HOST: del ejecutable a SBEF](../tools/host) | host | host | Separa productor, formato, admision y evidencia de ejecucion para x86-64. |
-| [Perfiles y capas del HOST x86-64](../tools/host/profiles.py) | host | host | Declara la tabla de capacidades, politica ISA, procedencia y limites; el intake MSVC enlazado a SBEF pasa un fixture CPL3/QEMU. |
+| [HOST: del ejecutable a SBEF](../tools/host) | host | host | Coordina la inspeccion, admision, diagnostico y publicacion de ejecutables x86-64. |
+| [Perfiles y capas del HOST x86-64](../tools/host/profiles.py) | host | host | Registra productores, formatos, reglas PE/ELF y destino x86-64; separa admision de ejecucion y declara la politica ISA sin prometer traduccion a otras CPU. |
 | [Empaquetador ELF64 a SBEF](../tools/host/importers/elf.py) | host | host | Convierte segmentos de un ELF64 estatico a regiones SBEF comprobadas. |
 | [Lector SBEF de referencia](../tools/host/sbef/format.py) | host | host | Valida la imagen SBEF y localiza el campo rechazado. |
-| [Inspeccion PE32+ x86-64](../tools/host/importers/pe.py) | host | host | Aplica relocaciones DIR64 internas y convierte perfiles PE freestanding limitados a SBEF. |
+| [Inspeccion PE32+ x86-64](../tools/host/importers/pe.py) | qemu | host | Inspecciona PE32+ independientemente del productor, aplica relocaciones DIR64 internas y admite perfiles SBEF fijos o freestanding limitados. |
 | [Supervisor Rust de Ring 3](../userspace/supervisor) | diseno | 3 | Ordena, configura y recupera servicios desde CPL3. |
 | [SBEF ABI 1 y llamadas desde CPL3](../kernel/syscalls/main.casm) | qemu | 0 | Valida SBEF embebido y ejecuta tres entradas SYSCALL. |
 | [Banco de toolchains del ABI](../tools/host/toolchains/abi.py) | qemu | host | Construye un cliente comun y coteja los bytes de los stubs ELF. |
@@ -120,7 +120,7 @@
 | [Mezcla y controles de audio](../userspace/services/audio) | host | 3 | Mezcla PCM estereo de hasta dieciseis fuentes con ganancia acotada. |
 | [Prestamo y revocacion DMA](../kernel/drivers/bus/DMA.md) | diseno | contrato | Acota los marcos visibles al dispositivo y controla su devolucion. |
 | [Contrato de drivers Ring 3](../contracts/DRIVER-SERVICES.md) | diseno | contrato | Separa protocolos de usuario y concesiones privilegiadas de recursos. |
-| [USB HID de Ring 3](../userspace/drivers/usb) | qemu | 3 | Descubre interfaces boot y mantiene fuentes de entrada con colas acotadas y desconexion atomica. |
+| [USB HID de Ring 3](../userspace/drivers/usb) | qemu | 3 | Descubre interfaces HID boot, decodifica informes y secuencia configuracion/protocolo/endpoints con terminaciones y plazos comprobados. |
 | [Registro ULTRA-J de drivers](../Ultra-J/driver.py) | host | host | Valida registros declarativos de driver y solicita recursos sin concederlos. |
 | [REPORTES de entrada](../Reports) | qemu | host | Expone fase USB, motivo, siguiente paso y pulsos de Ring 0 sin necesitar entrada; exporta evidencia en HOST. |
 | [ULTRA-J: perfil de estilos](../Ultra-J/ui/style.py) | host | host | Valida el perfil UJC acotado y sus propiedades soportadas. |
@@ -129,10 +129,27 @@
 | [Dibujo CPU Rust para RmlUi](../userspace/services/desktop/src/rmlui.rs) | qemu | 3 | Dibuja triangulos con RGBA o Alpha8 blanco premultiplicado sobre buffers prestados, sin heap ni llamadas de SO. |
 | [Sonda SBEF del dibujador comun](../tools/desktop/rmlui/guest.ps1) | qemu | host | Construye el mismo dibujador como SBEF freestanding y compara pixeles reales de QEMU con HOST. |
 | [Bienvenida del escritorio en Ring 3](../userspace/services/desktop/src/welcome.rs) | qemu | 3 | Muestra tres fases visuales despues de admision y permisos, entre el gato CASM y el escritorio ULTRA-J. |
-| [Recursos de interfaz en memoria](../tools/desktop/rmlui/memory_files.h) | host | host | Sustituye acceso a archivos del adaptador por una tabla de recursos inmutables con cursores acotados. |
+| [Recursos de interfaz en memoria](../tools/desktop/rmlui/memory_files.h) | qemu | host | Sustituye acceso a archivos del adaptador por una tabla de recursos inmutables con cursores acotados. |
 | [Sesion del motor C++ RmlUi](../tools/desktop/rmlui/engine.cpp) | host | host | Expone reloj, recursos, eventos, destino prestado y omision optativa de cuadros preservados sin cambios, mediante ABI C de aplicacion. |
 | [Prueba de sesion y animacion real](../tools/desktop/rmlui/live.py) | host | host | HOST entrega recursos al motor real, avanza tiempo determinista y verifica pixeles, entrada, acciones y rechazos. |
 | [Memoria y reposo de la interfaz](../tools/desktop/rmlui/memory.py) | host | host | Mide atlas compactos sin perdida, igualdad visual y trabajo evitado en reposo con reactivacion por entrada. |
+| [Motor RmlUi compilado para x86-64](../tools/desktop/rmlui/native/build.py) | host | host | Compila Core real RmlUi, FreeType y libc++/libc++abi como bibliotecas ELF64 sin sustituirlas por una DLL Windows. |
+| [Dependencias reales del motor nativo](../tools/desktop/rmlui/native/audit.py) | host | host | Valida archivos ELF de destino, enlaza de verdad las bibliotecas y expone servicios pendientes sin aceptar un relocatable como programa. |
+| [Runtime acotado de la interfaz nativa](../tools/desktop/rmlui/native/services.c) | qemu | 3 | Payload Ring 3 compilado y admitido por HOST: une calculo musl sin servicios Linux, heap de 4 MiB y familia new/delete al perfil nativo de un cliente. |
+| [Interfaz RmlUi y ULTRA-J nativa](../tools/desktop/rmlui/native/guest.cpp) | qemu | 3 | Payload de escritorio Ring 3 construido por HOST desde C++/Rust/ULTRA-J: carga RML/RCSS/fuentes, dibuja en CPU y ejecuta UJBC con recursos acotados. |
+| [Prueba real del motor en CPL3](../tools/boot/rmlui_native_capture.py) | qemu | host | Observa estados, memoria, framebuffer, acciones y cierre del motor real sin simular servicios del invitado. |
+| [Politica Rust del escritorio nativo](../userspace/services/desktop/src/native_policy.rs) | qemu | 3 | Adapta DIRECTOR existente a foco, cuatro espacios y nueve posiciones de ventana sin compartir el framebuffer mutable. |
+| [Builder UEFI y perfiles xHCI del escritorio](../tools/desktop/rmlui/native/media.py) | qemu | host | Construye el perfil de escritorio FAT32 y las variantes xHCI de teclado/raton para QEMU, sin sustituir el candidato fisico. |
+| [Inspeccion acotada de FAT32](../tools/boot/fat32_read.py) | host | host | Lee la primera particion GPT/FAT32 de imagenes de prueba sin modificarlas. |
+| [Candidato separado en FAT32 fisico](../tools/desktop/rmlui/native/deploy.ps1) | host | host | Copia exclusivamente el candidato QEMU aprobado al volumen FAT32 A: y verifica hashes. |
+| [Entrada UEFI del escritorio nuevo](../tools/desktop/rmlui/native/register-desktop.ps1) | host | host | Registra el candidato validado con un nombre distinto del diagnostico anterior. |
+| [Activacion HID con confirmacion](../userspace/drivers/usb/src/activation.rs) | host | 3 | Secuencia configuracion, protocolo por interfaz y endpoints; no supone exito al emitir una peticion. |
+| [Contexto interrupt IN USB2](../userspace/drivers/usb/src/xhci.rs) | host | 3 | Calcula DCI e intervalo de cada endpoint descubierto, sin asumir endpoint 0x81. |
+| [Eventos xHCI al servicio HID](../userspace/drivers/usb/src/completion.rs) | host | 3 | Coteja eventos copiados antes de avanzar Activation o publicar un informe en InputService. |
+| [Retiro del perfil anterior de FAT32](../tools/desktop/rmlui/native/retire-legacy.ps1) | host | host | Archiva con hash y retira exactamente los cuatro archivos del BMO-X2 anterior desregistrado. |
+| [Informes USB al escritorio nativo](../tools/desktop/rmlui/native/usb_input.rs) | qemu | 3 | Payload Ring 3 compilado y admitido por HOST: recibe informes escalares mediados y entrega cambios de teclado o raton a RmlUi/DIRECTOR mediante InputService. |
+| [xHCI USB2 con dos dispositivos](../kernel/drivers/bus/native/controller.inc) | qemu | 0 | Sonda ASM transitoria de Ring 0: descubre bancos MMIO, configura dos slots y entrega informes HID mediados al escritorio; no reemplaza la implementacion estable CASM. |
+| [Presentacion GOP del cursor y barra por regiones](../kernel/drivers/bus/native/gop_cursor.inc) | qemu | 0 | Sonda ASM transitoria de Ring 0: copia al GOP una caja de cursor o la franja superior fija por INVOKE 10 en escala 1. |
 
 ## Dependencias declaradas
 
@@ -147,11 +164,11 @@
 | ultra-j-recycler | desktop-workspaces | plan |
 | host-pipeline | sbef-host-pack | codigo |
 | host-pipeline | host-profile-registry | codigo |
-| host-pipeline | sbef-host-reader | codigo |
-| host-pipeline | sbef-host-pe | codigo |
 | host-profile-registry | sbef-host-pack | codigo |
 | host-profile-registry | sbef-host-reader | codigo |
 | host-profile-registry | sbef-host-pe | codigo |
+| host-pipeline | sbef-host-reader | codigo |
+| host-pipeline | sbef-host-pe | codigo |
 | abi-toolchains | host-pipeline | verificacion |
 | desktop-usb-hid | desktop-keyboard | codigo |
 | physical-boot | boot-bridge | plan |
@@ -364,5 +381,29 @@
 | rmlui-live-validation | ultra-j-recycler | codigo |
 | rmlui-memory-budget | rmlui-engine-session | verificacion |
 | rmlui-memory-budget | rmlui-raster-probe | verificacion |
+| rmlui-native-build | rmlui-native-audit | codigo |
+| rmlui-engine-session | rmlui-native-build | codigo |
+| rmlui-native-application | rmlui-native-build | codigo |
+| rmlui-native-application | rmlui-native-runtime | codigo |
+| rmlui-native-application | rmlui-rust-raster | codigo |
+| rmlui-native-application | ultra-j-compiler | codigo |
+| rmlui-native-validation | rmlui-native-application | codigo |
+| rmlui-native-validation | rmlui-native-audit | codigo |
+| rmlui-native-application | rmlui-desktop-policy | codigo |
+| rmlui-fat32-media | rmlui-native-application | codigo |
+| rmlui-fat32-media | rmlui-fat32-reader | codigo |
+| rmlui-metal-candidate | rmlui-fat32-media | codigo |
+| rmlui-desktop-firmware-entry | rmlui-metal-candidate | codigo |
+| usb-ring3-driver | usb-ring3-activation | codigo |
+| usb-ring3-activation | usb-ring3-endpoint-plan | codigo |
+| usb-ring3-driver | usb-ring3-completion | codigo |
+| usb-ring3-completion | usb-ring3-activation | codigo |
+| rmlui-retire-legacy-files | rmlui-metal-candidate | codigo |
+| rmlui-native-application | rmlui-native-usb-input | codigo |
+| rmlui-native-usb-input | usb-ring3-driver | codigo |
+| rmlui-fat32-media | device-bus | codigo |
+| rmlui-fat32-media | rmlui-native-usb-input | codigo |
+| rmlui-native-usb-input | rmlui-usb-dual | codigo |
+| rmlui-gop-cursor-region | rmlui-usb-dual | codigo |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

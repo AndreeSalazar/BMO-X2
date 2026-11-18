@@ -1223,8 +1223,8 @@
       "que": "Admite y mapea una imagen SBEF bajo el contrato del proceso.",
       "entrada": "Bytes del ejecutable, limites, perfil SBEF y estado de CPU.",
       "salida": "Imagen mapeada con entrada y permisos comprobados o motivo de rechazo.",
-      "aceptacion": "El lector independiente y CASM coinciden en el vector de oro y rechazos, con QEMU en Ring 3.",
-      "falta": "La sonda LLVM en kernel/loader/external_sbef.S lee el SBEF entregado desde FAT32. Queda trasladar el cargador a CASM y asignar marcos y capacidades por proceso.",
+      "aceptacion": "CASM y lector HOST coinciden en admision y rechazo. QEMU carga SBEF externo de una a ocho regiones a CPL3, comprueba permisos/BSS y recupera todas las paginas en salida o fallo.",
+      "falta": "La sonda LLVM en kernel/loader/external_sbef.S solo cubre layouts fijos de una a tres regiones. Queda trasladar validacion a CASM e integrar mapa, pila, permisos y limpieza al ciclo de vida por proceso.",
       "pagina": true
     },
     {
@@ -1257,10 +1257,10 @@
         4025
       ],
       "que": "Define la evidencia necesaria para congelar SBEF y el ABI.",
-      "entrada": "Emision CASM, aislamiento, cargador, capacidades y dos puertas.",
+      "entrada": "Cargador externo CASM, perfil ISA, fixtures por productor, puentes ABI, runtimes versionados, aislamiento, capacidades, INVOKE y WAIT.",
       "salida": "Contrato congelable con casos de oro, rechazos y medidas.",
-      "aceptacion": "QEMU prueba carga, aislamiento, INVOKE y WAIT y coinciden varios toolchains.",
-      "falta": "Cerrar primero contexto, pila y excepcion."
+      "aceptacion": "QEMU prueba las puertas 1 a 4 de tools/host/profiles.py: carga externa, ISA declarada, fixtures por productor y puentes ABI; varios productores ejecutan el mismo contrato con rechazos comparables.",
+      "falta": "La puerta 1 sigue parcial, la ISA base no esta congelada, faltan fixtures de algunas parejas productor/enlazador y el ABI entre productores no esta cerrado. Los runtimes/imports se agregan despues bajo la puerta 5."
     },
     {
       "id": "ring3-transfer",
@@ -2257,11 +2257,12 @@
       "estado": "qemu",
       "anillo": "3",
       "lenguaje": "C / C++",
+      "hosted_ring3": true,
       "posicion": [
         7100,
         3700
       ],
-      "que": "Une calculo musl sin servicios Linux, heap de 4 MiB y familia new/delete al perfil nativo de un cliente.",
+      "que": "Payload Ring 3 compilado y admitido por HOST: une calculo musl sin servicios Linux, heap de 4 MiB y familia new/delete al perfil nativo de un cliente.",
       "entrada": "Solicitudes de memoria, formato/numeros y recursos del Core RmlUi/FreeType.",
       "salida": "Asignaciones con propiedad y alineacion, log de fallos y denegacion explicita de disco/entorno.",
       "aceptacion": "ELF sin simbolos pendientes; pruebas de alineacion, calloc, overflow, realloc fallido y disco denegado; pico de heap 3028176 bytes.",
@@ -2274,11 +2275,12 @@
       "estado": "qemu",
       "anillo": "3",
       "lenguaje": "C++ / Rust / ULTRA-J",
+      "hosted_ring3": true,
       "posicion": [
         7500,
         3700
       ],
-      "que": "Carga RML/RCSS/fuentes, dibuja en CPU y ejecuta la VM UJBC nativa con recursos de propiedad acotada.",
+      "que": "Payload de escritorio Ring 3 construido por HOST desde C++/Rust/ULTRA-J: carga RML/RCSS/fuentes, dibuja en CPU y ejecuta UJBC con recursos acotados.",
       "entrada": "SBEF del perfil rmlui-native-v1, cuatro recursos inmutables y eventos PS2/Enter.",
       "salida": "Visor independiente o candidato DIRECTOR de un panel; superficie XRGB 1280x800, acciones UJBC nativas y presentacion GOP entera.",
       "aceptacion": "CPL3, Enter/clic y pixeles iguales a HOST; candidato FAT32 prueba espacios, Super+Q y reapertura sin terminar la base. Evidencia Ultra-J/evidence/rmlui-desktop-fat32.json.",
@@ -2320,20 +2322,20 @@
     },
     {
       "id": "rmlui-fat32-media",
-      "titulo": "Entrada UEFI del escritorio nativo",
+      "titulo": "Builder UEFI y perfiles xHCI del escritorio",
       "ruta": "tools/desktop/rmlui/native/media.py",
       "estado": "qemu",
       "anillo": "host",
-      "lenguaje": "Python / CASM",
+      "lenguaje": "Python / LLVM / CASM / C++ / Rust",
       "posicion": [
         7900,
         3900
       ],
-      "que": "Construye un perfil separado que lee el SBEF desde FAT32 con reserva explicita del rango de usuario antes de EBS.",
-      "entrada": "Runs ABI y gato CASM verificados; ELF/SBEF nativo con hashes.",
-      "salida": "EFI de 16384 bytes, INICIO de 3688 bytes y SBEF de 1845846 bytes en carpeta DESKTOP.",
-      "aceptacion": "Dos casos por GOP 1280x800 y 1024x768; W+X rechazado antes de copia; BOOTLOG y SBEF releidos del FAT32.",
-      "falta": "Arranque fisico del candidato; no incorpora el driver xHCI/HID AMD."
+      "que": "Construye el perfil de escritorio FAT32 y las variantes xHCI de teclado/raton para QEMU, sin sustituir el candidato fisico.",
+      "entrada": "Runs ABI y gato CASM verificados, ELF/SBEF nativo con hashes y selector explicito de perfil USB.",
+      "salida": "EFI e INICIO con SBEF desde FAT32; perfiles QEMU con reserva DMA supervisada, etapa xHCI y reportes.",
+      "aceptacion": "FAT32: GOP 1280x800 y 1024x768, W+X rechazado, BOOTLOG/SBEF releidos. USB: teclado y raton en perfiles separados, W+X rechazado, limites de imagen comprobados y deploy.ps1 rechaza perfiles solo-QEMU.",
+      "falta": "Arranque fisico del candidato y backend USB AMD completo; la supervision DMA no acredita IOMMU ni aislamiento de dispositivos hostiles."
     },
     {
       "id": "rmlui-fat32-reader",
@@ -2461,32 +2463,16 @@
       "estado": "qemu",
       "anillo": "3",
       "lenguaje": "Rust / ABI C",
+      "hosted_ring3": true,
       "posicion": [
         9500,
         4100
       ],
-      "que": "Recibe informes escalares del transporte mediado y entrega cambios de teclado o raton a RmlUi/DIRECTOR usando InputService real.",
+      "que": "Payload Ring 3 compilado y admitido por HOST: recibe informes escalares mediados y entrega cambios de teclado o raton a RmlUi/DIRECTOR mediante InputService.",
       "entrada": "Teclado boot y descriptor HID del raton en modo Report, con longitud por transferencia xHCI.",
       "salida": "Scancodes, ejes y rueda relativos, y transiciones de los tres botones aun con ID HID separados. Ring 3 recorta al escritorio y calcula el byte de LED del teclado.",
       "aceptacion": "CPL3: Enter, espacios, Super+Q/reapertura via USB teclado; movimiento, resaltado sin raster, clic primario, transiciones derecha/central y rueda via USB raton.",
       "falta": "Confirmar el descriptor y comportamiento del raton fisico. Los campos usados deben estar dentro de los primeros ocho bytes."
-    },
-    {
-      "id": "rmlui-native-usb-profile",
-      "titulo": "Perfiles xHCI del escritorio QEMU",
-      "ruta": "tools/desktop/rmlui/native/media.py",
-      "estado": "qemu",
-      "anillo": "host",
-      "lenguaje": "Python / ASM / C++ / Rust",
-      "posicion": [
-        9500,
-        4300
-      ],
-      "que": "Construye por separado teclado USB y raton USB sin reemplazar el escritorio de FAT32 fisico.",
-      "entrada": "ELF/SBEF nativo, runs ABI/gato verificados y seleccion USB explicita.",
-      "salida": "UEFI FAT32 con reserva DMA de diez paginas y etapa xHCI supervisora de una pagina; reportes y captura QEMU.",
-      "aceptacion": "Dos casos por perfil, incluido W+X rechazado. Puerta de 1584 bytes, INICIO 3785 bytes, etapa 4067/4096 bytes. deploy.ps1 rechaza perfiles USB QEMU-only.",
-      "falta": "METAL: DMA supervision no acredita IOMMU ni aislamiento de aparatos hostiles; falta backend AMD vivo y varios slots/endpoints simultaneos."
     },
     {
       "id": "rmlui-usb-dual",
@@ -2495,11 +2481,12 @@
       "estado": "qemu",
       "anillo": "0",
       "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
       "posicion": [
         9900,
         4300
       ],
-      "que": "Descubre bancos MMIO, configura dos slots y entrega informes HID mediados al escritorio.",
+      "que": "Sonda ASM transitoria de Ring 0: descubre bancos MMIO, configura dos slots y entrega informes HID mediados al escritorio; no reemplaza la implementacion estable CASM.",
       "entrada": "Controlador xHCI admitido, dos puertos directos USB2 y reserva UEFI supervisora.",
       "salida": "Informes escalares para Ring 3, puntero visible desde el primer cuadro y diagnostico de identidad, transferencia o puerto.",
       "aceptacion": "QEMU verifica teclado y raton simultaneos, rechazo W+X, puertos vacios y parada con revocacion PCI/MMIO.",
@@ -2512,11 +2499,12 @@
       "estado": "qemu",
       "anillo": "0",
       "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
       "posicion": [
         10200,
         4300
       ],
-      "que": "Copia al GOP una caja de cursor o la franja superior fija por INVOKE 10 en escala 1.",
+      "que": "Sonda ASM transitoria de Ring 0: copia al GOP una caja de cursor o la franja superior fija por INVOKE 10 en escala 1.",
       "entrada": "Superficie XRGB validada de 1280x800, punto de origen y geometria GOP.",
       "salida": "Hasta 204 pixeles por caja de cursor y 102400 por franja de estado.",
       "aceptacion": "QEMU comprueba restauracion del cursor y que los bloqueos actualizan la franja sin cuadro completo.",
@@ -3755,18 +3743,18 @@
       "clase": "codigo"
     },
     {
-      "de": "rmlui-native-usb-profile",
+      "de": "rmlui-fat32-media",
       "a": "device-bus",
       "clase": "codigo"
     },
     {
-      "de": "rmlui-native-usb-profile",
+      "de": "rmlui-fat32-media",
       "a": "rmlui-native-usb-input",
       "clase": "codigo"
     },
     {
-      "de": "rmlui-usb-dual",
-      "a": "rmlui-native-usb-input",
+      "de": "rmlui-native-usb-input",
+      "a": "rmlui-usb-dual",
       "clase": "codigo"
     },
     {

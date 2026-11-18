@@ -51,6 +51,30 @@ Fuente y dependencias -> productor (MSVC/LLVM/GCC/Rust)
   -> cargador y runtime Ring 3 de BMO-X2 -> NANO-CORE / CPU
 ```
 
+## Regla de admision por etapas
+
+La secuencia de cierres es obligatoria para declarar compatibilidad general.
+Se permite preparar fixtures o prototipos de una etapa futura, pero eso no
+salta una puerta ni convierte un ejemplo en soporte general. Los estados,
+limites y criterios estructurados se publican con:
+
+```powershell
+python -B tools/sbef.py profiles
+```
+
+| Orden | Puerta | Estado | Criterio de cierre |
+|---:|---|---|---|
+| 1 | Cargador externo SBEF | Parcial | CASM valida y mapea SBEF externos, prepara pila/BSS, entra a CPL3 y recupera paginas. QEMU comprueba casos validos, rechazos y concordancia HOST/CASM. |
+| 2 | Perfil ISA x86-64 | Pendiente | Congelar instrucciones base, declarar requisitos en SBEF y rechazar por CPUID si la CPU no satisface el perfil. |
+| 3 | Fixtures freestanding por productor | Parcial | Muestras sin imports para MSVC, Clang/LLD, clang-cl/lld-link, GCC y Rust; registrar target, versiones, opciones y hashes de forma automatica. |
+| 4 | Puentes ABI | Parcial | Definir ABI BMO-X2 y probar Microsoft x64, SysV y los bordes C/Rust, incluidos registros, pila, retorno y errores. |
+| 5 | Runtimes e imports versionados | Parcial | Resolver solo servicios publicados; ampliar CRT, memoria, TLS, excepciones, RTTI y bibliotecas por perfil. Rechazar imports desconocidos con codigo, campo y offset. |
+
+Un lector ELF o PE compartido es una pieza de infraestructura, no evidencia
+de que todos los productores que emiten ese formato sean compatibles. Del
+mismo modo, el manifiesto ligado a hash registra una declaracion; no autentica
+por si mismo el compilador. Cada cierre conserva evidencia QEMU y limites.
+
 ## Catalogo de capacidades x86-64
 
 Este catalogo es la "tabla periodica" del HOST: elementos pequenos con un
@@ -84,6 +108,10 @@ una imagen que pida funciones no disponibles. Clang documenta niveles
 `x86-64-v1` a `v4` y el manual AMD64 describe CPUID: [niveles LLVM/Clang](https://clang.llvm.org/docs/UsersManual.html), [manual AMD64](https://docs.amd.com/api/khub/documents/68GKiN0gMEd6bMddsmhPwg/content).
 
 La maduracion MSVC va por cierres comprobables:
+
+Los pasos siguientes son el trabajo especifico de MSVC. Se pueden preparar
+en paralelo, pero el orden maestro de admision anterior gobierna cuando se
+puede declarar compatible un productor o runtime de forma general.
 
 1. **Intake y procedencia**: inventario PE32+, hash, directorios y blockers; un
    manifiesto manual puede ligar productor, versiones, opciones y hash exacto.

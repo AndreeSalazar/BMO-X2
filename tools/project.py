@@ -63,11 +63,21 @@ def validate(data, paths=True):
                         'Implementacion Ring 3 prevista requiere userspace/ y Rust')
         require(n['anillo'] in {'host', '0', '3', 'contrato'}, f"Anillo desconocido: {n['id']}")
         if n['anillo'] == '0':
-            require(n['lenguaje'] == 'CASM', f"Ring 0 requiere CASM: {n['id']}")
             require(n['ruta'].startswith('kernel/'), f"Ring 0 vive en kernel/: {n['id']}")
+            if n.get('ring0_platform_probe') is True:
+                require(n['ruta'].startswith('kernel/drivers/') and n['lenguaje'] == 'ASM x86-64'
+                        and n['estado'] in {'qemu', 'investigacion'},
+                        f"Sonda ASM Ring 0 solo permitida en drivers con evidencia: {n['id']}")
+            else:
+                require(n['lenguaje'] == 'CASM', f"Ring 0 requiere CASM: {n['id']}")
         if n['anillo'] == '3':
-            require(n['lenguaje'] == 'Rust', f"Ring 3 requiere Rust: {n['id']}")
-            require(n['ruta'].startswith('userspace/'), f"Ring 3 vive en userspace/: {n['id']}")
+            if n.get('hosted_ring3') is True:
+                require(n['ruta'].startswith(('userspace/', 'tools/', 'Ultra-J/')),
+                        f"Payload Ring 3 debe tener origen declarable en HOST: {n['id']}")
+            else:
+                require(n['lenguaje'] == 'Rust', f"Runtime principal Ring 3 requiere Rust: {n['id']}")
+                require(n['ruta'].startswith('userspace/'),
+                        f"Runtime principal Ring 3 vive en userspace/: {n['id']}")
         for field in ('que', 'entrada', 'salida', 'aceptacion', 'falta'):
             require(isinstance(n[field], str) and n[field].strip(), f"Falta {field}: {n['id']}")
         position = tuple(n['posicion'])

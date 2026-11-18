@@ -780,8 +780,8 @@ Estado: DISENO. Anillo: 0. Lenguaje: CASM.
 Entrada: Bytes del ejecutable, limites, perfil SBEF y estado de CPU.
 Salida: Imagen mapeada con entrada y permisos comprobados o motivo de rechazo.
 Depende de: SBEF y congelacion del ABI (plan), Empaquetador ELF64 a SBEF (verificacion), Lector SBEF de referencia (verificacion), SBEF ABI 1 y llamadas desde CPL3 (verificacion), Contrato minimo del cargador SBEF (plan).
-Aceptacion: El lector independiente y CASM coinciden en el vector de oro y rechazos, con QEMU en Ring 3.
-Pendiente: La sonda LLVM en kernel/loader/external_sbef.S lee el SBEF entregado desde FAT32. Queda trasladar el cargador a CASM y asignar marcos y capacidades por proceso.
+Aceptacion: CASM y lector HOST coinciden en admision y rechazo. QEMU carga SBEF externo de una a ocho regiones a CPL3, comprueba permisos/BSS y recupera todas las paginas en salida o fallo.
+Pendiente: La sonda LLVM en kernel/loader/external_sbef.S solo cubre layouts fijos de una a tres regiones. Queda trasladar validacion a CASM e integrar mapa, pila, permisos y limpieza al ciclo de vida por proceso.
 
 ## kernel/drivers/bus
 
@@ -799,11 +799,11 @@ Pendiente: Pendientes configuracion de interfaces HID, endpoints interrupt, info
 Define la evidencia necesaria para congelar SBEF y el ABI.
 
 Estado: DISENO. Anillo: contrato. Lenguaje: contrato.
-Entrada: Emision CASM, aislamiento, cargador, capacidades y dos puertas.
+Entrada: Cargador externo CASM, perfil ISA, fixtures por productor, puentes ABI, runtimes versionados, aislamiento, capacidades, INVOKE y WAIT.
 Salida: Contrato congelable con casos de oro, rechazos y medidas.
 Depende de: Presupuesto de la entrada Ring 0 (plan), Cargador SBEF (plan).
-Aceptacion: QEMU prueba carga, aislamiento, INVOKE y WAIT y coinciden varios toolchains.
-Pendiente: Cerrar primero contexto, pila y excepcion.
+Aceptacion: QEMU prueba las puertas 1 a 4 de tools/host/profiles.py: carga externa, ISA declarada, fixtures por productor y puentes ABI; varios productores ejecutan el mismo contrato con rechazos comparables.
+Pendiente: La puerta 1 sigue parcial, la ISA base no esta congelada, faltan fixtures de algunas parejas productor/enlazador y el ABI entre productores no esta cerrado. Los runtimes/imports se agregan despues bajo la puerta 5.
 
 ## heritage/RING3-TRANSFER.md
 
@@ -1001,18 +1001,18 @@ Entrada: ELF64 o PE32+ enlazado y version de ABI.
 Salida: SBEF admitido, comparacion de builds por archivo y paginas, o rechazo con campo y offset.
 Depende de: Empaquetador ELF64 a SBEF (codigo), Perfiles y capas del HOST x86-64 (codigo), Lector SBEF de referencia (codigo), Inspeccion PE32+ x86-64 (codigo).
 Aceptacion: profiles publica CapabilityCatalog. El intake MSVC liga la declaracion al hash PE y el SBEF emitido por PowerShell ejecuto el fixture ABI en CPL3 bajo QEMU; evidencia Reports/host-msvc-qemu.json; toolchain no atestado.
-Pendiente: Automatizar procedencia, admitir COFF .obj y enlace propio, cerrar la carga externa SBEF en Ring 3, validar clang-cl/lld-link y anadir imports con semantica propia.
+Pendiente: Automatizar la procedencia, importar COFF .obj y definir enlace propio; cerrar la carga externa SBEF en Ring 3 y anadir imports/runtime solo con semantica propia.
 
 ## tools/host/profiles.py
 
-Registra por separado productores, formatos, destino, reglas de admision y evidencia de ejecucion; no confunde empaquetar con ejecutar.
+Registra productores, formatos, reglas PE/ELF y destino x86-64; separa admision de ejecucion y declara la politica ISA sin prometer traduccion a otras CPU.
 
 Estado: HOST. Anillo: host. Lenguaje: Python.
-Entrada: Perfiles declarados de MSVC, LLVM/Clang, GCC y Rust para artefactos x86-64.
-Salida: Matriz y catalogo de capacidades consultables con `python -B tools/sbef.py profiles`.
+Entrada: Perfiles de MSVC, LLVM/Clang, GCC y Rust; manifiesto opcional ligado al hash PE.
+Salida: Matriz y catalogo de capacidades consultables con `python -B tools/sbef.py profiles`, politica ISA y estado de procedencia.
 Depende de: Empaquetador ELF64 a SBEF (codigo), Lector SBEF de referencia (codigo), Inspeccion PE32+ x86-64 (codigo).
 Aceptacion: profiles exporta CapabilityCatalog, politica ISA y perfiles. El intake MSVC acepta un manifiesto con hash coincidente y ese SBEF pasa fixture QEMU; identidad del toolchain no atestada.
-Pendiente: Generar y verificar procedencia automaticamente, admitir objetos COFF, fijar la base ISA y codificar requisitos de CPU en una extension SBEF versionada; validar clang-cl/lld-link y cargar SBEF externo en Ring 3.
+Pendiente: Generar y verificar procedencia automaticamente, admitir objetos COFF, fijar la base ISA y codificar requisitos CPU en una extension versionada SBEF; certificar clang-cl/lld-link y ejecutar SBEF externo en Ring 3.
 
 ## tools/host/importers/elf.py
 
@@ -1038,14 +1038,14 @@ Pendiente: Compartir vectores de admision y diagnostico con CASM.
 
 ## tools/host/importers/pe.py
 
-Inspecciona PE32+ independientemente del productor, rebaja relocaciones DIR64 internas y admite perfiles PE freestanding limitados.
+Inspecciona PE32+ independientemente del productor, aplica relocaciones DIR64 internas y admite perfiles SBEF fijos o freestanding limitados.
 
-Estado: HOST. Anillo: host. Lenguaje: Python control.
-Entrada: Ejecutable PE32+ x86-64.
-Salida: Inventario y SBEF admitido o rechazo preciso por campo y offset.
+Estado: QEMU. Anillo: host. Lenguaje: Python control.
+Entrada: Ruta de un PE32+ x86-64 pasado al comando de intake de PowerShell.
+Salida: Informe con hash, tipo, secciones, directorios, imports, relocaciones y SBEF admitido o rechazo preciso.
 Depende de: contrato propio sin dependencias en este catalogo.
 Aceptacion: PowerShell inspecciona PE EXE y DLL; una prueba real de MSVC aplica DIR64 y empaqueta cuatro regiones en 388 bytes. El intake con manifiesto emitio SBEF de 792 bytes que ejecuto el ABI en CPL3/QEMU; evidencia Reports/host-msvc-qemu.json; el manifiesto no certifica el compilador.
-Pendiente: Cargador SBEF general, imports/IAT, TLS, load config, unwind, procesos externos, intake de objetos COFF y un fixture propio de clang-cl/lld-link.
+Pendiente: El cargador QEMU aun no acepta el SBEF RVA generico. Faltan imports e IAT, TLS, load config, unwind, exports, servicios de runtime, procesos externos, intake de objetos COFF y un fixture propio de clang-cl/lld-link.
 
 ## userspace/supervisor
 
@@ -1075,10 +1075,10 @@ Construye un cliente comun y coteja los bytes de los stubs ELF.
 
 Estado: QEMU. Anillo: host. Lenguaje: Python control.
 Entrada: Cliente C, cabecera ABI 1, compilador y vector HEX.
-Salida: SBEF para ELF o inventario de un objeto COFF MSVC.
+Salida: SBEF desde ELF o PE32+ freestanding, y opciones de inspeccion COFF.
 Depende de: HOST: del ejecutable a SBEF (verificacion), Empaquetador ELF64 a SBEF (generacion).
-Aceptacion: GCC C, Clang C/C++ y Rust verifican INVOKE, WAIT y limpieza tras fallo en QEMU en un paquete de hasta 2048 bytes. MSVC se inspecciona como COFF.
-Pendiente: El reuso de dos paginas entre dos SBEF pasa en QEMU. Faltan cargador externo general, revocacion por proceso y PE32+ freestanding.
+Aceptacion: GCC C, Clang C/C++, Rust y MSVC verifican el ABI en CPL3. MSVC PE produce un paquete de 1887 bytes.
+Pendiente: Cargador externo general, revocacion por proceso y perfiles PE que requieran servicios de Windows.
 
 ## kernel/mm/virtual/revoke/main.casm
 
@@ -1280,14 +1280,14 @@ Pendiente: Implementar procesos, concesiones de MMIO y DMA con IOMMU y eventos d
 
 ## userspace/drivers/usb
 
-Descubre interfaces boot y mantiene fuentes de entrada con colas acotadas y desconexion atomica.
+Descubre interfaces HID boot, decodifica informes y secuencia configuracion/protocolo/endpoints con terminaciones y plazos comprobados.
 
 Estado: QEMU. Anillo: 3. Lenguaje: Rust.
 Entrada: Descriptores acotados y reportes recibidos por un transporte autorizado.
-Salida: Interfaces, endpoints, solicitudes de configuracion y cambios de entrada.
-Depende de: Contrato de drivers Ring 3 (codigo).
+Salida: InputService y decoders HID enlazados a sondas y al escritorio RmlUi en perfiles USB QEMU separados; Activation/PendingActivation aun sin transporte de configuracion propio.
+Depende de: Contrato de drivers Ring 3 (codigo), Activacion HID con confirmacion (codigo), Eventos xHCI al servicio HID (codigo).
 Aceptacion: HOST verifica 18 casos USB y 14 de escritorio. InputService ejecuta en CPL3 QEMU: teclado 260 reportes y raton 4, perfiles separados; CABINA, WAIT, cierre y rechazo SBEF W+X comprobados. Escritorio normal conserva configuracion.
-Pendiente: Faltan notificacion de desconexion/reconexion, dispositivos simultaneos, proceso SBEF independiente, transporte Ring 3, aislamiento DMA y configuracion HID AMD. detach solo probado en HOST.
+Pendiente: Adaptar el backend vivo a AMD y dos dispositivos simultaneos; conectar activacion de usuario al transporte autorizado; hotplug, parada y recuperacion del escritorio nativo pendientes.
 
 ## Ultra-J/driver.py
 
@@ -1353,7 +1353,7 @@ Entrada: Vertices, textura acotada, superficie XRGB y rectangulo de recorte.
 Salida: Pixeles propios de la superficie; rechazo antes de escribir ante dimensiones o vertices invalidos.
 Depende de: contrato propio sin dependencias en este catalogo.
 Aceptacion: 256 coberturas Alpha8 iguales a RGBA; sonda CPL3 con ambos formatos y pixeles iguales a HOST; rechazo W+X conservado.
-Pendiente: Integracion con superficies e invalidacion del escritorio permanente y motor RmlUi completo.
+Pendiente: Invalidacion avanzada y sesiones prolongadas; el motor completo ya dibuja en el candidato DIRECTOR de un panel.
 
 ## tools/desktop/rmlui/guest.ps1
 
@@ -1381,12 +1381,12 @@ Pendiente: Presentacion RmlUi completa y validacion en METAL; este perfil no cer
 
 Sustituye acceso a archivos del adaptador por una tabla de recursos inmutables con cursores acotados.
 
-Estado: HOST. Anillo: host. Lenguaje: C++.
+Estado: QEMU. Anillo: host. Lenguaje: C++.
 Entrada: Hasta ocho recursos con nombre plano, bytes prestados y longitud.
 Salida: Lectura y busqueda acotadas; rechazo de rutas y recursos ausentes.
 Depende de: contrato propio sin dependencias en este catalogo.
 Aceptacion: La sesion real lee RML/RCSS/fuentes desde memoria; ruta .. y recurso ausente se rechazan sin abrir disco desde el adaptador.
-Pendiente: Integrar el productor de recursos y asignador del entorno Ring 3; el runtime enlazado aun es Windows.
+Pendiente: Productor de recursos desde paquetes del escritorio; el visor nativo actual usa cuatro recursos incrustados y validados.
 
 ## tools/desktop/rmlui/engine.cpp
 
@@ -1395,9 +1395,9 @@ Expone reloj, recursos, eventos, destino prestado y omision optativa de cuadros 
 Estado: HOST. Anillo: host. Lenguaje: C++.
 Entrada: Tabla de recursos, tiempo inyectado, entrada y callback de accion ULTRA-J.
 Salida: Cuadros Rust CPU, plazo de actualizacion y diagnosticos de ciclo de vida y perfil visual.
-Depende de: Recursos de interfaz en memoria (codigo), Dibujo CPU Rust para RmlUi (codigo).
+Depende de: Recursos de interfaz en memoria (codigo), Dibujo CPU Rust para RmlUi (codigo), Motor RmlUi compilado para x86-64 (codigo).
 Aceptacion: Animaciones RCSS de opacidad/ancho/color verificadas; puntero y Enter; reentrada bloqueada; cierre limpio; objeto sin llamadas Kernel32 directas.
-Pendiente: Runtime C++/FreeType freestanding, perfil de carga medido y conexion DIRECTOR/ULTRA-J nativos; no SBEF ni METAL.
+Pendiente: Conectar la API de sesion y el reloj al escritorio DIRECTOR; guest.cpp ya verifica un arranque nativo independiente sin excepciones.
 
 ## tools/desktop/rmlui/live.py
 
@@ -1408,7 +1408,7 @@ Entrada: Paquete HOST de RmlUi y UJBC del ejemplo.
 Salida: PNG, GIF de cuadros reales e informe HOST con pruebas, recursos y costes.
 Depende de: Sesion del motor C++ RmlUi (verificacion), ULTRA-J: compilador inicial (codigo), ULTRA-J: verificador y reciclador (codigo).
 Aceptacion: Movimiento reducido estable, transiciones interpoladas, accion aceptada/rechazada, repeticion Enter, reinicializacion y ausencia de actualizaciones pendientes al terminar.
-Pendiente: Prueba del mismo motor completo en Ring 3 y perfil de admision; el callback actual ejecuta la VM HOST Python.
+Pendiente: Planificacion y animacion del escritorio nativo permanente; el motor reducido ya pasa rmlui-native-validation en CPL3.
 
 ## tools/desktop/rmlui/memory.py
 
@@ -1419,7 +1419,194 @@ Entrada: Sesion real RmlUi, recursos fijados y referencia visual opcional.
 Salida: Informe HOST con bytes retenidos, cuadros omitidos, tiempos y coste acotado; no RAM total del sistema.
 Depende de: Sesion del motor C++ RmlUi (verificacion), Sonda SBEF del dibujador comun (verificacion).
 Aceptacion: 15 atlas bajan de 1277952 a 319488 bytes; tres imagenes iguales; 30 cuadros quietos sin triangulos; entrada y animacion redibujan; destino nuevo se refresca.
-Pendiente: Port del motor completo y politica de reposo al escritorio Ring 3; medir memoria global de runtime y fuentes.
+Pendiente: Medir sesiones prolongadas y politica de reposo permanente. El visor nativo ya limita heap a 4 MiB y comprueba igualdad visual con atlas 256.
+
+## tools/desktop/rmlui/native/build.py
+
+Compila Core real RmlUi, FreeType y libc++/libc++abi como bibliotecas ELF64 sin sustituirlas por una DLL Windows.
+
+Estado: HOST. Anillo: host. Lenguaje: Python / CMake / C++.
+Entrada: Fuentes oficiales fijadas, Clang ELF, NMake y tipos C de musl sin numeros de syscall Linux.
+Salida: 282 objetos ELF64 y bibliotecas estaticas; no ejecutable ni SBEF.
+Depende de: Dependencias reales del motor nativo (codigo).
+Aceptacion: Build completo de Core, fuentes intactas validadas por SHA256/revision y un include de streams omitido explicitamente en copia de build.
+Pendiente: Se conserva como etapa de bibliotecas; ejecutable y runtime nativos se comprueban en rmlui-native-application.
+
+## tools/desktop/rmlui/native/audit.py
+
+Valida archivos ELF de destino, enlaza de verdad las bibliotecas y expone servicios pendientes sin aceptar un relocatable como programa.
+
+Estado: HOST. Anillo: host. Lenguaje: Python / LLVM.
+Entrada: RmlUi Core, FreeType y libc++ con libc++abi incorporada, compilados para x86-64.
+Salida: native-results.json, unresolved.txt y evidencia de rechazo SBEF del ET_REL.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: 282 miembros ELF64 maquina 62; 70 simbolos pendientes inventariados; rechazo ELF-HEADER/e_type; tests rechazan COFF, otra CPU y archivos alterados.
+Pendiente: Inventario de bibliotecas aisladas; el ejecutable nuevo resuelve sus servicios C. Conservar las comprobaciones al ampliar el perfil.
+
+## tools/desktop/rmlui/native/services.c
+
+Payload Ring 3 compilado y admitido por HOST: une calculo musl sin servicios Linux, heap de 4 MiB y familia new/delete al perfil nativo de un cliente.
+
+Estado: QEMU. Anillo: 3. Lenguaje: C / C++.
+Entrada: Solicitudes de memoria, formato/numeros y recursos del Core RmlUi/FreeType.
+Salida: Asignaciones con propiedad y alineacion, log de fallos y denegacion explicita de disco/entorno.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: ELF sin simbolos pendientes; pruebas de alineacion, calloc, overflow, realloc fallido y disco denegado; pico de heap 3028176 bytes.
+Pendiente: Recuperacion de proceso y medicion prolongada; no runtime POSIX general ni seguridad DMA/USB probada por esta interfaz.
+
+## tools/desktop/rmlui/native/guest.cpp
+
+Payload de escritorio Ring 3 construido por HOST desde C++/Rust/ULTRA-J: carga RML/RCSS/fuentes, dibuja en CPU y ejecuta UJBC con recursos acotados.
+
+Estado: QEMU. Anillo: 3. Lenguaje: C++ / Rust / ULTRA-J.
+Entrada: SBEF del perfil rmlui-native-v1, cuatro recursos inmutables y eventos PS2/Enter.
+Salida: Visor independiente o candidato DIRECTOR de un panel; superficie XRGB 1280x800, acciones UJBC nativas y presentacion GOP entera.
+Depende de: Motor RmlUi compilado para x86-64 (codigo), Runtime acotado de la interfaz nativa (codigo), Dibujo CPU Rust para RmlUi (codigo), ULTRA-J: compilador inicial (codigo), Politica Rust del escritorio nativo (codigo), Informes USB al escritorio nativo (codigo).
+Aceptacion: CPL3, Enter/clic y pixeles iguales a HOST; candidato FAT32 prueba espacios, Super+Q y reapertura sin terminar la base. Evidencia Ultra-J/evidence/rmlui-desktop-fat32.json.
+Pendiente: Migrar CABINA/DOOM y multiples aplicaciones; reloj/animacion, descarga de procesos y USB HID en METAL.
+
+## tools/boot/rmlui_native_capture.py
+
+Observa estados, memoria, framebuffer, acciones y cierre del motor real sin simular servicios del invitado.
+
+Estado: QEMU. Anillo: host. Lenguaje: Python / QMP.
+Entrada: QEMU con SBEF nativo, perfil de sesion explicito y simbolos verificados.
+Salida: Informe QEMU, capturas y comparacion HOST de todos los pixeles; rechazo W+X y huella para visor.
+Depende de: Interfaz RmlUi y ULTRA-J nativa (codigo), Dependencias reales del motor nativo (codigo).
+Aceptacion: SBEF y pixeles nativos comprobados, rechazo W+X antes de copia; perfiles USB separados prueban entrada sin su alternativa PS2 y comprueban reserva DMA/mapeos supervisores.
+Pendiente: Pruebas prolongadas, fallos recuperables y motor permanente en hardware fisico.
+
+## userspace/services/desktop/src/native_policy.rs
+
+Adapta DIRECTOR existente a foco, cuatro espacios y nueve posiciones de ventana sin compartir el framebuffer mutable.
+
+Estado: QEMU. Anillo: 3. Lenguaje: Rust.
+Entrada: Scancodes Set1 y eventos de apertura.
+Salida: Identidad, foco y espacio de los paneles ULTRA-J y MSVC en el escritorio; Super+Espacio abre ULTRA-J y F3 abre MSVC en el perfil opcional.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: QEMU comprueba foco, cambio de espacio, Super+Q y bloqueos desde el teclado USB, y verifica los pixeles del panel compilado con MSVC.
+Pendiente: Aplicaciones en procesos separados, descarga de recursos por proceso, distribucion de teclado y verificacion USB fisica.
+
+## tools/desktop/rmlui/native/media.py
+
+Construye el perfil de escritorio FAT32 y las variantes xHCI de teclado/raton para QEMU, sin sustituir el candidato fisico.
+
+Estado: QEMU. Anillo: host. Lenguaje: Python / LLVM / CASM / C++ / Rust.
+Entrada: Runs ABI y gato CASM verificados, ELF/SBEF nativo con hashes y selector explicito de perfil USB.
+Salida: EFI e INICIO con SBEF desde FAT32; perfiles QEMU con reserva DMA supervisada, etapa xHCI y reportes.
+Depende de: Interfaz RmlUi y ULTRA-J nativa (codigo), Inspeccion acotada de FAT32 (codigo), Buses, recursos y DMA (codigo), Informes USB al escritorio nativo (codigo).
+Aceptacion: FAT32: GOP 1280x800 y 1024x768, W+X rechazado, BOOTLOG/SBEF releidos. USB: teclado y raton en perfiles separados, W+X rechazado, limites de imagen comprobados y deploy.ps1 rechaza perfiles solo-QEMU.
+Pendiente: Arranque fisico del candidato y backend USB AMD completo; la supervision DMA no acredita IOMMU ni aislamiento de dispositivos hostiles.
+
+## tools/boot/fat32_read.py
+
+Lee la primera particion GPT/FAT32 de imagenes de prueba sin modificarlas.
+
+Estado: HOST. Anillo: host. Lenguaje: Python.
+Entrada: Imagen con sectores de 512 bytes, dos FAT y rutas 8.3.
+Salida: Bytes del archivo con geometria, limites, espejos y cadenas comprobados.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: Cuatro tests de cadenas fragmentadas, limites, ciclos y discrepancias entre FAT.
+Pendiente: No es reparador de discos ni controlador de almacenamiento del invitado.
+
+## tools/desktop/rmlui/native/deploy.ps1
+
+Copia exclusivamente el candidato QEMU aprobado al volumen FAT32 A: y verifica hashes.
+
+Estado: HOST. Anillo: host. Lenguaje: PowerShell.
+Entrada: Manifiesto aprobado y volumen existente; no formatea ni cambia NVRAM.
+Salida: EFI/BMO-X2/DESKTOP.EFI y BMO-X2/DESKTOP con recibo DEPLOY.JSON.
+Depende de: Builder UEFI y perfiles xHCI del escritorio (codigo).
+Aceptacion: METAL: propietario confirma UI nativa en GOP 1920x1080 con foto y BOOTLOG; Reports/rmlui-desktop-metal-20261116.json. Variante silenciosa nueva: QEMU 2/2 y copia A: verificada.
+Pendiente: Confirmar variante silenciosa en METAL. USB HID aun sin conectar al candidato nativo.
+
+## tools/desktop/rmlui/native/register-desktop.ps1
+
+Registra el candidato validado con un nombre distinto del diagnostico anterior.
+
+Estado: HOST. Anillo: host. Lenguaje: PowerShell.
+Entrada: Volumen A: FAT32, recibo DEPLOY.JSON y hashes de los tres archivos activos.
+Salida: Entrada BMO-X2 Desktop (RmlUi) apunta al candidato; entrada antigua BMO-X2 retirada por pedido del propietario.
+Depende de: Candidato separado en FAT32 fisico (codigo).
+Aceptacion: Registro y reuso idempotente verificados en esta maquina; apunta a EFI/BMO-X2/DESKTOP.EFI. No reinicia ni selecciona el siguiente arranque.
+Pendiente: USB HID pendiente. Cada actualizacion del candidato requiere nueva confirmacion fisica.
+
+## userspace/drivers/usb/src/activation.rs
+
+Secuencia configuracion, protocolo por interfaz y endpoints; no supone exito al emitir una peticion.
+
+Estado: HOST. Anillo: 3. Lenguaje: Rust.
+Entrada: Descriptores validados, velocidad USB2, slot y generacion del propietario, reloj monotono y terminaciones cotejadas por transporte.
+Salida: Peticiones acotadas y estado Ready solo tras todas las confirmaciones; fallos y expiracion bloquean sin reciclar DMA.
+Depende de: Contexto interrupt IN USB2 (codigo).
+Aceptacion: 22 tests USB HOST; rechazo de propietario/secuencia/fase obsoletos, STALL, residual, expiracion y plazos invalidos. Build no_std x86_64.
+Pendiente: Conexion real al transporte xHCI del escritorio; sin evidencia de USB HID en METAL.
+
+## userspace/drivers/usb/src/xhci.rs
+
+Calcula DCI e intervalo de cada endpoint descubierto, sin asumir endpoint 0x81.
+
+Estado: HOST. Anillo: 3. Lenguaje: Rust.
+Entrada: Interfaz HID boot y velocidad low/full/high; perfil de hasta 64 bytes.
+Salida: Campos xHCI con puntero dequeue cero, que solo el transporte autorizado puede completar.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: Pruebas de endpoint 15, mascara de contexto, intervalos FS/LS 1..255 y HS 1..16; rechazo de direccion, tamano e intervalo invalidos.
+Pendiente: Envio mediante transporte de propietario con anillo DMA reservado y terminacion de Configure Endpoint.
+
+## userspace/drivers/usb/src/completion.rs
+
+Coteja eventos copiados antes de avanzar Activation o publicar un informe en InputService.
+
+Estado: HOST. Anillo: 3. Lenguaje: Rust.
+Entrada: Evento coherente, ciclo consumidor, TRB esperado, slot, endpoint y fuente local vigente.
+Salida: Activacion confirmada o informe unico; conserva el ticket ante presion de cola y deja eventos ajenos a su propietario.
+Depende de: Activacion HID con confirmacion (codigo).
+Aceptacion: 27 tests HOST y build no_std: ciclo, pointer, slot, endpoint, tipo, ED, activacion previa, doble entrega y fuente retirada.
+Pendiente: Lector del anillo real, ERDP, envio de comandos y DMA autorizado del escritorio nativo; sin USB fisico acreditado.
+
+## tools/desktop/rmlui/native/retire-legacy.ps1
+
+Archiva con hash y retira exactamente los cuatro archivos del BMO-X2 anterior desregistrado.
+
+Estado: HOST. Anillo: host. Lenguaje: PowerShell.
+Entrada: Entrada nueva presente, manifiesto activo y cuatro rutas antiguas exactas.
+Salida: Solo perfil nuevo en BMO-X2; archivo historico dentro del proyecto; Linux/ULTRA y otros EFI fuera de la lista.
+Depende de: Candidato separado en FAT32 fisico (codigo).
+Aceptacion: Cuatro archivos archivados y retirados; tres archivos activos conservan hash. Reports/fat32-retired-legacy.json.
+Pendiente: No es limpieza general de discos ni de builds; no cambia firmware ni particiones.
+
+## tools/desktop/rmlui/native/usb_input.rs
+
+Payload Ring 3 compilado y admitido por HOST: recibe informes escalares mediados y entrega cambios de teclado o raton a RmlUi/DIRECTOR mediante InputService.
+
+Estado: QEMU. Anillo: 3. Lenguaje: Rust / ABI C.
+Entrada: Teclado boot y descriptor HID del raton en modo Report, con longitud por transferencia xHCI.
+Salida: Scancodes, ejes y rueda relativos, y transiciones de los tres botones aun con ID HID separados. Ring 3 recorta al escritorio y calcula el byte de LED del teclado.
+Depende de: USB HID de Ring 3 (codigo), xHCI USB2 con dos dispositivos (codigo).
+Aceptacion: CPL3: Enter, espacios, Super+Q/reapertura via USB teclado; movimiento, resaltado sin raster, clic primario, transiciones derecha/central y rueda via USB raton.
+Pendiente: Confirmar el descriptor y comportamiento del raton fisico. Los campos usados deben estar dentro de los primeros ocho bytes.
+
+## kernel/drivers/bus/native/controller.inc
+
+Sonda ASM transitoria de Ring 0: descubre bancos MMIO, configura dos slots y entrega informes HID mediados al escritorio; no reemplaza la implementacion estable CASM.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: Controlador xHCI admitido, dos puertos directos USB2 y reserva UEFI supervisora.
+Salida: Informes escalares para Ring 3, puntero visible desde el primer cuadro y diagnostico de identidad, transferencia o puerto.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: QEMU verifica teclado y raton simultaneos, rechazo W+X, puertos vacios y parada con revocacion PCI/MMIO.
+Pendiente: Prueba AMD del 17-11: USB ON, fase 199, CC 13 y puntero en movimiento con latencia. Falta medir respuesta fisica del puntero tras reducir el redibujado.
+
+## kernel/drivers/bus/native/gop_cursor.inc
+
+Sonda ASM transitoria de Ring 0: copia al GOP una caja de cursor o la franja superior fija por INVOKE 10 en escala 1.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: Superficie XRGB validada de 1280x800, punto de origen y geometria GOP.
+Salida: Hasta 204 pixeles por caja de cursor y 102400 por franja de estado.
+Depende de: xHCI USB2 con dos dispositivos (codigo).
+Aceptacion: QEMU comprueba restauracion del cursor y que los bloqueos actualizan la franja sin cuadro completo.
+Pendiente: Medir latencia fisica y especializar la copia en otras escalas GOP.
 
 ## CASM
 
@@ -1443,4 +1630,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-128 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+146 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

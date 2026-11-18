@@ -34,31 +34,26 @@ ni de un cargador generico. [Informe QEMU](Reports/host-msvc-qemu.json) |
 
 ### Que falta para ampliar la admision
 
-1. **Fijar el perfil x86-64:** congelar el nivel de instrucciones base y hacer
-   que SBEF declare los requisitos; comprobar CPUID y rechazar instrucciones
-   que el equipo no soporte.
-2. **Completar los lectores y el enlace:** validar relocaciones y secciones
-   necesarias por perfil; crear intake COFF general donde haga falta y no
-   confundir leer PE con enlazar objetos `.obj`.
-3. **Terminar la carga de procesos externos:** mapa de regiones, entrada,
-   pila, BSS, permisos W^X, salida controlada, liberacion y limpieza por
-   proceso dentro de Ring 3, con Ring 0 validando el contrato.
-4. **Definir ABI y puentes:** registrar convenciones Microsoft x64 y SysV,
-   contratos Rust/C/C++ y thunks permitidos. El lenguaje no garantiza que
-   dos binarios compartan ABI.
-5. **Resolver runtimes por partes:** inicio de proceso, libc/CRT, memoria,
-   TLS, excepciones/`unwind`, RTTI y bibliotecas. Si una importacion o servicio
-   no esta implementado, HOST debe identificarlo y rechazarlo.
-6. **Automatizar procedencia y regresion:** producir manifiestos desde el build,
-   registrar versiones/opciones/hashes y mantener casos positivos y negativos
-   por productor, version, formato y runtime en QEMU.
+1. **Cargador externo:** trasladar el validador provisional a CASM; admitir
+   regiones SBEF segun el contrato, preparar pila/BSS, entrar a CPL3 y recuperar
+   todas las paginas en salida o fallo. HOST y CASM deben coincidir en mapa y
+   rechazos bajo QEMU.
+2. **Perfil x86-64:** congelar el nivel de instrucciones base, versionar en
+   SBEF los requisitos ISA y comprobar que CPUID los satisface antes de ejecutar.
+3. **Fixtures por productor:** cerrar muestras freestanding sin imports para
+   MSVC, Clang/LLD, clang-cl/lld-link, GCC y Rust. Registrar automaticamente
+   versiones, opciones y hashes; cada pareja de productor/enlazador necesita
+   evidencia propia, aunque comparta un lector ELF o PE.
+4. **Puentes ABI:** definir el ABI BMO-X2 y probar los puentes Microsoft x64,
+   SysV y `extern "C"` en sus bordes. No asumir que un lenguaje garantiza
+   compatibilidad binaria con otro.
+5. **Runtimes e imports:** incorporar servicios versionados por perfil para
+   inicio, memoria, libc/CRT, TLS, excepciones/`unwind`, RTTI y bibliotecas.
+   Todo import o requisito no soportado debe producir un rechazo identificable.
 
-La siguiente etapa habilitadora es terminar la carga general de procesos
-SBEF externos. Despues se cierra un perfil freestanding y sin imports por
-productor, comparando sus salidas y rechazos; a continuacion se agregan
-runtimes versionados. MSVC, LLVM, GCC y Rust comparten lectores cuando usan
-el mismo formato, pero cada pareja de productor/enlazador debe tener su
-propia evidencia.
+La secuencia y sus criterios viven tambien en la salida estructurada de
+`python -B tools/sbef.py profiles`. Se puede preparar trabajo de puertas
+posteriores, pero no declarar soporte general hasta cerrar las anteriores.
 
 ## Escritorio, entrada y arranque
 
@@ -391,16 +386,16 @@ PCM, volumen y medicion en HOST. La salida virtual y USB quedan pendientes.
    toolchain, mapea sus regiones con permisos y ejecuta la entrada.
    Se prueba una imagen admitida y los rechazos comparados con el lector HOST.
 2. **HOST multi-productor x86-64.** Congelar el nivel ISA, crear fixtures
-   freestanding y sin imports para MSVC, LLVM/Clang, GCC y Rust, y registrar
-   versiones, opciones y hashes desde el build. Despues ampliar imports y
-   runtimes de forma versionada, con rechazos explicitos.
+   freestanding y sin imports para MSVC, Clang/LLD, clang-cl/lld-link, GCC y
+   Rust; registrar versiones, opciones y hashes desde el build. Definir y probar
+   los puentes ABI antes de ampliar imports y runtimes de forma versionada.
 3. **Escritorio Rust en Ring 3.** QEMU ya prueba la sesion interactiva con
    composicion por CPU, teclado y espacios en el perfil de ensayo.
    Queda integrarla con el cargador CASM propio y recuperar sus recursos
    al cerrar el proceso.
-4. **Ciclo de vida y ABI.** WAIT debe bloquear y despertar por senal o
+4. **Ciclo de vida y espera.** WAIT debe bloquear y despertar por senal o
    plazo. Se prueba reutilizar marcos en un segundo proceso antes de
-   fijar el ABI. SMP y DMA requieren confirmacion de revocacion antes
+   congelar el ABI de proceso. SMP y DMA requieren confirmacion de revocacion antes
    de reutilizar memoria compartida.
 5. **Arranque fisico de prueba.** El primer hito es entrar en Ring 0
    desde el EFI separado en el volumen A: y registrar una parada controlada.

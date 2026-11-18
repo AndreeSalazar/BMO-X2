@@ -3,7 +3,12 @@
 - Trabajar en este arbol. Modificar otros proyectos solo por pedido explicito
   del propietario. La mejora conjunta de CASM y SUPER GRAFO fue solicitada;
   BMO, Linux Reconstruido y TALK-CPU-x86-64 siguen separados.
-- Destino exclusivo x86-64. CASM para Ring 0; Rust para Ring 3.
+- Destino exclusivo x86-64. CASM es la implementacion estable de Ring 0; Rust es el runtime principal
+  de Ring 3. Payloads de otros lenguajes solo entran mediante perfil HOST/SBEF
+  y ABI declarado; el lenguaje nunca concede privilegios por si mismo.
+- Un include ASM x86-64 bajo kernel/drivers/ requiere marca
+  ring0_platform_probe: true y evidencia; solo vale como sonda transitoria,
+  no como implementacion CASM terminada.
 - Carpetas nuevas en ingles. Tres ramas principales: `CASM/`, `kernel/` y
   `userspace/`; el codigo especifico de CPU vive en `kernel/arch/x86_64/`.
 - Backlog de mecanismos pendientes en `docs/RING0-PLAN.md`; no crear carpetas

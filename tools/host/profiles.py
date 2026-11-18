@@ -189,6 +189,85 @@ PROFILES = [
     },
 ]
 
+ADMISSION_POLICY = [
+    {
+        'Order': 1,
+        'Id': 'external-sbef-process-loader',
+        'Name': 'Cargador general de procesos SBEF externos',
+        'State': 'partial',
+        'CurrentLimit': 'La sonda QEMU acepta layouts fijos de una a tres regiones; falta integracion CASM, mapeo general y ciclo de vida por proceso.',
+        'ExitCriteria': [
+            'Ring 0 CASM recibe el SBEF externo y vuelve a validar cabecera, ABI, arquitectura, regiones, rangos, entrada y W^X antes de mapear.',
+            'Carga los layouts SBEF admitidos de una a ocho regiones, inicializa BSS y pila, y entra a CPL3 con permisos efectivos.',
+            'Salida y fallos revocan y limpian todas las paginas del proceso sin dejar mappings activos.',
+            'QEMU prueba fixtures validos y mutaciones rechazadas; HOST y CASM coinciden en mapa, motivo y offset.',
+        ],
+    },
+    {
+        'Order': 2,
+        'Id': 'x86-64-baseline-in-sbef',
+        'Name': 'Perfil ISA x86-64 congelado y declarado en SBEF',
+        'State': 'pending',
+        'CurrentLimit': 'x86-64-v1 es candidata y no esta congelada; SBEF actual no declara requisitos de instrucciones.',
+        'ExitCriteria': [
+            'Publicar el conjunto base de instrucciones y el esquema/version de requisitos SBEF.',
+            'HOST verifica el perfil del binario y el NANO-CORE comprueba las capacidades CPU necesarias antes de ejecutar.',
+            'QEMU y fixtures prueban admision en CPU compatible y rechazo determinista cuando falta una capacidad.',
+        ],
+    },
+    {
+        'Order': 3,
+        'Id': 'freestanding-producer-fixtures',
+        'Name': 'Fixtures freestanding por productor x86-64',
+        'State': 'partial',
+        'CurrentLimit': 'Hay recorridos concretos para MSVC, GCC y Rust, y lectores comunes ELF/PE; faltan fixtures y matriz propia para algunas parejas productor/enlazador.',
+        'Producers': [
+            'MSVC cl.exe + link.exe -> PE32+ / COFF x64',
+            'LLVM Clang + LLD -> ELF64 estatico',
+            'LLVM clang-cl + lld-link -> PE32+ / COFF x64',
+            'GCC + enlazador ELF -> ELF64 estatico',
+            'rustc freestanding -> ELF64 estatico',
+        ],
+        'ExitCriteria': [
+            'Cada pareja tiene fuente minima sin imports, target, versiones, opciones y hashes de entrada/salida registrados automaticamente.',
+            'HOST produce SBEF verificable y se ejecuta por el cargador general en QEMU; el caso no soportado produce diagnostico estable.',
+            'La evidencia identifica productor y enlazador por separado de lo que HOST puede inferir del formato.',
+        ],
+    },
+    {
+        'Order': 4,
+        'Id': 'bmo-abi-bridges',
+        'Name': 'Puentes ABI hacia el ABI BMO-X2',
+        'State': 'partial',
+        'CurrentLimit': 'Existe un portal MSVC Win64 para fixtures; no hay una matriz congelada de puentes y reglas por productor.',
+        'ExitCriteria': [
+            'Especificar el ABI BMO-X2 y los bordes permitidos para Microsoft x64, SysV x86-64 y Rust/C/C++.',
+            'Rust cruza la frontera por ABI BMO-X2 versionado o extern C; no se admite asumir estabilidad del ABI Rust nativo.',
+            'Implementar thunks explicitos; no inferir que dos objetos comparten convencion por usar el mismo lenguaje o ISA.',
+            'QEMU comprueba argumentos, retorno, alineacion de pila, registros preservados y errores para cada puente publicado.',
+        ],
+    },
+    {
+        'Order': 5,
+        'Id': 'versioned-runtimes-and-imports',
+        'Name': 'Runtimes e imports versionados',
+        'State': 'partial',
+        'CurrentLimit': 'Solo servicios seleccionados para fixtures; UCRT, VCRuntime, Win32 general, TLS, excepciones y DLL generales no estan completos.',
+        'ExitCriteria': [
+            'Cada import se resuelve contra un servicio versionado con contrato de memoria, error y capacidad.',
+            'Agregar CRT, startup, TLS, unwind, excepciones, RTTI y bibliotecas por perfil; no sustituir funciones ausentes por stubs silenciosos.',
+            'Imports, formatos, runtimes e instrucciones no admitidos se rechazan con codigo, campo, offset y productor/perfil.',
+            'Cada ampliacion tiene casos positivos y negativos en QEMU y mide tamano, memoria y coste de ejecucion.',
+        ],
+    },
+]
+
+ADMISSION_ADVANCE_RULE = (
+    'El orden de las puertas define el cierre de compatibilidad. Se puede preparar trabajo de etapas futuras, '
+    'pero no declarar un productor general ni un runtime admitido hasta cumplir y registrar los criterios '
+    'de todas las puertas anteriores. Una lectura de formato o un fixture no acredita ejecucion general.'
+)
+
 
 def profile_report():
     """Return the current x86-64 HOST layer and producer matrix."""
@@ -196,6 +275,9 @@ def profile_report():
         'Schema': 1,
         'Target': HOST_TARGET,
         'InstructionSetPolicy': ISA_POLICY,
+        'AdmissionPolicyVersion': 1,
+        'AdmissionAdvanceRule': ADMISSION_ADVANCE_RULE,
+        'AdmissionPolicy': ADMISSION_POLICY,
         'CapabilityCatalog': CAPABILITY_CATALOG,
         'ProducerIdentityRule': 'El intake MSVC acepta un manifiesto para PE32+ ligado al hash; la declaracion no prueba que esas herramientas hayan generado el archivo.',
         'StatusLegend': {
