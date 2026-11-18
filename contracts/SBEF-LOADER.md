@@ -31,6 +31,8 @@ de pagina y total que debe quedar a cero, codigo de permisos y la
 region/desplazamiento de entrada. La pila queda como asignacion separada
 por proceso, sin fijar aun su tamano. Este resultado sirve para comparar
 la futura admision CASM; no reserva memoria ni cuenta como carga en Ring 0.
+El staging del escritorio conserva la salida como `desktop-load-plan.json`
+y la incluye en `qemu-results.json` junto al presupuesto del caso.
 
 `ZeroFillBytes` cubre desde el fin de los bytes del archivo hasta el fin
 de las paginas mapeadas; incluye `BssBytes` y `PageTailBytes`. El mapa

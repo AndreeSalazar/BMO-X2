@@ -10,30 +10,31 @@ import sys
 import uuid
 
 from doom_fixture import desktop_gate_budget, make_packet, prepend_intro
-from host.sbef.format import inspect
+from host.sbef.format import load_plan
 from scope import ROOT, workspace
 from stage_bmo_x2 import bridge_variant
 from wake import SPLASH_PROFILE, check, sha
 
 
 def desktop_budget(image):
-    report = inspect(image)
+    plan = load_plan(image)
     layout = (
         ('0x40000000', 'RX', 8192),
         ('0x40003000', 'R', 4096),
         ('0x40004000', 'RW', 4096),
     )
-    regions = report['Regions']
-    if report['AbiVersion'] != 1 or len(image) > 16512 or len(regions) != len(layout):
+    regions = plan['Regions']
+    if plan['AbiVersion'] != 1 or len(image) > 16512 or len(regions) != len(layout):
         raise ValueError('El escritorio requiere SBEF ABI 1 y tres regiones de hasta 16512 bytes en archivo')
     for region, (address, permissions, limit) in zip(regions, layout, strict=True):
-        if (region['Address'], region['Permissions']) != (address, permissions) or region['MappedBytes'] > limit:
+        if (f"0x{region['VirtualStart']:X}", region['Permissions']) != (address, permissions) or region['MappedBytes'] > limit:
             raise ValueError(f'La region de escritorio en {address} excede el perfil {permissions} de {limit} bytes')
         if permissions in ('RX', 'R') and not region['FileBytes']:
             raise ValueError(f'La region de escritorio en {address} requiere bytes de archivo')
-    return dict(file_bytes=len(image), file_limit_bytes=16512,
-                region_pages_bytes=sum(region['MappedBytes'] for region in regions),
-                region_pages_limit_bytes=16384, stack_bytes=4096)
+    budget = dict(file_bytes=len(image), file_limit_bytes=16512,
+                  region_pages_bytes=sum(region['MappedBytes'] for region in regions),
+                  region_pages_limit_bytes=16384, stack_bytes=4096)
+    return budget, plan
 
 
 def main():
@@ -98,15 +99,17 @@ def main():
     if args.reports_desktop and args.reports_desktop.resolve() != (ROOT / 'build/desktop/desktop-reports.sbef').resolve():
         parser.error('--reports-desktop requiere el resultado local de -Reports')
     sbef = (args.reports_desktop or args.usb_desktop or args.ultra_j_view or args.sheet_desktop or desktop / 'desktop.sbef').read_bytes()
-    budget = desktop_budget(sbef)
+    budget, load_plan = desktop_budget(sbef)
     action = args.ultra_j_action.read_bytes() if args.ultra_j_action else b''
     if args.ultra_j_action:
         if not 9 <= len(action) <= 512:
             parser.error('ACTION.UJB debe ocupar de 9 a 512 bytes')
-        if inspect(sbef)['Regions'][1]['MemoryBytes'] > 3576:
+        if load_plan['Regions'][1]['MemoryBytes'] > 3576:
             parser.error('La vista ULTRA-J debe dejar 520 bytes de su pagina para ACTION.UJB')
     run = abi.parent / f'run-desktop-media-{uuid.uuid4().hex[:12]}'
     run.mkdir()
+    plan_path = run / 'desktop-load-plan.json'
+    plan_path.write_text(json.dumps(load_plan, indent=2) + '\n', encoding='ascii', newline='\n')
     scripts = Path(__file__).resolve().parent
     llvm = Path(os.environ['ProgramFiles']) / 'LLVM/bin'
     kernel = ROOT / 'kernel'
@@ -276,7 +279,9 @@ def main():
                   disk_image_bytes=(run / 'build/puente-normal.img').stat().st_size,
                   desktop_reuse_probe=args.reuse_session,
                   ring0_gate_budget=gate_budget,
-                  desktop_budget=budget, boot_packet_bytes=len(packet), uefi_bridge_bytes=len(image),
+                  desktop_budget=budget, sbef_load_plan=load_plan,
+                  sbef_load_plan_sha256=sha(plan_path),
+                  boot_packet_bytes=len(packet), uefi_bridge_bytes=len(image),
                   files={name: sha(media / name) for name in files})
     (run / 'qemu-run.json').write_text(json.dumps(dict(cpu=args.cpu, ram_mib=args.ram_mib)) + '\n', encoding='ascii')
     (run / 'qemu-results.json').write_text(json.dumps(report, indent=2) + '\n', encoding='ascii')
