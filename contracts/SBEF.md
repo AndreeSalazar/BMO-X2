@@ -61,6 +61,11 @@ imagenes externas y el bloqueo de WAIT siguen pendientes.
 - Extensiones de fabricante y requisitos no representados por los cuatro
   niveles se rechazan o quedan fuera del perfil; no se infieren del nombre
   x86-64.
+- La direccion futura del HOST puede compartir adaptadores y una IR BMO
+  validada, pero cada ISA necesitara su propio backend, ABI y contrato de
+  paquete. Esta version de SBEF mantiene arquitectura 62 y no admite POWER.
+  La IR no equivale a traducir automaticamente un ELF/PE x86-64 ya enlazado;
+  el cambio de ISA requiere fuente/IR compatible o un traductor binario aparte.
 - La primera imagen de prueba sera estatica y minima. Las relocaciones,
   los anexos y las dependencias que se admitan se deciden segun el primer
   programa real que los necesite.

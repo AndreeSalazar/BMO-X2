@@ -33,7 +33,35 @@ formato, pero aun necesita su propio build registrado y comparacion de salida
 antes de declararse productor certificado. GCC y Rust tambien comparten el
 lector ELF; sus pruebas concretas no implican compatibilidad con todos sus
 programas o bibliotecas. BMO-X2 conserva destino x86-64; otras arquitecturas
-requieren otro proyecto y backend, no una carpeta vacia aqui.
+requieren un backend, ABI, contrato SBEF y NANO-CORE propios. Se podran
+reutilizar capas neutrales del HOST y la IR BMO cuando su semantica sea
+comun; este proyecto sigue limitado a x86-64.
+
+## Modelo futuro de HOST por ISA
+
+La direccion de crecimiento es compartir adaptadores de productores y una
+IR BMO versionada, despues de normalizar y validar la semantica admitida.
+Desde ahi se separan backends por ISA. Cada backend selecciona instrucciones,
+convencion de llamadas, relocaciones y requisitos que puede sostener, y emite
+el paquete definido para su destino:
+
+```text
+productores -> adaptadores -> IR BMO -> backend x86-64 -> SBEF x86-64 -> NANO-CORE x86
+                             \-------> backend POWER  -> SBEF POWER  -> NANO-CORE POWER
+```
+
+Los perfiles `x86-64-v1` a `v4` describen capacidades de x86-64; no son una
+IR ni describen POWER. Una funcion de compilador que
+requiera una instruccion o semantica no disponible en el destino debe
+traducirse de forma definida o rechazarse con un diagnóstico concreto. La IR
+comun no promete que todo programa pueda compilar a todas las ISA.
+
+Un PE/ELF ya enlazado contiene codigo maquina para una ISA concreta. El
+empaquetador actual puede validar y admitir los casos x86-64 que entiende,
+pero no los convierte a POWER. El camino normal a otra ISA requiere fuente o
+IR del productor. Traducir un binario x86 existente requeriria un componente
+separado para desensamblar, recuperar su flujo de operaciones y traducirlo;
+no forma parte del HOST actual.
 
 ## Direccion: MSVC hacia BMO-X2 x86-64
 

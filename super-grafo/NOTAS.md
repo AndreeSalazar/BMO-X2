@@ -1005,14 +1005,14 @@ Pendiente: Automatizar la procedencia, importar COFF .obj y definir enlace propi
 
 ## tools/host/profiles.py
 
-Registra productores, formatos, reglas PE/ELF y destino exclusivamente x86-64; declara x86-64-v1 como base y niveles SBEF v2 v1-v4 sin prometer traduccion a otras CPU.
+Registra productores, formatos, reglas PE/ELF y destino actual exclusivamente x86-64; declara x86-64-v1 como base y niveles SBEF v2 v1-v4. Documenta IR BMO futura con backends, paquetes, ABI y NANO-CORE separados por ISA; no traduce codigo maquina entre CPU.
 
 Estado: HOST. Anillo: host. Lenguaje: Python.
 Entrada: Perfiles de MSVC, LLVM/Clang, GCC y Rust; manifiesto opcional ligado al hash PE.
 Salida: Matriz y catalogo de capacidades consultables con `python -B tools/sbef.py profiles`, politica ISA y estado de procedencia.
 Depende de: Empaquetador ELF64 a SBEF (codigo), Lector SBEF de referencia (codigo), Inspeccion PE32+ x86-64 (codigo).
 Aceptacion: profiles exporta CapabilityCatalog, politica ISA y niveles acumulativos. SBEF v2 escribe el ID ISA en offset 24; v1 heredado implica x86-64-v1; los IDs desconocidos se rechazan.
-Pendiente: La etiqueta SBEF no verifica los opcodes. Falta compilar y validar en QEMU las sondas LLVM, ligar opciones de productor y fixtures a cada nivel, cerrar el chequeo general CASM tras la puerta 1, generar procedencia automaticamente, admitir objetos COFF, certificar clang-cl/lld-link y ejecutar SBEF externo en Ring 3.
+Pendiente: La etiqueta SBEF no verifica los opcodes. Falta compilar y validar en QEMU las sondas LLVM, ligar opciones de productor y fixtures a cada nivel, cerrar el chequeo general CASM tras la puerta 1, generar procedencia automaticamente, admitir objetos COFF, certificar clang-cl/lld-link y ejecutar SBEF externo en Ring 3. Una IR BMO compartida y backends para otras ISA quedan para una etapa/proyecto futuro.
 
 ## tools/host/importers/elf.py
 

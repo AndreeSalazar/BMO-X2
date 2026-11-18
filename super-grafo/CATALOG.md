@@ -95,7 +95,7 @@
 | [Tablas propias y alias de datos](../kernel/mm/virtual/main.casm) | qemu | 0 | Instala CR3 propio y separa el mapa supervisor de un alias de usuario. |
 | [Fallo de proteccion desde CPL3](../kernel/mm/user/main.casm) | qemu | 0 | Ejecuta un programa fijo en CPL3 y captura el acceso prohibido en Ring 0. |
 | [HOST: del ejecutable a SBEF](../tools/host) | host | host | Coordina la inspeccion, admision, diagnostico y publicacion de ejecutables x86-64. |
-| [Perfiles y capas del HOST x86-64](../tools/host/profiles.py) | host | host | Registra productores, formatos, reglas PE/ELF y destino exclusivamente x86-64; declara x86-64-v1 como base y niveles SBEF v2 v1-v4 sin prometer traduccion a otras CPU. |
+| [Perfiles y capas del HOST x86-64](../tools/host/profiles.py) | host | host | Registra productores, formatos, reglas PE/ELF y destino actual exclusivamente x86-64; declara x86-64-v1 como base y niveles SBEF v2 v1-v4. Documenta IR BMO futura con backends, paquetes, ABI y NANO-CORE separados por ISA; no traduce codigo maquina entre CPU. |
 | [Empaquetador ELF64 a SBEF](../tools/host/importers/elf.py) | host | host | Convierte segmentos de un ELF64 estatico a regiones SBEF comprobadas. |
 | [Lector SBEF de referencia](../tools/host/sbef/format.py) | host | host | Valida la imagen SBEF y localiza el campo rechazado. |
 | [Inspeccion PE32+ x86-64](../tools/host/importers/pe.py) | qemu | host | Inspecciona PE32+ independientemente del productor, aplica relocaciones DIR64 internas y admite perfiles SBEF fijos o freestanding limitados. |
