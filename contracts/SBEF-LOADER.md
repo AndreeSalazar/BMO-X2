@@ -47,13 +47,24 @@ las variantes con una o dos regiones. Valida toda la tabla antes
 de copiar y deja a cero los bytes posteriores al contenido.
 El verificador de captura de QEMU usa `load_plan` como referencia y
 coteja la tabla completa de 512 PTE: marcos fisicos, permisos y flags
-(ignorando solo A/D, que actualiza la CPU). Tambien compara todos los
-bytes de paginas mapeadas con el archivo, BSS y cola a cero, verifica
-la pila RW/NX y rechaza entradas PTE adicionales. El perfil de captura
-acepta unicamente RX, RX/R o RX/R/RW en las direcciones y reservas
-actuales. QEMU verifica las escrituras CPL3 en datos y BSS, y el rechazo
-W+X en el offset 116 antes de copiar o activar CR3. Esta comprobacion
-instrumenta la sonda LLVM; no sustituye el cargador CASM general.
+(ignorando solo A/D, que actualiza la CPU). Compara bytes exactos y
+relleno a cero en las regiones inmutables RX y R. Verifica la traduccion,
+marco y permisos de RW, pero no compara su contenido despues de ejecutar:
+el cliente ya pudo cambiar datos inicializados y BSS. Comprueba la pila
+RW/NX y rechaza entradas PTE adicionales. El perfil de captura acepta
+unicamente RX, RX/R o RX/R/RW en las direcciones y reservas actuales.
+
+El run `run-desktop-media-32f9f2682ded` ejecuto en QEMU el SBEF Hoja de
+10 174 bytes desde FAT32 y aprobo el caso normal y el rechazo de W+X
+(offset 116). El cotejo cubrio cuatro paginas SBEF, 10 042 bytes de
+archivo inmutable, 2 246 bytes de relleno inmutable a cero y la PTE de la
+pagina RW; el contenido de esa unica pagina mutable se excluyo de la
+comparacion posterior a la ejecucion. La VM uso 1024 MiB. Es evidencia
+de la sonda y este perfil, no de arranque fisico ni del cargador CASM
+general.
+
+Esta comprobacion instrumenta la sonda LLVM; no sustituye el cargador
+CASM general.
 
 El validador solo reconoce sus perfiles fijos de una a tres regiones;
 no admite aun las direcciones RVA ni las cuatro o mas regiones que puede

@@ -3,6 +3,7 @@
 # R11 is the private page-table reservation, R10 its descriptor page.
 .globl external_sbef
 external_sbef:
+    mov %r15, 0x458(%r10)
 #ifdef DESKTOP_REUSE
 .Lreload_entry:
     lea .Lreload_entry(%rip), %rax
@@ -22,7 +23,7 @@ external_sbef:
     jb reject
     cmp $16512, %rdx
     ja reject
-    cmpl $0x46424553, (%rsi)
+    cmpl $0x46454253, (%rsi)
     jne reject
     cmpw $1, 6(%rsi)
     jne reject
@@ -83,7 +84,8 @@ header:
     cmp $8192, %eax
     ja reject
     cmp $4096, %eax
-    seta %r15b
+    seta %al
+    movb %al, 0x450(%r10)
     mov 16(%rsi), %r12
     mov %r12, %rax
     sub $0x40000000, %rax
@@ -163,7 +165,7 @@ payload_checked:
     mov %rax, 0x4000(%r11)
 #endif
     # Map the second RX page only when the SBEF memory span needs it.
-    testb %r15b, %r15b
+    cmpb $0, 0x450(%r10)
     jz .Lcode_pages_ready
     # The old stack page becomes the second immutable code page.
     lea 0x6005(%r11), %rax
@@ -239,6 +241,7 @@ rejected_message:
     hlt
 #endif
 exit:
+    mov 0x458(%r10), %r15
 #ifdef DESKTOP_REUSE
     # First load follows the fixture's GDT setup. The next uses the live GDT.
     cmpb $1, 0x3a8(%r10)

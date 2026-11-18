@@ -10,5 +10,5 @@ Admite y mapea una imagen SBEF bajo el contrato del proceso.
 
 - Entrada: Bytes del ejecutable, limites, perfil SBEF y estado de CPU.
 - Salida: Imagen mapeada con entrada y permisos comprobados o motivo de rechazo.
-- Aceptacion: El lector CASM y HOST coinciden en admision, mapa y rechazo. QEMU comprueba el prototipo externo x86-64 ABI 1 en CPL3 para sus layouts admitidos, permisos, copia, cero y rechazo W+X; la captura compara el plan HOST con PTE y marcos reales.
-- Pendiente: La sonda LLVM solo reconoce layouts fijos RX, RX/R y RX/R/RW de una a tres regiones; ampliar el cargador CASM a una-ocho regiones, RVA, mapa dinamico, pila y rollback por proceso. La captura conectada aun requiere evidencia QEMU.
+- Aceptacion: El lector HOST y el prototipo x86-64 ensamblado con LLVM comprueban admision, mapa y rechazo en perfiles fijos. QEMU verifica en CPL3 PTE/marcos/permisos reales, bytes inmutables, rechazo W+X y la region RW mutable; evidencia run-desktop-media-32f9f2682ded.
+- Pendiente: La sonda LLVM solo reconoce layouts fijos RX, RX/R y RX/R/RW de una a tres regiones; ampliar el cargador CASM a una-ocho regiones, RVA, mapa dinamico, pila y rollback por proceso. La evidencia es QEMU y excluye comparar bytes RW tras ejecutar; falta validar el cargador CASM general.

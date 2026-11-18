@@ -434,6 +434,16 @@ y se cotejaron sus huellas. El arranque anterior del gato se conserva
 en `previous-splash` dentro del run. Seleccionar la entrada UEFI BMO-X2
 y pulsar F2 al aparecer el escritorio.
 
+La verificacion del mapeo SBEF ahora coteja el plan HOST con las PTE
+reales despues de que la Hoja ya entro en Ring 3. El run
+`run-desktop-media-32f9f2682ded` aprobo en QEMU la apertura/cierre de la
+Hoja y el rechazo de W+X, usando un SBEF de 10 174 bytes desde FAT32.
+Comprobo cuatro paginas SBEF, permisos y marcos, 10 042 bytes de
+contenido inmutable y 2 246 bytes de relleno inmutable a cero. La pagina
+RW conserva sus permisos comprobados, pero su contenido no se compara
+despues de ejecutar porque el programa ya lo modifica. El run es QEMU;
+no se instalo ni arranco en el disco USB.
+
 El propietario confirmo que el escritorio aparece en el equipo y que
 teclado y raton quedan sin respuesta. El inventario de Windows identifica
 ambos como USB HID y dos controladores AMD xHCI. BMO-X divide ese camino

@@ -780,8 +780,8 @@ Estado: DISENO. Anillo: 0. Lenguaje: CASM.
 Entrada: Bytes del ejecutable, limites, perfil SBEF y estado de CPU.
 Salida: Imagen mapeada con entrada y permisos comprobados o motivo de rechazo.
 Depende de: SBEF y congelacion del ABI (plan), Empaquetador ELF64 a SBEF (verificacion), Lector SBEF de referencia (verificacion), SBEF ABI 1 y llamadas desde CPL3 (verificacion), Contrato minimo del cargador SBEF (plan).
-Aceptacion: CASM y lector HOST coinciden en admision y rechazo. QEMU carga SBEF externo de una a ocho regiones a CPL3, comprueba permisos/BSS y recupera todas las paginas en salida o fallo.
-Pendiente: La sonda LLVM en kernel/loader/external_sbef.S solo cubre layouts fijos de una a tres regiones. Queda trasladar validacion a CASM e integrar mapa, pila, permisos y limpieza al ciclo de vida por proceso.
+Aceptacion: El lector HOST y el prototipo x86-64 ensamblado con LLVM comprueban admision, mapa y rechazo en perfiles fijos. QEMU verifica en CPL3 PTE/marcos/permisos reales, bytes inmutables, rechazo W+X y la region RW mutable; evidencia run-desktop-media-32f9f2682ded.
+Pendiente: La sonda LLVM solo reconoce layouts fijos RX, RX/R y RX/R/RW de una a tres regiones; ampliar el cargador CASM a una-ocho regiones, RVA, mapa dinamico, pila y rollback por proceso. La evidencia es QEMU y excluye comparar bytes RW tras ejecutar; falta validar el cargador CASM general.
 
 ## kernel/drivers/bus
 

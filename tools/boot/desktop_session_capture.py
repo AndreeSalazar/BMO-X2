@@ -94,6 +94,8 @@ def verify_external_mapping(memory, context_address, image):
     mapped_frames = set()
     page_count = 0
     zero_fill_bytes = 0
+    immutable_file_bytes = 0
+    mutable_pages = 0
     physical_mask = 0x000ffffffffff000
     permission_mask = (1 << 63) | 7
     hardware_mutable_mask = 0x60
@@ -130,14 +132,22 @@ def verify_external_mapping(memory, context_address, image):
                 raise ValueError(f'Flags PTE inesperados respecto al plan HOST en VA 0x{virtual:X}')
             mapped_slots.add(slot)
             mapped_frames.add(physical)
-            actual_region.extend(memory(physical, 4096, f'external-region-{region["Index"]}-page-{page}'))
+            if not region['Writable']:
+                actual_region.extend(memory(physical, 4096, f'external-region-{region["Index"]}-page-{page}'))
 
-        expected_bytes = image[region['FileOffset']:region['FileEnd']]
-        expected_bytes = expected_bytes.ljust(region['MappedBytes'], b'\0')
-        if bytes(actual_region) != expected_bytes:
-            raise ValueError(f'Contenido, BSS o cola de pagina distinto del plan HOST en region {region["Index"]}')
+        if region['Writable']:
+            # The guest has run by this checkpoint; Ring 3 may have changed
+            # initialized data and BSS. Its PTE/frame are verified above, but
+            # comparing its current bytes with the load-time image is invalid.
+            mutable_pages += region['PageCount']
+        else:
+            expected_bytes = image[region['FileOffset']:region['FileEnd']]
+            expected_bytes = expected_bytes.ljust(region['MappedBytes'], b'\0')
+            if bytes(actual_region) != expected_bytes:
+                raise ValueError(f'Contenido o cola inmutable distinto del plan HOST en region {region["Index"]}')
+            immutable_file_bytes += region['FileBytes']
+            zero_fill_bytes += region['ZeroFillBytes']
         page_count += region['PageCount']
-        zero_fill_bytes += region['ZeroFillBytes']
 
     stack = page_table[2]
     expected_stack = (context_address + 0x1b000) | (1 << 63) | 7
@@ -151,6 +161,8 @@ def verify_external_mapping(memory, context_address, image):
         SbefMappingPlanVerified=True,
         SbefMappedPagesVerified=page_count,
         SbefZeroFillBytesVerified=zero_fill_bytes,
+        SbefImmutableFileBytesVerified=immutable_file_bytes,
+        SbefWritablePagesContentSkipped=mutable_pages,
     )
 
 
@@ -191,13 +203,11 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
 
     address, context, code = wait_until(started)
     map_evidence = dict(SbefMappingPlanVerified=False, SbefMappedPagesVerified=0,
-                        SbefZeroFillBytesVerified=0)
+                        SbefZeroFillBytesVerified=0, SbefImmutableFileBytesVerified=0,
+                        SbefWritablePagesContentSkipped=0)
     mapping_plan = None
     entries = None
     count = None
-    if external_image is not None:
-        mapping_plan, entries, map_evidence = verify_external_mapping(memory, address, external_image)
-        count = mapping_plan['RegionCount']
     if intro and frames != {1, 2}:
         def through_intro():
             started()
@@ -228,6 +238,12 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     def sleeping():
         regs = registers()
         return 'CPL=0' in regs and 'HLT=1' in regs and code <= register(regs, 'RIP') < code + len(packet)-24
+
+    def verify_mapping():
+        nonlocal mapping_plan, entries, count, map_evidence
+        if external_image is not None and mapping_plan is None:
+            mapping_plan, entries, map_evidence = verify_external_mapping(memory, address, external_image)
+            count = mapping_plan['RegionCount']
 
     def key(*keys):
         command('send-key', {'keys': [{'type': 'qcode', 'data': key} for key in keys],
@@ -263,6 +279,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     if launcher or (desktop_media and (prefix.parent.parent / 'sheet-desktop.txt').is_file()):
         icon_color = 0xa8c5ff if launcher else 0xe7efff
         wait_until(lambda: logical(70, 55, icon_color) and sleeping())
+        verify_mapping()
         if launcher:
             command('screendump', {'filename': str(prefix) + '-launcher-desktop.png', 'format': 'png'})
         for dx, dy in [(-120, -120), (-122, -8)]:
@@ -321,19 +338,22 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
             wait_until(lambda: logical(200, 220, 0xa8c5ff) and sleeping())
             key('esc')
             wait_until(lambda: logical(52, 99, 0xad92ff) and sleeping())
-            return dict(Case='normal', Passed=True, UserCpl=3, UltraJDoubleClickVerified=True,
+            return dict(Case='normal', Passed=True, UserCpl=3, **map_evidence,
+                        UltraJDoubleClickVerified=True,
                         UltraJExternalAction=True, UltraJArenaCleared=True, UltraJCloseVerified=True,
                         SuperQVerified=True, WorkspacePreserved=True, EscapeVerified=True,
                         Framebuffer=dict(Width=width, Height=height, PitchPixels=pitch,
                                          VisibleRowsBytes=pitch * height * 4),
                         IntroFramesObserved=sorted(frames), CpuL1=cache)
-        return dict(Case='normal', Passed=True, UserCpl=3, SheetDoubleClickVerified=True,
+        return dict(Case='normal', Passed=True, UserCpl=3, **map_evidence,
+                    SheetDoubleClickVerified=True,
                     SheetCloseVerified=True, IntroFramesObserved=sorted(frames), CpuL1=cache)
 
     if desktop_media and (prefix.parent.parent / 'ultra-j-view.txt').is_file():
         probes = ((0, 0, 0x10121a), (110, 96, 0x10121a), (130, 110, 0x1b1f2c),
                   (150, 239, 0x293850), (380, 239, 0xa8c5ff))
         wait_until(lambda: all(logical(*probe) for probe in probes) and sleeping())
+        verify_mapping()
         action = (prefix.parent.parent / 'ACTION.UJB').read_bytes()
         assert action not in external_image
         assert memory(address + 0x1cdf8, 520, 'ultra-j-action') == (
@@ -350,7 +370,8 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         key('esc')
         wait_until(lambda: all(logical(*probe) for probe in probes) and sleeping())
         cache, _ = bootlog()
-        return dict(Case='normal', Passed=True, UserCpl=3, UltraJViewVerified=True,
+        return dict(Case='normal', Passed=True, UserCpl=3, **map_evidence,
+                    UltraJViewVerified=True,
                     UltraJButtonAction=True, UltraJArenaCleared=True, UltraJResetVerified=True,
                     UltraJExternalAction=True,
                     IntroFramesObserved=sorted(frames),
@@ -367,6 +388,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     if mouse_probe:
         wait_until(lambda: logical(52, 99, 0x5ad8ff) and sleeping()
                    and memory(address + 0x1a3c8, 1, 'xhci-live') == b'\x01')
+        verify_mapping()
         command('input-send-event', {'events': [
             {'type': 'rel', 'data': {'axis': 'x', 'value': 100}},
         ]})
@@ -387,6 +409,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     elif command_probe:
         wait_until(lambda: memory(address + 0x1a396, 1, 'xhci-armed') == b'\x01')
         wait_until(lambda: logical(52, 99, 0x5ad8ff) and sleeping())
+        verify_mapping()
         key('f2')
         wait_until(lambda: logical(40, 86, 0x40465d)
                    and memory(address + 0x1a3c8, 1, 'xhci-live') == b'\x01')
@@ -400,6 +423,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         command('screendump', {'filename': str(prefix) + '-usb-cabina.png', 'format': 'png'})
     else:
         wait_until(lambda: logical(216, 33, 0x0d0e17) and logical(52, 99, 0x5ad8ff) and sleeping())
+        verify_mapping()
     def input_label(x, tag):
         stride = pitch * 4
         length = 115 * scale * 4
