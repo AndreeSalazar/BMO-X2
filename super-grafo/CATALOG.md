@@ -95,7 +95,7 @@
 | [Tablas propias y alias de datos](../kernel/mm/virtual/main.casm) | qemu | 0 | Instala CR3 propio y separa el mapa supervisor de un alias de usuario. |
 | [Fallo de proteccion desde CPL3](../kernel/mm/user/main.casm) | qemu | 0 | Ejecuta un programa fijo en CPL3 y captura el acceso prohibido en Ring 0. |
 | [HOST: del ejecutable a SBEF](../tools/host) | host | host | Separa productor, formato, admision y evidencia de ejecucion para x86-64. |
-| [Perfiles y capas del HOST x86-64](../tools/host/profiles.py) | host | host | Declara estados y limites de admision y ejecucion sin confundir paquete y ejecucion. |
+| [Perfiles y capas del HOST x86-64](../tools/host/profiles.py) | host | host | Declara politica ISA, procedencia declarada y limites distintos de admision y ejecucion. |
 | [Empaquetador ELF64 a SBEF](../tools/host/importers/elf.py) | host | host | Convierte segmentos de un ELF64 estatico a regiones SBEF comprobadas. |
 | [Lector SBEF de referencia](../tools/host/sbef/format.py) | host | host | Valida la imagen SBEF y localiza el campo rechazado. |
 | [Inspeccion PE32+ x86-64](../tools/host/importers/pe.py) | host | host | Aplica relocaciones DIR64 internas y convierte perfiles PE freestanding limitados a SBEF. |

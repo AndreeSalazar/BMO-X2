@@ -4,6 +4,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$Archivo,
     [switch]$Empaquetar,
+    [string]$Manifiesto,
     [string]$Python
 )
 
@@ -31,6 +32,55 @@ $baseName = [IO.Path]::GetFileNameWithoutExtension($inputFile)
 $safeName = [regex]::Replace($baseName, '[^A-Za-z0-9._-]', '_')
 $reportPath = Join-Path $reportDirectory ($safeName + '-' + $sourceHash.Substring(0, 12) + '.json')
 $cli = Join-Path $projectRoot 'tools/sbef.py'
+$provenanceReport = [ordered]@{
+    Status = 'no-declarado'
+    ToolchainIdentityAttested = $false
+}
+
+if ($Manifiesto) {
+    if (-not (Test-Path -LiteralPath $Manifiesto -PathType Leaf)) {
+        throw "El manifiesto no existe: $Manifiesto"
+    }
+    $manifestFile = (Resolve-Path -LiteralPath $Manifiesto).Path
+    try {
+        $provenance = Get-Content -LiteralPath $manifestFile -Raw | ConvertFrom-Json -ErrorAction Stop
+    } catch {
+        throw "El manifiesto de productor no es JSON valido: $Manifiesto"
+    }
+    $requiredFields = @('Schema', 'Target', 'Producer', 'Compiler', 'CompilerVersion',
+                        'Linker', 'LinkerVersion', 'Options', 'OutputSHA256')
+    foreach ($field in $requiredFields) {
+        if (-not ($provenance.PSObject.Properties.Name -contains $field)) {
+            throw "Falta el campo $field en el manifiesto de productor."
+        }
+    }
+    if ($provenance.Schema -ne 1 -or $provenance.Target -ne 'x86-64') {
+        throw 'El manifiesto requiere Schema 1 y Target x86-64.'
+    }
+    foreach ($field in @('Producer', 'Compiler', 'CompilerVersion', 'Linker', 'LinkerVersion')) {
+        if ([string]::IsNullOrWhiteSpace([string]$provenance.$field)) {
+            throw "El campo $field del manifiesto no puede estar vacio."
+        }
+    }
+    if ($provenance.Options -isnot [System.Array]) {
+        throw 'Options debe ser una lista JSON de argumentos del compilador/enlazador.'
+    }
+    $declaredHash = [string]$provenance.OutputSHA256
+    if ($declaredHash -notmatch '^[0-9A-Fa-f]{64}$' -or $declaredHash.ToLowerInvariant() -ne $sourceHash) {
+        throw 'OutputSHA256 del manifiesto no coincide con el PE recibido.'
+    }
+    $manifestHash = (Get-FileHash -LiteralPath $manifestFile -Algorithm SHA256).Hash.ToLowerInvariant()
+    $provenanceReport = [ordered]@{
+        Status = 'declarado-hash-coincide-toolchain-no-verificado'
+        Manifest = [IO.Path]::GetFileName($manifestFile)
+        ManifestSHA256 = $manifestHash
+        OutputSHA256Matches = $true
+        ToolchainIdentityAttested = $false
+        Declaration = $provenance
+    }
+    $reportPath = Join-Path $reportDirectory ($safeName + '-' + $sourceHash.Substring(0, 12) + '-' +
+                                                   $manifestHash.Substring(0, 12) + '.json')
+}
 
 function Invoke-HostJson([string[]]$Arguments) {
     $previousPreference = $ErrorActionPreference
@@ -62,6 +112,7 @@ $report = [ordered]@{
     Source = [IO.Path]::GetFileName($inputFile)
     SourceBytes = (Get-Item -LiteralPath $inputFile).Length
     SourceSHA256 = $sourceHash
+    Provenance = $provenanceReport
     ProbeExitCode = $probeExit
     Probe = $probe
     Package = $null
@@ -94,8 +145,13 @@ if ($Empaquetar -and $probeExit -eq 0 -and $probe.CanPack) {
 $json = $report | ConvertTo-Json -Depth 32
 [IO.File]::WriteAllText($reportPath, $json + [Environment]::NewLine, [Text.Encoding]::UTF8)
 
-Write-Output "HOST MSVC intake: $inputFile"
+Write-Output "HOST PE32+ intake: $inputFile"
 Write-Output "SHA-256: $sourceHash"
+Write-Output "Procedencia: $($provenanceReport.Status)"
+if ($provenanceReport.Declaration) {
+    Write-Output "Productor declarado: $($provenanceReport.Declaration.Producer)"
+    Write-Output 'El manifiesto coincide con el hash PE; la identidad del toolchain no esta verificada.'
+}
 Write-Output "Informe: $reportPath"
 if ($probe.PSObject.Properties.Name -contains 'CanPack') {
     Write-Output "SBEF del perfil actual: $($probe.CanPack)"

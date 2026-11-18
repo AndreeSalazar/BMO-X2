@@ -1000,8 +1000,8 @@ Estado: HOST. Anillo: host. Lenguaje: Python control.
 Entrada: ELF64 o PE32+ enlazado y version de ABI.
 Salida: SBEF admitido, comparacion de builds por archivo y paginas, o rechazo con campo y offset.
 Depende de: Empaquetador ELF64 a SBEF (codigo), Perfiles y capas del HOST x86-64 (codigo), Lector SBEF de referencia (codigo), Inspeccion PE32+ x86-64 (codigo).
-Aceptacion: profiles separa productor, formato, destino, admision y evidencia de ejecucion; pack e inspect validan SBEF con lectores PE32+ y ELF64 compartidos.
-Pendiente: Cargar SBEF externo de forma general en Ring 3, validar clang-cl/lld-link como productor y anadir imports con semantica propia.
+Aceptacion: profiles separa productor, formato, destino, admision y ejecucion. MSVC puede ligar un manifiesto manual al hash PE, sin atestar el toolchain; pack e inspect validan SBEF.
+Pendiente: Automatizar procedencia, admitir COFF .obj y enlace propio, cerrar la carga externa SBEF en Ring 3, validar clang-cl/lld-link y anadir imports con semantica propia.
 
 ## tools/host/profiles.py
 
@@ -1011,8 +1011,8 @@ Estado: HOST. Anillo: host. Lenguaje: Python.
 Entrada: Perfiles declarados de MSVC, LLVM/Clang, GCC y Rust para artefactos x86-64.
 Salida: Matriz consultable con `python -B tools/sbef.py profiles`.
 Depende de: Empaquetador ELF64 a SBEF (codigo), Lector SBEF de referencia (codigo), Inspeccion PE32+ x86-64 (codigo).
-Aceptacion: MSVC PE32+ limitado, LLVM ELF64 estatico, clang-cl PE pendiente de validacion propia y productores GCC/Rust sobre lectores compartidos tienen estados distintos de admision y ejecucion.
-Pendiente: Anadir informes de procedencia por compilacion, certificar clang-cl/lld-link y ejecutar paquetes externos con el cargador general de Ring 3.
+Aceptacion: MSVC PE32+ limitado acepta una declaracion manual ligada al hash, pero no atesta la identidad del toolchain. La base x86-64 candidata se distingue de extensiones opcionales.
+Pendiente: Generar y verificar procedencia automaticamente, admitir objetos COFF, fijar la base ISA y codificar requisitos de CPU en una extension SBEF versionada; validar clang-cl/lld-link y cargar SBEF externo en Ring 3.
 
 ## tools/host/importers/elf.py
 
@@ -1044,8 +1044,8 @@ Estado: HOST. Anillo: host. Lenguaje: Python control.
 Entrada: Ejecutable PE32+ x86-64.
 Salida: Inventario y SBEF admitido o rechazo preciso por campo y offset.
 Depende de: contrato propio sin dependencias en este catalogo.
-Aceptacion: PowerShell inspecciona PE EXE y DLL; una prueba real de MSVC aplica DIR64 y empaqueta cuatro regiones en 388 bytes. La admision por formato no certifica el compilador.
-Pendiente: Cargador SBEF general, imports/IAT, TLS, load config, unwind, procesos externos y un fixture propio de clang-cl/lld-link.
+Aceptacion: PowerShell inspecciona PE EXE y DLL; una prueba real de MSVC aplica DIR64 y empaqueta cuatro regiones en 388 bytes. El manifiesto opcional liga el informe al hash PE, no certifica el compilador.
+Pendiente: Cargador SBEF general, imports/IAT, TLS, load config, unwind, procesos externos, intake de objetos COFF y un fixture propio de clang-cl/lld-link.
 
 ## userspace/supervisor
 

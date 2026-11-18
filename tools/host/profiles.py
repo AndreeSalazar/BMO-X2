@@ -1,13 +1,20 @@
 """Registro machine-readable de productores, formatos y perfiles x86-64."""
 
 HOST_TARGET = 'x86-64'
+ISA_POLICY = {
+    'BaselineCandidate': 'x86-64-v1',
+    'BaselineFrozen': False,
+    'OptionalLevels': ['x86-64-v2', 'x86-64-v3', 'x86-64-v4'],
+    'RuntimeDetection': 'Consultar CPUID y el estado habilitado por el sistema para extensiones que lo requieran.',
+    'SBEFRequirements': 'El encabezado SBEF actual no codifica requisitos de instrucciones; falta una extension versionada.',
+}
 
 LAYERS = [
     {
         'Id': 'producer',
         'Name': 'Productor y procedencia',
         'Responsibility': 'Define evidencia del compilador, enlazador, versiones, opciones y huellas de entrada.',
-        'Status': 'La matriz esta declarada; el informe automatico de procedencia por build sigue pendiente.',
+        'Status': 'El intake acepta un manifiesto manual ligado al hash; la generacion y verificacion automatica siguen pendientes.',
         'Boundary': 'El lenguaje y el compilador no demuestran compatibilidad de runtime.',
     },
     {
@@ -58,14 +65,16 @@ PROFILES = [
         'AdmissionEvidence': 'Intake PE, perfiles freestanding acotados y empaquetado de relocacion DIR64 interna.',
         'Execution': 'fixture-specific',
         'ExecutionEvidence': 'Las pruebas ABI y de servicios declarados tienen evidencia QEMU. El paquete generico de cuatro regiones aun no tiene evidencia de carga generica en QEMU.',
+        'Provenance': 'Manifiesto opcional del usuario; HOST valida que el hash PE coincida, pero no verifica la identidad del compilador ni del enlazador.',
         'SharedImplementation': [
+            'tools/host/msvc.ps1',
             'tools/host/toolchains/msvc.py',
             'tools/host/importers/pe.py',
             'tools/host/importers/pe_imports.py',
             'tools/host/importers/pe_bindings.py',
             'tools/host/sbef/format.py',
         ],
-        'KnownGaps': ['imports generales y carga de DLL', 'TLS', 'configuracion de carga y CFG', 'unwind y excepciones generales', 'servicios generales UCRT/VCRuntime/MSVCP y Win32'],
+        'KnownGaps': ['generacion y atestacion independiente del manifiesto de build', 'importacion de objetos COFF y flujo de enlace propio', 'imports generales y carga de DLL', 'TLS', 'configuracion de carga y CFG', 'unwind y excepciones generales', 'servicios generales UCRT/VCRuntime/MSVCP y Win32'],
     },
     {
         'Id': 'llvm-clang-x86_64-elf64-static',
@@ -127,7 +136,8 @@ def profile_report():
     return {
         'Schema': 1,
         'Target': HOST_TARGET,
-        'ProducerIdentityRule': 'La evidencia del build debe registrar versiones de herramientas, opciones y hashes; el registro no infiere ni certifica productor desde PE/ELF.',
+        'InstructionSetPolicy': ISA_POLICY,
+        'ProducerIdentityRule': 'El intake MSVC acepta un manifiesto para PE32+ ligado al hash; la declaracion no prueba que esas herramientas hayan generado el archivo.',
         'StatusLegend': {
             'partial': 'Reglas acotadas implementadas; no implica compatibilidad general.',
             'format-profile-implemented': 'El lector admite el formato bajo un perfil; no acredita todas las salidas del productor.',
@@ -139,5 +149,5 @@ def profile_report():
         },
         'Layers': LAYERS,
         'Profiles': PROFILES,
-        'OtherArchitectures': 'Out of scope for BMO-X2; this project remains x86-64 only.',
+        'OtherArchitectures': 'Fuera del alcance de BMO-X2; este proyecto sigue siendo exclusivo x86-64.',
     }

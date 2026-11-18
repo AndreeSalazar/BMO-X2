@@ -140,6 +140,27 @@ codigo de usuario autorizado. La cabecera por si sola no resuelve las
 llamadas, bibliotecas ni instrucciones de un programa de otro sistema.
 HOST debe adaptar o rechazar cada dependencia no satisfecha.
 
+### Maduracion del HOST: x86-64 primero, MSVC como primer frente
+
+La meta inmediata es ampliar HOST para admitir mas productores y formatos que
+apunten a x86-64, empezando por los artefactos de MSVC. Cada productor entra por
+una capa propia; despues se aplican lectores, perfiles de instrucciones,
+relocaciones, imports y contratos de runtime compartidos cuando sus reglas
+coincidan. Esto permite aprender de MSVC sin hacer que Ring 0 conozca MSVC,
+Windows, COFF o sus bibliotecas.
+
+El primer paso no ejecuta cualquier programa de Windows: inspecciona PE32+,
+registra procedencia declarada y admite solo las regiones y dependencias con
+semantica definida para BMO-X2. El manifiesto opcional queda ligado al hash del
+PE, pero no prueba que `cl.exe` y `link.exe` lo hayan generado. La carga general,
+los imports y el runtime C/C++ siguen siendo hitos separados.
+
+HOST puede cambiar el contenedor, validar sus metadatos y emitir SBEF. Eso no
+traduce las instrucciones x86-64 a otra CPU: el codigo de maquina admitido
+continua siendo x86-64 y lo ejecuta una CPU x86-64. Una futura arquitectura
+necesitaria su backend e instrucciones propias, fuera de este proyecto.
+Detalles y etapas del primer perfil MSVC estan en [HOST](tools/host/README.md#direccion-msvc-hacia-bmo-x2-x86-64).
+
 El presupuesto de 2 KiB corresponde a un nucleo o perfil cuyo contenido
 se delimite y mida. Las tablas, pilas, estado, controladores, puentes y
 servicios tienen costes propios. La puerta de sesion pequena no prueba

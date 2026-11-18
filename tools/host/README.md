@@ -6,9 +6,9 @@ HOST separa productor, formato, destino y ejecucion. No mantiene un
 empaquetador SBEF distinto para cada compilador: MSVC y `clang-cl` pueden
 compartir el lector de imagen PE32+; Clang, GCC y Rust comparten el lector
 ELF64 cuando producen una imagen estatica que satisface el perfil. El lector
-PE no es un importador general de objetos COFF. La identidad del productor
-debe adjuntarse a la evidencia de build; hoy el HOST no la adivina ni la
-certifica a partir de los bytes PE o ELF.
+PE no es un importador general de objetos COFF. HOST no infiere la identidad
+del productor a partir de PE o ELF. Un manifiesto manual puede declararla y
+ligarla al hash del archivo, pero no atesta que ese toolchain produjo los bytes.
 
 ```powershell
 python -B tools/sbef.py profiles
@@ -21,7 +21,7 @@ pueda ejecutarlo. La matriz viva esta en `profiles.py`.
 
 | Capa | Responsabilidad | Limite |
 |---|---|---|
-| Productor | MSVC, LLVM/Clang, GCC, Rust u otro toolchain; define la evidencia de version, opciones y hashes. | La captura automatica por build sigue pendiente; el lenguaje no define las APIs disponibles. |
+| Productor | MSVC, LLVM/Clang, GCC, Rust u otro toolchain; define la evidencia de version, opciones y hashes. | El intake puede ligar un manifiesto manual al hash; la identidad del toolchain no queda atestada. |
 | Formato | Un lector compartido para imagen PE32+ o ELF64 estatico. | El lector PE no procesa objetos COFF arbitrarios; PE y ELF tienen reglas de carga distintas. |
 | Perfil x86-64 | Admite solo secciones, relocaciones, permisos, imports y limites descritos. | Lo que no tiene semantica BMO-X2 se rechaza con diagnostico. |
 | Paquete SBEF | Emite y vuelve a leer el paquete antes de publicarlo. | El paquete no incorpora automaticamente CRT, Win32 ni otros runtimes. |
@@ -35,9 +35,79 @@ lector ELF; sus pruebas concretas no implican compatibilidad con todos sus
 programas o bibliotecas. BMO-X2 conserva destino x86-64; otras arquitecturas
 requieren otro proyecto y backend, no una carpeta vacia aqui.
 
-El siguiente cierre es un cargador externo SBEF general en Ring 3 y luego un
-perfil de consola con imports versionados. UCRT/VCRuntime, Win32, TLS,
-excepciones, GUI y DirectX se agregan solo con servicios y evidencia propios.
+## Direccion: MSVC hacia BMO-X2 x86-64
+
+La idea es consumir los artefactos utiles de MSVC y otros productores y
+reconstruir su entorno de ejecucion bajo los contratos de BMO-X2. No es
+portar el binario MSVC a otra CPU ni copiar Windows. El codigo de maquina
+x86-64 se conserva cuando el perfil lo admite; HOST comprueba el contenedor
+y lo expresa en SBEF. BMO-X2 aporta sus propias reglas, ABI y servicios en
+Ring 3. Ring 0 decide memoria, permisos y capacidades. Una importacion que
+no tenga servicio equivalente queda explicada en el informe y se rechaza.
+
+```text
+Fuente y dependencias -> productor (MSVC/LLVM/GCC/Rust)
+  -> PE32+ o ELF64 x86-64 -> HOST: inspeccion y perfil -> SBEF x86-64
+  -> cargador y runtime Ring 3 de BMO-X2 -> NANO-CORE / CPU
+```
+
+El objetivo inicial es x86-64 base. Las extensiones opcionales de CPU se
+deben declarar y comprobar por perfil; SBEF aun no codifica esos requisitos.
+El mismo nombre x86-64 no garantiza AVX, AVX2 o AVX-512. Antes de declarar
+compatibilidad amplia hay que fijar el nivel base, consultar CPUID y rechazar
+una imagen que pida funciones no disponibles. Clang documenta niveles
+`x86-64-v1` a `v4` y el manual AMD64 describe CPUID: [niveles LLVM/Clang](https://clang.llvm.org/docs/UsersManual.html), [manual AMD64](https://docs.amd.com/api/khub/documents/68GKiN0gMEd6bMddsmhPwg/content).
+
+La maduracion MSVC va por cierres comprobables:
+
+1. **Intake y procedencia**: inventario PE32+, hash, directorios y blockers; un
+   manifiesto manual puede ligar productor, versiones, opciones y hash exacto.
+   El intake de objetos COFF `.obj` y su enlace son un trabajo separado, aun
+   pendiente.
+2. **PE freestanding**: admitir codigo sin CRT ni imports solo dentro del perfil
+   actual y conservar relocaciones que tengan regla definida.
+3. **Carga externa en Ring 3**: mapa general de regiones, entry, pila, permisos,
+   relocaciones y recuperacion antes de afirmar ejecucion de un SBEF externo.
+4. **Imports con contrato**: resolver simbolos contra un catalogo versionado de
+   servicios BMO-X2. `/MT` y `/MD` son perfiles distintos; un import ausente
+   sigue siendo rechazo explicito.
+5. **Runtime C/C++**: incorporar inicializacion, TLS, excepciones, RTTI y otras
+   funciones solo cuando exista implementacion y evidencia por servicio.
+6. **Win32 y graficos**: GUI, COM, DXGI y DirectX son capas posteriores en
+   Ring 3; no forman parte del primer perfil de consola.
+
+El manifiesto de intake es una declaracion del build, no una firma de MSVC.
+HOST comprueba que `OutputSHA256` coincide con el PE recibido y conserva la
+huella del manifiesto; no demuestra que `cl.exe` o `link.exe` lo hayan creado.
+Para inspeccionarlo:
+
+```powershell
+.\tools\host\msvc.ps1 -Archivo .\app.exe -Manifiesto .\app.host.json
+```
+
+El manifiesto usa `Schema`, `Target`, `Producer`, `Compiler`,
+`CompilerVersion`, `Linker`, `LinkerVersion`, `Options` y `OutputSHA256`.
+Sin manifiesto el informe marca procedencia como no declarada. Ejemplo de
+forma; reemplazar versiones, opciones y hash por los del build real:
+
+```json
+{
+  "Schema": 1,
+  "Target": "x86-64",
+  "Producer": "MSVC",
+  "Compiler": "cl.exe",
+  "CompilerVersion": "version declarada",
+  "Linker": "link.exe",
+  "LinkerVersion": "version declarada",
+  "Options": ["/nologo", "/MD", "/EHsc"],
+  "OutputSHA256": "hash SHA-256 de 64 digitos hexadecimales"
+}
+```
+
+El siguiente cierre de ejecucion sigue siendo un cargador externo SBEF general
+en Ring 3 y luego un perfil de consola con imports versionados. UCRT/VCRuntime,
+Win32, TLS, excepciones, GUI y DirectX se agregan solo con servicios y evidencia
+propios.
 
 La sesion visual C++ se construye y prueba en `tools/desktop/rmlui/`.
 Su productor HOST empaqueta RML/RCSS, fuentes, UJBC y DLL con hashes;
