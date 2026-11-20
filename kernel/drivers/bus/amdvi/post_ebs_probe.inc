@@ -2,6 +2,13 @@
 // The native desktop takes the snapshot before starting xHCI, which
 // later uses this same temporary page-table slot.
 amdvi_post_begin:
+#ifdef BMO_AMDVI_GUEST_DMA
+    .byte 0xe9
+    .long .Lpost_read_entry - . - 4
+    .byte 0xe9
+    .long amdvi_lab_entry - . - 4
+.Lpost_read_entry:
+#endif
     push %rbx
     mov $1, %ebx                   # No usable pre-EBS capture.
     mov AMDVI_POST_BASE(%rbp), %r8
@@ -138,4 +145,7 @@ amdvi_post_begin:
 .p2align 1
 .Lpost_offsets:
     .short 0x0018, 0x0000, 0x0008, 0x0010, 0x2020
+#ifdef BMO_AMDVI_GUEST_DMA
+#include "coexist_guest.inc"
+#endif
 amdvi_post_end:

@@ -1703,9 +1703,20 @@ Usa qtest para configurar dominios distintos para EDU y xHCI en el escritorio vi
 Estado: QEMU. Anillo: host. Lenguaje: Python.
 Entrada: QEMU q35, AMD-Vi, EDU, USB dual activo y reservas UEFI del invitado.
 Salida: Transferencia traducida, rechazos DMA y contadores HID antes y despues de revocar EDU.
-Depende de: AMD-Vi / Traduccion y revocacion virtual (codigo), xHCI USB2 con dos dispositivos (verificacion).
+Depende de: AMD-Vi / Traduccion y revocacion virtual (codigo), xHCI USB2 con dos dispositivos (verificacion), AMD-Vi / Dominios en el invitado (verificacion).
 Aceptacion: QEMU verifico 8 B en la pagina concedida, rechazo fuera de rango y tras invalidar, y 2 informes de teclado y 1 de raton en cada etapa.
-Pendiente: Pasar la configuracion al kernel invitado y acreditar almacenamiento activo antes del ensayo en METAL.
+Pendiente: Poner bajo control nativo la lista de solicitantes activos y probar el almacenamiento durante el siguiente ensayo.
+
+## kernel/drivers/bus/amdvi/coexist_guest.inc
+
+Sonda exclusiva de QEMU TCG. Ring 0 comprueba bus masters y configura, invalida y cierra dos dominios AMD-Vi.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: Escritorio USB dual activo, EDU, reservas UEFI propias y orden fija del banco QEMU.
+Salida: Estado de rechazo, tablas y colas propios y comprobantes de invalidacion y cierre.
+Depende de: AMD-Vi / Captura Ring 0 (codigo).
+Aceptacion: QEMU comprueba rechazo con otro bus master activo, DMA concedido y revocado e informes USB con traduccion activa.
+Pendiente: Integrar la transicion con almacenamiento y solicitantes fisicos antes de activar el dominio para NVIDIA.
 
 ## CASM
 
@@ -1729,4 +1740,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-155 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+156 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

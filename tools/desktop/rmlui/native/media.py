@@ -35,12 +35,14 @@ def main():
     p.add_argument('--amdvi-probe', action='store_true', help='Add read-only AMD-Vi firmware inventory to the NVIDIA profile')
     p.add_argument('--amdvi-post', action='store_true', help='Take a second AMD-Vi snapshot after ExitBootServices')
     p.add_argument('--amdvi-coexist', action='store_true', help='Exercise virtual EDU and USB DMA together in QEMU')
+    p.add_argument('--amdvi-guest-dma', action='store_true', help='Let the guest program AMD-Vi in the virtual lab')
     args=p.parse_args()
     if args.usb_empty_ports and args.usb!='both':p.error('--usb-empty-ports requires --usb both')
     if args.amdvi_probe and not args.nvidia_probe:p.error('--amdvi-probe requires --nvidia-probe')
     if args.amdvi_post and (not args.amdvi_probe or args.usb!='both' or args.msvc_panel or args.usb_empty_ports):
         p.error('--amdvi-post requires the NVIDIA AMD-Vi profile with USB both')
     if args.amdvi_coexist and not args.amdvi_post:p.error('--amdvi-coexist requires --amdvi-post')
+    if args.amdvi_guest_dma and not args.amdvi_coexist:p.error('--amdvi-guest-dma requires --amdvi-coexist')
     abi,splash=args.abi_run.resolve(),args.splash_run.resolve()
     for path in (abi,splash):
         if path.parent!=ROOT/'build/CASM':raise ValueError('Run outside build/CASM')
@@ -63,6 +65,8 @@ def main():
         (run/'amdvi-post-probe.txt').write_text('post-ebs-read-only\n', encoding='ascii')
     if args.amdvi_coexist:
         (run/'amdvi-coexist-probe.txt').write_text('qemu-only-edu-xhci\n', encoding='ascii')
+    if args.amdvi_guest_dma:
+        (run/'amdvi-guest-dma.txt').write_text('qemu-only-guest-iommu\n', encoding='ascii')
     if args.low_gop:(run/'low-gop.txt').write_text('QEMU VGA preferred 1024x768\n',encoding='ascii')
     if args.usb:(run/'native-usb.txt').write_text(args.usb+'\n',encoding='ascii')
     if args.usb_empty_ports:(run/'native-usb-empty.txt').write_text('QEMU fault test\n',encoding='ascii')
@@ -77,6 +81,7 @@ def main():
         if args.nvidia_probe and name == 'reader':flags+=['-DBMO_NVIDIA_PCI_PROBE']
         if args.amdvi_probe and name == 'reader':flags+=[f'-DBMO_AMDVI_EFI_OFFSET={amdvi_offset}']
         if args.amdvi_post and name in ('reader','gate'):flags+=['-DBMO_AMDVI_POST']
+        if args.amdvi_guest_dma and name=='gate':flags+=['-DBMO_AMDVI_GUEST_DMA']
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf','-DRMLUI_MEDIA','-DRMLUI_NATIVE',
             '-DRMLUI_GOP_REGIONS','-DDOOM_ENGINE','-DDESKTOP_DOOM',*flags,
             '-c',ROOT/source,'-o',run/(name+'.o')],'compile-media-'+name)
@@ -110,6 +115,7 @@ def main():
         native_probe=run/'amdvi-firmware.o'
         flags=['-DBMO_AMDVI_POST'] if args.amdvi_post else []
         if args.amdvi_coexist:flags+=['-DBMO_AMDVI_COEXIST']
+        if args.amdvi_guest_dma:flags+=['-DBMO_AMDVI_GUEST_DMA']
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf',*flags,'-c',source,'-o',native_probe],'compile-amdvi-firmware')
         if args.amdvi_post:check_context_stage(llvm,native_probe,'amdvi_post')
         relocations=subprocess.check_output([llvm/'llvm-objdump.exe','-r',native_probe],text=True)
@@ -147,6 +153,8 @@ def main():
         raise ValueError('Missing post-EBS AMD-Vi evidence')
     if args.amdvi_coexist and not report['Cases'][0].get('AmdViCoexistVerified'):
         raise ValueError('Missing simultaneous EDU and USB evidence')
+    if args.amdvi_guest_dma and report['Cases'][0].get('DmaIssuer')!='Ring 0 guest':
+        raise ValueError('Missing guest-owned AMD-Vi evidence')
     media_prefix = 'BMO-X2/GPU' if args.nvidia_probe else 'BMO-X2/DESKTOP'
     fs=Fat32(run/'build/puente-normal.img')
     try:
@@ -163,6 +171,7 @@ def main():
         nvidia_pci_probe=args.nvidia_probe, amdvi_efi_probe=args.amdvi_probe, amdvi_mmio_probe=args.amdvi_probe,
         amdvi_post_probe=args.amdvi_post,
         amdvi_coexist=args.amdvi_coexist,
+        amdvi_guest_dma=args.amdvi_guest_dma,
         qemu_only=bool(args.usb),usb_profile=args.usb,
         usb_empty_ports=args.usb_empty_ports,
         hardware_profile='amd149c-usb2-root-experimental' if args.usb=='both' and not args.usb_empty_ports else None,

@@ -37,15 +37,19 @@ amdvi_firmware_probe:
     push %r8
     push %r9
     sub $32, %rsp
-    movq $0x0fffffff, 0xb50(%rbp)
+    movq $0x0fffffff, AMDVI_LAB_SCRATCH(%rbp)
     mov $1, %ecx
     mov $2, %edx
+#ifdef BMO_AMDVI_GUEST_DMA
+    mov $14, %r8d
+#else
     mov $13, %r8d
-    lea 0xb50(%rbp), %r9
+#endif
+    lea AMDVI_LAB_SCRATCH(%rbp), %r9
     call *0x28(%rax)
     test %rax, %rax
     jns .Lcoexist_reserved
-    movq $0, 0xb50(%rbp)
+    movq $0, AMDVI_LAB_SCRATCH(%rbp)
 .Lcoexist_reserved:
     add $32, %rsp
     pop %r9

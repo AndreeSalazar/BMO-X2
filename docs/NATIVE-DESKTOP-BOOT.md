@@ -480,12 +480,10 @@ difieren de las del arranque anterior.
 
 Siguientes pruebas y criterio de avance:
 
-1. Llevar al invitado la gestion de los dos dominios ensayados
-   con EDU y xHCI en QEMU. Reservar tablas y colas propias y
-   comprobar los solicitantes activos antes de habilitar la unidad.
-   Cada solicitante activo requiere mapeos validados o parada
-   confirmada. El registro fisico pre-EBS muestra dos xHCI con
-   bus mastering habilitado.
+1. Trasladar al arranque fisico la gestion de solicitantes activos
+   ensayada con EDU y xHCI en QEMU. Cada solicitante activo requiere
+   mapeos validados o parada confirmada. El registro fisico pre-EBS
+   muestra dos xHCI con bus mastering habilitado.
 2. Probar primero la tabla y las colas propias en METAL con la RTX y
    su funcion de audio sin bus mastering. Verificar que USB sigue
    operativo y, cuando el perfil disponga de acceso nativo al disco,
@@ -507,6 +505,14 @@ El ensayo conserva el candidato METAL instalado y esta bloqueado
 para despliegue.
 [Evidencia de coexistencia](../Reports/amdvi-xhci-coexist-qemu-20261120.json).
 
+En `run-rmlui-media-aa8163cdd899`, Ring 0 activo los dominios,
+confirmo la invalidacion y cerro AMD-Vi. Se verificaron los dos
+dispositivos USB durante la concesion y tras revocar la pagina de
+EDU. La primera solicitud se rechazo con otros bus masters activos.
+En este ensayo el HOST suspendio los otros solicitantes emulados
+y el medio queda confinado a QEMU.
+[Evidencia del kernel invitado](../Reports/amdvi-xhci-guest-qemu-20261120.json).
+
 El primer patron usa como referencia el triangulo de
 [C++ / MSVC](../tools/tests/msvc_desktop_panel.cpp). El panel actual
 genera los pixeles con CPU. Para el ensayo NVIDIA, el cliente C++ de
@@ -514,6 +520,12 @@ Ring 3 enviara el trabajo a un buffer fuera de pantalla. El resultado
 leido de la GPU se cotejara con la referencia antes de presentar por
 el conector NVIDIA.
 [Panel C++ validado en QEMU](../Reports/abi-msvc-rmlui-qemu.json).
+
+La presentacion NVIDIA y la lectura de sensores tienen ritmos
+distintos. El backend de salida debe publicar el conector, modo,
+refresco y confirmacion de presentacion. Ring 3 podra consultar por
+separado temperatura, uso y VRAM, con un intervalo mayor durante
+juegos para que el sondeo quede fuera del camino de cada cuadro.
 
 La captura posterior usa los estados `01` (sin captura previa usable),
 `02` (mapeo, PAT o mapa de memoria rechazado), `03` (base PCI

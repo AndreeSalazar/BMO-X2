@@ -2666,7 +2666,25 @@
       "entrada": "QEMU q35, AMD-Vi, EDU, USB dual activo y reservas UEFI del invitado.",
       "salida": "Transferencia traducida, rechazos DMA y contadores HID antes y despues de revocar EDU.",
       "aceptacion": "QEMU verifico 8 B en la pagina concedida, rechazo fuera de rango y tras invalidar, y 2 informes de teclado y 1 de raton en cada etapa.",
-      "falta": "Pasar la configuracion al kernel invitado y acreditar almacenamiento activo antes del ensayo en METAL."
+      "falta": "Poner bajo control nativo la lista de solicitantes activos y probar el almacenamiento durante el siguiente ensayo."
+    },
+    {
+      "id": "amdvi-xhci-guest",
+      "titulo": "AMD-Vi / Dominios en el invitado",
+      "ruta": "kernel/drivers/bus/amdvi/coexist_guest.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [
+        11700,
+        4300
+      ],
+      "que": "Sonda exclusiva de QEMU TCG. Ring 0 comprueba bus masters y configura, invalida y cierra dos dominios AMD-Vi.",
+      "entrada": "Escritorio USB dual activo, EDU, reservas UEFI propias y orden fija del banco QEMU.",
+      "salida": "Estado de rechazo, tablas y colas propios y comprobantes de invalidacion y cierre.",
+      "aceptacion": "QEMU comprueba rechazo con otro bus master activo, DMA concedido y revocado e informes USB con traduccion activa.",
+      "falta": "Integrar la transicion con almacenamiento y solicitantes fisicos antes de activar el dominio para NVIDIA."
     }
   ],
   "relaciones": [
@@ -3974,6 +3992,16 @@
       "de": "amdvi-xhci-coexist",
       "a": "rmlui-usb-dual",
       "clase": "verificacion"
+    },
+    {
+      "de": "amdvi-xhci-coexist",
+      "a": "amdvi-xhci-guest",
+      "clase": "verificacion"
+    },
+    {
+      "de": "amdvi-xhci-guest",
+      "a": "amdvi-post-ebs-probe",
+      "clase": "codigo"
     },
     {
       "de": "rmlui-fat32-media",

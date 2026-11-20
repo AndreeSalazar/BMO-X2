@@ -448,6 +448,13 @@ usb_port_speed:
 #ifdef XHCI_COMMAND_PROBE
 usb_report:
     push %rbx
+#ifdef BMO_AMDVI_GUEST_DMA
+    cmpq $0, AMDVI_LAB_REQUEST(%rbp)
+    je .Lusb_no_dma_lab_request
+    lea AMDVI_LAB_CODE(%rbp), %rax
+    call *%rax
+.Lusb_no_dma_lab_request:
+#endif
 #ifdef XHCI_NATIVE_DUAL
     call native_usb_code
     jc native_usb_invalid

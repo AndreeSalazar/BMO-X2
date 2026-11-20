@@ -7,7 +7,9 @@ if ((Split-Path $runPath -Parent) -ne (Join-Path $root 'build/CASM')) { throw 'R
 if ((Get-Content -LiteralPath (Join-Path $runPath 'profile.txt') -Raw).Trim() -ne 'rmlui-desktop-media') { throw 'Perfil de arranque incompatible.' }
 $media=Join-Path $runPath 'media'
 $proof=Get-Content -LiteralPath (Join-Path $media 'manifest.json') -Raw | ConvertFrom-Json
-if ($proof.amdvi_coexist -or (Test-Path -LiteralPath (Join-Path $runPath 'amdvi-coexist-probe.txt'))) {
+if ($proof.amdvi_coexist -or $proof.amdvi_guest_dma -or
+    (Test-Path -LiteralPath (Join-Path $runPath 'amdvi-coexist-probe.txt')) -or
+    (Test-Path -LiteralPath (Join-Path $runPath 'amdvi-guest-dma.txt'))) {
     throw 'El ensayo AMD-Vi con EDU y xHCI es exclusivo de QEMU.'
 }
 $normal=$proof.Cases | Where-Object { $_.Case -eq 'normal' } | Select-Object -First 1

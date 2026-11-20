@@ -84,6 +84,27 @@ ejecutando su driver USB habitual.
 python -B tools/desktop/rmlui/native/media.py <ABI_RUN> <GATO_COMPACTO_RUN> --usb both --nvidia-probe --amdvi-probe --amdvi-post --amdvi-coexist
 ```
 
+`--amdvi-guest-dma` ejecuta la configuracion dentro de Ring 0.
+Antes de activar AMD-Vi, comprueba la reserva UEFI y el bus PCI del
+invitado. Usa una segunda tabla temporal para MMIO, separada de la
+de xHCI. Ring 0 instala las dos tablas, publica las invalidaciones,
+espera sus confirmaciones y apaga la traduccion al cerrar el ensayo.
+El HOST opera el EDU virtual, mantiene quietos los otros solicitantes
+del laboratorio y verifica los resultados. El candidato permanece
+exclusivo de QEMU.
+
+```powershell
+python -B tools/desktop/rmlui/native/media.py <ABI_RUN> <GATO_COMPACTO_RUN> --usb both --nvidia-probe --amdvi-probe --amdvi-post --amdvi-coexist --amdvi-guest-dma
+```
+
+El ensayo del invitado rechazo la activacion con otro bus master
+activo. Tras suspender los demas solicitantes virtuales, confirmo
+ambos dominios, bloqueo DMA fuera de rango y despues de revocar,
+y cerro AMD-Vi conservando USB. Recibio dos informes de teclado
+y uno de raton en cada etapa de DMA. El modulo ocupa 1426 B y el
+laboratorio reserva 14 paginas para sus tablas, colas y testigos.
+[Evidencia del invitado](../../../Reports/amdvi-xhci-guest-qemu-20261120.json).
+
 El puente del escritorio reserva cinco paginas contiguas de EfiLoaderData
 por debajo de 256 MiB y las entrega en los campos B8/C0 del contexto.
 La variante QEMU de comandos agrega una pagina para contextos
