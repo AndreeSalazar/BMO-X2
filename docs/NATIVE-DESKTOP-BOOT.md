@@ -420,12 +420,29 @@ mitad alta. Los guiones representan campos sin lectura.
 | `06` | Bases iguales, decodificacion MMIO desactivada |
 | `07` | Bases iguales, decodificacion MMIO activa |
 
-El estado `07` acredita decodificacion PCI en ese instante. La traduccion
-DMA y sus permisos requieren comprobaciones propias. El siguiente ensayo
-del dominio incluye los solicitantes RTX y audio, la continuidad de USB y
-almacenamiento y la retencion de paginas si falla una invalidacion.
-Tras probar aislamiento y revocacion en la unidad fisica, se pueden
-preparar las colas y buffers del GSP `615.78.08`.
+El arranque en METAL de `run-rmlui-media-38ddb012ee7e` obtuvo
+`AMDVI=00000007 000000D0 00000002 FD500001 00000000`.
+Los 208 B de IVRS, la unidad `0000:00:00.2` y la base
+`0xFD500000` coinciden con el inventario HOST. El bit bajo de
+`FD500001` indica que la decodificacion PCI de la ventana MMIO
+estaba habilitada. La RTX `0000:29:00.0` sigue reportando
+`PCI Command=0003`, con bus mastering apagado en la captura.
+[Informe AMD-Vi de METAL](../Reports/nvidia-pci-metal-20261120-amdvi.json).
+
+Siguientes pruebas y criterio de avance:
+
+1. Capturar el estado de traduccion, las capacidades, la tabla de
+   dispositivos y las colas de AMD-Vi que deja el firmware. La lectura
+   pre-EBS del decode solo localiza la ventana MMIO. Registrar que
+   control y recursos siguen vigentes tras el traspaso.
+2. Probar el dominio DMA fisico de la RTX y su funcion de audio
+   conservando la operacion de USB y almacenamiento. Acreditar acceso
+   concedido, rechazo fuera del rango y revocacion confirmada. Retener
+   las paginas si falla la invalidacion.
+3. Arrancar GSP `615.78.08` con los buffers autorizados y verificar
+   una respuesta valida. Luego ejecutar una operacion sobre un buffer
+   dedicado, comprobar su salida y demostrar dibujo 3D fuera de
+   pantalla antes de entregar el conector al backend NVIDIA.
 [Contrato DMA](../kernel/drivers/bus/DMA.md).
 
 En el equipo de referencia, el inventario HOST da IVRS `000000D0`,

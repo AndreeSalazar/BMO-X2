@@ -43,7 +43,12 @@ python -B tools/boot/amdvi_edu.py
 La [sonda UEFI de solo lectura](amdvi/firmware_probe.S) del perfil NVIDIA
 registra IVRS y la base PCI antes de ExitBootServices. Esta captura separa
 una unidad ausente, una base que difiere del firmware y el estado de
-decodificacion MMIO. El dominio propio se acredita despues del traspaso.
+decodificacion MMIO. METAL confirmo la unidad `0000:00:00.2` con
+decodificacion activa en `0xFD500000` y bus mastering de la RTX
+apagado. La proxima captura debe observar el registro de control de
+AMD-Vi, la base y longitud de la tabla de dispositivos y el estado de
+las colas. El dominio propio se acredita despues del traspaso.
+[Captura METAL](../../../Reports/nvidia-pci-metal-20261120-amdvi.json).
 
 El puente del escritorio reserva cinco paginas contiguas de EfiLoaderData
 por debajo de 256 MiB y las entrega en los campos B8/C0 del contexto.

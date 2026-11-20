@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "evidence": "METAL: BMO-X2 UEFI PRE-EBS GPU boot log",
+  "run": "run-rmlui-media-38ddb012ee7e",
+  "boot_file": "EFI/BMO-X2/NVIDIA.EFI",
+  "boot_file_sha256": "fdee5254a9382ba1b2f7ce1ccd82ddb6a5e365b050b9f69a261eb43cca7a8f80",
+  "bootlog": "nvidia-pci-metal-20261120-amdvi.bootlog.txt",
+  "bootlog_sha256": "092e86e6e992a9d28c74761c03ff979bd5cefe12e21297177d3b24607a7c1a91",
+  "ivrs_host_reference": "nvidia-gsp-host-20261120.json",
+  "amd_vi": {
+    "status": "07",
+    "ivrs_bytes": 208,
+    "bdf": "0000:00:00.2",
+    "pci_base_register_low": "0xfd500001",
+    "pci_base_register_high": "0x00000000",
+    "ivrs_mmio_base_matches_pci": true,
+    "mmio_base": "0xfd500000",
+    "pci_mmio_decode_enabled": true,
+    "translation_state_measured": false,
+    "dma_isolation_verified": false
+  },
+  "gpu": {
+    "bdf": "0000:29:00.0",
+    "vendor_device": "10de:2504",
+    "chip": "GA106 A1",
+    "pci_command_reported": "00000003",
+    "pci_bus_master_enabled_at_capture": false,
+    "bar0_uefi_length_bytes": 16777216,
+    "pmc_boot_0": "B76000A1"
+  },
+  "display_backend": "cpu-gop",
+  "gsp_initialized_by_bmo_x2": false,
+  "gpu_rendering_verified": false,
+  "boot_time_measured": false
+}
