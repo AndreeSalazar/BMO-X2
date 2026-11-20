@@ -472,11 +472,14 @@ apuntadas y el estado posterior al traspaso quedan por comprobar.
 
 Siguientes pruebas y criterio de avance:
 
-1. Usar la base verificada por IVRS y PCI para repetir la lectura en
-   Ring 0 despues de ExitBootServices. Mapear solo las paginas que
-   contienen los cinco registros como MMIO supervisor, no ejecutable,
-   sin cache y de solo lectura. Probar en QEMU la lectura y el rechazo
-   sin unidad o sin mapeo. En METAL, cotejar los dos estados.
+1. Cotejar en METAL los valores del candidato con `--amdvi-post`.
+   Antes de inicializar xHCI, el escritorio solicita la lectura desde
+   Ring 0 despues de ExitBootServices. Ring 0 coteja de nuevo la base
+   PCI y el mapa UEFI final, verifica la entrada UC de PAT y mapea solo
+   las dos paginas de los cinco registros. Las paginas son supervisoras,
+   de solo lectura y NX. La sonda retira ambas y ejecuta `INVLPG`.
+   El pie del escritorio muestra la captura posterior. En QEMU consta
+   tambien en serie como `AMDVI_POST=`.
 2. Probar el dominio DMA fisico de la RTX y su funcion de audio
    conservando la operacion de USB y almacenamiento. Acreditar acceso
    concedido, rechazo fuera del rango y revocacion confirmada. Retener
@@ -489,14 +492,29 @@ Siguientes pruebas y criterio de avance:
    pantalla antes de entregar el conector al backend NVIDIA.
 [Contrato DMA](../kernel/drivers/bus/DMA.md).
 
+La captura posterior usa los estados `01` (sin captura previa usable),
+`02` (mapeo, PAT o mapa de memoria rechazado), `03` (base PCI
+modificada), `04` (cinco registros leidos) y `05` (MMIO devolvio
+todo unos). INVOKE acepta solo los seis indices fijos del informe.
+[Paginacion y PAT de AMD64](https://docs.amd.com/v/u/en-US/24593_3.44_APM_Vol2).
+
+`run-rmlui-media-61ebf6ff6e23` paso tres arranques en QEMU.
+El caso normal cotejo los cinco registros entre UEFI y Ring 0, los
+permisos de las dos entradas y la continuidad del escritorio USB.
+El arranque sin AMD-Vi mostro `01` y abrio cero paginas. El cargador
+conservo el rechazo W+X. El paquete de entrada ocupa 4032 B y la
+sonda posterior ocupa 530 B dentro de una pagina ya reservada.
+[Evidencia de la captura posterior](../Reports/amdvi-post-ebs-desktop-qemu-20261120.json).
+
 En el equipo de referencia, el inventario HOST da IVRS `000000D0`,
 BDF `00000002` y base `FD500000` al enmascarar el bit de habilitacion.
 El candidato con la sonda se arranca desde la entrada existente
 **BMO-X2 (con NVIDIA)**. Al volver a Windows, leer `GPULOG.TXT` y
 comprobar que contiene las lineas `AMDVI=` y `AMDVI_MMIO=` del
 nuevo arranque. El 20-11-2026 se verifico la copia de
-`run-rmlui-media-a3d1dd3a0584` en `A:`, con respaldo del EFI
-NVIDIA anterior y sin cambiar el orden de arranque.
+`run-rmlui-media-61ebf6ff6e23` en `A:`, con respaldo del EFI
+NVIDIA anterior, INICIO.X86 y DESKTOP.SBF de ese perfil. La captura
+posterior se lee junto a `AMD-Vi Ring 0` en el pie del escritorio.
 
 La ruta de aceleracion y control de salida vive en `GPU/NVIDIA`.
 DIRECTOR/RmlUi entrega superficies a traves de la capacidad de pantalla.
@@ -534,6 +552,13 @@ Para generar el candidato USB dual con inventario AMD-Vi:
 
 ```powershell
 python .\tools\desktop\rmlui\native\media.py <ABI_RUN> <GATO_COMPACTO_RUN> --usb both --nvidia-probe --amdvi-probe
+```
+
+Para incluir la captura posterior al traspaso:
+
+```powershell
+python .\tools\desktop\rmlui\native\guest.py --desktop --usb both --amdvi-post
+python .\tools\desktop\rmlui\native\media.py <ABI_RUN> <GATO_COMPACTO_RUN> --usb both --nvidia-probe --amdvi-probe --amdvi-post
 ```
 
 `native/deploy.ps1 -Run <RUN> -Volume A:\ -NvidiaProbe -Check` comprueba

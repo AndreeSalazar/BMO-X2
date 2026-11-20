@@ -2,6 +2,9 @@
 #ifdef RMLUI_GOP_REGIONS
 #include "../drivers/display/GOP/gop_layout.inc"
 #endif
+#ifdef BMO_AMDVI_POST
+#include "../drivers/bus/amdvi/post_layout.inc"
+#endif
 .globl session_gate
 session_gate:
     swapgs
@@ -294,6 +297,10 @@ timer_irq:
 diagnostics:
     cmp $3, %rdi
     jne denied
+#ifdef BMO_AMDVI_POST
+    cmp $AMDVI_POST_DIAGNOSTIC, %rdx
+    je amdvi_diagnostic
+#endif
 #ifdef XHCI_COMMAND_PROBE
     cmp $5, %rdx
     je usb_report
@@ -352,6 +359,25 @@ diagnostics_result:
     mov %edx, %gs:0x348
     mov %eax, %gs:0x34c
     jmp finish
+#ifdef BMO_AMDVI_POST
+amdvi_diagnostic:
+    cmp $5, %r10
+    ja denied
+    cmpq $0, AMDVI_POST_STATUS(%rbp)
+    jne .Lamdvi_diagnostic_ready
+    push %r10
+    lea AMDVI_POST_CODE(%rbp), %rax
+    call *%rax
+    pop %r10
+.Lamdvi_diagnostic_ready:
+    mov AMDVI_POST_STATUS(%rbp), %rax
+    test %r10, %r10
+    jz finish
+    cmp $4, %eax
+    jne denied
+    mov AMDVI_POST_STATUS(%rbp,%r10,8), %rax
+    jmp finish
+#endif
 #ifdef DESKTOP_MEDIA
 usb_controllers:
 #ifdef XHCI_NATIVE_DUAL

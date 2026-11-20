@@ -14,8 +14,19 @@ if ($gpuRun -ne [bool]$NvidiaProbe -or $gpuRun -ne [bool]$proof.nvidia_pci_probe
     throw 'El ensayo GPU requiere -NvidiaProbe y su propia prueba PCI en QEMU.'
 }
 $amdviRun=Test-Path -LiteralPath (Join-Path $runPath 'amdvi-efi-probe.txt') -PathType Leaf
+$amdviPost=Test-Path -LiteralPath (Join-Path $runPath 'amdvi-post-probe.txt') -PathType Leaf
 if ($amdviRun -ne [bool]$proof.amdvi_efi_probe -or ($amdviRun -and -not $gpuRun)) {
     throw 'La sonda AMD-Vi requiere el perfil NVIDIA y su manifiesto.'
+}
+if ($amdviPost -ne [bool]$proof.amdvi_post_probe -or ($amdviPost -and -not $amdviRun)) {
+    throw 'La captura post-EBS requiere el perfil AMD-Vi y su manifiesto.'
+}
+if ($amdviPost) {
+    $missing=$proof.Cases | Where-Object { $_.Case -eq 'amdvi-missing' } | Select-Object -First 1
+    if (-not $normal.AmdViPostVerified -or $normal.AmdViPostPages -ne 2 -or
+        -not $missing.AmdViPostVerified -or $missing.AmdViPostPages -ne 0) {
+        throw 'Falta comprobar la ventana AMD-Vi posterior a ExitBootServices.'
+    }
 }
 if ($amdviRun) {
     $rejected=$proof.Cases | Where-Object { $_.Case -eq 'external-permissions' } | Select-Object -First 1
@@ -37,7 +48,8 @@ if($proof.qemu_only -or $proof.usb_profile -or (Test-Path -LiteralPath (Join-Pat
         throw 'El perfil USB QEMU no se instala en METAL. El candidato AMD requiere perfil conjunto y pruebas adicionales explicitas.'
     }
 }
-if ($proof.Passed -ne 2 -or $proof.Total -ne 2 -or -not $proof.disk_sbef -or
+$caseCount=if($amdviPost){3}else{2}
+if ($proof.Passed -ne $caseCount -or $proof.Total -ne $caseCount -or -not $proof.disk_sbef -or
     -not $normal.DirectorRust -or -not $normal.SuperQVerified -or -not $normal.BootLogFat32Verified) {
     throw 'Faltan las pruebas QEMU de escritorio y lectura FAT32.'
 }
@@ -112,6 +124,7 @@ $record=[ordered]@{Schema=1;Evidence='HOST copy after QEMU FAT32 boot';Run=$proo
     Files=$written;LegacyFilesUnchanged=$legacy;PhysicalBootVerified=$false;PhysicalUsbVerified=$false;
     PreviousFiles=$previous;ExperimentalUsb=[bool]$ExperimentalUsb;HardwareProfile=$proof.hardware_profile;AmdViFirmwareProbe=$amdviRun;
     AmdViMmioProbe=[bool]$proof.amdvi_mmio_probe;
+    AmdViPostProbe=$amdviPost;
     BootFile=('\'+$bootFile.Replace('/','\'));ReportFile=('\'+$dataFolder.Replace('/','\')+'\'+$reportName);
     Note='USB HID fisico sigue pendiente; no cambia NVRAM ni archivos ajenos al candidato.'}
 $json=$record | ConvertTo-Json -Depth 8

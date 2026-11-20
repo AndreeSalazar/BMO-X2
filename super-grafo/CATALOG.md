@@ -157,6 +157,7 @@
 | [AMD-Vi / Traduccion y revocacion virtual](../tools/host/gpu/qemu_dma.py) | qemu | host | Comprueba traduccion, bloqueo e invalidacion DMA en AMD-Vi de QEMU con EDU mediante qtest. |
 | [AMD-Vi / Sonda de DMA del invitado](../kernel/drivers/bus/amdvi/edu_probe.S) | qemu | 0 | Sonda ASM transitoria despues de ExitBootServices. Programa AMD-Vi en QEMU y prueba DMA de EDU. |
 | [AMD-Vi / Inventario UEFI](../kernel/drivers/bus/amdvi/firmware_probe.S) | qemu | 0 | Sonda ASM transitoria antes de ExitBootServices. Valida IVRS y la base PCI y lee cinco registros AMD-Vi mediante CPU I/O 2. |
+| [AMD-Vi / Captura Ring 0](../kernel/drivers/bus/amdvi/post_ebs_probe.inc) | qemu | 0 | Lee los cinco registros AMD-Vi despues de ExitBootServices. Abre y revoca dos paginas MMIO de solo lectura antes de iniciar USB. |
 
 ## Dependencias declaradas
 
@@ -419,6 +420,8 @@
 | amdvi-edu-guest | device-bus | verificacion |
 | amdvi-firmware-probe | amd-ivrs-host | verificacion |
 | rmlui-fat32-media | amdvi-firmware-probe | codigo |
+| amdvi-post-ebs-probe | amdvi-firmware-probe | codigo |
+| rmlui-fat32-media | amdvi-post-ebs-probe | codigo |
 | rmlui-fat32-media | nvidia-mmio-probe | codigo |
 | nvidia-mmio-probe | nvidia-pci-probe | codigo |
 

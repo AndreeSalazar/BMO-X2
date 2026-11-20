@@ -17,6 +17,13 @@ from stage_bmo_x2 import bridge_variant
 from wake import check
 from fat32_read import Fat32
 
+def check_context_stage(llvm, obj, name):
+    symbols=subprocess.check_output([llvm/'llvm-nm.exe','--format=posix',obj],text=True)
+    positions={fields[0]:int(fields[2],16) for line in symbols.splitlines()
+               if len(fields:=line.split())>=3 and fields[0] in (name+'_begin',name+'_end')}
+    if not 0<positions[name+'_end']-positions[name+'_begin']<=2048:
+        raise ValueError('Context code stage exceeds its half page: '+name)
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('abi_run',type=Path);p.add_argument('splash_run',type=Path)
@@ -26,9 +33,12 @@ def main():
     p.add_argument('--usb-empty-ports',action='store_true',help='QEMU rejection test; never a metal candidate')
     p.add_argument('--nvidia-probe', action='store_true', help='Read PCI display inventory before ExitBootServices')
     p.add_argument('--amdvi-probe', action='store_true', help='Add read-only AMD-Vi firmware inventory to the NVIDIA profile')
+    p.add_argument('--amdvi-post', action='store_true', help='Take a second AMD-Vi snapshot after ExitBootServices')
     args=p.parse_args()
     if args.usb_empty_ports and args.usb!='both':p.error('--usb-empty-ports requires --usb both')
     if args.amdvi_probe and not args.nvidia_probe:p.error('--amdvi-probe requires --nvidia-probe')
+    if args.amdvi_post and (not args.amdvi_probe or args.usb!='both' or args.msvc_panel or args.usb_empty_ports):
+        p.error('--amdvi-post requires the NVIDIA AMD-Vi profile with USB both')
     abi,splash=args.abi_run.resolve(),args.splash_run.resolve()
     for path in (abi,splash):
         if path.parent!=ROOT/'build/CASM':raise ValueError('Run outside build/CASM')
@@ -36,6 +46,7 @@ def main():
     if (abi/'profile.txt').read_text(encoding='utf-8-sig').strip()!='ring0-abi-probe-0.1' or (splash/'profile.txt').read_text(encoding='utf-8-sig').strip()!='ring0-splash-0.1':
         raise ValueError('ABI probe and compact CASM cat required')
     variant='desktop-usb-'+args.usb if args.usb else 'desktop'
+    if args.amdvi_post:variant+='-amdvi-post'
     app=OUT/(variant + ('-msvc' if args.msvc_panel else ''))
     hashes=json.loads((app/'artifacts.json').read_text())
     for name,digest in hashes.items():
@@ -46,6 +57,8 @@ def main():
         (run/'nvidia-pci-probe.txt').write_text('pci-read-only\n', encoding='ascii')
     if args.amdvi_probe:
         (run/'amdvi-efi-probe.txt').write_text('firmware-read-only\n', encoding='ascii')
+    if args.amdvi_post:
+        (run/'amdvi-post-probe.txt').write_text('post-ebs-read-only\n', encoding='ascii')
     if args.low_gop:(run/'low-gop.txt').write_text('QEMU VGA preferred 1024x768\n',encoding='ascii')
     if args.usb:(run/'native-usb.txt').write_text(args.usb+'\n',encoding='ascii')
     if args.usb_empty_ports:(run/'native-usb-empty.txt').write_text('QEMU fault test\n',encoding='ascii')
@@ -59,9 +72,11 @@ def main():
         if args.usb=='both':flags+=['-DXHCI_NATIVE_DUAL']
         if args.nvidia_probe and name == 'reader':flags+=['-DBMO_NVIDIA_PCI_PROBE']
         if args.amdvi_probe and name == 'reader':flags+=[f'-DBMO_AMDVI_EFI_OFFSET={amdvi_offset}']
+        if args.amdvi_post and name in ('reader','gate'):flags+=['-DBMO_AMDVI_POST']
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf','-DRMLUI_MEDIA','-DRMLUI_NATIVE',
             '-DRMLUI_GOP_REGIONS','-DDOOM_ENGINE','-DDESKTOP_DOOM',*flags,
             '-c',ROOT/source,'-o',run/(name+'.o')],'compile-media-'+name)
+        if args.amdvi_post and name=='reader':check_context_stage(llvm,run/'reader.o','gop_stage')
         command([llvm/'llvm-objcopy.exe','-O','binary','--only-section=.text',run/(name+'.o'),run/(name+'.bin')],'extract-media-'+name)
     sbef=(app/'rmlui.sbef').read_bytes();reference=(abi/'INICIO.X86').read_bytes()
     gate=(run/'gate.bin').read_bytes();loader=(run/'loader.bin').read_bytes()
@@ -89,7 +104,9 @@ def main():
     if args.amdvi_probe:
         source=ROOT/'kernel/drivers/bus/amdvi/firmware_probe.S'
         native_probe=run/'amdvi-firmware.o'
-        command([llvm/'clang.exe','--target=x86_64-unknown-none-elf','-c',source,'-o',native_probe],'compile-amdvi-firmware')
+        flags=['-DBMO_AMDVI_POST'] if args.amdvi_post else []
+        command([llvm/'clang.exe','--target=x86_64-unknown-none-elf',*flags,'-c',source,'-o',native_probe],'compile-amdvi-firmware')
+        if args.amdvi_post:check_context_stage(llvm,native_probe,'amdvi_post')
         relocations=subprocess.check_output([llvm/'llvm-objdump.exe','-r',native_probe],text=True)
         if 'RELOCATION RECORDS' in relocations:raise ValueError('AMD-Vi firmware inventory must be position independent')
         raw_probe=native_probe.with_suffix('.bin')
@@ -111,15 +128,18 @@ def main():
     for case,appfile in [('external-permissions',run/'rejected.sbef'),('normal',run/'rmlui.sbef')]:
         command([sys.executable,scripts/'prepare.py','--workspace',run,'--bmo-x2-folder','--desktop',appfile,'--native-ui',*prepare_flags],'prepare-ui-'+case)
         if case!='normal':(run/'build/puente-normal.img').replace(run/'build/puente-external-permissions.img')
+    cases=['normal','external-permissions']+(['amdvi-missing'] if args.amdvi_post else [])
     command([sys.executable,scripts/'probe.py','--workspace',run,'--halt','--abi-probe','--doom-fixture',
-        '--ram-mib','1024','--casos','normal','external-permissions'],'qemu-fat32-desktop',cwd=run)
+        '--ram-mib','1024','--casos',*cases],'qemu-fat32-desktop',cwd=run)
     report=json.loads((run/'build/puente-test-results.json').read_text())
-    if report['Passed']!=2 or not report['Cases'][0].get('BootLogFat32Verified'):raise ValueError('Missing disk evidence')
+    if report['Passed']!=len(cases) or not report['Cases'][0].get('BootLogFat32Verified'):raise ValueError('Missing disk evidence')
     if args.nvidia_probe and (not report['Cases'][0].get('GpuBar0UefiBytes') or
                              not report['Cases'][0].get('GpuNvidiaMmioSkipped')):
         raise ValueError('Missing UEFI BAR0 bounds or device guard evidence')
     if args.amdvi_probe and not all(case.get('AmdViMmioVerified') for case in report['Cases']):
         raise ValueError('Missing AMD-Vi MMIO evidence')
+    if args.amdvi_post and not all(report['Cases'][i].get('AmdViPostVerified') for i in (0,2)):
+        raise ValueError('Missing post-EBS AMD-Vi evidence')
     media_prefix = 'BMO-X2/GPU' if args.nvidia_probe else 'BMO-X2/DESKTOP'
     fs=Fat32(run/'build/puente-normal.img')
     try:
@@ -134,6 +154,7 @@ def main():
     report.update(run=run.name,evidence='QEMU',disk_sbef=True,physical_boot=False,physical_usb_proven=False,
         display_backend='cpu-gop',
         nvidia_pci_probe=args.nvidia_probe, amdvi_efi_probe=args.amdvi_probe, amdvi_mmio_probe=args.amdvi_probe,
+        amdvi_post_probe=args.amdvi_post,
         qemu_only=bool(args.usb),usb_profile=args.usb,
         usb_empty_ports=args.usb_empty_ports,
         hardware_profile='amd149c-usb2-root-experimental' if args.usb=='both' and not args.usb_empty_ports else None,

@@ -1,4 +1,7 @@
 .text
+#ifdef BMO_AMDVI_POST
+#include "post_layout.inc"
+#endif
 # Read-only AMD-Vi inventory while UEFI still owns the platform.
 # RCX = EFI_SYSTEM_TABLE, RDX = inventory fields, R8 = report_hex32.
 # R9 = MMIO snapshot fields.
@@ -12,6 +15,17 @@ amdvi_firmware_probe:
     push %r13
     push %r14
     push %r15
+#ifdef BMO_AMDVI_POST
+    lea amdvi_post_begin(%rip), %rsi
+    lea AMDVI_POST_CODE(%rbp), %rdi
+    mov $(amdvi_post_end-amdvi_post_begin), %eax
+    # Preserve the four incoming parameters across the copy.
+    push %rcx
+    mov %eax, %ecx
+    cld
+    rep movsb
+    pop %rcx
+#endif
     sub $16, %rsp
     mov %r9, (%rsp)
     mov 0x60(%rcx), %rax
@@ -214,6 +228,18 @@ snapshot:
     mov (%rsp), %r8
     mov %r15, %r9
     call amdvi_uefi_snapshot
+#ifdef BMO_AMDVI_POST
+    cmp $4, %eax
+    jne finish
+    movzwl 4(%r13), %eax
+    shl $8, %eax
+    movzwl 6(%r13), %ecx
+    lea 4(%rax,%rcx), %eax
+    or $0x80000000, %eax
+    mov %eax, AMDVI_POST_PCI(%rbp)
+    mov %esi, AMDVI_POST_PCI_LOW(%rbp)
+    mov %r12, AMDVI_POST_BASE(%rbp)
+#endif
     jmp finish
 restore_bad_cap:
     mov %r10d, %eax
@@ -336,6 +362,9 @@ amdvi_uefi_snapshot:
     mov %ebx, %eax
     mov %r13, %rdi
     call *%r14
+#ifdef BMO_AMDVI_POST
+    mov %ebx, %eax
+#endif
     add $96, %rsp
     pop %r15
     pop %r14
@@ -352,3 +381,7 @@ amdvi_uefi_snapshot:
 .p2align 3
 .Lcpu_io2_guid:
     .quad 0x4c0eae5fad61f191, 0x4fc688d269e8fab9
+
+#ifdef BMO_AMDVI_POST
+#include "post_ebs_probe.inc"
+#endif

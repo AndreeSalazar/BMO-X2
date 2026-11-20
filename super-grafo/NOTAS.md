@@ -1494,7 +1494,7 @@ Construye el perfil de escritorio FAT32 y las variantes xHCI de teclado/raton pa
 Estado: QEMU. Anillo: host. Lenguaje: Python / LLVM / CASM / C++ / Rust.
 Entrada: Runs ABI y gato CASM verificados, ELF/SBEF nativo con hashes y selector explicito de perfil USB.
 Salida: EFI e INICIO con SBEF desde FAT32; perfiles QEMU con reserva DMA supervisada, etapa xHCI y reportes.
-Depende de: Interfaz RmlUi y ULTRA-J nativa (codigo), Inspeccion acotada de FAT32 (codigo), Buses, recursos y DMA (codigo), Informes USB al escritorio nativo (codigo), Presentacion GOP por CPU (codigo), GPU / NVIDIA / Inventario PCI (codigo), AMD-Vi / Inventario UEFI (codigo), GPU / NVIDIA / Lectura MMIO (codigo).
+Depende de: Interfaz RmlUi y ULTRA-J nativa (codigo), Inspeccion acotada de FAT32 (codigo), Buses, recursos y DMA (codigo), Informes USB al escritorio nativo (codigo), Presentacion GOP por CPU (codigo), GPU / NVIDIA / Inventario PCI (codigo), AMD-Vi / Inventario UEFI (codigo), AMD-Vi / Captura Ring 0 (codigo), GPU / NVIDIA / Lectura MMIO (codigo).
 Aceptacion: FAT32: GOP 1280x800 y 1024x768, W+X rechazado, BOOTLOG/SBEF releidos. USB: teclado y raton en perfiles separados, W+X rechazado, limites de imagen comprobados y deploy.ps1 rechaza perfiles solo-QEMU.
 Pendiente: Arranque fisico del candidato y backend USB AMD completo; la supervision DMA no acredita IOMMU ni aislamiento de dispositivos hostiles.
 
@@ -1683,7 +1683,18 @@ Entrada: Tabla de sistema UEFI, RSDP, XSDT y una sola unidad IVHD del segmento P
 Salida: GPULOG.TXT con IVRS, BDF, base PCI, control, tabla, colas y estado AMD-Vi.
 Depende de: HOST / Inventario AMD-Vi (verificacion).
 Aceptacion: QEMU q35 coteja base PCI y registros con QMP y distingue IVRS ausente. METAL confirmo unidad 00:00.2, decode activo y cinco registros, con traduccion y colas desactivadas antes de ExitBootServices.
-Pendiente: Cotejar los registros tras el traspaso mediante MMIO supervisor de solo lectura y preparar el dominio con continuidad de USB y almacenamiento.
+Pendiente: Cotejar esta captura con la sonda post-EBS en METAL.
+
+## kernel/drivers/bus/amdvi/post_ebs_probe.inc
+
+Lee los cinco registros AMD-Vi despues de ExitBootServices. Abre y revoca dos paginas MMIO de solo lectura antes de iniciar USB.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: Captura UEFI valida, capacidad PCI cotejada, mapa final UEFI y tablas propias CASM del escritorio nativo.
+Salida: Captura fija en contexto supervisor. INVOKE entrega seis escalares al pie del escritorio y a la serie de QEMU.
+Depende de: AMD-Vi / Inventario UEFI (codigo).
+Aceptacion: QEMU coteja registros antes y despues de EBS y los permisos de las dos paginas. Sin AMD-Vi, inicia el escritorio sin abrir la ventana MMIO.
+Pendiente: Cotejar en METAL. Despues acreditar dominio DMA con continuidad de USB y almacenamiento antes de arrancar GSP.
 
 ## CASM
 
@@ -1707,4 +1718,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-153 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+154 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

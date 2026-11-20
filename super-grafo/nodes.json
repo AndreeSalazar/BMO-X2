@@ -2631,7 +2631,25 @@
       "entrada": "Tabla de sistema UEFI, RSDP, XSDT y una sola unidad IVHD del segmento PCI 0.",
       "salida": "GPULOG.TXT con IVRS, BDF, base PCI, control, tabla, colas y estado AMD-Vi.",
       "aceptacion": "QEMU q35 coteja base PCI y registros con QMP y distingue IVRS ausente. METAL confirmo unidad 00:00.2, decode activo y cinco registros, con traduccion y colas desactivadas antes de ExitBootServices.",
-      "falta": "Cotejar los registros tras el traspaso mediante MMIO supervisor de solo lectura y preparar el dominio con continuidad de USB y almacenamiento."
+      "falta": "Cotejar esta captura con la sonda post-EBS en METAL."
+    },
+    {
+      "id": "amdvi-post-ebs-probe",
+      "titulo": "AMD-Vi / Captura Ring 0",
+      "ruta": "kernel/drivers/bus/amdvi/post_ebs_probe.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [
+        11100,
+        4080
+      ],
+      "que": "Lee los cinco registros AMD-Vi despues de ExitBootServices. Abre y revoca dos paginas MMIO de solo lectura antes de iniciar USB.",
+      "entrada": "Captura UEFI valida, capacidad PCI cotejada, mapa final UEFI y tablas propias CASM del escritorio nativo.",
+      "salida": "Captura fija en contexto supervisor. INVOKE entrega seis escalares al pie del escritorio y a la serie de QEMU.",
+      "aceptacion": "QEMU coteja registros antes y despues de EBS y los permisos de las dos paginas. Sin AMD-Vi, inicia el escritorio sin abrir la ventana MMIO.",
+      "falta": "Cotejar en METAL. Despues acreditar dominio DMA con continuidad de USB y almacenamiento antes de arrancar GSP."
     }
   ],
   "relaciones": [
@@ -3918,6 +3936,16 @@
     {
       "de": "rmlui-fat32-media",
       "a": "amdvi-firmware-probe",
+      "clase": "codigo"
+    },
+    {
+      "de": "amdvi-post-ebs-probe",
+      "a": "amdvi-firmware-probe",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-fat32-media",
+      "a": "amdvi-post-ebs-probe",
       "clase": "codigo"
     },
     {

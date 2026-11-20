@@ -56,6 +56,22 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
     if not 0x100000<=context_address<=0xffe0000:raise ValueError('Native UI handoff address')
     context=memory(context_address,0x30,'ui-context')
     if context[:8]!=b'METAL64!':raise ValueError('Native UI handoff signature')
+    amdvi_proof={}
+    if symbols.get('amdvi_post'):
+        base, _, _, status, control, table, cmd, events, hw_status, pte0, pte2 = struct.unpack(
+            '<QII8Q', memory(context_address+0xb00,0x50,'amdvi-post'))
+        expected = ('AMDVI_POST=01' if case == 'amdvi-missing' else
+                    'AMDVI_POST=04 ' + ' '.join(f'{word:016X}' for word in (control,table,cmd,events,hw_status)))
+        if expected not in serial.read_text(errors='replace').splitlines():
+            raise ValueError('Ring 3 AMD-Vi report differs from the Ring 0 snapshot')
+        if case == 'amdvi-missing':
+            if (base,status,control,table,cmd,events,hw_status,pte0,pte2) != (0,1,0,0,0,0,0,0,0):
+                raise ValueError('Absent AMD-Vi opened a post-EBS alias')
+            return dict(Case=case,Passed=True,AmdViPostVerified=True,AmdViPostReport='01',AmdViPostPages=0)
+        if base!=0xfed80000 or status!=4 or (pte0,pte2)!=(0x80000000fed80019,0x80000000fed82019):
+            raise ValueError('Unexpected post-EBS AMD-Vi aperture or permissions')
+        amdvi_proof=dict(AmdViPostVerified=True,AmdViPostReport=expected.removeprefix('AMDVI_POST='),
+                         AmdViPostPages=2,AmdViPostPtes=[f'{pte0:016X}',f'{pte2:016X}'])
     if symbols.get('usb')=='both':
         live=memory(context_address+0x1a3c8,1,'dual-live')[0]
         roles=memory(context_address+0x1a770,1,'dual-roles')[0]
@@ -335,7 +351,7 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
             HeapPeakBytes=after[7],HeapLimitBytes=4*1024*1024,FramebufferBytes=len(raw),SbefBytes=len(image),
             StagedModuleSHA256=hashlib.sha256(struct.pack('<Q',len(image))+image).hexdigest(),
             PresentedPixelsVerified=dw*dh,GopWidth=width,GopHeight=height,HalfScale=scale==0,
-            FrameSHA256=before,**display_proof,**usb_proof,**msvc_result)
+            FrameSHA256=before,**display_proof,**usb_proof,**msvc_result,**amdvi_proof)
     command('input-send-event',{'events':[{'type':'rel','data':{'axis':'y','value':127}}]})
     time.sleep(.2)
     command('input-send-event',{'events':[{'type':'btn','data':{'button':'left','down':True}}]})

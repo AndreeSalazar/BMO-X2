@@ -113,6 +113,31 @@ extern "C" void bmo_main() {
     doc->SetClass("arrived",true);doc->SetClass("intro-ready",true);
     auto button=doc->GetElementById("activate");check(button,"button");button->AddEventListener("click",&action);
     doc->Show();
+#ifdef BMO_AMDVI_POST
+    // Request the one-time supervisor snapshot before starting USB.
+    constexpr unsigned amdvi_diagnostic=25;
+    const auto amdvi_status=doom_invoke(3,3,amdvi_diagnostic,0);
+    char amdvi_line[180];
+    auto* amdvi_panel=doc->GetElementById("amdvi-post");
+    check(amdvi_panel,"AMD-Vi report");
+    if(amdvi_status==4) {
+        unsigned long words[5];
+        for(unsigned i=0;i<5;++i)words[i]=doom_invoke(3,3,amdvi_diagnostic,i+1);
+        snprintf(amdvi_line,sizeof(amdvi_line),
+                 "AMDVI_POST=04 %016lX %016lX %016lX %016lX %016lX\n",
+                 words[0],words[1],words[2],words[3],words[4]);
+        log(amdvi_line);
+        snprintf(amdvi_line,sizeof(amdvi_line),
+                 "AMD-Vi Ring 0 / CTRL %016lX / TABLA %016lX<br/>"
+                 "CMD %016lX / EVT %016lX / ESTADO %016lX",
+                 words[0],words[1],words[2],words[3],words[4]);
+    } else {
+        snprintf(amdvi_line,sizeof(amdvi_line),"AMDVI_POST=%02lX\n",amdvi_status);
+        log(amdvi_line);
+        snprintf(amdvi_line,sizeof(amdvi_line),"AMD-Vi Ring 0 / captura %02lX",amdvi_status);
+    }
+    amdvi_panel->SetInnerRML(amdvi_line);
+#endif
 #ifdef BMO_DESKTOP_UI
     bmo_director_init();bmo_director_open();Launcher launcher(bmo_director_open);
     doc->GetElementById("open-app")->AddEventListener("click",&launcher);

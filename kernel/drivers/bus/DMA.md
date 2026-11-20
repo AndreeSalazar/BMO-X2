@@ -57,7 +57,10 @@ ExitBootServices, con las bases de comandos y eventos programadas
 por encima de 4 GiB. Esas direcciones no se incorporan al asignador
 como propiedad del kernel a partir de esta lectura. El ensayo siguiente
 compara el estado despues del traspaso mediante dos paginas MMIO de
-solo lectura y con permisos de supervisor.
+solo lectura y con permisos de supervisor. La
+[sonda post-EBS](amdvi/post_ebs_probe.inc) reutiliza la tabla temporal
+de xHCI antes de iniciar ese controlador. Revoca las dos entradas
+antes de entregar los valores capturados a Ring 3.
 [Registros en METAL](../../../Reports/nvidia-pci-metal-20261120-amdvi-registers.json).
 
 El puente del escritorio reserva cinco paginas contiguas de EfiLoaderData

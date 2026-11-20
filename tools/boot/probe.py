@@ -23,7 +23,7 @@ from sbef_probe_cases import MUTATIONS, SBEF_OFFSET, mutated_packet
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--workspace',required=True,type=Path)
-parser.add_argument('--casos', nargs='+', choices=['normal','firma','suma','entrada','ausente','excesivo','salida','contexto','external-permissions', *MUTATIONS], default=['normal'])
+parser.add_argument('--casos', nargs='+', choices=['normal','firma','suma','entrada','ausente','excesivo','salida','contexto','external-permissions','amdvi-missing', *MUTATIONS], default=['normal'])
 parser.add_argument('--qemu', default='C:/Program Files/qemu/qemu-system-x86_64.exe')
 parser.add_argument('--cpu', choices=['qemu64', 'Nehalem'], default='qemu64')
 parser.add_argument('--ram-mib', type=int, choices=[256,1024], default=256)
@@ -53,8 +53,13 @@ if any((args.identify,args.stack,args.splash,args.fault,memory_case,user_case)) 
 if (args.splash_hd and not args.splash) or ('contexto' in args.casos and not (args.stack or args.fault or memory_case or user_case)) or sum((args.identify,args.stack,args.splash,args.fault,args.memory,args.frame_cycle,args.paging,args.user_fault,args.abi_probe,args.hot_unmap)) > 1 or ((memory_case or user_case) and args.ram_mib != 256 and not args.doom_fixture):
     parser.error('Invalid combination of payload and probe cases')
 ROOT = workspace(args.workspace)
-if args.doom_fixture and (not args.abi_probe or args.casos not in (['normal'], ['normal', 'external-permissions'])):
+amdvi_post = args.doom_fixture and (ROOT / 'amdvi-post-probe.txt').is_file()
+desktop_cases = ['normal', 'external-permissions']
+if args.doom_fixture and (not args.abi_probe or args.casos not in
+                          (['normal'], desktop_cases, desktop_cases + (['amdvi-missing'] if amdvi_post else []))):
     parser.error('DOOM requires the normal ABI probe case')
+if 'amdvi-missing' in args.casos and not amdvi_post:
+    parser.error('The missing AMD-Vi case requires the post-EBS profile')
 doom = None
 intro_size = 0
 intro_rows = None
@@ -195,7 +200,8 @@ def verify_amdvi_firmware(log, units, register_words, present):
 
 def run(case):
     payload_case = case in ('normal', 'contexto', *MUTATIONS)
-    disk_case = 'normal' if case == 'external-permissions' and not (args.doom_fixture and (desktop_media or native_media)) else case
+    disk_case = 'normal' if (case == 'amdvi-missing' or
+                             (case == 'external-permissions' and not (args.doom_fixture and (desktop_media or native_media)))) else case
     image = ROOT / 'build' / f'puente-{disk_case}.img'
     before = hashlib.sha256(image.read_bytes()).hexdigest()
     prefix = ROOT / 'build' / f'puente-{case}'
@@ -557,13 +563,18 @@ for case in args.casos:
                     log_name = 'GPULOG.TXT' if nvidia_probe else 'BOOTLOG.TXT'
                     log=fs.file_bytes(f'{media_prefix}/{log_name}',4096)
                     loaded=fs.file_bytes(f'{media_prefix}/DESKTOP.SBF')
-                    expected_image = external_image if case == 'normal' else (ROOT / 'rejected.sbef').read_bytes()
+                    expected_image = (ROOT / 'rejected.sbef').read_bytes() if case == 'external-permissions' else external_image
                     if loaded!=expected_image or not log.startswith(b'BMO-X2 DESKTOP UEFI PRE-EBS\r\n'):
                         raise ValueError('Native FAT32 payload/report differs')
                     Path(str(prefix)+'-'+log_name).write_bytes(log)
                     if amdvi_probe:
                         result.update(verify_amdvi_firmware(log, result.pop('AmdViQmpUnits'),
                                                             result.pop('AmdViQmpRegisters'), case == 'normal'))
+                    if amdvi_post and case == 'normal':
+                        pre = result['AmdViMmioReport'].split()[1:]
+                        post = result['AmdViPostReport'].split()[1:]
+                        if pre != post:
+                            raise ValueError(f'AMD-Vi QEMU register values changed across EBS: {pre} != {post}')
                     if nvidia_probe and case == 'normal':
                         values = dict(line.split('=', 1) for line in log.decode('ascii').splitlines()
                                       if line.startswith('GPU_'))

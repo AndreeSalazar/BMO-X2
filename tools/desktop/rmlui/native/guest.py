@@ -38,13 +38,17 @@ def main():
     parser.add_argument('--desktop',action='store_true')
     parser.add_argument('--msvc-panel-cc', help='Optional cl.exe for the trusted Win64 panel')
     parser.add_argument('--usb',choices=['keyboard','mouse','both'])
+    parser.add_argument('--amdvi-post',action='store_true')
     args=parser.parse_args()
     if args.usb and not args.desktop:parser.error('--usb requires --desktop')
     if args.msvc_panel_cc and not args.desktop:parser.error('--msvc-panel-cc requires --desktop')
+    if args.amdvi_post and (not args.desktop or args.usb!='both' or args.msvc_panel_cc):
+        parser.error('--amdvi-post requires the desktop with USB both')
     libc.main()
     here=Path(__file__).parent
     llvm=Path(os.environ['ProgramFiles'])/'LLVM/bin'
     variant='desktop-usb-'+args.usb if args.usb else 'desktop' if args.desktop else 'guest'
+    if args.amdvi_post:variant+='-amdvi-post'
     out=OUT/(variant + ('-msvc' if args.msvc_panel_cc else ''))
     out.mkdir(exist_ok=True)
     includes=generate_headers()
@@ -62,6 +66,7 @@ def main():
     if args.usb:cppflags+=['-DBMO_USB_INPUT']+(['-DBMO_USB_MOUSE'] if args.usb=='mouse' else [])
     if args.usb=='both':cppflags+=['-DBMO_USB_DUAL']
     if args.msvc_panel_cc:cppflags+=['-DBMO_MSVC_PANEL']
+    if args.amdvi_post:cppflags+=['-DBMO_AMDVI_POST']
     command([llvm/'clang++.exe',*cppflags,'-c',here/'guest.cpp','-o',out/'guest.o'],'compile-native-guest')
     command([llvm/'clang++.exe',*cppflags,'-c',here/'new.cpp','-o',out/'new.o'],'compile-native-new')
     rust_extra=[]
@@ -91,6 +96,9 @@ def main():
             '<span id="lock-scroll" class="key-chip">DESPL</span></div>')
         text=text.replace('<span class="muted">BMO-X2 / DIRECTOR</span>',bar)
         text=text.replace('HECHO PARA CRECER','CTRL+SUPER+1..4 / SUPER+Q')
+    if args.amdvi_post:
+        text=text.replace('<span class="footer-note">SBEF NATIVO / DIBUJO CPU / RMLUI + ULTRA-J</span>',
+                          '<div id="amdvi-post" style="color:#d7fff6;font-size:13px;letter-spacing:0;"></div>')
     if args.msvc_panel_cc:
         text=text.replace('<div class="nav">03 <span>Archivos</span></div>',
             '<button id="open-msvc" class="nav">Abrir panel MSVC</button>')
@@ -145,6 +153,7 @@ def main():
     if args.msvc_panel_cc:
         manifest['msvc_panel_draws']=symbols['bmo_ui_msvc_draws']
     if args.usb:manifest.update(usb=args.usb,usb_reports=symbols['bmo_ui_usb_reports'])
+    if args.amdvi_post:manifest['amdvi_post']=True
     if args.usb=='both':
         manifest.update(usb_keyboard_reports=symbols['bmo_ui_usb_keyboard_reports'],
             usb_mouse_reports=symbols['bmo_ui_usb_mouse_reports'],mouse_edges=symbols['bmo_ui_mouse_edges'],
