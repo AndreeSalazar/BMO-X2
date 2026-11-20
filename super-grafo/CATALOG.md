@@ -158,6 +158,7 @@
 | [AMD-Vi / Sonda de DMA del invitado](../kernel/drivers/bus/amdvi/edu_probe.S) | qemu | 0 | Sonda ASM transitoria despues de ExitBootServices. Programa AMD-Vi en QEMU y prueba DMA de EDU. |
 | [AMD-Vi / Inventario UEFI](../kernel/drivers/bus/amdvi/firmware_probe.S) | qemu | 0 | Sonda ASM transitoria antes de ExitBootServices. Valida IVRS y la base PCI y lee cinco registros AMD-Vi mediante CPU I/O 2. |
 | [AMD-Vi / Captura Ring 0](../kernel/drivers/bus/amdvi/post_ebs_probe.inc) | qemu | 0 | Lee los cinco registros AMD-Vi despues de ExitBootServices. Abre y revoca dos paginas MMIO de solo lectura antes de iniciar USB. |
+| [AMD-Vi / DMA y USB concurrentes en QEMU](../tools/boot/amdvi_xhci.py) | qemu | host | Usa qtest para configurar dominios distintos para EDU y xHCI en el escritorio virtual. |
 
 ## Dependencias declaradas
 
@@ -422,6 +423,8 @@
 | rmlui-fat32-media | amdvi-firmware-probe | codigo |
 | amdvi-post-ebs-probe | amdvi-firmware-probe | codigo |
 | rmlui-fat32-media | amdvi-post-ebs-probe | codigo |
+| amdvi-xhci-coexist | amdvi-edu-qtest | codigo |
+| amdvi-xhci-coexist | rmlui-usb-dual | verificacion |
 | rmlui-fat32-media | nvidia-mmio-probe | codigo |
 | nvidia-mmio-probe | nvidia-pci-probe | codigo |
 

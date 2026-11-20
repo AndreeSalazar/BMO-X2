@@ -37,6 +37,12 @@ class QTest:
 
     def command(self, name, *args):
         line = ' '.join((name, *(hex(arg) if isinstance(arg, int) else arg for arg in args)))
+        result = self.exchange(line)
+        if result != 'OK' and not result.startswith('OK '):
+            raise RuntimeError(f'{line}: {result}')
+        return result[3:]
+
+    def exchange(self, line):
         self.process.stdin.write(line + '\n')
         self.process.stdin.flush()
         try:
@@ -45,9 +51,7 @@ class QTest:
             raise RuntimeError(f'QEMU sin respuesta: {line}') from None
         if result is None:
             raise RuntimeError(f'QEMU cerro: {self.process.stderr.read().strip()}')
-        if result != 'OK' and not result.startswith('OK '):
-            raise RuntimeError(f'{line}: {result}')
-        return result[3:]
+        return result
 
     def write(self, address, value):
         self.command('writeq', address, value)
@@ -61,8 +65,8 @@ class QTest:
     def get_bytes(self, address, size):
         return bytes.fromhex(self.command('read', address, size).removeprefix('0x'))
 
-    def pci(self, register, value=None, *, word=False):
-        self.command('outl', 0xcf8, 0x80000000 | EDU_REQUESTER << 8 | register)
+    def pci(self, register, value=None, *, word=False, requester=EDU_REQUESTER):
+        self.command('outl', 0xcf8, 0x80000000 | requester << 8 | register)
         if value is None:
             return int(self.command('inw' if word else 'inl', 0xcfc), 16)
         self.command('outw' if word else 'outl', 0xcfc, value)
@@ -73,19 +77,23 @@ def require(condition, message):
         raise ValueError(message)
 
 
+def submit_transfer(machine, source, target, size, command, *, bar=EDU_BAR):
+    machine.write(bar + 0x80, source)
+    machine.write(bar + 0x88, target)
+    machine.write(bar + 0x90, size)
+    machine.write(bar + 0x98, command)
+
+
 def transfer(machine, source, target, size, command):
-    machine.write(EDU_BAR + 0x80, source)
-    machine.write(EDU_BAR + 0x88, target)
-    machine.write(EDU_BAR + 0x90, size)
-    machine.write(EDU_BAR + 0x98, command)
+    submit_transfer(machine, source, target, size, command)
     machine.command('clock_step', 101_000_000)
     require(not machine.read(EDU_BAR + 0x98) & 1, 'EDU no completo la solicitud')
 
 
-def faults(machine, offset, iova, size):
+def faults(machine, offset, iova, size, *, event_log=EVENT_LOG):
     tail = machine.read(AMDVI + 0x2018)
     require(offset < tail < 4096 and tail % 16 == 0, f'Cola AMD-Vi invalida: {tail:#x}')
-    log = machine.get_bytes(EVENT_LOG + offset, tail - offset)
+    log = machine.get_bytes(event_log + offset, tail - offset)
     addresses = []
     for event, address in struct.iter_unpack('<QQ', log):
         require((event >> 60, event & 0xffff) == (2, EDU_REQUESTER) and event & (2 << 48),
@@ -96,12 +104,13 @@ def faults(machine, offset, iova, size):
     return tail, addresses
 
 
-def publish_command(machine, offset, low, high, completion_value):
-    machine.put_bytes(COMMAND_RING + offset, struct.pack('<QQQQ', low, high,
-                                                        1 << 60 | COMPLETION | 1, completion_value))
+def publish_command(machine, offset, low, high, completion_value, *,
+                    command_ring=COMMAND_RING, completion=COMPLETION):
+    machine.put_bytes(command_ring + offset, struct.pack('<QQQQ', low, high,
+                                                         1 << 60 | completion | 1, completion_value))
     tail = offset + 32
     machine.write(AMDVI + 0x2008, tail)
-    require(machine.read(AMDVI + 0x2000) == tail and machine.read(COMPLETION) == completion_value,
+    require(machine.read(AMDVI + 0x2000) == tail and machine.read(completion) == completion_value,
             'Comando AMD-Vi sin confirmar')
 
 

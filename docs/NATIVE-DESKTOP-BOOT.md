@@ -480,11 +480,12 @@ difieren de las del arranque anterior.
 
 Siguientes pruebas y criterio de avance:
 
-1. Extender la prueba QEMU a DMA concurrente del dispositivo de ensayo
-   y xHCI. Reservar tablas y colas propias y comprobar la lista de
-   solicitantes activos antes de habilitar la unidad. Cada solicitante
-   activo requiere mapeos conocidos o parada confirmada. El log
-   fisico pre-EBS ya muestra dos xHCI con bus mastering habilitado.
+1. Llevar al invitado la gestion de los dos dominios ensayados
+   con EDU y xHCI en QEMU. Reservar tablas y colas propias y
+   comprobar los solicitantes activos antes de habilitar la unidad.
+   Cada solicitante activo requiere mapeos validados o parada
+   confirmada. El registro fisico pre-EBS muestra dos xHCI con
+   bus mastering habilitado.
 2. Probar primero la tabla y las colas propias en METAL con la RTX y
    su funcion de audio sin bus mastering. Verificar que USB sigue
    operativo y, cuando el perfil disponga de acceso nativo al disco,
@@ -496,6 +497,23 @@ Siguientes pruebas y criterio de avance:
    dedicado, comprobar su salida y demostrar dibujo 3D fuera de
    pantalla antes de entregar el conector al backend NVIDIA.
 [Contrato DMA](../kernel/drivers/bus/DMA.md).
+
+El ensayo `run-rmlui-media-a5d049f8da32` registro 8 B transferidos
+a la pagina de EDU, rechazo fuera de rango y rechazo tras revocar.
+El escritorio recibio dos informes de teclado y uno de raton en
+cada etapa. HOST configuro AMD-Vi mediante qtest y suspendio
+temporalmente bus mastering de otras funciones PCI emuladas.
+El ensayo conserva el candidato METAL instalado y esta bloqueado
+para despliegue.
+[Evidencia de coexistencia](../Reports/amdvi-xhci-coexist-qemu-20261120.json).
+
+El primer patron usa como referencia el triangulo de
+[C++ / MSVC](../tools/tests/msvc_desktop_panel.cpp). El panel actual
+genera los pixeles con CPU. Para el ensayo NVIDIA, el cliente C++ de
+Ring 3 enviara el trabajo a un buffer fuera de pantalla. El resultado
+leido de la GPU se cotejara con la referencia antes de presentar por
+el conector NVIDIA.
+[Panel C++ validado en QEMU](../Reports/abi-msvc-rmlui-qemu.json).
 
 La captura posterior usa los estados `01` (sin captura previa usable),
 `02` (mapeo, PAT o mapa de memoria rechazado), `03` (base PCI

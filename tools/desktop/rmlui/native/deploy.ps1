@@ -7,6 +7,9 @@ if ((Split-Path $runPath -Parent) -ne (Join-Path $root 'build/CASM')) { throw 'R
 if ((Get-Content -LiteralPath (Join-Path $runPath 'profile.txt') -Raw).Trim() -ne 'rmlui-desktop-media') { throw 'Perfil de arranque incompatible.' }
 $media=Join-Path $runPath 'media'
 $proof=Get-Content -LiteralPath (Join-Path $media 'manifest.json') -Raw | ConvertFrom-Json
+if ($proof.amdvi_coexist -or (Test-Path -LiteralPath (Join-Path $runPath 'amdvi-coexist-probe.txt'))) {
+    throw 'El ensayo AMD-Vi con EDU y xHCI es exclusivo de QEMU.'
+}
 $normal=$proof.Cases | Where-Object { $_.Case -eq 'normal' } | Select-Object -First 1
 $gpuRun=Test-Path -LiteralPath (Join-Path $runPath 'nvidia-pci-probe.txt') -PathType Leaf
 if ($gpuRun -ne [bool]$NvidiaProbe -or $gpuRun -ne [bool]$proof.nvidia_pci_probe -or

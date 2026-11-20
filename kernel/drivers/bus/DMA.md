@@ -65,10 +65,24 @@ antes de entregar los valores capturados a Ring 3.
 
 La traduccion se habilita para la unidad AMD-Vi. Antes de cambiarla
 se requiere un inventario de solicitantes activos con mapeos validos
-o confirmacion de parada. El ensayo con EDU debe verificar que xHCI
-sigue entregando eventos mientras se concede y revoca la pagina de
-prueba. La comprobacion de almacenamiento fisico debe medir una
+o confirmacion de parada. El ensayo con EDU verifica que xHCI sigue
+entregando eventos mientras se concede y revoca la pagina de prueba.
+La comprobacion de almacenamiento fisico debe medir una
 transferencia despues de ExitBootServices con la traduccion activa.
+
+El perfil `--amdvi-coexist` agrega EDU al escritorio QEMU con USB
+dual. Reserva 13 paginas EfiLoaderData para el ensayo. HOST configura
+AMD-Vi con qtest mientras el invitado esta pausado. Concede una pagina
+a EDU y las 14 paginas de la reserva USB al dominio xHCI. QMP inyecta
+teclas y movimiento mientras EDU transfiere y despues de revocar su
+pagina. La prueba es exclusiva de QEMU y conserva la ruta CPU + GOP.
+Las operaciones de configuracion las emite HOST. El invitado sigue
+ejecutando su driver USB habitual.
+[Resultado QEMU](../../../Reports/amdvi-xhci-coexist-qemu-20261120.json).
+
+```powershell
+python -B tools/desktop/rmlui/native/media.py <ABI_RUN> <GATO_COMPACTO_RUN> --usb both --nvidia-probe --amdvi-probe --amdvi-post --amdvi-coexist
+```
 
 El puente del escritorio reserva cinco paginas contiguas de EfiLoaderData
 por debajo de 256 MiB y las entrega en los campos B8/C0 del contexto.

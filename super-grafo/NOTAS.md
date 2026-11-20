@@ -1696,6 +1696,17 @@ Depende de: AMD-Vi / Inventario UEFI (codigo).
 Aceptacion: QEMU coteja registros y permisos de las dos paginas y arranca sin AMD-Vi. METAL cotejo los cinco registros en GPULOG y el escritorio Ring 0; la traduccion siguio desactivada.
 Pendiente: Acreditar dominio DMA con continuidad de USB y almacenamiento antes de arrancar GSP.
 
+## tools/boot/amdvi_xhci.py
+
+Usa qtest para configurar dominios distintos para EDU y xHCI en el escritorio virtual.
+
+Estado: QEMU. Anillo: host. Lenguaje: Python.
+Entrada: QEMU q35, AMD-Vi, EDU, USB dual activo y reservas UEFI del invitado.
+Salida: Transferencia traducida, rechazos DMA y contadores HID antes y despues de revocar EDU.
+Depende de: AMD-Vi / Traduccion y revocacion virtual (codigo), xHCI USB2 con dos dispositivos (verificacion).
+Aceptacion: QEMU verifico 8 B en la pagina concedida, rechazo fuera de rango y tras invalidar, y 2 informes de teclado y 1 de raton en cada etapa.
+Pendiente: Pasar la configuracion al kernel invitado y acreditar almacenamiento activo antes del ensayo en METAL.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -1718,4 +1729,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-154 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+155 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

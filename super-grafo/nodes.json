@@ -2650,6 +2650,23 @@
       "salida": "Captura fija en contexto supervisor. INVOKE entrega seis escalares al pie del escritorio y a la serie de QEMU.",
       "aceptacion": "QEMU coteja registros y permisos de las dos paginas y arranca sin AMD-Vi. METAL cotejo los cinco registros en GPULOG y el escritorio Ring 0; la traduccion siguio desactivada.",
       "falta": "Acreditar dominio DMA con continuidad de USB y almacenamiento antes de arrancar GSP."
+    },
+    {
+      "id": "amdvi-xhci-coexist",
+      "titulo": "AMD-Vi / DMA y USB concurrentes en QEMU",
+      "ruta": "tools/boot/amdvi_xhci.py",
+      "estado": "qemu",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [
+        11700,
+        4600
+      ],
+      "que": "Usa qtest para configurar dominios distintos para EDU y xHCI en el escritorio virtual.",
+      "entrada": "QEMU q35, AMD-Vi, EDU, USB dual activo y reservas UEFI del invitado.",
+      "salida": "Transferencia traducida, rechazos DMA y contadores HID antes y despues de revocar EDU.",
+      "aceptacion": "QEMU verifico 8 B en la pagina concedida, rechazo fuera de rango y tras invalidar, y 2 informes de teclado y 1 de raton en cada etapa.",
+      "falta": "Pasar la configuracion al kernel invitado y acreditar almacenamiento activo antes del ensayo en METAL."
     }
   ],
   "relaciones": [
@@ -3947,6 +3964,16 @@
       "de": "rmlui-fat32-media",
       "a": "amdvi-post-ebs-probe",
       "clase": "codigo"
+    },
+    {
+      "de": "amdvi-xhci-coexist",
+      "a": "amdvi-edu-qtest",
+      "clase": "codigo"
+    },
+    {
+      "de": "amdvi-xhci-coexist",
+      "a": "rmlui-usb-dual",
+      "clase": "verificacion"
     },
     {
       "de": "rmlui-fat32-media",

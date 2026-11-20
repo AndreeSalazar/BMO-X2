@@ -7,6 +7,7 @@ from pathlib import Path
 import queue
 import re
 import shutil
+import socket
 import struct
 import subprocess
 import threading
@@ -54,6 +55,7 @@ if (args.splash_hd and not args.splash) or ('contexto' in args.casos and not (ar
     parser.error('Invalid combination of payload and probe cases')
 ROOT = workspace(args.workspace)
 amdvi_post = args.doom_fixture and (ROOT / 'amdvi-post-probe.txt').is_file()
+amdvi_coexist = amdvi_post and (ROOT / 'amdvi-coexist-probe.txt').is_file()
 desktop_cases = ['normal', 'external-permissions']
 if args.doom_fixture and (not args.abi_probe or args.casos not in
                           (['normal'], desktop_cases, desktop_cases + (['amdvi-missing'] if amdvi_post else []))):
@@ -199,6 +201,7 @@ def verify_amdvi_firmware(log, units, register_words, present):
 
 
 def run(case):
+    coexist = amdvi_coexist and case == 'normal'
     payload_case = case in ('normal', 'contexto', *MUTATIONS)
     disk_case = 'normal' if (case == 'amdvi-missing' or
                              (case == 'external-permissions' and not (args.doom_fixture and (desktop_media or native_media)))) else case
@@ -238,12 +241,20 @@ def run(case):
         usb=(ROOT/'native-usb.txt').read_text().strip()
         if usb not in ('keyboard','mouse','both'):raise ValueError('Native USB profile')
         if usb=='both':
-            staging+=['-device','qemu-xhci,id=bmo-native-xhci']
+            staging+=['-device','qemu-xhci,id=bmo-native-xhci'+(',addr=05.0' if coexist else '')]
             if not (ROOT/'native-usb-empty.txt').is_file():
                 staging+=['-device','usb-kbd,bus=bmo-native-xhci.0,port=1','-device','usb-mouse,bus=bmo-native-xhci.0,port=2']
         else:
             device='usb-kbd' if usb=='keyboard' else 'usb-mouse'
             staging+=['-device','qemu-xhci,id=bmo-native-xhci','-device',f'{device},bus=bmo-native-xhci.0']
+    listener = connection = qtest = None
+    if coexist:
+        listener = socket.socket()
+        listener.bind(('127.0.0.1', 0))
+        listener.listen(1)
+        listener.settimeout(8)
+        staging += ['-device', 'edu,addr=04.0', '-nic', 'none', '-qtest-log', 'none',
+                    '-qtest', f'tcp:127.0.0.1:{listener.getsockname()[1]}']
     process = subprocess.Popen([
         str(qemu), '-machine', machine,
         '-cpu', args.cpu, '-accel', 'tcg', '-m', f'{args.ram_mib}M', '-smp', '1',
@@ -301,6 +312,11 @@ def run(case):
     captured = None
     frames = set()
     try:
+        if listener:
+            from amdvi_xhci import SocketQTest
+            connection, _ = listener.accept()
+            connection.settimeout(5)
+            qtest = SocketQTest(connection)
         command('qmp_capabilities')
         if doom and doom['session']:
             from desktop_session_capture import verify_external_rejection, verify_session
@@ -310,7 +326,8 @@ def run(case):
                     return verify_sections(command, memory, prefix, external_image, case, ROOT / 'msvc-symbols.json')
                 if native_ui:
                     from rmlui_native_capture import verify_native_ui
-                    result = verify_native_ui(command, memory, prefix, external_image, case, ROOT / 'ui-symbols.json')
+                    result = verify_native_ui(command, memory, prefix, external_image, case, ROOT / 'ui-symbols.json',
+                                              amdvi_coexist=qtest)
                     if amdvi_probe or (nvidia_probe and case == 'normal'):
                         devices = [device for bus in command('query-pci') for device in bus['devices']]
                         if case == 'normal':
@@ -531,6 +548,12 @@ def run(case):
             result['DesktopPixelsVerified'] = 128 * 32
         return result
     finally:
+        if qtest:
+            qtest.channel.close()
+        if connection:
+            connection.close()
+        if listener:
+            listener.close()
         if args.doom_fixture and desktop_media and process.poll() is None:
             try:
                 command('screendump', {'filename': str(prefix) + '-media-last.png', 'format': 'png'})

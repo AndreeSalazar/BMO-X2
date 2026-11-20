@@ -34,11 +34,13 @@ def main():
     p.add_argument('--nvidia-probe', action='store_true', help='Read PCI display inventory before ExitBootServices')
     p.add_argument('--amdvi-probe', action='store_true', help='Add read-only AMD-Vi firmware inventory to the NVIDIA profile')
     p.add_argument('--amdvi-post', action='store_true', help='Take a second AMD-Vi snapshot after ExitBootServices')
+    p.add_argument('--amdvi-coexist', action='store_true', help='Exercise virtual EDU and USB DMA together in QEMU')
     args=p.parse_args()
     if args.usb_empty_ports and args.usb!='both':p.error('--usb-empty-ports requires --usb both')
     if args.amdvi_probe and not args.nvidia_probe:p.error('--amdvi-probe requires --nvidia-probe')
     if args.amdvi_post and (not args.amdvi_probe or args.usb!='both' or args.msvc_panel or args.usb_empty_ports):
         p.error('--amdvi-post requires the NVIDIA AMD-Vi profile with USB both')
+    if args.amdvi_coexist and not args.amdvi_post:p.error('--amdvi-coexist requires --amdvi-post')
     abi,splash=args.abi_run.resolve(),args.splash_run.resolve()
     for path in (abi,splash):
         if path.parent!=ROOT/'build/CASM':raise ValueError('Run outside build/CASM')
@@ -59,6 +61,8 @@ def main():
         (run/'amdvi-efi-probe.txt').write_text('firmware-read-only\n', encoding='ascii')
     if args.amdvi_post:
         (run/'amdvi-post-probe.txt').write_text('post-ebs-read-only\n', encoding='ascii')
+    if args.amdvi_coexist:
+        (run/'amdvi-coexist-probe.txt').write_text('qemu-only-edu-xhci\n', encoding='ascii')
     if args.low_gop:(run/'low-gop.txt').write_text('QEMU VGA preferred 1024x768\n',encoding='ascii')
     if args.usb:(run/'native-usb.txt').write_text(args.usb+'\n',encoding='ascii')
     if args.usb_empty_ports:(run/'native-usb-empty.txt').write_text('QEMU fault test\n',encoding='ascii')
@@ -105,6 +109,7 @@ def main():
         source=ROOT/'kernel/drivers/bus/amdvi/firmware_probe.S'
         native_probe=run/'amdvi-firmware.o'
         flags=['-DBMO_AMDVI_POST'] if args.amdvi_post else []
+        if args.amdvi_coexist:flags+=['-DBMO_AMDVI_COEXIST']
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf',*flags,'-c',source,'-o',native_probe],'compile-amdvi-firmware')
         if args.amdvi_post:check_context_stage(llvm,native_probe,'amdvi_post')
         relocations=subprocess.check_output([llvm/'llvm-objdump.exe','-r',native_probe],text=True)
@@ -140,6 +145,8 @@ def main():
         raise ValueError('Missing AMD-Vi MMIO evidence')
     if args.amdvi_post and not all(report['Cases'][i].get('AmdViPostVerified') for i in (0,2)):
         raise ValueError('Missing post-EBS AMD-Vi evidence')
+    if args.amdvi_coexist and not report['Cases'][0].get('AmdViCoexistVerified'):
+        raise ValueError('Missing simultaneous EDU and USB evidence')
     media_prefix = 'BMO-X2/GPU' if args.nvidia_probe else 'BMO-X2/DESKTOP'
     fs=Fat32(run/'build/puente-normal.img')
     try:
@@ -155,6 +162,7 @@ def main():
         display_backend='cpu-gop',
         nvidia_pci_probe=args.nvidia_probe, amdvi_efi_probe=args.amdvi_probe, amdvi_mmio_probe=args.amdvi_probe,
         amdvi_post_probe=args.amdvi_post,
+        amdvi_coexist=args.amdvi_coexist,
         qemu_only=bool(args.usb),usb_profile=args.usb,
         usb_empty_ports=args.usb_empty_ports,
         hardware_profile='amd149c-usb2-root-experimental' if args.usb=='both' and not args.usb_empty_ports else None,

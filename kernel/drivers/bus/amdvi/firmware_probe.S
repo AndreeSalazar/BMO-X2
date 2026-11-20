@@ -30,6 +30,29 @@ amdvi_firmware_probe:
     mov %r9, (%rsp)
     mov 0x60(%rcx), %rax
     mov %rax, 8(%rsp)
+#ifdef BMO_AMDVI_COEXIST
+    # Only the virtual coexistence profile reserves Host test memory.
+    push %rcx
+    push %rdx
+    push %r8
+    push %r9
+    sub $32, %rsp
+    movq $0x0fffffff, 0xb50(%rbp)
+    mov $1, %ecx
+    mov $2, %edx
+    mov $13, %r8d
+    lea 0xb50(%rbp), %r9
+    call *0x28(%rax)
+    test %rax, %rax
+    jns .Lcoexist_reserved
+    movq $0, 0xb50(%rbp)
+.Lcoexist_reserved:
+    add $32, %rsp
+    pop %r9
+    pop %r8
+    pop %rdx
+    pop %rcx
+#endif
     mov %rdx, %r14
     mov %r8, %r15
     mov 0x68(%rcx), %r9

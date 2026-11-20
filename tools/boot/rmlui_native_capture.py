@@ -7,7 +7,7 @@ import time
 from cpu_config import register
 from desktop_session_capture import verify_external_rejection
 
-def verify_native_ui(command,memory,prefix,image,case,symbols_path):
+def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexist=None):
     if case=='external-permissions':
         result=verify_external_rejection(command,memory,image)
         if memory(0x4000000,4096,'ui-rejected-code')!=bytes(4096):raise ValueError('UI copied before permission validation')
@@ -111,6 +111,9 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
             raise ValueError('Native UI presentation differs at row '+str(row))
     (Path(str(prefix)+'-ui-xrgb.bin')).write_bytes(raw)
     command('screendump',{'filename':str(prefix)+'-ui.ppm'})
+    if amdvi_coexist is not None:
+        from amdvi_xhci import verify_coexistence
+        amdvi_proof.update(verify_coexistence(amdvi_coexist,command,memory,context_address,symbols))
     command('cont')
     if empty_usb:
         return dict(Case='normal',Passed=True,Evidence='QEMU',CPL=3,FullRmlUiEngine=True,
