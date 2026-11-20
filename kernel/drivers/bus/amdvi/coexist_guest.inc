@@ -130,6 +130,16 @@ amdvi_lab_entry:
     movabs $LAB_RW, %r8
     lea LAB_TABLE_OFFSET(%r12), %rdi
 #ifdef BMO_AMDVI_ROUTED
+    # A zero DTE can pass DMA through. Point every unassigned requester
+    # at the empty level-2 table in the first reserved scratch page.
+    lea 0x403(%r12), %rax
+    or %r8, %rax
+    mov $(AMDVI_LAB_TABLE_PAGES*128), %ecx
+.Llab_deny_dte:
+    mov %rax, (%rdi)
+    add $32, %rdi
+    loop .Llab_deny_dte
+    lea LAB_TABLE_OFFSET(%r12), %rdi
     mov AMDVI_LAB_EDU_RID(%rbp), %esi
     shl $5, %esi
 #else
@@ -204,11 +214,23 @@ amdvi_lab_entry:
     testb $1, 0x18(%r14)
     jz .Llab_clear
 #ifdef BMO_AMDVI_ROUTED
-    movabs $0x2000000000000000, %rax
-    or AMDVI_LAB_EDU_RID(%rbp), %rax
+    # QEMU uses passthrough until the device's DTE is invalidated.
+    # Refresh every present function, including default-denied entries.
+    mov AMDVI_LAB_PRESENT_COUNT(%rbp), %r9d
+    xor %r10d, %r10d
+    xor %ecx, %ecx
+.Llab_invalidate_present:
+    movzwl AMDVI_LAB_PRESENT_RIDS(%rbp,%r10,2), %eax
+    movabs $0x2000000000000000, %rsi
+    or %rsi, %rax
+    xor %edx, %edx
+    call .Llab_publish
+    jc .Llab_clear
+    inc %r10d
+    cmp %r9d, %r10d
+    jb .Llab_invalidate_present
 #else
     movabs $0x2000000000000020, %rax
-#endif
     xor %edx, %edx
     xor %ecx, %ecx
     call .Llab_publish
@@ -225,6 +247,7 @@ amdvi_lab_entry:
     call .Llab_publish
     jc .Llab_clear
 #endif
+#endif
     jmp .Llab_success
 .Llab_revoke:
     testb $1, 0x18(%r14)
@@ -233,7 +256,11 @@ amdvi_lab_entry:
     movq $0, (%r11)
     lea LAB_EDU_IOVA(%r12), %rdx
     movabs $0x3000000100000000, %rax
+#ifdef BMO_AMDVI_ROUTED
+    mov 0x9000(%r12), %ecx
+#else
     mov $LAB_EDU_REVOKE, %ecx
+#endif
     call .Llab_publish
     jc .Llab_unmap               # Keep the reservation pinned on failure.
     jmp .Llab_success
@@ -328,6 +355,7 @@ amdvi_lab_entry:
     mov %eax, %r9d
 #ifdef BMO_AMDVI_ROUTED
     xor %r11d, %r11d
+    xor %r8d, %r8d
 #else
     mov $0x80002000, %eax
     call .Llab_read_pci
@@ -351,16 +379,25 @@ amdvi_lab_entry:
     cmp $0xffff, %ax
     je .Llab_advance
 #ifdef BMO_AMDVI_ROUTED
+    cmp $AMDVI_LAB_MAX_PRESENT, %r8d
+    jae .Llab_pci_bad
+    mov %r10d, %esi
+    shr $8, %esi
+    movzwl %si, %esi
+    cmp $(AMDVI_LAB_TABLE_PAGES*128), %esi
+    jae .Llab_pci_bad
+    mov %si, AMDVI_LAB_PRESENT_RIDS(%rbp,%r8,2)
+    inc %r8d
     cmp $0x11e81234, %eax
     jne .Llab_class
+    cmp $0x80002000, %r10d        # Unassigned EDU witness at 00:04.0.
+    je .Llab_class
     # Obtain the BDF from PCI enumeration, never from the test mailbox.
     mov %r10d, %eax
     shr $8, %eax
     movzwl %ax, %eax
     cmp $0x2900, %eax
     jb .Llab_pci_bad
-    cmp $(AMDVI_LAB_TABLE_PAGES*128), %eax
-    jae .Llab_pci_bad
     test %r11d, %r11d
     jnz .Llab_pci_bad
     mov %eax, %r11d
@@ -405,6 +442,7 @@ amdvi_lab_entry:
     test %r11d, %r11d
     jz .Llab_pci_bad
     mov %r11, AMDVI_LAB_EDU_RID(%rbp)
+    mov %r8d, AMDVI_LAB_PRESENT_COUNT(%rbp)
 #else
     cmp $0x80010000, %r10d
     jne .Llab_scan

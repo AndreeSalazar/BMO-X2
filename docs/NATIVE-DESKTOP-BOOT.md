@@ -358,6 +358,17 @@ del archivo. Las colas RPC, metadatos, lanzamiento y respuesta GSP
 se comprueban en fases posteriores.
 [Distribucion del firmware verificada en HOST](../Reports/nvidia-gsp-layout-20261120.json).
 
+El codificador `tools/host/gpu/radix3.py` arma un directorio para
+`.fwimage` usando las IOVA de reserva que recibe. Cada entrada
+es una direccion LE64 visible al dispositivo. Las listas de imagen
+y del directorio se comprueban por tamano, alineacion y unicidad.
+En HOST se verificaron 15 paginas de directorio para las 6590
+paginas de la imagen 615.78.08. Un recorrido independiente
+reconstruyo su huella con IOVA no contiguas de ensayo. En METAL
+las IOVA deben venir de un dominio DMA activo y autorizado.
+[Evidencia Radix3](../Reports/nvidia-gsp-radix3-host-20261120.json).
+[Directorio GSP en NVIDIA](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/main/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c#L7198-L7343).
+
 La tabla ACPI IVRS del equipo tiene 208 B y describe tanto
 `0000:29:00.0` (RTX) como `0000:29:00.1` (audio) bajo la unidad
 AMD-Vi `0000:00:00.2`, con base MMIO `0xFD500000`. El inventario
@@ -581,6 +592,18 @@ de fallo de una transferencia en otro bus. El informe conserva ese
 valor de QEMU y verifica por separado el aislamiento con testigos
 en RAM. El perfil es exclusivo de QEMU.
 [Prueba DMA en un bus PCIe alto](../Reports/amdvi-routed-qemu-20261120.json).
+
+Antes de activar la traduccion en METAL hay que bloquear los
+solicitantes sin dominio. Una DTE a cero deja V desactivado y
+AMD-Vi puede encaminar la solicitud sin traducir. El perfil
+PCIe virtual instala una DTE valida con una raiz vacia para
+cada solicitante no admitido e invalida todas las DTE presentes.
+El segundo EDU verifica la misma
+escritura antes y despues de activar AMD-Vi. Durante la
+traduccion debe aparecer el fallo y quedar intacto el testigo.
+[Bloqueo por defecto en QEMU](../Reports/amdvi-default-deny-qemu-20261120.json).
+[Interaccion V y TV en AMD-Vi](https://docs.amd.com/api/khub/documents/GD6kOXjzWsek8QUbn_qMvg/content).
+[Invalidacion de entradas en QEMU](https://github.com/qemu/qemu/blob/master/hw/i386/amd_iommu.c).
 
 El primer patron usa como referencia el triangulo de
 [C++ / MSVC](../tools/tests/msvc_desktop_panel.cpp). El panel actual

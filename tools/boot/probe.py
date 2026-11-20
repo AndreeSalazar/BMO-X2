@@ -262,7 +262,8 @@ def run(case):
         if routed:
             staging += ['-device', 'pcie-root-port,id=dma-reserve,addr=07.0,chassis=7,slot=7,bus-reserve=39',
                         '-device', 'pcie-root-port,id=dma-target,addr=08.0,chassis=8,slot=8',
-                        '-device', 'edu,id=bmo-edu,bus=dma-target']
+                        '-device', 'edu,id=bmo-edu,bus=dma-target',
+                        '-device', 'edu,id=bmo-edu-denied,addr=04.0']
         else:
             staging += ['-device', 'edu,id=bmo-edu,addr=04.0']
     if storage:

@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "evidence": "HOST: Radix3 encode and independent traversal of NVIDIA GSP firmware image",
+  "release": "615.78.08",
+  "build": "gsp-radix3-host-66ff3d4ff537",
+  "directory": {
+    "root_iova": 805306368,
+    "bytes": 61440,
+    "directory_pages": 15,
+    "sha256": "3fbf51ffe3fd2dc7ff96bee4ea0c07b956db65d8923679ac98e97c06122244d2"
+  },
+  "firmware_pages": 6590,
+  "firmware_reassembled_sha256": "13d2f9514bb90c899b6db598e881a1728f894f38be79fa935ad9f1ce30b0b5e0",
+  "input_addresses": "Synthetic, noncontiguous device-visible addresses",
+  "invalid_inputs_rejected": [
+    "count",
+    "alignment",
+    "duplicate",
+    "overlap",
+    "width"
+  ],
+  "gsp_boot_verified": false,
+  "physical_rtx_dma_verified": false,
+  "render_verified": false,
+  "source_sha256": "32490d259bb8a25a58f92ada4d033a2d0b95d8953fb114d91490db38c4ba6f9c"
+}

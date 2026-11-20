@@ -181,8 +181,9 @@ def main():
         raise ValueError('Missing guest-owned AMD-Vi evidence')
     if args.amdvi_storage and not report['Cases'][0].get('AhciTranslatedReadsVerified'):
         raise ValueError('Missing translated AHCI reads')
-    if args.amdvi_routed and not report['Cases'][0].get('RoutedDmaVerified'):
-        raise ValueError('Missing translated DMA for the high PCI requester')
+    if args.amdvi_routed and (not report['Cases'][0].get('RoutedDmaVerified') or
+                             not report['Cases'][0].get('UnassignedRequesterBlocked')):
+        raise ValueError('Missing translated DMA or default-deny evidence')
     media_prefix = 'BMO-X2/GPU' if args.nvidia_probe else 'BMO-X2/DESKTOP'
     fs=Fat32(run/'build/puente-normal.img')
     try:

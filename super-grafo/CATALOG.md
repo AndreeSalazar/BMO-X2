@@ -153,6 +153,7 @@
 | [GPU / NVIDIA / Inventario PCI](../kernel/drivers/GPU/NVIDIA/pci_probe.inc) | qemu | 0 | Sonda ASM transitoria del puente UEFI antes de ExitBootServices. Lee PCI del segmento 0 y conserva CPU/GOP como presentador. |
 | [GPU / NVIDIA / Lectura MMIO](../kernel/drivers/GPU/NVIDIA/mmio_probe.inc) | qemu | 0 | Sonda transitoria UEFI: confirma limites de BAR0 y lee la identidad interna exclusivamente en la RTX 3060 10DE:2504. |
 | [HOST / Firmware NVIDIA GA10x](../tools/host/gpu/firmware.py) | host | host | Comprueba el conjunto original de una release GSP, por longitud y huella de referencia. |
+| [HOST / Directorio GSP Radix3](../tools/host/gpu/radix3.py) | host | host | Codifica las paginas del directorio Radix3 que enumera la imagen de firmware mediante IOVA. |
 | [HOST / Inventario AMD-Vi](../tools/host/gpu/ivrs.py) | host | host | Lee la descripcion ACPI IVRS y coteja las funciones PCI indicadas con los rangos IVHD. |
 | [AMD-Vi / Traduccion y revocacion virtual](../tools/host/gpu/qemu_dma.py) | qemu | host | Comprueba traduccion, bloqueo e invalidacion DMA en AMD-Vi de QEMU con EDU mediante qtest. |
 | [AMD-Vi / Sonda de DMA del invitado](../kernel/drivers/bus/amdvi/edu_probe.S) | qemu | 0 | Sonda ASM transitoria despues de ExitBootServices. Programa AMD-Vi en QEMU y prueba DMA de EDU. |
@@ -419,6 +420,7 @@
 | rmlui-fat32-media | rmlui-gop-cursor-region | codigo |
 | rmlui-fat32-media | nvidia-pci-probe | codigo |
 | nvidia-gsp-firmware-host | nvidia-mmio-probe | plan |
+| nvidia-gsp-radix3-host | nvidia-gsp-firmware-host | verificacion |
 | amd-ivrs-host | device-bus | verificacion |
 | amdvi-edu-qtest | device-bus | verificacion |
 | amdvi-edu-guest | device-bus | verificacion |

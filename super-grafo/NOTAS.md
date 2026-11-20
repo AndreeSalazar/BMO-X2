@@ -1641,6 +1641,17 @@ Depende de: GPU / NVIDIA / Lectura MMIO (plan).
 Aceptacion: Cuatro archivos verificados para 570.144 y 615.78.08. El layout 615.78.08 coteja la version interna y rechaza cabecera truncada, version distinta y secciones solapadas.
 Pendiente: Construir los metadatos y colas DMA, y verificar respuesta del GSP nativo con 615.78.08.
 
+## tools/host/gpu/radix3.py
+
+Codifica las paginas del directorio Radix3 que enumera la imagen de firmware mediante IOVA.
+
+Estado: HOST. Anillo: host. Lenguaje: Python.
+Entrada: IOVA asignadas para las paginas del directorio y las paginas ordenadas de firmware.
+Salida: IOVA raiz y 15 paginas de directorio para la imagen GA10x 615.78.08.
+Depende de: HOST / Firmware NVIDIA GA10x (verificacion).
+Aceptacion: Un recorrido independiente reconstruye las 6590 paginas de la imagen con IOVA no contiguas y coteja SHA-256. Rechaza cinco entradas invalidas.
+Pendiente: Vincular las IOVA al dominio de la RTX, construir metadatos y colas y confirmar el arranque en hardware.
+
 ## tools/host/gpu/ivrs.py
 
 Lee la descripcion ACPI IVRS y coteja las funciones PCI indicadas con los rangos IVHD.
@@ -1715,7 +1726,7 @@ Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: Escritorio USB dual activo, EDU, reservas UEFI propias y orden fija del banco QEMU. El perfil PCIe descubre el BDF alto y reserva una tabla de 96 paginas.
 Salida: Estado de rechazo, tablas y colas propios y comprobantes de invalidacion y cierre.
 Depende de: AMD-Vi / Captura Ring 0 (codigo).
-Aceptacion: QEMU comprueba rechazo con otro bus master activo, DMA concedido y revocado, informes USB y lecturas AHCI. El perfil PCIe coteja DTE, invalidacion y DMA en un bus alto.
+Aceptacion: QEMU coteja DTE, invalidacion y DMA en un bus alto. Conserva HID y SATA y comprueba que un segundo EDU con BME no accede sin un dominio concedido.
 Pendiente: Integrar la transicion con los solicitantes fisicos, validar sus reservas y probar almacenamiento real antes de activar el dominio para NVIDIA.
 
 ## kernel/drivers/bus/amdvi/dma_census.inc
@@ -1762,4 +1773,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-158 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+159 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

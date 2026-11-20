@@ -2564,6 +2564,23 @@
       "falta": "Construir los metadatos y colas DMA, y verificar respuesta del GSP nativo con 615.78.08."
     },
     {
+      "id": "nvidia-gsp-radix3-host",
+      "titulo": "HOST / Directorio GSP Radix3",
+      "ruta": "tools/host/gpu/radix3.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [
+        10800,
+        4850
+      ],
+      "que": "Codifica las paginas del directorio Radix3 que enumera la imagen de firmware mediante IOVA.",
+      "entrada": "IOVA asignadas para las paginas del directorio y las paginas ordenadas de firmware.",
+      "salida": "IOVA raiz y 15 paginas de directorio para la imagen GA10x 615.78.08.",
+      "aceptacion": "Un recorrido independiente reconstruye las 6590 paginas de la imagen con IOVA no contiguas y coteja SHA-256. Rechaza cinco entradas invalidas.",
+      "falta": "Vincular las IOVA al dominio de la RTX, construir metadatos y colas y confirmar el arranque en hardware."
+    },
+    {
       "id": "amd-ivrs-host",
       "titulo": "HOST / Inventario AMD-Vi",
       "ruta": "tools/host/gpu/ivrs.py",
@@ -2683,7 +2700,7 @@
       "que": "Sonda exclusiva de QEMU TCG. Ring 0 comprueba bus masters y configura, invalida y cierra dos dominios AMD-Vi.",
       "entrada": "Escritorio USB dual activo, EDU, reservas UEFI propias y orden fija del banco QEMU. El perfil PCIe descubre el BDF alto y reserva una tabla de 96 paginas.",
       "salida": "Estado de rechazo, tablas y colas propios y comprobantes de invalidacion y cierre.",
-      "aceptacion": "QEMU comprueba rechazo con otro bus master activo, DMA concedido y revocado, informes USB y lecturas AHCI. El perfil PCIe coteja DTE, invalidacion y DMA en un bus alto.",
+      "aceptacion": "QEMU coteja DTE, invalidacion y DMA en un bus alto. Conserva HID y SATA y comprueba que un segundo EDU con BME no accede sin un dominio concedido.",
       "falta": "Integrar la transicion con los solicitantes fisicos, validar sus reservas y probar almacenamiento real antes de activar el dominio para NVIDIA."
     },
     {
@@ -3982,6 +3999,11 @@
       "de": "nvidia-gsp-firmware-host",
       "a": "nvidia-mmio-probe",
       "clase": "plan"
+    },
+    {
+      "de": "nvidia-gsp-radix3-host",
+      "a": "nvidia-gsp-firmware-host",
+      "clase": "verificacion"
     },
     {
       "de": "amd-ivrs-host",

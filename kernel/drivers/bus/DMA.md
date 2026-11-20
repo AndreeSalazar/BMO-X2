@@ -135,6 +135,18 @@ informes HID conservan sus comprobaciones.
 [Prueba del solicitante PCIe de bus alto](../../../Reports/amdvi-routed-qemu-20261120.json).
 [Formato de la tabla de dispositivos AMD-Vi](https://docs.amd.com/api/khub/documents/GD6kOXjzWsek8QUbn_qMvg/content).
 
+La variante PCIe inicializa todas las DTE sin dominio en una raiz
+vacia de nivel 2. La pagina ya estaba reservada por el ensayo.
+Invalida las entradas de todas las funciones presentes antes de
+confirmar la transicion. El banco coteja ese conjunto con QMP.
+El banco compara toda la tabla y el segundo EDU escribe un testigo
+en RAM con la traduccion apagada. Tras activar AMD-Vi, repite la
+escritura con BME activo y verifica rechazo. Los tres dominios
+admitidos conservan sus transferencias. La prueba de la plataforma
+fisica requiere comprobar la propiedad de los controladores y los
+buffers antes de hacer esta transicion.
+[Prueba de rechazo por defecto](../../../Reports/amdvi-default-deny-qemu-20261120.json).
+
 El perfil `--dma-census` usa la operacion de diagnostico
 `INVOKE(3, 3, 26, indice)`. El indice 0 congela la primera captura
 y entrega el encabezado. De menor a mayor bit, contiene el numero
