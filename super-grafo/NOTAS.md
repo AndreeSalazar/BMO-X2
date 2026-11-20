@@ -1715,8 +1715,8 @@ Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: Escritorio USB dual activo, EDU, reservas UEFI propias y orden fija del banco QEMU.
 Salida: Estado de rechazo, tablas y colas propios y comprobantes de invalidacion y cierre.
 Depende de: AMD-Vi / Captura Ring 0 (codigo).
-Aceptacion: QEMU comprueba rechazo con otro bus master activo, DMA concedido y revocado e informes USB con traduccion activa.
-Pendiente: Integrar la transicion con almacenamiento y solicitantes fisicos antes de activar el dominio para NVIDIA.
+Aceptacion: QEMU comprueba rechazo con otro bus master activo, DMA concedido y revocado, informes USB y lecturas AHCI traducidas en el perfil de almacenamiento.
+Pendiente: Integrar la transicion con los solicitantes fisicos, validar sus reservas y probar almacenamiento real antes de activar el dominio para NVIDIA.
 
 ## kernel/drivers/bus/amdvi/dma_census.inc
 
@@ -1726,8 +1726,19 @@ Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: Configuracion PCI del segmento 0 y BDF del xHCI activo en el contexto supervisor.
 Salida: Total y hasta 64 registros leidos por INVOKE. F2 muestra el inventario en RmlUi.
 Depende de: AMD-Vi / Captura Ring 0 (codigo), xHCI USB2 con dos dispositivos (codigo).
-Aceptacion: QEMU coteja PCI con qtest, incluido un xHCI detras de un puente, con y sin AMD-Vi. F2 abre y cierra el panel.
-Pendiente: Identificar los solicitantes de METAL y validar la transicion DMA con USB y almacenamiento.
+Aceptacion: QEMU coteja PCI con qtest, incluido un xHCI detras de un puente, con y sin AMD-Vi. En METAL F2 mostro los 15 BDF y el xHCI 2b:00.3. HOST cotejo su cobertura IVRS.
+Pendiente: Validar la transicion DMA con USB y almacenamiento fisicos.
+
+## tools/boot/amdvi_ahci.py
+
+Comprueba READ DMA EXT desde AHCI emulado en un dominio AMD-Vi separado, junto con xHCI y EDU.
+
+Estado: QEMU. Anillo: host. Lenguaje: Python.
+Entrada: Disco determinista del banco, reserva del invitado e IOVA mapeada por Ring 0.
+Salida: Dos lecturas verificadas del mismo sector y testigo fisico de la IOVA intacto, con informes USB en ambas etapas.
+Depende de: AMD-Vi / Dominios en el invitado (verificacion).
+Aceptacion: QEMU verifica 512 B por lectura y ausencia de fallos IOMMU durante AHCI antes y despues de invalidar EDU.
+Pendiente: Sustituir el banco AHCI dirigido por HOST por una lectura desde el driver nativo y verificarla en METAL.
 
 ## CASM
 
@@ -1751,4 +1762,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-157 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+158 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

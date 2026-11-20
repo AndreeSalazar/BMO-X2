@@ -56,6 +56,7 @@ if (args.splash_hd and not args.splash) or ('contexto' in args.casos and not (ar
 ROOT = workspace(args.workspace)
 amdvi_post = args.doom_fixture and (ROOT / 'amdvi-post-probe.txt').is_file()
 amdvi_coexist = amdvi_post and (ROOT / 'amdvi-coexist-probe.txt').is_file()
+amdvi_storage = amdvi_coexist and (ROOT / 'amdvi-storage.txt').is_file()
 dma_census = amdvi_post and (ROOT / 'dma-census-probe.txt').is_file()
 desktop_cases = ['normal', 'external-permissions']
 if args.doom_fixture and (not args.abi_probe or args.casos not in
@@ -203,6 +204,7 @@ def verify_amdvi_firmware(log, units, register_words, present):
 
 def run(case):
     coexist = amdvi_coexist and case == 'normal'
+    storage = amdvi_storage and coexist
     census = dma_census and case in ('normal','amdvi-missing')
     payload_case = case in ('normal', 'contexto', *MUTATIONS)
     disk_case = 'normal' if (case == 'amdvi-missing' or
@@ -255,6 +257,13 @@ def run(case):
     listener = connection = qtest = None
     if coexist:
         staging += ['-device', 'edu,addr=04.0', '-nic', 'none']
+    if storage:
+        from amdvi_ahci import DISK
+        sata_image = ROOT/'amdvi-sata.raw'
+        sata_image.write_bytes(DISK)
+        staging += ['-drive', f'if=none,id=bmo-dma-sata,format=raw,file={sata_image},snapshot=on',
+                    '-device', 'ich9-ahci,id=bmo-dma-ahci,addr=06.0',
+                    '-device', 'ide-hd,drive=bmo-dma-sata,bus=bmo-dma-ahci.0']
     if coexist or census:
         listener = socket.socket()
         listener.bind(('127.0.0.1', 0))
@@ -578,6 +587,8 @@ def run(case):
         process.stdout.close()
         process.stderr.close()
         assert hashlib.sha256(image.read_bytes()).hexdigest() == before, 'La imagen base fue modificada'
+        if storage and sata_image.read_bytes()!=DISK:
+            raise ValueError('La imagen SATA del laboratorio cambio')
 
 
 for case in args.casos:

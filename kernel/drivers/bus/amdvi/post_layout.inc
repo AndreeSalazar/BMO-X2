@@ -2,7 +2,13 @@
 #define BMO_AMDVI_POST_LAYOUT
 
 // Native desktop context. The snapshot follows the pre-EBS report buffer.
+#ifdef BMO_AMDVI_STORAGE
+#define AMDVI_POST_CODE 0x1b600
+#define AMDVI_LAB_PAGES 18
+#else
 #define AMDVI_POST_CODE 0x1b800
+#define AMDVI_LAB_PAGES 14
+#endif
 #define AMDVI_POST_BASE 0xb00
 #define AMDVI_POST_PCI 0xb08
 #define AMDVI_POST_PCI_LOW 0xb0c

@@ -154,7 +154,8 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
     if amdvi_coexist is not None:
         from amdvi_xhci import verify_coexistence
         guest_dma=(run/'amdvi-guest-dma.txt').is_file()
-        amdvi_proof.update(verify_coexistence(amdvi_coexist,command,memory,context_address,symbols,guest_dma=guest_dma))
+        amdvi_proof.update(verify_coexistence(amdvi_coexist,command,memory,context_address,symbols,
+                           guest_dma=guest_dma, storage=(run/'amdvi-storage.txt').is_file()))
     command('cont')
     if empty_usb:
         return dict(Case='normal',Passed=True,Evidence='QEMU',CPL=3,FullRmlUiEngine=True,

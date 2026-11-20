@@ -161,6 +161,7 @@
 | [AMD-Vi / DMA y USB concurrentes en QEMU](../tools/boot/amdvi_xhci.py) | qemu | host | Usa qtest para configurar dominios distintos para EDU y xHCI en el escritorio virtual. |
 | [AMD-Vi / Dominios en el invitado](../kernel/drivers/bus/amdvi/coexist_guest.inc) | qemu | 0 | Sonda exclusiva de QEMU TCG. Ring 0 comprueba bus masters y configura, invalida y cierra dos dominios AMD-Vi. |
 | [PCI / Inventario de solicitantes DMA](../kernel/drivers/bus/amdvi/dma_census.inc) | qemu | 0 | Captura los BDF del segmento PCI 0 con bus mastering habilitado despues de arrancar xHCI. |
+| [AMD-Vi / Lectura SATA traducida en QEMU](../tools/boot/amdvi_ahci.py) | qemu | host | Comprueba READ DMA EXT desde AHCI emulado en un dominio AMD-Vi separado, junto con xHCI y EDU. |
 
 ## Dependencias declaradas
 
@@ -429,6 +430,7 @@
 | amdvi-xhci-coexist | rmlui-usb-dual | verificacion |
 | amdvi-xhci-coexist | amdvi-xhci-guest | verificacion |
 | amdvi-xhci-guest | amdvi-post-ebs-probe | codigo |
+| amdvi-ahci-qemu | amdvi-xhci-guest | verificacion |
 | dma-pci-census | amdvi-post-ebs-probe | codigo |
 | dma-pci-census | rmlui-usb-dual | codigo |
 | rmlui-fat32-media | dma-pci-census | codigo |

@@ -105,6 +105,22 @@ y uno de raton en cada etapa de DMA. El modulo ocupa 1426 B y el
 laboratorio reserva 14 paginas para sus tablas, colas y testigos.
 [Evidencia del invitado](../../../Reports/amdvi-xhci-guest-qemu-20261120.json).
 
+El perfil `--amdvi-storage` mantiene el banco virtual y agrega
+el dominio 3 para AHCI `00:06.0`. Ring 0 concede una pagina con
+IOVA distinta del respaldo fisico. Las cuatro paginas adicionales
+reservan raiz, hoja, buffers AHCI y memoria testigo para la IOVA.
+HOST arma y detiene el puerto AHCI emulado. Comprueba el sector
+leido, el contador de bytes, el testigo intacto y la ausencia de
+fallos IOMMU durante las dos lecturas. La segunda lectura ocurre
+despues de invalidar EDU. Ambas pruebas reciben informes HID.
+
+```powershell
+python -B tools/desktop/rmlui/native/media.py <ABI_RUN> <GATO_COMPACTO_RUN> --usb both --nvidia-probe --amdvi-probe --amdvi-post --amdvi-coexist --amdvi-guest-dma --amdvi-storage
+```
+
+[Evidencia AHCI en QEMU](../../../Reports/amdvi-ahci-qemu-20261120.json).
+[Especificacion AHCI](https://www.intel.la/content/dam/www/public/us/en/documents/technical-specifications/serial-ata-ahci-spec-rev1-3-1.pdf).
+
 El perfil `--dma-census` usa la operacion de diagnostico
 `INVOKE(3, 3, 26, indice)`. El indice 0 congela la primera captura
 y entrega el encabezado. De menor a mayor bit, contiene el numero
@@ -116,6 +132,7 @@ de 16 bits. La segunda contiene el codigo de clase PCI de 24 bits.
 Los indices fuera de rango devuelven 257. El perfil consulta el
 segmento 0 en orden BDF y deja los registros de cada funcion intactos.
 [Prueba de captura y panel](../../../Reports/dma-pci-census-qemu-20261120.json).
+[Inventario fisico y cobertura IVRS](../../../Reports/dma-pci-census-metal-20261120.json).
 
 El puente del escritorio reserva cinco paginas contiguas de EfiLoaderData
 por debajo de 256 MiB y las entrega en los campos B8/C0 del contexto.

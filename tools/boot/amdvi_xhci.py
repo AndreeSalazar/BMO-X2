@@ -76,15 +76,23 @@ def run_transfer(machine, command, bar, source, destination, size, direction, ac
         command('stop')
 
 
-def verify_coexistence(machine, command, memory, context, symbols, *, guest_dma=False):
+def verify_coexistence(machine, command, memory, context, symbols, *, guest_dma=False, storage=False):
     """Run at the first frozen desktop frame. Return with the guest paused."""
-    scratch_pages = 14 if guest_dma else 13
+    scratch_pages = 18 if storage else 14 if guest_dma else 13
     scratch, usb, pages = dma_ranges(memory, context, scratch_pages)
     devices = command('query-pci')
     require(len(devices) == 1 and not any('pci_bridge' in entry for entry in devices[0]['devices']),
             'Topología QEMU fuera del ensayo')
     functions = {entry['slot']*8 + entry['function']: entry for entry in devices[0]['devices']}
     xhci, = (rid for rid, entry in functions.items() if entry['qdev_id'] == 'bmo-native-xhci')
+    if storage:
+        from amdvi_ahci import REQUESTER, read_sector
+        ahci = functions[REQUESTER]
+        ahci_bar, = (region['address'] for region in ahci['regions'] if region['bar']==5)
+        pci_bar = machine.pci(0x24,requester=REQUESTER)
+        require(ahci['qdev_id']=='bmo-dma-ahci' and machine.pci(0,requester=REQUESTER)==0x29228086
+                and ahci_bar == pci_bar & ~15 and 0x80000000 <= ahci_bar < 0x100000000,
+                f'AHCI fuera del laboratorio: {ahci["id"]}, BAR5 {ahci_bar:#x}, PCI {pci_bar:#x}')
     require(machine.pci(0) == 0x11e81234 and machine.pci(4, word=True, requester=xhci) & 4,
             'Falta EDU o xHCI no está activo')
     disabled = {}
@@ -154,8 +162,8 @@ def verify_coexistence(machine, command, memory, context, symbols, *, guest_dma=
                 require(not machine.pci(4, word=True, requester=rid) & 4, 'Otro bus master sigue activo')
         if guest_dma:
             guest_request(1)
-            require(machine.read(context+0xb68)==1 and machine.read(completion)==64,
-                    'Ring 0 no confirmó las dos entradas DMA')
+            require(machine.read(context+0xb68)==1 and machine.read(completion)==(96 if storage else 64),
+                    'Ring 0 no confirmó las entradas DMA')
         else:
             machine.put_bytes(scratch, bytes(13*PAGE))
             leaf = map_pages(machine, edu_root, iter((edu_root+PAGE,)), [(iova,payload)])
@@ -173,6 +181,11 @@ def verify_coexistence(machine, command, memory, context, symbols, *, guest_dma=
         require(machine.read(AMDVI+24) & 0x1005 == 0x1005, 'AMD-Vi no entró en traducción')
         require(machine.read(AMDVI)==table|1 and machine.read(table+EDU_REQUESTER*32+8)==1
                 and machine.read(table+xhci*32+8)==2, 'Los solicitantes no recibieron dominios separados')
+        storage_proof = {}
+        if storage:
+            require(machine.read(table+REQUESTER*32+8)==3, 'Falta el dominio separado AHCI')
+            before_read = counters()
+            first_sector = read_sector(machine, command, ahci_bar, scratch, lambda: hid_activity(before_read,8))
         machine.pci(4, edu_idle_command | 2, word=True)
         require(int(machine.command('readl',bar),16)==0x010000ed and not machine.read(bar+0x98) & 1,
                 f'EDU no estaba listo en {bar:#x}')
@@ -195,7 +208,7 @@ def verify_coexistence(machine, command, memory, context, symbols, *, guest_dma=
         if guest_dma:
             machine.pci(4,edu_idle_command | 2,word=True)
             guest_request(2)
-            require(machine.read(context+0xb68)==2 and machine.read(completion)==96,
+            require(machine.read(context+0xb68)==2 and machine.read(completion)==(128 if storage else 96),
                     'Ring 0 no confirmó la invalidación')
             machine.pci(4,edu_idle_command | 6,word=True)
         else:
@@ -208,6 +221,14 @@ def verify_coexistence(machine, command, memory, context, symbols, *, guest_dma=
         faults(machine, tail, iova, len(data), event_log=events)
         require(machine.get_bytes(payload,len(data)) == machine.get_bytes(iova,len(data)) == sentinel,
                 'DMA revocado alteró la memoria')
+        if storage:
+            before_read = counters()
+            second_sector = read_sector(machine, command, ahci_bar, scratch, lambda: hid_activity(before_read,-8))
+            require(first_sector==second_sector, 'El sector cambio despues de revocar EDU')
+            storage_proof = dict(AhciTranslatedReadsVerified=True, AhciRequester=f'{REQUESTER:04x}',
+                                 AhciDomain=3, AhciSectorSHA256=first_sector,
+                                 AhciBytesPerRead=512, AhciReadsVerified=2,
+                                 AhciReadAfterEduRevocation=True, PhysicalStorageTested=False)
     finally:
         failure = sys.exc_info()[1]
         machine.pci(4, edu_idle_command, word=True)
@@ -235,4 +256,4 @@ def verify_coexistence(machine, command, memory, context, symbols, *, guest_dma=
                 UsbReportsDuringGrant=[b-a for a,b in zip(initial,granted)],
                 UsbReportsAfterRevocation=[b-a for a,b in zip(granted,revoked)],
                 BoundedDmaRejected=True, RevokedDmaRejected=True,
-                TemporarilyQuiescedRequesters=[f'{rid:04x}' for rid in disabled])
+                TemporarilyQuiescedRequesters=[f'{rid:04x}' for rid in disabled], **storage_proof)

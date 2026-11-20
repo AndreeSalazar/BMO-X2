@@ -17,12 +17,12 @@ from stage_bmo_x2 import bridge_variant
 from wake import check
 from fat32_read import Fat32
 
-def check_context_stage(llvm, obj, name):
+def check_context_stage(llvm, obj, name, budget=2048):
     symbols=subprocess.check_output([llvm/'llvm-nm.exe','--format=posix',obj],text=True)
     positions={fields[0]:int(fields[2],16) for line in symbols.splitlines()
                if len(fields:=line.split())>=3 and fields[0] in (name+'_begin',name+'_end')}
-    if not 0<positions[name+'_end']-positions[name+'_begin']<=2048:
-        raise ValueError('Context code stage exceeds its half page: '+name)
+    if not 0<positions[name+'_end']-positions[name+'_begin']<=budget:
+        raise ValueError('Context code stage exceeds its reserved region: '+name)
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -36,6 +36,7 @@ def main():
     p.add_argument('--amdvi-post', action='store_true', help='Take a second AMD-Vi snapshot after ExitBootServices')
     p.add_argument('--amdvi-coexist', action='store_true', help='Exercise virtual EDU and USB DMA together in QEMU')
     p.add_argument('--amdvi-guest-dma', action='store_true', help='Let the guest program AMD-Vi in the virtual lab')
+    p.add_argument('--amdvi-storage', action='store_true', help='Read a virtual AHCI disk in a third guest-managed domain')
     p.add_argument('--dma-census', action='store_true', help='Capture PCI bus masters after USB startup')
     args=p.parse_args()
     if args.usb_empty_ports and args.usb!='both':p.error('--usb-empty-ports requires --usb both')
@@ -44,6 +45,7 @@ def main():
         p.error('--amdvi-post requires the NVIDIA AMD-Vi profile with USB both')
     if args.amdvi_coexist and not args.amdvi_post:p.error('--amdvi-coexist requires --amdvi-post')
     if args.amdvi_guest_dma and not args.amdvi_coexist:p.error('--amdvi-guest-dma requires --amdvi-coexist')
+    if args.amdvi_storage and not args.amdvi_guest_dma:p.error('--amdvi-storage requires --amdvi-guest-dma')
     if args.dma_census and (not args.amdvi_post or args.amdvi_coexist):
         p.error('--dma-census requires --amdvi-post and its own context stage')
     abi,splash=args.abi_run.resolve(),args.splash_run.resolve()
@@ -73,6 +75,8 @@ def main():
         (run/'amdvi-coexist-probe.txt').write_text('qemu-only-edu-xhci\n', encoding='ascii')
     if args.amdvi_guest_dma:
         (run/'amdvi-guest-dma.txt').write_text('qemu-only-guest-iommu\n', encoding='ascii')
+    if args.amdvi_storage:
+        (run/'amdvi-storage.txt').write_text('qemu-only-ahci-read\n', encoding='ascii')
     if args.low_gop:(run/'low-gop.txt').write_text('QEMU VGA preferred 1024x768\n',encoding='ascii')
     if args.usb:(run/'native-usb.txt').write_text(args.usb+'\n',encoding='ascii')
     if args.usb_empty_ports:(run/'native-usb-empty.txt').write_text('QEMU fault test\n',encoding='ascii')
@@ -89,10 +93,12 @@ def main():
         if args.amdvi_post and name in ('reader','gate'):flags+=['-DBMO_AMDVI_POST']
         if args.dma_census and name=='gate':flags+=['-DBMO_DMA_CENSUS']
         if args.amdvi_guest_dma and name=='gate':flags+=['-DBMO_AMDVI_GUEST_DMA']
+        if args.amdvi_storage and name in ('reader','gate'):flags+=['-DBMO_AMDVI_STORAGE']
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf','-DRMLUI_MEDIA','-DRMLUI_NATIVE',
             '-DRMLUI_GOP_REGIONS','-DDOOM_ENGINE','-DDESKTOP_DOOM',*flags,
             '-c',ROOT/source,'-o',run/(name+'.o')],'compile-media-'+name)
-        if args.amdvi_post and name=='reader':check_context_stage(llvm,run/'reader.o','gop_stage')
+        if args.amdvi_post and name=='reader':
+            check_context_stage(llvm,run/'reader.o','gop_stage',1536 if args.amdvi_storage else 2048)
         command([llvm/'llvm-objcopy.exe','-O','binary','--only-section=.text',run/(name+'.o'),run/(name+'.bin')],'extract-media-'+name)
     sbef=(app/'rmlui.sbef').read_bytes();reference=(abi/'INICIO.X86').read_bytes()
     gate=(run/'gate.bin').read_bytes();loader=(run/'loader.bin').read_bytes()
@@ -124,8 +130,10 @@ def main():
         if args.amdvi_coexist:flags+=['-DBMO_AMDVI_COEXIST']
         if args.dma_census:flags+=['-DBMO_DMA_CENSUS']
         if args.amdvi_guest_dma:flags+=['-DBMO_AMDVI_GUEST_DMA']
+        if args.amdvi_storage:flags+=['-DBMO_AMDVI_STORAGE']
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf',*flags,'-c',source,'-o',native_probe],'compile-amdvi-firmware')
-        if args.amdvi_post:check_context_stage(llvm,native_probe,'amdvi_post')
+        if args.amdvi_post:
+            check_context_stage(llvm,native_probe,'amdvi_post',2560 if args.amdvi_storage else 2048)
         relocations=subprocess.check_output([llvm/'llvm-objdump.exe','-r',native_probe],text=True)
         if 'RELOCATION RECORDS' in relocations:raise ValueError('AMD-Vi firmware inventory must be position independent')
         raw_probe=native_probe.with_suffix('.bin')
@@ -166,6 +174,8 @@ def main():
         raise ValueError('Missing simultaneous EDU and USB evidence')
     if args.amdvi_guest_dma and report['Cases'][0].get('DmaIssuer')!='Ring 0 guest':
         raise ValueError('Missing guest-owned AMD-Vi evidence')
+    if args.amdvi_storage and not report['Cases'][0].get('AhciTranslatedReadsVerified'):
+        raise ValueError('Missing translated AHCI reads')
     media_prefix = 'BMO-X2/GPU' if args.nvidia_probe else 'BMO-X2/DESKTOP'
     fs=Fat32(run/'build/puente-normal.img')
     try:
@@ -184,6 +194,7 @@ def main():
         dma_census=args.dma_census,
         amdvi_coexist=args.amdvi_coexist,
         amdvi_guest_dma=args.amdvi_guest_dma,
+        amdvi_storage=args.amdvi_storage,
         qemu_only=bool(args.usb),usb_profile=args.usb,
         usb_empty_ports=args.usb_empty_ports,
         hardware_profile='amd149c-usb2-root-experimental' if args.usb=='both' and not args.usb_empty_ports else None,

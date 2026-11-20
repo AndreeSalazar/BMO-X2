@@ -1,11 +1,20 @@
 # QEMU TCG only. The lab mailbox requests one of three fixed operations.
 # Ring 0 owns the IOMMU registers, tables and invalidation commands.
-.set LAB_PAGES, 14
+.set LAB_PAGES, AMDVI_LAB_PAGES
 .set LAB_RW, 0x6000000000000000
 .set LAB_VA, 0x10200000
 .set LAB_PT, 0xd000
 .set LAB_EDU_IOVA, 0xb000
 .set LAB_EDU_PAYLOAD, 0xa000
+#ifdef BMO_AMDVI_STORAGE
+.set LAB_EDU_REVOKE, 96
+.set LAB_AHCI_ROOT, 0xe000
+.set LAB_AHCI_LEAF, 0xf000
+.set LAB_AHCI_BUFFER, 0x10000
+.set LAB_AHCI_IOVA, 0x11000
+#else
+.set LAB_EDU_REVOKE, 64
+#endif
 
 amdvi_lab_entry:
     push %rbx
@@ -149,6 +158,25 @@ amdvi_lab_entry:
     mov %rax, (%rsi,%rdx,8)
     add $4096, %rdi
     loop .Llab_usb_leaf
+#ifdef BMO_AMDVI_STORAGE
+    # 00:06.0 gets its own domain and exactly one page. The IOVA
+    # also has reserved backing, kept as an untranslated-write witness.
+    lea (LAB_AHCI_ROOT+0x403)(%r12), %rax
+    or %r8, %rax
+    mov %rax, 0x600(%r12)
+    movq $3, 0x608(%r12)
+    lea LAB_AHCI_IOVA(%r12), %rdx
+    mov %rdx, %rdi
+    shr $21, %rdx
+    shr $12, %rdi
+    and $511, %edi
+    lea (LAB_AHCI_LEAF+0x201)(%r12), %rax
+    or %r8, %rax
+    mov %rax, LAB_AHCI_ROOT(%r12,%rdx,8)
+    lea (LAB_AHCI_BUFFER+1)(%r12), %rax
+    or %r8, %rax
+    mov %rax, LAB_AHCI_LEAF(%r12,%rdi,8)
+#endif
     lea 1(%r12), %rax
     mov %rax, (%r14)
     movabs $0x0800000000000000, %rcx
@@ -171,6 +199,13 @@ amdvi_lab_entry:
     mov $32, %ecx
     call .Llab_publish
     jc .Llab_clear
+#ifdef BMO_AMDVI_STORAGE
+    movabs $0x2000000000000030, %rax
+    xor %edx, %edx
+    mov $64, %ecx
+    call .Llab_publish
+    jc .Llab_clear
+#endif
     jmp .Llab_success
 .Llab_revoke:
     testb $1, 0x18(%r14)
@@ -179,7 +214,7 @@ amdvi_lab_entry:
     movq $0, (%r11)
     lea LAB_EDU_IOVA(%r12), %rdx
     movabs $0x3000000100000000, %rax
-    mov $64, %ecx
+    mov $LAB_EDU_REVOKE, %ecx
     call .Llab_publish
     jc .Llab_unmap               # Keep the reservation pinned on failure.
     jmp .Llab_success
@@ -280,6 +315,12 @@ amdvi_lab_entry:
     call .Llab_read_pci
     cmp $0x000d1b36, %eax
     jne .Llab_pci_bad
+#ifdef BMO_AMDVI_STORAGE
+    mov $0x80003000, %eax
+    call .Llab_read_pci
+    cmp $0x29228086, %eax
+    jne .Llab_pci_bad
+#endif
     mov $0x80000000, %r10d
 .Llab_scan:
     mov %r10d, %eax
@@ -295,6 +336,14 @@ amdvi_lab_entry:
     call .Llab_read_pci
     test $4, %eax
     jz .Llab_advance
+#ifdef BMO_AMDVI_STORAGE
+    cmp $0x80003000, %r10d
+    jne .Llab_xhci_master
+    cmp $2, %r15                 # Start and stop require AHCI quiesced.
+    jne .Llab_pci_bad
+    jmp .Llab_advance
+.Llab_xhci_master:
+#endif
     cmp $0x80002800, %r10d
     jne .Llab_pci_bad
 .Llab_advance:

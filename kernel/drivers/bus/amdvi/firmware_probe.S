@@ -41,7 +41,7 @@ amdvi_firmware_probe:
     mov $1, %ecx
     mov $2, %edx
 #ifdef BMO_AMDVI_GUEST_DMA
-    mov $14, %r8d
+    mov $AMDVI_LAB_PAGES, %r8d
 #else
     mov $13, %r8d
 #endif

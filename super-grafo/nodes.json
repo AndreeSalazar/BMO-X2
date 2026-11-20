@@ -2683,8 +2683,8 @@
       "que": "Sonda exclusiva de QEMU TCG. Ring 0 comprueba bus masters y configura, invalida y cierra dos dominios AMD-Vi.",
       "entrada": "Escritorio USB dual activo, EDU, reservas UEFI propias y orden fija del banco QEMU.",
       "salida": "Estado de rechazo, tablas y colas propios y comprobantes de invalidacion y cierre.",
-      "aceptacion": "QEMU comprueba rechazo con otro bus master activo, DMA concedido y revocado e informes USB con traduccion activa.",
-      "falta": "Integrar la transicion con almacenamiento y solicitantes fisicos antes de activar el dominio para NVIDIA."
+      "aceptacion": "QEMU comprueba rechazo con otro bus master activo, DMA concedido y revocado, informes USB y lecturas AHCI traducidas en el perfil de almacenamiento.",
+      "falta": "Integrar la transicion con los solicitantes fisicos, validar sus reservas y probar almacenamiento real antes de activar el dominio para NVIDIA."
     },
     {
       "id": "dma-pci-census",
@@ -2701,8 +2701,25 @@
       "que": "Captura los BDF del segmento PCI 0 con bus mastering habilitado despues de arrancar xHCI.",
       "entrada": "Configuracion PCI del segmento 0 y BDF del xHCI activo en el contexto supervisor.",
       "salida": "Total y hasta 64 registros leidos por INVOKE. F2 muestra el inventario en RmlUi.",
-      "aceptacion": "QEMU coteja PCI con qtest, incluido un xHCI detras de un puente, con y sin AMD-Vi. F2 abre y cierra el panel.",
-      "falta": "Identificar los solicitantes de METAL y validar la transicion DMA con USB y almacenamiento."
+      "aceptacion": "QEMU coteja PCI con qtest, incluido un xHCI detras de un puente, con y sin AMD-Vi. En METAL F2 mostro los 15 BDF y el xHCI 2b:00.3. HOST cotejo su cobertura IVRS.",
+      "falta": "Validar la transicion DMA con USB y almacenamiento fisicos."
+    },
+    {
+      "id": "amdvi-ahci-qemu",
+      "titulo": "AMD-Vi / Lectura SATA traducida en QEMU",
+      "ruta": "tools/boot/amdvi_ahci.py",
+      "estado": "qemu",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [
+        12200,
+        4300
+      ],
+      "que": "Comprueba READ DMA EXT desde AHCI emulado en un dominio AMD-Vi separado, junto con xHCI y EDU.",
+      "entrada": "Disco determinista del banco, reserva del invitado e IOVA mapeada por Ring 0.",
+      "salida": "Dos lecturas verificadas del mismo sector y testigo fisico de la IOVA intacto, con informes USB en ambas etapas.",
+      "aceptacion": "QEMU verifica 512 B por lectura y ausencia de fallos IOMMU durante AHCI antes y despues de invalidar EDU.",
+      "falta": "Sustituir el banco AHCI dirigido por HOST por una lectura desde el driver nativo y verificarla en METAL."
     }
   ],
   "relaciones": [
@@ -4020,6 +4037,11 @@
       "de": "amdvi-xhci-guest",
       "a": "amdvi-post-ebs-probe",
       "clase": "codigo"
+    },
+    {
+      "de": "amdvi-ahci-qemu",
+      "a": "amdvi-xhci-guest",
+      "clase": "verificacion"
     },
     {
       "de": "dma-pci-census",

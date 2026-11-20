@@ -536,6 +536,27 @@ El 20-11-2026 se verificaron el despliegue de los tres archivos del
 perfil NVIDIA en `A:` y los respaldos de sus versiones anteriores.
 [Prueba del inventario PCI en QEMU](../Reports/dma-pci-census-qemu-20261120.json).
 
+La captura F2 del equipo AMD mostro quince funciones con BME,
+incluidos el xHCI activo `2b:00.3`, un segundo xHCI `03:00.0`,
+AHCI `03:00.1` y NVMe `01:00.0`. La lectura HOST de IVRS ubico
+esas quince funciones y las dos funciones NVIDIA en el mismo
+IVHD `11`, unidad `00:00.2` y ventana `FD500000`. Para esas
+direcciones, el analizador no encontro un alias declarado.
+En el arranque fotografiado, la RTX seguia con comando PCI
+`0003`, con BME apagado.
+[Inventario METAL y cotejo IVRS en HOST](../Reports/dma-pci-census-metal-20261120.json).
+
+El perfil QEMU `--amdvi-storage` agrega un AHCI virtual en un
+tercer dominio. Ring 0 instala su tabla de traduccion. HOST
+envia `READ DMA EXT` contra un disco de prueba, coteja 512 B
+en la pagina fisica autorizada y verifica informes USB antes
+y despues de revocar la pagina de EDU. El disco de prueba
+conserva su contenido. Para llevar este mecanismo al equipo
+AMD, falta cubrir los BDF de sus buses, validar las reservas
+de DMA de los controladores que siguen en servicio y probar
+la lectura de almacenamiento real bajo traduccion.
+[Evidencia de almacenamiento e HID con AMD-Vi en QEMU](../Reports/amdvi-ahci-qemu-20261120.json).
+
 El primer patron usa como referencia el triangulo de
 [C++ / MSVC](../tools/tests/msvc_desktop_panel.cpp). El panel actual
 genera los pixeles con CPU. Para el ensayo NVIDIA, el cliente C++ de

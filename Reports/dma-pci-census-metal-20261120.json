@@ -1,0 +1,143 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "run": "run-rmlui-media-4714e8306aab",
+  "evidence": "METAL: F2 photograph and pre-EBS FAT32 boot log plus HOST IVRS",
+  "photo_sha256": "e7e4ccfc04aceb77aed349cb64a9859281ed88c839c496bc67cc9d60fa3980e5",
+  "rows_transcribed": true,
+  "bootlog": "dma-pci-census-metal-20261120.bootlog.txt",
+  "bootlog_sha256": "10ff9f629c0a7c9b0f8bf7574c962c9081b08811d4b906bc5099710725204775",
+  "boot_sha256": "5340e4419ddee91a13ccf94e6434c7699cf1fc70d6d355621f4116f2c4ee18a4",
+  "bus_master_enabled": [
+    {
+      "bdf": "0000:00:01.1",
+      "id": "1022:1483",
+      "pci_class": "060400",
+      "pci_command": "0007"
+    },
+    {
+      "bdf": "0000:00:01.3",
+      "id": "1022:1483",
+      "pci_class": "060400",
+      "pci_command": "0007"
+    },
+    {
+      "bdf": "0000:00:03.1",
+      "id": "1022:1483",
+      "pci_class": "060400",
+      "pci_command": "0007"
+    },
+    {
+      "bdf": "0000:00:07.1",
+      "id": "1022:1484",
+      "pci_class": "060400",
+      "pci_command": "0007"
+    },
+    {
+      "bdf": "0000:00:08.1",
+      "id": "1022:1484",
+      "pci_class": "060400",
+      "pci_command": "0007"
+    },
+    {
+      "bdf": "0000:00:14.3",
+      "id": "1022:790e",
+      "pci_class": "060100",
+      "pci_command": "000f"
+    },
+    {
+      "bdf": "0000:01:00.0",
+      "id": "2646:5017",
+      "pci_class": "010802",
+      "pci_command": "0006"
+    },
+    {
+      "bdf": "0000:03:00.0",
+      "id": "1022:43bc",
+      "pci_class": "0c0330",
+      "pci_command": "0006"
+    },
+    {
+      "bdf": "0000:03:00.1",
+      "id": "1022:43b8",
+      "pci_class": "010601",
+      "pci_command": "0006"
+    },
+    {
+      "bdf": "0000:03:00.2",
+      "id": "1022:43b3",
+      "pci_class": "060400",
+      "pci_command": "0007"
+    },
+    {
+      "bdf": "0000:20:04.0",
+      "id": "1022:43b4",
+      "pci_class": "060400",
+      "pci_command": "0007"
+    },
+    {
+      "bdf": "0000:20:05.0",
+      "id": "1022:43b4",
+      "pci_class": "060400",
+      "pci_command": "0007"
+    },
+    {
+      "bdf": "0000:20:06.0",
+      "id": "1022:43b4",
+      "pci_class": "060400",
+      "pci_command": "0007"
+    },
+    {
+      "bdf": "0000:20:07.0",
+      "id": "1022:43b4",
+      "pci_class": "060400",
+      "pci_command": "0007"
+    },
+    {
+      "bdf": "0000:2b:00.3",
+      "id": "1022:149c",
+      "pci_class": "0c0330",
+      "pci_command": "0007"
+    }
+  ],
+  "owner": "0000:2b:00.3",
+  "keyboard_and_mouse_status_ok": true,
+  "ivrs_source": "Windows GetSystemFirmwareTable",
+  "ivrs": {
+    "table_bytes": 208,
+    "table_revision": 2,
+    "table_sha256": "d2b4e55ee37be93d6e764136059f140e847368118d447c345964ef21471202ec",
+    "block_types": [
+      "10",
+      "11"
+    ]
+  },
+  "ivrs_requesters": [
+    "0000:00:01.1",
+    "0000:00:01.3",
+    "0000:00:03.1",
+    "0000:00:07.1",
+    "0000:00:08.1",
+    "0000:00:14.3",
+    "0000:01:00.0",
+    "0000:03:00.0",
+    "0000:03:00.1",
+    "0000:03:00.2",
+    "0000:20:04.0",
+    "0000:20:05.0",
+    "0000:20:06.0",
+    "0000:20:07.0",
+    "0000:2b:00.3",
+    "0000:29:00.0",
+    "0000:29:00.1"
+  ],
+  "ivrs_unit": "0000:00:00.2",
+  "ivrs_unit_mmio": "0x00000000fd500000",
+  "ivrs_preferred_block": "11",
+  "ivrs_no_alias_reported_for_observed_functions": true,
+  "rtx_pci_command": "0003",
+  "physical_dma_isolation_verified": false,
+  "rtx_render_verified": false,
+  "bootlog_fat32_sha256": "e74d5bf30dc2ac640ef7228de979a2aa2eb37ad7320e1c959cbd1d09041f216e",
+  "bootlog_archive_eol": "LF"
+}
