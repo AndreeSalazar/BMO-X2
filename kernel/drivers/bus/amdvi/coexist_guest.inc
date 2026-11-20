@@ -1,4 +1,4 @@
-# QEMU TCG only. The lab mailbox requests one of three fixed operations.
+# QEMU TCG only. The lab mailbox requests a fixed operation.
 # Ring 0 owns the IOMMU registers, tables and invalidation commands.
 .set LAB_PAGES, AMDVI_LAB_PAGES
 .set LAB_RW, 0x6000000000000000
@@ -81,14 +81,22 @@ amdvi_lab_entry:
     mov AMDVI_LAB_REQUEST(%rbp), %r15
     cmp $1, %r15
     jb .Llab_reject
-#ifdef BMO_AMDVI_GUEST_NVME
+#ifdef BMO_AMDVI_GUEST_AHCI
+    cmp $7, %r15
+#elif defined(BMO_AMDVI_GUEST_NVME)
     cmp $4, %r15
 #else
     cmp $3, %r15
 #endif
     ja .Llab_reject
     cmp $1, %r15
-    jne .Llab_running_phase
+    je .Llab_initial_phase
+#ifdef BMO_AMDVI_GUEST_AHCI
+    cmp $6, %r15
+    jae .Llab_initial_phase
+#endif
+    jmp .Llab_running_phase
+.Llab_initial_phase:
     cmpq $0, AMDVI_LAB_PHASE(%rbp)
     jne .Llab_reject
     jmp .Llab_check_pci
@@ -132,12 +140,17 @@ amdvi_lab_entry:
     je .Llab_revoke
 #ifdef BMO_AMDVI_GUEST_NVME
     cmp $4, %r15
-    je .Llab_nvme
+    je .Llab_disk
+#endif
+#ifdef BMO_AMDVI_GUEST_AHCI
+    cmp $5, %r15
+    je .Llab_disk
+    ja .Llab_start
 #endif
     jmp .Llab_stop
 
 #ifdef BMO_AMDVI_GUEST_NVME
-.Llab_nvme:
+.Llab_disk:
     mov 0x18(%r14), %eax
     and $0x1005, %eax
     cmp $0x1005, %eax
@@ -146,12 +159,27 @@ amdvi_lab_entry:
     cmp %rax, (%r14)
     jne .Llab_unmap
     movabs $LAB_RW, %r8
+#ifdef BMO_AMDVI_GUEST_AHCI
+    cmp $5, %r15
+    jne .Llab_check_nvme_dte
+    lea (LAB_AHCI_ROOT+0x403)(%r12), %rax
+    or %r8, %rax
+    cmp %rax, 0x600(%r12)
+    jne .Llab_unmap
+    cmpq $3, 0x608(%r12)
+    jne .Llab_unmap
+    jmp .Llab_call_disk
+.Llab_check_nvme_dte:
+#endif
     lea (LAB_NVME_ROOT+0x403)(%r12), %rax
     or %r8, %rax
     cmp %rax, 0x900(%r12)
     jne .Llab_unmap
     cmpq $4, 0x908(%r12)
     jne .Llab_unmap
+#ifdef BMO_AMDVI_GUEST_AHCI
+.Llab_call_disk:
+#endif
     lea AMDVI_GUEST_NVME_CODE(%rbp), %rax
     call *%rax
     mov %eax, %ebx
@@ -165,6 +193,10 @@ amdvi_lab_entry:
     or 16(%r14), %rax
     or 0x2020(%r14), %rax
     jnz .Llab_unmap
+#ifdef BMO_AMDVI_GUEST_AHCI
+    cmp $6, %r15
+    jae .Llab_call_disk
+#endif
     movabs $LAB_RW, %r8
     lea LAB_TABLE_OFFSET(%r12), %rdi
 #ifdef BMO_AMDVI_ROUTED
@@ -513,10 +545,22 @@ amdvi_lab_entry:
 #ifdef BMO_AMDVI_STORAGE
     cmp $0x80003000, %r10d
     jne .Llab_xhci_master
+#ifdef BMO_AMDVI_GUEST_AHCI
+    cmp $6, %r15
+    jae .Llab_advance
+#endif
     cmp $2, %r15                 # Start and stop require AHCI quiesced.
     jne .Llab_pci_bad
     jmp .Llab_advance
 .Llab_xhci_master:
+#endif
+#ifdef BMO_AMDVI_GUEST_AHCI
+    cmp $0x80004800, %r10d
+    jne .Llab_usb_master
+    cmp $6, %r15
+    jae .Llab_advance
+    jmp .Llab_pci_bad
+.Llab_usb_master:
 #endif
     cmp $0x80002800, %r10d
     jne .Llab_pci_bad

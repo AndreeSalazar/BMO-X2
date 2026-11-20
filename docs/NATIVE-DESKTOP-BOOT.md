@@ -725,6 +725,26 @@ python -B tools/desktop/rmlui/native/media.py <ABI_RUN> <GATO_COMPACTO_RUN> --us
 
 [Colas NVMe del invitado y registro METAL](../Reports/amdvi-guest-nvme-qemu-20261120.json).
 
+El perfil `--amdvi-guest-ahci` completa el traspaso de los dos discos
+virtuales desde Ring 0. Con AMD-Vi apagado, NVMe confirma su cierre
+normal y AHCI detiene los motores de sus seis puertos. Solo entonces
+se retira BME de cada controlador. Con AMD-Vi activo, el invitado lee
+el sector de prueba en los dominios independientes 3 y 4 y vuelve a
+retirar BME. Las reservas se retienen ante un fallo.
+
+El banco solicita las operaciones fijas, suspende otros solicitantes
+emulados y comprueba los registros, los datos y los testigos de cada
+IOVA. El ensayo verifica teclado y raton tras las lecturas. Los medios
+de este perfil quedan confinados a QEMU. La RTX y los discos fisicos
+requieren su propio traspaso y verificacion.
+
+```powershell
+python -B tools/desktop/rmlui/native/media.py <ABI_RUN> <GATO_COMPACTO_RUN> --usb both --nvidia-probe --amdvi-probe --amdvi-post --amdvi-coexist --amdvi-guest-dma --amdvi-storage --amdvi-nvme --amdvi-guest-nvme --amdvi-guest-ahci
+```
+
+[Traspaso y lecturas de Ring 0 en QEMU](../Reports/amdvi-guest-storage-qemu-20261120.json).
+[Especificacion AHCI 1.3.1](https://www.intel.com/content/www/us/en/io/serial-ata/serial-ata-ahci-spec-rev1-3-1.html).
+
 El perfil `--amdvi-routed` agrega un dispositivo EDU detras de un
 puerto PCIe en un bus alto. Ring 0 descubre el BDF completo, valida
 la reserva UEFI y programa su entrada en una tabla AMD-Vi de 96

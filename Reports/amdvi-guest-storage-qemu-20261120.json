@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "run": "run-rmlui-media-d1ab64e96ea9",
+  "evidence": "QEMU FAT32 boot, guest-owned AMD-Vi and storage handoff and queues",
+  "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+  "cases": {
+    "normal": true,
+    "external-permissions": true,
+    "amdvi-missing": true
+  },
+  "firmware_storage_handoff_owner": "Ring 0 guest",
+  "firmware_handoff_translation_enabled": false,
+  "other_emulated_bus_masters_prepared_by": "QEMU qtest HOST",
+  "disks": {
+    "ahci": {
+      "requester": "0030",
+      "domain": 3,
+      "queue_owner": "Ring 0 guest",
+      "reads": 2,
+      "bytes_per_read": 512,
+      "sector_sha256": "3fee31287e0da91f7967b55bdae95dc073704978ace7f0456ff0c7e0b0b7d3bb",
+      "rejected_without_domain": true,
+      "rejected_with_edu_bme": true,
+      "quiesced_ports": 6
+    },
+    "nvme": {
+      "requester": "0048",
+      "domain": 4,
+      "queue_owner": "Ring 0 guest",
+      "reads": 2,
+      "bytes_per_read": 512,
+      "sector_sha256": "84a44019110911e9865fa73b29b90ee38a3f098b8f33c39fd273df0c739dc34d",
+      "rejected_without_domain": true,
+      "rejected_with_edu_bme": true,
+      "firmware_shutdown_ack": 9
+    }
+  },
+  "hid_during_grant": [
+    2,
+    1
+  ],
+  "hid_after_revocation": [
+    2,
+    1
+  ],
+  "guest_storage_stage_bytes": 2088,
+  "amdvi_post_stage_bytes": 2548,
+  "reserved_lab_pages": 31,
+  "screenshot": {
+    "path": "puente-normal-storage-lab.png",
+    "resolution": [
+      1280,
+      800
+    ],
+    "sha256": "a9963613e412bb8352881acfec1f26567aba555d5212475a6a223883722caa0e",
+    "backend": "CPU + GOP"
+  },
+  "installable_media_emitted": false,
+  "fat32_install_guard_verified": true,
+  "installed_metal_run": "run-rmlui-media-a01f0170ccfa",
+  "installed_files_verified": true,
+  "recompiled_metal_probe_sha256": "168b912280624be7de2bc850293b5772bb46b01a37502111a7c723d8903dda54",
+  "physical_storage_tested": false,
+  "rtx_dma_tested": false,
+  "gsp_boot_verified": false,
+  "gpu_render_verified": false
+}

@@ -2846,6 +2846,24 @@
       "falta": "Trasladar a METAL la propiedad de las colas y el traspaso de firmware."
     },
     {
+      "id": "ahci-guest-qemu",
+      "titulo": "Almacenamiento / Traspaso y lectura SATA desde Ring 0",
+      "ruta": "kernel/drivers/storage/ahci_guest.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [
+        12950,
+        4300
+      ],
+      "que": "Confirma que los puertos AHCI del banco estan inactivos, detiene los motores heredados y lee un sector con una lista de comandos propia.",
+      "entrada": "Controlador ICH9 de QEMU, BAR verificado y dominio AMD-Vi 3 para la lectura.",
+      "salida": "Traspaso confirmado y 512 B por lectura. Motores, ventana MMIO y permiso DMA cerrados al terminar.",
+      "aceptacion": "Verificar dos lecturas SATA y NVMe, rechazos fuera de fase y continuidad de HID.",
+      "falta": "Verificar el traspaso y la traduccion de almacenamiento en METAL antes de conceder DMA a la RTX."
+    },
+    {
       "id": "mmio-efi-range",
       "titulo": "MMIO / Limites frente al mapa EFI",
       "ruta": "kernel/drivers/bus/mmio_range.inc",
@@ -4239,6 +4257,16 @@
       "de": "nvme-guest-qemu",
       "a": "mmio-efi-range",
       "clase": "codigo"
+    },
+    {
+      "de": "ahci-guest-qemu",
+      "a": "nvme-guest-qemu",
+      "clase": "codigo"
+    },
+    {
+      "de": "ahci-guest-qemu",
+      "a": "amdvi-ahci-qemu",
+      "clase": "verificacion"
     },
     {
       "de": "storage-state-post",

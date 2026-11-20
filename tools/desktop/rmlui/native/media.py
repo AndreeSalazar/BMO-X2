@@ -39,6 +39,7 @@ def main():
     p.add_argument('--amdvi-storage', action='store_true', help='Read a virtual AHCI disk in a third guest-managed domain')
     p.add_argument('--amdvi-nvme', action='store_true', help='Recover a virtual NVMe namespace in a fourth domain')
     p.add_argument('--amdvi-guest-nvme', action='store_true', help='Let Ring 0 program the fixed NVMe read in QEMU')
+    p.add_argument('--amdvi-guest-ahci', action='store_true', help='Let Ring 0 program both fixed disk reads in QEMU')
     p.add_argument('--amdvi-routed', action='store_true', help='Exercise a high PCI requester ID behind a PCIe root port')
     p.add_argument('--dma-census', action='store_true', help='Capture PCI bus masters after USB startup')
     p.add_argument('--storage-state', action='store_true', help='Observe AHCI and NVMe state immediately after UEFI handoff')
@@ -57,6 +58,8 @@ def main():
         p.error('--amdvi-nvme requires the root-bus --amdvi-storage layout')
     if args.amdvi_guest_nvme and not args.amdvi_nvme:
         p.error('--amdvi-guest-nvme requires --amdvi-nvme')
+    if args.amdvi_guest_ahci and not args.amdvi_guest_nvme:
+        p.error('--amdvi-guest-ahci requires --amdvi-guest-nvme')
     if args.dma_census and (not args.amdvi_post or args.amdvi_coexist):
         p.error('--dma-census requires --amdvi-post and its own context stage')
     if args.storage_state and not args.dma_census:p.error('--storage-state requires --dma-census')
@@ -107,6 +110,8 @@ def main():
         (run/'amdvi-nvme.txt').write_text('qemu-only-nvme-queues\n', encoding='ascii')
     if args.amdvi_guest_nvme:
         (run/'amdvi-guest-nvme.txt').write_text('qemu-only-nvme-queues-ring0\n', encoding='ascii')
+    if args.amdvi_guest_ahci:
+        (run/'amdvi-guest-ahci.txt').write_text('qemu-only-ahci-commands-ring0\n', encoding='ascii')
     if args.low_gop:(run/'low-gop.txt').write_text('QEMU VGA preferred 1024x768\n',encoding='ascii')
     if args.usb:(run/'native-usb.txt').write_text(args.usb+'\n',encoding='ascii')
     if args.usb_empty_ports:(run/'native-usb-empty.txt').write_text('QEMU fault test\n',encoding='ascii')
@@ -171,6 +176,7 @@ def main():
         if args.amdvi_routed:flags+=['-DBMO_AMDVI_ROUTED']
         if args.amdvi_nvme:flags+=['-DBMO_AMDVI_NVME']
         if args.amdvi_guest_nvme:flags+=['-DBMO_AMDVI_GUEST_NVME']
+        if args.amdvi_guest_ahci:flags+=['-DBMO_AMDVI_GUEST_AHCI']
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf',*flags,'-c',source,'-o',native_probe],'compile-amdvi-firmware')
         if args.amdvi_post:
             check_context_stage(llvm,native_probe,'amdvi_post',2560 if args.amdvi_storage or args.storage_quiesce else 2048)
@@ -232,6 +238,9 @@ def main():
         raise ValueError('Missing translated NVMe reads')
     if args.amdvi_guest_nvme and report['Cases'][0].get('NvmeQueueOwner')!='Ring 0 guest':
         raise ValueError('Missing guest-owned NVMe queues')
+    if args.amdvi_guest_ahci and (report['Cases'][0].get('AhciQueueOwner')!='Ring 0 guest' or
+                                 not report['Cases'][0].get('GuestStorageHandoff')):
+        raise ValueError('Missing guest-owned storage handoff and AHCI commands')
     if args.amdvi_routed and (not report['Cases'][0].get('RoutedDmaVerified') or
                              not report['Cases'][0].get('UnassignedRequesterBlocked')):
         raise ValueError('Missing translated DMA or default-deny evidence')
@@ -263,6 +272,7 @@ def main():
         amdvi_routed=args.amdvi_routed,
         amdvi_nvme=args.amdvi_nvme,
         amdvi_guest_nvme=args.amdvi_guest_nvme,
+        amdvi_guest_ahci=args.amdvi_guest_ahci,
         qemu_only=bool(args.usb),usb_profile=args.usb,
         usb_empty_ports=args.usb_empty_ports,
         hardware_profile='amd149c-usb2-root-experimental' if args.usb=='both' and not args.usb_empty_ports else None,

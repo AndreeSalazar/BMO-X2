@@ -88,3 +88,34 @@ def read_sector(machine, command, bar, scratch, input_activity):
         finally:
             machine.pci(4, original, word=True, requester=REQUESTER)
         require(not machine.pci(4,word=True,requester=REQUESTER) & 4, 'AHCI sigue con bus mastering')
+
+
+def verify_guest_read(machine, command, bar, scratch, context, guest_request, input_activity):
+    """Observe the sector and port after Ring 0 programs the operation."""
+    port = bar + 0x100
+    buffer = scratch + BUFFER_OFFSET
+    iova = scratch + IOVA_OFFSET
+    witness = bytes([0xa5]) * 4096
+    original = machine.pci(4, word=True, requester=REQUESTER)
+    require(original & 6 == 2, 'AHCI no esta listo para el ensayo del invitado')
+    before = machine.read(context+0xbd8)
+    tail = machine.read(AMDVI+0x2018)
+    machine.put_bytes(iova, witness)
+    guest_request(5)
+    require(machine.read(context+0xbd8)==before+1 and machine.read(context+0xbe0)==7,
+            'Falta lectura y cierre AHCI desde Ring 0')
+    status = int(machine.command('readl', port+0x18), 16)
+    require(machine.pci(4,word=True,requester=REQUESTER)==original and not status&0xc011
+            and not machine.read(port) and not machine.read(port+8),
+            'AHCI mantiene BME, motores o punteros DMA activos')
+    prdbc, = struct.unpack('<I', machine.get_bytes(buffer+4, 4))
+    payload = machine.get_bytes(buffer+0x800, 512)
+    require(prdbc==512 and payload==CONTENTS and machine.get_bytes(iova,4096)==witness,
+            'AHCI no entrego el sector en su respaldo traducido')
+    require(machine.read(AMDVI+0x2018)==tail, 'AMD-Vi registro un nuevo fallo AHCI')
+    command('cont')
+    try:
+        input_activity()
+    finally:
+        command('stop')
+    return hashlib.sha256(payload).hexdigest()

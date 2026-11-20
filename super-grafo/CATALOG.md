@@ -169,6 +169,7 @@
 | [AMD-Vi / Lectura SATA traducida en QEMU](../tools/boot/amdvi_ahci.py) | qemu | host | Comprueba READ DMA EXT desde AHCI emulado en un dominio AMD-Vi separado, junto con xHCI y EDU. |
 | [AMD-Vi / Lectura NVMe traducida en QEMU](../tools/boot/amdvi_nvme.py) | qemu | host | Cierra las colas de OVMF, instala colas NVMe del laboratorio y lee en un cuarto dominio AMD-Vi administrado por Ring 0. |
 | [Almacenamiento / Colas NVMe de Ring 0](../kernel/drivers/storage/nvme_guest.inc) | qemu | 0 | Crea CQ1 y SQ1, lee un sector en el dominio 4, confirma cierre y revoca su ventana temporal. |
+| [Almacenamiento / Traspaso y lectura SATA desde Ring 0](../kernel/drivers/storage/ahci_guest.inc) | qemu | 0 | Confirma que los puertos AHCI del banco estan inactivos, detiene los motores heredados y lee un sector con una lista de comandos propia. |
 | [MMIO / Limites frente al mapa EFI](../kernel/drivers/bus/mmio_range.inc) | qemu | 0 | Comprueba la geometria del mapa y rechaza que una ventana MMIO invada una region EFI de memoria. |
 
 ## Dependencias declaradas
@@ -450,6 +451,8 @@
 | nvme-guest-qemu | amdvi-nvme-qemu | verificacion |
 | nvme-guest-qemu | amdvi-xhci-guest | codigo |
 | nvme-guest-qemu | mmio-efi-range | codigo |
+| ahci-guest-qemu | nvme-guest-qemu | codigo |
+| ahci-guest-qemu | amdvi-ahci-qemu | verificacion |
 | storage-state-post | mmio-efi-range | codigo |
 | rmlui-fat32-media | storage-state-post | codigo |
 | rmlui-fat32-media | rmlui-gop-full-hd | codigo |

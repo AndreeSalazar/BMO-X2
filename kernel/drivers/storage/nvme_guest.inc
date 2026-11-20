@@ -1,10 +1,21 @@
 # Fixed QEMU NVMe namespace. AMD-Vi lab verified TCG, phase, reservation
 # and device table before calling. R12 is scratch, R14 its MMIO alias.
 nvme_guest_begin:
+#ifdef BMO_AMDVI_GUEST_AHCI
+    test $1, %r15b
+    jnz .Lahci_guest
+#endif
     push %rbx
     push %r13
     push %r15
+#ifdef BMO_AMDVI_GUEST_AHCI
+    cmp $6, %r15
+    je .Lnvme_map
+#endif
     movl $1, AMDVI_GUEST_NVME_STEP(%rbp)
+#ifdef BMO_AMDVI_GUEST_AHCI
+.Lnvme_map:
+#endif
     call .Lnvme_bar
     jc .Lnvme_refused
     lea 8192(%r8), %r9
@@ -35,6 +46,10 @@ nvme_guest_begin:
     invlpg 0x1000(%r14)
     invlpg 0x2000(%r14)
 
+#ifdef BMO_AMDVI_GUEST_AHCI
+    cmpq $6, AMDVI_LAB_REQUEST(%rbp)
+    je .Lnvme_firmware_shutdown
+#endif
     movl $2, AMDVI_GUEST_NVME_STEP(%rbp)
     cmpw $3, (%r14)                 # CAP.MQES for depth 4
     jb .Lnvme_refused
@@ -114,17 +129,9 @@ nvme_guest_begin:
     movl $1, 0x100c(%r14)
 
     movl $6, AMDVI_GUEST_NVME_STEP(%rbp)
-    movl $0x00464001, 0x14(%r14)
-    mov $0x4e, %r8d
-    mov $8, %r9d
-    call .Lnvme_status
+    call .Lnvme_shutdown
     jc .Lnvme_failed
-    mov %eax, AMDVI_GUEST_NVME_ACK(%rbp)
-    movl $0x00460000, 0x14(%r14)
-    mov $0x43, %r8d
-    xor %r9d, %r9d
-    call .Lnvme_status
-    jc .Lnvme_failed
+    mov %edx, AMDVI_GUEST_NVME_ACK(%rbp)
     mov %r15d, %eax
     call .Lnvme_pci_command
     jne .Lnvme_failed
@@ -132,6 +139,27 @@ nvme_guest_begin:
     movl $7, AMDVI_GUEST_NVME_STEP(%rbp)
     xor %eax, %eax
     jmp .Lnvme_done
+#ifdef BMO_AMDVI_GUEST_AHCI
+.Lnvme_firmware_shutdown:
+    mov 0x14(%r14), %eax
+    and $0xc001, %eax
+    cmp $1, %eax
+    jne .Lnvme_refused
+    mov 0x1c(%r14), %eax
+    and $0x4f, %eax
+    cmp $1, %eax
+    jne .Lnvme_refused
+    call .Lnvme_shutdown
+    jc .Lnvme_refused
+    mov %edx, %ebx
+    mov %r15d, %eax
+    and $~4, %eax
+    call .Lnvme_pci_command
+    jne .Lnvme_refused
+    mov %ebx, AMDVI_GUEST_NVME_HANDOFF(%rbp)
+    xor %eax, %eax
+    jmp .Lnvme_done
+#endif
 .Lnvme_failed:
     # Retain the DMA reservation. A failed lab run does not reuse queues.
     mov %r15d, %eax
@@ -146,6 +174,24 @@ nvme_guest_begin:
     pop %rbx
     ret
 
+.Lnvme_shutdown:
+    mov 0x14(%r14), %r10d
+    mov %r10d, %eax
+    or $0x4000, %eax
+    mov %eax, 0x14(%r14)
+    mov $0x4e, %r8d
+    mov $8, %r9d
+    call .Lnvme_status
+    jc .Lnvme_shutdown_done
+    mov %eax, %r10d
+    andl $~0xc001, 0x14(%r14)
+    mov $0x43, %r8d
+    xor %r9d, %r9d
+    call .Lnvme_status
+    mov %r10d, %edx
+.Lnvme_shutdown_done:
+    ret
+
 .Lnvme_bar:
     mov $0xcf8, %dx
     in %dx, %eax
@@ -154,8 +200,19 @@ nvme_guest_begin:
     call .Lnvme_pci_read
     movzwl %ax, %r15d
     and $6, %eax
+#ifdef BMO_AMDVI_GUEST_AHCI
+    cmpq $6, AMDVI_LAB_REQUEST(%rbp)
+    jne .Lnvme_dma_off
+    cmp $6, %eax
+    jne .Lnvme_pci_bad
+    jmp .Lnvme_class
+.Lnvme_dma_off:
+#endif
     cmp $2, %eax
     jne .Lnvme_pci_bad
+#ifdef BMO_AMDVI_GUEST_AHCI
+.Lnvme_class:
+#endif
     mov $0x80004808, %eax
     call .Lnvme_pci_read
     shr $8, %eax
@@ -195,11 +252,13 @@ nvme_guest_begin:
     ret
 
 .Lnvme_pci_command:
+    mov $0x80004804, %r10d
+.Lstorage_pci_command:
     mov %eax, %ecx
     mov $0xcf8, %dx
     in %dx, %eax
     mov %eax, %r11d
-    mov $0x80004804, %eax
+    mov %r10d, %eax
     out %eax, %dx
     add $4, %dx
     mov %cx, %ax
@@ -246,5 +305,8 @@ nvme_guest_begin:
     stc
     ret
 
+#ifdef BMO_AMDVI_GUEST_AHCI
+#include "ahci_guest.inc"
+#endif
 #include "../bus/mmio_range.inc"
 nvme_guest_end:

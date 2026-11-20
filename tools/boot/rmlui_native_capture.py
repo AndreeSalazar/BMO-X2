@@ -243,7 +243,10 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
         amdvi_proof.update(verify_coexistence(amdvi_coexist,command,memory,context_address,symbols,
                            guest_dma=guest_dma, storage=(run/'amdvi-storage.txt').is_file(),
                            routed=(run/'amdvi-routed.txt').is_file(), nvme=(run/'amdvi-nvme.txt').is_file(),
-                           guest_nvme=(run/'amdvi-guest-nvme.txt').is_file()))
+                           guest_nvme=(run/'amdvi-guest-nvme.txt').is_file(),
+                           guest_ahci=(run/'amdvi-guest-ahci.txt').is_file()))
+        if (run/'amdvi-guest-ahci.txt').is_file():
+            command('screendump',{'filename':str(prefix)+'-storage-lab.png','format':'png'})
         if amdvi_proof.get('NvmeTranslatedReadsVerified'):
             return dict(Case=case,Passed=True,Evidence='QEMU',PresentedPixelsVerified=dw*dh,**amdvi_proof)
     command('cont')

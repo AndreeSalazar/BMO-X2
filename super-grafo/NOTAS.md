@@ -1817,6 +1817,17 @@ Depende de: AMD-Vi / Lectura NVMe traducida en QEMU (verificacion), AMD-Vi / Dom
 Aceptacion: Leer dos veces en QEMU con HID activo y rechazar solicitudes sin dominio o con EDU todavia habilitado.
 Pendiente: Trasladar a METAL la propiedad de las colas y el traspaso de firmware.
 
+## kernel/drivers/storage/ahci_guest.inc
+
+Confirma que los puertos AHCI del banco estan inactivos, detiene los motores heredados y lee un sector con una lista de comandos propia.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: Controlador ICH9 de QEMU, BAR verificado y dominio AMD-Vi 3 para la lectura.
+Salida: Traspaso confirmado y 512 B por lectura. Motores, ventana MMIO y permiso DMA cerrados al terminar.
+Depende de: Almacenamiento / Colas NVMe de Ring 0 (codigo), AMD-Vi / Lectura SATA traducida en QEMU (verificacion).
+Aceptacion: Verificar dos lecturas SATA y NVMe, rechazos fuera de fase y continuidad de HID.
+Pendiente: Verificar el traspaso y la traduccion de almacenamiento en METAL antes de conceder DMA a la RTX.
+
 ## kernel/drivers/bus/mmio_range.inc
 
 Comprueba la geometria del mapa y rechaza que una ventana MMIO invada una region EFI de memoria.
@@ -1850,4 +1861,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-166 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+167 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
