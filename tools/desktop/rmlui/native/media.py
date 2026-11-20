@@ -40,6 +40,7 @@ def main():
     p.add_argument('--amdvi-routed', action='store_true', help='Exercise a high PCI requester ID behind a PCIe root port')
     p.add_argument('--dma-census', action='store_true', help='Capture PCI bus masters after USB startup')
     p.add_argument('--storage-state', action='store_true', help='Observe AHCI and NVMe state immediately after UEFI handoff')
+    p.add_argument('--storage-quiesce', action='store_true', help='Stop emulated AHCI and NVMe after EBS (QEMU only)')
     p.add_argument('--full-hd', action='store_true', help='Render the desktop at native 1920x1080 for GOP')
     args=p.parse_args()
     if args.usb_empty_ports and args.usb!='both':p.error('--usb-empty-ports requires --usb both')
@@ -55,6 +56,8 @@ def main():
     if args.storage_state and not args.dma_census:p.error('--storage-state requires --dma-census')
     if args.full_hd and (not args.storage_state or args.low_gop):
         p.error('--full-hd requires --storage-state and its own QEMU display mode')
+    if args.storage_quiesce and not args.full_hd:
+        p.error('--storage-quiesce uses the combined platform stage of --full-hd')
     abi,splash=args.abi_run.resolve(),args.splash_run.resolve()
     for path in (abi,splash):
         if path.parent!=ROOT/'build/CASM':raise ValueError('Run outside build/CASM')
@@ -82,6 +85,8 @@ def main():
         (run/'dma-census-probe.txt').write_text('pci-segment0-bme\n', encoding='ascii')
     if args.storage_state:
         (run/'storage-state.txt').write_text('post-ebs-read-only\n', encoding='ascii')
+    if args.storage_quiesce:
+        (run/'storage-quiesce.txt').write_text('qemu-only-ahci-nvme-shutdown\n', encoding='ascii')
     if args.full_hd:
         (run/'full-hd.txt').write_text('cpu-gop-native-1920x1080\n', encoding='ascii')
     if args.amdvi_coexist:
@@ -110,6 +115,7 @@ def main():
         if args.amdvi_guest_dma and name=='gate':flags+=['-DBMO_AMDVI_GUEST_DMA']
         if args.amdvi_storage and name in ('reader','gate'):flags+=['-DBMO_AMDVI_STORAGE']
         if args.full_hd and name in ('allocator','reader','loader'):flags+=['-DBMO_FULL_HD']
+        if args.storage_quiesce and name=='gate':flags+=['-DBMO_STORAGE_QUIESCE']
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf','-DRMLUI_MEDIA','-DRMLUI_NATIVE',
             '-DRMLUI_GOP_REGIONS','-DDOOM_ENGINE','-DDESKTOP_DOOM',*flags,
             '-c',ROOT/source,'-o',run/(name+'.o')],'compile-media-'+name)
@@ -148,14 +154,15 @@ def main():
         if args.amdvi_coexist:flags+=['-DBMO_AMDVI_COEXIST']
         if args.dma_census:flags+=['-DBMO_DMA_CENSUS']
         if args.storage_state:flags+=['-DBMO_STORAGE_STATE']
+        if args.storage_quiesce:flags+=['-DBMO_STORAGE_QUIESCE']
         if args.full_hd:flags+=['-DBMO_FULL_HD','-DRMLUI_MEDIA','-DRMLUI_NATIVE','-DDESKTOP_DOOM']
         if args.amdvi_guest_dma:flags+=['-DBMO_AMDVI_GUEST_DMA']
         if args.amdvi_storage:flags+=['-DBMO_AMDVI_STORAGE']
         if args.amdvi_routed:flags+=['-DBMO_AMDVI_ROUTED']
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf',*flags,'-c',source,'-o',native_probe],'compile-amdvi-firmware')
         if args.amdvi_post:
-            check_context_stage(llvm,native_probe,'amdvi_post',2560 if args.amdvi_storage else 2048)
-        if args.full_hd:check_context_stage(llvm,native_probe,'gop_stage')
+            check_context_stage(llvm,native_probe,'amdvi_post',2560 if args.amdvi_storage or args.storage_quiesce else 2048)
+        if args.full_hd:check_context_stage(llvm,native_probe,'gop_stage',1536 if args.storage_quiesce else 2048)
         relocations=subprocess.check_output([llvm/'llvm-objdump.exe','-r',native_probe],text=True)
         if 'RELOCATION RECORDS' in relocations:raise ValueError('AMD-Vi firmware inventory must be position independent')
         raw_probe=native_probe.with_suffix('.bin')
@@ -190,11 +197,15 @@ def main():
     if args.amdvi_post and not all(report['Cases'][i].get('AmdViPostVerified') for i in (0,2)):
         raise ValueError('Missing post-EBS AMD-Vi evidence')
     if args.dma_census and (not all(report['Cases'][i].get('DmaCensusVerified') for i in (0,2)) or
-                            not report['Cases'][0].get('DmaCensusPanelVerified')):
+                            (not args.storage_quiesce and not report['Cases'][0].get('DmaCensusPanelVerified'))):
         raise ValueError('Missing PCI DMA inventory or its Ring 3 panel evidence')
     if args.storage_state and (not all(report['Cases'][i].get('StorageStateVerified') for i in (0,2)) or
-                               not report['Cases'][0].get('StoragePanelVerified')):
+                               (not args.storage_quiesce and not report['Cases'][0].get('StoragePanelVerified'))):
         raise ValueError('Missing storage state or its Ring 3 panel evidence')
+    if args.storage_quiesce and (not report['Cases'][0].get('StorageQuiesceVerified') or
+                                 not report['Cases'][0].get('StorageQuiesceHidVerified') or
+                                 not report['Cases'][2].get('StorageQuiesceSkippedVerified')):
+        raise ValueError('Missing shutdown, HID or fail-closed evidence')
     if args.full_hd and (not report['Cases'][0].get('FullHdNativeRasterVerified') or
                          not report['Cases'][2].get('FullHdFallbackVerified')):
         raise ValueError('Missing 1080p scanout or desktop fallback evidence')
@@ -216,14 +227,16 @@ def main():
     media=run/'media'
     boot_name = 'NVIDIA.EFI' if args.nvidia_probe else 'DESKTOP.EFI'
     staged={f'EFI/BMO-X2/{boot_name}':image,f'{media_prefix}/INICIO.X86':packet,f'{media_prefix}/DESKTOP.SBF':sbef}
-    for name,data in staged.items():
-        target=media/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(data)
+    if not args.storage_quiesce:
+        for name,data in staged.items():
+            target=media/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(data)
     report.update(run=run.name,evidence='QEMU',disk_sbef=True,physical_boot=False,physical_usb_proven=False,
         display_backend='cpu-gop',
         nvidia_pci_probe=args.nvidia_probe, amdvi_efi_probe=args.amdvi_probe, amdvi_mmio_probe=args.amdvi_probe,
         amdvi_post_probe=args.amdvi_post,
         dma_census=args.dma_census,
         storage_state=args.storage_state,
+        storage_quiesce=args.storage_quiesce,
         full_hd=args.full_hd,
         full_hd_native=args.full_hd,
         amdvi_coexist=args.amdvi_coexist,
@@ -233,11 +246,15 @@ def main():
         qemu_only=bool(args.usb),usb_profile=args.usb,
         usb_empty_ports=args.usb_empty_ports,
         hardware_profile='amd149c-usb2-root-experimental' if args.usb=='both' and not args.usb_empty_ports else None,
-        note='Separate desktop candidate; no QEMU loader device, UEFI reads real FAT32 files.',
-        files={name:hashlib.sha256(data).hexdigest() for name,data in staged.items()})
+        note=('QEMU-only lab; no installable media is emitted.' if args.storage_quiesce else
+              'Separate desktop candidate; no QEMU loader device, UEFI reads real FAT32 files.'),
+        files={} if args.storage_quiesce else {name:hashlib.sha256(data).hexdigest() for name,data in staged.items()})
     (run/'qemu-results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='ascii')
     (run/'qemu-run.json').write_text(json.dumps(dict(cpu='qemu64',ram_mib=1024))+'\n',encoding='ascii')
-    (media/'manifest.json').write_text(json.dumps(report,indent=2)+'\n',encoding='ascii')
-    print('Verified candidate: '+str(media))
+    if args.storage_quiesce:
+        print('Verified QEMU storage lab: '+str(run))
+    else:
+        (media/'manifest.json').write_text(json.dumps(report,indent=2)+'\n',encoding='ascii')
+        print('Verified candidate: '+str(media))
 
 if __name__=='__main__':main()

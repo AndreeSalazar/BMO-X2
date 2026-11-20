@@ -7,7 +7,7 @@ import time
 from cpu_config import register
 from desktop_session_capture import verify_external_rejection
 
-def verify_storage_state(machine, pci_tree, memory, context, serial):
+def verify_storage_state(machine, pci_tree, memory, context, serial, *, quiesce=None):
     ahci, nvme = 0x010601, 0x010802
     read = lambda address: int(machine.command('readl',address),16)
     selector = int(machine.command('inl',0xcf8),16)
@@ -40,7 +40,11 @@ def verify_storage_state(machine, pci_tree, memory, context, serial):
         raise ValueError(f'Storage handoff count {stored}/{total}')
     rows=list(struct.iter_unpack('<HHIQQIHHIIII',memory(context+0xf90,96,'storage-state-rows')))
     observed={rid:tuple(tail) for rid,_,*tail in rows}
-    if observed!=actual:
+    proof={}
+    if quiesce is not None:
+        from storage_quiesce_capture import verify_storage_quiesce
+        proof=verify_storage_quiesce(memory,context,rows,actual,quiesce)
+    if not quiesce and observed!=actual:
         raise ValueError(f'Storage handoff {observed} differs from QEMU {actual}')
     lines=[line for line in serial.read_text(errors='replace').splitlines()
            if line.startswith(('STORAGE_COUNT=','STORAGE_ROW='))]
@@ -50,10 +54,10 @@ def verify_storage_state(machine, pci_tree, memory, context, serial):
                  for rid,pre,kind,_,_,_,post,status,a,b,engines,pending in rows]
     if lines!=expected:
         raise ValueError('Ring 3 storage report differs from the kernel snapshot')
-    return dict(StorageStateVerified=True,StorageStateReport=lines)
+    return dict(StorageStateVerified=True,StorageStateReport=lines,**proof)
 
 
-def verify_dma_census(machine, command, memory, context, serial, *, storage_state=False):
+def verify_dma_census(machine, command, memory, context, serial, *, storage_state=False, quiesce=None):
     def functions(devices):
         for entry in devices:
             yield (entry['bus'] << 8 | entry['slot'] << 3 | entry['function']), entry
@@ -87,7 +91,7 @@ def verify_dma_census(machine, command, memory, context, serial, *, storage_stat
         raise ValueError('PCI DMA inventory differs from PCI configuration or the Ring 3 report')
     proof=dict(DmaCensusVerified=True, DmaCensusActive=total, DmaCensusXhci=f'{owner:04X}', DmaCensusReport=lines)
     if storage_state:
-        proof.update(verify_storage_state(machine,pci_tree,memory,context,serial))
+        proof.update(verify_storage_state(machine,pci_tree,memory,context,serial,quiesce=quiesce))
     return proof
 
 
@@ -100,6 +104,7 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
     run=prefix.parent.parent
     empty_usb=(run/'native-usb-empty.txt').is_file()
     gop_regions=(run/'gop-regions.txt').is_file()
+    storage_lab=(run/'storage-quiesce.txt').is_file()
     full_hd_profile=bool(symbols.get('full_hd'))
     uses_full_hd=full_hd_profile and case=='normal'
     render_width,render_height=(1920,1080) if uses_full_hd else (1280,800)
@@ -168,7 +173,8 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
         raise ValueError('PCI DMA inventory profiles differ')
     if dma_census is not None:
         amdvi_proof.update(verify_dma_census(dma_census,command,memory,context_address,serial,
-                                            storage_state=symbols.get('storage_state',False)))
+                                            storage_state=symbols.get('storage_state',False),
+                                            quiesce=(case=='normal') if storage_lab else None))
     if symbols.get('amdvi_post'):
         base, _, _, status, control, table, cmd, events, hw_status, pte0, pte2 = struct.unpack(
             '<QII8Q', memory(context_address+0xb00,0x50,'amdvi-post'))
@@ -291,6 +297,23 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
             if memory(context_address+0xb8,16,'native-no-usb-dma')!=bytes(16):
                 raise ValueError('GOP-only profile reserved USB DMA')
             display_proof['GopRegionsWithoutXhciVerified']=scale==1
+    if storage_lab:
+        address=symbols['usb_keyboard_reports']-0x3c000000
+        def keyboard_reports():
+            return struct.unpack('<Q',memory(address,8,'storage-lab-keyboard'))[0]
+        before=keyboard_reports()
+        command('send-key',{'keys':[{'type':'qcode','data':'num_lock'}],'hold-time':110})
+        deadline=time.monotonic()+20
+        while keyboard_reports()<before+2:
+            if time.monotonic()>=deadline:
+                raise ValueError('USB keyboard stopped delivering reports after storage shutdown')
+            time.sleep(.05)
+        mouse_address=symbols['usb_mouse_reports']-0x3c000000
+        mouse=struct.unpack('<Q',memory(mouse_address,8,'storage-lab-mouse'))[0]
+        if mouse<2 or not display_proof.get('PointerMoveWithoutRasterVerified'):
+            raise ValueError('USB mouse stopped delivering reports after storage shutdown')
+        return dict(Case=case,Passed=True,Evidence='QEMU',StorageQuiesceHidVerified=True,
+                    PresentedPixelsVerified=dw*dh,**amdvi_proof,**display_proof)
     before=hashlib.sha256(raw).hexdigest()
     command('send-key',{'keys':[{'type':'qcode','data':'ret'}],'hold-time':60})
     after=freeze_frame(3)

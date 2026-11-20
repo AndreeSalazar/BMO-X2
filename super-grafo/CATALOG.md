@@ -165,6 +165,7 @@
 | [PCI / Inventario de solicitantes DMA](../kernel/drivers/bus/amdvi/dma_census.inc) | qemu | 0 | Captura los BDF del segmento PCI 0 con bus mastering habilitado despues de arrancar xHCI. |
 | [Almacenamiento / Recursos UEFI AHCI y NVMe](../kernel/drivers/storage/handoff_uefi.inc) | qemu | 0 | Registra los recursos MMIO de hasta dos controladores AHCI o NVMe del segmento PCI 0 mediante EFI PCI I/O. |
 | [Almacenamiento / Estado posterior a UEFI](../kernel/drivers/storage/handoff_post.inc) | qemu | 0 | Coteja el BAR con PCI y el mapa final. Lee el estado de AHCI y NVMe y revoca la ventana temporal antes de xHCI. |
+| [Almacenamiento / Cierre AHCI y NVMe en QEMU](../kernel/drivers/storage/quiesce.inc) | qemu | 0 | Detiene motores AHCI y solicita el cierre normal NVMe en el banco virtual antes de retirar BME. |
 | [AMD-Vi / Lectura SATA traducida en QEMU](../tools/boot/amdvi_ahci.py) | qemu | host | Comprueba READ DMA EXT desde AHCI emulado en un dominio AMD-Vi separado, junto con xHCI y EDU. |
 
 ## Dependencias declaradas
@@ -441,6 +442,7 @@
 | rmlui-fat32-media | dma-pci-census | codigo |
 | storage-state-post | storage-state-uefi | codigo |
 | storage-state-post | dma-pci-census | codigo |
+| storage-quiesce-qemu | storage-state-post | codigo |
 | rmlui-fat32-media | storage-state-post | codigo |
 | rmlui-fat32-media | rmlui-gop-full-hd | codigo |
 | rmlui-fat32-media | nvidia-mmio-probe | codigo |

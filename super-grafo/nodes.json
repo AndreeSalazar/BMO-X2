@@ -2526,7 +2526,7 @@
       "entrada": "Modo GOP exacto 1920x1080, superficie XRGB y regiones de puntero o franja de estado.",
       "salida": "Cuadro de 2073600 pixeles y regiones directas de puntero y bloqueos, con retorno al presentador base en otros modos.",
       "aceptacion": "QEMU coteja la superficie nativa con GOP, detecta detalle ausente en el escalado anterior y verifica cursor y modo base.",
-      "falta": "Confirmar la nitidez del raster nativo en METAL. El presentador NVIDIA acelerado requiere un backend propio."
+      "falta": "Nitidez confirmada por el propietario en METAL. El presentador NVIDIA acelerado requiere un backend propio."
     },
     {
       "id": "nvidia-pci-probe",
@@ -2773,7 +2773,25 @@
       "entrada": "Recursos validados por UEFI, contexto supervisor y copia final del mapa de memoria.",
       "salida": "Estado de motores y comandos AHCI, CC y CSTS de NVMe. F3 publica la captura en RmlUi.",
       "aceptacion": "QEMU coteja los registros y la pagina F3. METAL muestra motores SATA activos en puertos 4 y 5 y NVMe habilitado, ambos con BME.",
-      "falta": "Construir y probar el traspaso nativo de los controladores antes de activar AMD-Vi."
+      "falta": "Completar la reanudacion con colas propias y probar el traspaso en METAL antes de activar AMD-Vi."
+    },
+    {
+      "id": "storage-quiesce-qemu",
+      "titulo": "Almacenamiento / Cierre AHCI y NVMe en QEMU",
+      "ruta": "kernel/drivers/storage/quiesce.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [
+        12300,
+        3910
+      ],
+      "que": "Detiene motores AHCI y solicita el cierre normal NVMe en el banco virtual antes de retirar BME.",
+      "entrada": "Captura post-EBS, BAR validado, identidades PCI del banco y AMD-Vi de TCG desactivado.",
+      "salida": "Parada confirmada de ambos controladores e informes HID posteriores. El banco solo emite imagen QEMU.",
+      "aceptacion": "QEMU coteja los registros vivos, confirma SHST y que BME se retira, y verifica omision cuando falta AMD-Vi.",
+      "falta": "Reanudar AHCI y NVMe con colas propias y lecturas traducidas antes de ensayar en METAL."
     },
     {
       "id": "amdvi-ahci-qemu",
@@ -4142,6 +4160,11 @@
     {
       "de": "storage-state-post",
       "a": "dma-pci-census",
+      "clase": "codigo"
+    },
+    {
+      "de": "storage-quiesce-qemu",
+      "a": "storage-state-post",
       "clase": "codigo"
     },
     {

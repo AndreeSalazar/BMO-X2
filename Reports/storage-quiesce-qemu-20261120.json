@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "evidence": "Ring 0 shutdown after EBS; register readback and USB input observed in QEMU",
+  "run": "run-rmlui-media-209a9f5f4c0f",
+  "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+  "storage": {
+    "NVMe": {
+      "Requester": "0038",
+      "CommandBefore": 7,
+      "CommandAfter": 3,
+      "ConfigurationBefore": 4587521,
+      "StatusBefore": 1,
+      "ShutdownAcknowledgement": 9,
+      "ConfigurationAfter": 0,
+      "StatusAfter": 0
+    },
+    "AHCI": {
+      "Requester": "00FA",
+      "CommandBefore": 7,
+      "CommandAfter": 3,
+      "EnginesBefore": 58,
+      "EnginesAfter": 0,
+      "CommandsPendingAfter": 0
+    }
+  },
+  "hid_after_stop_verified": true,
+  "gop_1080p_native_verified": true,
+  "shutdown_skipped_without_amdvi": true,
+  "cases": {
+    "normal": true,
+    "external-permissions": true,
+    "amdvi-missing": true
+  },
+  "shutdown_code_bytes": 640,
+  "copied_post_ebs_stage_bytes": 2396,
+  "source_sha256": "b026dca0085b3bd5cb7e09edfb2174c13740aebaa654988997bca5665c49f1ef",
+  "lab_efi_sha256": "ab232da9ba31415547516653d93a73980551e6cab7e9f47187cb6de625675a70",
+  "installable_media_emitted": false,
+  "fat32_install_guard_verified": true,
+  "installed_metal_run": "run-rmlui-media-a01f0170ccfa",
+  "metal_bootlog_sha256": "39b02ff4a3c541fc0ee0c7472232cbe72cc5e0de27886615902cf64d7a2434c3",
+  "physical_1080p_quality_confirmed_by_owner": true,
+  "storage_queues_reinitialized": false,
+  "iommu_translation_enabled_in_this_lab": false,
+  "rtx_render_verified": false
+}

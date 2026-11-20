@@ -11,7 +11,11 @@
 #define AMDVI_LAB_PAGES 18
 #endif
 #else
+#ifdef BMO_STORAGE_QUIESCE
+#define AMDVI_POST_CODE 0x1b600
+#else
 #define AMDVI_POST_CODE 0x1b800
+#endif
 #define AMDVI_LAB_PAGES 14
 #endif
 #define AMDVI_POST_BASE 0xb00

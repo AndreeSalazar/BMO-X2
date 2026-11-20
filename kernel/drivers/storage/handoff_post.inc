@@ -125,6 +125,9 @@ storage_snapshot:
     jb .Lstorage_port
 .Lstorage_captured:
     movw $2, STORAGE_STATUS(%r12)
+#ifdef BMO_STORAGE_QUIESCE
+    call storage_quiesce
+#endif
 .Lstorage_revoke:
     movq $0, 0x15400(%rbp)
     movq $0, 0x1e000(%rbp)
@@ -238,3 +241,7 @@ storage_snapshot:
 .Lstorage_map_bad:
     stc
     ret
+
+#ifdef BMO_STORAGE_QUIESCE
+#include "quiesce.inc"
+#endif

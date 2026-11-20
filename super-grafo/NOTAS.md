@@ -1617,7 +1617,7 @@ Entrada: Modo GOP exacto 1920x1080, superficie XRGB y regiones de puntero o fran
 Salida: Cuadro de 2073600 pixeles y regiones directas de puntero y bloqueos, con retorno al presentador base en otros modos.
 Depende de: contrato propio sin dependencias en este catalogo.
 Aceptacion: QEMU coteja la superficie nativa con GOP, detecta detalle ausente en el escalado anterior y verifica cursor y modo base.
-Pendiente: Confirmar la nitidez del raster nativo en METAL. El presentador NVIDIA acelerado requiere un backend propio.
+Pendiente: Nitidez confirmada por el propietario en METAL. El presentador NVIDIA acelerado requiere un backend propio.
 
 ## kernel/drivers/GPU/NVIDIA/pci_probe.inc
 
@@ -1771,7 +1771,18 @@ Entrada: Recursos validados por UEFI, contexto supervisor y copia final del mapa
 Salida: Estado de motores y comandos AHCI, CC y CSTS de NVMe. F3 publica la captura en RmlUi.
 Depende de: Almacenamiento / Recursos UEFI AHCI y NVMe (codigo), PCI / Inventario de solicitantes DMA (codigo).
 Aceptacion: QEMU coteja los registros y la pagina F3. METAL muestra motores SATA activos en puertos 4 y 5 y NVMe habilitado, ambos con BME.
-Pendiente: Construir y probar el traspaso nativo de los controladores antes de activar AMD-Vi.
+Pendiente: Completar la reanudacion con colas propias y probar el traspaso en METAL antes de activar AMD-Vi.
+
+## kernel/drivers/storage/quiesce.inc
+
+Detiene motores AHCI y solicita el cierre normal NVMe en el banco virtual antes de retirar BME.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: Captura post-EBS, BAR validado, identidades PCI del banco y AMD-Vi de TCG desactivado.
+Salida: Parada confirmada de ambos controladores e informes HID posteriores. El banco solo emite imagen QEMU.
+Depende de: Almacenamiento / Estado posterior a UEFI (codigo).
+Aceptacion: QEMU coteja los registros vivos, confirma SHST y que BME se retira, y verifica omision cuando falta AMD-Vi.
+Pendiente: Reanudar AHCI y NVMe con colas propias y lecturas traducidas antes de ensayar en METAL.
 
 ## tools/boot/amdvi_ahci.py
 
@@ -1806,4 +1817,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-162 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+163 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

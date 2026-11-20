@@ -632,9 +632,37 @@ El candidato `run-rmlui-media-a01f0170ccfa` paso tres casos de QEMU.
 El banco cotejo los 2073600 pixeles, el detalle del titulo, el puntero,
 los bloqueos, los atajos y los paneles F2/F3. Se verificaron los tres
 archivos en FAT32 y sus respaldos. El indicador visible es
-`CPU / 1080p nativo`. Falta comprobar su nitidez en el equipo fisico.
+`CPU / 1080p nativo`. El propietario confirmo la mejora de nitidez en
+su monitor. El GPULOG de ese arranque registra 1920x1080 y la RTX
+`10de:2504` en `29:00.0`, con comando PCI `0003`.
 [Evidencia del raster nativo](../Reports/gop-native-full-hd-qemu-20261120.json).
 [Densidad en RmlUi](https://mikke89.github.io/RmlUiDoc/pages/rcss/syntax.html#density-independent-pixel-dp).
+
+#### Cierre AHCI y NVMe en QEMU
+
+El perfil `--storage-quiesce` ejecuta la secuencia en Ring 0 antes de
+iniciar xHCI. Se limita a TCG, a la ventana AMD-Vi del emulador con
+traduccion apagada y a las dos identidades PCI del banco. AHCI exige
+puertos sin comandos pendientes, desactiva ST y espera a CR, luego
+desactiva FRE y espera a FR. NVMe solicita cierre normal con CC.SHN,
+espera CSTS.SHST completo y confirma RDY en cero despues de quitar EN.
+Tras la parada confirmada se limpia BME y se lee de vuelta PCI Command.
+Los resultados se cotejan con los registros vivos mediante QEMU.
+
+Un fallo conserva las reservas DMA heredadas y solo se retira BME tras
+confirmar la parada. El perfil no emite medio instalable. Los casos
+comprueban la salida con ambos controladores detenidos, informes HID
+despues del cierre, rechazo SBEF W+X y ausencia de escrituras de la
+sonda cuando falta AMD-Vi. El siguiente banco debe reiniciar las colas
+propias y leer SATA y NVMe con AMD-Vi activo antes de probar la RTX.
+
+```powershell
+python -B tools/desktop/rmlui/native/media.py <ABI_RUN> <GATO_COMPACTO_RUN> --usb both --nvidia-probe --amdvi-probe --amdvi-post --dma-census --storage-state --full-hd --storage-quiesce
+```
+
+[Evidencia del cierre en QEMU](../Reports/storage-quiesce-qemu-20261120.json).
+[Especificacion AHCI](https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/serial-ata-ahci-spec-rev1-3-1.pdf#page=112).
+[Especificacion NVMe](https://nvmexpress.org/specification/nvm-express-base-specification/).
 
 El perfil QEMU `--amdvi-storage` agrega un AHCI virtual en un
 tercer dominio. Ring 0 instala su tabla de traduccion. HOST
