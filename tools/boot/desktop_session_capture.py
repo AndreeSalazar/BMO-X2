@@ -8,6 +8,7 @@ import time
 
 from cpu_config import l1_cache_profile, register
 from splash_capture import compare_frame
+from ultra_j_capture import boot_reservations, read_benchmark, user_frames
 
 TOOLS = str(Path(__file__).resolve().parents[1])
 if TOOLS not in sys.path:
@@ -74,7 +75,7 @@ def verify_external_rejection(command, memory, image):
     raise ValueError(f'El cargador externo no rechazo W+X: {regs[:420]}')
 
 
-def verify_external_mapping(memory, context_address, image):
+def verify_external_mapping(memory, context_address, image, *, ultra_j_action=None):
     plan = make_load_plan(image)
     if plan['AbiVersion'] != 1 or not 1 <= plan['RegionCount'] <= 3:
         raise ValueError('La sonda de escritorio solo ejecuta SBEF ABI 1 de una a tres regiones')
@@ -82,6 +83,13 @@ def verify_external_mapping(memory, context_address, image):
     layouts = {1: ['RX'], 2: ['RX', 'R'], 3: ['RX', 'R', 'RW']}
     if [region['Permissions'] for region in plan['Regions']] != layouts[plan['RegionCount']]:
         raise ValueError('La sonda actual solo admite las secuencias RX, RX/R y RX/R/RW')
+    action_record = b''
+    action_offset = 4096 - 8 - 512
+    if ultra_j_action is not None:
+        if (plan['RegionCount'] != 3 or plan['Regions'][1]['MemoryBytes'] > action_offset
+                or not 9 <= len(ultra_j_action) <= 512):
+            raise ValueError('La accion ULTRA-J excede la reserva de solo lectura del perfil')
+        action_record = struct.pack('<Q', len(ultra_j_action)) + ultra_j_action
 
     page_table = struct.unpack('<512Q', memory(context_address + 0x17000, 4096, 'external-user-pte'))
     slots = {'RX': 0x40000000, 'R': 0x40003000, 'RW': 0x40004000}
@@ -143,10 +151,14 @@ def verify_external_mapping(memory, context_address, image):
         else:
             expected_bytes = image[region['FileOffset']:region['FileEnd']]
             expected_bytes = expected_bytes.ljust(region['MappedBytes'], b'\0')
+            region_action = action_record if permissions == 'R' else b''
+            if region_action:
+                expected_bytes = (expected_bytes[:action_offset] + region_action
+                                  + expected_bytes[action_offset + len(region_action):])
             if bytes(actual_region) != expected_bytes:
                 raise ValueError(f'Contenido o cola inmutable distinto del plan HOST en region {region["Index"]}')
             immutable_file_bytes += region['FileBytes']
-            zero_fill_bytes += region['ZeroFillBytes']
+            zero_fill_bytes += region['ZeroFillBytes'] - len(region_action)
         page_count += region['PageCount']
 
     stack = page_table[2]
@@ -162,6 +174,7 @@ def verify_external_mapping(memory, context_address, image):
         SbefMappedPagesVerified=page_count,
         SbefZeroFillBytesVerified=zero_fill_bytes,
         SbefImmutableFileBytesVerified=immutable_file_bytes,
+        UltraJActionBytesMapped=len(ultra_j_action) if ultra_j_action is not None else 0,
         SbefWritablePagesContentSkipped=mutable_pages,
     )
 
@@ -242,7 +255,8 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     def verify_mapping():
         nonlocal mapping_plan, entries, count, map_evidence
         if external_image is not None and mapping_plan is None:
-            mapping_plan, entries, map_evidence = verify_external_mapping(memory, address, external_image)
+            mapping_plan, entries, map_evidence = verify_external_mapping(
+                memory, address, external_image, ultra_j_action=ultra_j_action)
             count = mapping_plan['RegionCount']
 
     def key(*keys):
@@ -276,11 +290,17 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         return cache, match
 
     launcher = desktop_media and (prefix.parent.parent / 'ultra-j-launcher.txt').is_file()
+    ultra_j_view = desktop_media and (prefix.parent.parent / 'ultra-j-view.txt').is_file()
+    ultra_j_action = (prefix.parent.parent / 'ACTION.UJB').read_bytes() if launcher or ultra_j_view else None
     if launcher or (desktop_media and (prefix.parent.parent / 'sheet-desktop.txt').is_file()):
         icon_color = 0xa8c5ff if launcher else 0xe7efff
         wait_until(lambda: logical(70, 55, icon_color) and sleeping())
         verify_mapping()
+        user_pages = {}
         if launcher:
+            reservations = boot_reservations(memory, address, code, register(registers(), 'CR3'),
+                                             pitch * height * 4)
+            user_pages['DesktopIdle'] = user_frames(memory, address, 'idle')
             command('screendump', {'filename': str(prefix) + '-launcher-desktop.png', 'format': 'png'})
         for dx, dy in [(-120, -120), (-122, -8)]:
             command('input-send-event', {'events': [
@@ -305,13 +325,11 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         click()
         if launcher:
             wait_until(lambda: logical(200, 220, 0xa8c5ff) and sleeping())
+            user_pages['PanelOpen'] = user_frames(memory, address, 'open')
             command('screendump', {'filename': str(prefix) + '-launcher-ready.png', 'format': 'png'})
             key('ret')
             wait_until(lambda: logical(200, 220, 0xa0e5ca) and sleeping())
-            action = (prefix.parent.parent / 'ACTION.UJB').read_bytes()
-            assert action not in external_image
-            assert memory(address + 0x1cdf8, 520, 'launcher-action') == (
-                struct.pack('<Q', len(action)) + action.ljust(512, b'\0'))
+            assert ultra_j_action not in external_image
             assert memory(address + 0x1d010, 256, 'launcher-arena') == bytes(256)
         else:
             wait_until(lambda: logical(250, 110, 0xe7efff) and sleeping())
@@ -326,11 +344,13 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         wait_until(lambda: logical(250, 110, 0x232638) and logical(70, 55, icon_color) and sleeping())
         cache, _ = bootlog()
         if launcher:
+            user_pages['PanelClosed'] = user_frames(memory, address, 'closed')
             key('ctrl', 'meta_l', '2')
             wait_until(lambda: logical(52, 99, 0xad92ff) and sleeping())
             click()
             click()
             wait_until(lambda: logical(200, 220, 0xa8c5ff) and sleeping())
+            user_pages['PanelReopened'] = user_frames(memory, address, 'reopened')
             key('meta_r', 'q')
             wait_until(lambda: logical(52, 99, 0xad92ff) and sleeping())
             click()
@@ -342,6 +362,11 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                         UltraJDoubleClickVerified=True,
                         UltraJExternalAction=True, UltraJArenaCleared=True, UltraJCloseVerified=True,
                         SuperQVerified=True, WorkspacePreserved=True, EscapeVerified=True,
+                        BootReservations=reservations,
+                        UserMappedBytesByPhase={phase: len(frames) * 4096
+                                                for phase, frames in user_pages.items()},
+                        SameUserFramesAllPhases=all(frames == user_pages['DesktopIdle']
+                                                    for frames in user_pages.values()),
                         Framebuffer=dict(Width=width, Height=height, PitchPixels=pitch,
                                          VisibleRowsBytes=pitch * height * 4),
                         IntroFramesObserved=sorted(frames), CpuL1=cache)
@@ -349,21 +374,18 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                     SheetDoubleClickVerified=True,
                     SheetCloseVerified=True, IntroFramesObserved=sorted(frames), CpuL1=cache)
 
-    if desktop_media and (prefix.parent.parent / 'ultra-j-view.txt').is_file():
+    if ultra_j_view:
+        benchmark = (prefix.parent.parent / 'ultra-j-benchmark.txt').is_file()
         probes = ((0, 0, 0x10121a), (110, 96, 0x10121a), (130, 110, 0x1b1f2c),
                   (150, 239, 0x293850), (380, 239, 0xa8c5ff))
         wait_until(lambda: all(logical(*probe) for probe in probes) and sleeping())
         verify_mapping()
-        action = (prefix.parent.parent / 'ACTION.UJB').read_bytes()
-        assert action not in external_image
-        assert memory(address + 0x1cdf8, 520, 'ultra-j-action') == (
-            struct.pack('<Q', len(action)) + action.ljust(512, b'\0'))
-        rodata = struct.unpack('<Q', memory(address + 0x17018, 8, 'ultra-j-rodata-pte'))[0]
-        assert rodata & ((1 << 63) | 7) == ((1 << 63) | 5)
+        assert ultra_j_action not in external_image
         command('screendump', {'filename': str(prefix) + '-ultra-j-ready.png', 'format': 'png'})
         key('ret')
         wait_until(lambda: logical(150, 239, 0x233d35) and logical(380, 239, 0xa0e5ca))
         assert memory(address + 0x1d008, 256, 'ultra-j-action-arena') == bytes(256)
+        timings = dict(UltraJBenchmark=read_benchmark(memory, address)) if benchmark else {}
         command('screendump', {'filename': str(prefix) + '-ultra-j-active.png', 'format': 'png'})
         key('ret')
         wait_until(lambda: logical(150, 239, 0x233d35) and sleeping())
@@ -371,6 +393,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         wait_until(lambda: all(logical(*probe) for probe in probes) and sleeping())
         cache, _ = bootlog()
         return dict(Case='normal', Passed=True, UserCpl=3, **map_evidence,
+                    **timings,
                     UltraJViewVerified=True,
                     UltraJButtonAction=True, UltraJArenaCleared=True, UltraJResetVerified=True,
                     UltraJExternalAction=True,

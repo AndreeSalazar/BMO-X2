@@ -1,20 +1,20 @@
 # Huella de BMO-X2 con ULTRA-J
 
-El ensayo `run-desktop-media-2ad81add6e32` arranca desde FAT32,
+El ensayo `run-desktop-media-0205d8be4874` arranca desde FAT32,
 muestra el escritorio, abre el panel ULTRA-J con doble clic,
 ejecuta ACTION.UJB y vuelve al mismo espacio con Super + Q.
-Paso en QEMU con 256 MiB asignados al invitado. El ensayo anterior
-uso 1024 MiB. Quedan por medir el minimo de arranque y el uso total
-de RAM en el invitado y en metal.
+Paso en QEMU con 256 MiB de capacidad asignada al invitado. Quedan
+por medir el minimo de arranque y el uso total de RAM en el invitado
+y en metal.
 
 | Componente | Medida |
 |---|---:|
 | Puente UEFI | 20480 B |
-| Paquete INICIO.X86 | 3448 B |
-| Puerta de sesion Ring 0, incluida en INICIO.X86 | 999 B |
+| Paquete INICIO.X86 | 3926 B |
+| Puerta de sesion Ring 0, incluida en INICIO.X86 | 1034 B |
 | SBEF del escritorio y del presentador ULTRA-J | 9625 B |
 | Accion externa ACTION.UJB | 23 B |
-| Cuatro archivos de arranque | 33576 B (32,79 KiB) |
+| Cuatro archivos de arranque | 34054 B (33,26 KiB) |
 | Imagen de disco GPT/FAT32 de prueba | 68174336 B (65,02 MiB) |
 | Regiones del cliente Ring 3 | 16 KiB mapeados |
 | Pila Ring 3 | 4 KiB mapeados |
@@ -24,7 +24,37 @@ La imagen de disco incluye la capacidad del volumen. Las paginas de
 Ring 3 incluyen relleno y se cuentan aparte del framebuffer VGA.
 El total de memoria debe incluir el puente, el contexto, las tablas,
 el mapa de memoria y las reservas para dispositivos. La puerta de
-999 B es el componente al que corresponde el presupuesto de 2 KiB.
+1034 B es el componente al que corresponde el presupuesto de 2 KiB.
+
+El arranque directo (`run-desktop-media-c5cf4aae8961`) verifica
+12 KiB para el SBEF de 4.401 B y 4 KiB para su pila. El interprete
+UJBC ocupa 376 B de codigo y reserva 256 B de arena. La accion del
+ejemplo ocupa 48 B de esa arena durante la ejecucion. QEMU verifica
+el contenido de `ACTION.UJB` en la pagina de solo lectura y que la
+arena vuelve a cero en ambos perfiles. El motor RmlUi completo tiene
+su propia medicion en `Ultra-J/evidence/rmlui-desktop-fat32.json`.
+
+## Memoria durante la sesion
+
+QEMU capturo los mismos cinco marcos de usuario, 20 KiB, en reposo,
+con el panel abierto, al cerrarlo y al reabrirlo. El panel vive dentro
+del escritorio y reutiliza sus paginas. La arena de objetos vuelve a
+cero al finalizar la accion.
+
+El mapa final de UEFI y el contexto identifican estas reservas:
+
+| Reserva | KiB |
+|---|---:|
+| Contexto de arranque, incluido espacio de usuario | 128 |
+| Pagina del payload de arranque | 4 |
+| Buffer de carga SBEF | 12 |
+| Reserva DMA xHCI | 20 |
+| Total de estas reservas | 164 |
+
+El contexto ya incluye 20 KiB de tablas activas y los 20 KiB mapeados
+a usuario. El framebuffer VGA ocupa 3,91 MiB de filas visibles y se
+registra aparte. Falta un recuento de todas las reservas del sistema y
+una medicion en hardware. [Informe versionado](../Ultra-J/evidence/ring3-execution.json).
 
 ## Referencias de escritorio
 

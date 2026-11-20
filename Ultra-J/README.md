@@ -25,8 +25,17 @@ genera la demostracion animada real; la evidencia sigue siendo HOST.
 
 ULTRA-J es el lenguaje de aplicaciones de BMO-X2. Nacio para escribir
 objetos y sus eventos con una sintaxis familiar de Java, construirlos
-en HOST y ejecutarlos en Ring 3 con permisos de BMO-X2. Su primer
-campo es el escritorio. El mismo modelo esta pensado para utilidades,
+en HOST y ejecutarlos en Ring 3 con permisos de BMO-X2. El objetivo es
+dar al autor control sobre la codificacion de las acciones, la memoria
+por region y los efectos que cada aplicacion puede solicitar.
+
+Cada instruccion compilada tiene una codificacion UJBC definida por
+version. Esa relacion permite inspeccionar los bytes y verificarlos
+antes de entregarlos al interprete. Rust sostiene los servicios
+nativos del sistema y tambien sirve como referencia de medicion. La
+prioridad de ULTRA-J es dar al autor un flujo directo y verificable.
+
+Su primer campo es el escritorio. El mismo modelo esta pensado para utilidades,
 paneles de diagnostico, automatizacion, herramientas y juegos. Un motor
 grafico podria usarlo para escenas, controles y logica, con el dibujo
 intensivo a cargo de un servicio nativo si las mediciones lo justifican.
@@ -84,7 +93,7 @@ Cada ampliacion debe declarar version de formato, pruebas y costes.
 Autohospedaje, compatibilidad Java amplia y optimizacion nativa general
 son objetivos posibles que todavia no estan implementados.
 
-## Donde aporta frente a C, Rust y Java
+## Papel de C, Rust y Java
 
 | Lenguaje | Papel en BMO-X2 |
 |---|---|
@@ -110,15 +119,9 @@ con Rust `no_std` optimizado para tamano y destino x86-64.
 | Rust SBEF | 254,8 ms | 117 B |
 
 El UJBC requiere un runtime. El SBEF incluye 53 bytes de codigo nativo
-y 64 bytes de contenedor. Estos tiempos miden produccion del artefacto.
-Para medir el coste de ejecucion y RAM queda pendiente correr ambos en
-Ring 3 con la misma entrada y contar tambien las paginas de la VM.
-QEMU verifica la vista y el interprete UJBC v1/v2 de Ring 3.
-El perfil de consola UJBC v3 se ejecuta en HOST.
-
-Reproduce la medicion con `python -B .\Ultra-J\compare_build.py`
-desde la raiz de BMO-X2. Usa LLVM para enlazar y Rust con el destino
-`x86_64-unknown-none`. Puedes usar `$ujPython` del ejemplo siguiente.
+y 64 bytes de contenedor. Reproduce la medicion de construccion con
+`python -B .\Ultra-J\compare_build.py` desde la raiz de BMO-X2. Usa
+LLVM para enlazar y Rust con el destino `x86_64-unknown-none`.
 
 En una segunda medicion, el compilador residente tardo 0,053 ms de
 mediana en compilar y verificar en memoria (1001 corridas).
@@ -128,6 +131,56 @@ con sondeo cada 10 ms (11 cambios validos por configuracion).
 Un proceso nuevo de ULTRA-J tardo 81,4 ms en esa segunda prueba.
 El modo residente revisa el archivo con mayor frecuencia mientras
 esta activo. La medicion incluye guardado y reemplazo atomico.
+
+### Huella del interprete en Ring 3
+
+QEMU verifica la vista y UJBC v1/v2. La consola UJBC v3 se ejecuta en HOST.
+
+El panel `examples/panel` produce un `view.sbef` de 4.401 B que
+incluye 3.516 B de vista UJVI y 753 B de codigo para el presentador,
+la entrada y la VM. Medido entre los simbolos `run_action` e `invalid`,
+el interprete ocupa 376 B y comparte una trampa `UD2` de 2 B. Reserva
+256 B en `.bss`. La accion externa `ACTION.UJB` mide 23 B y ocupa
+48 B de la arena al crear un `Window` de 32 B y un `Button` de 16 B.
+QEMU verifica que la arena vuelve a cero al terminar.
+
+En `run-desktop-media-c5cf4aae8961`, QEMU verifico tres paginas del
+SBEF mas una para la pila. En `run-desktop-media-35e3c1d85d36`, el
+lanzador de escritorio uso cuatro paginas del SBEF mas una para la
+pila. Ambos ensayos configuraron 256 MiB de RAM para el invitado.
+[Huella del sistema](../docs/FOOTPRINT.md).
+
+Python compila el fuente de ULTRA-J a UJBC, prepara UJVI y empaqueta
+el SBEF desde el ELF. Clang ensambla el presentador x86-64 y LLD lo
+enlaza. En Ring 3, el presentador nativo ejecuta UJBC sin Python.
+GCC y MSVC son productores de codigo nativo opcionales en el flujo
+de HOST. El banco `-Benchmark` usa Rust para compilar la referencia.
+
+### Comparacion de ejecucion con Rust
+
+Agrega `-Benchmark` al [comando de arranque directo](#arranque-directo-al-panel).
+Requiere `rustc` con el destino `x86_64-unknown-none`. Ambos caminos
+crean un Window y un Button, ejecutan los metodos y limpian los 48 B
+de objetos en la misma arena. La referencia Rust tiene la accion
+compilada de antemano. UJBC lee y verifica las instrucciones al correr.
+
+El ensayo `run-desktop-media-4350986a5eb7` uso QEMU 11.1.0 TCG con
+una CPU `qemu64`, 256 MiB asignados y Rust 1.99.1 con `opt-level=2`.
+Despues del calentamiento, alterno el
+orden de las muestras en 31 lotes de 2.048 acciones por implementacion.
+El invitado registra el contador TSC y la sonda comprueba el resultado
+y que la arena este limpia. El cronometro abarca la llamada y el bucle
+de medida. La presentacion y las llamadas al kernel quedan fuera.
+
+| Implementacion | Mediana TSC por accion | P95 TSC por accion |
+|---|---:|---:|
+| Interprete UJBC | 832,247 | 867,495 |
+| Rust nativo, `no_std` | 98,408 | 114,848 |
+
+Estas unidades pertenecen al reloj emulado de QEMU TCG. Para medir
+ciclos fisicos hace falta repetir el ensayo en hardware. El
+`qemu-results.json` conserva el plan SBEF. Las muestras y los hashes
+del ensayo estan en el [informe versionado](evidence/ring3-execution.json).
 
 ## Compilar y verificar objetos
 
@@ -431,7 +484,8 @@ Con los tres runs de BMO-X2 ya generados, desde la raiz:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Ultra-J\qemu.ps1 `
     -AbiRun build/CASM/run-20261112-174958-944cb997 `
     -SplashRun build/CASM/run-20261112-045636-c461240e `
-    -DesktopRun build/CASM/run-desktop-3c09ddaa8ea6
+    -DesktopRun build/CASM/run-desktop-3c09ddaa8ea6 `
+    -RamMiB 256
 ```
 
 El ensayo comprueba ambos fotogramas de la intro, los colores de la

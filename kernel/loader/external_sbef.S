@@ -164,7 +164,8 @@ payload_checked:
     lea 0x5005(%r11), %rax
     mov %rax, 0x4000(%r11)
 #endif
-    # Map the second RX page only when the SBEF memory span needs it.
+    # Clear the inherited stack PTE unless this image needs a second RX page.
+    movq $0, 0x4008(%r11)
     cmpb $0, 0x450(%r10)
     jz .Lcode_pages_ready
     # The old stack page becomes the second immutable code page.

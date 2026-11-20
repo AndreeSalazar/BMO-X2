@@ -4,7 +4,9 @@ param(
     [Parameter(Mandatory)][string]$SplashRun,
     [Parameter(Mandatory)][string]$DesktopRun,
     [string]$Python,
-    [string]$Llvm = (Join-Path $env:ProgramFiles 'LLVM/bin')
+    [string]$Llvm = (Join-Path $env:ProgramFiles 'LLVM/bin'),
+    [ValidateSet(256, 1024)][int]$RamMiB = 1024,
+    [switch]$Benchmark
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
@@ -19,6 +21,8 @@ $view = Join-Path $output 'panel.ujv'
 $action = Join-Path $output 'panel-action.ujb'
 & $Python -B (Join-Path $PSScriptRoot 'package.py') (Join-Path $PSScriptRoot 'examples/panel') $output
 if ($LASTEXITCODE -ne 0) { throw 'Fallo la compilacion del paquete del panel.' }
-$sbef = & (Join-Path $PSScriptRoot 'targets/x86_64/build.ps1') -View $view -Python $Python -Llvm $Llvm
-& $Python -B (Join-Path $root 'tools/boot/stage_desktop_media.py') $AbiRun $SplashRun $DesktopRun --ultra-j-view $sbef --ultra-j-action $action
+$sbef = & (Join-Path $PSScriptRoot 'targets/x86_64/build.ps1') -View $view -Python $Python -Llvm $Llvm -Benchmark:$Benchmark
+$stageFlags = @()
+if ($Benchmark) { $stageFlags += '--ultra-j-benchmark' }
+& $Python -B (Join-Path $root 'tools/boot/stage_desktop_media.py') $AbiRun $SplashRun $DesktopRun --ultra-j-view $sbef --ultra-j-action $action --ram-mib $RamMiB @stageFlags
 if ($LASTEXITCODE -ne 0) { throw 'Fallo la comprobacion de la vista en QEMU.' }

@@ -1,0 +1,154 @@
+{
+  "Schema": 1,
+  "Evidence": "QEMU",
+  "Qemu": "11.1.0 (v11.1.0-12130-ge470268ff4)",
+  "Accelerator": "tcg",
+  "Rust": "1.99.1 (58cf8f9c3 2026-10-13)",
+  "RustOptLevel": 2,
+  "Scope": "Ring 3 Window + Button action timing and fixed launcher memory footprint",
+  "Exclusions": [
+    "Physical CPU cycles",
+    "Physical boot",
+    "End-to-end UI latency",
+    "Total system memory"
+  ],
+  "Benchmark": {
+    "run": "run-desktop-media-4350986a5eb7",
+    "qemu_cpu": "qemu64",
+    "guest_ram_mib": 256,
+    "desktop_budget": {
+      "file_bytes": 5292,
+      "file_limit_bytes": 16512,
+      "region_pages_bytes": 12288,
+      "region_pages_limit_bytes": 16384,
+      "stack_bytes": 4096
+    },
+    "files": {
+      "EFI/BMO-X2/BMO-X2.EFI": "78b5cd5a1557435efe55ba81b9773ef19d847fa5bcc3f92bea7ecf2695310e6c",
+      "BMO-X2/INICIO.X86": "2bc773393bd7e09fda2c319a0078683f63f929a5de2c97d8065d19313acca522",
+      "BMO-X2/DESKTOP.SBF": "73cbd1c0fdf0dc931ed6b92e81b7192a2185fce81aca73f7313d1a27815c47c9",
+      "BMO-X2/ACTION.UJB": "857c10cd4a5f9084693e5035fc60394a4ef1ed15bedbd58f9fdc87b7bff43088"
+    },
+    "CasesPassed": 2,
+    "CasesTotal": 2,
+    "UserCpl": 3,
+    "Timing": {
+      "Unit": "QEMU guest TSC ticks",
+      "BatchesPerAction": 31,
+      "ActionsPerBatch": 2048,
+      "BothActionsReturnedAndScrubbed": true,
+      "UJBC": {
+        "MedianTicksPerAction": 832.247,
+        "P95TicksPerAction": 867.495,
+        "BatchTicks": [
+          1886556,
+          1690382,
+          1690049,
+          1690049,
+          1702296,
+          1688828,
+          1688828,
+          1688791,
+          1700076,
+          1690456,
+          1690419,
+          1690493,
+          1704849,
+          1720352,
+          1688828,
+          1688902,
+          1704405,
+          1776629,
+          1713470,
+          1700446,
+          1724089,
+          1715283,
+          1715320,
+          1704442,
+          1751654,
+          1711065,
+          1710991,
+          1710991,
+          1721351,
+          1707106,
+          1707069
+        ]
+      },
+      "RustNoStd": {
+        "MedianTicksPerAction": 98.408,
+        "P95TicksPerAction": 114.848,
+        "BatchTicks": [
+          201280,
+          224812,
+          200392,
+          200429,
+          200503,
+          200577,
+          200836,
+          200947,
+          201539,
+          201539,
+          200725,
+          200947,
+          201391,
+          200947,
+          201058,
+          201243,
+          200466,
+          235135,
+          235209,
+          238206,
+          207163,
+          206460,
+          206830,
+          207274,
+          221149,
+          202686,
+          202168,
+          202427,
+          202131,
+          202316,
+          201317
+        ]
+      }
+    }
+  },
+  "Launcher": {
+    "run": "run-desktop-media-0205d8be4874",
+    "qemu_cpu": "qemu64",
+    "guest_ram_mib": 256,
+    "desktop_budget": {
+      "file_bytes": 9625,
+      "file_limit_bytes": 16512,
+      "region_pages_bytes": 16384,
+      "region_pages_limit_bytes": 16384,
+      "stack_bytes": 4096
+    },
+    "files": {
+      "EFI/BMO-X2/BMO-X2.EFI": "78b5cd5a1557435efe55ba81b9773ef19d847fa5bcc3f92bea7ecf2695310e6c",
+      "BMO-X2/INICIO.X86": "2bc773393bd7e09fda2c319a0078683f63f929a5de2c97d8065d19313acca522",
+      "BMO-X2/DESKTOP.SBF": "66b0a7a461c321ae5f25893b3227933fc62bf1bf7d513f456bfc0e09c4b0076b",
+      "BMO-X2/ACTION.UJB": "857c10cd4a5f9084693e5035fc60394a4ef1ed15bedbd58f9fdc87b7bff43088"
+    },
+    "CasesPassed": 2,
+    "CasesTotal": 2,
+    "UserCpl": 3,
+    "BootReservations": {
+      "ContextBytes": 131072,
+      "BootPayloadBytes": 4096,
+      "SbefStagingBytes": 12288,
+      "XhciDmaBytes": 20480,
+      "KnownBootBytes": 167936,
+      "ActivePageTableBytes": 20480,
+      "FramebufferVisibleBytes": 4096000
+    },
+    "UserMappedBytesByPhase": {
+      "DesktopIdle": 20480,
+      "PanelOpen": 20480,
+      "PanelClosed": 20480,
+      "PanelReopened": 20480
+    },
+    "SameUserFramesAllPhases": true,
+    "UltraJArenaCleared": true
+  }
+}

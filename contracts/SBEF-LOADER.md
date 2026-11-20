@@ -54,6 +54,11 @@ el cliente ya pudo cambiar datos inicializados y BSS. Comprueba la pila
 RW/NX y rechaza entradas PTE adicionales. El perfil de captura acepta
 unicamente RX, RX/R o RX/R/RW en las direcciones y reservas actuales.
 
+En el perfil ULTRA-J, la sonda coteja tambien el bloque de solo lectura
+que contiene la longitud de `ACTION.UJB` y sus bytes exactos. El ensayo
+`run-desktop-media-c5cf4aae8961` verifico una pagina RX y la ausencia de
+la antigua entrada de pila en la ranura de la segunda pagina RX.
+
 El run `run-desktop-media-32f9f2682ded` ejecuto en QEMU el SBEF Hoja de
 10 174 bytes desde FAT32 y aprobo el caso normal y el rechazo de W+X
 (offset 116). El cotejo cubrio cuatro paginas SBEF, 10 042 bytes de

@@ -120,6 +120,11 @@ input:
 activate:
     cmp %r13, %r14
     je input
+#ifdef UJ_BENCHMARK
+    lea arena(%rip), %rdi
+    lea benchmark_result(%rip), %rsi
+    call ultra_j_benchmark
+#endif
     call run_action
     mov %r12, %r14
     test %al, %al
@@ -133,6 +138,9 @@ reset:
 #endif
 
 #include "action_vm.inc"
+#ifdef UJ_BENCHMARK
+.globl run_action
+#endif
 invalid:
     ud2
 
@@ -149,4 +157,8 @@ view_end:
     .balign 8
 arena:
     .zero 256
+#ifdef UJ_BENCHMARK
+benchmark_result:
+    .zero (3 + 2*31)*8
+#endif
 .section .note.GNU-stack,"",@progbits

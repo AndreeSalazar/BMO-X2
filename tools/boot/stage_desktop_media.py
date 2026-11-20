@@ -13,6 +13,7 @@ from doom_fixture import desktop_gate_budget, make_packet, prepend_intro
 from host.sbef.format import load_plan
 from scope import ROOT, workspace
 from stage_bmo_x2 import bridge_variant
+from ultra_j_capture import BENCHMARK_ACTION
 from wake import SPLASH_PROFILE, check, sha
 
 
@@ -58,6 +59,7 @@ def main():
     probes.add_argument('--sheet-desktop', type=Path, help='Test the Ring 3 sheet desktop in QEMU')
     parser.add_argument('--ultra-j-action', type=Path)
     parser.add_argument('--ultra-j-launcher', action='store_true')
+    parser.add_argument('--ultra-j-benchmark', action='store_true')
     parser.add_argument('--usb-desktop', type=Path, help='Desktop SBEF compiled with -UsbProbe')
     parser.add_argument('--reports-desktop', type=Path, help='Automatic Ring 3 reports panel, built with -Reports')
     parser.add_argument('--usb-full-speed', action='store_true', help='Use USB 1.x in the xHCI probe')
@@ -80,6 +82,8 @@ def main():
         parser.error('--ultra-j-view y --ultra-j-action deben usarse juntos')
     if args.ultra_j_launcher and not args.ultra_j_view:
         parser.error('--ultra-j-launcher requiere --ultra-j-view')
+    if args.ultra_j_benchmark and (not args.ultra_j_view or args.ultra_j_launcher):
+        parser.error('--ultra-j-benchmark requiere el panel directo')
     abi, splash, desktop = map(workspace, (args.abi_run, args.splash_run, args.desktop_run))
     for path, profile in ((abi, 'ring0-abi-probe-0.1'), (splash, SPLASH_PROFILE),
                           (desktop, 'desktop-external')):
@@ -101,6 +105,8 @@ def main():
     sbef = (args.reports_desktop or args.usb_desktop or args.ultra_j_view or args.sheet_desktop or desktop / 'desktop.sbef').read_bytes()
     budget, load_plan = desktop_budget(sbef)
     action = args.ultra_j_action.read_bytes() if args.ultra_j_action else b''
+    if args.ultra_j_benchmark and action != BENCHMARK_ACTION:
+        parser.error('El banco ULTRA-J/Rust requiere la accion fija Window + Button')
     if args.ultra_j_action:
         if not 9 <= len(action) <= 512:
             parser.error('ACTION.UJB debe ocupar de 9 a 512 bytes')
@@ -240,6 +246,8 @@ def main():
         (run / 'ultra-j-view.txt').write_text('QEMU\n', encoding='ascii')
     if args.ultra_j_launcher:
         (run / 'ultra-j-launcher.txt').write_text('QEMU\n', encoding='ascii')
+    if args.ultra_j_benchmark:
+        (run / 'ultra-j-benchmark.txt').write_text('QEMU\n', encoding='ascii')
     if args.sheet_desktop:
         (run / 'sheet-desktop.txt').write_text('QEMU\n', encoding='ascii')
     subprocess.run([sys.executable, '-B', scripts / 'probe.py', '--workspace', run, '--halt',

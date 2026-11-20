@@ -1,13 +1,32 @@
 # BMO-X2
 
-Hijo de BMO-X. Diseno NANO-CORE para Ring 0 x86-64 en CASM,
-HOST separado para construir y admitir binarios del destino,
-servicios y aplicaciones en Ring 3, y SUPER GRAFO como mesa de trabajo.
-Autor: Eddi Salazar, Lima, Peru.
+**Un sistema x86-64 que permite seguir el camino desde el codigo fuente
+hasta los bytes que ejecuta la CPU.** CASM construye los perfiles probados
+del NANO-CORE en Ring 0. HOST prepara los binarios, SBEF describe como
+cargarlos y Ring 3 aloja los servicios, el escritorio y ULTRA-J.
 
-> **Destino actual:** x86-64. **Nucleo:** CASM en Ring 0. **Aplicaciones y
-> servicios:** principalmente Rust en Ring 3. **HOST:** prepara artefactos de
-> productores externos y los admite solo si cumplen el perfil BMO-X2.
+*Eddi Salazar · Lima, Peru*
+
+[Herencia](#herencia-de-tres-proyectos) ·
+[Arquitectura](#identidad-nano-core-host-aislado-y-ring-3-abierto) ·
+[ULTRA-J](#ultra-j-control-desde-la-aplicacion) ·
+[Probar en QEMU](#probar-en-qemu)
+
+## Herencia de tres proyectos
+
+BMO-X2 es hijo de BMO-X. Reune tres lineas de trabajo del mismo autor
+y elige de cada una las piezas que sirven a su propio diseno.
+
+| Proyecto de origen | Que aporta a BMO-X2 |
+|---|---|
+| [TALK-CPU x86-64](https://github.com/AndreeSalazar/TALK-CPU-x86-64) | El puente UEFI provisional y la entrega inicial a la CPU. Sus etapas Faggin guian el arranque y sus diagnosticos orientan las pruebas en QEMU y metal. |
+| [BMO-X](https://github.com/AndreeSalazar/BMO-X-x86-64) | El modelo de capacidades, aislamiento y diagnostico, junto con INVOKE y WAIT como referencia para el ABI. Sus crates Rust se revisan pieza por pieza para Ring 3. |
+| [ULTRA-LinuX](https://github.com/AndreeSalazar/ULTRA-LinuX) | El punto de partida del taller CASM y la inspiracion para espacios de trabajo, foco y atajos del escritorio. |
+
+El puente y el taller CASM tienen procedencia registrada. El kernel
+de BMO-X2 se desarrolla con contratos propios y cada pieza adaptada
+se comprueba contra ellos. [Procedencia](heritage/README.md) ·
+[Inventario de Ring 3](heritage/RING3-TRANSFER.md).
 
 ## Estado de HOST y toolchains
 
@@ -275,14 +294,27 @@ se delimite y mida. Las tablas, pilas, estado, controladores, puentes y
 servicios tienen costes propios. La puerta de sesion pequena no prueba
 que todo Ring 0, su RAM o el sistema integrado entren en ese presupuesto.
 
-## ULTRA-J y el potencial del conjunto
+## ULTRA-J: control desde la aplicacion
 
-ULTRA-J aspira a reunir programacion orientada a objetos con escritura
-inspirada en Java, estructura de interfaz inspirada en HTML y estilos
-inspirados en CSS. Su papel es facilitar aplicaciones y escritorio en
-Ring 3. Hoy `.uj`, `.ujh` y `.ujc` implementan subconjuntos propios;
-la compatibilidad completa con Java, HTML o CSS no esta implementada.
-[Alcance y pendientes de ULTRA-J](Ultra-J/README.md#vision-integrada-y-limites).
+ULTRA-J existe para facilitar aplicaciones en Ring 3 sin perder el
+control del binario, los recursos y el ciclo de vida de los objetos.
+La escritura de objetos se inspira en Java y las vistas y estilos
+tienen formatos propios. La meta es poder inspeccionar que bytes
+ejecuta cada accion, que memoria ocupa y cuando se libera.
+
+La correspondencia binaria empieza en UJBC: cada instruccion tiene
+una codificacion definida por version. HOST construye ese bytecode
+y el interprete de Ring 3 lo consume. Rust sostiene los servicios
+nativos y aporta una referencia de medida para el interprete. El
+valor de ULTRA-J se comprueba con aplicaciones mas faciles de
+construir y costes de ejecucion que se puedan medir.
+
+QEMU ya verifica una accion externa de 23 B en Ring 3, la limpieza de
+su arena y el cierre del panel en el mismo espacio de trabajo. El
+siguiente alcance incluye mas objetos, eventos y ventanas antes de
+ampliar a aplicaciones graficas mas complejas.
+[Contrato UJBC](Ultra-J/FORMAT.md) ·
+[Medidas y reproduccion](Ultra-J/README.md#comparacion-de-ejecucion-con-rust).
 
 Los servicios, la VM, el compositor y las aplicaciones viven en Ring 3.
 El modelo concentra la variedad de aplicaciones y su construccion fuera
