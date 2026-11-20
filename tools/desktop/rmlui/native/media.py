@@ -118,8 +118,8 @@ def main():
     if args.nvidia_probe and (not report['Cases'][0].get('GpuBar0UefiBytes') or
                              not report['Cases'][0].get('GpuNvidiaMmioSkipped')):
         raise ValueError('Missing UEFI BAR0 bounds or device guard evidence')
-    if args.amdvi_probe and not all(case.get('AmdViFirmwareVerified') for case in report['Cases']):
-        raise ValueError('Missing AMD-Vi firmware inventory evidence')
+    if args.amdvi_probe and not all(case.get('AmdViMmioVerified') for case in report['Cases']):
+        raise ValueError('Missing AMD-Vi MMIO evidence')
     media_prefix = 'BMO-X2/GPU' if args.nvidia_probe else 'BMO-X2/DESKTOP'
     fs=Fat32(run/'build/puente-normal.img')
     try:
@@ -133,7 +133,7 @@ def main():
         target=media/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(data)
     report.update(run=run.name,evidence='QEMU',disk_sbef=True,physical_boot=False,physical_usb_proven=False,
         display_backend='cpu-gop',
-        nvidia_pci_probe=args.nvidia_probe, amdvi_efi_probe=args.amdvi_probe,
+        nvidia_pci_probe=args.nvidia_probe, amdvi_efi_probe=args.amdvi_probe, amdvi_mmio_probe=args.amdvi_probe,
         qemu_only=bool(args.usb),usb_profile=args.usb,
         usb_empty_ports=args.usb_empty_ports,
         hardware_profile='amd149c-usb2-root-experimental' if args.usb=='both' and not args.usb_empty_ports else None,

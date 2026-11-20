@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "evidence": "QEMU: AMD-Vi register reads before and after EBS in separate guests",
+  "pre_ebs_run": "run-rmlui-media-a3d1dd3a0584",
+  "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+  "physical_register_snapshot_verified": false,
+  "physical_dma_verified": false,
+  "gpu_gsp_booted": false,
+  "display_backend": "cpu-gop",
+  "amdvi_probe_body_bytes": 1160,
+  "reader_bytes": 4070,
+  "previous_reader_bytes": 3956,
+  "candidate_efi_bytes": 28672,
+  "casm_payload_sbef_and_xhci_unchanged": true,
+  "files": {
+    "EFI/BMO-X2/NVIDIA.EFI": "2746fc96cce188869468c2a42befc3bf76d71ed2da169d71b0f0b143a85031d1",
+    "BMO-X2/GPU/INICIO.X86": "558ca5a388a5731aaafaf226b78ab3347338762823192e1ba610ac403b4feb7c",
+    "BMO-X2/GPU/DESKTOP.SBF": "32c78a2579bdd6d5324d715b4fd1eb85195ecdc5b7d92e26db84abc9d61d8e5f"
+  },
+  "pre_ebs_cases": [
+    {
+      "case": "normal",
+      "passed": true,
+      "present": true,
+      "amdvi_report": "00000006 000000C0 00000018 FED80000 00000000",
+      "amdvi_mmio_report": "00000004 0000000000000000 0000000000000000 0000000000000000 0000000000000000 0000000000000000",
+      "bootlog_sha256": "419b9929fba2a655ccab61adb4e74b67b0facdf6532f277abca7292c5fbd378d"
+    },
+    {
+      "case": "external-permissions",
+      "passed": true,
+      "present": false,
+      "amdvi_report": "00000000 -------- -------- -------- --------",
+      "amdvi_mmio_report": "00000000 ---------------- ---------------- ---------------- ---------------- ----------------",
+      "bootlog_sha256": "2138381b9ce1dbf96fc4e0a56a40d2ecb7819c6a3813586c7a4b6dadf4f9c19d"
+    }
+  ],
+  "post_ebs_edu": {
+    "schema": 1,
+    "evidence": "QEMU: guest CPL0 AMD-Vi with EDU after ExitBootServices",
+    "run": "run-amdvi-edu-1c911676f597",
+    "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+    "scratch_bytes": 36864,
+    "authorized_page_bytes": 4096,
+    "test_transfer_bytes": 8,
+    "guest_probe_executed": true,
+    "physical_dma_verified": false,
+    "gpu_gsp_booted": false,
+    "inputs": {
+      "kernel/boot/bridge/cabecera.hex": "a9ad17e34a2a7c5ece9f0309bd40d4a8d81e1cf35db0b87c675af115c95264f1",
+      "kernel/boot/bridge/entrada.hex": "20a42e44122fe8cc719b15c7a5b4d1cb0c958dac7faa4f6adbba0d591e4339eb",
+      "kernel/boot/bridge/datos.hex": "45ed2b4b995e9dbbbb52a3e9cfaf464adc5cc28c7a4c1e9783baa22306f4d7b1",
+      "kernel/boot/bridge/fuente.hex": "82d4a1f3a4a1dd7fd4adb5523783ae1f921d2db94c30305b8206db49f5c95dc5",
+      "kernel/boot/bridge/desktop_media_alloc.S": "b454e53add02de6ce77b8472752ef13351d2b315838f2bfda0ca5b8b69f32da1",
+      "kernel/drivers/bus/amdvi/edu_probe.S": "4651c073587c47c2cec9966d800de6e14ae25aa1642247ddb5c5e0d84ef85924"
+    },
+    "cases": [
+      {
+        "case": "normal",
+        "passed": true,
+        "steps": [
+          "ENTER",
+          "GRANT",
+          "OUTSIDE",
+          "REVOKED",
+          "CLOSED",
+          "PASS"
+        ],
+        "amdvi_post_ebs_states": [
+          "IDLE",
+          "ACTIVE"
+        ],
+        "probe_body_bytes": 1794,
+        "packet_sha256": "8680e48efc5727fc810b873ecd2bc0398474c5670d649732d07609d26a88ea49",
+        "bridge_sha256": "06260887c4f1935b12a6ed4b175fb5841da189501ef564391af897674f7566ff",
+        "allocator_bytes": 207
+      },
+      {
+        "case": "missing-iommu",
+        "passed": true,
+        "steps": [
+          "ENTER",
+          "FAIL 2"
+        ],
+        "amdvi_post_ebs_states": [],
+        "probe_body_bytes": 1794,
+        "packet_sha256": "8680e48efc5727fc810b873ecd2bc0398474c5670d649732d07609d26a88ea49",
+        "bridge_sha256": "06260887c4f1935b12a6ed4b175fb5841da189501ef564391af897674f7566ff",
+        "allocator_bytes": 207
+      },
+      {
+        "case": "omit-invalidation",
+        "passed": true,
+        "steps": [
+          "ENTER",
+          "GRANT",
+          "OUTSIDE",
+          "STALE",
+          "CLOSED",
+          "FAIL 6"
+        ],
+        "amdvi_post_ebs_states": [
+          "IDLE",
+          "ACTIVE"
+        ],
+        "probe_body_bytes": 1769,
+        "packet_sha256": "c2c147ec6bcf192ba8a41f97c146c3516efd1aa6939db9ce491e8e7caf74f18a",
+        "bridge_sha256": "06260887c4f1935b12a6ed4b175fb5841da189501ef564391af897674f7566ff",
+        "allocator_bytes": 207
+      }
+    ]
+  }
+}

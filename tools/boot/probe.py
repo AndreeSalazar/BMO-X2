@@ -167,7 +167,7 @@ def verify_gpu_resources(fields, display):
     return result
 
 
-def verify_amdvi_firmware(log, units, present):
+def verify_amdvi_firmware(log, units, register_words, present):
     words = re.search(rb'(?m)^AMDVI=([0-9A-F]{8}(?: (?:[0-9A-F]{8}|--------)){4})\r$', log)
     if not words:
         raise ValueError('Missing AMD-Vi firmware report')
@@ -182,7 +182,15 @@ def verify_amdvi_firmware(log, units, present):
             raise ValueError(f'Unexpected QEMU AMD-Vi firmware report: {payload}')
     elif (status, length, unit, low, high) != ('00000000', '--------', '--------', '--------', '--------'):
         raise ValueError(f'Unexpected AMD-Vi report without IVRS: {payload}')
-    return dict(AmdViFirmwareVerified=True, AmdViPresent=present, AmdViReport=payload)
+    sample = re.search(rb'(?m)^AMDVI_MMIO=([0-9A-F]{8}(?: (?:[0-9A-F]{16}|----------------)){5})\r$', log)
+    if not sample:
+        raise ValueError('Missing AMD-Vi MMIO report')
+    mmio = sample.group(1).decode('ascii').split()
+    expected = (['00000004', *register_words] if present else ['00000000'] + ['----------------'] * 5)
+    if mmio != expected:
+        raise ValueError(f'AMD-Vi register report {mmio} differs from {expected}')
+    return dict(AmdViFirmwareVerified=True, AmdViPresent=present, AmdViReport=payload,
+                AmdViMmioVerified=True, AmdViMmioReport=' '.join(mmio))
 
 
 def run(case):
@@ -306,6 +314,11 @@ def run(case):
                                 device['bus'] << 8 | device['slot'] << 3 | device['function']
                                 for device in devices if device['id']['vendor'] == 0x1022 and device['id']['device'] == 0x1419
                             ]
+                            result['AmdViQmpRegisters'] = []
+                            if case == 'normal':
+                                for offset in (0x18, 0, 8, 0x10, 0x2020):
+                                    data = memory(0xfed80000 + offset, 8, f'amdvi-reg-{offset:04x}')
+                                    result['AmdViQmpRegisters'].append(f'{int.from_bytes(data, "little"):016X}')
                     return result
                 from doom_engine_capture import verify_engine
                 return verify_engine(command, memory, prefix, external_image, case, desktop=desktop_doom)
@@ -549,7 +562,8 @@ for case in args.casos:
                         raise ValueError('Native FAT32 payload/report differs')
                     Path(str(prefix)+'-'+log_name).write_bytes(log)
                     if amdvi_probe:
-                        result.update(verify_amdvi_firmware(log, result.pop('AmdViQmpUnits'), case == 'normal'))
+                        result.update(verify_amdvi_firmware(log, result.pop('AmdViQmpUnits'),
+                                                            result.pop('AmdViQmpRegisters'), case == 'normal'))
                     if nvidia_probe and case == 'normal':
                         values = dict(line.split('=', 1) for line in log.decode('ascii').splitlines()
                                       if line.startswith('GPU_'))

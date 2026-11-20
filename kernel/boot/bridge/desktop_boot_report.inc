@@ -137,6 +137,7 @@ report_pci_advance:
     mov 56(%rsp), %rcx              # EFI SystemTable saved above.
     lea (0x800+report_amdvi-report_template)(%rbp), %rdx
     lea report_hex32(%rip), %r8
+    lea (0x800+report_amdvi_mmio-report_template)(%rbp), %r9
     .byte 0xe8
     .long BMO_AMDVI_EFI_OFFSET - DESKTOP_READER_OFFSET - (. - desktop_media_read) - 4
 #endif
@@ -225,6 +226,9 @@ report_pci1:
     .ascii "AMDVI="
 report_amdvi:
     .ascii "-------- -------- -------- -------- --------\r\n"
+    .ascii "AMDVI_MMIO="
+report_amdvi_mmio:
+    .ascii "00000000 ---------------- ---------------- ---------------- ---------------- ----------------\r\n"
 #endif
 #endif
 report_end:

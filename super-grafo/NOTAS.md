@@ -1671,19 +1671,19 @@ Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: Traspaso UEFI, nueve paginas EfiLoaderData, QEMU TCG q35, dispositivo EDU y AMD-Vi.
 Salida: Informe serial de concesion, rechazo, revocacion y cierre, cotejado por HOST.
 Depende de: Buses, recursos y DMA (verificacion).
-Aceptacion: QEMU verifica transferencia de ocho bytes, bloqueos de rango y revocacion. Rechaza ausencia de AMD-Vi y omision de invalidacion.
+Aceptacion: QEMU coteja control y bases de AMD-Vi despues de ExitBootServices. Verifica transferencia de ocho bytes, bloqueo por rango y revocacion. Rechaza ausencia de AMD-Vi y omision de invalidacion.
 Pendiente: Verificar dominio y retencion de paginas en AMD-Vi de METAL.
 
 ## kernel/drivers/bus/amdvi/firmware_probe.S
 
-Sonda ASM transitoria antes de ExitBootServices. Valida IVRS y coteja la base declarada con la capacidad PCI de AMD-Vi.
+Sonda ASM transitoria antes de ExitBootServices. Valida IVRS y la base PCI y lee cinco registros AMD-Vi mediante CPU I/O 2.
 
 Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: Tabla de sistema UEFI, RSDP, XSDT y una sola unidad IVHD del segmento PCI 0.
-Salida: Estado, bytes IVRS, BDF y registros PCI de base en GPULOG.TXT. Sin programar la IOMMU.
+Salida: GPULOG.TXT con IVRS, BDF, base PCI, control, tabla, colas y estado AMD-Vi.
 Depende de: HOST / Inventario AMD-Vi (verificacion).
-Aceptacion: QEMU q35 coteja la base PCI y el estado de decode con AMD-Vi y distingue IVRS ausente en el mismo binario. METAL confirmo IVRS de 208 B, unidad 00:00.2 y base FD500000 con decode activo.
-Pendiente: Capturar el estado real de traduccion y preparar el dominio nativo con continuidad de USB y almacenamiento.
+Aceptacion: QEMU q35 coteja base PCI y registros con QMP y distingue IVRS ausente. METAL previo confirmo IVRS de 208 B, unidad 00:00.2 y base FD500000 con decode activo.
+Pendiente: Validar los cinco registros en METAL y preparar el dominio nativo con continuidad de USB y almacenamiento.
 
 ## CASM
 

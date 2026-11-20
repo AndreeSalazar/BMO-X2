@@ -156,7 +156,7 @@
 | [HOST / Inventario AMD-Vi](../tools/host/gpu/ivrs.py) | host | host | Lee la descripcion ACPI IVRS y coteja las funciones PCI indicadas con los rangos IVHD. |
 | [AMD-Vi / Traduccion y revocacion virtual](../tools/host/gpu/qemu_dma.py) | qemu | host | Comprueba traduccion, bloqueo e invalidacion DMA en AMD-Vi de QEMU con EDU mediante qtest. |
 | [AMD-Vi / Sonda de DMA del invitado](../kernel/drivers/bus/amdvi/edu_probe.S) | qemu | 0 | Sonda ASM transitoria despues de ExitBootServices. Programa AMD-Vi en QEMU y prueba DMA de EDU. |
-| [AMD-Vi / Inventario UEFI](../kernel/drivers/bus/amdvi/firmware_probe.S) | qemu | 0 | Sonda ASM transitoria antes de ExitBootServices. Valida IVRS y coteja la base declarada con la capacidad PCI de AMD-Vi. |
+| [AMD-Vi / Inventario UEFI](../kernel/drivers/bus/amdvi/firmware_probe.S) | qemu | 0 | Sonda ASM transitoria antes de ExitBootServices. Valida IVRS y la base PCI y lee cinco registros AMD-Vi mediante CPU I/O 2. |
 
 ## Dependencias declaradas
 

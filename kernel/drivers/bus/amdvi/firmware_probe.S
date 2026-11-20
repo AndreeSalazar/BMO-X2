@@ -1,6 +1,7 @@
 .text
 # Read-only AMD-Vi inventory while UEFI still owns the platform.
-# RCX = EFI_SYSTEM_TABLE, RDX = packed report fields, R8 = report_hex32.
+# RCX = EFI_SYSTEM_TABLE, RDX = inventory fields, R8 = report_hex32.
+# R9 = MMIO snapshot fields.
 # The firmware tables are trusted pointers. Bound all walks before use.
 .globl amdvi_firmware_probe
 amdvi_firmware_probe:
@@ -11,6 +12,10 @@ amdvi_firmware_probe:
     push %r13
     push %r14
     push %r15
+    sub $16, %rsp
+    mov %r9, (%rsp)
+    mov 0x60(%rcx), %rax
+    mov %rax, 8(%rsp)
     mov %rdx, %r14
     mov %r8, %r15
     mov 0x68(%rcx), %r9
@@ -154,6 +159,7 @@ check_unit:
     call pci_read
     cmp $0x1022, %ax
     jne restore_bad_cap
+    mov %eax, %r11d
     mov %r12d, %ecx
     call pci_read
     cmp $0x0f, %al
@@ -179,10 +185,35 @@ check_unit:
     mov $5, %ebx                    # PCI and IVRS disagree about MMIO base.
     cmp 8(%r13), %rax
     jne finish
+    mov %rax, %r12
     mov $6, %ebx                    # MMIO decode disabled in PCI.
     test $1, %esi
-    jz finish
+    jz check_tcg
     mov $7, %ebx                    # PCI decode and firmware base agree.
+    jmp snapshot
+check_tcg:
+    # QEMU maps the emulated IOMMU via SysBus with the PCI enable bit clear.
+    # Limit this exception to the TCG model and its fixed address.
+    cmp $0x14191022, %r11d
+    jne finish
+    mov $0xfed80000, %eax
+    cmp %rax, %r12
+    jne finish
+    mov $0x40000000, %eax
+    cpuid
+    cmp $0x54474354, %ebx
+    mov $6, %ebx
+    jne finish
+    cmp $0x43544743, %ecx
+    jne finish
+    cmp $0x47435447, %edx
+    jne finish
+snapshot:
+    mov 8(%rsp), %rcx
+    mov %r12, %rdx
+    mov (%rsp), %r8
+    mov %r15, %r9
+    call amdvi_uefi_snapshot
     jmp finish
 restore_bad_cap:
     mov %r10d, %eax
@@ -202,6 +233,7 @@ finish:
     mov %ebx, %eax
     mov %r14, %rdi
     call *%r15
+    add $16, %rsp
     pop %r15
     pop %r14
     pop %r13
@@ -231,3 +263,92 @@ checksum_byte:
     jnz checksum_byte
     test %al, %al
     ret
+
+# Read just the registers that describe translation and queue ownership.
+# RCX = BootServices, RDX = validated IVRS/PCI base, R8 = report, R9 = hex32.
+# EFI_CPU_IO2 is a Boot Services protocol. It never runs after EBS.
+amdvi_uefi_snapshot:
+    push %rbx
+    push %rsi
+    push %rdi
+    push %r12
+    push %r13
+    push %r14
+    push %r15
+    sub $96, %rsp
+    mov %rdx, %r12
+    mov %r8, %r13
+    mov %r9, %r14
+    mov $1, %ebx                    # Aperture outside the admitted range.
+    mov $0xf0000000, %eax
+    cmp %rax, %r12
+    jb .Lsnapshot_done
+    mov $0xffffc000, %eax
+    cmp %rax, %r12
+    ja .Lsnapshot_done
+    test $0x3fff, %r12d
+    jnz .Lsnapshot_done
+
+    mov $2, %ebx                    # CPU I/O 2 unavailable.
+    mov %rcx, %rax
+    lea .Lcpu_io2_guid(%rip), %rcx
+    xor %edx, %edx
+    lea 40(%rsp), %r8
+    call *0x140(%rax)               # LocateProtocol.
+    test %rax, %rax
+    js .Lsnapshot_done
+    mov 40(%rsp), %r15
+    test %r15, %r15
+    jz .Lsnapshot_done
+    mov $3, %ebx                    # Incomplete or invalid MMIO snapshot.
+    xor %esi, %esi
+    lea .Lregister_offsets(%rip), %rdi
+.Lread_register:
+    movzwl (%rdi,%rsi,2), %r8d
+    add %r12, %r8
+    mov %r15, %rcx
+    mov $2, %edx                    # Uint32; read both halves in order.
+    mov $2, %r9d
+    lea 48(%rsp,%rsi,8), %rax
+    mov %rax, 32(%rsp)
+    call *(%r15)                    # CPU I/O 2 Mem.Read.
+    test %rax, %rax
+    js .Lsnapshot_done
+    cmpq $-1, 48(%rsp,%rsi,8)
+    je .Lsnapshot_done
+    inc %esi
+    cmp $5, %esi
+    jb .Lread_register
+
+    xor %esi, %esi
+    lea 9(%r13), %rdi
+.Lprint_register:
+    mov 52(%rsp,%rsi,8), %eax
+    call *%r14
+    mov 48(%rsp,%rsi,8), %eax
+    call *%r14
+    inc %rdi
+    inc %esi
+    cmp $5, %esi
+    jb .Lprint_register
+    mov $4, %ebx                    # All five registers read.
+.Lsnapshot_done:
+    mov %ebx, %eax
+    mov %r13, %rdi
+    call *%r14
+    add $96, %rsp
+    pop %r15
+    pop %r14
+    pop %r13
+    pop %r12
+    pop %rdi
+    pop %rsi
+    pop %rbx
+    ret
+
+.p2align 1
+.Lregister_offsets:
+    .short 0x0018, 0x0000, 0x0008, 0x0010, 0x2020
+.p2align 3
+.Lcpu_io2_guid:
+    .quad 0x4c0eae5fad61f191, 0x4fc688d269e8fab9

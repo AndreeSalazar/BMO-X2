@@ -82,8 +82,10 @@ def run_case(run, case, qemu, llvm, shell, bridge, allocator):
         except subprocess.TimeoutExpired as error:
             latest = serial.read_text(errors='replace')[-1200:] if serial.exists() else ''
             raise RuntimeError(f'{case}: QEMU agoto el plazo; serie: {latest}') from error
-    steps = [line.removeprefix('BMO DMA ') for line in serial.read_text(errors='replace').splitlines()
-             if line.startswith('BMO DMA ')]
+    lines = serial.read_text(errors='replace').splitlines()
+    steps = [line.removeprefix('BMO DMA ') for line in lines if line.startswith('BMO DMA ')]
+    snapshots = [line.removeprefix('BMO AMDVI POST-EBS ') for line in lines
+                 if line.startswith('BMO AMDVI POST-EBS ')]
     expected = {
         'normal': (0x10, ['ENTER', 'GRANT', 'OUTSIDE', 'REVOKED', 'CLOSED', 'PASS']),
         'missing-iommu': (0x22, ['ENTER', 'FAIL 2']),
@@ -91,7 +93,9 @@ def run_case(run, case, qemu, llvm, shell, bridge, allocator):
     }[case]
     if (result.returncode, steps) != ((expected[0] << 1) | 1, expected[1]):
         raise ValueError(f'{case}: salida {result.returncode}, etapas {steps}; ver {serial}')
-    return dict(case=case, passed=True, steps=steps, probe_body_bytes=len(body),
+    if snapshots != ([] if case == 'missing-iommu' else ['IDLE', 'ACTIVE']):
+        raise ValueError(f'{case}: lectura post-EBS inesperada: {snapshots}; ver {serial}')
+    return dict(case=case, passed=True, steps=steps, amdvi_post_ebs_states=snapshots, probe_body_bytes=len(body),
                 packet_sha256=digest(entry), bridge_sha256=digest(efi), allocator_bytes=len(allocator))
 
 

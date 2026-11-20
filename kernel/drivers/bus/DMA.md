@@ -45,9 +45,11 @@ registra IVRS y la base PCI antes de ExitBootServices. Esta captura separa
 una unidad ausente, una base que difiere del firmware y el estado de
 decodificacion MMIO. METAL confirmo la unidad `0000:00:00.2` con
 decodificacion activa en `0xFD500000` y bus mastering de la RTX
-apagado. La proxima captura debe observar el registro de control de
-AMD-Vi, la base y longitud de la tabla de dispositivos y el estado de
-las colas. El dominio propio se acredita despues del traspaso.
+apagado. El candidato ampliado lee control, tabla, bases de colas y
+estado mediante CPU I/O 2. La sonda EDU comprueba esos registros al
+entrar en CPL0 tras el traspaso y hace readback de control y bases
+antes de conceder DMA virtual. El dominio fisico requiere una ventana
+MMIO propia y una prueba despues del traspaso.
 [Captura METAL](../../../Reports/nvidia-pci-metal-20261120-amdvi.json).
 
 El puente del escritorio reserva cinco paginas contiguas de EfiLoaderData

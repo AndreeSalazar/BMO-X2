@@ -76,8 +76,15 @@ edu_probe:
     jmp pci_fail
 .Lamdvi_found:
     mov $AMDVI_BASE, %r14d
-    cmpq $0, 0x18(%r14)     # Start with an inactive emulator IOMMU.
+    # Snapshot inherited state in CPL0 before programming any register.
+    mov 0x18(%r14), %rax
+    or 0x00(%r14), %rax
+    or 0x08(%r14), %rax
+    or 0x10(%r14), %rax
+    or 0x2020(%r14), %rax
     jne pci_fail
+    lea .Lidle(%rip), %rsi
+    call serial
     mov $(EDU_PCI+0x10), %eax
     call pci_read
     test $7, %eax
@@ -136,8 +143,21 @@ edu_probe:
     or %rcx, %rax
     mov %rax, 0x10(%r14)
     movq $0x1005, 0x18(%r14)
-    testl $1, 0x18(%r14)
-    jz cleanup
+    # Verify readback of the control, table and queues before EDU can DMA.
+    cmp %r12, 0x00(%r14)
+    jne cleanup
+    cmp %rax, 0x10(%r14)
+    jne cleanup
+    lea COMMANDS(%r12), %rax
+    or %rcx, %rax
+    cmp %rax, 0x08(%r14)
+    jne cleanup
+    mov 0x18(%r14), %eax
+    and $0x1005, %eax
+    cmp $0x1005, %eax
+    jne cleanup
+    lea .Lactive(%rip), %rsi
+    call serial
     movabs $(2 << 60 | 0x20), %rax
     xor %edx, %edx
     xor %ecx, %ecx
@@ -395,6 +415,8 @@ serial_char:
     ret
 
 .Lentry:   .asciz "BMO DMA ENTER\r\n"
+.Lidle:    .asciz "BMO AMDVI POST-EBS IDLE\r\n"
+.Lactive:  .asciz "BMO AMDVI POST-EBS ACTIVE\r\n"
 .Lgrant:   .asciz "BMO DMA GRANT\r\n"
 .Loutside: .asciz "BMO DMA OUTSIDE\r\n"
 .Lrevoked: .asciz "BMO DMA REVOKED\r\n"

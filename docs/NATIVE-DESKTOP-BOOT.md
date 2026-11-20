@@ -429,12 +429,43 @@ estaba habilitada. La RTX `0000:29:00.0` sigue reportando
 `PCI Command=0003`, con bus mastering apagado en la captura.
 [Informe AMD-Vi de METAL](../Reports/nvidia-pci-metal-20261120-amdvi.json).
 
+El candidato con captura de registros agrega `AMDVI_MMIO=` al mismo
+archivo. Sus campos son estado, control, base y tamano de la tabla de
+dispositivos, base de la cola de comandos, base de la cola de eventos
+y estado de AMD-Vi. El estado de captura ocupa ocho digitos. Cada
+registro ocupa dieciseis digitos, con bits de tamano y control tal como
+los entrega el hardware.
+
+| Estado de captura | Significado |
+|---|---|
+| `00` | Lectura omitida tras el inventario |
+| `01` | Ventana fuera del rango admitido |
+| `02` | Protocolo CPU I/O 2 no disponible |
+| `03` | Protocolo rechazo la lectura o devolvio todo unos |
+| `04` | Cinco registros leidos |
+
+Con captura `04`, el bit 0 del registro de control indica si la
+traduccion estaba habilitada en ese instante. La sonda lee a traves
+de CPU I/O 2 antes de ExitBootServices. En QEMU TCG, el dispositivo
+AMD-Vi emulado mapea su ventana fija aunque el bit PCI de decode este
+apagado. El banco EDU mide por separado el estado posterior al
+traspaso usando la ventana conocida del emulador.
+[Protocolo CPU I/O 2](https://uefi.org/specs/PI/1.8A/V5_CPU_I_O_Protocol.html).
+
+`run-rmlui-media-a3d1dd3a0584` cotejo los cinco registros del
+FAT32 con QMP. El caso sin AMD-Vi conservo los campos sin lectura
+y rechazo el SBEF W+X. En un invitado separado,
+`run-amdvi-edu-1c911676f597` comprobo AMD-Vi inactivo al entrar
+en CPL0 y el readback con traduccion activa antes del DMA de EDU.
+Los casos sin IOMMU y sin invalidacion conservaron sus rechazos.
+El lector EFI ocupa 4070 B de su pagina de 4096 B.
+[Evidencia de ambas pruebas QEMU](../Reports/amdvi-registers-qemu-20261120.json).
+
 Siguientes pruebas y criterio de avance:
 
-1. Capturar el estado de traduccion, las capacidades, la tabla de
-   dispositivos y las colas de AMD-Vi que deja el firmware. La lectura
-   pre-EBS del decode solo localiza la ventana MMIO. Registrar que
-   control y recursos siguen vigentes tras el traspaso.
+1. Capturar en METAL los registros iniciales del nuevo candidato.
+   Preparar una lectura despues del traspaso con una ventana MMIO
+   supervisora propia y cotejarla con el estado previo.
 2. Probar el dominio DMA fisico de la RTX y su funcion de audio
    conservando la operacion de USB y almacenamiento. Acreditar acceso
    concedido, rechazo fuera del rango y revocacion confirmada. Retener
@@ -449,9 +480,10 @@ En el equipo de referencia, el inventario HOST da IVRS `000000D0`,
 BDF `00000002` y base `FD500000` al enmascarar el bit de habilitacion.
 El candidato con la sonda se arranca desde la entrada existente
 **BMO-X2 (con NVIDIA)**. Al volver a Windows, leer `GPULOG.TXT` y
-comprobar que contiene la linea `AMDVI=` del nuevo arranque.
-El 20-11-2026 se verifico la copia de este candidato en `A:`, con
-respaldo del EFI NVIDIA anterior y sin cambiar el orden de arranque.
+comprobar que contiene las lineas `AMDVI=` y `AMDVI_MMIO=` del
+nuevo arranque. El 20-11-2026 se verifico la copia de
+`run-rmlui-media-a3d1dd3a0584` en `A:`, con respaldo del EFI
+NVIDIA anterior y sin cambiar el orden de arranque.
 
 La ruta de aceleracion y control de salida vive en `GPU/NVIDIA`.
 DIRECTOR/RmlUi entrega superficies a traves de la capacidad de pantalla.

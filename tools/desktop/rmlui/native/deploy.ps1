@@ -23,6 +23,9 @@ if ($amdviRun) {
         -not $rejected.AmdViFirmwareVerified -or $rejected.AmdViPresent) {
         throw 'Falta corroborar el informe AMD-Vi con y sin IVRS en QEMU.'
     }
+    if ($proof.amdvi_mmio_probe -and (-not $normal.AmdViMmioVerified -or -not $rejected.AmdViMmioVerified)) {
+        throw 'Falta cotejar el estado MMIO de AMD-Vi en QEMU.'
+    }
 }
 if($proof.qemu_only -or $proof.usb_profile -or (Test-Path -LiteralPath (Join-Path $runPath 'native-usb.txt'))) {
     if(-not $ExperimentalUsb -or $proof.usb_profile -ne 'both' -or $proof.usb_empty_ports -or
@@ -108,6 +111,7 @@ foreach($name in $legacy.Keys){
 $record=[ordered]@{Schema=1;Evidence='HOST copy after QEMU FAT32 boot';Run=$proof.run;Volume=$Volume;FileSystem=$drive.DriveFormat;
     Files=$written;LegacyFilesUnchanged=$legacy;PhysicalBootVerified=$false;PhysicalUsbVerified=$false;
     PreviousFiles=$previous;ExperimentalUsb=[bool]$ExperimentalUsb;HardwareProfile=$proof.hardware_profile;AmdViFirmwareProbe=$amdviRun;
+    AmdViMmioProbe=[bool]$proof.amdvi_mmio_probe;
     BootFile=('\'+$bootFile.Replace('/','\'));ReportFile=('\'+$dataFolder.Replace('/','\')+'\'+$reportName);
     Note='USB HID fisico sigue pendiente; no cambia NVRAM ni archivos ajenos al candidato.'}
 $json=$record | ConvertTo-Json -Depth 8
