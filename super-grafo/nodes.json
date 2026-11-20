@@ -2630,8 +2630,8 @@
       "que": "Sonda ASM transitoria antes de ExitBootServices. Valida IVRS y la base PCI y lee cinco registros AMD-Vi mediante CPU I/O 2.",
       "entrada": "Tabla de sistema UEFI, RSDP, XSDT y una sola unidad IVHD del segmento PCI 0.",
       "salida": "GPULOG.TXT con IVRS, BDF, base PCI, control, tabla, colas y estado AMD-Vi.",
-      "aceptacion": "QEMU q35 coteja base PCI y registros con QMP y distingue IVRS ausente. METAL previo confirmo IVRS de 208 B, unidad 00:00.2 y base FD500000 con decode activo.",
-      "falta": "Validar los cinco registros en METAL y preparar el dominio nativo con continuidad de USB y almacenamiento."
+      "aceptacion": "QEMU q35 coteja base PCI y registros con QMP y distingue IVRS ausente. METAL confirmo unidad 00:00.2, decode activo y cinco registros, con traduccion y colas desactivadas antes de ExitBootServices.",
+      "falta": "Cotejar los registros tras el traspaso mediante MMIO supervisor de solo lectura y preparar el dominio con continuidad de USB y almacenamiento."
     }
   ],
   "relaciones": [

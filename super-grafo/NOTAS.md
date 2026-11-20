@@ -1682,8 +1682,8 @@ Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: Tabla de sistema UEFI, RSDP, XSDT y una sola unidad IVHD del segmento PCI 0.
 Salida: GPULOG.TXT con IVRS, BDF, base PCI, control, tabla, colas y estado AMD-Vi.
 Depende de: HOST / Inventario AMD-Vi (verificacion).
-Aceptacion: QEMU q35 coteja base PCI y registros con QMP y distingue IVRS ausente. METAL previo confirmo IVRS de 208 B, unidad 00:00.2 y base FD500000 con decode activo.
-Pendiente: Validar los cinco registros en METAL y preparar el dominio nativo con continuidad de USB y almacenamiento.
+Aceptacion: QEMU q35 coteja base PCI y registros con QMP y distingue IVRS ausente. METAL confirmo unidad 00:00.2, decode activo y cinco registros, con traduccion y colas desactivadas antes de ExitBootServices.
+Pendiente: Cotejar los registros tras el traspaso mediante MMIO supervisor de solo lectura y preparar el dominio con continuidad de USB y almacenamiento.
 
 ## CASM
 

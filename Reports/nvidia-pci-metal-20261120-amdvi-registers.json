@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "evidence": "METAL: BMO-X2 pre-EBS AMD-Vi register capture",
+  "run": "run-rmlui-media-a3d1dd3a0584",
+  "boot_file": "EFI/BMO-X2/NVIDIA.EFI",
+  "boot_file_sha256": "2746fc96cce188869468c2a42befc3bf76d71ed2da169d71b0f0b143a85031d1",
+  "bootlog": "nvidia-pci-metal-20261120-amdvi-registers.bootlog.txt",
+  "bootlog_sha256": "5a1c56c46fa714770648404c5adb7b3c09913a2ccfd228d2eb3581f0cfdbfcab",
+  "amd_vi": {
+    "bdf": "0000:00:00.2",
+    "mmio_base": "0xfd500000",
+    "capture_status_hex": "04",
+    "control_hex": "0000220000000400",
+    "device_table_register_hex": "0000000000000000",
+    "command_base_register_hex": "08000001023f8000",
+    "command_base": "0x00000001023f8000",
+    "event_base_register_hex": "08000001023fa000",
+    "event_base": "0x00000001023fa000",
+    "status_hex": "0000000000000000",
+    "translation_enabled": false,
+    "command_buffer_enabled": false,
+    "event_log_enabled": false,
+    "mapped_queue_pages_verified": false
+  },
+  "pci_command_gpu": "00000003",
+  "xhci_with_bus_master_enabled_reported": [
+    "00000300",
+    "00002B03"
+  ],
+  "post_ebs_registers_verified": false,
+  "physical_dma_verified": false,
+  "gsp_booted": false,
+  "gpu_rendering_verified": false,
+  "display_backend": "cpu-gop"
+}

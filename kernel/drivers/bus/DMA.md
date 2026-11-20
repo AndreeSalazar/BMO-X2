@@ -52,6 +52,14 @@ antes de conceder DMA virtual. El dominio fisico requiere una ventana
 MMIO propia y una prueba despues del traspaso.
 [Captura METAL](../../../Reports/nvidia-pci-metal-20261120-amdvi.json).
 
+La captura MMIO en METAL confirma traduccion desactivada antes de
+ExitBootServices, con las bases de comandos y eventos programadas
+por encima de 4 GiB. Esas direcciones no se incorporan al asignador
+como propiedad del kernel a partir de esta lectura. El ensayo siguiente
+compara el estado despues del traspaso mediante dos paginas MMIO de
+solo lectura y con permisos de supervisor.
+[Registros en METAL](../../../Reports/nvidia-pci-metal-20261120-amdvi-registers.json).
+
 El puente del escritorio reserva cinco paginas contiguas de EfiLoaderData
 por debajo de 256 MiB y las entrega en los campos B8/C0 del contexto.
 La variante QEMU de comandos agrega una pagina para contextos

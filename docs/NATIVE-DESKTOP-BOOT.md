@@ -461,15 +461,28 @@ Los casos sin IOMMU y sin invalidacion conservaron sus rechazos.
 El lector EFI ocupa 4070 B de su pagina de 4096 B.
 [Evidencia de ambas pruebas QEMU](../Reports/amdvi-registers-qemu-20261120.json).
 
+En METAL, el mismo candidato obtuvo captura `04` y control
+`0000220000000400`. `IommuEn`, `CmdBufEn` y `EventLogEn` estaban
+a cero antes del traspaso. El registro de tabla de dispositivos y
+el de estado tambien eran cero. El firmware habia programado bases
+de comandos (`0x1023F8000`) y eventos (`0x1023FA000`). La captura
+registra los valores de esos registros. La propiedad de las paginas
+apuntadas y el estado posterior al traspaso quedan por comprobar.
+[Captura de registros en METAL](../Reports/nvidia-pci-metal-20261120-amdvi-registers.json).
+
 Siguientes pruebas y criterio de avance:
 
-1. Capturar en METAL los registros iniciales del nuevo candidato.
-   Preparar una lectura despues del traspaso con una ventana MMIO
-   supervisora propia y cotejarla con el estado previo.
+1. Usar la base verificada por IVRS y PCI para repetir la lectura en
+   Ring 0 despues de ExitBootServices. Mapear solo las paginas que
+   contienen los cinco registros como MMIO supervisor, no ejecutable,
+   sin cache y de solo lectura. Probar en QEMU la lectura y el rechazo
+   sin unidad o sin mapeo. En METAL, cotejar los dos estados.
 2. Probar el dominio DMA fisico de la RTX y su funcion de audio
    conservando la operacion de USB y almacenamiento. Acreditar acceso
    concedido, rechazo fuera del rango y revocacion confirmada. Retener
-   las paginas si falla la invalidacion.
+   las paginas si falla la invalidacion. Reservar tablas y colas propias
+   antes de configurar la traduccion. El log pre-EBS ya muestra dos
+   controladores xHCI con bus mastering habilitado.
 3. Arrancar GSP `615.78.08` con los buffers autorizados y verificar
    una respuesta valida. Luego ejecutar una operacion sobre un buffer
    dedicado, comprobar su salida y demostrar dibujo 3D fuera de
