@@ -1,6 +1,10 @@
 # Read PCI Command in segment 0 after xHCI startup. R10 selects one
 # bounded scalar. The snapshot writes only its reserved context range.
 dma_census:
+#ifdef BMO_FULL_HD
+    cmp $512, %r10
+    je .Ldesktop_geometry
+#endif
 #ifdef BMO_STORAGE_STATE
     cmp $STORAGE_SELECTOR_BASE, %r10
     jae .Lstorage_result
@@ -98,3 +102,11 @@ dma_census:
     in %dx, %eax
     sub $4, %dx
     ret
+#ifdef BMO_FULL_HD
+.Ldesktop_geometry:
+    mov 0x20(%rbp), %eax
+    mov 0x24(%rbp), %edx
+    shl $32, %rdx
+    or %rdx, %rax
+    ret
+#endif

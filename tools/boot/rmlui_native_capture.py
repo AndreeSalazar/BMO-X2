@@ -141,6 +141,14 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
     context=memory(context_address,0x30,'ui-context')
     if context[:8]!=b'METAL64!':raise ValueError('Native UI handoff signature')
     amdvi_proof={}
+    uses_full_hd=bool(symbols.get('full_hd')) and case=='normal'
+    if symbols.get('full_hd'):
+        dimensions=struct.unpack_from('<II',context,32)
+        selected=dimensions==(1920,1080)
+        if selected!=uses_full_hd or f'GOP_FULL_HD={int(selected)}' not in serial.read_text(errors='replace').splitlines():
+            raise ValueError(f'Full HD selection or fallback mismatch for {dimensions}')
+        if not selected:
+            amdvi_proof['FullHdFallbackVerified']=True
     if bool(symbols.get('dma_census')) != (dma_census is not None):
         raise ValueError('PCI DMA inventory profiles differ')
     if dma_census is not None:
@@ -184,18 +192,30 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
     if not (640<=width<=4096 and 400<=height<=4096 and width<=pitch<=8192 and order in (0,1)):
         raise ValueError('Native UI framebuffer geometry')
     scale=min(width//1280,height//800)
-    dw,dh=(1280*scale,800*scale) if scale else (640,400)
+    dw,dh=(1920,1080) if uses_full_hd else (1280*scale,800*scale) if scale else (640,400)
     x,y=(width-dw)//2,(height-dh)//2
+
+    def position(index):
+        return index*3//2 if uses_full_hd else index*scale if scale else index//2
+
+    def pixel_order(row):
+        if order==1:
+            return row
+        converted=bytearray(row)
+        converted[0::4],converted[2::4]=row[2::4],row[0::4]
+        return converted
+
+    def align_hd(row, start=0):
+        return b''.join(row[byte:byte+4]*(1+((start+byte//4)&1)) for byte in range(0,len(row),4))
+
     displayed=memory(fb+(y*pitch+x)*4,((dh-1)*pitch+dw)*4,'ui-presented')
     for row in range(dh):
-        sy=row//scale if scale else row*2
+        sy=(row*2+1)//3 if uses_full_hd else row//scale if scale else row*2
         expected=raw[sy*1280*4:(sy+1)*1280*4]
         if not scale:expected=b''.join(expected[i:i+4] for i in range(0,len(expected),8))
-        if order==0:
-            converted=bytearray(expected)
-            converted[0::4],converted[2::4]=expected[2::4],expected[0::4]
-            expected=bytes(converted)
-        if scale>1:expected=b''.join(expected[i:i+4]*scale for i in range(0,len(expected),4))
+        expected=pixel_order(expected)
+        if uses_full_hd:expected=align_hd(expected)
+        elif scale>1:expected=b''.join(expected[i:i+4]*scale for i in range(0,len(expected),4))
         if displayed[row*pitch*4:row*pitch*4+len(expected)]!=expected:
             raise ValueError('Native UI presentation differs at row '+str(row))
     (Path(str(prefix)+'-ui-xrgb.bin')).write_bytes(raw)
@@ -212,18 +232,19 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
             UsbEmptyPortsRejected=True,UsbControllerStopped=True,UsbBusMasterRevoked=True,
             UsbMmioRevoked=True,UsbBothDevicesVerified=False,PhysicalUsbVerified=False,
             PresentedPixelsVerified=dw*dh,FrameSHA256=hashlib.sha256(raw).hexdigest())
-    display_proof={}
+    display_proof=dict(FullHdGopVerified=True, DesktopLogicalWidth=1280, DesktopLogicalHeight=720) if uses_full_hd else {}
     if symbols.get('usb')=='both' or (gop_regions and symbols.get('desktop')):
         cursor_counter=context_address+0x1a7e0
         start=struct.unpack('<Q',memory(cursor_counter,8,'cursor-copy-baseline'))[0]
-        for delta,target in ((24,664),(-24,640)):
+        delta=25 if uses_full_hd else 24
+        for delta,target in ((delta,640+delta),(-delta,640)):
             command('input-send-event',{'events':[{'type':'rel','data':{'axis':'x','value':delta}}]})
             deadline=time.monotonic()+30
             # The white pixel is sampled by both the full and half-scale paths.
             px=target+2
             py=404
-            gx=x+(px*scale if scale else px//2)
-            gy=y+(py*scale if scale else py//2)
+            gx=x+position(px)
+            gy=y+position(py)
             while time.monotonic()<deadline:
                 pixel=struct.unpack('<I',memory(fb+(gy*pitch+gx)*4,4,'fast-pointer'))[0]
                 if pixel==(0xf4f8ff if order==1 else 0xfff8f4):break
@@ -235,21 +256,21 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
             words=struct.unpack('<8Q',memory(state-0x3c000000,64,'fast-pointer-state'))
             if words[2]!=first[2]:raise ValueError('Pointer movement triggered a full RmlUi render')
         copied=struct.unpack('<Q',memory(cursor_counter,8,'cursor-copy-total'))[0]-start
-        if scale==1 and copied!=4*12*17:raise ValueError('Wrong GOP cursor-region pixel count')
+        region_pixels=(position(652)-position(640))*(position(417)-position(400))
+        if scale==1 and copied!=4*region_pixels:raise ValueError('Wrong GOP cursor-region pixel count')
         if scale!=1 and copied:raise ValueError('Cursor region accepted an unsupported scale')
         if scale==1:
-            old_x,old_y=664,400
-            for row in range(17):
-                actual=memory(fb+((y+old_y+row)*pitch+x+old_x)*4,48,'cursor-background')
-                offset=((old_y+row)*1280+old_x)*4
-                expected=raw[offset:offset+48]
-                if order==0:
-                    colors=bytearray(expected)
-                    colors[0::4],colors[2::4]=expected[2::4],expected[0::4]
-                    expected=bytes(colors)
+            old_x,old_y=665 if uses_full_hd else 664,400
+            for row in range(position(old_y),position(old_y+17)):
+                span=(position(old_x+12)-position(old_x))*4
+                actual=memory(fb+((y+row)*pitch+x+position(old_x))*4,span,'cursor-background')
+                sy=(row*2+1)//3 if uses_full_hd else row
+                offset=(sy*1280+old_x)*4
+                expected=pixel_order(raw[offset:offset+48])
+                if uses_full_hd:expected=align_hd(expected,old_x)
                 if actual!=expected:raise ValueError('Old cursor box did not restore the background')
-        display_proof=dict(PointerBeforeInputVerified=True,PointerMoveWithoutRasterVerified=True,
-                           PointerRegionPixelsForTwoMoves=copied)
+        display_proof.update(PointerBeforeInputVerified=True,PointerMoveWithoutRasterVerified=True,
+                             PointerRegionPixelsForTwoMoves=copied)
         if gop_regions and not symbols.get('usb'):
             if memory(context_address+0xb8,16,'native-no-usb-dma')!=bytes(16):
                 raise ValueError('GOP-only profile reserved USB DMA')
@@ -275,8 +296,8 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
         mouse_edges=symbols.get('mouse_edges')
         if mouse_edges:
             px,py=642,531
-            gx=x+(px*scale if scale else px//2)
-            gy=y+(py*scale if scale else py//2)
+            gx=x+position(px)
+            gy=y+position(py)
             hover_color=0xa2f4e6 if order==1 else 0xe6f4a2
             wait_input(lambda: struct.unpack('<I',memory(fb+(gy*pitch+gx)*4,4,'button-hover'))[0]==hover_color,
                 'Cursor did not highlight over Activate')
@@ -346,8 +367,8 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
                     events.append({'type':'rel','data':{'axis':'y','value':-113}})
                 command('input-send-event',{'events':events})
                 time.sleep(.12)
-            gx=x+(112*scale if scale else 56)
-            gy=y+(305*scale if scale else 152)
+            gx=x+position(112)
+            gy=y+position(305)
             hover_color=0xa2f4e6 if order==1 else 0xe6f4a2
             wait_input(lambda: struct.unpack('<I',memory(fb+(gy*pitch+gx)*4,4,'msvc-launcher-pointer'))[0]==hover_color,
                        'Pointer did not reach the MSVC launcher')
@@ -380,7 +401,7 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
             locks_verified=True
             frames_after=struct.unpack('<Q',memory(state-0x3c000000+16,8,'lock-frame-count'))[0]
             if frames_after!=frame_count:raise ValueError('Lock keys rendered the full desktop')
-            if scale==1 and region_pixels()-pixels_before!=6*1280*80:
+            if scale==1 and region_pixels()-pixels_before!=6*position(1280)*position(80):
                 raise ValueError('Lock indicators copied outside the GOP status strip')
             lock_strip_verified=True
         if not observed:raise ValueError('No DIRECTOR/RmlUi execution observed in CPL3')

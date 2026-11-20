@@ -2,6 +2,9 @@
 #ifdef BMO_AMDVI_POST
 #include "post_layout.inc"
 #endif
+#ifdef BMO_FULL_HD
+#include "../../display/GOP/gop_layout.inc"
+#endif
 # Read-only AMD-Vi inventory while UEFI still owns the platform.
 # RCX = EFI_SYSTEM_TABLE, RDX = inventory fields, R8 = report_hex32.
 # R9 = MMIO snapshot fields.
@@ -22,6 +25,15 @@ amdvi_firmware_probe:
     # Preserve the four incoming parameters across the copy.
     push %rcx
     mov %eax, %ecx
+    cld
+    rep movsb
+    pop %rcx
+#endif
+#ifdef BMO_FULL_HD
+    push %rcx
+    lea .Lgop_stage(%rip), %rsi
+    lea GOP_CODE_OFFSET(%rbp), %rdi
+    mov $(.Lgop_stage_end-.Lgop_stage), %ecx
     cld
     rep movsb
     pop %rcx
@@ -426,4 +438,7 @@ amdvi_uefi_snapshot:
 
 #ifdef BMO_AMDVI_POST
 #include "post_ebs_probe.inc"
+#endif
+#ifdef BMO_FULL_HD
+#include "../../display/GOP/gop_stage.inc"
 #endif

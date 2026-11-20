@@ -29,6 +29,13 @@ gop_cursor_region:
     ja gop_cursor_denied
     cmpl $1, 0x2c(%rbp)
     ja gop_cursor_denied
+#ifdef BMO_FULL_HD
+    cmp $1920, %eax
+    jne .Lgop_region_legacy
+    cmp $1080, %ecx
+    je gop_fhd_region
+.Lgop_region_legacy:
+#endif
     cmp $2560, %eax
     jb gop_cursor_scale_one
     cmp $1600, %ecx

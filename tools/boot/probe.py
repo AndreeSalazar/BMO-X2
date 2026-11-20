@@ -60,6 +60,7 @@ amdvi_storage = amdvi_coexist and (ROOT / 'amdvi-storage.txt').is_file()
 amdvi_routed = amdvi_storage and (ROOT / 'amdvi-routed.txt').is_file()
 dma_census = amdvi_post and (ROOT / 'dma-census-probe.txt').is_file()
 storage_state = dma_census and (ROOT / 'storage-state.txt').is_file()
+full_hd = storage_state and (ROOT / 'full-hd.txt').is_file()
 desktop_cases = ['normal', 'external-permissions']
 if args.doom_fixture and (not args.abi_probe or args.casos not in
                           (['normal'], desktop_cases, desktop_cases + (['amdvi-missing'] if amdvi_post else []))):
@@ -294,7 +295,8 @@ def run(case):
         '-drive', f'if=pflash,format=raw,unit=1,file={variables}',
         '-drive', f'file={guest_disk},format=raw,if=ide,snapshot={"off" if check_bootlog else "on"}',
         '-vga', 'std', '-display', 'none', '-serial', f'file:{prefix}-serial.log',
-        *(['-global','VGA.xres=1024','-global','VGA.yres=768'] if (ROOT/'low-gop.txt').is_file() else []),
+        *(['-global','VGA.xres=1920','-global','VGA.yres=1080'] if full_hd and case=='normal' else
+          ['-global','VGA.xres=1024','-global','VGA.yres=768'] if (ROOT/'low-gop.txt').is_file() else []),
         '-qmp', 'stdio', '-monitor', 'none', '-no-reboot',
         '-d', 'guest_errors,int', '-D', str(prefix) + '-cpu.log', *staging],
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,

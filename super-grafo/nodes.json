@@ -2511,6 +2511,24 @@
       "falta": "Medir latencia fisica y especializar la copia en otras escalas GOP. Las demas escalas usan la presentacion completa."
     },
     {
+      "id": "rmlui-gop-full-hd",
+      "titulo": "GOP / Escritorio completo 1920x1080",
+      "ruta": "kernel/drivers/display/GOP/full_hd.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [
+        10200,
+        4050
+      ],
+      "que": "Presenta una vista RmlUi de 1280x720 en todo el modo GOP 1920x1080 mediante escala 3:2 por CPU.",
+      "entrada": "Modo GOP exacto 1920x1080, superficie XRGB y regiones de puntero o franja de estado.",
+      "salida": "Cuadro de 2073600 pixeles y regiones escaladas, con retorno al presentador base en otros modos.",
+      "aceptacion": "QEMU coteja todos los pixeles del cuadro, restaura la region anterior del cursor y verifica el modo base.",
+      "falta": "Confirmar la cobertura Full HD en METAL. El presentador NVIDIA acelerado requiere un backend propio."
+    },
+    {
       "id": "nvidia-pci-probe",
       "titulo": "GPU / NVIDIA / Inventario PCI",
       "ruta": "kernel/drivers/GPU/NVIDIA/pci_probe.inc",
@@ -2754,8 +2772,8 @@
       "que": "Coteja el BAR con PCI y el mapa final. Lee el estado de AHCI y NVMe y revoca la ventana temporal antes de xHCI.",
       "entrada": "Recursos validados por UEFI, contexto supervisor y copia final del mapa de memoria.",
       "salida": "Estado de motores y comandos AHCI, CC y CSTS de NVMe. F3 publica la captura en RmlUi.",
-      "aceptacion": "QEMU coteja los registros y mascaras con qtest y verifica la pagina F3 con USB en servicio.",
-      "falta": "Medir el estado en METAL y construir el traspaso nativo de los controladores."
+      "aceptacion": "QEMU coteja los registros y la pagina F3. METAL muestra motores SATA activos en puertos 4 y 5 y NVMe habilitado, ambos con BME.",
+      "falta": "Construir y probar el traspaso nativo de los controladores antes de activar AMD-Vi."
     },
     {
       "id": "amdvi-ahci-qemu",
@@ -4129,6 +4147,11 @@
     {
       "de": "rmlui-fat32-media",
       "a": "storage-state-post",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-fat32-media",
+      "a": "rmlui-gop-full-hd",
       "clase": "codigo"
     },
     {

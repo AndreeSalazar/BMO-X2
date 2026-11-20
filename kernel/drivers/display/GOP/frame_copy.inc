@@ -46,6 +46,13 @@ present_frame:
     ja GOP_COPY_DENIED
     cmpl $1, 0x2c(%rbp)
     ja GOP_COPY_DENIED
+#ifdef BMO_FULL_HD
+    cmp $1920, %edi
+    jne .Lgop_frame_legacy
+    cmp $1080, %ecx
+    je gop_fhd_frame
+.Lgop_frame_legacy:
+#endif
     sub $0x3c000000, %rdx
     mov %rdx, %rsi
 #ifdef RMLUI_NATIVE

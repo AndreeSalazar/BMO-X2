@@ -40,6 +40,7 @@ def main():
     p.add_argument('--amdvi-routed', action='store_true', help='Exercise a high PCI requester ID behind a PCIe root port')
     p.add_argument('--dma-census', action='store_true', help='Capture PCI bus masters after USB startup')
     p.add_argument('--storage-state', action='store_true', help='Observe AHCI and NVMe state immediately after UEFI handoff')
+    p.add_argument('--full-hd', action='store_true', help='Fill an exact 1920x1080 GOP mode with the 16:9 desktop')
     args=p.parse_args()
     if args.usb_empty_ports and args.usb!='both':p.error('--usb-empty-ports requires --usb both')
     if args.amdvi_probe and not args.nvidia_probe:p.error('--amdvi-probe requires --nvidia-probe')
@@ -52,6 +53,8 @@ def main():
     if args.dma_census and (not args.amdvi_post or args.amdvi_coexist):
         p.error('--dma-census requires --amdvi-post and its own context stage')
     if args.storage_state and not args.dma_census:p.error('--storage-state requires --dma-census')
+    if args.full_hd and (not args.storage_state or args.low_gop):
+        p.error('--full-hd requires --storage-state and its own QEMU display mode')
     abi,splash=args.abi_run.resolve(),args.splash_run.resolve()
     for path in (abi,splash):
         if path.parent!=ROOT/'build/CASM':raise ValueError('Run outside build/CASM')
@@ -62,6 +65,7 @@ def main():
     if args.amdvi_post:variant+='-amdvi-post'
     if args.dma_census:variant+='-dma-census'
     if args.storage_state:variant+='-storage-state'
+    if args.full_hd:variant+='-full-hd'
     app=OUT/(variant + ('-msvc' if args.msvc_panel else ''))
     hashes=json.loads((app/'artifacts.json').read_text())
     for name,digest in hashes.items():
@@ -78,6 +82,8 @@ def main():
         (run/'dma-census-probe.txt').write_text('pci-segment0-bme\n', encoding='ascii')
     if args.storage_state:
         (run/'storage-state.txt').write_text('post-ebs-read-only\n', encoding='ascii')
+    if args.full_hd:
+        (run/'full-hd.txt').write_text('cpu-gop-1920x1080\n', encoding='ascii')
     if args.amdvi_coexist:
         (run/'amdvi-coexist-probe.txt').write_text('qemu-only-edu-xhci\n', encoding='ascii')
     if args.amdvi_guest_dma:
@@ -103,10 +109,11 @@ def main():
         if args.dma_census and name=='gate':flags+=['-DBMO_DMA_CENSUS']
         if args.amdvi_guest_dma and name=='gate':flags+=['-DBMO_AMDVI_GUEST_DMA']
         if args.amdvi_storage and name in ('reader','gate'):flags+=['-DBMO_AMDVI_STORAGE']
+        if args.full_hd and name=='reader':flags+=['-DBMO_FULL_HD']
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf','-DRMLUI_MEDIA','-DRMLUI_NATIVE',
             '-DRMLUI_GOP_REGIONS','-DDOOM_ENGINE','-DDESKTOP_DOOM',*flags,
             '-c',ROOT/source,'-o',run/(name+'.o')],'compile-media-'+name)
-        if args.amdvi_post and name=='reader':
+        if args.amdvi_post and name=='reader' and not args.full_hd:
             check_context_stage(llvm,run/'reader.o','gop_stage',1536 if args.amdvi_storage else 2048)
         command([llvm/'llvm-objcopy.exe','-O','binary','--only-section=.text',run/(name+'.o'),run/(name+'.bin')],'extract-media-'+name)
     sbef=(app/'rmlui.sbef').read_bytes();reference=(abi/'INICIO.X86').read_bytes()
@@ -118,7 +125,8 @@ def main():
     if len(image)!=0x3000 or len(reader)>4096 or len(allocator)>0xf0 or image[0x267:0x26c]!=bytes.fromhex('e894050000'):
         raise ValueError('Native EFI extension exceeds verified slots')
     struct.pack_into('<i',image,0x268,0x3000-0x267-5)
-    if args.amdvi_probe:extra+=4096
+    amdvi_budget=8192 if args.full_hd else 4096
+    if args.amdvi_probe:extra+=amdvi_budget
     for offset,old in ((0x5c,0x2e00),(0x90,0x4000),(0x150,0x2e00),(0x158,0x2e00)):
         if struct.unpack_from('<I',image,offset)[0]!=old:raise ValueError('EFI PE header changed')
         struct.pack_into('<I',image,offset,old+extra)
@@ -139,19 +147,21 @@ def main():
         if args.amdvi_coexist:flags+=['-DBMO_AMDVI_COEXIST']
         if args.dma_census:flags+=['-DBMO_DMA_CENSUS']
         if args.storage_state:flags+=['-DBMO_STORAGE_STATE']
+        if args.full_hd:flags+=['-DBMO_FULL_HD','-DRMLUI_MEDIA','-DRMLUI_NATIVE','-DDESKTOP_DOOM']
         if args.amdvi_guest_dma:flags+=['-DBMO_AMDVI_GUEST_DMA']
         if args.amdvi_storage:flags+=['-DBMO_AMDVI_STORAGE']
         if args.amdvi_routed:flags+=['-DBMO_AMDVI_ROUTED']
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf',*flags,'-c',source,'-o',native_probe],'compile-amdvi-firmware')
         if args.amdvi_post:
             check_context_stage(llvm,native_probe,'amdvi_post',2560 if args.amdvi_storage else 2048)
+        if args.full_hd:check_context_stage(llvm,native_probe,'gop_stage')
         relocations=subprocess.check_output([llvm/'llvm-objdump.exe','-r',native_probe],text=True)
         if 'RELOCATION RECORDS' in relocations:raise ValueError('AMD-Vi firmware inventory must be position independent')
         raw_probe=native_probe.with_suffix('.bin')
         command([llvm/'llvm-objcopy.exe','-O','binary','--only-section=.text',native_probe,raw_probe],'extract-amdvi-firmware')
         stage=raw_probe.read_bytes()
-        if len(image)!=amdvi_offset or not 0<len(stage)<=4096:raise ValueError('AMD-Vi EFI slot mismatch')
-        image.extend(stage.ljust(4096,b'\0'))
+        if len(image)!=amdvi_offset or not 0<len(stage)<=amdvi_budget:raise ValueError('AMD-Vi EFI slot mismatch')
+        image.extend(stage.ljust(amdvi_budget,b'\0'))
     image[0x400:0x400+len(allocator)]=allocator
     files={'reference.x86':reference,'rmlui.sbef':sbef,'session-gate.bin':gate,'external-loader.bin':loader,
         'INICIO.X86':packet,'intro.x86':intro,'intro.casm':(splash/'source.casm').read_bytes(),'profile.txt':b'rmlui-desktop-media\n',
@@ -184,6 +194,9 @@ def main():
     if args.storage_state and (not all(report['Cases'][i].get('StorageStateVerified') for i in (0,2)) or
                                not report['Cases'][0].get('StoragePanelVerified')):
         raise ValueError('Missing storage state or its Ring 3 panel evidence')
+    if args.full_hd and (not report['Cases'][0].get('FullHdGopVerified') or
+                         not report['Cases'][2].get('FullHdFallbackVerified')):
+        raise ValueError('Missing 1080p scanout or desktop fallback evidence')
     if args.amdvi_coexist and not report['Cases'][0].get('AmdViCoexistVerified'):
         raise ValueError('Missing simultaneous EDU and USB evidence')
     if args.amdvi_guest_dma and report['Cases'][0].get('DmaIssuer')!='Ring 0 guest':
@@ -210,6 +223,7 @@ def main():
         amdvi_post_probe=args.amdvi_post,
         dma_census=args.dma_census,
         storage_state=args.storage_state,
+        full_hd=args.full_hd,
         amdvi_coexist=args.amdvi_coexist,
         amdvi_guest_dma=args.amdvi_guest_dma,
         amdvi_storage=args.amdvi_storage,

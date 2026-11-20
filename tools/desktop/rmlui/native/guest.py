@@ -41,6 +41,7 @@ def main():
     parser.add_argument('--amdvi-post',action='store_true')
     parser.add_argument('--dma-census',action='store_true')
     parser.add_argument('--storage-state',action='store_true')
+    parser.add_argument('--full-hd',action='store_true')
     args=parser.parse_args()
     if args.usb and not args.desktop:parser.error('--usb requires --desktop')
     if args.msvc_panel_cc and not args.desktop:parser.error('--msvc-panel-cc requires --desktop')
@@ -50,6 +51,8 @@ def main():
         parser.error('--dma-census requires --amdvi-post')
     if args.storage_state and not args.dma_census:
         parser.error('--storage-state requires --dma-census')
+    if args.full_hd and not args.storage_state:
+        parser.error('--full-hd requires --storage-state')
     libc.main()
     here=Path(__file__).parent
     llvm=Path(os.environ['ProgramFiles'])/'LLVM/bin'
@@ -57,6 +60,7 @@ def main():
     if args.amdvi_post:variant+='-amdvi-post'
     if args.dma_census:variant+='-dma-census'
     if args.storage_state:variant+='-storage-state'
+    if args.full_hd:variant+='-full-hd'
     out=OUT/(variant + ('-msvc' if args.msvc_panel_cc else ''))
     out.mkdir(exist_ok=True)
     includes=generate_headers()
@@ -77,6 +81,7 @@ def main():
     if args.amdvi_post:cppflags+=['-DBMO_AMDVI_POST']
     if args.dma_census:cppflags+=['-DBMO_DMA_CENSUS']
     if args.storage_state:cppflags+=['-DBMO_STORAGE_STATE']
+    if args.full_hd:cppflags+=['-DBMO_FULL_HD']
     command([llvm/'clang++.exe',*cppflags,'-c',here/'guest.cpp','-o',out/'guest.o'],'compile-native-guest')
     command([llvm/'clang++.exe',*cppflags,'-c',here/'new.cpp','-o',out/'new.o'],'compile-native-new')
     rust_extra=[]
@@ -171,6 +176,7 @@ def main():
     if args.amdvi_post:manifest['amdvi_post']=True
     if args.dma_census:manifest['dma_census']=True
     if args.storage_state:manifest['storage_state']=True
+    if args.full_hd:manifest['full_hd']=True
     if args.usb=='both':
         manifest.update(usb_keyboard_reports=symbols['bmo_ui_usb_keyboard_reports'],
             usb_mouse_reports=symbols['bmo_ui_usb_mouse_reports'],mouse_edges=symbols['bmo_ui_mouse_edges'],

@@ -12,6 +12,9 @@ gop_stage_begin:
 #define GOP_COPY_STAGED
 #include "frame_copy.inc"
 #undef GOP_COPY_STAGED
+#ifdef BMO_FULL_HD
+#include "full_hd.inc"
+#endif
 .Lgop_stage_end:
 #ifdef BMO_AMDVI_POST
 gop_stage_end:

@@ -24,6 +24,7 @@ $amdviRun=Test-Path -LiteralPath (Join-Path $runPath 'amdvi-efi-probe.txt') -Pat
 $amdviPost=Test-Path -LiteralPath (Join-Path $runPath 'amdvi-post-probe.txt') -PathType Leaf
 $dmaCensus=Test-Path -LiteralPath (Join-Path $runPath 'dma-census-probe.txt') -PathType Leaf
 $storageState=Test-Path -LiteralPath (Join-Path $runPath 'storage-state.txt') -PathType Leaf
+$fullHd=Test-Path -LiteralPath (Join-Path $runPath 'full-hd.txt') -PathType Leaf
 if ($amdviRun -ne [bool]$proof.amdvi_efi_probe -or ($amdviRun -and -not $gpuRun)) {
     throw 'La sonda AMD-Vi requiere el perfil NVIDIA y su manifiesto.'
 }
@@ -35,6 +36,9 @@ if ($dmaCensus -ne [bool]$proof.dma_census -or ($dmaCensus -and -not $amdviPost)
 }
 if ($storageState -ne [bool]$proof.storage_state -or ($storageState -and -not $dmaCensus)) {
     throw 'El informe de almacenamiento requiere el inventario DMA y su manifiesto.'
+}
+if ($fullHd -ne [bool]$proof.full_hd -or ($fullHd -and -not $storageState)) {
+    throw 'El escritorio Full HD requiere su perfil y su manifiesto.'
 }
 if ($amdviPost) {
     $missing=$proof.Cases | Where-Object { $_.Case -eq 'amdvi-missing' } | Select-Object -First 1
@@ -49,6 +53,10 @@ if ($amdviPost) {
     if ($storageState -and (-not $normal.StorageStateVerified -or -not $missing.StorageStateVerified -or
         -not $normal.StoragePanelVerified)) {
         throw 'Falta comprobar el estado AHCI/NVMe posterior al traspaso y el panel F3.'
+    }
+    if ($fullHd -and (-not $normal.FullHdGopVerified -or $normal.PresentedPixelsVerified -ne 2073600 -or
+        -not $missing.FullHdFallbackVerified)) {
+        throw 'Falta comprobar la salida 1920x1080 y el retorno al perfil base.'
     }
 }
 if ($amdviRun) {
@@ -150,6 +158,7 @@ $record=[ordered]@{Schema=1;Evidence='HOST copy after QEMU FAT32 boot';Run=$proo
     AmdViPostProbe=$amdviPost;
     DmaCensus=$dmaCensus;
     StorageState=$storageState;
+    FullHd=$fullHd;
     BootFile=('\'+$bootFile.Replace('/','\'));ReportFile=('\'+$dataFolder.Replace('/','\')+'\'+$reportName);
     Note='USB HID fisico sigue pendiente; no cambia NVRAM ni archivos ajenos al candidato.'}
 $json=$record | ConvertTo-Json -Depth 8

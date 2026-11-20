@@ -187,11 +187,24 @@ extern "C" void bmo_main() {
     log("BMO UI INITIALISED\n");
     check(Rml::LoadFontFace("LatoLatin-Regular.ttf") && Rml::LoadFontFace("LatoLatin-Bold.ttf"),"fonts");
     log("BMO UI FONTS\n");
-    auto context=Rml::CreateContext("BMO-X2 native",{1280,800});check(context,"context");
+    int desktop_height=800;
+#ifdef BMO_FULL_HD
+    const auto geometry=doom_invoke(3,3,26,512);
+    const bool full_hd=uint32_t(geometry)==1920 && geometry>>32==1080;
+    if(full_hd)desktop_height=720;
+    log(full_hd?"GOP_FULL_HD=1\n":"GOP_FULL_HD=0\n");
+#endif
+    auto context=Rml::CreateContext("BMO-X2 native",{1280,desktop_height});check(context,"context");
     auto doc=context->LoadDocument("main.rml");check(doc && !files.denied,"document");
     log("BMO UI DOCUMENT\n");
     doc->SetClass("reduced-motion",true);
     doc->SetClass("native-pointer",true);
+#ifdef BMO_FULL_HD
+    if(full_hd) {
+        doc->SetClass("full-hd",true);
+        doc->GetElementById("host-badge")->SetInnerRML("CPU / GOP 1080p");
+    }
+#endif
     doc->SetClass("arrived",true);doc->SetClass("intro-ready",true);
     auto button=doc->GetElementById("activate");check(button,"button");button->AddEventListener("click",&action);
     doc->Show();
@@ -277,7 +290,7 @@ extern "C" void bmo_main() {
     auto draw_pointer=[&]() {
         drawn_x=pointer_x;drawn_y=pointer_y;
         drawn_color=cursor_color();
-        for(int y=0;y<17 && drawn_y+y<800;++y)
+        for(int y=0;y<17 && drawn_y+y<desktop_height;++y)
             for(int x=0;x<12 && drawn_x+x<1280;++x) {
                 auto& pixel=bmo_ui_pixels[(drawn_y+y)*1280+drawn_x+x];
                 under_pointer[y][x]=pixel;
@@ -293,7 +306,7 @@ extern "C" void bmo_main() {
         sync_policy();
 #endif
         renderer.pixels=bmo_ui_pixels;renderer.pixel_count=1280*800;
-        renderer.frame(context);renderer.pixels=nullptr;renderer.pixel_count=0;
+        renderer.frame(context,0,desktop_height);renderer.pixels=nullptr;renderer.pixel_count=0;
 #ifdef BMO_MSVC_PANEL
         if((bmo_director_state()>>8)==2) {
             const auto position=msvc_surface->GetAbsoluteOffset(Rml::BoxArea::Content);
@@ -365,7 +378,7 @@ extern "C" void bmo_main() {
     auto mouse_input=[&](int dx,int dy,unsigned buttons,unsigned mask=7,int wheel=0) {
         if(dx || dy) {
             const int x=std::clamp(pointer_x+dx,0,1279);
-            const int y=std::clamp(pointer_y+dy,0,799);
+            const int y=std::clamp(pointer_y+dy,0,desktop_height-1);
             motion_pending|=x!=pointer_x || y!=pointer_y;
             pointer_x=x;pointer_y=y;
         }
@@ -537,7 +550,7 @@ extern "C" void bmo_main() {
 #ifdef BMO_DESKTOP_UI
             const auto old_position=unsigned(drawn_x)|(unsigned(drawn_y)<<16);
 #endif
-            for(int y=0;y<17 && drawn_y+y<800;++y)
+            for(int y=0;y<17 && drawn_y+y<desktop_height;++y)
                 for(int x=0;x<12 && drawn_x+x<1280;++x)
                     bmo_ui_pixels[(drawn_y+y)*1280+drawn_x+x]=under_pointer[y][x];
 #ifdef BMO_DESKTOP_UI

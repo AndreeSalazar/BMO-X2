@@ -595,6 +595,30 @@ byte con el candidato anterior.
 [Especificacion AHCI](https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/serial-ata-ahci-spec-rev1-3-1.pdf).
 [Especificacion NVMe](https://nvmexpress.org/specification/nvm-express-base-specification/).
 
+La captura METAL de ese candidato muestra motores SATA activos
+en los puertos 4 y 5 (`Motores 00000030`), con PxCI/PxSACT a
+cero en ese instante. El NVMe `01:00.0` sigue habilitado y listo
+(`EN=1`, `RDY=1`, `CFS=0`). Los dos conservan PCI Command
+`0006`. El traspaso nativo requiere detener los motores AHCI
+en orden y confirmar su parada, y completar el cierre controlado
+de NVMe antes de retirar sus colas y el permiso DMA. La ausencia
+de comandos SATA pendientes por si sola no confirma la parada.
+[Captura y registro del equipo fisico](../Reports/storage-state-metal-20261120.json).
+
+El mismo registro METAL muestra un modo GOP de 1920x1080. El
+perfil anterior presentaba una superficie centrada de 1280x800.
+El candidato `--full-hd` adapta RmlUi a 1280x720 y presenta
+en proporcion 3:2 sobre los 1920x1080 completos, con dibujo por
+CPU. El escalador aplica la misma regla a cuadros completos,
+puntero y franja de bloqueos, incluidos los origenes impares.
+Para otros modos se conserva el presentador anterior.
+El candidato `run-rmlui-media-6202354d7e32` paso los tres casos de QEMU.
+La prueba comparo los 2073600 pixeles de salida y verifico las regiones
+del puntero y los bloqueos sin rasterizar otro cuadro. Se desplego en
+el perfil NVIDIA de `A:` con hashes verificados y respaldo de NVIDIA.EFI
+y DESKTOP.SBF. El indicador `CPU / GOP 1080p` identifica este modo.
+[Presentacion de Full HD y retornos de modo en QEMU](../Reports/gop-full-hd-qemu-20261120.json).
+
 El perfil QEMU `--amdvi-storage` agrega un AHCI virtual en un
 tercer dominio. Ring 0 instala su tabla de traduccion. HOST
 envia `READ DMA EXT` contra un disco de prueba, coteja 512 B
@@ -724,6 +748,8 @@ Para el candidato con inventario PCI, agregar `--dma-census` a las dos
 ordenes del perfil `--amdvi-post`.
 Para agregar la lectura AHCI/NVMe, pasar ademas `--storage-state` a
 las dos ordenes.
+Para llenar el modo GOP 1920x1080, pasar tambien `--full-hd` a
+ambas ordenes.
 
 `native/deploy.ps1 -Run <RUN> -Volume A:\ -NvidiaProbe -Check` comprueba
 el candidato para METAL. Agrega `-ExperimentalUsb` para el run USB dual.

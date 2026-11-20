@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "evidence": "METAL: F2/F3 photographs and FAT32 pre-EBS log",
+  "run": "run-rmlui-media-028165bacf7a",
+  "photo_hashes": [
+    "e8efe3b534b314351d74e38e14300ee5b2d73d0d05c1a9f87336e20783b71376",
+    "d41768fa379ba1a17a2a1e93b67ad87d40daf044df791a2bbe1e19fa79ee1913"
+  ],
+  "photographed_values_transcribed": true,
+  "bootlog_fat32_sha256": "4ec5827c406d09ad78e8352a75e98045cfc162075c535352d10c9c1d9df49e8c",
+  "gop": [
+    1920,
+    1080
+  ],
+  "pci_bus_master_count": 15,
+  "xhci": "0000:2b:00.3",
+  "keyboard_mouse_status_ok": true,
+  "ahci": {
+    "bdf": "0000:03:00.1",
+    "pci_command_pre": "0006",
+    "pci_command_post": "0006",
+    "ghc": "80000000",
+    "implemented": "00000033",
+    "engines": "00000030",
+    "engine_ports": [
+      4,
+      5
+    ],
+    "pending": "00000000"
+  },
+  "nvme": {
+    "bdf": "0000:01:00.0",
+    "pci_command_pre": "0006",
+    "pci_command_post": "0006",
+    "cc": "00460001",
+    "csts": "00000001",
+    "en": true,
+    "rdy": true,
+    "cfs": false
+  },
+  "rtx": {
+    "bdf": "0000:29:00.0",
+    "id": "10de:2504",
+    "pci_command": "0003",
+    "bme_pre_ebs": false
+  },
+  "native_storage_handoff_verified": false,
+  "physical_iommu_translation_verified": false,
+  "gsp_boot_verified": false,
+  "rtx_render_verified": false
+}

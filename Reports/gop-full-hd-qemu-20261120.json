@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "evidence": "QEMU FAT32 boot and framebuffer readback",
+  "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+  "run": "run-rmlui-media-6202354d7e32",
+  "display_backend": "cpu-gop",
+  "logical_size": [
+    1280,
+    720
+  ],
+  "physical_size": [
+    1920,
+    1080
+  ],
+  "scale": "3:2",
+  "presented_pixels_verified": 2073600,
+  "pointer_moved_without_full_raster": true,
+  "physical_pixels_copied_for_two_pointer_moves": 1800,
+  "lock_indicators_without_full_raster": true,
+  "usb_keyboard_and_mouse_verified": true,
+  "storage_panel_verified": true,
+  "fall_back_to_previous_presentation": true,
+  "cases": {
+    "normal": true,
+    "external-permissions": true,
+    "amdvi-missing": true
+  },
+  "screenshot_ppm_sha256": "03df3d0b7089d1216b43e9412260364105f1504c1f0f704ff1865591e1f496da",
+  "files": {
+    "EFI/BMO-X2/NVIDIA.EFI": "658772083294bc81982334d43bfe1f9f9dc378bc7fb4d984b1ac007357a741fa",
+    "BMO-X2/GPU/INICIO.X86": "7113f28f082280550018defc40d089742b8200a4ef8b7f24be7807b8c325c854",
+    "BMO-X2/GPU/DESKTOP.SBF": "5e5badbe60beda73bb8834ab24c582edc196242ef82dc3088001e16943f397c9"
+  },
+  "native_1920_render_verified": false,
+  "physical_boot_verified": false,
+  "rtx_render_verified": false
+}

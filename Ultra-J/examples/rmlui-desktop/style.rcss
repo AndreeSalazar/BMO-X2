@@ -74,3 +74,7 @@ button { tab-index:auto; transition:background-color 0.12s linear-in-out; }
 .native-pointer #open-msvc:hover { background:#282446; }
 #msvc-panel { height:393px; background:#17162e; border:1px #534578; border-radius:18px; padding:20px 25px; box-sizing:border-box; }
 #msvc-surface { width:480px; height:300px; margin-top:8px; }
+
+body.full-hd, .full-hd #main, .full-hd #rail { height:720px; }
+.full-hd #workspace { height:356px; }
+.full-hd #bottom { margin-top:22px; padding-top:18px; }

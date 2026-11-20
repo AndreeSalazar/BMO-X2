@@ -1494,7 +1494,7 @@ Construye el perfil de escritorio FAT32 y las variantes xHCI de teclado/raton pa
 Estado: QEMU. Anillo: host. Lenguaje: Python / LLVM / CASM / C++ / Rust.
 Entrada: Runs ABI y gato CASM verificados, ELF/SBEF nativo con hashes y selector explicito de perfil USB.
 Salida: EFI e INICIO con SBEF desde FAT32; perfiles QEMU con reserva DMA supervisada, etapa xHCI y reportes.
-Depende de: Interfaz RmlUi y ULTRA-J nativa (codigo), Inspeccion acotada de FAT32 (codigo), Buses, recursos y DMA (codigo), Informes USB al escritorio nativo (codigo), Presentacion GOP por CPU (codigo), GPU / NVIDIA / Inventario PCI (codigo), AMD-Vi / Inventario UEFI (codigo), AMD-Vi / Captura Ring 0 (codigo), PCI / Inventario de solicitantes DMA (codigo), Almacenamiento / Estado posterior a UEFI (codigo), GPU / NVIDIA / Lectura MMIO (codigo).
+Depende de: Interfaz RmlUi y ULTRA-J nativa (codigo), Inspeccion acotada de FAT32 (codigo), Buses, recursos y DMA (codigo), Informes USB al escritorio nativo (codigo), Presentacion GOP por CPU (codigo), GPU / NVIDIA / Inventario PCI (codigo), AMD-Vi / Inventario UEFI (codigo), AMD-Vi / Captura Ring 0 (codigo), PCI / Inventario de solicitantes DMA (codigo), Almacenamiento / Estado posterior a UEFI (codigo), GOP / Escritorio completo 1920x1080 (codigo), GPU / NVIDIA / Lectura MMIO (codigo).
 Aceptacion: FAT32: GOP 1280x800 y 1024x768, W+X rechazado, BOOTLOG/SBEF releidos. USB: teclado y raton en perfiles separados, W+X rechazado, limites de imagen comprobados y deploy.ps1 rechaza perfiles solo-QEMU.
 Pendiente: Arranque fisico del candidato y backend USB AMD completo; la supervision DMA no acredita IOMMU ni aislamiento de dispositivos hostiles.
 
@@ -1607,6 +1607,17 @@ Salida: Cuadro escalado, hasta 204 pixeles por caja de cursor o 102400 por franj
 Depende de: contrato propio sin dependencias en este catalogo.
 Aceptacion: QEMU comprueba restauracion del cursor y que los bloqueos actualizan la franja sin cuadro completo.
 Pendiente: Medir latencia fisica y especializar la copia en otras escalas GOP. Las demas escalas usan la presentacion completa.
+
+## kernel/drivers/display/GOP/full_hd.inc
+
+Presenta una vista RmlUi de 1280x720 en todo el modo GOP 1920x1080 mediante escala 3:2 por CPU.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: Modo GOP exacto 1920x1080, superficie XRGB y regiones de puntero o franja de estado.
+Salida: Cuadro de 2073600 pixeles y regiones escaladas, con retorno al presentador base en otros modos.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: QEMU coteja todos los pixeles del cuadro, restaura la region anterior del cursor y verifica el modo base.
+Pendiente: Confirmar la cobertura Full HD en METAL. El presentador NVIDIA acelerado requiere un backend propio.
 
 ## kernel/drivers/GPU/NVIDIA/pci_probe.inc
 
@@ -1759,8 +1770,8 @@ Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: Recursos validados por UEFI, contexto supervisor y copia final del mapa de memoria.
 Salida: Estado de motores y comandos AHCI, CC y CSTS de NVMe. F3 publica la captura en RmlUi.
 Depende de: Almacenamiento / Recursos UEFI AHCI y NVMe (codigo), PCI / Inventario de solicitantes DMA (codigo).
-Aceptacion: QEMU coteja los registros y mascaras con qtest y verifica la pagina F3 con USB en servicio.
-Pendiente: Medir el estado en METAL y construir el traspaso nativo de los controladores.
+Aceptacion: QEMU coteja los registros y la pagina F3. METAL muestra motores SATA activos en puertos 4 y 5 y NVMe habilitado, ambos con BME.
+Pendiente: Construir y probar el traspaso nativo de los controladores antes de activar AMD-Vi.
 
 ## tools/boot/amdvi_ahci.py
 
@@ -1795,4 +1806,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-161 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+162 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
