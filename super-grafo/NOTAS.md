@@ -1795,6 +1795,17 @@ Depende de: AMD-Vi / Dominios en el invitado (verificacion).
 Aceptacion: QEMU verifica 512 B por lectura y ausencia de fallos IOMMU durante AHCI antes y despues de invalidar EDU.
 Pendiente: Sustituir el banco AHCI dirigido por HOST por una lectura desde el driver nativo y verificarla en METAL.
 
+## tools/boot/amdvi_nvme.py
+
+Cierra las colas de OVMF, instala colas NVMe del laboratorio y lee en un cuarto dominio AMD-Vi administrado por Ring 0.
+
+Estado: QEMU. Anillo: host. Lenguaje: Python.
+Entrada: Namespace virtual determinista, BAR validado y cinco IOVA para colas y datos.
+Salida: Dos lecturas traducidas del mismo sector junto a SATA y USB. Medio exclusivo de QEMU.
+Depende de: AMD-Vi / Lectura SATA traducida en QEMU (codigo).
+Aceptacion: Cotejar completados, 512 B por lectura, testigo de las IOVA, cierre de NVMe y ausencia de fallos IOMMU nuevos.
+Pendiente: Mover las colas a un controlador BMO-X2 y verificar NVMe en METAL antes del arranque de GSP.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -1817,4 +1828,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-163 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+164 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

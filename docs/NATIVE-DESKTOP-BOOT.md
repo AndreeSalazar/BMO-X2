@@ -358,6 +358,11 @@ del archivo. Las colas RPC, metadatos, lanzamiento y respuesta GSP
 se comprueban en fases posteriores.
 [Distribucion del firmware verificada en HOST](../Reports/nvidia-gsp-layout-20261120.json).
 
+Las cuatro piezas originales de `615.78.08` se copiaron al directorio
+local `build/gpu/NVIDIA/ga10x-615.78.08` para el cargador NVIDIA separado.
+Las longitudes, las huellas y las secciones coinciden con el original.
+El manifiesto de esa copia registra la comprobacion HOST.
+
 El codificador `tools/host/gpu/radix3.py` arma un directorio para
 `.fwimage` usando las IOVA de reserva que recibe. Cada entrada
 es una direccion LE64 visible al dispositivo. Las listas de imagen
@@ -674,6 +679,30 @@ AMD, falta cubrir los BDF de sus buses, validar las reservas
 de DMA de los controladores que siguen en servicio y probar
 la lectura de almacenamiento real bajo traduccion.
 [Evidencia de almacenamiento e HID con AMD-Vi en QEMU](../Reports/amdvi-ahci-qemu-20261120.json).
+
+El perfil `--amdvi-nvme` suma un cuarto dominio para NVMe `00:09.0`.
+El ensayo `run-rmlui-media-643d37a4d77f` paso los tres casos QEMU.
+Tras retirar las colas de OVMF con un cierre normal, el banco prepara
+colas administrativas y de I/O nuevas. Ring 0 instala cinco paginas
+IOVA traducidas para esas colas y el buffer de datos. QEMU qtest
+programa el controlador. Comprueba el identificador y estado de cada
+completado, el sector de 512 B en el respaldo fisico, la RAM testigo
+de las IOVA intacta y cero fallos nuevos de AMD-Vi durante las lecturas.
+AHCI, NVMe y USB pasan en la misma ejecucion de AMD-Vi. El banco
+repite las lecturas tras revocar EDU y confirma el cierre del NVMe
+antes de retirar su permiso PCI. El perfil solo emite imagen QEMU.
+
+La reserva total del ensayo es de 31 paginas. Cinco alojan colas y
+datos NVMe, cinco son testigos IOVA y tres forman sus tablas AMD-Vi.
+El almacenamiento nativo aun requiere trasladar el control de las
+colas fuera de qtest y comprobarlo en el equipo fisico.
+
+```powershell
+python -B tools/desktop/rmlui/native/media.py <ABI_RUN> <GATO_COMPACTO_RUN> --usb both --nvidia-probe --amdvi-probe --amdvi-post --amdvi-coexist --amdvi-guest-dma --amdvi-storage --amdvi-nvme
+```
+
+[Evidencia de NVMe traducido](../Reports/amdvi-nvme-qemu-20261120.json).
+[Especificacion de colas NVMe](https://nvmexpress.org/specification/nvme-express-base-specification/).
 
 El perfil `--amdvi-routed` agrega un dispositivo EDU detras de un
 puerto PCIe en un bus alto. Ring 0 descubre el BDF completo, valida

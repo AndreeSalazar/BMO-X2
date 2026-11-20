@@ -77,9 +77,12 @@ def run_transfer(machine, command, bar, source, destination, size, direction, ac
         command('stop')
 
 
-def verify_coexistence(machine, command, memory, context, symbols, *, guest_dma=False, storage=False, routed=False):
+def verify_coexistence(machine, command, memory, context, symbols, *, guest_dma=False, storage=False, routed=False, nvme=False):
     """Run at the first frozen desktop frame. Return with the guest paused."""
     scratch_pages = 18 if storage else 14 if guest_dma else 13
+    if nvme:
+        require(storage and guest_dma and not routed, 'NVMe requiere el banco de cuatro dominios en el bus raiz')
+        scratch_pages = 31
     if routed:
         require(storage and guest_dma, 'El ensayo en buses altos requiere los tres dominios del invitado')
         scratch_pages += ROUTED_TABLE_PAGES
@@ -111,6 +114,17 @@ def verify_coexistence(machine, command, memory, context, symbols, *, guest_dma=
         require(ahci['qdev_id']=='bmo-dma-ahci' and machine.pci(0,requester=REQUESTER)==0x29228086
                 and ahci_bar == pci_bar & ~15 and 0x80000000 <= ahci_bar < 0x100000000,
                 f'AHCI fuera del laboratorio: {ahci["id"]}, BAR5 {ahci_bar:#x}, PCI {pci_bar:#x}')
+    if nvme:
+        import amdvi_nvme
+        nvme_rid = amdvi_nvme.REQUESTER
+        device = functions[nvme_rid]
+        region, = (entry for entry in device['regions'] if entry['bar']==0)
+        nvme_bar, nvme_size = region['address'], region['size']
+        pci_bar = machine.pci(0x10,requester=nvme_rid) | machine.pci(0x14,requester=nvme_rid)<<32
+        require(device['qdev_id']=='bmo-nvme' and machine.pci(0,requester=nvme_rid)==0x00101b36
+                and 0x80000000<=nvme_bar<nvme_bar+nvme_size<=1<<52
+                and nvme_bar==pci_bar & ~15 and pci_bar&7==4,
+                f'BAR0 NVMe fuera del banco: {device["qdev_id"]}, QMP {nvme_bar:#x}, PCI {pci_bar:#x}')
     def edu_pci(register, value=None, *, word=False):
         return machine.pci(register, value, word=word, requester=edu)
 
@@ -134,7 +148,7 @@ def verify_coexistence(machine, command, memory, context, symbols, *, guest_dma=
     if routed:
         table += 18*PAGE
     table_pages = ROUTED_TABLE_PAGES if routed else 2
-    startup_tail = 32*len(functions) if routed else 96 if storage else 64
+    startup_tail = 32*len(functions) if routed else 128 if nvme else 96 if storage else 64
     commands, events, completion = (scratch+offset*PAGE for offset in (7,8,9))
     payload, iova, outside = (scratch+offset*PAGE for offset in (10,11,12))
     sentinel, data = bytes([0xa5])*8, b'BMOX2DMA'
@@ -203,6 +217,14 @@ def verify_coexistence(machine, command, memory, context, symbols, *, guest_dma=
             guest_request(1,2)
             require(machine.read(AMDVI+24)==0 and machine.read(context+0xb68)==0,
                     'Ring 0 activó DMA con otro bus master presente')
+        if nvme:
+            inherited = pending.pop(nvme_rid)
+            require(inherited&6==6, 'OVMF no dejo NVMe inicializado')
+            nvme_shutdown = amdvi_nvme.shutdown(machine,command,nvme_bar)
+            require(nvme_shutdown is not None, 'NVMe no confirmo el cierre de las colas de UEFI')
+            machine.pci(4,inherited & ~4,word=True,requester=nvme_rid)
+            require(machine.pci(4,word=True,requester=nvme_rid)==inherited & ~4,
+                    'NVMe conserva BME tras cerrar las colas de UEFI')
         for rid,value in pending.items():
             if value & 4:
                 disabled[rid] = value
@@ -247,6 +269,10 @@ def verify_coexistence(machine, command, memory, context, symbols, *, guest_dma=
             require(machine.read(table+REQUESTER*32+8)==3, 'Falta el dominio separado AHCI')
             before_read = counters()
             first_sector = read_sector(machine, command, ahci_bar, scratch, lambda: hid_activity(before_read,8))
+        if nvme:
+            before_read = counters()
+            first_nvme = amdvi_nvme.read_sector(machine,command,nvme_bar,nvme_size,scratch,
+                                               lambda: hid_activity(before_read,-8))
         edu_pci(4, edu_idle_command | 2, word=True)
         require(int(machine.command('readl',bar),16)==0x010000ed and not machine.read(bar+0x98) & 1,
                 f'EDU no estaba listo en {bar:#x}')
@@ -297,6 +323,15 @@ def verify_coexistence(machine, command, memory, context, symbols, *, guest_dma=
                                  AhciDomain=3, AhciSectorSHA256=first_sector,
                                  AhciBytesPerRead=512, AhciReadsVerified=2,
                                  AhciReadAfterEduRevocation=True, PhysicalStorageTested=False)
+        if nvme:
+            before_read = counters()
+            second_nvme = amdvi_nvme.read_sector(machine,command,nvme_bar,nvme_size,scratch,
+                                                lambda: hid_activity(before_read,8))
+            require(first_nvme==second_nvme, 'El sector NVMe cambio despues de revocar EDU')
+            storage_proof.update(NvmeTranslatedReadsVerified=True,NvmeDomain=4,NvmeRequester=f'{nvme_rid:04x}',
+                                 NvmeSectorSHA256=first_nvme,NvmeBytesPerRead=512,NvmeReadsVerified=2,
+                                 NvmeFirmwareShutdownStatus=nvme_shutdown,NvmeQueueOwner='QEMU qtest HOST',
+                                 NvmeIovaPages=5,NvmeReadAfterEduRevocation=True)
         if routed:
             tail = machine.read(AMDVI+0x2018)
             require(denied_edu_write(prime=False)==sentinel,'Un solicitante sin dominio modifico RAM')

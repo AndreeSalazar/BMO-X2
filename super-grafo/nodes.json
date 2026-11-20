@@ -2809,6 +2809,23 @@
       "salida": "Dos lecturas verificadas del mismo sector y testigo fisico de la IOVA intacto, con informes USB en ambas etapas.",
       "aceptacion": "QEMU verifica 512 B por lectura y ausencia de fallos IOMMU durante AHCI antes y despues de invalidar EDU.",
       "falta": "Sustituir el banco AHCI dirigido por HOST por una lectura desde el driver nativo y verificarla en METAL."
+    },
+    {
+      "id": "amdvi-nvme-qemu",
+      "titulo": "AMD-Vi / Lectura NVMe traducida en QEMU",
+      "ruta": "tools/boot/amdvi_nvme.py",
+      "estado": "qemu",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [
+        12450,
+        4300
+      ],
+      "que": "Cierra las colas de OVMF, instala colas NVMe del laboratorio y lee en un cuarto dominio AMD-Vi administrado por Ring 0.",
+      "entrada": "Namespace virtual determinista, BAR validado y cinco IOVA para colas y datos.",
+      "salida": "Dos lecturas traducidas del mismo sector junto a SATA y USB. Medio exclusivo de QEMU.",
+      "aceptacion": "Cotejar completados, 512 B por lectura, testigo de las IOVA, cierre de NVMe y ausencia de fallos IOMMU nuevos.",
+      "falta": "Mover las colas a un controlador BMO-X2 y verificar NVMe en METAL antes del arranque de GSP."
     }
   ],
   "relaciones": [
@@ -4165,6 +4182,11 @@
     {
       "de": "storage-quiesce-qemu",
       "a": "storage-state-post",
+      "clase": "codigo"
+    },
+    {
+      "de": "amdvi-nvme-qemu",
+      "a": "amdvi-ahci-qemu",
       "clase": "codigo"
     },
     {

@@ -7,6 +7,8 @@
 #ifdef BMO_AMDVI_ROUTED
 #define AMDVI_LAB_TABLE_PAGES 96
 #define AMDVI_LAB_PAGES (18+AMDVI_LAB_TABLE_PAGES)
+#elif defined(BMO_AMDVI_NVME)
+#define AMDVI_LAB_PAGES 31
 #else
 #define AMDVI_LAB_PAGES 18
 #endif

@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "run": "run-rmlui-media-643d37a4d77f",
+  "evidence": "QEMU FAT32 boot, four AMD-Vi domains and two translated reads of each virtual disk",
+  "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+  "dma_issuer": "Ring 0 guest",
+  "queue_owner": "QEMU qtest HOST",
+  "scratch_pages": 31,
+  "ahci": {
+    "requester": "0030",
+    "domain": 3,
+    "reads": 2,
+    "sector_sha256": "3fee31287e0da91f7967b55bdae95dc073704978ace7f0456ff0c7e0b0b7d3bb"
+  },
+  "nvme": {
+    "requester": "0048",
+    "domain": 4,
+    "iova_pages": 5,
+    "reads": 2,
+    "sector_sha256": "84a44019110911e9865fa73b29b90ee38a3f098b8f33c39fd273df0c739dc34d",
+    "ovmf_shutdown_acknowledgement": 9
+  },
+  "hid_during_grant": [
+    2,
+    1
+  ],
+  "hid_after_revocation": [
+    2,
+    1
+  ],
+  "cases": {
+    "normal": true,
+    "external-permissions": true,
+    "amdvi-missing": true
+  },
+  "installable_media_emitted": false,
+  "fat32_install_guard_verified": true,
+  "installed_metal_run": "run-rmlui-media-a01f0170ccfa",
+  "gsp_host_staging": {
+    "path": "build/gpu/NVIDIA/ga10x-615.78.08",
+    "release": "615.78.08",
+    "original_package_bytes": 27173108,
+    "files": {
+      "booter_load": {
+        "name": "booter_load-615.78.08.bin",
+        "bytes": 61816,
+        "sha256": "ad36e2044f76df6d0715031acb665c20cfcc70b0611748e41391b733a0d1db50"
+      },
+      "booter_unload": {
+        "name": "booter_unload-615.78.08.bin",
+        "bytes": 42616,
+        "sha256": "8f68eb5bc034009f5b874aa0aa5da81ecc1fdad8e892c16afd862d78cf34fdc2"
+      },
+      "bootloader": {
+        "name": "bootloader-615.78.08.bin",
+        "bytes": 24684,
+        "sha256": "82428f532240727e95bb3083fbaaba9b2cc7b937314323f2d546ce7245f27fad"
+      },
+      "gsp": {
+        "name": "gsp-615.78.08.bin",
+        "bytes": 27043992,
+        "sha256": "a20100cafd5a85e22b3e13188339730c6ced94bd5f654984dd2ed274ed58d584"
+      }
+    },
+    "gsp_boot_verified": false
+  },
+  "physical_storage_tested": false,
+  "rtx_render_verified": false
+}

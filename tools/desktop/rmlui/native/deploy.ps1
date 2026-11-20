@@ -5,10 +5,13 @@ $root=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
 $runPath=(Get-Item -LiteralPath $Run).FullName
 if ((Split-Path $runPath -Parent) -ne (Join-Path $root 'build/CASM')) { throw 'Run fuera de build/CASM.' }
 if ((Get-Content -LiteralPath (Join-Path $runPath 'profile.txt') -Raw).Trim() -ne 'rmlui-desktop-media') { throw 'Perfil de arranque incompatible.' }
-if (Test-Path -LiteralPath (Join-Path $runPath 'storage-quiesce.txt')) { throw 'El cierre AHCI/NVMe de laboratorio es exclusivo de QEMU.' }
+if ((Test-Path -LiteralPath (Join-Path $runPath 'storage-quiesce.txt')) -or
+    (Test-Path -LiteralPath (Join-Path $runPath 'amdvi-nvme.txt'))) {
+    throw 'El laboratorio AHCI/NVMe es exclusivo de QEMU.'
+}
 $media=Join-Path $runPath 'media'
 $proof=Get-Content -LiteralPath (Join-Path $media 'manifest.json') -Raw | ConvertFrom-Json
-if ($proof.amdvi_coexist -or $proof.amdvi_guest_dma -or $proof.amdvi_storage -or $proof.amdvi_routed -or
+if ($proof.amdvi_coexist -or $proof.amdvi_guest_dma -or $proof.amdvi_storage -or $proof.amdvi_routed -or $proof.amdvi_nvme -or
     (Test-Path -LiteralPath (Join-Path $runPath 'amdvi-coexist-probe.txt')) -or
     (Test-Path -LiteralPath (Join-Path $runPath 'amdvi-guest-dma.txt')) -or
     (Test-Path -LiteralPath (Join-Path $runPath 'amdvi-storage.txt')) -or

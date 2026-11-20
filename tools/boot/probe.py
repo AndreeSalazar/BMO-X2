@@ -58,6 +58,7 @@ amdvi_post = args.doom_fixture and (ROOT / 'amdvi-post-probe.txt').is_file()
 amdvi_coexist = amdvi_post and (ROOT / 'amdvi-coexist-probe.txt').is_file()
 amdvi_storage = amdvi_coexist and (ROOT / 'amdvi-storage.txt').is_file()
 amdvi_routed = amdvi_storage and (ROOT / 'amdvi-routed.txt').is_file()
+amdvi_nvme = amdvi_storage and (ROOT / 'amdvi-nvme.txt').is_file()
 dma_census = amdvi_post and (ROOT / 'dma-census-probe.txt').is_file()
 storage_state = dma_census and (ROOT / 'storage-state.txt').is_file()
 full_hd = storage_state and (ROOT / 'full-hd.txt').is_file()
@@ -211,6 +212,7 @@ def run(case):
     coexist = amdvi_coexist and case == 'normal'
     storage = amdvi_storage and coexist
     routed = amdvi_routed and storage
+    nvme_lab = amdvi_nvme and storage
     census = dma_census and case in ('normal','amdvi-missing')
     storage_handoff = storage_state and census
     payload_case = case in ('normal', 'contexto', *MUTATIONS)
@@ -283,6 +285,12 @@ def run(case):
         nvme.write_bytes(bytes(1024*1024))
         staging += ['-drive', f'if=none,id=bmo-nvme-state,format=raw,file={nvme},snapshot=on',
                     '-device', 'nvme,drive=bmo-nvme-state,serial=BMO-STATE,addr=07.0']
+    if nvme_lab:
+        from amdvi_nvme import DISK as NVME_DISK
+        nvme_image = ROOT/'amdvi-nvme.raw'
+        nvme_image.write_bytes(NVME_DISK)
+        staging += ['-drive', f'if=none,id=bmo-dma-nvme,format=raw,file={nvme_image},snapshot=on',
+                    '-device', 'nvme,id=bmo-nvme,drive=bmo-dma-nvme,serial=BMO-DMA,addr=09.0']
     if coexist or census:
         listener = socket.socket()
         listener.bind(('127.0.0.1', 0))
@@ -611,6 +619,8 @@ def run(case):
             raise ValueError('La imagen SATA del laboratorio cambio')
         if storage_handoff and nvme.read_bytes()!=bytes(1024*1024):
             raise ValueError('La imagen NVMe del laboratorio cambio')
+        if nvme_lab and nvme_image.read_bytes()!=NVME_DISK:
+            raise ValueError('La imagen NVMe traducida del laboratorio cambio')
 
 
 for case in args.casos:

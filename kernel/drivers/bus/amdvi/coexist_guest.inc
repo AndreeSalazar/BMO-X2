@@ -14,7 +14,15 @@
 .set LAB_TABLE_LENGTH, 1
 #endif
 #ifdef BMO_AMDVI_STORAGE
+#ifdef BMO_AMDVI_NVME
+.set LAB_EDU_REVOKE, 128
+.set LAB_NVME_ROOT, 0x12000
+.set LAB_NVME_LEAF, 0x13000
+.set LAB_NVME_BACKING, 0x15000
+.set LAB_NVME_IOVA, 0x1a000
+#else
 .set LAB_EDU_REVOKE, 96
+#endif
 .set LAB_AHCI_ROOT, 0xe000
 .set LAB_AHCI_LEAF, 0xf000
 .set LAB_AHCI_BUFFER, 0x10000
@@ -201,6 +209,37 @@ amdvi_lab_entry:
     or %r8, %rax
     mov %rax, LAB_AHCI_LEAF(%r12,%rdi,8)
 #endif
+#ifdef BMO_AMDVI_NVME
+    # Five pages at distinct IOVAs for admin SQ/CQ, I/O SQ/CQ and data.
+    lea (LAB_NVME_ROOT+0x403)(%r12), %rax
+    or %r8, %rax
+    mov %rax, 0x900(%r12)        # 00:09.0, domain 4.
+    movq $4, 0x908(%r12)
+    lea LAB_NVME_IOVA(%r12), %rdi
+    lea LAB_NVME_BACKING(%r12), %r10
+    mov %rdi, %rsi
+    shr $21, %rsi
+    mov $5, %ecx
+.Llab_nvme_page:
+    mov %rdi, %rdx
+    shr $21, %rdx
+    mov %rdx, %rax
+    sub %rsi, %rax
+    shl $12, %rax
+    lea LAB_NVME_LEAF(%r12,%rax), %r9
+    lea 0x201(%r9), %rax
+    or %r8, %rax
+    mov %rax, LAB_NVME_ROOT(%r12,%rdx,8)
+    mov %rdi, %rdx
+    shr $12, %rdx
+    and $511, %edx
+    lea 1(%r10), %rax
+    or %r8, %rax
+    mov %rax, (%r9,%rdx,8)
+    add $4096, %rdi
+    add $4096, %r10
+    loop .Llab_nvme_page
+#endif
     lea (LAB_TABLE_OFFSET+LAB_TABLE_LENGTH)(%r12), %rax
     mov %rax, (%r14)
     movabs $0x0800000000000000, %rcx
@@ -244,6 +283,13 @@ amdvi_lab_entry:
     movabs $0x2000000000000030, %rax
     xor %edx, %edx
     mov $64, %ecx
+    call .Llab_publish
+    jc .Llab_clear
+#endif
+#ifdef BMO_AMDVI_NVME
+    movabs $0x2000000000000048, %rax
+    xor %edx, %edx
+    mov $96, %ecx
     call .Llab_publish
     jc .Llab_clear
 #endif
@@ -370,6 +416,12 @@ amdvi_lab_entry:
     mov $0x80003000, %eax
     call .Llab_read_pci
     cmp $0x29228086, %eax
+    jne .Llab_pci_bad
+#endif
+#ifdef BMO_AMDVI_NVME
+    mov $0x80004800, %eax
+    call .Llab_read_pci
+    cmp $0x00101b36, %eax
     jne .Llab_pci_bad
 #endif
     mov $0x80000000, %r10d
