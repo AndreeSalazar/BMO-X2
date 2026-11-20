@@ -396,7 +396,7 @@ extern "C" void bmo_main() {
 #endif
             const bool move_cursor=drawn_x!=pointer_x || drawn_y!=pointer_y || drawn_color!=cursor_color();
             if(redraw_locks || move_cursor) {
-#ifdef BMO_USB_DUAL
+#ifdef BMO_DESKTOP_UI
             const auto old_position=unsigned(drawn_x)|(unsigned(drawn_y)<<16);
 #endif
             for(int y=0;y<17 && drawn_y+y<800;++y)
@@ -411,7 +411,7 @@ extern "C" void bmo_main() {
             }
 #endif
             draw_pointer();
-#ifdef BMO_USB_DUAL
+#ifdef BMO_DESKTOP_UI
             const auto new_position=unsigned(drawn_x)|(unsigned(drawn_y)<<16);
             if((redraw_locks && doom_invoke(1,10,(uintptr_t)bmo_ui_pixels,0x80000000)!=0) ||
                 (move_cursor && (doom_invoke(1,10,(uintptr_t)bmo_ui_pixels,old_position)!=0 ||

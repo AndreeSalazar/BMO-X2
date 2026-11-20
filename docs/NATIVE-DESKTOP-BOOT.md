@@ -135,6 +135,130 @@ CHKDSK A: en solo lectura no encontro problemas. Eso comprueba la
 estructura del FAT32 montado; no es un ensayo de superficie con /R,
 ni una prueba de los drivers del sistema propio.
 
+## Ruta grafica base: CPU y framebuffer de UEFI
+
+BMO-X2 toma del GOP el modo y la direccion del framebuffer lineal.
+Despues de `ExitBootServices`, Ring 3 dibuja en CPU y presenta por la
+capacidad de pantalla. El presentador usa el framebuffer entregado
+por el firmware. La ruta base funciona sin instalar el driver NVIDIA
+del sistema operativo ni arrancar el GSP para aceleracion 3D.
+[Entrega del framebuffer segun TianoCore](https://github.com/tianocore-docs/edk2-UefiDriverWritersGuide/blob/main/23_graphics_driver_design_guidelines/232_graphics_output_protocol_implementation/2324_querymode%2C_setmode%2C_and_blt_implementation.md).
+
+La foto y el BOOTLOG de METAL acreditan imagen a 1920x1080 en el equipo
+del autor. Ese registro no identifica el dispositivo PCI propietario
+del GOP. Se conserva el modo fijado al arrancar. La ruta base carece
+de cambio de modo en sesion, page flip, VRR y aceleracion 3D. Una futura
+ruta de aceleracion sera un backend separado con evidencia propia.
+
+HOST construye el perfil `cpu-gop` con PS/2 por defecto y admite xHCI
+como opcion de entrada. El puente nativo copia el [modulo de
+pantalla](../kernel/drivers/display/gop_stage.inc) a una pagina
+supervisora ya reservada dentro de su contexto. INVOKE 9 copia el cuadro
+completo e INVOKE 10 actualiza el cursor y la franja de estado en escala 1.
+En los demas modos el cliente usa INVOKE 9 para la presentacion.
+DIRECTOR, RmlUi y ULTRA-J usan la misma capacidad de pantalla. Un futuro
+backend de GPU debe poder retirarse del build conservando la ruta
+`cpu-gop` y los perfiles de entrada.
+
+El ensayo `run-rmlui-media-68bf3ec46327` verifica pantalla, cursor y
+accion ULTRA-J con PS/2 y sin reserva DMA de xHCI. Dos movimientos del
+cursor copiaron 816 pixeles sin volver a rasterizar el escritorio. Su
+`INICIO.X86` ocupa 3609 B. La comprobacion de permisos SBEF rechazo W+X
+antes de copiar el codigo de usuario.
+El ensayo `run-rmlui-media-d067649498bb` comprobo los mismos 816 pixeles
+con teclado y raton USB simultaneos y verifico la revocacion del acceso
+del controlador USB al detenerlo. Su `INICIO.X86` ocupa 3947 B.
+El ensayo `run-rmlui-media-0110f5161574` verifico GOP 1024x768 con
+presentacion de cuadro completo a 640x400 cuando la copia por regiones
+queda fuera de la escala admitida.
+
+Las referencias de los otros proyectos explican dos decisiones:
+
+- [ULTRA-LinuX W2](https://github.com/AndreeSalazar/ULTRA-LinuX/blob/7c275c1a716a80226ff83e340258fb1cd6bb08c3/docs/WAYLAND.md#w2-la-primera-ventana)
+  mostro Cage y Foot con Pixman por CPU sobre simpledrm. El perfil PC
+  acelerado usa otra pila con modulos NVIDIA, firmware GSP y componentes
+  de usuario.
+- [BMO-X](https://github.com/AndreeSalazar/BMO-X-x86-64/blob/6076bdefefc67877419ca53633c6e40cb45fc92d/docs/identidad/LA_RAM.md#el-escalon-8-y-por-que-faltaba-de-esta-tabla-2026-08-12)
+  redujo copias de su escritorio con regiones modificadas sobre GOP.
+  Su [ruta acelerada RTX 3060](https://github.com/AndreeSalazar/BMO-X-x86-64/blob/6076bdefefc67877419ca53633c6e40cb45fc92d/README.md#verrano)
+  demostro rasterizado en GPU y aun registra arranques del GSP fallidos.
+
+### GPU / NVIDIA
+
+El perfil `--nvidia-probe` agrega una [sonda PCI](../kernel/drivers/GPU/NVIDIA/pci_probe.inc)
+al puente UEFI. BMO-X2 lee directamente la configuracion PCI del
+segmento 0 antes de cerrar Boot Services. Registra cuantas funciones
+graficas aparecen y cuantas llevan el identificador NVIDIA `10DE`.
+Si hay una coincidencia, registra el BDF de 16 bits, el par de
+dispositivo y proveedor, y el valor observado de PCI Command.
+Con PCI clasico, `BDF = bus << 8 | dispositivo << 3 | funcion`; en
+`GPU_NVIDIA_ID` el proveedor ocupa los 16 bits bajos.
+
+El candidato usa `\EFI\BMO-X2\NVIDIA.EFI` y sus propios `INICIO.X86` y
+`DESKTOP.SBF` en `\BMO-X2\GPU\`. El reporte queda en
+`\BMO-X2\GPU\GPULOG.TXT`. Los valores `--------` indican ausencia de
+una funcion NVIDIA. La sonda restaura el selector PCI, solo lee datos
+de configuracion y termina en UEFI. El perfil usa el mismo presentador
+`cpu-gop` y el mismo ABI de Ring 3.
+
+ULTRA-LinuX exige evidencia separada para identificar la tarjeta,
+inicializar el driver y confirmar que el compositor usa la GPU. BMO-X2
+adopta esa secuencia. La primera prueba en METAL confirma la identidad
+PCI. La aceleracion requiere luego una inicializacion fiable y un
+trabajo verificable de GPU en un buffer propio, antes de conectar
+RmlUi. El caso GSP `0x15` de BMO-X sigue siendo una referencia de fallo.
+[Arranque NVIDIA de ULTRA-LinuX](https://github.com/AndreeSalazar/ULTRA-LinuX/blob/7c275c1a716a80226ff83e340258fb1cd6bb08c3/docs/HYPRLAND-W3C.md).
+
+En el registro del equipo del autor, ULTRA-LinuX encontro
+`10de:2504` en `0000:29:00.0`. En BMO-X2 el par apareceria como
+`GPU_NVIDIA_ID=250410DE`. Con la misma enumeracion de buses,
+`GPU_NVIDIA_BDF=00002900`. El BDF puede variar segun el firmware.
+[Registro PCI de METAL](https://github.com/AndreeSalazar/ULTRA-LinuX/blob/7c275c1a716a80226ff83e340258fb1cd6bb08c3/evidencias/pc-real/nvidia-2026-10-19/dmesg-pc.txt#L414).
+
+El ensayo `run-rmlui-media-00741e5f358f` verifica una VGA de clase 03,
+cero funciones NVIDIA, el escritorio y el rechazo W+X. El resultado se
+recupera del FAT32 como `build/puente-normal-GPULOG.TXT`. En ese ensayo
+la sonda agrego 298 B al lector dentro de la pagina EFI reservada.
+El paquete `INICIO.X86` y el escritorio SBEF coinciden byte por byte
+con el perfil PS/2 sin sonda. Para construir y abrir el perfil se usan
+los mismos runs ABI y gato que para el escritorio base.
+
+El ensayo `run-rmlui-media-47240bf1c3fa` repite los dos casos con
+`--usb both`. QEMU verifica teclado y raton USB juntos, y la revocacion
+de bus mastering y MMIO al detener xHCI. El lector PCI sigue en la
+misma ruta anterior a ExitBootServices.
+
+```powershell
+python .\tools\desktop\rmlui\native\media.py <ABI_RUN> <GATO_COMPACTO_RUN> --nvidia-probe
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1 -Profile rmlui-nvidia-probe
+```
+
+`native/deploy.ps1 -Run <RUN> -Volume A:\ -NvidiaProbe -Check` comprueba
+el candidato para METAL. Agrega `-ExperimentalUsb` para el run USB dual.
+La copia explicita del perfil se hace con los mismos argumentos sin
+`-Check` y conserva el arranque principal. En UEFI se elige
+`\EFI\BMO-X2\NVIDIA.EFI` desde **Boot from file**.
+
+### Medir los tirones antes de cambiar el presentador
+
+1. Repetir cuatro casos con la misma resolucion, escala y perfil de
+   entrada: movimiento, paso sobre el boton, clic en Activar ULTRA-J y
+   cambio de espacio. Registrar por evento la espera y entrega de entrada,
+   la accion UJBC, el dibujo de RmlUi y el final de la copia a GOP.
+2. Contar pixeles copiados, actualizaciones parciales y cuadros
+   completos. Publicar p50/p95/p99 y el maximo por caso. La marca de fin
+   de copia mide el recorrido interno. Medir hasta que el monitor muestra
+   el cambio requiere una observacion adicional en hardware.
+3. Empezar por el clic. QEMU ya verifica puntero y hover sin rasterizar
+   el escritorio en el perfil USB dual. Un cambio de interfaz aun puede
+   rasterizar y presentar toda la superficie de 1280x800. Si domina esa
+   fase, extender las regiones modificadas al boton y al panel con la
+   capacidad de pantalla y sus comprobaciones. Si domina la espera,
+   medir el despertar de entrada antes de ajustar el temporizador.
+
+[Evidencia de puntero, hover y teclado](../Reports/abi-msvc-rmlui-qemu.json).
+[Huella y reservas del escritorio](FOOTPRINT.md).
+
 ## Reproducir y copiar
 
 Desde la raiz del proyecto, con los runs CASM verificados del ABI y del

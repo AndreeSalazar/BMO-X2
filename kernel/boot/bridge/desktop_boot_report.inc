@@ -1,4 +1,7 @@
 # Snapshot before ExitBootServices. Failure leaves desktop boot available.
+#ifdef BMO_NVIDIA_PCI_PROBE
+#include "../../drivers/GPU/NVIDIA/pci_probe.inc"
+#endif
 boot_report:
     push %rsi
     push %rdi
@@ -31,6 +34,10 @@ boot_report:
     mov %eax, %r9d
     mov $0x80000008, %ecx
     xor %r8d, %r8d
+#ifdef BMO_NVIDIA_PCI_PROBE
+    xor %r10d, %r10d
+    xor %r11d, %r11d
+#endif
 report_pci_next:
     mov %ecx, %eax
     out %eax, %dx
@@ -38,6 +45,15 @@ report_pci_next:
     in %dx, %eax
     sub $4, %dx
     shr $8, %eax
+#ifdef BMO_NVIDIA_PCI_PROBE
+    cmp $0x030000, %eax
+    jb report_pci_xhci
+    cmp $0x040000, %eax
+    jae report_pci_xhci
+    call nvidia_pci_observe
+    jmp report_pci_advance
+report_pci_xhci:
+#endif
     cmp $0x0c0330, %eax
     jne report_pci_advance
     cmp $2, %r8d
@@ -107,6 +123,9 @@ report_pci_advance:
     mov %r8d, %eax
     lea (0x800+report_xhci-report_template)(%rbp), %rdi
     call report_hex32
+#ifdef BMO_NVIDIA_PCI_PROBE
+    call nvidia_pci_summary
+#endif
 
     mov 0x38(%rbp), %rcx
     lea 40(%rsp), %rdx
@@ -179,10 +198,21 @@ report_pci0:
     .ascii "-------- -------- -------- -------- --------\r\n"
 report_pci1:
     .ascii "-------- -------- -------- -------- --------\r\n"
+#ifdef BMO_NVIDIA_PCI_PROBE
+    nvidia_pci_report_fields
+#endif
 report_end:
+#ifdef BMO_NVIDIA_PCI_PROBE
+    .if (report_end-report_template) > 0x200
+    .error "Boot report exceeds context buffer"
+    .endif
+#endif
     .p2align 1
 report_path:
-#ifdef RMLUI_MEDIA
+#if defined(BMO_NVIDIA_PCI_PROBE)
+    # \BMO-X2\GPU\GPULOG.TXT
+    .short 92,66,77,79,45,88,50,92,71,80,85,92,71,80,85,76,79,71,46,84,88,84,0
+#elif defined(RMLUI_MEDIA)
     .short 92,66,77,79,45,88,50,92,68,69,83,75,84,79,80,92,66,79,79,84,76,79,71,46,84,88,84,0
 #else
     # \\BMO-X2\\BOOTLOG.TXT

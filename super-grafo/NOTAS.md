@@ -1494,7 +1494,7 @@ Construye el perfil de escritorio FAT32 y las variantes xHCI de teclado/raton pa
 Estado: QEMU. Anillo: host. Lenguaje: Python / LLVM / CASM / C++ / Rust.
 Entrada: Runs ABI y gato CASM verificados, ELF/SBEF nativo con hashes y selector explicito de perfil USB.
 Salida: EFI e INICIO con SBEF desde FAT32; perfiles QEMU con reserva DMA supervisada, etapa xHCI y reportes.
-Depende de: Interfaz RmlUi y ULTRA-J nativa (codigo), Inspeccion acotada de FAT32 (codigo), Buses, recursos y DMA (codigo), Informes USB al escritorio nativo (codigo).
+Depende de: Interfaz RmlUi y ULTRA-J nativa (codigo), Inspeccion acotada de FAT32 (codigo), Buses, recursos y DMA (codigo), Informes USB al escritorio nativo (codigo), Presentacion GOP por CPU (codigo), GPU / NVIDIA / Inventario PCI (codigo).
 Aceptacion: FAT32: GOP 1280x800 y 1024x768, W+X rechazado, BOOTLOG/SBEF releidos. USB: teclado y raton en perfiles separados, W+X rechazado, limites de imagen comprobados y deploy.ps1 rechaza perfiles solo-QEMU.
 Pendiente: Arranque fisico del candidato y backend USB AMD completo; la supervision DMA no acredita IOMMU ni aislamiento de dispositivos hostiles.
 
@@ -1597,16 +1597,27 @@ Depende de: contrato propio sin dependencias en este catalogo.
 Aceptacion: QEMU verifica teclado y raton simultaneos, rechazo W+X, puertos vacios y parada con revocacion PCI/MMIO.
 Pendiente: Prueba AMD del 17-11: USB ON, fase 199, CC 13 y puntero en movimiento con latencia. Falta medir respuesta fisica del puntero tras reducir el redibujado.
 
-## kernel/drivers/bus/native/gop_cursor.inc
+## kernel/drivers/display/gop_stage.inc
 
-Sonda ASM transitoria de Ring 0: copia al GOP una caja de cursor o la franja superior fija por INVOKE 10 en escala 1.
+Sonda ASM transitoria de Ring 0: el puente prepara el modulo CPU/GOP separado de xHCI. INVOKE 9 copia un cuadro e INVOKE 10 presenta regiones en escala 1.
 
 Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: Superficie XRGB validada de 1280x800, punto de origen y geometria GOP.
-Salida: Hasta 204 pixeles por caja de cursor y 102400 por franja de estado.
-Depende de: xHCI USB2 con dos dispositivos (codigo).
+Salida: Cuadro escalado, hasta 204 pixeles por caja de cursor o 102400 por franja de estado.
+Depende de: contrato propio sin dependencias en este catalogo.
 Aceptacion: QEMU comprueba restauracion del cursor y que los bloqueos actualizan la franja sin cuadro completo.
-Pendiente: Medir latencia fisica y especializar la copia en otras escalas GOP.
+Pendiente: Medir latencia fisica y especializar la copia en otras escalas GOP. Las demas escalas usan la presentacion completa.
+
+## kernel/drivers/GPU/NVIDIA/pci_probe.inc
+
+Sonda ASM transitoria del puente UEFI antes de ExitBootServices. Lee PCI del segmento 0 y conserva CPU/GOP como presentador.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: Inventario PCI de clase grafica, seleccionado con --nvidia-probe.
+Salida: GPULOG.TXT con recuentos y la primera funcion Nvidia: BDF, dispositivo, proveedor y estado PCI Command.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: QEMU arranca el escritorio desde BMO-X2/GPU, detecta una VGA virtual, cero Nvidia y mantiene el rechazo SBEF W+X.
+Pendiente: Confirmar identidad en METAL. Implementar inicializacion y una operacion verificable de GPU en un ensayo posterior.
 
 ## CASM
 
@@ -1630,4 +1641,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-146 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+147 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

@@ -409,21 +409,38 @@ faltan la carga desde la sesion activa, su conexion con DIRECTOR y dos
 ventanas con eventos y cierre independientes. La entrada USB en metal
 se verifica por separado. [Primer BOOT](../docs/FIRST-BOOT.md)
 
-## Que falta para aplicaciones completas
+## Orden para madurar ULTRA-J
 
-| Uso | Siguiente base y prueba |
-|---|---|
-| Aplicaciones de escritorio | VM de Ring 3 que cargue UJBC separado, metodos y campos de usuario, y eventos por elemento en DIRECTOR. Probar dos ventanas aisladas y recuperar la region al cerrar una. |
-| Autocompilacion | Metodos con argumentos, control de flujo y buffers de bytes acotados. Compilar el compilador escrito en ULTRA-J y comprobar dos generaciones identicas. |
-| Juegos | Superficies y dibujo por lotes, teclado y raton simultaneos, temporizador, audio y activos. Empezar con un juego 2D y medir tiempo por cuadro, latencia de entrada y RAM. |
-| Contenido y video | Lectura secuencial de archivos, colas de audio y video y reloj comun. Empezar con una secuencia corta de cuadros y PCM. Para MP4 hacen falta un lector del contenedor y decodificadores para los codecs elegidos. [Registro de codecs MP4](https://mp4ra.org/registered-types/codecs) |
+El perfil comprobado carga una accion UJBC desde FAT32 durante el arranque
+y la ejecuta en el escritorio. El lanzador actual comparte las paginas
+del escritorio. El interprete de la sonda usa una arena de 256 B y recibe
+su accion en una direccion fija. La [huella medida](../docs/FOOTPRINT.md)
+es la referencia para comparar las entregas siguientes.
 
-El objetivo de escritura 1:1 es que cada construccion admitida tenga
-una traduccion binaria definida. Los espacios, comentarios y nombres
-resueltos pueden compartir la misma salida. La compatibilidad con Java
-se limita al subconjunto documentado. Comparar con Rust, C o C++ en
-juegos y video requiere medir el mismo contenido y el mismo trabajo,
-incluyendo la VM y los servicios de audio y video.
+| Orden | Entrega | Criterio de cierre |
+|---:|---|---|
+| 1 | Dos instancias del interprete en Ring 3 | Cada instancia recibe su propio bytecode acotado y su propia arena. Cerrar A limpia su arena y B sigue funcionando. Una accion invalida devuelve un motivo y la ubicacion del error. |
+| 2 | Dos ventanas en DIRECTOR | Cada ventana recibe sus propios eventos, conserva su estado al cambiar el foco y libera sus recursos al cerrar. QEMU registra memoria, reapertura y tiempo desde la entrada hasta el cuadro presentado. |
+| 3 | Aplicaciones como procesos SBEF | El cargador CASM da a cada proceso su propio espacio de direcciones y capacidades. Se prueba que una salida o un fallo recupera sus paginas y que la otra aplicacion sigue operativa. [Cargador SBEF](../contracts/SBEF-LOADER.md). |
+| 4 | Aplicaciones y superficies | Una utilidad de CABINA prueba texto y permisos de archivo. Un juego 2D prueba entrada simultanea, reloj, dibujo por lotes y tiempo por cuadro con resolucion fija. Las aplicaciones multimedia agregan colas y un reloj comun para audio y video. |
+| 5 | Emision nativa y autocompilacion | Medir primero las rutas de ejecucion mas costosas. Para autocompilar hacen falta metodos con argumentos, control de flujo y buffers de bytes acotados. La prueba de cierre compara la salida de dos generaciones del compilador. |
+
+### Primera entrega: dos acciones, dos arenas
+
+Pasar al interprete un rango UJBC y una arena explicita. Conservar un
+solo interprete y la codificacion v2. El perfil de arranque puede
+preparar ambas acciones con HOST antes de incorporar la lectura de
+aplicaciones desde la sesion activa.
+
+El recorrido en QEMU debe alternar A y B, verificar que solo cambie la
+arena que corresponde a la accion, cerrar A, comprobar su borrado
+y volver a ejecutar B. Una accion invalida debe dejar intacto el
+estado de la otra instancia y permitir que DIRECTOR conserve el control.
+El informe debe registrar bytes de codigo, arena reservada y activa,
+paginas de usuario y el diagnostico observado. Esta primera entrega
+comprueba la separacion de estado dentro de una sesion de Ring 3. El
+aislamiento con permisos de memoria entre procesos corresponde a la
+entrega 3.
 
 ## Frontera por arquitectura
 

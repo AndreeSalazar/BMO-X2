@@ -75,6 +75,7 @@ Los siguientes costes a registrar son marcos y tablas de Ring 0,
 memoria por ventana de DIRECTOR y bytes copiados por cuadro. Para
 entrada y pantalla conviene medir del evento hasta el cuadro
 presentado con el mismo recorrido en cada sistema.
+[Plan de medida para CPU y GOP](NATIVE-DESKTOP-BOOT.md#medir-los-tirones-antes-de-cambiar-el-presentador).
 
 Para repetir el ensayo del lanzador, seguir
 [los comandos de ULTRA-J](../Ultra-J/README.md#desde-el-icono-del-escritorio)

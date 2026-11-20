@@ -2,7 +2,7 @@
 [CmdletBinding()]
 param(
     [string]$Run,
-    [ValidateSet('gato-hd','doom-intro','doom-engine','desktop-doom','desktop-intro','desktop-session','desktop-external','rmlui-native','rmlui-desktop','rmlui-usb-keyboard','rmlui-usb-mouse')][string]$Profile,
+    [ValidateSet('gato-hd','doom-intro','doom-engine','desktop-doom','desktop-intro','desktop-session','desktop-external','rmlui-native','rmlui-desktop','rmlui-nvidia-probe','rmlui-usb-keyboard','rmlui-usb-mouse')][string]$Profile,
     [switch]$Wait,
     [string]$Qemu = (Join-Path $env:ProgramFiles 'qemu/qemu-system-x86_64.exe')
 )
@@ -21,6 +21,7 @@ if (-not $Run) {
         'desktop-external' { 'desktop-external' }
         'rmlui-native' { 'rmlui-native' }
         'rmlui-desktop' { 'rmlui-desktop-media' }
+        'rmlui-nvidia-probe' { 'rmlui-desktop-media' }
         'rmlui-usb-keyboard' { 'rmlui-desktop-media' }
         'rmlui-usb-mouse' { 'rmlui-desktop-media' }
         default { 'ring0-splash-hd-0.1' }
@@ -33,7 +34,9 @@ if (-not $Run) {
             (Test-Path -LiteralPath $result -PathType Leaf)) {
             $report = Get-Content -LiteralPath $result -Raw | ConvertFrom-Json
             if ($report.run -eq $candidate.Name -and $report.Total -gt 0 -and $report.Passed -eq $report.Total -and
-                ($Profile -in @('gato-hd','desktop-session','desktop-external','doom-engine','desktop-doom','rmlui-native','rmlui-desktop','rmlui-usb-keyboard','rmlui-usb-mouse') -or @($report.Cases[0].FramesVerified).Count -eq 3) -and
+                ($Profile -in @('gato-hd','desktop-session','desktop-external','doom-engine','desktop-doom','rmlui-native','rmlui-desktop','rmlui-nvidia-probe','rmlui-usb-keyboard','rmlui-usb-mouse') -or @($report.Cases[0].FramesVerified).Count -eq 3) -and
+                ([bool]$report.nvidia_pci_probe -eq ($Profile -eq 'rmlui-nvidia-probe')) -and
+                ($Profile -ne 'rmlui-nvidia-probe' -or $report.Cases[0].NvidiaPciProbeVerified) -and
                 ($Profile -ne 'rmlui-desktop' -or ($report.Cases[0].DirectorRust -and $report.Cases[0].BootLogFat32Verified -and -not $report.qemu_only)) -and
                 ($Profile -ne 'rmlui-usb-keyboard' -or ($report.usb_profile -eq 'keyboard' -and $report.Cases[0].UsbInputVerified)) -and
                 ($Profile -ne 'rmlui-usb-mouse' -or ($report.usb_profile -eq 'mouse' -and $report.Cases[0].UsbInputVerified)) -and

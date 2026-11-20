@@ -26,7 +26,7 @@ doom_engine_loader:
     cmp $0x100000, %rdx
 #endif
     ja reject
-    cmpl $0x46424553, (%rsi)
+    cmpl $0x46454253, (%rsi)     # SBEF
     jne reject
     cmpw $1, 6(%rsi)
     jne reject
@@ -34,17 +34,17 @@ doom_engine_loader:
     je .Llegacy_isa_profile
     cmpw $2, 4(%rsi)
     jne reject
-    mov 24(%rsi), %r15d
+    mov 24(%rsi), %edi
     cmpl $0, 28(%rsi)
     jne reject_isa_reserved
     jmp .Lcheck_isa_profile
 .Llegacy_isa_profile:
     cmpq $0, 24(%rsi)
     jne reject_isa_profile
-    mov $1, %r15d
+    mov $1, %edi
 .Lcheck_isa_profile:
+    # The CASM continuation still needs R15 for CR4.
     push %rdx
-    mov %r15d, %edi
     call .Lx2_isa_profile_check
     pop %rdx
     jc reject_isa_profile

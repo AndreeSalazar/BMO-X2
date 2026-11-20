@@ -1,5 +1,8 @@
 .text
 #define DESKTOP_READER_OFFSET 0x3000
+#ifdef RMLUI_GOP_REGIONS
+#include "../../drivers/display/gop_layout.inc"
+#endif
 # Position-independent extension of the inherited EFI reader.
 # The original reader has closed its files and saved SimpleFileSystem in RBP+88h.
 .globl desktop_media_read
@@ -168,6 +171,13 @@ staging_ready:
     call *0x10(%rcx)
     test %rax, %rax
     js release
+#ifdef RMLUI_GOP_REGIONS
+    lea .Lgop_stage(%rip), %rsi
+    lea GOP_CODE_OFFSET(%rbp), %rdi
+    mov $(.Lgop_stage_end - .Lgop_stage), %ecx
+    cld
+    rep movsb
+#endif
 #if !defined(RMLUI_MEDIA) || defined(RMLUI_USB)
     # Copy the xHCI stage to the page between the packet buffer and page tables.
     .byte 0x48, 0x8d, 0x35
@@ -203,7 +213,10 @@ done:
     # UEFI accepts CHAR16 paths at aligned addresses.
     .p2align 1
 path:
-#ifdef RMLUI_MEDIA
+#if defined(BMO_NVIDIA_PCI_PROBE)
+    # \BMO-X2\GPU\DESKTOP.SBF
+    .short 92,66,77,79,45,88,50,92,71,80,85,92,68,69,83,75,84,79,80,46,83,66,70,0
+#elif defined(RMLUI_MEDIA)
     .short 92,66,77,79,45,88,50,92,68,69,83,75,84,79,80,92,68,69,83,75,84,79,80,46,83,66,70,0
 #else
     # \BMO-X2\DESKTOP.SBF
@@ -216,3 +229,6 @@ action_path:
 #endif
 error:
     .short 66,77,79,45,88,50,58,32,101,114,114,111,114,32,68,69,83,75,84,79,80,46,83,66,70,13,10,0
+#ifdef RMLUI_GOP_REGIONS
+#include "../../drivers/display/gop_stage.inc"
+#endif

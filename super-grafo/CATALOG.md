@@ -149,7 +149,8 @@
 | [Retiro del perfil anterior de FAT32](../tools/desktop/rmlui/native/retire-legacy.ps1) | host | host | Archiva con hash y retira exactamente los cuatro archivos del BMO-X2 anterior desregistrado. |
 | [Informes USB al escritorio nativo](../tools/desktop/rmlui/native/usb_input.rs) | qemu | 3 | Payload Ring 3 compilado y admitido por HOST: recibe informes escalares mediados y entrega cambios de teclado o raton a RmlUi/DIRECTOR mediante InputService. |
 | [xHCI USB2 con dos dispositivos](../kernel/drivers/bus/native/controller.inc) | qemu | 0 | Sonda ASM transitoria de Ring 0: descubre bancos MMIO, configura dos slots y entrega informes HID mediados al escritorio; no reemplaza la implementacion estable CASM. |
-| [Presentacion GOP del cursor y barra por regiones](../kernel/drivers/bus/native/gop_cursor.inc) | qemu | 0 | Sonda ASM transitoria de Ring 0: copia al GOP una caja de cursor o la franja superior fija por INVOKE 10 en escala 1. |
+| [Presentacion GOP por CPU](../kernel/drivers/display/gop_stage.inc) | qemu | 0 | Sonda ASM transitoria de Ring 0: el puente prepara el modulo CPU/GOP separado de xHCI. INVOKE 9 copia un cuadro e INVOKE 10 presenta regiones en escala 1. |
+| [GPU / NVIDIA / Inventario PCI](../kernel/drivers/GPU/NVIDIA/pci_probe.inc) | qemu | 0 | Sonda ASM transitoria del puente UEFI antes de ExitBootServices. Lee PCI del segmento 0 y conserva CPU/GOP como presentador. |
 
 ## Dependencias declaradas
 
@@ -404,6 +405,7 @@
 | rmlui-fat32-media | device-bus | codigo |
 | rmlui-fat32-media | rmlui-native-usb-input | codigo |
 | rmlui-native-usb-input | rmlui-usb-dual | codigo |
-| rmlui-gop-cursor-region | rmlui-usb-dual | codigo |
+| rmlui-fat32-media | rmlui-gop-cursor-region | codigo |
+| rmlui-fat32-media | nvidia-pci-probe | codigo |
 
 El grafo de codigo de SG se calcula desde sus fuentes. Estas relaciones tambien incluyen el plan y no se presentan como llamadas ejecutadas.

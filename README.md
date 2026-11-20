@@ -142,6 +142,10 @@ la llegada visual al escritorio no acredita teclado/raton USB.
 [Evidencia METAL](Reports/rmlui-desktop-metal-20261116.json).
 [Ruta de arranque, controles y limites](docs/NATIVE-DESKTOP-BOOT.md).
 
+GPU/NVIDIA tiene un candidato UEFI propio que registra el inventario
+PCI antes de entrar al escritorio. CPU y GOP siguen presentando la
+interfaz. [Ensayo directo de GPU](docs/NATIVE-DESKTOP-BOOT.md#gpu--nvidia).
+
 El escritorio ya recibe entrada xHCI en QEMU con teclado y raton en
 perfiles separados, mediante el transporte de diagnostico y el servicio
 HID Rust de Ring 3. Cada prueba desactiva su alternativa PS/2. No acredita
@@ -314,6 +318,7 @@ su arena y el cierre del panel en el mismo espacio de trabajo. El
 siguiente alcance incluye mas objetos, eventos y ventanas antes de
 ampliar a aplicaciones graficas mas complejas.
 [Contrato UJBC](Ultra-J/FORMAT.md) ·
+[Orden de entregas](Ultra-J/README.md#orden-para-madurar-ultra-j) ·
 [Medidas y reproduccion](Ultra-J/README.md#comparacion-de-ejecucion-con-rust).
 
 Los servicios, la VM, el compositor y las aplicaciones viven en Ring 3.

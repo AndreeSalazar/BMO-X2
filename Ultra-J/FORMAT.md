@@ -95,9 +95,11 @@ completos antes de aplicar la secuencia. Reporta errores con codigo,
 campo y offset. Los [vectores exactos](README.md)
 prueban una ventana, dos botones, cierre y reuso desde el offset cero.
 
-El siguiente hito es una VM en Ring 3 con el mismo contrato y un
-adaptador para DIRECTOR. Ring 0 carga el ejecutable x86-64 de la VM
-mediante SBEF y atiende INVOKE y WAIT.
+La sonda x86-64 de Ring 3 ejecuta UJBC v1/v2 y usa INVOKE y WAIT para
+dibujo y entrada. Ring 0 admite su ejecutable mediante SBEF. El
+siguiente hito usa el mismo contrato para dos instancias con acciones
+y arenas independientes, antes de conectarlas a dos ventanas de DIRECTOR.
+[Orden de entrega](README.md#orden-para-madurar-ultra-j).
 
 La autocompilacion requiere expresar el lexer, el parser y el emisor en
 ULTRA-J. El primer criterio sera construir ese compilador con el

@@ -24,6 +24,7 @@ def main():
     p.add_argument('--msvc-panel',action='store_true',help='Use the optional MSVC desktop build')
     p.add_argument('--usb',choices=['keyboard','mouse','both'],help='Mediated xHCI profile; both uses the dynamic USB2 root transport')
     p.add_argument('--usb-empty-ports',action='store_true',help='QEMU rejection test; never a metal candidate')
+    p.add_argument('--nvidia-probe', action='store_true', help='Read PCI display inventory before ExitBootServices')
     args=p.parse_args()
     if args.usb_empty_ports and args.usb!='both':p.error('--usb-empty-ports requires --usb both')
     abi,splash=args.abi_run.resolve(),args.splash_run.resolve()
@@ -38,6 +39,9 @@ def main():
     for name,digest in hashes.items():
         if hashlib.sha256((app/name).read_bytes()).hexdigest()!=digest:raise ValueError('Stale desktop build: '+name)
     run=ROOT/'build/CASM'/('run-rmlui-media-'+uuid.uuid4().hex[:12]);run.mkdir()
+    (run/'gop-regions.txt').write_text('cpu-gop\n',encoding='ascii')
+    if args.nvidia_probe:
+        (run/'nvidia-pci-probe.txt').write_text('pci-read-only\n', encoding='ascii')
     if args.low_gop:(run/'low-gop.txt').write_text('QEMU VGA preferred 1024x768\n',encoding='ascii')
     if args.usb:(run/'native-usb.txt').write_text(args.usb+'\n',encoding='ascii')
     if args.usb_empty_ports:(run/'native-usb-empty.txt').write_text('QEMU fault test\n',encoding='ascii')
@@ -47,14 +51,16 @@ def main():
     for name,source in units:
         flags=['-DRMLUI_USB','-DDESKTOP_MEDIA','-DXHCI_COMMAND_PROBE'] if args.usb else []
         if args.usb=='both':flags+=['-DXHCI_NATIVE_DUAL']
-        command([llvm/'clang.exe','--target=x86_64-unknown-none-elf','-DRMLUI_MEDIA','-DRMLUI_NATIVE','-DDOOM_ENGINE','-DDESKTOP_DOOM',*flags,
+        if args.nvidia_probe and name == 'reader':flags+=['-DBMO_NVIDIA_PCI_PROBE']
+        command([llvm/'clang.exe','--target=x86_64-unknown-none-elf','-DRMLUI_MEDIA','-DRMLUI_NATIVE',
+            '-DRMLUI_GOP_REGIONS','-DDOOM_ENGINE','-DDESKTOP_DOOM',*flags,
             '-c',ROOT/source,'-o',run/(name+'.o')],'compile-media-'+name)
         command([llvm/'llvm-objcopy.exe','-O','binary','--only-section=.text',run/(name+'.o'),run/(name+'.bin')],'extract-media-'+name)
     sbef=(app/'rmlui.sbef').read_bytes();reference=(abi/'INICIO.X86').read_bytes()
     gate=(run/'gate.bin').read_bytes();loader=(run/'loader.bin').read_bytes()
     packet,_=make_packet(reference,sbef,session_gate=gate,external=loader,engine=True)
     intro=(splash/'INICIO.X86').read_bytes();packet,_=prepend_intro(packet,intro)
-    image=bridge_variant(native_ui=True)
+    image=bridge_variant(native_ui=True,nvidia_probe=args.nvidia_probe)
     reader=(run/'reader.bin').read_bytes();allocator=(run/'allocator.bin').read_bytes()
     if len(image)!=0x3000 or len(reader)>4096 or len(allocator)>0xf0 or image[0x267:0x26c]!=bytes.fromhex('e894050000'):
         raise ValueError('Native EFI extension exceeds verified slots')
@@ -83,23 +89,28 @@ def main():
     scripts=ROOT/'tools/boot';shell=shutil.which('powershell.exe')
     command([shell,'-NoProfile','-ExecutionPolicy','Bypass','-File',scripts/'disk.ps1','-OutputRoot',run,'-Programa','INICIO.X86','-GPT'],'create-native-fat32')
     bad=bytearray(sbef);struct.pack_into('<I',bad,116,7);(run/'rejected.sbef').write_bytes(bad)
+    prepare_flags = ['--nvidia-probe'] if args.nvidia_probe else []
     for case,appfile in [('external-permissions',run/'rejected.sbef'),('normal',run/'rmlui.sbef')]:
-        command([sys.executable,scripts/'prepare.py','--workspace',run,'--bmo-x2-folder','--desktop',appfile,'--native-ui'],'prepare-ui-'+case)
+        command([sys.executable,scripts/'prepare.py','--workspace',run,'--bmo-x2-folder','--desktop',appfile,'--native-ui',*prepare_flags],'prepare-ui-'+case)
         if case!='normal':(run/'build/puente-normal.img').replace(run/'build/puente-external-permissions.img')
     command([sys.executable,scripts/'probe.py','--workspace',run,'--halt','--abi-probe','--doom-fixture',
         '--ram-mib','1024','--casos','normal','external-permissions'],'qemu-fat32-desktop',cwd=run)
     report=json.loads((run/'build/puente-test-results.json').read_text())
     if report['Passed']!=2 or not report['Cases'][0].get('BootLogFat32Verified'):raise ValueError('Missing disk evidence')
+    media_prefix = 'BMO-X2/GPU' if args.nvidia_probe else 'BMO-X2/DESKTOP'
     fs=Fat32(run/'build/puente-normal.img')
     try:
-        if fs.file_bytes('BMO-X2/DESKTOP/DESKTOP.SBF')!=sbef or fs.file_bytes('BMO-X2/DESKTOP/INICIO.X86',4096)!=packet:
+        if fs.file_bytes(f'{media_prefix}/DESKTOP.SBF')!=sbef or fs.file_bytes(f'{media_prefix}/INICIO.X86',4096)!=packet:
             raise ValueError('FAT32 staged bytes differ')
     finally:fs.close()
     media=run/'media'
-    staged={'EFI/BMO-X2/DESKTOP.EFI':image,'BMO-X2/DESKTOP/INICIO.X86':packet,'BMO-X2/DESKTOP/DESKTOP.SBF':sbef}
+    boot_name = 'NVIDIA.EFI' if args.nvidia_probe else 'DESKTOP.EFI'
+    staged={f'EFI/BMO-X2/{boot_name}':image,f'{media_prefix}/INICIO.X86':packet,f'{media_prefix}/DESKTOP.SBF':sbef}
     for name,data in staged.items():
         target=media/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(data)
     report.update(run=run.name,evidence='QEMU',disk_sbef=True,physical_boot=False,physical_usb_proven=False,
+        display_backend='cpu-gop',
+        nvidia_pci_probe=args.nvidia_probe,
         qemu_only=bool(args.usb),usb_profile=args.usb,
         usb_empty_ports=args.usb_empty_ports,
         hardware_profile='amd149c-usb2-root-experimental' if args.usb=='both' and not args.usb_empty_ports else None,

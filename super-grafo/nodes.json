@@ -2494,8 +2494,8 @@
     },
     {
       "id": "rmlui-gop-cursor-region",
-      "titulo": "Presentacion GOP del cursor y barra por regiones",
-      "ruta": "kernel/drivers/bus/native/gop_cursor.inc",
+      "titulo": "Presentacion GOP por CPU",
+      "ruta": "kernel/drivers/display/gop_stage.inc",
       "estado": "qemu",
       "anillo": "0",
       "lenguaje": "ASM x86-64",
@@ -2504,11 +2504,29 @@
         10200,
         4300
       ],
-      "que": "Sonda ASM transitoria de Ring 0: copia al GOP una caja de cursor o la franja superior fija por INVOKE 10 en escala 1.",
+      "que": "Sonda ASM transitoria de Ring 0: el puente prepara el modulo CPU/GOP separado de xHCI. INVOKE 9 copia un cuadro e INVOKE 10 presenta regiones en escala 1.",
       "entrada": "Superficie XRGB validada de 1280x800, punto de origen y geometria GOP.",
-      "salida": "Hasta 204 pixeles por caja de cursor y 102400 por franja de estado.",
+      "salida": "Cuadro escalado, hasta 204 pixeles por caja de cursor o 102400 por franja de estado.",
       "aceptacion": "QEMU comprueba restauracion del cursor y que los bloqueos actualizan la franja sin cuadro completo.",
-      "falta": "Medir latencia fisica y especializar la copia en otras escalas GOP."
+      "falta": "Medir latencia fisica y especializar la copia en otras escalas GOP. Las demas escalas usan la presentacion completa."
+    },
+    {
+      "id": "nvidia-pci-probe",
+      "titulo": "GPU / NVIDIA / Inventario PCI",
+      "ruta": "kernel/drivers/GPU/NVIDIA/pci_probe.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [
+        10500,
+        4300
+      ],
+      "que": "Sonda ASM transitoria del puente UEFI antes de ExitBootServices. Lee PCI del segmento 0 y conserva CPU/GOP como presentador.",
+      "entrada": "Inventario PCI de clase grafica, seleccionado con --nvidia-probe.",
+      "salida": "GPULOG.TXT con recuentos y la primera funcion Nvidia: BDF, dispositivo, proveedor y estado PCI Command.",
+      "aceptacion": "QEMU arranca el escritorio desde BMO-X2/GPU, detecta una VGA virtual, cero Nvidia y mantiene el rechazo SBEF W+X.",
+      "falta": "Confirmar identidad en METAL. Implementar inicializacion y una operacion verificable de GPU en un ensayo posterior."
     }
   ],
   "relaciones": [
@@ -3758,8 +3776,13 @@
       "clase": "codigo"
     },
     {
-      "de": "rmlui-gop-cursor-region",
-      "a": "rmlui-usb-dual",
+      "de": "rmlui-fat32-media",
+      "a": "rmlui-gop-cursor-region",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-fat32-media",
+      "a": "nvidia-pci-probe",
       "clase": "codigo"
     }
   ]

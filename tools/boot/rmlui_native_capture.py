@@ -13,7 +13,9 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
         if memory(0x4000000,4096,'ui-rejected-code')!=bytes(4096):raise ValueError('UI copied before permission validation')
         return result
     symbols=json.loads(symbols_path.read_text())
-    empty_usb=(prefix.parent.parent/'native-usb-empty.txt').is_file()
+    run=prefix.parent.parent
+    empty_usb=(run/'native-usb-empty.txt').is_file()
+    gop_regions=(run/'gop-regions.txt').is_file()
     state,pixels=symbols['state'],symbols['pixels']
     if not (0x40400000<=state<=0x40e00000-64 and 0x40400000<=pixels<=0x40e00000-1280*800*4):
         raise ValueError('UI symbol range')
@@ -41,7 +43,7 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
     first=freeze_frame(2)
     if not (first[2]>=1 and first[5]>0 and 0<first[6]<=first[7]<=4*1024*1024):raise ValueError('Invalid UI resource counters')
     raw=memory(pixels-0x3c000000,1280*800*4,'ui-frame')
-    if symbols.get('usb')=='both':
+    if symbols.get('usb')=='both' or (gop_regions and symbols.get('desktop')):
         for x,y,color in ((640,400,0x0b1019),(641,402,0xf4f8ff)):
             if struct.unpack_from('<I',raw,(y*1280+x)*4)[0]!=color:
                 raise ValueError('Pointer missing before first input')
@@ -99,7 +101,8 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
             UsbEmptyPortsRejected=True,UsbControllerStopped=True,UsbBusMasterRevoked=True,
             UsbMmioRevoked=True,UsbBothDevicesVerified=False,PhysicalUsbVerified=False,
             PresentedPixelsVerified=dw*dh,FrameSHA256=hashlib.sha256(raw).hexdigest())
-    if symbols.get('usb')=='both':
+    display_proof={}
+    if symbols.get('usb')=='both' or (gop_regions and symbols.get('desktop')):
         cursor_counter=context_address+0x1a7e0
         start=struct.unpack('<Q',memory(cursor_counter,8,'cursor-copy-baseline'))[0]
         for delta,target in ((24,664),(-24,640)):
@@ -134,6 +137,12 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
                     colors[0::4],colors[2::4]=expected[2::4],expected[0::4]
                     expected=bytes(colors)
                 if actual!=expected:raise ValueError('Old cursor box did not restore the background')
+        display_proof=dict(PointerBeforeInputVerified=True,PointerMoveWithoutRasterVerified=True,
+                           PointerRegionPixelsForTwoMoves=copied)
+        if gop_regions and not symbols.get('usb'):
+            if memory(context_address+0xb8,16,'native-no-usb-dma')!=bytes(16):
+                raise ValueError('GOP-only profile reserved USB DMA')
+            display_proof['GopRegionsWithoutXhciVerified']=scale==1
     before=hashlib.sha256(raw).hexdigest()
     command('send-key',{'keys':[{'type':'qcode','data':'ret'}],'hold-time':60})
     after=freeze_frame(3)
@@ -313,13 +322,10 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
                 if halt!=1 or pci&4 or memory(context_address+0x15400,8,'dual-alias-pde')!=bytes(8) or memory(context_address+0x1e000,24,'dual-alias-revoked')!=bytes(24):
                     raise ValueError('Dual stop/revocation incomplete')
                 usb_proof.update(UsbBothDevicesVerified=True,UsbKeyboardReports=keyboard,UsbMouseReports=mouse,
-                    PointerBeforeInputVerified=True,
                     MouseReportDescriptorDecoded=True, MouseButtonHoverWithoutRasterVerified=bool(mouse_edges),
                     KeyboardLedOutputReportsVerified=locks_verified,
                     LockIndicatorsWithoutFullRasterVerified=lock_strip_verified,
                     MouseRightMiddleWheelVerified=bool(mouse_edges),
-                    PointerMoveWithoutRasterVerified=True,
-                    PointerRegionPixelsForTwoMoves=copied,
                     UsbStopVerified=True,UsbBusMasterRevoked=True,UsbMmioRevoked=True,
                     UsbTransportBackend='Dynamic USB2 two-slot mediated transport',UsbCodePages=2)
         return dict(Case='normal',Passed=True,Evidence='QEMU',CPL=3,FullRmlUiEngine=True,
@@ -328,7 +334,8 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path):
             ReopenVerified=True,KeyboardEnterVerified=True,MouseClickVerified=True,ShellRemainsAlive=True,
             HeapPeakBytes=after[7],HeapLimitBytes=4*1024*1024,FramebufferBytes=len(raw),SbefBytes=len(image),
             StagedModuleSHA256=hashlib.sha256(struct.pack('<Q',len(image))+image).hexdigest(),
-            PresentedPixelsVerified=dw*dh,GopWidth=width,GopHeight=height,HalfScale=scale==0,FrameSHA256=before,**usb_proof,**msvc_result)
+            PresentedPixelsVerified=dw*dh,GopWidth=width,GopHeight=height,HalfScale=scale==0,
+            FrameSHA256=before,**display_proof,**usb_proof,**msvc_result)
     command('input-send-event',{'events':[{'type':'rel','data':{'axis':'y','value':127}}]})
     time.sleep(.2)
     command('input-send-event',{'events':[{'type':'btn','data':{'button':'left','down':True}}]})

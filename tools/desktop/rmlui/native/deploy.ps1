@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][string]$Run,[ValidateSet('A:\')][string]$Volume='A:\',[switch]$ExperimentalUsb,[switch]$Check)
+param([Parameter(Mandatory=$true)][string]$Run,[ValidateSet('A:\')][string]$Volume='A:\',[switch]$ExperimentalUsb,[switch]$Check,[switch]$NvidiaProbe)
 $ErrorActionPreference='Stop'
 $root=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
 $runPath=(Get-Item -LiteralPath $Run).FullName
@@ -8,6 +8,11 @@ if ((Get-Content -LiteralPath (Join-Path $runPath 'profile.txt') -Raw).Trim() -n
 $media=Join-Path $runPath 'media'
 $proof=Get-Content -LiteralPath (Join-Path $media 'manifest.json') -Raw | ConvertFrom-Json
 $normal=$proof.Cases | Where-Object { $_.Case -eq 'normal' } | Select-Object -First 1
+$gpuRun=Test-Path -LiteralPath (Join-Path $runPath 'nvidia-pci-probe.txt') -PathType Leaf
+if ($gpuRun -ne [bool]$NvidiaProbe -or $gpuRun -ne [bool]$proof.nvidia_pci_probe -or
+    ($gpuRun -and -not $normal.NvidiaPciProbeVerified)) {
+    throw 'El ensayo GPU requiere -NvidiaProbe y su propia prueba PCI en QEMU.'
+}
 if($proof.qemu_only -or $proof.usb_profile -or (Test-Path -LiteralPath (Join-Path $runPath 'native-usb.txt'))) {
     if(-not $ExperimentalUsb -or $proof.usb_profile -ne 'both' -or $proof.usb_empty_ports -or
         $proof.hardware_profile -ne 'amd149c-usb2-root-experimental' -or
@@ -24,7 +29,10 @@ if ($proof.Passed -ne 2 -or $proof.Total -ne 2 -or -not $proof.disk_sbef -or
 }
 $drive=[IO.DriveInfo]::new($Volume)
 if (-not $drive.IsReady -or $drive.DriveFormat -ne 'FAT32') { throw 'A: debe ser un FAT32 existente y disponible.' }
-$names=@('BMO-X2/DESKTOP/INICIO.X86','BMO-X2/DESKTOP/DESKTOP.SBF','EFI/BMO-X2/DESKTOP.EFI')
+$dataFolder=if($gpuRun){'BMO-X2/GPU'}else{'BMO-X2/DESKTOP'}
+$bootFile=if($gpuRun){'EFI/BMO-X2/NVIDIA.EFI'}else{'EFI/BMO-X2/DESKTOP.EFI'}
+$reportName=if($gpuRun){'GPULOG.TXT'}else{'BOOTLOG.TXT'}
+$names=@("$dataFolder/INICIO.X86","$dataFolder/DESKTOP.SBF",$bootFile)
 if (@($proof.files.PSObject.Properties).Count -ne $names.Count) { throw 'Manifiesto de archivos inesperado.' }
 foreach($name in $names) {
     $source=Get-Item -LiteralPath (Join-Path $media $name)
@@ -48,7 +56,7 @@ if(Test-Path -LiteralPath $previousRunReceipt -PathType Leaf) {
         foreach($property in $saved.PreviousFiles.PSObject.Properties){$previous[$property.Name]=$property.Value}
     }
 }
-$previousReceipt=Join-Path $Volume 'BMO-X2/DESKTOP/DEPLOY.JSON'
+$previousReceipt=Join-Path $Volume "$dataFolder/DEPLOY.JSON"
 if(Test-Path -LiteralPath $previousReceipt -PathType Leaf) {
     $receiptArchive=Join-Path $runPath 'fat32-backups/DEPLOY.before.json'
     if(-not (Test-Path -LiteralPath $receiptArchive)) {
@@ -89,11 +97,11 @@ foreach($name in $legacy.Keys){
 $record=[ordered]@{Schema=1;Evidence='HOST copy after QEMU FAT32 boot';Run=$proof.run;Volume=$Volume;FileSystem=$drive.DriveFormat;
     Files=$written;LegacyFilesUnchanged=$legacy;PhysicalBootVerified=$false;PhysicalUsbVerified=$false;
     PreviousFiles=$previous;ExperimentalUsb=[bool]$ExperimentalUsb;HardwareProfile=$proof.hardware_profile;
-    BootFile='\EFI\BMO-X2\DESKTOP.EFI';ReportFile='\BMO-X2\DESKTOP\BOOTLOG.TXT';
+    BootFile=('\'+$bootFile.Replace('/','\'));ReportFile=('\'+$dataFolder.Replace('/','\')+'\'+$reportName);
     Note='USB HID fisico sigue pendiente; no cambia NVRAM ni archivos ajenos al candidato.'}
 $json=$record | ConvertTo-Json -Depth 8
-Set-Content -LiteralPath (Join-Path $Volume 'BMO-X2/DESKTOP/DEPLOY.JSON') -Value $json -Encoding UTF8
+Set-Content -LiteralPath $previousReceipt -Value $json -Encoding UTF8
 Set-Content -LiteralPath (Join-Path $runPath 'fat32-deploy.json') -Value $json -Encoding UTF8
 Write-Output 'Candidato copiado y verificado. Archivos ajenos al candidato conservados.'
-Write-Output 'UEFI Boot from file: \EFI\BMO-X2\DESKTOP.EFI'
-Write-Output 'Reporte de la prueba fisica: A:\BMO-X2\DESKTOP\BOOTLOG.TXT'
+Write-Output "UEFI Boot from file: $($record.BootFile)"
+Write-Output "Reporte de la prueba fisica: A:$($record.ReportFile)"

@@ -1,4 +1,4 @@
-# Copy a clipped 12x17 cursor box from the complete 1280x800 XRGB surface.
+# Ring 0 platform probe: copy a clipped box from the 1280x800 XRGB surface.
 # RDX: user surface, R10: packed 16-bit x/y or 0x80000000 for the top 80 rows.
 # Other scales use op 9.
 gop_cursor_region:

@@ -60,6 +60,7 @@ intro_size = 0
 intro_rows = None
 external = None
 desktop_media = desktop_doom = native_media = native_ui = msvc_sections = False
+nvidia_probe = False
 doom_engine = doom_external = desktop_fixture = toolchain_client = False
 if args.doom_fixture:
     from doom_fixture import make_packet, prepend_intro
@@ -72,6 +73,7 @@ if args.doom_fixture:
     desktop_media = profile == 'desktop-media'
     desktop_doom = profile == 'desktop-doom'
     native_media = profile == 'rmlui-desktop-media'
+    nvidia_probe = native_media and (ROOT / 'nvidia-pci-probe.txt').is_file()
     native_ui = profile in ('rmlui-native','rmlui-desktop','rmlui-desktop-media')
     msvc_sections = profile == 'msvc-sections'
     doom_engine = profile == 'doom-engine' or desktop_doom or native_ui or msvc_sections
@@ -472,11 +474,25 @@ for case in args.casos:
                 from fat32_read import Fat32
                 fs=Fat32(Path(str(prefix)+'-bootlog.img'))
                 try:
-                    log=fs.file_bytes('BMO-X2/DESKTOP/BOOTLOG.TXT',4096)
-                    loaded=fs.file_bytes('BMO-X2/DESKTOP/DESKTOP.SBF')
+                    media_prefix = 'BMO-X2/GPU' if nvidia_probe else 'BMO-X2/DESKTOP'
+                    log_name = 'GPULOG.TXT' if nvidia_probe else 'BOOTLOG.TXT'
+                    log=fs.file_bytes(f'{media_prefix}/{log_name}',4096)
+                    loaded=fs.file_bytes(f'{media_prefix}/DESKTOP.SBF')
                     if loaded!=external_image or not log.startswith(b'BMO-X2 DESKTOP UEFI PRE-EBS\r\n'):
                         raise ValueError('Native FAT32 payload/report differs')
-                    Path(str(prefix)+'-BOOTLOG.TXT').write_bytes(log)
+                    Path(str(prefix)+'-'+log_name).write_bytes(log)
+                    if nvidia_probe:
+                        values = dict(line.split('=', 1) for line in log.decode('ascii').splitlines()
+                                      if line.startswith('GPU_'))
+                        if values != {
+                            'GPU_PROBE': 'PCI_RO', 'GPU_DISPLAY_COUNT': '00000001',
+                            'GPU_NVIDIA_COUNT': '00000000', 'GPU_NVIDIA_BDF': '--------',
+                            'GPU_NVIDIA_ID': '--------', 'GPU_NVIDIA_CMD': '--------',
+                        }:
+                            raise ValueError('Unexpected PCI result for QEMU standard VGA')
+                        result['NvidiaPciProbeVerified'] = True
+                        result['GpuDisplayFunctions'] = 1
+                        result['GpuNvidiaFunctions'] = 0
                 finally:fs.close()
             else:
                 verify_bootlog_file(Path(str(prefix) + '-bootlog.img'), prefix)

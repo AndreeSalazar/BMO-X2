@@ -18,6 +18,7 @@ parser.add_argument('--profile',choices=['hello','flappy-preview'],default='hell
 parser.add_argument('--bmo-x2-folder', action='store_true', help='Use a separate payload folder in the virtual image')
 parser.add_argument('--desktop', type=Path, help='Add the desktop SBEF to the BMO-X2 folder')
 parser.add_argument('--native-ui',action='store_true',help='Explicit large UI profile in BMO-X2/DESKTOP')
+parser.add_argument('--nvidia-probe', action='store_true', help='Place the native UI candidate in BMO-X2/GPU')
 parser.add_argument('--ultra-j-action', type=Path, help='Add ACTION.UJB alongside the desktop SBEF')
 args = parser.parse_args()
 if args.bmo_x2_folder and (args.profile != 'hello' or args.caso != 'normal'):
@@ -25,6 +26,7 @@ if args.bmo_x2_folder and (args.profile != 'hello' or args.caso != 'normal'):
 if args.desktop and not args.bmo_x2_folder:
     parser.error('--desktop requires --bmo-x2-folder')
 if args.native_ui and not args.desktop:parser.error('--native-ui requires --desktop')
+if args.nvidia_probe and not args.native_ui:parser.error('--nvidia-probe requires --native-ui')
 if args.ultra_j_action and not args.desktop:
     parser.error('--ultra-j-action requires --desktop')
 root = workspace(args.workspace)
@@ -123,7 +125,8 @@ with output.open('r+b') as disk:
         parent=bytearray(cluster_bytes)
         parent[:32]=entry(b'.          ',0x10,metal_cluster)
         parent[32:64]=entry(b'..         ',0x10,root_cluster)
-        parent[64:96]=entry(b'DESKTOP    ',0x10,child)
+        name = b'GPU        ' if args.nvidia_probe else b'DESKTOP    '
+        parent[64:96]=entry(name,0x10,child)
         write(metal_offset,parent)
         old=directory;directory=bytearray(cluster_bytes)
         directory[:32]=entry(b'.          ',0x10,child)
