@@ -4,7 +4,12 @@
 // Native desktop context. The snapshot follows the pre-EBS report buffer.
 #ifdef BMO_AMDVI_STORAGE
 #define AMDVI_POST_CODE 0x1b600
+#ifdef BMO_AMDVI_ROUTED
+#define AMDVI_LAB_TABLE_PAGES 96
+#define AMDVI_LAB_PAGES (18+AMDVI_LAB_TABLE_PAGES)
+#else
 #define AMDVI_LAB_PAGES 18
+#endif
 #else
 #define AMDVI_POST_CODE 0x1b800
 #define AMDVI_LAB_PAGES 14
@@ -22,6 +27,7 @@
 #define AMDVI_LAB_RESULT 0xb60
 #define AMDVI_LAB_PHASE 0xb68
 #define AMDVI_LAB_CONTROL_AFTER_STOP 0xb70
+#define AMDVI_LAB_EDU_RID 0xb78
 #define AMDVI_LAB_CODE (AMDVI_POST_CODE+5)
 #define DMA_CENSUS_CODE (AMDVI_POST_CODE+5)
 #define DMA_CENSUS_HEADER 0xb80

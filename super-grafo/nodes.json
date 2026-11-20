@@ -2559,9 +2559,9 @@
       ],
       "que": "Comprueba el conjunto original de una release GSP, por longitud y huella de referencia.",
       "entrada": "Cuatro binarios locales NVIDIA de la release solicitada y manifiesto de huellas.",
-      "salida": "Informe HOST de identidad, release, archivos y huellas.",
-      "aceptacion": "Cuatro archivos verificados para 570.144 y 615.78.08; la opcion native selecciona 615.78.08. Rechaza cambios de bytes y releases cruzadas.",
-      "falta": "Preparar y verificar el arranque GSP nativo con 615.78.08."
+      "salida": "Informe HOST de identidad, archivos y huellas. El layout nativo identifica imagen, version y firma GA10x dentro del ELF64 RISC-V.",
+      "aceptacion": "Cuatro archivos verificados para 570.144 y 615.78.08. El layout 615.78.08 coteja la version interna y rechaza cabecera truncada, version distinta y secciones solapadas.",
+      "falta": "Construir los metadatos y colas DMA, y verificar respuesta del GSP nativo con 615.78.08."
     },
     {
       "id": "amd-ivrs-host",
@@ -2681,9 +2681,9 @@
         4300
       ],
       "que": "Sonda exclusiva de QEMU TCG. Ring 0 comprueba bus masters y configura, invalida y cierra dos dominios AMD-Vi.",
-      "entrada": "Escritorio USB dual activo, EDU, reservas UEFI propias y orden fija del banco QEMU.",
+      "entrada": "Escritorio USB dual activo, EDU, reservas UEFI propias y orden fija del banco QEMU. El perfil PCIe descubre el BDF alto y reserva una tabla de 96 paginas.",
       "salida": "Estado de rechazo, tablas y colas propios y comprobantes de invalidacion y cierre.",
-      "aceptacion": "QEMU comprueba rechazo con otro bus master activo, DMA concedido y revocado, informes USB y lecturas AHCI traducidas en el perfil de almacenamiento.",
+      "aceptacion": "QEMU comprueba rechazo con otro bus master activo, DMA concedido y revocado, informes USB y lecturas AHCI. El perfil PCIe coteja DTE, invalidacion y DMA en un bus alto.",
       "falta": "Integrar la transicion con los solicitantes fisicos, validar sus reservas y probar almacenamiento real antes de activar el dominio para NVIDIA."
     },
     {

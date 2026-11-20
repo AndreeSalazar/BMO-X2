@@ -121,6 +121,20 @@ python -B tools/desktop/rmlui/native/media.py <ABI_RUN> <GATO_COMPACTO_RUN> --us
 [Evidencia AHCI en QEMU](../../../Reports/amdvi-ahci-qemu-20261120.json).
 [Especificacion AHCI](https://www.intel.la/content/dam/www/public/us/en/documents/technical-specifications/serial-ata-ahci-spec-rev1-3-1.pdf).
 
+El perfil `--amdvi-routed` permite comprobar la localizacion de una
+DTE por un solicitante de bus alto. Reserva 96 paginas contiguas
+para la tabla de dispositivos, cubriendo los indices PCI hasta
+`2fff`, y conserva las otras 18 paginas para el ensayo. El
+invitado recorre todo el segmento PCI, permite dos puertos raiz
+del banco y obtiene el BDF de EDU de la configuracion PCI.
+El banco coteja el BDF con QMP, la entrada de dominio en RAM,
+el comando de invalidacion y los testigos de DMA autorizado,
+fuera de rango y revocado. La segunda lectura SATA y los
+informes HID conservan sus comprobaciones.
+
+[Prueba del solicitante PCIe de bus alto](../../../Reports/amdvi-routed-qemu-20261120.json).
+[Formato de la tabla de dispositivos AMD-Vi](https://docs.amd.com/api/khub/documents/GD6kOXjzWsek8QUbn_qMvg/content).
+
 El perfil `--dma-census` usa la operacion de diagnostico
 `INVOKE(3, 3, 26, indice)`. El indice 0 congela la primera captura
 y entrega el encabezado. De menor a mayor bit, contiene el numero

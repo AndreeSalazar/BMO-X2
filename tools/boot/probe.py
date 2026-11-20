@@ -57,6 +57,7 @@ ROOT = workspace(args.workspace)
 amdvi_post = args.doom_fixture and (ROOT / 'amdvi-post-probe.txt').is_file()
 amdvi_coexist = amdvi_post and (ROOT / 'amdvi-coexist-probe.txt').is_file()
 amdvi_storage = amdvi_coexist and (ROOT / 'amdvi-storage.txt').is_file()
+amdvi_routed = amdvi_storage and (ROOT / 'amdvi-routed.txt').is_file()
 dma_census = amdvi_post and (ROOT / 'dma-census-probe.txt').is_file()
 desktop_cases = ['normal', 'external-permissions']
 if args.doom_fixture and (not args.abi_probe or args.casos not in
@@ -205,6 +206,7 @@ def verify_amdvi_firmware(log, units, register_words, present):
 def run(case):
     coexist = amdvi_coexist and case == 'normal'
     storage = amdvi_storage and coexist
+    routed = amdvi_routed and storage
     census = dma_census and case in ('normal','amdvi-missing')
     payload_case = case in ('normal', 'contexto', *MUTATIONS)
     disk_case = 'normal' if (case == 'amdvi-missing' or
@@ -256,7 +258,13 @@ def run(case):
             staging+=['-device','qemu-xhci,id=bmo-native-xhci','-device',f'{device},bus=bmo-native-xhci.0']
     listener = connection = qtest = None
     if coexist:
-        staging += ['-device', 'edu,addr=04.0', '-nic', 'none']
+        staging += ['-nic', 'none']
+        if routed:
+            staging += ['-device', 'pcie-root-port,id=dma-reserve,addr=07.0,chassis=7,slot=7,bus-reserve=39',
+                        '-device', 'pcie-root-port,id=dma-target,addr=08.0,chassis=8,slot=8',
+                        '-device', 'edu,id=bmo-edu,bus=dma-target']
+        else:
+            staging += ['-device', 'edu,id=bmo-edu,addr=04.0']
     if storage:
         from amdvi_ahci import DISK
         sata_image = ROOT/'amdvi-sata.raw'

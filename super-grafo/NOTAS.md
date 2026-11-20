@@ -1636,10 +1636,10 @@ Comprueba el conjunto original de una release GSP, por longitud y huella de refe
 
 Estado: HOST. Anillo: host. Lenguaje: Python.
 Entrada: Cuatro binarios locales NVIDIA de la release solicitada y manifiesto de huellas.
-Salida: Informe HOST de identidad, release, archivos y huellas.
+Salida: Informe HOST de identidad, archivos y huellas. El layout nativo identifica imagen, version y firma GA10x dentro del ELF64 RISC-V.
 Depende de: GPU / NVIDIA / Lectura MMIO (plan).
-Aceptacion: Cuatro archivos verificados para 570.144 y 615.78.08; la opcion native selecciona 615.78.08. Rechaza cambios de bytes y releases cruzadas.
-Pendiente: Preparar y verificar el arranque GSP nativo con 615.78.08.
+Aceptacion: Cuatro archivos verificados para 570.144 y 615.78.08. El layout 615.78.08 coteja la version interna y rechaza cabecera truncada, version distinta y secciones solapadas.
+Pendiente: Construir los metadatos y colas DMA, y verificar respuesta del GSP nativo con 615.78.08.
 
 ## tools/host/gpu/ivrs.py
 
@@ -1712,10 +1712,10 @@ Pendiente: Poner bajo control nativo la lista de solicitantes activos y probar e
 Sonda exclusiva de QEMU TCG. Ring 0 comprueba bus masters y configura, invalida y cierra dos dominios AMD-Vi.
 
 Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
-Entrada: Escritorio USB dual activo, EDU, reservas UEFI propias y orden fija del banco QEMU.
+Entrada: Escritorio USB dual activo, EDU, reservas UEFI propias y orden fija del banco QEMU. El perfil PCIe descubre el BDF alto y reserva una tabla de 96 paginas.
 Salida: Estado de rechazo, tablas y colas propios y comprobantes de invalidacion y cierre.
 Depende de: AMD-Vi / Captura Ring 0 (codigo).
-Aceptacion: QEMU comprueba rechazo con otro bus master activo, DMA concedido y revocado, informes USB y lecturas AHCI traducidas en el perfil de almacenamiento.
+Aceptacion: QEMU comprueba rechazo con otro bus master activo, DMA concedido y revocado, informes USB y lecturas AHCI. El perfil PCIe coteja DTE, invalidacion y DMA en un bus alto.
 Pendiente: Integrar la transicion con los solicitantes fisicos, validar sus reservas y probar almacenamiento real antes de activar el dominio para NVIDIA.
 
 ## kernel/drivers/bus/amdvi/dma_census.inc

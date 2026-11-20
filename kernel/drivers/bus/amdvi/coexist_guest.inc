@@ -6,6 +6,13 @@
 .set LAB_PT, 0xd000
 .set LAB_EDU_IOVA, 0xb000
 .set LAB_EDU_PAYLOAD, 0xa000
+#ifdef BMO_AMDVI_ROUTED
+.set LAB_TABLE_OFFSET, 0x12000
+.set LAB_TABLE_LENGTH, AMDVI_LAB_TABLE_PAGES-1
+#else
+.set LAB_TABLE_OFFSET, 0
+.set LAB_TABLE_LENGTH, 1
+#endif
 #ifdef BMO_AMDVI_STORAGE
 .set LAB_EDU_REVOKE, 96
 .set LAB_AHCI_ROOT, 0xe000
@@ -121,14 +128,21 @@ amdvi_lab_entry:
     or 0x2020(%r14), %rax
     jnz .Llab_unmap
     movabs $LAB_RW, %r8
+    lea LAB_TABLE_OFFSET(%r12), %rdi
+#ifdef BMO_AMDVI_ROUTED
+    mov AMDVI_LAB_EDU_RID(%rbp), %esi
+    shl $5, %esi
+#else
+    mov $0x400, %esi
+#endif
     lea 0x2403(%r12), %rax
     or %r8, %rax
-    mov %rax, 0x400(%r12)         # EDU 00:04.0, domain 1.
-    movq $1, 0x408(%r12)
+    mov %rax, (%rdi,%rsi)         # EDU, domain 1.
+    movq $1, 8(%rdi,%rsi)
     lea 0x4403(%r12), %rax
     or %r8, %rax
-    mov %rax, 0x500(%r12)         # xHCI 00:05.0, domain 2.
-    movq $2, 0x508(%r12)
+    mov %rax, 0x500(%rdi)         # xHCI 00:05.0, domain 2.
+    movq $2, 0x508(%rdi)
     call .Llab_edu_leaf
     lea 0x3201(%r12), %rax
     or %r8, %rax
@@ -163,8 +177,8 @@ amdvi_lab_entry:
     # also has reserved backing, kept as an untranslated-write witness.
     lea (LAB_AHCI_ROOT+0x403)(%r12), %rax
     or %r8, %rax
-    mov %rax, 0x600(%r12)
-    movq $3, 0x608(%r12)
+    mov %rax, (LAB_TABLE_OFFSET+0x600)(%r12)
+    movq $3, (LAB_TABLE_OFFSET+0x608)(%r12)
     lea LAB_AHCI_IOVA(%r12), %rdx
     mov %rdx, %rdi
     shr $21, %rdx
@@ -177,7 +191,7 @@ amdvi_lab_entry:
     or %r8, %rax
     mov %rax, LAB_AHCI_LEAF(%r12,%rdi,8)
 #endif
-    lea 1(%r12), %rax
+    lea (LAB_TABLE_OFFSET+LAB_TABLE_LENGTH)(%r12), %rax
     mov %rax, (%r14)
     movabs $0x0800000000000000, %rcx
     lea 0x7000(%r12), %rax
@@ -189,7 +203,12 @@ amdvi_lab_entry:
     movq $0x1005, 0x18(%r14)
     testb $1, 0x18(%r14)
     jz .Llab_clear
+#ifdef BMO_AMDVI_ROUTED
+    movabs $0x2000000000000000, %rax
+    or AMDVI_LAB_EDU_RID(%rbp), %rax
+#else
     movabs $0x2000000000000020, %rax
+#endif
     xor %edx, %edx
     xor %ecx, %ecx
     call .Llab_publish
@@ -307,10 +326,14 @@ amdvi_lab_entry:
     mov $0xcf8, %dx
     in %dx, %eax
     mov %eax, %r9d
+#ifdef BMO_AMDVI_ROUTED
+    xor %r11d, %r11d
+#else
     mov $0x80002000, %eax
     call .Llab_read_pci
     cmp $0x11e81234, %eax
     jne .Llab_pci_bad
+#endif
     mov $0x80002800, %eax
     call .Llab_read_pci
     cmp $0x000d1b36, %eax
@@ -327,11 +350,39 @@ amdvi_lab_entry:
     call .Llab_read_pci
     cmp $0xffff, %ax
     je .Llab_advance
+#ifdef BMO_AMDVI_ROUTED
+    cmp $0x11e81234, %eax
+    jne .Llab_class
+    # Obtain the BDF from PCI enumeration, never from the test mailbox.
+    mov %r10d, %eax
+    shr $8, %eax
+    movzwl %ax, %eax
+    cmp $0x2900, %eax
+    jb .Llab_pci_bad
+    cmp $(AMDVI_LAB_TABLE_PAGES*128), %eax
+    jae .Llab_pci_bad
+    test %r11d, %r11d
+    jnz .Llab_pci_bad
+    mov %eax, %r11d
+.Llab_class:
+#endif
     lea 8(%r10), %eax
     call .Llab_read_pci
     shr $16, %eax
     cmp $0x0604, %eax
+#ifdef BMO_AMDVI_ROUTED
+    jne .Llab_command
+    # The two fixture root ports route downstream traffic; scan every
+    # bus including their children and admit only known DMA requesters.
+    cmp $0x80003800, %r10d
+    je .Llab_advance
+    cmp $0x80004000, %r10d
+    je .Llab_advance
+    jmp .Llab_pci_bad
+.Llab_command:
+#else
     je .Llab_pci_bad
+#endif
     lea 4(%r10), %eax
     call .Llab_read_pci
     test $4, %eax
@@ -348,8 +399,16 @@ amdvi_lab_entry:
     jne .Llab_pci_bad
 .Llab_advance:
     add $256, %r10d
+#ifdef BMO_AMDVI_ROUTED
+    cmp $0x81000000, %r10d
+    jne .Llab_scan
+    test %r11d, %r11d
+    jz .Llab_pci_bad
+    mov %r11, AMDVI_LAB_EDU_RID(%rbp)
+#else
     cmp $0x80010000, %r10d
     jne .Llab_scan
+#endif
     mov %r9d, %eax
     out %eax, %dx
     clc

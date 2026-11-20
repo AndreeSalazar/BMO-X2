@@ -90,13 +90,13 @@ def transfer(machine, source, target, size, command):
     require(not machine.read(EDU_BAR + 0x98) & 1, 'EDU no completo la solicitud')
 
 
-def faults(machine, offset, iova, size, *, event_log=EVENT_LOG):
+def faults(machine, offset, iova, size, *, event_log=EVENT_LOG, requester=EDU_REQUESTER):
     tail = machine.read(AMDVI + 0x2018)
     require(offset < tail < 4096 and tail % 16 == 0, f'Cola AMD-Vi invalida: {tail:#x}')
     log = machine.get_bytes(event_log + offset, tail - offset)
     addresses = []
     for event, address in struct.iter_unpack('<QQ', log):
-        require((event >> 60, event & 0xffff) == (2, EDU_REQUESTER) and event & (2 << 48),
+        require((event >> 60, event & 0xffff) == (2, requester) and event & (2 << 48),
                 f'Evento AMD-Vi inesperado: {event:#x}')
         # Some QEMU builds leave the event address at zero. Report it verbatim.
         require(address == 0 or iova <= address < iova + size, f'Direccion de evento inesperada: {address:#x}')

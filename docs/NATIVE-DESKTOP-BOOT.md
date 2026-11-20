@@ -348,6 +348,16 @@ arranque. [Verificacion HOST](../tools/host/gpu/firmware.py).
 [Procedencia de 570.144 en linux-firmware](https://kernel.googlesource.com/pub/scm/linux/kernel/git/firmware/linux-firmware/%2B/refs/tags/20250917/WHENCE).
 [GSP 615.78.08 de NVIDIA](https://download.nvidia.com/XFree86/Linux-x86_64/615.78.08/README/gsp.html).
 
+El HOST acepta `--layout` para inspeccionar el contenedor GSP de la
+release nativa despues de comprobar las cuatro huellas. Selecciona
+`.fwimage`, `.fwversion` y `.fwsignature_ga10x` del ELF64 RISC-V,
+y comprueba longitud, limites, version y solapamiento. La imagen
+firmada ocupa 26 992 640 B, equivalentes a 6590 paginas de 4 KiB.
+La firma GA10x ocupa 4096 B. Este inventario describe las piezas
+del archivo. Las colas RPC, metadatos, lanzamiento y respuesta GSP
+se comprueban en fases posteriores.
+[Distribucion del firmware verificada en HOST](../Reports/nvidia-gsp-layout-20261120.json).
+
 La tabla ACPI IVRS del equipo tiene 208 B y describe tanto
 `0000:29:00.0` (RTX) como `0000:29:00.1` (audio) bajo la unidad
 AMD-Vi `0000:00:00.2`, con base MMIO `0xFD500000`. El inventario
@@ -556,6 +566,21 @@ AMD, falta cubrir los BDF de sus buses, validar las reservas
 de DMA de los controladores que siguen en servicio y probar
 la lectura de almacenamiento real bajo traduccion.
 [Evidencia de almacenamiento e HID con AMD-Vi en QEMU](../Reports/amdvi-ahci-qemu-20261120.json).
+
+El perfil `--amdvi-routed` agrega un dispositivo EDU detras de un
+puerto PCIe en un bus alto. Ring 0 descubre el BDF completo, valida
+la reserva UEFI y programa su entrada en una tabla AMD-Vi de 96
+paginas. El banco verifica por separado la entrada, la invalidacion
+y las transferencias a RAM. SATA y xHCI conservan sus dominios.
+En `run-rmlui-media-30dc9e18a054` EDU obtuvo `29:00.0`, el
+mismo BDF observado para la RTX en METAL. Su entrada quedo en
+`0x52000` respecto al comienzo de la tabla.
+La configuracion rechaza otras funciones con BME. La version QEMU
+del banco puede registrar solo dispositivo y funcion en el evento
+de fallo de una transferencia en otro bus. El informe conserva ese
+valor de QEMU y verifica por separado el aislamiento con testigos
+en RAM. El perfil es exclusivo de QEMU.
+[Prueba DMA en un bus PCIe alto](../Reports/amdvi-routed-qemu-20261120.json).
 
 El primer patron usa como referencia el triangulo de
 [C++ / MSVC](../tools/tests/msvc_desktop_panel.cpp). El panel actual

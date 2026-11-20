@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "evidence": "HOST: local firmware hash comparison",
+  "family": "NVIDIA GA10x",
+  "pci_id": "10de:2504",
+  "release": "615.78.08",
+  "native_target_release": "615.78.08",
+  "reference": "ULTRA-LinuX NVIDIA reference release",
+  "package_bytes": 27173108,
+  "files": {
+    "booter_load": {
+      "name": "booter_load-615.78.08.bin",
+      "bytes": 61816,
+      "sha256": "ad36e2044f76df6d0715031acb665c20cfcc70b0611748e41391b733a0d1db50"
+    },
+    "booter_unload": {
+      "name": "booter_unload-615.78.08.bin",
+      "bytes": 42616,
+      "sha256": "8f68eb5bc034009f5b874aa0aa5da81ecc1fdad8e892c16afd862d78cf34fdc2"
+    },
+    "bootloader": {
+      "name": "bootloader-615.78.08.bin",
+      "bytes": 24684,
+      "sha256": "82428f532240727e95bb3083fbaaba9b2cc7b937314323f2d546ce7245f27fad"
+    },
+    "gsp": {
+      "name": "gsp-615.78.08.bin",
+      "bytes": 27043992,
+      "sha256": "a20100cafd5a85e22b3e13188339730c6ced94bd5f654984dd2ed274ed58d584"
+    }
+  },
+  "gsp_boot_verified": false,
+  "gsp_layout": {
+    "container": "ELF64 RISC-V",
+    "internal_version": "615.78.08",
+    "fwimage_pages_4k": 6590,
+    "sections": {
+      ".fwimage": {
+        "offset": 64,
+        "bytes": 26992640,
+        "sha256": "13d2f9514bb90c899b6db598e881a1728f894f38be79fa935ad9f1ce30b0b5e0"
+      },
+      ".fwversion": {
+        "offset": 26992740,
+        "bytes": 10,
+        "sha256": "f1227d1b149790a51b995cea19e9576ceb5e05f2ecc9360b2643d81846e866b9"
+      },
+      ".fwsignature_ga10x": {
+        "offset": 27037806,
+        "bytes": 4096,
+        "sha256": "be6e5cc134c610c5abdaea22b6ebdc262e1b71bcb394a8339c41ca05720d9cba"
+      }
+    }
+  },
+  "date": "2026-11-20",
+  "platform": "GA106 A1",
+  "nvidia_render_verified": false,
+  "invalid_containers_rejected": [
+    "cabecera truncada",
+    "version interna distinta",
+    "secciones GA10x solapadas"
+  ],
+  "layout_tool_sha256": "f1a4b0c1a5aa24b0a873f9a5ed0b9ce7616a7be5268edab2dd70ad13434d7b4c"
+}
