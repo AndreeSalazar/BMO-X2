@@ -1494,7 +1494,7 @@ Construye el perfil de escritorio FAT32 y las variantes xHCI de teclado/raton pa
 Estado: QEMU. Anillo: host. Lenguaje: Python / LLVM / CASM / C++ / Rust.
 Entrada: Runs ABI y gato CASM verificados, ELF/SBEF nativo con hashes y selector explicito de perfil USB.
 Salida: EFI e INICIO con SBEF desde FAT32; perfiles QEMU con reserva DMA supervisada, etapa xHCI y reportes.
-Depende de: Interfaz RmlUi y ULTRA-J nativa (codigo), Inspeccion acotada de FAT32 (codigo), Buses, recursos y DMA (codigo), Informes USB al escritorio nativo (codigo), Presentacion GOP por CPU (codigo), GPU / NVIDIA / Inventario PCI (codigo), AMD-Vi / Inventario UEFI (codigo), AMD-Vi / Captura Ring 0 (codigo), PCI / Inventario de solicitantes DMA (codigo), Almacenamiento / Estado posterior a UEFI (codigo), GOP / Escritorio completo 1920x1080 (codigo), GPU / NVIDIA / Lectura MMIO (codigo).
+Depende de: Interfaz RmlUi y ULTRA-J nativa (codigo), Inspeccion acotada de FAT32 (codigo), Buses, recursos y DMA (codigo), Informes USB al escritorio nativo (codigo), Presentacion GOP por CPU (codigo), GPU / NVIDIA / Inventario PCI (codigo), AMD-Vi / Inventario UEFI (codigo), AMD-Vi / Captura Ring 0 (codigo), PCI / Inventario de solicitantes DMA (codigo), Almacenamiento / Estado posterior a UEFI (codigo), GOP / Escritorio nativo 1920x1080 (codigo), GPU / NVIDIA / Lectura MMIO (codigo).
 Aceptacion: FAT32: GOP 1280x800 y 1024x768, W+X rechazado, BOOTLOG/SBEF releidos. USB: teclado y raton en perfiles separados, W+X rechazado, limites de imagen comprobados y deploy.ps1 rechaza perfiles solo-QEMU.
 Pendiente: Arranque fisico del candidato y backend USB AMD completo; la supervision DMA no acredita IOMMU ni aislamiento de dispositivos hostiles.
 
@@ -1610,14 +1610,14 @@ Pendiente: Medir latencia fisica y especializar la copia en otras escalas GOP. L
 
 ## kernel/drivers/display/GOP/full_hd.inc
 
-Presenta una vista RmlUi de 1280x720 en todo el modo GOP 1920x1080 mediante escala 3:2 por CPU.
+Publica en GOP cada pixel producido por RmlUi y el raster de Ring 3 a 1920x1080.
 
 Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: Modo GOP exacto 1920x1080, superficie XRGB y regiones de puntero o franja de estado.
-Salida: Cuadro de 2073600 pixeles y regiones escaladas, con retorno al presentador base en otros modos.
+Salida: Cuadro de 2073600 pixeles y regiones directas de puntero y bloqueos, con retorno al presentador base en otros modos.
 Depende de: contrato propio sin dependencias en este catalogo.
-Aceptacion: QEMU coteja todos los pixeles del cuadro, restaura la region anterior del cursor y verifica el modo base.
-Pendiente: Confirmar la cobertura Full HD en METAL. El presentador NVIDIA acelerado requiere un backend propio.
+Aceptacion: QEMU coteja la superficie nativa con GOP, detecta detalle ausente en el escalado anterior y verifica cursor y modo base.
+Pendiente: Confirmar la nitidez del raster nativo en METAL. El presentador NVIDIA acelerado requiere un backend propio.
 
 ## kernel/drivers/GPU/NVIDIA/pci_probe.inc
 

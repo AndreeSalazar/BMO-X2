@@ -25,6 +25,7 @@ $amdviPost=Test-Path -LiteralPath (Join-Path $runPath 'amdvi-post-probe.txt') -P
 $dmaCensus=Test-Path -LiteralPath (Join-Path $runPath 'dma-census-probe.txt') -PathType Leaf
 $storageState=Test-Path -LiteralPath (Join-Path $runPath 'storage-state.txt') -PathType Leaf
 $fullHd=Test-Path -LiteralPath (Join-Path $runPath 'full-hd.txt') -PathType Leaf
+$fullHdNative=$fullHd -and (Get-Content -LiteralPath (Join-Path $runPath 'full-hd.txt') -Raw).Trim() -eq 'cpu-gop-native-1920x1080'
 if ($amdviRun -ne [bool]$proof.amdvi_efi_probe -or ($amdviRun -and -not $gpuRun)) {
     throw 'La sonda AMD-Vi requiere el perfil NVIDIA y su manifiesto.'
 }
@@ -39,6 +40,9 @@ if ($storageState -ne [bool]$proof.storage_state -or ($storageState -and -not $d
 }
 if ($fullHd -ne [bool]$proof.full_hd -or ($fullHd -and -not $storageState)) {
     throw 'El escritorio Full HD requiere su perfil y su manifiesto.'
+}
+if ($fullHdNative -ne [bool]$proof.full_hd_native -or ($fullHdNative -and -not $normal.FullHdNativeRasterVerified)) {
+    throw 'Falta comprobar el raster directo a 1920x1080.'
 }
 if ($amdviPost) {
     $missing=$proof.Cases | Where-Object { $_.Case -eq 'amdvi-missing' } | Select-Object -First 1
@@ -159,6 +163,7 @@ $record=[ordered]@{Schema=1;Evidence='HOST copy after QEMU FAT32 boot';Run=$proo
     DmaCensus=$dmaCensus;
     StorageState=$storageState;
     FullHd=$fullHd;
+    FullHdNative=$fullHdNative;
     BootFile=('\'+$bootFile.Replace('/','\'));ReportFile=('\'+$dataFolder.Replace('/','\')+'\'+$reportName);
     Note='USB HID fisico sigue pendiente; no cambia NVRAM ni archivos ajenos al candidato.'}
 $json=$record | ConvertTo-Json -Depth 8

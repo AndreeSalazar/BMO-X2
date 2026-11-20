@@ -9,9 +9,9 @@ El arranque anterior se conserva para esas funciones.
 
 - QEMU arranca el gato compacto CASM y lee el SBEF desde FAT32 mediante
   UEFI. No se inyecta un modulo con `-device loader`.
-- Antes de ExitBootServices se reserva el rango privado de usuario de
-  16 MiB en 04000000h, con propiedad registrada. El cargador comprueba
-  esa reserva y el mapa antes de escribir alli; no usa RAM supuesta libre.
+- Antes de ExitBootServices se reserva el rango privado de usuario en
+  04000000h, con 16 MiB en el perfil base y 18 MiB en Full HD nativo.
+  El cargador comprueba esa reserva y el mapa antes de escribir alli.
 - El lector tiene un perfil explicito de hasta 2 MiB. El limite de
   16,512 bytes del escritorio anterior no se amplia silenciosamente.
 - El archivo INICIO.X86 sigue cabiendo en la pagina de 4 KiB. Se utiliza
@@ -19,19 +19,19 @@ El arranque anterior se conserva para esas funciones.
 - DIRECTOR decide foco, espacios, movimiento y cierre. La superficie
   1x1 que usa su adaptador es solo un marcador de politica: no comparte
   como referencia Rust el framebuffer mutable propiedad de C++.
-- El presentador acepta la superficie logica 1280x800. En GOP menores
+- El presentador base acepta la superficie logica 1280x800. En GOP menores
   usa una vista 640x400; en los mayores usa escala entera y centrado.
   QEMU verifica los pixeles del camino normal y del GOP 1024x768.
 - Se prueban Enter, clic PS/2, espacios, cierre, reapertura y rechazo
   W+X antes de copiar codigo. Se vuelve a leer el BOOTLOG de la imagen
   FAT32 y se compara el SBEF del disco con el ejecutable esperado.
 
-El heap sigue acotado a 4 MiB y el framebuffer ocupa 4,096,000 bytes.
-El candidato mide 1,845,846 bytes de SBEF; el pico medido de su heap es
+El heap sigue acotado a 4 MiB. En el candidato base, el framebuffer ocupa
+4,096,000 bytes y el SBEF mide 1,845,846 bytes. El pico medido de su heap es
 3,050,544 bytes. Las pruebas y huellas quedan conservadas en
 [la evidencia del candidato](../Ultra-J/evidence/rmlui-desktop-fat32.json).
-El mapeo privado de 16 MiB incluye la pila. No equivale al peso total
-del nano-core ni demuestra que todo BMO-X2 consuma 2 KiB.
+El mapeo privado incluye la pila del escritorio. El nano-core lleva
+su propia contabilidad de memoria.
 
 ## Prueba fisica preparada
 
@@ -607,17 +607,34 @@ de comandos SATA pendientes por si sola no confirma la parada.
 
 El mismo registro METAL muestra un modo GOP de 1920x1080. El
 perfil anterior presentaba una superficie centrada de 1280x800.
-El candidato `--full-hd` adapta RmlUi a 1280x720 y presenta
-en proporcion 3:2 sobre los 1920x1080 completos, con dibujo por
-CPU. El escalador aplica la misma regla a cuadros completos,
-puntero y franja de bloqueos, incluidos los origenes impares.
-Para otros modos se conserva el presentador anterior.
+La primera version de `--full-hd` adapto RmlUi a 1280x720 y presento
+en proporcion 3:2 sobre los 1920x1080 completos mediante CPU. El
+escalador aplicaba la misma regla a cuadros completos, puntero y
+franja de bloqueos. Para otros modos conservo el presentador base.
 El candidato `run-rmlui-media-6202354d7e32` paso los tres casos de QEMU.
 La prueba comparo los 2073600 pixeles de salida y verifico las regiones
 del puntero y los bloqueos sin rasterizar otro cuadro. Se desplego en
 el perfil NVIDIA de `A:` con hashes verificados y respaldo de NVIDIA.EFI
 y DESKTOP.SBF. El indicador `CPU / GOP 1080p` identifica este modo.
 [Presentacion de Full HD y retornos de modo en QEMU](../Reports/gop-full-hd-qemu-20261120.json).
+
+El usuario confirmo en METAL que el perfil anterior llena la pantalla y
+observo bordes y texto poco nitidos. El nuevo `--full-hd` compone en Ring 3
+a 1920x1080. RmlUi aplica la densidad de 1.5 a las medidas y FreeType
+genera los glifos a su tamano final. GOP copia una vez cada pixel de
+la superficie. Mantiene cajas de 12x17 para el puntero y 120 filas para
+los indicadores. Fuera del modo exacto usa el presentador base.
+El framebuffer XRGB ocupa 8294400 B. El perfil reserva 18 MiB de RAM
+para la UI, con 12 MiB de datos y 2 MiB de pila, manteniendo los limites
+RX/R y el rango DMA de xHCI separado. El dibujo por CPU sigue siendo el
+respaldo para el futuro presentador NVIDIA.
+El candidato `run-rmlui-media-a01f0170ccfa` paso tres casos de QEMU.
+El banco cotejo los 2073600 pixeles, el detalle del titulo, el puntero,
+los bloqueos, los atajos y los paneles F2/F3. Se verificaron los tres
+archivos en FAT32 y sus respaldos. El indicador visible es
+`CPU / 1080p nativo`. Falta comprobar su nitidez en el equipo fisico.
+[Evidencia del raster nativo](../Reports/gop-native-full-hd-qemu-20261120.json).
+[Densidad en RmlUi](https://mikke89.github.io/RmlUiDoc/pages/rcss/syntax.html#density-independent-pixel-dp).
 
 El perfil QEMU `--amdvi-storage` agrega un AHCI virtual en un
 tercer dominio. Ring 0 instala su tabla de traduccion. HOST
@@ -748,7 +765,7 @@ Para el candidato con inventario PCI, agregar `--dma-census` a las dos
 ordenes del perfil `--amdvi-post`.
 Para agregar la lectura AHCI/NVMe, pasar ademas `--storage-state` a
 las dos ordenes.
-Para llenar el modo GOP 1920x1080, pasar tambien `--full-hd` a
+Para dibujar a 1920x1080 nativos en GOP, pasar tambien `--full-hd` a
 ambas ordenes.
 
 `native/deploy.ps1 -Run <RUN> -Volume A:\ -NvidiaProbe -Check` comprueba
@@ -779,7 +796,7 @@ ensayo en METAL deja `A:\BMO-X2\GPU\GPULOG.TXT`.
    el cambio requiere una observacion adicional en hardware.
 3. Empezar por el clic. QEMU ya verifica puntero y hover sin rasterizar
    el escritorio en el perfil USB dual. Un cambio de interfaz aun puede
-   rasterizar y presentar toda la superficie de 1280x800. Si domina esa
+   rasterizar y presentar toda la superficie del modo activo. Si domina esa
    fase, extender las regiones modificadas al boton y al panel con la
    capacidad de pantalla y sus comprobaciones. Si domina la espera,
    medir el despertar de entrada antes de ajustar el temporizador.

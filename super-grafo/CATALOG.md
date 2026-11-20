@@ -150,7 +150,7 @@
 | [Informes USB al escritorio nativo](../tools/desktop/rmlui/native/usb_input.rs) | qemu | 3 | Payload Ring 3 compilado y admitido por HOST: recibe informes escalares mediados y entrega cambios de teclado o raton a RmlUi/DIRECTOR mediante InputService. |
 | [xHCI USB2 con dos dispositivos](../kernel/drivers/bus/native/controller.inc) | qemu | 0 | Sonda ASM transitoria de Ring 0: descubre bancos MMIO, configura dos slots y entrega informes HID mediados al escritorio; no reemplaza la implementacion estable CASM. |
 | [Presentacion GOP por CPU](../kernel/drivers/display/GOP/gop_stage.inc) | qemu | 0 | Sonda ASM transitoria de Ring 0: el puente prepara el modulo CPU/GOP separado de xHCI. INVOKE 9 copia un cuadro e INVOKE 10 presenta regiones en escala 1. |
-| [GOP / Escritorio completo 1920x1080](../kernel/drivers/display/GOP/full_hd.inc) | qemu | 0 | Presenta una vista RmlUi de 1280x720 en todo el modo GOP 1920x1080 mediante escala 3:2 por CPU. |
+| [GOP / Escritorio nativo 1920x1080](../kernel/drivers/display/GOP/full_hd.inc) | qemu | 0 | Publica en GOP cada pixel producido por RmlUi y el raster de Ring 3 a 1920x1080. |
 | [GPU / NVIDIA / Inventario PCI](../kernel/drivers/GPU/NVIDIA/pci_probe.inc) | qemu | 0 | Sonda ASM transitoria del puente UEFI antes de ExitBootServices. Lee PCI del segmento 0 y conserva CPU/GOP como presentador. |
 | [GPU / NVIDIA / Lectura MMIO](../kernel/drivers/GPU/NVIDIA/mmio_probe.inc) | qemu | 0 | Sonda transitoria UEFI: confirma limites de BAR0 y lee la identidad interna exclusivamente en la RTX 3060 10DE:2504. |
 | [HOST / Firmware NVIDIA GA10x](../tools/host/gpu/firmware.py) | host | host | Comprueba el conjunto original de una release GSP, por longitud y huella de referencia. |

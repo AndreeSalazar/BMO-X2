@@ -61,6 +61,7 @@ amdvi_routed = amdvi_storage and (ROOT / 'amdvi-routed.txt').is_file()
 dma_census = amdvi_post and (ROOT / 'dma-census-probe.txt').is_file()
 storage_state = dma_census and (ROOT / 'storage-state.txt').is_file()
 full_hd = storage_state and (ROOT / 'full-hd.txt').is_file()
+full_hd_native = full_hd and (ROOT / 'full-hd.txt').read_text(encoding='ascii').strip() == 'cpu-gop-native-1920x1080'
 desktop_cases = ['normal', 'external-permissions']
 if args.doom_fixture and (not args.abi_probe or args.casos not in
                           (['normal'], desktop_cases, desktop_cases + (['amdvi-missing'] if amdvi_post else []))):
@@ -107,7 +108,8 @@ if args.doom_fixture:
     external_image = image_path.read_bytes()
     reuse_path = ROOT / 'abi-reuse.bin'
     reuse = (reuse_path.read_bytes(), (ROOT / 'second.sbef').read_bytes()) if reuse_path.is_file() else None
-    expected, doom = make_packet(reference, external_image, present, gate, external, engine=doom_engine, reuse=reuse)
+    expected, doom = make_packet(reference, external_image, present, gate, external, engine=doom_engine,
+                                 reuse=reuse, full_hd=full_hd_native)
     doom['toolchain_client'] = toolchain_client
     if (ROOT / 'intro.x86').is_file():
         splash = (ROOT / 'intro.x86').read_bytes()

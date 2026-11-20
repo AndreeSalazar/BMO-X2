@@ -15,7 +15,11 @@ extern size_t bmo_heap_live,bmo_heap_peak;
 extern void (*__init_array_start[])(void),(*__init_array_end[])(void);
 struct NativeState { uint64_t magic,phase,frames,clicks,accepted,triangles,heap_live,heap_peak; };
 volatile NativeState bmo_ui_state;
+#ifdef BMO_FULL_HD
+uint32_t bmo_ui_pixels[1920*1080];
+#else
 uint32_t bmo_ui_pixels[1280*800];
+#endif
 #ifdef BMO_DESKTOP_UI
 void bmo_director_init();uint64_t bmo_director_open();uint64_t bmo_director_state();uint32_t bmo_director_key(uint32_t);
 uint32_t bmo_director_locks();
@@ -187,14 +191,28 @@ extern "C" void bmo_main() {
     log("BMO UI INITIALISED\n");
     check(Rml::LoadFontFace("LatoLatin-Regular.ttf") && Rml::LoadFontFace("LatoLatin-Bold.ttf"),"fonts");
     log("BMO UI FONTS\n");
-    int desktop_height=800;
+    int desktop_width=1280,desktop_height=800;
+    int pointer_y=400;
+#ifdef BMO_DESKTOP_UI
+    int status_rows=80;
+#endif
 #ifdef BMO_FULL_HD
     const auto geometry=doom_invoke(3,3,26,512);
     const bool full_hd=uint32_t(geometry)==1920 && geometry>>32==1080;
-    if(full_hd)desktop_height=720;
+    if(full_hd) {
+        desktop_width=1920;desktop_height=1080;
+        pointer_y=600;status_rows=120;
+        check(doom_invoke(1,9,0x41000000-1920*1080*4+4,0)==257 &&
+              doom_invoke(1,10,0x41000000-1920*1080*4+4,0)==257,"1080p presentation boundary");
+    }
     log(full_hd?"GOP_FULL_HD=1\n":"GOP_FULL_HD=0\n");
 #endif
-    auto context=Rml::CreateContext("BMO-X2 native",{1280,desktop_height});check(context,"context");
+    auto context=Rml::CreateContext("BMO-X2 native",{desktop_width,desktop_height});check(context,"context");
+    renderer.width=desktop_width;renderer.height=desktop_height;
+    const size_t frame_pixels=size_t(desktop_width)*desktop_height;
+#ifdef BMO_FULL_HD
+    if(full_hd)context->SetDensityIndependentPixelRatio(1.5f);
+#endif
     auto doc=context->LoadDocument("main.rml");check(doc && !files.denied,"document");
     log("BMO UI DOCUMENT\n");
     doc->SetClass("reduced-motion",true);
@@ -202,7 +220,7 @@ extern "C" void bmo_main() {
 #ifdef BMO_FULL_HD
     if(full_hd) {
         doc->SetClass("full-hd",true);
-        doc->GetElementById("host-badge")->SetInnerRML("CPU / GOP 1080p");
+        doc->GetElementById("host-badge")->SetInnerRML("CPU / 1080p nativo");
     }
 #endif
     doc->SetClass("arrived",true);doc->SetClass("intro-ready",true);
@@ -269,7 +287,7 @@ extern "C" void bmo_main() {
 #endif
     };
 #endif
-    int pointer_x=640,pointer_y=400,packet_index=0;
+    int pointer_x=desktop_width/2,packet_index=0;
     unsigned flags=0,dx=0,held_buttons=0;
     auto cursor_color=[&]() -> uint32_t {
         for(auto* element=context->GetHoverElement();element;element=element->GetParentNode())
@@ -291,8 +309,8 @@ extern "C" void bmo_main() {
         drawn_x=pointer_x;drawn_y=pointer_y;
         drawn_color=cursor_color();
         for(int y=0;y<17 && drawn_y+y<desktop_height;++y)
-            for(int x=0;x<12 && drawn_x+x<1280;++x) {
-                auto& pixel=bmo_ui_pixels[(drawn_y+y)*1280+drawn_x+x];
+            for(int x=0;x<12 && drawn_x+x<desktop_width;++x) {
+                auto& pixel=bmo_ui_pixels[(drawn_y+y)*desktop_width+drawn_x+x];
                 under_pointer[y][x]=pixel;
                 if(pointer[y][x]!=' ')pixel=pointer[y][x]=='#'?0x0b1019:drawn_color;
             }
@@ -305,8 +323,8 @@ extern "C" void bmo_main() {
 #ifdef BMO_DESKTOP_UI
         sync_policy();
 #endif
-        renderer.pixels=bmo_ui_pixels;renderer.pixel_count=1280*800;
-        renderer.frame(context,0,desktop_height);renderer.pixels=nullptr;renderer.pixel_count=0;
+        renderer.pixels=bmo_ui_pixels;renderer.pixel_count=frame_pixels;
+        renderer.frame(context);renderer.pixels=nullptr;renderer.pixel_count=0;
 #ifdef BMO_MSVC_PANEL
         if((bmo_director_state()>>8)==2) {
             const auto position=msvc_surface->GetAbsoluteOffset(Rml::BoxArea::Content);
@@ -377,7 +395,7 @@ extern "C" void bmo_main() {
     };
     auto mouse_input=[&](int dx,int dy,unsigned buttons,unsigned mask=7,int wheel=0) {
         if(dx || dy) {
-            const int x=std::clamp(pointer_x+dx,0,1279);
+            const int x=std::clamp(pointer_x+dx,0,desktop_width-1);
             const int y=std::clamp(pointer_y+dy,0,desktop_height-1);
             motion_pending|=x!=pointer_x || y!=pointer_y;
             pointer_x=x;pointer_y=y;
@@ -551,13 +569,13 @@ extern "C" void bmo_main() {
             const auto old_position=unsigned(drawn_x)|(unsigned(drawn_y)<<16);
 #endif
             for(int y=0;y<17 && drawn_y+y<desktop_height;++y)
-                for(int x=0;x<12 && drawn_x+x<1280;++x)
-                    bmo_ui_pixels[(drawn_y+y)*1280+drawn_x+x]=under_pointer[y][x];
+                for(int x=0;x<12 && drawn_x+x<desktop_width;++x)
+                    bmo_ui_pixels[(drawn_y+y)*desktop_width+drawn_x+x]=under_pointer[y][x];
 #ifdef BMO_DESKTOP_UI
             if(redraw_locks) {
                 sync_locks();
-                renderer.pixels=bmo_ui_pixels;renderer.pixel_count=1280*800;
-                renderer.frame(context,0,80);
+                renderer.pixels=bmo_ui_pixels;renderer.pixel_count=frame_pixels;
+                renderer.frame(context,0,status_rows);
                 renderer.pixels=nullptr;renderer.pixel_count=0;
             }
 #endif

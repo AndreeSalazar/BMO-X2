@@ -9,6 +9,7 @@ BASE = 0x40000000
 END = BASE + 16 * 1024 * 1024
 MAX_IMAGE = 1024 * 1024
 MAX_REGIONS = 8
+NATIVE_UI_DATA_MIB = {'rmlui-native-v1': 10, 'rmlui-native-fhd': 12}
 MACHINE = 62
 FORMAT_VERSION = 2
 LEGACY_FORMAT_VERSION = 1
@@ -19,7 +20,7 @@ PERMISSIONS = {4: 'R', 5: 'RX', 6: 'RW'}
 
 def image_limit(profile):
     if profile == 'default': return MAX_IMAGE
-    if profile == 'rmlui-native-v1': return 2 * MAX_IMAGE
+    if profile in NATIVE_UI_DATA_MIB: return 2 * MAX_IMAGE
     raise ValueError('Unknown SBEF admission profile: '+profile)
 
 
@@ -91,9 +92,9 @@ def inspect(image, *, profile='default'):
         raise Rejection('SBEF-TRAILING-DATA', cursor, 'payload')
     if not entry_in_text:
         raise Rejection('SBEF-ENTRY', 16, 'entry')
-    if profile == 'rmlui-native-v1':
+    if profile in NATIVE_UI_DATA_MIB:
         expected = [('0x40000000', 'RX', 2*MAX_IMAGE), ('0x40200000', 'R', 2*MAX_IMAGE),
-                    ('0x40400000', 'RW', 10*MAX_IMAGE)]
+                    ('0x40400000', 'RW', NATIVE_UI_DATA_MIB[profile]*MAX_IMAGE)]
         if len(regions)!=3 or any((r['Address'],r['Permissions'])!=(a,p) or r['MappedBytes']>n
                                   for r,(a,p,n) in zip(regions,expected)):
             raise Rejection('SBEF-UI-LAYOUT', 32, 'regions')

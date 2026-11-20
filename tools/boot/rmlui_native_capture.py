@@ -100,11 +100,23 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
     run=prefix.parent.parent
     empty_usb=(run/'native-usb-empty.txt').is_file()
     gop_regions=(run/'gop-regions.txt').is_file()
+    full_hd_profile=bool(symbols.get('full_hd'))
+    uses_full_hd=full_hd_profile and case=='normal'
+    render_width,render_height=(1920,1080) if uses_full_hd else (1280,800)
+    start_x,start_y=(960,600) if uses_full_hd else (640,400)
+    surface_bytes=render_width*render_height*4
+    data_end=0x41000000 if full_hd_profile else 0x40e00000
     state,pixels=symbols['state'],symbols['pixels']
-    if not (0x40400000<=state<=0x40e00000-64 and 0x40400000<=pixels<=0x40e00000-1280*800*4):
+    if not (0x40400000<=state<=data_end-64 and 0x40400000<=pixels<=data_end-surface_bytes):
         raise ValueError('UI symbol range')
     serial=Path(str(prefix)+'-serial.log')
     def regs():return command('human-monitor-command',{'command-line':'info registers'})
+    observed=False
+    def observe_ring3():
+        nonlocal observed
+        if not observed:
+            r=regs()
+            observed='CPL=3' in r and 0x40000000<=register(r,'RIP')<0x40200000
     def until(phase,accepted=0):
         # Software float rasterization under TCG can exceed 45 s after hover
         # and click invalidation. Still require the completed presented frame.
@@ -114,6 +126,7 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
             if 'BMO UI FAIL:' in log:raise ValueError(log[-1800:]+'\n'+regs()[:600])
             words=struct.unpack('<8Q',memory(state-0x3c000000,64,'ui-state'))
             if words[0]==0x3149554f4d42 and words[1]==phase and words[4]>=accepted:return words
+            if symbols.get('desktop'):observe_ring3()
             time.sleep(.07)
         raise ValueError('Native UI phase '+str(phase)+' not reached: '+str(words)+' '+log[-1400:]+'\n'+regs()[:600])
     def freeze_frame(phase,accepted=0):
@@ -126,10 +139,10 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
         raise ValueError('Could not pause a completed native frame')
     first=freeze_frame(2)
     if not (first[2]>=1 and first[5]>0 and 0<first[6]<=first[7]<=4*1024*1024):raise ValueError('Invalid UI resource counters')
-    raw=memory(pixels-0x3c000000,1280*800*4,'ui-frame')
+    raw=memory(pixels-0x3c000000,surface_bytes,'ui-frame')
     if symbols.get('usb')=='both' or (gop_regions and symbols.get('desktop')):
-        for x,y,color in ((640,400,0x0b1019),(641,402,0xf4f8ff)):
-            if struct.unpack_from('<I',raw,(y*1280+x)*4)[0]!=color:
+        for x,y,color in ((0,0,0x0b1019),(1,2,0xf4f8ff)):
+            if struct.unpack_from('<I',raw,((start_y+y)*render_width+start_x+x)*4)[0]!=color:
                 raise ValueError('Pointer missing before first input')
     registers=regs()
     if 'CPL=0' in registers:
@@ -141,8 +154,10 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
     context=memory(context_address,0x30,'ui-context')
     if context[:8]!=b'METAL64!':raise ValueError('Native UI handoff signature')
     amdvi_proof={}
-    uses_full_hd=bool(symbols.get('full_hd')) and case=='normal'
-    if symbols.get('full_hd'):
+    if full_hd_profile:
+        pool,pages=struct.unpack('<QQ',memory(context_address+0x708,16,'native-ui-pool'))
+        if (pool,pages)!=(0x04000000,4608):
+            raise ValueError('Wrong Full HD private UI reservation')
         dimensions=struct.unpack_from('<II',context,32)
         selected=dimensions==(1920,1080)
         if selected!=uses_full_hd or f'GOP_FULL_HD={int(selected)}' not in serial.read_text(errors='replace').splitlines():
@@ -191,12 +206,12 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
     width,height,pitch,order=struct.unpack_from('<IIII',context,32)
     if not (640<=width<=4096 and 400<=height<=4096 and width<=pitch<=8192 and order in (0,1)):
         raise ValueError('Native UI framebuffer geometry')
-    scale=min(width//1280,height//800)
-    dw,dh=(1920,1080) if uses_full_hd else (1280*scale,800*scale) if scale else (640,400)
+    scale=min(width//render_width,height//render_height)
+    dw,dh=(render_width*scale,render_height*scale) if scale else (640,400)
     x,y=(width-dw)//2,(height-dh)//2
 
     def position(index):
-        return index*3//2 if uses_full_hd else index*scale if scale else index//2
+        return index*scale if scale else index//2
 
     def pixel_order(row):
         if order==1:
@@ -205,17 +220,13 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
         converted[0::4],converted[2::4]=row[2::4],row[0::4]
         return converted
 
-    def align_hd(row, start=0):
-        return b''.join(row[byte:byte+4]*(1+((start+byte//4)&1)) for byte in range(0,len(row),4))
-
     displayed=memory(fb+(y*pitch+x)*4,((dh-1)*pitch+dw)*4,'ui-presented')
     for row in range(dh):
-        sy=(row*2+1)//3 if uses_full_hd else row//scale if scale else row*2
-        expected=raw[sy*1280*4:(sy+1)*1280*4]
+        sy=row//scale if scale else row*2
+        expected=raw[sy*render_width*4:(sy+1)*render_width*4]
         if not scale:expected=b''.join(expected[i:i+4] for i in range(0,len(expected),8))
         expected=pixel_order(expected)
-        if uses_full_hd:expected=align_hd(expected)
-        elif scale>1:expected=b''.join(expected[i:i+4]*scale for i in range(0,len(expected),4))
+        if scale>1:expected=b''.join(expected[i:i+4]*scale for i in range(0,len(expected),4))
         if displayed[row*pitch*4:row*pitch*4+len(expected)]!=expected:
             raise ValueError('Native UI presentation differs at row '+str(row))
     (Path(str(prefix)+'-ui-xrgb.bin')).write_bytes(raw)
@@ -232,17 +243,25 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
             UsbEmptyPortsRejected=True,UsbControllerStopped=True,UsbBusMasterRevoked=True,
             UsbMmioRevoked=True,UsbBothDevicesVerified=False,PhysicalUsbVerified=False,
             PresentedPixelsVerified=dw*dh,FrameSHA256=hashlib.sha256(raw).hexdigest())
-    display_proof=dict(FullHdGopVerified=True, DesktopLogicalWidth=1280, DesktopLogicalHeight=720) if uses_full_hd else {}
+    display_proof={}
+    if uses_full_hd:
+        # The previous scaler duplicated the second pixel of every three.
+        # Check the title band, outside the independently drawn mouse cursor.
+        title=raw[200*render_width*4:300*render_width*4]
+        if not any(title[i+4:i+8]!=title[i+8:i+12] for i in range(0,len(title),12)):
+            raise ValueError('Full HD title still has the previous scaled pixel pattern')
+        display_proof=dict(FullHdGopVerified=True,FullHdNativeRasterVerified=True,
+                           DesktopRasterWidth=render_width,DesktopRasterHeight=render_height)
     if symbols.get('usb')=='both' or (gop_regions and symbols.get('desktop')):
         cursor_counter=context_address+0x1a7e0
         start=struct.unpack('<Q',memory(cursor_counter,8,'cursor-copy-baseline'))[0]
         delta=25 if uses_full_hd else 24
-        for delta,target in ((delta,640+delta),(-delta,640)):
-            command('input-send-event',{'events':[{'type':'rel','data':{'axis':'x','value':delta}}]})
+        for step,target in ((delta,start_x+delta),(-delta,start_x)):
+            command('input-send-event',{'events':[{'type':'rel','data':{'axis':'x','value':step}}]})
             deadline=time.monotonic()+30
             # The white pixel is sampled by both the full and half-scale paths.
             px=target+2
-            py=404
+            py=start_y+4
             gx=x+position(px)
             gy=y+position(py)
             while time.monotonic()<deadline:
@@ -256,18 +275,15 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
             words=struct.unpack('<8Q',memory(state-0x3c000000,64,'fast-pointer-state'))
             if words[2]!=first[2]:raise ValueError('Pointer movement triggered a full RmlUi render')
         copied=struct.unpack('<Q',memory(cursor_counter,8,'cursor-copy-total'))[0]-start
-        region_pixels=(position(652)-position(640))*(position(417)-position(400))
-        if scale==1 and copied!=4*region_pixels:raise ValueError('Wrong GOP cursor-region pixel count')
+        if scale==1 and copied!=4*12*17:raise ValueError('Wrong GOP cursor-region pixel count')
         if scale!=1 and copied:raise ValueError('Cursor region accepted an unsupported scale')
         if scale==1:
-            old_x,old_y=665 if uses_full_hd else 664,400
+            old_x,old_y=start_x+delta,start_y
             for row in range(position(old_y),position(old_y+17)):
                 span=(position(old_x+12)-position(old_x))*4
                 actual=memory(fb+((y+row)*pitch+x+position(old_x))*4,span,'cursor-background')
-                sy=(row*2+1)//3 if uses_full_hd else row
-                offset=(sy*1280+old_x)*4
+                offset=(row*render_width+old_x)*4
                 expected=pixel_order(raw[offset:offset+48])
-                if uses_full_hd:expected=align_hd(expected,old_x)
                 if actual!=expected:raise ValueError('Old cursor box did not restore the background')
         display_proof.update(PointerBeforeInputVerified=True,PointerMoveWithoutRasterVerified=True,
                              PointerRegionPixelsForTwoMoves=copied)
@@ -279,7 +295,7 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
     command('send-key',{'keys':[{'type':'qcode','data':'ret'}],'hold-time':60})
     after=freeze_frame(3)
     if after[3:5]!=(1,1):raise ValueError('Native ULTRA-J action did not execute once')
-    raw_after=memory(pixels-0x3c000000,1280*800*4,'ui-action-frame')
+    raw_after=memory(pixels-0x3c000000,surface_bytes,'ui-action-frame')
     if hashlib.sha256(raw_after).hexdigest()==before:raise ValueError('Native action did not change the rendered frame')
     command('screendump',{'filename':str(prefix)+'-ui-action.ppm'})
     command('cont')
@@ -292,10 +308,16 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
                 if check():return
                 time.sleep(.02)
             raise ValueError(message)
-        mouse_event('rel',axis='y',value=127)
+        target_y=790 if uses_full_hd else 527
+        # USB boot mouse reports carry signed 8-bit deltas.
+        while target_y-start_y>127:
+            mouse_event('rel',axis='y',value=127)
+            start_y+=127
+            time.sleep(.12)
+        mouse_event('rel',axis='y',value=target_y-start_y)
         mouse_edges=symbols.get('mouse_edges')
         if mouse_edges:
-            px,py=642,531
+            px,py=start_x+2,target_y+4
             gx=x+position(px)
             gy=y+position(py)
             hover_color=0xa2f4e6 if order==1 else 0xe6f4a2
@@ -321,19 +343,33 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
         if after[3:5]!=(2,2):raise ValueError('Desktop mouse activation did not execute once')
         director=symbols['director']
         if not 0x40400000<=director<=0x40e00000-8:raise ValueError('DIRECTOR symbol')
-        observed=False
         def policy(expected):
-            nonlocal observed
             deadline=time.monotonic()+40
             while time.monotonic()<deadline:
-                r=regs()
-                observed|='CPL=3' in r and 0x40000000<=register(r,'RIP')<0x40200000
+                observe_ring3()
                 state=struct.unpack('<Q',memory(director-0x3c000000,8,'director-state'))[0]
                 if state==expected:return
                 time.sleep(.03)
-            raise ValueError('DIRECTOR did not reach '+hex(expected))
+            raise ValueError(f'DIRECTOR did not reach {expected:#x} after {last_keys}; last state {state:#x}')
+        last_keys=()
         def key(*keys):
-            command('send-key',{'keys':[{'type':'qcode','data':k} for k in keys],'hold-time':80})
+            nonlocal last_keys
+            last_keys=keys
+            if not uses_full_hd or symbols.get('usb')!='both' or keys==('f12',):
+                command('send-key',{'keys':[{'type':'qcode','data':k} for k in keys],'hold-time':80})
+                return
+            # A full CPU render under TCG can delay HID polling. Have Ring 3
+            # acknowledge each edge before pressing or releasing another key.
+            keyboard_address=symbols['usb_keyboard_reports']-0x3c000000
+            def reports():
+                observe_ring3()
+                return struct.unpack('<Q',memory(keyboard_address,8,'keyboard-edge-count'))[0]
+            for down,sequence in ((True,keys),(False,reversed(keys))):
+                for name in sequence:
+                    before=reports()
+                    command('input-send-event',{'events':[{'type':'key','data':{
+                        'key':{'type':'qcode','data':name},'down':down}}]})
+                    wait_input(lambda: reports()>before, f'Missing USB edge for {name} down={down}', 75)
         policy(0x101)
         focus_address=symbols.get('keyboard_focus')
         if focus_address:
@@ -401,7 +437,8 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
             locks_verified=True
             frames_after=struct.unpack('<Q',memory(state-0x3c000000+16,8,'lock-frame-count'))[0]
             if frames_after!=frame_count:raise ValueError('Lock keys rendered the full desktop')
-            if scale==1 and region_pixels()-pixels_before!=6*position(1280)*position(80):
+            status_rows=120 if uses_full_hd else 80
+            if scale==1 and region_pixels()-pixels_before!=6*render_width*status_rows:
                 raise ValueError('Lock indicators copied outside the GOP status strip')
             lock_strip_verified=True
         if not observed:raise ValueError('No DIRECTOR/RmlUi execution observed in CPL3')

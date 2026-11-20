@@ -40,7 +40,7 @@ def main():
     p.add_argument('--amdvi-routed', action='store_true', help='Exercise a high PCI requester ID behind a PCIe root port')
     p.add_argument('--dma-census', action='store_true', help='Capture PCI bus masters after USB startup')
     p.add_argument('--storage-state', action='store_true', help='Observe AHCI and NVMe state immediately after UEFI handoff')
-    p.add_argument('--full-hd', action='store_true', help='Fill an exact 1920x1080 GOP mode with the 16:9 desktop')
+    p.add_argument('--full-hd', action='store_true', help='Render the desktop at native 1920x1080 for GOP')
     args=p.parse_args()
     if args.usb_empty_ports and args.usb!='both':p.error('--usb-empty-ports requires --usb both')
     if args.amdvi_probe and not args.nvidia_probe:p.error('--amdvi-probe requires --nvidia-probe')
@@ -83,7 +83,7 @@ def main():
     if args.storage_state:
         (run/'storage-state.txt').write_text('post-ebs-read-only\n', encoding='ascii')
     if args.full_hd:
-        (run/'full-hd.txt').write_text('cpu-gop-1920x1080\n', encoding='ascii')
+        (run/'full-hd.txt').write_text('cpu-gop-native-1920x1080\n', encoding='ascii')
     if args.amdvi_coexist:
         (run/'amdvi-coexist-probe.txt').write_text('qemu-only-edu-xhci\n', encoding='ascii')
     if args.amdvi_guest_dma:
@@ -109,7 +109,7 @@ def main():
         if args.dma_census and name=='gate':flags+=['-DBMO_DMA_CENSUS']
         if args.amdvi_guest_dma and name=='gate':flags+=['-DBMO_AMDVI_GUEST_DMA']
         if args.amdvi_storage and name in ('reader','gate'):flags+=['-DBMO_AMDVI_STORAGE']
-        if args.full_hd and name=='reader':flags+=['-DBMO_FULL_HD']
+        if args.full_hd and name in ('allocator','reader','loader'):flags+=['-DBMO_FULL_HD']
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf','-DRMLUI_MEDIA','-DRMLUI_NATIVE',
             '-DRMLUI_GOP_REGIONS','-DDOOM_ENGINE','-DDESKTOP_DOOM',*flags,
             '-c',ROOT/source,'-o',run/(name+'.o')],'compile-media-'+name)
@@ -118,7 +118,7 @@ def main():
         command([llvm/'llvm-objcopy.exe','-O','binary','--only-section=.text',run/(name+'.o'),run/(name+'.bin')],'extract-media-'+name)
     sbef=(app/'rmlui.sbef').read_bytes();reference=(abi/'INICIO.X86').read_bytes()
     gate=(run/'gate.bin').read_bytes();loader=(run/'loader.bin').read_bytes()
-    packet,_=make_packet(reference,sbef,session_gate=gate,external=loader,engine=True)
+    packet,_=make_packet(reference,sbef,session_gate=gate,external=loader,engine=True,full_hd=args.full_hd)
     intro=(splash/'INICIO.X86').read_bytes();packet,_=prepend_intro(packet,intro)
     image=bridge_variant(native_ui=True,nvidia_probe=args.nvidia_probe)
     reader=(run/'reader.bin').read_bytes();allocator=(run/'allocator.bin').read_bytes()
@@ -133,6 +133,7 @@ def main():
     image.extend(reader.ljust(4096,b'\0'))
     if args.usb:
         flags=['-DRMLUI_USB']+(['-DXHCI_NATIVE_DUAL'] if args.usb=='both' else ['-DXHCI_COMMAND_PROBE'])+(['-DXHCI_MOUSE_PROBE'] if args.usb=='mouse' else [])
+        if args.full_hd:flags+=['-DBMO_FULL_HD']
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf','-x','assembler-with-cpp',*flags,'-c',
             ROOT/'kernel/drivers/bus/xhci_inventory.inc','-o',run/'xhci.o'],'compile-native-xhci')
         command([llvm/'llvm-objcopy.exe','-O','binary','--only-section=.text',run/'xhci.o',run/'xhci.bin'],'extract-native-xhci')
@@ -194,7 +195,7 @@ def main():
     if args.storage_state and (not all(report['Cases'][i].get('StorageStateVerified') for i in (0,2)) or
                                not report['Cases'][0].get('StoragePanelVerified')):
         raise ValueError('Missing storage state or its Ring 3 panel evidence')
-    if args.full_hd and (not report['Cases'][0].get('FullHdGopVerified') or
+    if args.full_hd and (not report['Cases'][0].get('FullHdNativeRasterVerified') or
                          not report['Cases'][2].get('FullHdFallbackVerified')):
         raise ValueError('Missing 1080p scanout or desktop fallback evidence')
     if args.amdvi_coexist and not report['Cases'][0].get('AmdViCoexistVerified'):
@@ -224,6 +225,7 @@ def main():
         dma_census=args.dma_census,
         storage_state=args.storage_state,
         full_hd=args.full_hd,
+        full_hd_native=args.full_hd,
         amdvi_coexist=args.amdvi_coexist,
         amdvi_guest_dma=args.amdvi_guest_dma,
         amdvi_storage=args.amdvi_storage,

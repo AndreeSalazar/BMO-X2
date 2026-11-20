@@ -74,17 +74,19 @@ gop_cursor_scale_one:
     mov $12, %ecx
     cmp %ecx, %r10d
     cmova %ecx, %r10d
+    mov $1280, %r9d
     jmp gop_region_copy
 gop_status_strip:
     mov $80, %edx
     mov $1280, %r10d
+    mov %r10d, %r9d
 gop_region_copy:
     mov %edx, %eax
     imul %r10d, %eax
     add %rax, %gs:0x7e0
-    mov $1280, %r9d
     sub %r10d, %r9d
     sub %r10d, %r8d
+.Lgop_rows:
     mov %cr3, %r11
     mov %gs:0x318, %rax
     mov %rax, %cr3

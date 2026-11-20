@@ -16,6 +16,7 @@ SECTIONS {
     ASSERT(. <= 0x40400000, "UI resources exceed R range")
     .data 0x40400000 : { *(.data .data.*) *(.got .got.*) } :data
     .bss : ALIGN(64) { *(.bss .bss.*) *(COMMON) } :data
-    ASSERT(. <= 0x40e00000, "UI heap/framebuffer overlaps stack")
+    PROVIDE(bmo_ui_data_end = 0x40e00000);
+    ASSERT(. <= bmo_ui_data_end, "UI heap/framebuffer overlaps stack")
     /DISCARD/ : { *(.eh_frame*) *(.comment) *(.note*) }
 }

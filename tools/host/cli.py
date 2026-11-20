@@ -50,7 +50,7 @@ def main():
     commands.add_parser('inspect').add_argument('input', type=Path)
     plan = commands.add_parser('plan', help='Emit the validated per-process mapping plan')
     plan.add_argument('input', type=Path)
-    plan.add_argument('--profile', choices=['default', 'rmlui-native-v1'], default='default')
+    plan.add_argument('--profile', choices=['default', 'rmlui-native-v1', 'rmlui-native-fhd'], default='default')
     compare = commands.add_parser('compare', help='Compare the size of two validated SBEF builds')
     compare.add_argument('input', type=Path, metavar='baseline')
     compare.add_argument('candidate', type=Path)

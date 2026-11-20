@@ -3,6 +3,7 @@ import json
 import argparse
 import hashlib
 import os
+import re
 from pathlib import Path
 import subprocess
 import struct
@@ -125,8 +126,15 @@ def main():
         text=text.replace('<div id="bottom">', '<div id="msvc-panel" style="display:none;">'
             '<h2>Hola ventana</h2><p class="description">C++ / MSVC</p>'
             '<div id="msvc-surface"></div></div><div id="bottom">')
+    style=assets/'style.rcss'
+    if args.full_hd:
+        # Resolve the existing design units at the output density before layout and font rasterization.
+        px=r'(?<=\d)px\b'
+        text=re.sub(px,'dp',text)
+        style=out/'style.rcss'
+        write_if_changed(style,re.sub(px,'dp',(assets/'style.rcss').read_text()))
     write_if_changed(out/'main.rml',text)
-    paths=[out/'main.rml',assets/'style.rcss',DEPS/'RmlUi-6.3/Samples/assets/LatoLatin-Regular.ttf',DEPS/'RmlUi-6.3/Samples/assets/LatoLatin-Bold.ttf']
+    paths=[out/'main.rml',style,DEPS/'RmlUi-6.3/Samples/assets/LatoLatin-Regular.ttf',DEPS/'RmlUi-6.3/Samples/assets/LatoLatin-Bold.ttf']
     asm='.section .rodata\n'
     for i,p in enumerate(paths):
         asm+=f'.globl resource_{i},resource_{i}_end\nresource_{i}:\n.incbin "{p.as_posix()}"\nresource_{i}_end:\n'
@@ -151,7 +159,8 @@ def main():
     # C++ uses the SysV SSE floating-point ABI. Resolve its libm symbols before
     # Rust's soft-float compiler-builtins archive, which also exports weak libm names.
     archives=[OUT/'engine/librmlui.a',OUT/'engine/freetype/libfreetype.a',OUT/'runtime/lib/libc++.a',OUT/'libc/libbmo-compute.a',out/'libraster.a']
-    command([llvm/'ld.lld.exe','-static','--gc-sections','--why-extract='+str(out/'extract.tsv'),'-T',here/'guest.ld',
+    layout=['--defsym=bmo_ui_data_end=0x41000000'] if args.full_hd else []
+    command([llvm/'ld.lld.exe','-static','--gc-sections','--why-extract='+str(out/'extract.tsv'),*layout,'-T',here/'guest.ld',
         *[out/(x+'.o') for x in ('portal','guest','assets','action','arena','services','new')],
         '--start-group',*archives,'--end-group','-o',out/'rmlui.elf'],'link-native-ui')
     check_math_providers((out/'extract.tsv').read_text())
@@ -161,9 +170,10 @@ def main():
     sys.path.insert(0,str(ROOT/'tools'))
     from host.importers.elf import pack_elf
     from host.sbef.format import inspect
-    sbef=pack_elf((out/'rmlui.elf').read_bytes(),abi=1,profile='rmlui-native-v1')
+    profile='rmlui-native-fhd' if args.full_hd else 'rmlui-native-v1'
+    sbef=pack_elf((out/'rmlui.elf').read_bytes(),abi=1,profile=profile)
     (out/'rmlui.sbef').write_bytes(sbef)
-    report=inspect(sbef,profile='rmlui-native-v1')
+    report=inspect(sbef,profile=profile)
     (out/'admission.json').write_text(json.dumps(report,indent=2)+'\n',encoding='ascii')
     symbols=subprocess.check_output([str(llvm/'llvm-nm.exe'),'--defined-only','--format=posix',str(out/'rmlui.elf')],text=True)
     symbols={s[0]:int(s[2],16) for line in symbols.splitlines() if len(s:=line.split())>=3}

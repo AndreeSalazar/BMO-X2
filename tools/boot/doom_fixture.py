@@ -23,7 +23,7 @@ def desktop_gate_budget(gate):
 
 
 def make_packet(reference, image, desktop_present=None, session_gate=None, external=None, *, engine=False,
-                reuse=None):
+                reuse=None, full_hd=False):
     if external is not None:
         if session_gate is None:
             raise ValueError('El cargador externo requiere el perfil de sesion')
@@ -104,7 +104,8 @@ def make_packet(reference, image, desktop_present=None, session_gate=None, exter
         stack = 24 + 754
         if packet[stack:stack+5] != bytes.fromhex('6800200040'):
             raise ValueError('Cambio la pila de usuario')
-        packet[stack:stack+5] = bytes.fromhex('6800000041' if engine else '6800300040')
+        stack_top = (0x41200000 if full_hd else 0x41000000) if engine else 0x40003000
+        packet[stack:stack+5] = b'\x68' + struct.pack('<I',stack_top)
         at = 24 + 260
         if packet[at:at+7] != bytes.fromhex('488d3524030000'):
             raise ValueError('Cambio la entrada del validador SBEF')

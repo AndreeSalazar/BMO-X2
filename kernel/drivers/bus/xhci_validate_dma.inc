@@ -28,9 +28,10 @@ dma_check_ui:
 #endif
 #ifdef RMLUI_USB
     # The native UI backing range is separately reserved and never DMA storage.
-    cmp $0x05000000, %r8
+#include "../../loader/native_ui_layout.inc"
+    cmp $NATIVE_UI_POOL_END, %r8
     jae dma_check_native_staging
-    cmp $0x04000000, %rax
+    cmp $NATIVE_UI_PHYSICAL, %rax
     ja dma_invalid
 dma_check_native_staging:
 #endif

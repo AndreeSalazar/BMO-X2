@@ -1,4 +1,5 @@
 .text
+#include "native_ui_layout.inc"
 # Private 256 MiB QEMU profile. Validate the complete module before mapping.
 .globl doom_engine_loader
 doom_engine_loader:
@@ -9,9 +10,9 @@ doom_engine_loader:
     movabs $0x2131565345524955, %rax
     cmp %rax, 0x700(%rbp)
     jne reject
-    cmpq $0x04000000, 0x708(%rbp)
+    cmpq $NATIVE_UI_PHYSICAL, 0x708(%rbp)
     jne reject
-    cmpq $4096, 0x710(%rbp)
+    cmpq $NATIVE_UI_POOL_PAGES, 0x710(%rbp)
     jne reject
 #else
     mov $0x2000000, %esi
@@ -76,7 +77,7 @@ check_region:
     cmp $0x40200000, %r8d
     je check_flags
     mov $6, %eax
-    mov $0xa00000, %r9d
+    mov $NATIVE_UI_DATA_BYTES, %r9d
 check_flags:
     cmp %eax, 20(%rdi)
     jne reject_permissions
@@ -119,9 +120,9 @@ find_range:
 #endif
     jne next_descriptor
     mov 8(%rdi), %rax
-    cmp $0x4000000, %rax
+    cmp $NATIVE_UI_PHYSICAL, %rax
     ja next_descriptor
-    mov $0x5000000, %r9d
+    mov $NATIVE_UI_POOL_END, %r9d
     sub %rax, %r9
     add $4095, %r9
     shr $12, %r9
@@ -133,9 +134,9 @@ next_descriptor:
     jmp find_range
 
 copy_image:
-    mov $0x4000000, %edi
+    mov $NATIVE_UI_PHYSICAL, %edi
     xor %eax, %eax
-    mov $0x200000, %ecx
+    mov $(NATIVE_UI_POOL_BYTES / 8), %ecx
     rep stosq
     lea 32(%rsi), %r8
     mov %rsi, %r9
@@ -158,7 +159,7 @@ copy_region:
     bts $63, %rax
     stosq
     or $2, %al
-    mov $6, %ecx
+    mov $((NATIVE_UI_DATA_BYTES + NATIVE_UI_STACK_BYTES) / 0x200000), %ecx
 map_writable:
     add $0x200000, %rax
     stosq

@@ -2512,7 +2512,7 @@
     },
     {
       "id": "rmlui-gop-full-hd",
-      "titulo": "GOP / Escritorio completo 1920x1080",
+      "titulo": "GOP / Escritorio nativo 1920x1080",
       "ruta": "kernel/drivers/display/GOP/full_hd.inc",
       "estado": "qemu",
       "anillo": "0",
@@ -2522,11 +2522,11 @@
         10200,
         4050
       ],
-      "que": "Presenta una vista RmlUi de 1280x720 en todo el modo GOP 1920x1080 mediante escala 3:2 por CPU.",
+      "que": "Publica en GOP cada pixel producido por RmlUi y el raster de Ring 3 a 1920x1080.",
       "entrada": "Modo GOP exacto 1920x1080, superficie XRGB y regiones de puntero o franja de estado.",
-      "salida": "Cuadro de 2073600 pixeles y regiones escaladas, con retorno al presentador base en otros modos.",
-      "aceptacion": "QEMU coteja todos los pixeles del cuadro, restaura la region anterior del cursor y verifica el modo base.",
-      "falta": "Confirmar la cobertura Full HD en METAL. El presentador NVIDIA acelerado requiere un backend propio."
+      "salida": "Cuadro de 2073600 pixeles y regiones directas de puntero y bloqueos, con retorno al presentador base en otros modos.",
+      "aceptacion": "QEMU coteja la superficie nativa con GOP, detecta detalle ausente en el escalado anterior y verifica cursor y modo base.",
+      "falta": "Confirmar la nitidez del raster nativo en METAL. El presentador NVIDIA acelerado requiere un backend propio."
     },
     {
       "id": "nvidia-pci-probe",

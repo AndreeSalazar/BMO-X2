@@ -26,6 +26,7 @@ class Renderer : public Rml::RenderInterface {
 public:
     uint32_t* pixels=nullptr;
     size_t pixel_count=0;
+    int width=W, height=H;
     size_t triangles = 0, peak_geometry = 0, peak_texture = 0, geometry_bytes = 0, texture_bytes = 0;
     size_t texture_equivalent_bytes=0, peak_texture_equivalent_bytes=0;
     std::unordered_set<Geometry*> geometries;
@@ -95,9 +96,9 @@ public:
         if(transformed) return;
         auto g=reinterpret_cast<Geometry*>(handle); auto t=reinterpret_cast<Texture*>(texture);
         if(!geometries.count(g) || (t && !textures.count(t))) fail("render handle");
-        BmoUiRect bounds{0,uint32_t(first_row),W,uint32_t(end_row)};
-        if(clip) bounds={uint32_t(std::clamp(region.Left(),0,W)),uint32_t(std::clamp(region.Top(),0,H)),
-                         uint32_t(std::clamp(region.Right(),0,W)),uint32_t(std::clamp(region.Bottom(),0,H))};
+        BmoUiRect bounds{0,uint32_t(first_row),uint32_t(width),uint32_t(end_row)};
+        if(clip) bounds={uint32_t(std::clamp(region.Left(),0,width)),uint32_t(std::clamp(region.Top(),0,height)),
+                         uint32_t(std::clamp(region.Right(),0,width)),uint32_t(std::clamp(region.Bottom(),0,height))};
         bounds.top=std::max(bounds.top,uint32_t(first_row));
         bounds.bottom=std::min(bounds.bottom,uint32_t(end_row));
         if(bounds.top>=bounds.bottom)return;
@@ -109,17 +110,18 @@ public:
                     float(v.colour.red),float(v.colour.green),float(v.colour.blue),float(v.colour.alpha),v.tex_coord.x,v.tex_coord.y};
             }
             auto raster=t && t->alpha_only?bmo_ui_triangle_mask:bmo_ui_triangle;
-            if(raster(pixels,pixel_count,W,H,vertices,t?t->texels.data():nullptr,
+            if(raster(pixels,pixel_count,width,height,vertices,t?t->texels.data():nullptr,
                 t?t->texels.size():0,t?uint32_t(t->w):0,t?uint32_t(t->h):0,bounds)!=0) fail("Rust raster rejected geometry");
             ++triangles;
         }
     }
-    void frame(Rml::Context* context,int top=0,int bottom=H) {
+    void frame(Rml::Context* context,int top=0,int bottom=-1) {
+        if(bottom<0)bottom=height;
         unsupported_transform=false;
         first_row=top;end_row=bottom;
-        std::fill(pixels+top*W,pixels+bottom*W,0x0b1019);
+        std::fill(pixels+top*width,pixels+bottom*width,0x0b1019);
         context->Update();context->Render();
-        first_row=0;end_row=H;
+        first_row=0;end_row=height;
         if(unsupported_transform) fail("transforms outside CPU profile");
         if(unsupported_feature) fail("layers, masks, filters or shaders outside CPU profile");
     }

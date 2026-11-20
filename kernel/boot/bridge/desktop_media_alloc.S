@@ -1,5 +1,6 @@
 .text
 #include "../../drivers/bus/xhci_dma_layout.inc"
+#include "../../loader/native_ui_layout.inc"
 #ifdef BMO_DMA_LAB_PAGES
 #define DMA_RESERVE_PAGES BMO_DMA_LAB_PAGES
 #elif defined(XHCI_COMMAND_PROBE)
@@ -36,18 +37,18 @@ desktop_media_alloc:
     mov %rax, 8(%rbp)
 #ifdef RMLUI_MEDIA
     # The private large UI loader must own this range before ExitBootServices.
-    movq $0x04000000, 32(%rsp)
+    movq $NATIVE_UI_PHYSICAL, 32(%rsp)
     mov $2, %ecx                 # AllocateAddress
     mov $2, %edx                 # EfiLoaderData
-    mov $4096, %r8d              # 16 MiB, including the user stack
+    mov $NATIVE_UI_POOL_PAGES, %r8d
     lea 32(%rsp), %r9
     call *0x28(%r14)
     test %rax, %rax
     js finish
     movabs $0x2131565345524955, %rax # UIRESV1!
     mov %rax, 0x700(%rbp)
-    movq $0x04000000, 0x708(%rbp)
-    movq $4096, 0x710(%rbp)
+    movq $NATIVE_UI_PHYSICAL, 0x708(%rbp)
+    movq $NATIVE_UI_POOL_PAGES, 0x710(%rbp)
     jmp context_ready
 #else
     # Reserve contiguous pages for the selected DMA fixture.
