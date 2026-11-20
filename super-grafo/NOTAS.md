@@ -1494,7 +1494,7 @@ Construye el perfil de escritorio FAT32 y las variantes xHCI de teclado/raton pa
 Estado: QEMU. Anillo: host. Lenguaje: Python / LLVM / CASM / C++ / Rust.
 Entrada: Runs ABI y gato CASM verificados, ELF/SBEF nativo con hashes y selector explicito de perfil USB.
 Salida: EFI e INICIO con SBEF desde FAT32; perfiles QEMU con reserva DMA supervisada, etapa xHCI y reportes.
-Depende de: Interfaz RmlUi y ULTRA-J nativa (codigo), Inspeccion acotada de FAT32 (codigo), Buses, recursos y DMA (codigo), Informes USB al escritorio nativo (codigo), Presentacion GOP por CPU (codigo), GPU / NVIDIA / Inventario PCI (codigo).
+Depende de: Interfaz RmlUi y ULTRA-J nativa (codigo), Inspeccion acotada de FAT32 (codigo), Buses, recursos y DMA (codigo), Informes USB al escritorio nativo (codigo), Presentacion GOP por CPU (codigo), GPU / NVIDIA / Inventario PCI (codigo), GPU / NVIDIA / Lectura MMIO (codigo).
 Aceptacion: FAT32: GOP 1280x800 y 1024x768, W+X rechazado, BOOTLOG/SBEF releidos. USB: teclado y raton en perfiles separados, W+X rechazado, limites de imagen comprobados y deploy.ps1 rechaza perfiles solo-QEMU.
 Pendiente: Arranque fisico del candidato y backend USB AMD completo; la supervision DMA no acredita IOMMU ni aislamiento de dispositivos hostiles.
 
@@ -1529,7 +1529,7 @@ Entrada: Volumen A: FAT32, recibo DEPLOY.JSON, hashes de los tres archivos activ
 Salida: BMO-X2 Desktop (RmlUi) apunta a DESKTOP.EFI. BMO-X2 (con NVIDIA) apunta a NVIDIA.EFI.
 Depende de: Candidato separado en FAT32 fisico (codigo).
 Aceptacion: Registro HOST verifica el dispositivo, la ruta y la presencia de la entrada. Al crearla, verifica que se agregue al final del orden anterior.
-Pendiente: METAL confirmo la entrada NVIDIA y GPULOG.TXT. Repetir con el inventario de recursos ampliado.
+Pendiente: METAL confirmo la entrada NVIDIA y el inventario BAR ampliado. El siguiente ensayo consulta limites y verifica MMIO.
 
 ## userspace/drivers/usb/src/activation.rs
 
@@ -1616,8 +1616,19 @@ Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: Inventario PCI de clase grafica, seleccionado con --nvidia-probe.
 Salida: GPULOG.TXT con recuentos, identidad NVIDIA, PCI Command y los seis registros BAR de la funcion grafica inventariada.
 Depende de: contrato propio sin dependencias en este catalogo.
-Aceptacion: QEMU coteja BDF y BAR de su VGA con QMP y verifica escritorio y rechazo SBEF W+X. METAL confirmo RTX 3060 10DE:2504 y CPU+GOP a 1920x1080.
-Pendiente: Leer las asignaciones BAR de la RTX en METAL. Preparar inicializacion y una operacion verificable de GPU.
+Aceptacion: QEMU coteja BDF y BAR de su VGA con QMP y verifica escritorio y rechazo SBEF W+X. METAL confirmo RTX 3060 10DE:2504, sus bases BAR y GOP a 1920x1080.
+Pendiente: La sonda MMIO siguiente usa este inventario como entrada y requiere una prueba fisica propia.
+
+## kernel/drivers/GPU/NVIDIA/mmio_probe.inc
+
+Sonda transitoria UEFI: confirma limites de BAR0 y lee la identidad interna exclusivamente en la RTX 3060 10DE:2504.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: BDF y BAR0 del inventario, protocolo EFI PCI I/O, identidad PCI y Command con memoria habilitada y bus mastering apagado.
+Salida: Longitud BAR0, palabra PMC_BOOT_0 y estado del ensayo en GPULOG.TXT.
+Depende de: GPU / NVIDIA / Inventario PCI (codigo).
+Aceptacion: QEMU coteja la longitud BAR0 de VGA con QMP y verifica que la lectura NVIDIA se omita. El perfil CPU + GOP sigue disponible.
+Pendiente: Confirmar NV_PMC_BOOT_0 y chipset GA106 en METAL. GSP y aceleracion tienen ensayos propios.
 
 ## CASM
 
@@ -1641,4 +1652,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-147 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+148 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

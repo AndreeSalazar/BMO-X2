@@ -1,10 +1,17 @@
 # Snapshot before ExitBootServices. Failure leaves desktop boot available.
 #ifdef BMO_NVIDIA_PCI_PROBE
 #include "../../drivers/GPU/NVIDIA/pci_probe.inc"
+#include "../../drivers/GPU/NVIDIA/mmio_probe.inc"
 #endif
 boot_report:
     push %rsi
     push %rdi
+#ifdef BMO_NVIDIA_PCI_PROBE
+    push %r12
+    push %r13
+    xor %r12d, %r12d
+    xor %r13d, %r13d
+#endif
     sub $56, %rsp
     lea report_template(%rip), %rsi
     lea 0x800(%rbp), %rdi
@@ -125,6 +132,7 @@ report_pci_advance:
     call report_hex32
 #ifdef BMO_NVIDIA_PCI_PROBE
     call nvidia_pci_summary
+    call nvidia_mmio_probe
 #endif
 
     mov 0x38(%rbp), %rcx
@@ -154,6 +162,10 @@ report_close:
     call *0x10(%rcx)
 report_done:
     add $56, %rsp
+#ifdef BMO_NVIDIA_PCI_PROBE
+    pop %r13
+    pop %r12
+#endif
     pop %rdi
     pop %rsi
     ret
@@ -200,10 +212,15 @@ report_pci1:
     .ascii "-------- -------- -------- -------- --------\r\n"
 #ifdef BMO_NVIDIA_PCI_PROBE
     nvidia_pci_report_fields
+    nvidia_mmio_report_fields
 #endif
 report_end:
 #ifdef BMO_NVIDIA_PCI_PROBE
-    .if (report_end-report_template) > 0x200
+    # The NVIDIA profile owns 0x800..0xaff; native UI does not load ACTION.UJB.
+#if defined(ULTRA_J_MEDIA) || !defined(RMLUI_MEDIA)
+#error "NVIDIA report requires the dedicated native UI profile"
+#endif
+    .if (report_end-report_template) > 0x300
     .error "Boot report exceeds context buffer"
     .endif
 #endif

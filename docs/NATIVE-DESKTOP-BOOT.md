@@ -234,8 +234,23 @@ En el registro del equipo del autor, ULTRA-LinuX encontro
 La primera prueba BMO-X2 en METAL del 20-11-2026 obtuvo ambos valores y
 mostro el escritorio con GOP a 1920x1080. PCI Command era `0003` antes de
 ExitBootServices, con decodificacion de memoria y sin bus mastering.
-El inventario ampliado requiere otro arranque para capturar los BAR de
-la RTX. [Informe de METAL](../Reports/nvidia-pci-metal-20261120.json).
+[Informe de METAL](../Reports/nvidia-pci-metal-20261120.json).
+
+El segundo arranque de METAL capturo los BAR de la RTX `10DE:2504`
+con subsistema `1462:397D`. Sus cuatro bases coinciden con el
+inventario de ULTRA-LinuX para `0000:29:00.0`. Los tamanos de esta tabla
+son la referencia de ULTRA-LinuX. BMO-X2 leyo las bases en la
+configuracion PCI anterior a ExitBootServices.
+
+| BAR | Base observada en BMO-X2 | Longitud informada por ULTRA-LinuX |
+| --- | --- | --- |
+| 0 (memoria de 32 bits) | `0xFB000000` | 16 MiB |
+| 1 (memoria de 64 bits) | `0xD0000000` | 256 MiB |
+| 3 (memoria de 64 bits) | `0xE0000000` | 32 MiB |
+| 5 (puertos de E/S) | `0xE000` | 128 B |
+
+[Segundo informe de METAL](../Reports/nvidia-pci-metal-20261120-bars.json).
+[Rangos PCI de ULTRA-LinuX](https://github.com/AndreeSalazar/ULTRA-LinuX/blob/7c275c1a716a80226ff83e340258fb1cd6bb08c3/evidencias/pc-real/nvidia-2026-10-19/dmesg-pc.txt#L414-L418).
 
 El arranque de BMO-X2 conserva la pantalla configurada por UEFI y
 llega al escritorio con CPU + GOP. El inventario
@@ -246,13 +261,80 @@ disponible no atribuye ese fallo a Rust. La comparacion equivalente
 empieza cuando ambos sistemas ejecutan trabajo en la GPU.
 [Investigacion GSP de BMO-X](https://github.com/AndreeSalazar/BMO-X-x86-64/blob/6076bdefefc67877419ca53633c6e40cb45fc92d/README.md#case-file-the-booter-that-said-no-0x15).
 
-Para integrar la RTX de este equipo, la proxima prueba debe identificar
-los BAR asignados a `10de:2504` y registrar el estado previo al
-controlador. La inicializacion posterior debe acreditar una version GSP
-compatible y recursos PCI y DMA acotados. El primer trabajo acelerado
-debe dejar un resultado verificable en un buffer propio antes de cambiar
-el presentador de RmlUi. El perfil NVIDIA puede seguir usando CPU + GOP
-durante todas estas pruebas.
+La [sonda MMIO](../kernel/drivers/GPU/NVIDIA/mmio_probe.inc) pide al
+firmware los limites de BAR0 via `EFI_PCI_IO_PROTOCOL.GetBarAttributes`
+y coteja su base con el inventario PCI. Para la RTX `10DE:2504` lee un
+registro de identidad con la ventana MMIO acotada y verifica PCI Command.
+La inicializacion posterior debe acreditar una version GSP compatible y
+recursos PCI y DMA acotados. El primer trabajo acelerado debe dejar un
+resultado verificable en un buffer propio antes de cambiar el presentador
+de RmlUi. El perfil NVIDIA conserva CPU + GOP durante estos ensayos.
+[Referencia EDK II](https://github.com/tianocore/edk2/blob/master/MdeModulePkg/Bus/Pci/PciBusDxe/PciIo.c).
+
+#### Secuencia comprobada en ULTRA-LinuX y aplicacion en BMO-X2
+
+| Etapa en ULTRA-LinuX | Aplicacion en BMO-X2 |
+| --- | --- |
+| El perfil PC compila `nvidia-open` contra su propio kernel, verifica `vermagic` y empaqueta `nvidia-utils` de la misma version. El perfil generico conserva la ruta por software. | Mantener el ensayo NVIDIA aislado de CPU + GOP. Para la fase GSP, fijar y verificar una combinacion de firmware y protocolo del controlador con procedencia documentada. `615.78.08` es la referencia comprobada en ese PC. |
+| La sesion NVIDIA exige un dispositivo DRM cuyo driver sea NVIDIA, verifica que el proveedor EGL exista y prepara los tres nodos GPU, control y modeset. | Comprobar primero el dispositivo por segmento/BDF e identidad PCI. Separar las pruebas de inventario, lectura de registros e inicializacion. Cada una informa su propio resultado. |
+| Hyprland recibe la tarjeta DRM seleccionada. La sesion corre sin privilegios adicionales y exporta modo, renderer y salida de la prueba. | Conceder recursos graficos al backend solo despues de una tarea GPU de resultado verificable. DIRECTOR/RmlUi consume la capacidad de presentacion. Informar la fase exacta alcanzada aunque el ensayo falle. |
+
+[Compilacion PC en ULTRA-LinuX](https://github.com/AndreeSalazar/ULTRA-LinuX/blob/7c275c1a716a80226ff83e340258fb1cd6bb08c3/scripts/build-baseline.sh#L159-L187).
+[Preparacion de la sesion](https://github.com/AndreeSalazar/ULTRA-LinuX/blob/7c275c1a716a80226ff83e340258fb1cd6bb08c3/src/rootfs/bin/ultra-sesion#L72-L95).
+[Preparacion de nodos NVIDIA](https://github.com/AndreeSalazar/ULTRA-LinuX/blob/7c275c1a716a80226ff83e340258fb1cd6bb08c3/src/rootfs/bin/ultra-preparar-nvidia).
+
+La sonda resuelve el protocolo por segmento/BDF, valida el descriptor
+de memoria y registra `GPU_BAR0_LEN`. Solo el dispositivo `10DE:2504`
+con memoria habilitada y bus mastering apagado llega a `Mem.Read`
+(BAR0, desplazamiento cero, un valor de 32 bits). La sonda confirma que
+PCI Command conserve su valor y exige que `NV_PMC_BOOT_0` identifique
+GA106 (`0x176`). Libera los buffers de UEFI y deja continuar GOP.
+
+| `GPU_MMIO_STATUS` (hex) | Resultado |
+| --- | --- |
+| `00` | Sin funcion de pantalla seleccionada |
+| `01` | Sin protocolo PCI I/O para el BDF |
+| `02` | BAR0 asignado o descriptor UEFI no admitido |
+| `03` | BAR0 validado en otro dispositivo. Lectura NVIDIA omitida |
+| `04` | Lectura de configuracion o estado de PCI Command no admitido |
+| `05` | UEFI no pudo leer el registro |
+| `06` | Valor de `GPU_PMC_BOOT0` incompatible con GA106 |
+| `07` | PCI Command cambiado o no verificable despues de la lectura |
+| `08` | Lectura valida de GA106, pendiente de comprobar en METAL |
+
+La lectura valida acredita acceso MMIO. GSP y la ejecucion de trabajo
+GPU requieren sus propias pruebas.
+[Registro de identificacion en NVIDIA](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/main/src/common/inc/swref/published/nv_ref.h).
+
+El ensayo `run-rmlui-media-4910a511a24c` verifica en QEMU el descriptor
+UEFI de la VGA, su longitud de 16 MiB cotejada con QMP, el estado
+`03`, teclado y raton USB simultaneos y el rechazo SBEF W+X. En HOST,
+la rutina compilada con servicios UEFI simulados verifica la lectura
+GA106, los rechazos y la liberacion de buffers. El lector ocupa 3880 B
+de la pagina EFI de 4096 B. El ensayo METAL espera el estado `08` y la
+palabra real de `GPU_PMC_BOOT0`.
+
+Despues del estado `08` quedan tres pruebas:
+
+1. Preparar la version compatible de GSP y su procedencia. Reservar y
+   aislar los buffers de arranque antes de conceder bus mastering.
+   Acreditar el inicio mediante la respuesta del GSP y registrar el
+   punto de fallo si se agota el plazo de espera.
+2. Ejecutar una operacion acotada sobre un buffer dedicado y comprobar
+   su contenido. Esto acredita que la GPU puede producir un resultado.
+3. Verificar el control de salida NVIDIA: configurar modo y conector,
+   mostrar un cuadro de prueba y comprobar su reemplazo sincronizado.
+   Luego DIRECTOR/RmlUi puede presentar por ese backend.
+
+La ruta de aceleracion y control de salida vive en `GPU/NVIDIA`.
+DIRECTOR/RmlUi entrega superficies a traves de la capacidad de pantalla.
+El supervisor concede al controlador solo los recursos de su dispositivo
+y sus buffers. La salida tiene un solo dueno durante la sesion. La
+entrega suspende GOP antes de activar el control de salida NVIDIA.
+Se conserva CPU + GOP mediante la entrada UEFI del escritorio base.
+Una recuperacion en caliente requerira una prueba propia de restauracion
+del modo de pantalla. El informe de la ruta NVIDIA debe exponer el
+backend activo, conector, modo y fase de fallo.
 
 El ensayo `run-rmlui-media-00741e5f358f` verifica una VGA de clase 03,
 cero funciones NVIDIA, el escritorio y el rechazo W+X. El resultado se

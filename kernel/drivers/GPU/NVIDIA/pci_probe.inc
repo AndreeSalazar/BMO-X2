@@ -1,6 +1,7 @@
 # Runs during the boot report's segment-zero PCI inventory. CF8 is saved
 # and restored by the caller. CFC is read only.
 # Entry: ECX = class register selector. R10D and R11D count display and NVIDIA.
+# R12D and R13D retain the selected class selector and raw BAR0.
 nvidia_pci_observe:
     inc %r10d
     lea -8(%rcx), %eax
@@ -50,6 +51,7 @@ nvidia_pci_observe:
     push %rcx
     push %rsi
     mov %ecx, %esi
+    mov %ecx, %r12d
     mov %esi, %eax
     shr $8, %eax
     and $0xffff, %eax
@@ -61,6 +63,10 @@ nvidia_pci_observe:
 .Lread_bar:
     mov %esi, %eax
     call .Lread_config32
+    cmp $0x10, %sil
+    jne .Lreport_bar
+    mov %eax, %r13d
+.Lreport_bar:
     call report_hex32
     inc %rdi
     add $4, %esi

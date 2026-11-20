@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "evidence": "METAL: BMO-X2 UEFI PCI boot log with six raw BAR registers",
+  "run": "run-rmlui-media-cf7403e99951",
+  "boot_file": "EFI/BMO-X2/NVIDIA.EFI",
+  "boot_file_sha256": "0b664a6fc583ee297ec96aa3206e5a03eb2f0bbbeb98256ed727a5de4fc37c8f",
+  "bootlog": "nvidia-pci-metal-20261120-bars.bootlog.txt",
+  "bootlog_sha256": "71b8da18a595b73ef8e938448dad308f5e833cb9cf6c40fcc54ad8789abfbadb",
+  "pci": {
+    "bdf": "0000:29:00.0",
+    "vendor_device": "10de:2504",
+    "subsystem_vendor_device": "1462:397d",
+    "command": "0003",
+    "bus_master_enabled": false,
+    "bar_registers": ["fb000000", "d000000c", "00000000", "e000000c", "00000000", "0000e001"],
+    "bar_bases": {"0": "0xfb000000", "1": "0xd0000000", "3": "0xe0000000", "5": "0xe000"}
+  },
+  "ultra_linux_reference": {
+    "file": "evidencias/pc-real/nvidia-2026-10-19/dmesg-pc.txt",
+    "commit": "7c275c1a716a80226ff83e340258fb1cd6bb08c3",
+    "same_bar_bases": true,
+    "bar_lengths_bytes": {"0": 16777216, "1": 268435456, "3": 33554432, "5": 128}
+  },
+  "gop": {"width": 1920, "height": 1080},
+  "bar_lengths_measured_by_bmo": false,
+  "gpu_register_access_verified": false,
+  "gpu_rendering_verified": false
+}

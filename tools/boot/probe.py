@@ -156,7 +156,14 @@ def verify_gpu_resources(fields, display):
             address |= bars[slot + 1] << 32
         if address != region['address']:
             raise ValueError(f'GPU BAR{slot} differs from QMP')
-    return dict(GpuResourceBdf=f'{bdf:04X}', GpuBarRegisters=bar_words, GpuSubsystemId=fields['GPU_SUBSYS'])
+    result = dict(GpuResourceBdf=f'{bdf:04X}', GpuBarRegisters=bar_words, GpuSubsystemId=fields['GPU_SUBSYS'])
+    if {'GPU_BAR0_LEN', 'GPU_MMIO_STATUS', 'GPU_PMC_BOOT0'} & fields.keys():
+        sizes = [region['size'] for region in regions if region['bar'] == 0]
+        if (len(sizes) != 1 or fields.get('GPU_BAR0_LEN') != f'{sizes[0]:08X}' or
+            fields.get('GPU_MMIO_STATUS') != '00000003' or fields.get('GPU_PMC_BOOT0') != '--------'):
+            raise ValueError('UEFI BAR0 length differs from QMP or NVIDIA-only read was not skipped')
+        result.update(GpuBar0UefiBytes=sizes[0], GpuNvidiaMmioSkipped=True)
+    return result
 
 
 def run(case):

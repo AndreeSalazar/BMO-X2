@@ -2386,7 +2386,7 @@
       "entrada": "Volumen A: FAT32, recibo DEPLOY.JSON, hashes de los tres archivos activos y evidencia QEMU para el ensayo NVIDIA.",
       "salida": "BMO-X2 Desktop (RmlUi) apunta a DESKTOP.EFI. BMO-X2 (con NVIDIA) apunta a NVIDIA.EFI.",
       "aceptacion": "Registro HOST verifica el dispositivo, la ruta y la presencia de la entrada. Al crearla, verifica que se agregue al final del orden anterior.",
-      "falta": "METAL confirmo la entrada NVIDIA y GPULOG.TXT. Repetir con el inventario de recursos ampliado."
+      "falta": "METAL confirmo la entrada NVIDIA y el inventario BAR ampliado. El siguiente ensayo consulta limites y verifica MMIO."
     },
     {
       "id": "usb-ring3-activation",
@@ -2525,8 +2525,26 @@
       "que": "Sonda ASM transitoria del puente UEFI antes de ExitBootServices. Lee PCI del segmento 0 y conserva CPU/GOP como presentador.",
       "entrada": "Inventario PCI de clase grafica, seleccionado con --nvidia-probe.",
       "salida": "GPULOG.TXT con recuentos, identidad NVIDIA, PCI Command y los seis registros BAR de la funcion grafica inventariada.",
-      "aceptacion": "QEMU coteja BDF y BAR de su VGA con QMP y verifica escritorio y rechazo SBEF W+X. METAL confirmo RTX 3060 10DE:2504 y CPU+GOP a 1920x1080.",
-      "falta": "Leer las asignaciones BAR de la RTX en METAL. Preparar inicializacion y una operacion verificable de GPU."
+      "aceptacion": "QEMU coteja BDF y BAR de su VGA con QMP y verifica escritorio y rechazo SBEF W+X. METAL confirmo RTX 3060 10DE:2504, sus bases BAR y GOP a 1920x1080.",
+      "falta": "La sonda MMIO siguiente usa este inventario como entrada y requiere una prueba fisica propia."
+    },
+    {
+      "id": "nvidia-mmio-probe",
+      "titulo": "GPU / NVIDIA / Lectura MMIO",
+      "ruta": "kernel/drivers/GPU/NVIDIA/mmio_probe.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [
+        10800,
+        4300
+      ],
+      "que": "Sonda transitoria UEFI: confirma limites de BAR0 y lee la identidad interna exclusivamente en la RTX 3060 10DE:2504.",
+      "entrada": "BDF y BAR0 del inventario, protocolo EFI PCI I/O, identidad PCI y Command con memoria habilitada y bus mastering apagado.",
+      "salida": "Longitud BAR0, palabra PMC_BOOT_0 y estado del ensayo en GPULOG.TXT.",
+      "aceptacion": "QEMU coteja la longitud BAR0 de VGA con QMP y verifica que la lectura NVIDIA se omita. El perfil CPU + GOP sigue disponible.",
+      "falta": "Confirmar NV_PMC_BOOT_0 y chipset GA106 en METAL. GSP y aceleracion tienen ensayos propios."
     }
   ],
   "relaciones": [
@@ -3782,6 +3800,16 @@
     },
     {
       "de": "rmlui-fat32-media",
+      "a": "nvidia-pci-probe",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-fat32-media",
+      "a": "nvidia-mmio-probe",
+      "clase": "codigo"
+    },
+    {
+      "de": "nvidia-mmio-probe",
       "a": "nvidia-pci-probe",
       "clase": "codigo"
     }
