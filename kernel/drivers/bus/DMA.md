@@ -105,6 +105,18 @@ y uno de raton en cada etapa de DMA. El modulo ocupa 1426 B y el
 laboratorio reserva 14 paginas para sus tablas, colas y testigos.
 [Evidencia del invitado](../../../Reports/amdvi-xhci-guest-qemu-20261120.json).
 
+El perfil `--dma-census` usa la operacion de diagnostico
+`INVOKE(3, 3, 26, indice)`. El indice 0 congela la primera captura
+y entrega el encabezado. De menor a mayor bit, contiene el numero
+de filas (16 bits), el BDF xHCI (16 bits, `FFFF` si queda sin
+controlador) y el total PCI con BME (32 bits). Los indices 1 a
+`2 * filas` entregan dos palabras de 64 bits por fila. La primera
+empaqueta BDF, PCI Command, Vendor ID y Device ID en cuatro campos
+de 16 bits. La segunda contiene el codigo de clase PCI de 24 bits.
+Los indices fuera de rango devuelven 257. El perfil consulta el
+segmento 0 en orden BDF y deja los registros de cada funcion intactos.
+[Prueba de captura y panel](../../../Reports/dma-pci-census-qemu-20261120.json).
+
 El puente del escritorio reserva cinco paginas contiguas de EfiLoaderData
 por debajo de 256 MiB y las entrega en los campos B8/C0 del contexto.
 La variante QEMU de comandos agrega una pagina para contextos

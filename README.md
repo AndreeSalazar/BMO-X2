@@ -146,6 +146,9 @@ GPU/NVIDIA tiene un candidato UEFI propio. Antes de entrar al escritorio,
 registra el inventario PCI y coteja la unidad AMD-Vi que describe el
 firmware. CPU y GOP presentan la interfaz mientras se prepara el dominio
 DMA para el arranque del GSP.
+En el candidato de inventario PCI, F2 muestra los dispositivos con DMA
+habilitado despues de iniciar USB. Esa captura permite preparar sus
+mapeos antes de activar AMD-Vi en el equipo fisico.
 [Ensayo directo de GPU](docs/NATIVE-DESKTOP-BOOT.md#gpu--nvidia).
 
 El escritorio ya recibe entrada xHCI en QEMU con teclado y raton en

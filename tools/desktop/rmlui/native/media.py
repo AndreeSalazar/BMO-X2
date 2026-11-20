@@ -36,6 +36,7 @@ def main():
     p.add_argument('--amdvi-post', action='store_true', help='Take a second AMD-Vi snapshot after ExitBootServices')
     p.add_argument('--amdvi-coexist', action='store_true', help='Exercise virtual EDU and USB DMA together in QEMU')
     p.add_argument('--amdvi-guest-dma', action='store_true', help='Let the guest program AMD-Vi in the virtual lab')
+    p.add_argument('--dma-census', action='store_true', help='Capture PCI bus masters after USB startup')
     args=p.parse_args()
     if args.usb_empty_ports and args.usb!='both':p.error('--usb-empty-ports requires --usb both')
     if args.amdvi_probe and not args.nvidia_probe:p.error('--amdvi-probe requires --nvidia-probe')
@@ -43,6 +44,8 @@ def main():
         p.error('--amdvi-post requires the NVIDIA AMD-Vi profile with USB both')
     if args.amdvi_coexist and not args.amdvi_post:p.error('--amdvi-coexist requires --amdvi-post')
     if args.amdvi_guest_dma and not args.amdvi_coexist:p.error('--amdvi-guest-dma requires --amdvi-coexist')
+    if args.dma_census and (not args.amdvi_post or args.amdvi_coexist):
+        p.error('--dma-census requires --amdvi-post and its own context stage')
     abi,splash=args.abi_run.resolve(),args.splash_run.resolve()
     for path in (abi,splash):
         if path.parent!=ROOT/'build/CASM':raise ValueError('Run outside build/CASM')
@@ -51,6 +54,7 @@ def main():
         raise ValueError('ABI probe and compact CASM cat required')
     variant='desktop-usb-'+args.usb if args.usb else 'desktop'
     if args.amdvi_post:variant+='-amdvi-post'
+    if args.dma_census:variant+='-dma-census'
     app=OUT/(variant + ('-msvc' if args.msvc_panel else ''))
     hashes=json.loads((app/'artifacts.json').read_text())
     for name,digest in hashes.items():
@@ -63,6 +67,8 @@ def main():
         (run/'amdvi-efi-probe.txt').write_text('firmware-read-only\n', encoding='ascii')
     if args.amdvi_post:
         (run/'amdvi-post-probe.txt').write_text('post-ebs-read-only\n', encoding='ascii')
+    if args.dma_census:
+        (run/'dma-census-probe.txt').write_text('pci-segment0-bme\n', encoding='ascii')
     if args.amdvi_coexist:
         (run/'amdvi-coexist-probe.txt').write_text('qemu-only-edu-xhci\n', encoding='ascii')
     if args.amdvi_guest_dma:
@@ -81,6 +87,7 @@ def main():
         if args.nvidia_probe and name == 'reader':flags+=['-DBMO_NVIDIA_PCI_PROBE']
         if args.amdvi_probe and name == 'reader':flags+=[f'-DBMO_AMDVI_EFI_OFFSET={amdvi_offset}']
         if args.amdvi_post and name in ('reader','gate'):flags+=['-DBMO_AMDVI_POST']
+        if args.dma_census and name=='gate':flags+=['-DBMO_DMA_CENSUS']
         if args.amdvi_guest_dma and name=='gate':flags+=['-DBMO_AMDVI_GUEST_DMA']
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf','-DRMLUI_MEDIA','-DRMLUI_NATIVE',
             '-DRMLUI_GOP_REGIONS','-DDOOM_ENGINE','-DDESKTOP_DOOM',*flags,
@@ -115,6 +122,7 @@ def main():
         native_probe=run/'amdvi-firmware.o'
         flags=['-DBMO_AMDVI_POST'] if args.amdvi_post else []
         if args.amdvi_coexist:flags+=['-DBMO_AMDVI_COEXIST']
+        if args.dma_census:flags+=['-DBMO_DMA_CENSUS']
         if args.amdvi_guest_dma:flags+=['-DBMO_AMDVI_GUEST_DMA']
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf',*flags,'-c',source,'-o',native_probe],'compile-amdvi-firmware')
         if args.amdvi_post:check_context_stage(llvm,native_probe,'amdvi_post')
@@ -151,6 +159,9 @@ def main():
         raise ValueError('Missing AMD-Vi MMIO evidence')
     if args.amdvi_post and not all(report['Cases'][i].get('AmdViPostVerified') for i in (0,2)):
         raise ValueError('Missing post-EBS AMD-Vi evidence')
+    if args.dma_census and (not all(report['Cases'][i].get('DmaCensusVerified') for i in (0,2)) or
+                            not report['Cases'][0].get('DmaCensusPanelVerified')):
+        raise ValueError('Missing PCI DMA inventory or its Ring 3 panel evidence')
     if args.amdvi_coexist and not report['Cases'][0].get('AmdViCoexistVerified'):
         raise ValueError('Missing simultaneous EDU and USB evidence')
     if args.amdvi_guest_dma and report['Cases'][0].get('DmaIssuer')!='Ring 0 guest':
@@ -170,6 +181,7 @@ def main():
         display_backend='cpu-gop',
         nvidia_pci_probe=args.nvidia_probe, amdvi_efi_probe=args.amdvi_probe, amdvi_mmio_probe=args.amdvi_probe,
         amdvi_post_probe=args.amdvi_post,
+        dma_census=args.dma_census,
         amdvi_coexist=args.amdvi_coexist,
         amdvi_guest_dma=args.amdvi_guest_dma,
         qemu_only=bool(args.usb),usb_profile=args.usb,

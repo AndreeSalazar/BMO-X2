@@ -480,10 +480,10 @@ difieren de las del arranque anterior.
 
 Siguientes pruebas y criterio de avance:
 
-1. Trasladar al arranque fisico la gestion de solicitantes activos
-   ensayada con EDU y xHCI en QEMU. Cada solicitante activo requiere
-   mapeos validados o parada confirmada. El registro fisico pre-EBS
-   muestra dos xHCI con bus mastering habilitado.
+1. Capturar los solicitantes PCI con bus mastering habilitado despues
+   de iniciar xHCI. Cada solicitante requiere mapeos validados o una
+   parada confirmada antes de activar la traduccion. El registro fisico
+   pre-EBS muestra dos xHCI con bus mastering habilitado.
 2. Probar primero la tabla y las colas propias en METAL con la RTX y
    su funcion de audio sin bus mastering. Verificar que USB sigue
    operativo y, cuando el perfil disponga de acceso nativo al disco,
@@ -512,6 +512,29 @@ EDU. La primera solicitud se rechazo con otros bus masters activos.
 En este ensayo el HOST suspendio los otros solicitantes emulados
 y el medio queda confinado a QEMU.
 [Evidencia del kernel invitado](../Reports/amdvi-xhci-guest-qemu-20261120.json).
+
+El candidato `--dma-census` registra una vez el segmento PCI 0 desde
+Ring 0, despues de iniciar USB. Guarda hasta 64 registros con BDF,
+identificadores, clase y comando PCI. Guarda tambien el total aunque
+supere el espacio disponible y el BDF del xHCI que atiende el escritorio.
+El bit BME indica permiso para iniciar DMA. Los puentes tambien pueden
+tenerlo habilitado. La captura no mide trafico, rangos DMA ni reservas
+de firmware. Solo se modifica el selector de lectura PCI y se restaura
+al terminar. La captura usa el contexto supervisor ya reservado.
+
+Desde la entrada **BMO-X2 (con NVIDIA)**, **F2** abre y cierra
+el inventario en Ring 3. F3 pasa a la pagina siguiente cuando hay
+mas de 16 filas. Para la prueba fisica, mover el raton, abrir el
+panel con F2 y guardar una foto de las filas. `GPULOG.TXT`
+recoge la etapa anterior a `ExitBootServices`. El inventario posterior
+aparece en pantalla y en la serie. Se conserva la presentacion CPU + GOP.
+El ensayo `run-rmlui-media-4714e8306aab` cotejo nueve funciones
+con qtest, entre ellas el xHCI detras de un puente PCIe. Sin AMD-Vi
+cotejo ocho funciones. Paso tambien el rechazo SBEF W+X.
+La sonda suma 264 B de codigo y el paquete queda en 4052 B.
+El 20-11-2026 se verificaron el despliegue de los tres archivos del
+perfil NVIDIA en `A:` y los respaldos de sus versiones anteriores.
+[Prueba del inventario PCI en QEMU](../Reports/dma-pci-census-qemu-20261120.json).
 
 El primer patron usa como referencia el triangulo de
 [C++ / MSVC](../tools/tests/msvc_desktop_panel.cpp). El panel actual
@@ -599,6 +622,9 @@ Para incluir la captura posterior al traspaso:
 python .\tools\desktop\rmlui\native\guest.py --desktop --usb both --amdvi-post
 python .\tools\desktop\rmlui\native\media.py <ABI_RUN> <GATO_COMPACTO_RUN> --usb both --nvidia-probe --amdvi-probe --amdvi-post
 ```
+
+Para el candidato con inventario PCI, agregar `--dma-census` a las dos
+ordenes del perfil `--amdvi-post`.
 
 `native/deploy.ps1 -Run <RUN> -Volume A:\ -NvidiaProbe -Check` comprueba
 el candidato para METAL. Agrega `-ExperimentalUsb` para el run USB dual.

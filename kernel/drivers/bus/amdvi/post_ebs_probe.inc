@@ -9,6 +9,13 @@ amdvi_post_begin:
     .long amdvi_lab_entry - . - 4
 .Lpost_read_entry:
 #endif
+#ifdef BMO_DMA_CENSUS
+    .byte 0xe9
+    .long .Lpost_census_entry - . - 4
+    .byte 0xe9
+    .long dma_census - . - 4
+.Lpost_census_entry:
+#endif
     push %rbx
     mov $1, %ebx                   # No usable pre-EBS capture.
     mov AMDVI_POST_BASE(%rbp), %r8
@@ -147,5 +154,8 @@ amdvi_post_begin:
     .short 0x0018, 0x0000, 0x0008, 0x0010, 0x2020
 #ifdef BMO_AMDVI_GUEST_DMA
 #include "coexist_guest.inc"
+#endif
+#ifdef BMO_DMA_CENSUS
+#include "dma_census.inc"
 #endif
 amdvi_post_end:

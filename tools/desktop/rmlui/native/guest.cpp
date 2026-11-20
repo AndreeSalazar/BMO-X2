@@ -40,6 +40,39 @@ volatile uint64_t bmo_ui_mouse_edges[4];
 }
 namespace BmoUi {[[noreturn]] void native_failure(const char* s) {bmo_native_fail(s);}}
 static void log(const char* s) {while(*s)doom_invoke(5,7,(unsigned char)*s++,0);}
+#ifdef BMO_DMA_CENSUS
+static void check(bool ok,const char* error);
+static unsigned read_dma_inventory(Rml::String (&pages)[4]) {
+    constexpr unsigned selector=26;
+    constexpr unsigned per_page=16;
+    const auto header=doom_invoke(3,3,selector,0);
+    const unsigned stored=header&0xffff, xhci=(header>>16)&0xffff, total=header>>32;
+    check(stored<=64 && stored<=total,"PCI DMA inventory bounds");
+    check(doom_invoke(3,3,selector,stored*2+1)==257,"PCI DMA inventory rejection");
+    char line[144];
+    snprintf(line,sizeof(line),"DMA_CENSUS=%08X %04X %04X\n",total,xhci,stored);
+    log(line);
+    const unsigned page_count=std::max(1u,(stored+per_page-1)/per_page);
+    for(unsigned i=0;i<page_count;++i) {
+        snprintf(line,sizeof(line),"<h2>DMA habilitado en PCI</h2><p>Funciones %u de %u / xHCI %04X / Pagina %u de %u</p>",
+                 stored,total,xhci,i+1,page_count);
+        pages[i]=line;
+        pages[i]+=page_count>1?"<p>F2 cerrar / F3 siguiente</p>":"<p>F2 cerrar</p>";
+        pages[i]+="<p>BDF &nbsp;&nbsp;&nbsp; Dispositivo &nbsp;&nbsp;&nbsp; Clase &nbsp;&nbsp;&nbsp; Comando</p>";
+    }
+    for(unsigned i=0;i<stored;++i) {
+        const auto entry=doom_invoke(3,3,selector,2*i+1);
+        const unsigned bdf=entry&0xffff, control=(entry>>16)&0xffff;
+        const unsigned ids=entry>>32, kind=doom_invoke(3,3,selector,2*i+2);
+        snprintf(line,sizeof(line),"DMA_REQ=%04X %04X %08X %06X\n",bdf,control,ids,kind);
+        log(line);
+        snprintf(line,sizeof(line),"<p>%02X:%02X.%u &nbsp;&nbsp;&nbsp; %04X:%04X &nbsp;&nbsp;&nbsp; %06X &nbsp;&nbsp;&nbsp; %04X</p>",
+                 bdf>>8,(bdf>>3)&31,bdf&7,ids&0xffff,ids>>16,kind,control);
+        pages[i/per_page]+=line;
+    }
+    return page_count;
+}
+#endif
 class Clock final:public Rml::SystemInterface {
 public: double now=0;
     double GetElapsedTime() override {return now;}
@@ -262,6 +295,14 @@ extern "C" void bmo_main() {
     log("BMO UI USB TRANSPORT READY\n");
 #endif
     #endif
+#ifdef BMO_DMA_CENSUS
+    auto* dma_panel=doc->GetElementById("dma-census");
+    check(dma_panel,"PCI DMA panel");
+    Rml::String dma_pages[4];
+    const auto dma_page_count=read_dma_inventory(dma_pages);
+    unsigned dma_page=0;
+    bool dma_panel_open=false;
+#endif
     bool motion_pending=false;
     auto flush_motion=[&]() {
         if(!motion_pending)return;
@@ -386,6 +427,22 @@ extern "C" void bmo_main() {
                 flush_motion();
 #ifdef BMO_USB_DUAL
                 if(scan==0x58) {doom_invoke(3,3,19,0);bmo_usb_disconnect();mouse_input(0,0,0);transport_lost=true;dirty=true;continue;}
+#endif
+#ifdef BMO_DMA_CENSUS
+                if(scan==0x3c) {
+                    dma_panel_open=!dma_panel_open;
+                    if(dma_panel_open)dma_panel->SetInnerRML(dma_pages[dma_page]);
+                    dma_panel->SetProperty("display",dma_panel_open?"block":"none");
+                    log(dma_panel_open?"DMA_PANEL=ON\n":"DMA_PANEL=OFF\n");
+                    dirty=true;
+                    continue;
+                }
+                if(scan==0x3d && dma_panel_open && dma_page_count>1) {
+                    dma_page=(dma_page+1)%dma_page_count;
+                    dma_panel->SetInnerRML(dma_pages[dma_page]);
+                    dirty=true;
+                    continue;
+                }
 #endif
 #ifdef BMO_DESKTOP_UI
                 auto route=bmo_director_key(scan);

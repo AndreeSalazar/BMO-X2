@@ -301,6 +301,14 @@ diagnostics:
     cmp $AMDVI_POST_DIAGNOSTIC, %rdx
     je amdvi_diagnostic
 #endif
+#ifdef BMO_DMA_CENSUS
+    cmp $DMA_CENSUS_SELECTOR, %rdx
+    jne .Lordinary_diagnostics
+    lea DMA_CENSUS_CODE(%rbp), %rax
+    call *%rax
+    jmp finish
+.Lordinary_diagnostics:
+#endif
 #ifdef XHCI_COMMAND_PROBE
     cmp $5, %rdx
     je usb_report

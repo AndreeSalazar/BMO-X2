@@ -20,17 +20,25 @@ if ($gpuRun -ne [bool]$NvidiaProbe -or $gpuRun -ne [bool]$proof.nvidia_pci_probe
 }
 $amdviRun=Test-Path -LiteralPath (Join-Path $runPath 'amdvi-efi-probe.txt') -PathType Leaf
 $amdviPost=Test-Path -LiteralPath (Join-Path $runPath 'amdvi-post-probe.txt') -PathType Leaf
+$dmaCensus=Test-Path -LiteralPath (Join-Path $runPath 'dma-census-probe.txt') -PathType Leaf
 if ($amdviRun -ne [bool]$proof.amdvi_efi_probe -or ($amdviRun -and -not $gpuRun)) {
     throw 'La sonda AMD-Vi requiere el perfil NVIDIA y su manifiesto.'
 }
 if ($amdviPost -ne [bool]$proof.amdvi_post_probe -or ($amdviPost -and -not $amdviRun)) {
     throw 'La captura post-EBS requiere el perfil AMD-Vi y su manifiesto.'
 }
+if ($dmaCensus -ne [bool]$proof.dma_census -or ($dmaCensus -and -not $amdviPost)) {
+    throw 'El inventario DMA requiere el perfil post-EBS y su manifiesto.'
+}
 if ($amdviPost) {
     $missing=$proof.Cases | Where-Object { $_.Case -eq 'amdvi-missing' } | Select-Object -First 1
     if (-not $normal.AmdViPostVerified -or $normal.AmdViPostPages -ne 2 -or
         -not $missing.AmdViPostVerified -or $missing.AmdViPostPages -ne 0) {
         throw 'Falta comprobar la ventana AMD-Vi posterior a ExitBootServices.'
+    }
+    if ($dmaCensus -and (-not $normal.DmaCensusVerified -or -not $missing.DmaCensusVerified -or
+        -not $normal.DmaCensusPanelVerified)) {
+        throw 'Falta comprobar el inventario DMA PCI y su panel de Ring 3.'
     }
 }
 if ($amdviRun) {
@@ -130,6 +138,7 @@ $record=[ordered]@{Schema=1;Evidence='HOST copy after QEMU FAT32 boot';Run=$proo
     PreviousFiles=$previous;ExperimentalUsb=[bool]$ExperimentalUsb;HardwareProfile=$proof.hardware_profile;AmdViFirmwareProbe=$amdviRun;
     AmdViMmioProbe=[bool]$proof.amdvi_mmio_probe;
     AmdViPostProbe=$amdviPost;
+    DmaCensus=$dmaCensus;
     BootFile=('\'+$bootFile.Replace('/','\'));ReportFile=('\'+$dataFolder.Replace('/','\')+'\'+$reportName);
     Note='USB HID fisico sigue pendiente; no cambia NVRAM ni archivos ajenos al candidato.'}
 $json=$record | ConvertTo-Json -Depth 8

@@ -7,7 +7,43 @@ import time
 from cpu_config import register
 from desktop_session_capture import verify_external_rejection
 
-def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexist=None):
+def verify_dma_census(machine, command, memory, context, serial):
+    def functions(devices):
+        for entry in devices:
+            yield (entry['bus'] << 8 | entry['slot'] << 3 | entry['function']), entry
+            yield from functions(entry.get('pci_bridge', {}).get('devices', []))
+
+    pci_tree = dict(functions(device for bus in command('query-pci') for device in bus['devices']))
+    owner, = (rid for rid, entry in pci_tree.items() if entry['qdev_id'] == 'bmo-native-xhci')
+    expected = []
+    selector = int(machine.command('inl', 0xcf8), 16)
+    try:
+        for rid in sorted(pci_tree):
+            pci_command = machine.pci(4, word=True, requester=rid)
+            if pci_command & 4:
+                ids = machine.pci(0, requester=rid)
+                kind = machine.pci(8, requester=rid) >> 8
+                expected.append((rid, pci_command, ids, kind))
+    finally:
+        machine.command('outl', 0xcf8, selector)
+    if owner < 256 or not any(row[0] == owner and row[3] == 0x0c0330 for row in expected):
+        raise ValueError('Expected a bus-mastering xHCI behind a PCIe bridge')
+    header, ready = struct.unpack('<QB', memory(context+0xb80, 9, 'dma-census-header'))
+    stored, xhci, total = header & 0xffff, (header >> 16) & 0xffff, header >> 32
+    if (ready, stored, xhci, total) != (1, min(len(expected), 64), owner, len(expected)):
+        raise ValueError(f'PCI DMA inventory {stored}/{total}, xHCI {xhci:04X}, differs from {expected}')
+    rows = list(struct.iter_unpack('<HHIQ', memory(context+0xb90, stored*16, 'dma-census-rows')))
+    lines = [line for line in serial.read_text(errors='replace').splitlines()
+             if line.startswith(('DMA_CENSUS=', 'DMA_REQ='))]
+    expected_lines = [f'DMA_CENSUS={total:08X} {owner:04X} {stored:04X}']
+    expected_lines += [f'DMA_REQ={rid:04X} {ctrl:04X} {ids:08X} {kind:06X}' for rid, ctrl, ids, kind in rows]
+    if rows != expected[:64] or lines != expected_lines:
+        raise ValueError('PCI DMA inventory differs from PCI configuration or the Ring 3 report')
+    return dict(DmaCensusVerified=True, DmaCensusActive=total, DmaCensusXhci=f'{owner:04X}',
+                DmaCensusReport=lines)
+
+
+def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexist=None,dma_census=None):
     if case=='external-permissions':
         result=verify_external_rejection(command,memory,image)
         if memory(0x4000000,4096,'ui-rejected-code')!=bytes(4096):raise ValueError('UI copied before permission validation')
@@ -57,6 +93,10 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
     context=memory(context_address,0x30,'ui-context')
     if context[:8]!=b'METAL64!':raise ValueError('Native UI handoff signature')
     amdvi_proof={}
+    if bool(symbols.get('dma_census')) != (dma_census is not None):
+        raise ValueError('PCI DMA inventory profiles differ')
+    if dma_census is not None:
+        amdvi_proof.update(verify_dma_census(dma_census,command,memory,context_address,serial))
     if symbols.get('amdvi_post'):
         base, _, _, status, control, table, cmd, events, hw_status, pte0, pte2 = struct.unpack(
             '<QII8Q', memory(context_address+0xb00,0x50,'amdvi-post'))
@@ -67,11 +107,11 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
         if case == 'amdvi-missing':
             if (base,status,control,table,cmd,events,hw_status,pte0,pte2) != (0,1,0,0,0,0,0,0,0):
                 raise ValueError('Absent AMD-Vi opened a post-EBS alias')
-            return dict(Case=case,Passed=True,AmdViPostVerified=True,AmdViPostReport='01',AmdViPostPages=0)
+            return dict(Case=case,Passed=True,AmdViPostVerified=True,AmdViPostReport='01',AmdViPostPages=0,**amdvi_proof)
         if base!=0xfed80000 or status!=4 or (pte0,pte2)!=(0x80000000fed80019,0x80000000fed82019):
             raise ValueError('Unexpected post-EBS AMD-Vi aperture or permissions')
-        amdvi_proof=dict(AmdViPostVerified=True,AmdViPostReport=expected.removeprefix('AMDVI_POST='),
-                         AmdViPostPages=2,AmdViPostPtes=[f'{pte0:016X}',f'{pte2:016X}'])
+        amdvi_proof.update(AmdViPostVerified=True,AmdViPostReport=expected.removeprefix('AMDVI_POST='),
+                           AmdViPostPages=2,AmdViPostPtes=[f'{pte0:016X}',f'{pte2:016X}'])
     if symbols.get('usb')=='both':
         live=memory(context_address+0x1a3c8,1,'dual-live')[0]
         roles=memory(context_address+0x1a770,1,'dual-roles')[0]
@@ -329,6 +369,24 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
                     raise ValueError('Dual code reservation')
                 stage=(prefix.parent.parent/'xhci.bin').read_bytes()
                 if memory(code,8192,'dual-code-copy')!=stage.ljust(8192,b'\0'):raise ValueError('Dual code copy')
+                if dma_census is not None:
+                    def frame_counter():
+                        return struct.unpack('<2Q',memory(state-0x3c000000+8,16,'dma-panel-frame'))
+                    def toggle_panel(status):
+                        _, previous=frame_counter()
+                        key('f2')
+                        def presented():
+                            contents=serial.read_text(errors='replace')
+                            if 'BMO UI FAIL:' in contents:raise ValueError(contents[-1800:])
+                            phase, frames=frame_counter()
+                            return f'DMA_PANEL={status}' in contents and phase==3 and frames>previous
+                        wait_input(presented, 'DMA inventory panel did not switch to '+status, 75)
+                    toggle_panel('ON')
+                    shot=Path(str(prefix)+'-dma-census.ppm')
+                    command('screendump',{'filename':str(shot)})
+                    toggle_panel('OFF')
+                    amdvi_proof.update(DmaCensusPanelVerified=True,DmaCensusScreenshot=shot.name,
+                                       DmaCensusScreenshotSHA256=hashlib.sha256(shot.read_bytes()).hexdigest())
                 # Exercise the real application stop path, then require BM revoke
                 # and alias removal. Buffers stay pinned, never silently reused.
                 key('f12')

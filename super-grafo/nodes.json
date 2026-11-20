@@ -2685,6 +2685,24 @@
       "salida": "Estado de rechazo, tablas y colas propios y comprobantes de invalidacion y cierre.",
       "aceptacion": "QEMU comprueba rechazo con otro bus master activo, DMA concedido y revocado e informes USB con traduccion activa.",
       "falta": "Integrar la transicion con almacenamiento y solicitantes fisicos antes de activar el dominio para NVIDIA."
+    },
+    {
+      "id": "dma-pci-census",
+      "titulo": "PCI / Inventario de solicitantes DMA",
+      "ruta": "kernel/drivers/bus/amdvi/dma_census.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [
+        11700,
+        4050
+      ],
+      "que": "Captura los BDF del segmento PCI 0 con bus mastering habilitado despues de arrancar xHCI.",
+      "entrada": "Configuracion PCI del segmento 0 y BDF del xHCI activo en el contexto supervisor.",
+      "salida": "Total y hasta 64 registros leidos por INVOKE. F2 muestra el inventario en RmlUi.",
+      "aceptacion": "QEMU coteja PCI con qtest, incluido un xHCI detras de un puente, con y sin AMD-Vi. F2 abre y cierra el panel.",
+      "falta": "Identificar los solicitantes de METAL y validar la transicion DMA con USB y almacenamiento."
     }
   ],
   "relaciones": [
@@ -4001,6 +4019,21 @@
     {
       "de": "amdvi-xhci-guest",
       "a": "amdvi-post-ebs-probe",
+      "clase": "codigo"
+    },
+    {
+      "de": "dma-pci-census",
+      "a": "amdvi-post-ebs-probe",
+      "clase": "codigo"
+    },
+    {
+      "de": "dma-pci-census",
+      "a": "rmlui-usb-dual",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-fat32-media",
+      "a": "dma-pci-census",
       "clase": "codigo"
     },
     {

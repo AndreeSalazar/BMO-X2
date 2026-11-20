@@ -1494,7 +1494,7 @@ Construye el perfil de escritorio FAT32 y las variantes xHCI de teclado/raton pa
 Estado: QEMU. Anillo: host. Lenguaje: Python / LLVM / CASM / C++ / Rust.
 Entrada: Runs ABI y gato CASM verificados, ELF/SBEF nativo con hashes y selector explicito de perfil USB.
 Salida: EFI e INICIO con SBEF desde FAT32; perfiles QEMU con reserva DMA supervisada, etapa xHCI y reportes.
-Depende de: Interfaz RmlUi y ULTRA-J nativa (codigo), Inspeccion acotada de FAT32 (codigo), Buses, recursos y DMA (codigo), Informes USB al escritorio nativo (codigo), Presentacion GOP por CPU (codigo), GPU / NVIDIA / Inventario PCI (codigo), AMD-Vi / Inventario UEFI (codigo), AMD-Vi / Captura Ring 0 (codigo), GPU / NVIDIA / Lectura MMIO (codigo).
+Depende de: Interfaz RmlUi y ULTRA-J nativa (codigo), Inspeccion acotada de FAT32 (codigo), Buses, recursos y DMA (codigo), Informes USB al escritorio nativo (codigo), Presentacion GOP por CPU (codigo), GPU / NVIDIA / Inventario PCI (codigo), AMD-Vi / Inventario UEFI (codigo), AMD-Vi / Captura Ring 0 (codigo), PCI / Inventario de solicitantes DMA (codigo), GPU / NVIDIA / Lectura MMIO (codigo).
 Aceptacion: FAT32: GOP 1280x800 y 1024x768, W+X rechazado, BOOTLOG/SBEF releidos. USB: teclado y raton en perfiles separados, W+X rechazado, limites de imagen comprobados y deploy.ps1 rechaza perfiles solo-QEMU.
 Pendiente: Arranque fisico del candidato y backend USB AMD completo; la supervision DMA no acredita IOMMU ni aislamiento de dispositivos hostiles.
 
@@ -1718,6 +1718,17 @@ Depende de: AMD-Vi / Captura Ring 0 (codigo).
 Aceptacion: QEMU comprueba rechazo con otro bus master activo, DMA concedido y revocado e informes USB con traduccion activa.
 Pendiente: Integrar la transicion con almacenamiento y solicitantes fisicos antes de activar el dominio para NVIDIA.
 
+## kernel/drivers/bus/amdvi/dma_census.inc
+
+Captura los BDF del segmento PCI 0 con bus mastering habilitado despues de arrancar xHCI.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: Configuracion PCI del segmento 0 y BDF del xHCI activo en el contexto supervisor.
+Salida: Total y hasta 64 registros leidos por INVOKE. F2 muestra el inventario en RmlUi.
+Depende de: AMD-Vi / Captura Ring 0 (codigo), xHCI USB2 con dos dispositivos (codigo).
+Aceptacion: QEMU coteja PCI con qtest, incluido un xHCI detras de un puente, con y sin AMD-Vi. F2 abre y cierra el panel.
+Pendiente: Identificar los solicitantes de METAL y validar la transicion DMA con USB y almacenamiento.
+
 ## CASM
 
 Lenguaje y codificador propio x86-64: metal64, Native y su futura ampliacion privilegiada.
@@ -1740,4 +1751,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-156 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+157 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

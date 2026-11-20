@@ -39,16 +39,20 @@ def main():
     parser.add_argument('--msvc-panel-cc', help='Optional cl.exe for the trusted Win64 panel')
     parser.add_argument('--usb',choices=['keyboard','mouse','both'])
     parser.add_argument('--amdvi-post',action='store_true')
+    parser.add_argument('--dma-census',action='store_true')
     args=parser.parse_args()
     if args.usb and not args.desktop:parser.error('--usb requires --desktop')
     if args.msvc_panel_cc and not args.desktop:parser.error('--msvc-panel-cc requires --desktop')
     if args.amdvi_post and (not args.desktop or args.usb!='both' or args.msvc_panel_cc):
         parser.error('--amdvi-post requires the desktop with USB both')
+    if args.dma_census and not args.amdvi_post:
+        parser.error('--dma-census requires --amdvi-post')
     libc.main()
     here=Path(__file__).parent
     llvm=Path(os.environ['ProgramFiles'])/'LLVM/bin'
     variant='desktop-usb-'+args.usb if args.usb else 'desktop' if args.desktop else 'guest'
     if args.amdvi_post:variant+='-amdvi-post'
+    if args.dma_census:variant+='-dma-census'
     out=OUT/(variant + ('-msvc' if args.msvc_panel_cc else ''))
     out.mkdir(exist_ok=True)
     includes=generate_headers()
@@ -67,6 +71,7 @@ def main():
     if args.usb=='both':cppflags+=['-DBMO_USB_DUAL']
     if args.msvc_panel_cc:cppflags+=['-DBMO_MSVC_PANEL']
     if args.amdvi_post:cppflags+=['-DBMO_AMDVI_POST']
+    if args.dma_census:cppflags+=['-DBMO_DMA_CENSUS']
     command([llvm/'clang++.exe',*cppflags,'-c',here/'guest.cpp','-o',out/'guest.o'],'compile-native-guest')
     command([llvm/'clang++.exe',*cppflags,'-c',here/'new.cpp','-o',out/'new.o'],'compile-native-new')
     rust_extra=[]
@@ -99,6 +104,11 @@ def main():
     if args.amdvi_post:
         text=text.replace('<span class="footer-note">SBEF NATIVO / DIBUJO CPU / RMLUI + ULTRA-J</span>',
                           '<div id="amdvi-post" style="color:#d7fff6;font-size:13px;letter-spacing:0;"></div>')
+    if args.dma_census:
+        text=text.replace('CTRL+SUPER+1..4 / SUPER+Q','CTRL+SUPER+1..4 / SUPER+Q / F2 PCI')
+        text=text.replace('<div id="bottom">','<div id="dma-census" style="display:none;position:absolute;'
+            'left:246px;right:36px;top:115px;height:515px;padding:24px;'
+            'background:#101c29;border:1px #658e98;z-index:10;"></div><div id="bottom">')
     if args.msvc_panel_cc:
         text=text.replace('<div class="nav">03 <span>Archivos</span></div>',
             '<button id="open-msvc" class="nav">Abrir panel MSVC</button>')
@@ -154,6 +164,7 @@ def main():
         manifest['msvc_panel_draws']=symbols['bmo_ui_msvc_draws']
     if args.usb:manifest.update(usb=args.usb,usb_reports=symbols['bmo_ui_usb_reports'])
     if args.amdvi_post:manifest['amdvi_post']=True
+    if args.dma_census:manifest['dma_census']=True
     if args.usb=='both':
         manifest.update(usb_keyboard_reports=symbols['bmo_ui_usb_keyboard_reports'],
             usb_mouse_reports=symbols['bmo_ui_usb_mouse_reports'],mouse_edges=symbols['bmo_ui_mouse_edges'],

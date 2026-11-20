@@ -56,6 +56,7 @@ if (args.splash_hd and not args.splash) or ('contexto' in args.casos and not (ar
 ROOT = workspace(args.workspace)
 amdvi_post = args.doom_fixture and (ROOT / 'amdvi-post-probe.txt').is_file()
 amdvi_coexist = amdvi_post and (ROOT / 'amdvi-coexist-probe.txt').is_file()
+dma_census = amdvi_post and (ROOT / 'dma-census-probe.txt').is_file()
 desktop_cases = ['normal', 'external-permissions']
 if args.doom_fixture and (not args.abi_probe or args.casos not in
                           (['normal'], desktop_cases, desktop_cases + (['amdvi-missing'] if amdvi_post else []))):
@@ -202,6 +203,7 @@ def verify_amdvi_firmware(log, units, register_words, present):
 
 def run(case):
     coexist = amdvi_coexist and case == 'normal'
+    census = dma_census and case in ('normal','amdvi-missing')
     payload_case = case in ('normal', 'contexto', *MUTATIONS)
     disk_case = 'normal' if (case == 'amdvi-missing' or
                              (case == 'external-permissions' and not (args.doom_fixture and (desktop_media or native_media)))) else case
@@ -241,7 +243,10 @@ def run(case):
         usb=(ROOT/'native-usb.txt').read_text().strip()
         if usb not in ('keyboard','mouse','both'):raise ValueError('Native USB profile')
         if usb=='both':
-            staging+=['-device','qemu-xhci,id=bmo-native-xhci'+(',addr=05.0' if coexist else '')]
+            if census:
+                staging+=['-device','pcie-root-port,id=bmo-dma-root,bus=pcie.0,addr=06.0']
+            placement=',bus=bmo-dma-root' if census else ',addr=05.0' if coexist else ''
+            staging+=['-device','qemu-xhci,id=bmo-native-xhci'+placement]
             if not (ROOT/'native-usb-empty.txt').is_file():
                 staging+=['-device','usb-kbd,bus=bmo-native-xhci.0,port=1','-device','usb-mouse,bus=bmo-native-xhci.0,port=2']
         else:
@@ -249,11 +254,13 @@ def run(case):
             staging+=['-device','qemu-xhci,id=bmo-native-xhci','-device',f'{device},bus=bmo-native-xhci.0']
     listener = connection = qtest = None
     if coexist:
+        staging += ['-device', 'edu,addr=04.0', '-nic', 'none']
+    if coexist or census:
         listener = socket.socket()
         listener.bind(('127.0.0.1', 0))
         listener.listen(1)
         listener.settimeout(8)
-        staging += ['-device', 'edu,addr=04.0', '-nic', 'none', '-qtest-log', 'none',
+        staging += ['-qtest-log', 'none',
                     '-qtest', f'tcp:127.0.0.1:{listener.getsockname()[1]}']
     process = subprocess.Popen([
         str(qemu), '-machine', machine,
@@ -327,7 +334,8 @@ def run(case):
                 if native_ui:
                     from rmlui_native_capture import verify_native_ui
                     result = verify_native_ui(command, memory, prefix, external_image, case, ROOT / 'ui-symbols.json',
-                                              amdvi_coexist=qtest)
+                                              amdvi_coexist=qtest if coexist else None,
+                                              dma_census=qtest if census else None)
                     if amdvi_probe or (nvidia_probe and case == 'normal'):
                         devices = [device for bus in command('query-pci') for device in bus['devices']]
                         if case == 'normal':
