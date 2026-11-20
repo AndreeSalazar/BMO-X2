@@ -29,6 +29,15 @@ amdvi_firmware_probe:
     rep movsb
     pop %rcx
 #endif
+#ifdef BMO_AMDVI_GUEST_NVME
+    push %rcx
+    lea nvme_guest_begin(%rip), %rsi
+    lea AMDVI_GUEST_NVME_CODE(%rbp), %rdi
+    mov $(nvme_guest_end-nvme_guest_begin), %ecx
+    cld
+    rep movsb
+    pop %rcx
+#endif
 #ifdef BMO_FULL_HD
     push %rcx
     lea .Lgop_stage(%rip), %rsi
@@ -438,6 +447,9 @@ amdvi_uefi_snapshot:
 
 #ifdef BMO_AMDVI_POST
 #include "post_ebs_probe.inc"
+#endif
+#ifdef BMO_AMDVI_GUEST_NVME
+#include "../../storage/nvme_guest.inc"
 #endif
 #ifdef BMO_FULL_HD
 #include "../../display/GOP/gop_stage.inc"

@@ -81,7 +81,11 @@ amdvi_lab_entry:
     mov AMDVI_LAB_REQUEST(%rbp), %r15
     cmp $1, %r15
     jb .Llab_reject
+#ifdef BMO_AMDVI_GUEST_NVME
+    cmp $4, %r15
+#else
     cmp $3, %r15
+#endif
     ja .Llab_reject
     cmp $1, %r15
     jne .Llab_running_phase
@@ -126,7 +130,33 @@ amdvi_lab_entry:
     je .Llab_start
     cmp $2, %r15
     je .Llab_revoke
+#ifdef BMO_AMDVI_GUEST_NVME
+    cmp $4, %r15
+    je .Llab_nvme
+#endif
     jmp .Llab_stop
+
+#ifdef BMO_AMDVI_GUEST_NVME
+.Llab_nvme:
+    mov 0x18(%r14), %eax
+    and $0x1005, %eax
+    cmp $0x1005, %eax
+    jne .Llab_unmap
+    lea 1(%r12), %rax
+    cmp %rax, (%r14)
+    jne .Llab_unmap
+    movabs $LAB_RW, %r8
+    lea (LAB_NVME_ROOT+0x403)(%r12), %rax
+    or %r8, %rax
+    cmp %rax, 0x900(%r12)
+    jne .Llab_unmap
+    cmpq $4, 0x908(%r12)
+    jne .Llab_unmap
+    lea AMDVI_GUEST_NVME_CODE(%rbp), %rax
+    call *%rax
+    mov %eax, %ebx
+    jmp .Llab_unmap
+#endif
 
 .Llab_start:
     mov 0x18(%r14), %rax
@@ -337,6 +367,10 @@ amdvi_lab_entry:
 .Llab_unmap:
     movq $0, 0x15408(%rbp)
     movq $0, LAB_PT(%r12)
+#ifdef BMO_AMDVI_GUEST_NVME
+    movq $0, (LAB_PT+8)(%r12)
+    invlpg 0x1000(%r14)
+#endif
     movq $0, (LAB_PT+16)(%r12)
     invlpg (%r14)
     invlpg 0x2000(%r14)

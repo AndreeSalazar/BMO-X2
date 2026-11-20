@@ -1769,7 +1769,7 @@ Coteja el BAR con PCI y el mapa final. Lee el estado de AHCI y NVMe y revoca la 
 Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: Recursos validados por UEFI, contexto supervisor y copia final del mapa de memoria.
 Salida: Estado de motores y comandos AHCI, CC y CSTS de NVMe. F3 publica la captura en RmlUi.
-Depende de: Almacenamiento / Recursos UEFI AHCI y NVMe (codigo), PCI / Inventario de solicitantes DMA (codigo).
+Depende de: Almacenamiento / Recursos UEFI AHCI y NVMe (codigo), PCI / Inventario de solicitantes DMA (codigo), MMIO / Limites frente al mapa EFI (codigo).
 Aceptacion: QEMU coteja los registros y la pagina F3. METAL muestra motores SATA activos en puertos 4 y 5 y NVMe habilitado, ambos con BME.
 Pendiente: Completar la reanudacion con colas propias y probar el traspaso en METAL antes de activar AMD-Vi.
 
@@ -1804,7 +1804,29 @@ Entrada: Namespace virtual determinista, BAR validado y cinco IOVA para colas y 
 Salida: Dos lecturas traducidas del mismo sector junto a SATA y USB. Medio exclusivo de QEMU.
 Depende de: AMD-Vi / Lectura SATA traducida en QEMU (codigo).
 Aceptacion: Cotejar completados, 512 B por lectura, testigo de las IOVA, cierre de NVMe y ausencia de fallos IOMMU nuevos.
-Pendiente: Mover las colas a un controlador BMO-X2 y verificar NVMe en METAL antes del arranque de GSP.
+Pendiente: Ejecutar el traspaso y verificar NVMe en METAL antes del arranque de GSP.
+
+## kernel/drivers/storage/nvme_guest.inc
+
+Crea CQ1 y SQ1, lee un sector en el dominio 4, confirma cierre y revoca su ventana temporal.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: NVMe emulado quiescente, AMD-Vi activo y reserva de cinco IOVA de cola y datos.
+Salida: Tres completados, 512 B traducidos y permiso DMA retirado al cerrar.
+Depende de: AMD-Vi / Lectura NVMe traducida en QEMU (verificacion), AMD-Vi / Dominios en el invitado (codigo), MMIO / Limites frente al mapa EFI (codigo).
+Aceptacion: Leer dos veces en QEMU con HID activo y rechazar solicitudes sin dominio o con EDU todavia habilitado.
+Pendiente: Trasladar a METAL la propiedad de las colas y el traspaso de firmware.
+
+## kernel/drivers/bus/mmio_range.inc
+
+Comprueba la geometria del mapa y rechaza que una ventana MMIO invada una region EFI de memoria.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: Rango fisico alineado y mapa EFI final en la entrega de arranque.
+Salida: Aprobacion del rango para una ventana temporal del supervisor.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: Las sondas de almacenamiento comparten la guarda. El binario de lectura METAL conserva sus bytes.
+Pendiente: Extender la comprobacion al backend NVIDIA post-EBS al abrir sus recursos propios.
 
 ## CASM
 
@@ -1828,4 +1850,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-164 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+166 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

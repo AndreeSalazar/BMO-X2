@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "run": "run-rmlui-media-c96223b1ef5d",
+  "evidence": "QEMU FAT32 boot and guest-owned NVMe queues behind AMD-Vi",
+  "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+  "cases": {
+    "normal": true,
+    "external-permissions": true,
+    "amdvi-missing": true
+  },
+  "nvme": {
+    "requester": "0048",
+    "queue_owner": "Ring 0 guest",
+    "domain": 4,
+    "iova_pages": 5,
+    "reads": 2,
+    "bytes_per_read": 512,
+    "sector_sha256": "84a44019110911e9865fa73b29b90ee38a3f098b8f33c39fd273df0c739dc34d",
+    "rejected_without_domain": true,
+    "rejected_with_edu_bme": true,
+    "read_after_edu_revocation": true,
+    "initial_ovmf_shutdown_owner": "QEMU qtest HOST",
+    "guest_stage_bytes": 1084
+  },
+  "ahci": {
+    "queue_owner": "QEMU qtest HOST",
+    "reads": 2
+  },
+  "hid_during_grant": [
+    2,
+    1
+  ],
+  "hid_after_revocation": [
+    2,
+    1
+  ],
+  "installable_media_emitted": false,
+  "fat32_install_guard_verified": true,
+  "metal": {
+    "installed_run": "run-rmlui-media-a01f0170ccfa",
+    "deployment_hashes_verified": true,
+    "resolution": [
+      1920,
+      1080
+    ],
+    "photo_sha256": "12e1285fa7ea28d01a8dbd836e57e00eb143fa9f4f076ff64193642432e5626d",
+    "gpu_log_sha256": "39b02ff4a3c541fc0ee0c7472232cbe72cc5e0de27886615902cf64d7a2434c3",
+    "nvidia": {
+      "bdf": "29:00.0",
+      "id": "10de:2504",
+      "pci_command": "0003"
+    },
+    "amd_vi_translation_enabled": false,
+    "storage_observation": {
+      "nvme": {
+        "bdf": "01:00.0",
+        "pci_command_before_after": [
+          "0006",
+          "0006"
+        ],
+        "cc": "00460001",
+        "csts": "00000001"
+      },
+      "ahci": {
+        "bdf": "03:00.1",
+        "pci_command_before_after": [
+          "0006",
+          "0006"
+        ],
+        "ghc": "80000000",
+        "pi": "00000033",
+        "motors": "00000030",
+        "pending": "00000000"
+      }
+    },
+    "translated_storage_tested": false,
+    "gpu_dma_tested": false,
+    "gsp_boot_verified": false,
+    "gpu_render_verified": false
+  }
+}

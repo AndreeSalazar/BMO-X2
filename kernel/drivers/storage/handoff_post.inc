@@ -58,7 +58,7 @@ storage_snapshot:
     and $4095, %r13d
     add $0x10000000, %r13d
     and $-4096, %r8
-    call .Lstorage_map_range
+    call .Lmmio_map_range
     jc .Lstorage_post_next
     mov $0x10000000, %ebx
     lea 0x1e000(%rbp), %rdi
@@ -202,45 +202,7 @@ storage_snapshot:
     stc
     ret
 
-# Refuse any mapped page that collides with a non-MMIO EFI descriptor.
-.Lstorage_map_range:
-    mov 0x60(%rbp), %rsi
-    cmp $40, %rsi
-    jb .Lstorage_map_bad
-    cmp $256, %rsi
-    ja .Lstorage_map_bad
-    mov 0x50(%rbp), %rcx
-    test %rcx, %rcx
-    jz .Lstorage_map_bad
-    cmp $65536, %rcx
-    ja .Lstorage_map_bad
-    lea 0x1000(%rbp), %rdi
-.Lstorage_map_next:
-    cmp %rsi, %rcx
-    jb .Lstorage_map_bad
-    cmpl $11, (%rdi)
-    je .Lstorage_map_advance
-    mov 8(%rdi), %rax
-    cmp %r9, %rax
-    jae .Lstorage_map_advance
-    mov 24(%rdi), %rdx
-    mov %rdx, %r10
-    shr $40, %r10
-    jnz .Lstorage_map_bad
-    shl $12, %rdx
-    add %rax, %rdx
-    jc .Lstorage_map_bad
-    cmp %r8, %rdx
-    ja .Lstorage_map_bad
-.Lstorage_map_advance:
-    add %rsi, %rdi
-    sub %rsi, %rcx
-    jnz .Lstorage_map_next
-    clc
-    ret
-.Lstorage_map_bad:
-    stc
-    ret
+#include "../bus/mmio_range.inc"
 
 #ifdef BMO_STORAGE_QUIESCE
 #include "quiesce.inc"

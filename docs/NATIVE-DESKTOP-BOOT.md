@@ -704,6 +704,27 @@ python -B tools/desktop/rmlui/native/media.py <ABI_RUN> <GATO_COMPACTO_RUN> --us
 [Evidencia de NVMe traducido](../Reports/amdvi-nvme-qemu-20261120.json).
 [Especificacion de colas NVMe](https://nvmexpress.org/specification/nvme-express-base-specification/).
 
+El perfil `--amdvi-guest-nvme` traslada la creacion de las colas y la
+lectura NVMe a Ring 0. Revalida el dispositivo y su BAR, limita la
+ventana MMIO a dos paginas UC de supervisor, y usa el dominio 4 para
+crear CQ1/SQ1 y leer el LBA 8. El laboratorio solicita esta operacion
+fija. Ring 0 coteja los tres completados, espera el cierre normal,
+retira BME y revoca la ventana temporal.
+
+QEMU manda el numero de operacion y verifica que los completados y
+los 512 B de salida aparezcan en el respaldo traducido. El escenario
+rechaza la lectura sin dominio y con EDU todavia habilitado para DMA.
+Los dos ensayos positivos conservan los informes HID y verifican los
+mismos datos. El cierre inicial de OVMF y el manejo de SATA siguen en
+qtest en este banco. Queda validar en METAL las colas y los dominios
+antes de arrancar el GSP.
+
+```powershell
+python -B tools/desktop/rmlui/native/media.py <ABI_RUN> <GATO_COMPACTO_RUN> --usb both --nvidia-probe --amdvi-probe --amdvi-post --amdvi-coexist --amdvi-guest-dma --amdvi-storage --amdvi-nvme --amdvi-guest-nvme
+```
+
+[Colas NVMe del invitado y registro METAL](../Reports/amdvi-guest-nvme-qemu-20261120.json).
+
 El perfil `--amdvi-routed` agrega un dispositivo EDU detras de un
 puerto PCIe en un bus alto. Ring 0 descubre el BDF completo, valida
 la reserva UEFI y programa su entrada en una tabla AMD-Vi de 96

@@ -138,3 +138,37 @@ def read_sector(machine, command, bar, bar_size, scratch, input_activity):
         # On failure the lab VM is discarded with its reservation intact.
         machine.pci(4,original,word=True,requester=REQUESTER)
         require(not machine.pci(4,word=True,requester=REQUESTER)&4, 'NVMe mantiene BME')
+
+
+def verify_guest_read(machine, command, bar, scratch, context, guest_request, input_activity):
+    """Give only the operation number to the guest. Observe the output."""
+    backing,iova = scratch+BACKING_OFFSET,scratch+IOVA_OFFSET
+    check_domain(machine,scratch)
+    require(machine.read(AMDVI+0x18)&0x1005==0x1005, 'AMD-Vi apagado durante NVMe')
+    original = machine.pci(4,word=True,requester=REQUESTER)
+    require(original&6==2 and not read32(machine,bar,0x14)&1, 'NVMe no esta quiescente')
+    before = machine.read(context+0xbc0)
+    event_tail = machine.read(AMDVI+0x2018)
+    machine.put_bytes(iova,WITNESS)
+    guest_request(4)
+    require(machine.read(context+0xbc0)==before+1 and machine.read(context+0xbd0)==7
+            and machine.read(context+0xbc8)&0x4e==8, 'Falta lectura y cierre NVMe desde Ring 0')
+    require(machine.get_bytes(context+0x15408,8)==bytes(8)
+            and machine.get_bytes(scratch+0xd000,24)==bytes(24), 'NVMe dejo una ventana MMIO abierta')
+    require(machine.pci(4,word=True,requester=REQUESTER)==original
+            and not read32(machine,bar,0x14)&0xc001 and not read32(machine,bar,0x1c)&0x43,
+            'NVMe mantiene BME o sigue activo')
+
+    entries = [(0x1008,(1,0,1,1)), (0x1018,(2,0,2,1)), (0x3008,(1,1,3,1))]
+    require(all(struct.unpack('<4H',machine.get_bytes(backing+offset,8))==expected
+                for offset,expected in entries), 'Completados NVMe distintos de la secuencia esperada')
+    payload = machine.get_bytes(backing+4*PAGE,512)
+    require(payload==CONTENTS and machine.get_bytes(iova,len(WITNESS))==WITNESS,
+            'NVMe no entrego el sector en su respaldo traducido')
+    require(machine.read(AMDVI+0x2018)==event_tail, 'AMD-Vi registro un nuevo fallo NVMe')
+    command('cont')
+    try:
+        input_activity()
+    finally:
+        command('stop')
+    return hashlib.sha256(payload).hexdigest()

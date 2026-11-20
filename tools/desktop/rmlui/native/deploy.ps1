@@ -6,7 +6,8 @@ $runPath=(Get-Item -LiteralPath $Run).FullName
 if ((Split-Path $runPath -Parent) -ne (Join-Path $root 'build/CASM')) { throw 'Run fuera de build/CASM.' }
 if ((Get-Content -LiteralPath (Join-Path $runPath 'profile.txt') -Raw).Trim() -ne 'rmlui-desktop-media') { throw 'Perfil de arranque incompatible.' }
 if ((Test-Path -LiteralPath (Join-Path $runPath 'storage-quiesce.txt')) -or
-    (Test-Path -LiteralPath (Join-Path $runPath 'amdvi-nvme.txt'))) {
+    (Test-Path -LiteralPath (Join-Path $runPath 'amdvi-nvme.txt')) -or
+    (Test-Path -LiteralPath (Join-Path $runPath 'amdvi-guest-nvme.txt'))) {
     throw 'El laboratorio AHCI/NVMe es exclusivo de QEMU.'
 }
 $media=Join-Path $runPath 'media'

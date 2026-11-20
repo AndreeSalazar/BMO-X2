@@ -77,7 +77,8 @@ def run_transfer(machine, command, bar, source, destination, size, direction, ac
         command('stop')
 
 
-def verify_coexistence(machine, command, memory, context, symbols, *, guest_dma=False, storage=False, routed=False, nvme=False):
+def verify_coexistence(machine, command, memory, context, symbols, *,
+                       guest_dma=False, storage=False, routed=False, nvme=False, guest_nvme=False):
     """Run at the first frozen desktop frame. Return with the guest paused."""
     scratch_pages = 18 if storage else 14 if guest_dma else 13
     if nvme:
@@ -167,7 +168,8 @@ def verify_coexistence(machine, command, memory, context, symbols, *, guest_dma=
             command('stop')
         observed=machine.read(context+0xb60)
         require(observed==result, f'Orden DMA {operation}: estado {observed}, esperado {result}; '
-                f'control={machine.read(AMDVI+24):#x}, lectura de cierre={machine.read(context+0xb70):#x}')
+                f'control={machine.read(AMDVI+24):#x}, lectura de cierre={machine.read(context+0xb70):#x}, '
+                f'paso NVMe={machine.read(context+0xbd0) if guest_nvme else 0}')
         require(machine.read(context+0x15408)==0, 'Ring 0 dejó una PDE de AMD-Vi activa')
         if result==0:
             require(machine.read(scratch+13*PAGE)==0 and machine.read(scratch+13*PAGE+16)==0,
@@ -187,6 +189,13 @@ def verify_coexistence(machine, command, memory, context, symbols, *, guest_dma=
                 return
             time.sleep(.03)
         raise ValueError(f'USB dejó de entregar informes con AMD-Vi: {before} -> {after}')
+
+    def read_nvme(delta):
+        before_read = counters()
+        activity = lambda: hid_activity(before_read,delta)
+        if guest_nvme:
+            return amdvi_nvme.verify_guest_read(machine,command,nvme_bar,scratch,context,guest_request,activity)
+        return amdvi_nvme.read_sector(machine,command,nvme_bar,nvme_size,scratch,activity)
 
     def denied_edu_write(prime):
         pci_command = machine.pci(4,word=True,requester=EDU_REQUESTER)
@@ -217,6 +226,10 @@ def verify_coexistence(machine, command, memory, context, symbols, *, guest_dma=
             guest_request(1,2)
             require(machine.read(AMDVI+24)==0 and machine.read(context+0xb68)==0,
                     'Ring 0 activó DMA con otro bus master presente')
+        if guest_nvme:
+            guest_request(4,1)
+            require(machine.read(context+0xbc0)==0 and machine.read(context+0xbd0)==0,
+                    'Ring 0 inicio NVMe sin dominio activo')
         if nvme:
             inherited = pending.pop(nvme_rid)
             require(inherited&6==6, 'OVMF no dejo NVMe inicializado')
@@ -270,9 +283,7 @@ def verify_coexistence(machine, command, memory, context, symbols, *, guest_dma=
             before_read = counters()
             first_sector = read_sector(machine, command, ahci_bar, scratch, lambda: hid_activity(before_read,8))
         if nvme:
-            before_read = counters()
-            first_nvme = amdvi_nvme.read_sector(machine,command,nvme_bar,nvme_size,scratch,
-                                               lambda: hid_activity(before_read,-8))
+            first_nvme = read_nvme(-8)
         edu_pci(4, edu_idle_command | 2, word=True)
         require(int(machine.command('readl',bar),16)==0x010000ed and not machine.read(bar+0x98) & 1,
                 f'EDU no estaba listo en {bar:#x}')
@@ -324,13 +335,20 @@ def verify_coexistence(machine, command, memory, context, symbols, *, guest_dma=
                                  AhciBytesPerRead=512, AhciReadsVerified=2,
                                  AhciReadAfterEduRevocation=True, PhysicalStorageTested=False)
         if nvme:
-            before_read = counters()
-            second_nvme = amdvi_nvme.read_sector(machine,command,nvme_bar,nvme_size,scratch,
-                                                lambda: hid_activity(before_read,8))
+            if guest_nvme:
+                # The revoked EDU transfer is finished. The guest rejects
+                # the NVMe operation while EDU still has BME.
+                guest_request(4,2)
+                require(machine.read(context+0xbc0)==1, 'Ring 0 leyo NVMe con EDU activo')
+                edu_pci(4,edu_idle_command | 2,word=True)
+            second_nvme = read_nvme(8)
             require(first_nvme==second_nvme, 'El sector NVMe cambio despues de revocar EDU')
             storage_proof.update(NvmeTranslatedReadsVerified=True,NvmeDomain=4,NvmeRequester=f'{nvme_rid:04x}',
                                  NvmeSectorSHA256=first_nvme,NvmeBytesPerRead=512,NvmeReadsVerified=2,
-                                 NvmeFirmwareShutdownStatus=nvme_shutdown,NvmeQueueOwner='QEMU qtest HOST',
+                                 NvmeFirmwareShutdownStatus=nvme_shutdown,
+                                 NvmeQueueOwner='Ring 0 guest' if guest_nvme else 'QEMU qtest HOST',
+                                 NvmeRejectedWithoutDomain=guest_nvme,
+                                 NvmeRejectedWithEduBme=guest_nvme,
                                  NvmeIovaPages=5,NvmeReadAfterEduRevocation=True)
         if routed:
             tail = machine.read(AMDVI+0x2018)

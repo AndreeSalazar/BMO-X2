@@ -2825,7 +2825,43 @@
       "entrada": "Namespace virtual determinista, BAR validado y cinco IOVA para colas y datos.",
       "salida": "Dos lecturas traducidas del mismo sector junto a SATA y USB. Medio exclusivo de QEMU.",
       "aceptacion": "Cotejar completados, 512 B por lectura, testigo de las IOVA, cierre de NVMe y ausencia de fallos IOMMU nuevos.",
-      "falta": "Mover las colas a un controlador BMO-X2 y verificar NVMe en METAL antes del arranque de GSP."
+      "falta": "Ejecutar el traspaso y verificar NVMe en METAL antes del arranque de GSP."
+    },
+    {
+      "id": "nvme-guest-qemu",
+      "titulo": "Almacenamiento / Colas NVMe de Ring 0",
+      "ruta": "kernel/drivers/storage/nvme_guest.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [
+        12700,
+        4300
+      ],
+      "que": "Crea CQ1 y SQ1, lee un sector en el dominio 4, confirma cierre y revoca su ventana temporal.",
+      "entrada": "NVMe emulado quiescente, AMD-Vi activo y reserva de cinco IOVA de cola y datos.",
+      "salida": "Tres completados, 512 B traducidos y permiso DMA retirado al cerrar.",
+      "aceptacion": "Leer dos veces en QEMU con HID activo y rechazar solicitudes sin dominio o con EDU todavia habilitado.",
+      "falta": "Trasladar a METAL la propiedad de las colas y el traspaso de firmware."
+    },
+    {
+      "id": "mmio-efi-range",
+      "titulo": "MMIO / Limites frente al mapa EFI",
+      "ruta": "kernel/drivers/bus/mmio_range.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [
+        12450,
+        4050
+      ],
+      "que": "Comprueba la geometria del mapa y rechaza que una ventana MMIO invada una region EFI de memoria.",
+      "entrada": "Rango fisico alineado y mapa EFI final en la entrega de arranque.",
+      "salida": "Aprobacion del rango para una ventana temporal del supervisor.",
+      "aceptacion": "Las sondas de almacenamiento comparten la guarda. El binario de lectura METAL conserva sus bytes.",
+      "falta": "Extender la comprobacion al backend NVIDIA post-EBS al abrir sus recursos propios."
     }
   ],
   "relaciones": [
@@ -4187,6 +4223,26 @@
     {
       "de": "amdvi-nvme-qemu",
       "a": "amdvi-ahci-qemu",
+      "clase": "codigo"
+    },
+    {
+      "de": "nvme-guest-qemu",
+      "a": "amdvi-nvme-qemu",
+      "clase": "verificacion"
+    },
+    {
+      "de": "nvme-guest-qemu",
+      "a": "amdvi-xhci-guest",
+      "clase": "codigo"
+    },
+    {
+      "de": "nvme-guest-qemu",
+      "a": "mmio-efi-range",
+      "clase": "codigo"
+    },
+    {
+      "de": "storage-state-post",
+      "a": "mmio-efi-range",
       "clase": "codigo"
     },
     {
