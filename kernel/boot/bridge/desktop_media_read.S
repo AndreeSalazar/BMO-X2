@@ -1,7 +1,7 @@
 .text
 #define DESKTOP_READER_OFFSET 0x3000
 #ifdef RMLUI_GOP_REGIONS
-#include "../../drivers/display/gop_layout.inc"
+#include "../../drivers/display/GOP/gop_layout.inc"
 #endif
 # Position-independent extension of the inherited EFI reader.
 # The original reader has closed its files and saved SimpleFileSystem in RBP+88h.
@@ -230,5 +230,5 @@ action_path:
 error:
     .short 66,77,79,45,88,50,58,32,101,114,114,111,114,32,68,69,83,75,84,79,80,46,83,66,70,13,10,0
 #ifdef RMLUI_GOP_REGIONS
-#include "../../drivers/display/gop_stage.inc"
+#include "../../drivers/display/GOP/gop_stage.inc"
 #endif

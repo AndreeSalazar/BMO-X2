@@ -1,25 +1,54 @@
-# Register the already validated desktop candidate as a separate UEFI entry.
+# Register a validated desktop candidate as a separate UEFI entry.
 # Run in elevated Windows PowerShell 5.1. Never selects the next boot.
 [CmdletBinding()]
-param()
+param([switch]$NvidiaProbe,[switch]$Check)
 $ErrorActionPreference='Stop'
 $root=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
-$receipt=Join-Path $root 'build/rmlui-native/firmware-desktop.json'
-$name='BMO-X2 Desktop (RmlUi)'
-$path='\EFI\BMO-X2\DESKTOP.EFI'
-$manifest=Get-Content -LiteralPath 'A:\BMO-X2\DESKTOP\DEPLOY.JSON' -Raw | ConvertFrom-Json
+$dataFolder=if($NvidiaProbe){'BMO-X2/GPU'}else{'BMO-X2/DESKTOP'}
+$bootFile=if($NvidiaProbe){'EFI/BMO-X2/NVIDIA.EFI'}else{'EFI/BMO-X2/DESKTOP.EFI'}
+$receiptName=if($NvidiaProbe){'firmware-nvidia.json'}else{'firmware-desktop.json'}
+$receipt=Join-Path $root "build/rmlui-native/$receiptName"
+$name=if($NvidiaProbe){'BMO-X2 (con NVIDIA)'}else{'BMO-X2 Desktop (RmlUi)'}
+$path='\'+$bootFile.Replace('/','\')
+$manifest=Get-Content -LiteralPath (Join-Path 'A:\' "$dataFolder/DEPLOY.JSON") -Raw | ConvertFrom-Json
 if ([IO.DriveInfo]::new('A:\').DriveFormat -ne 'FAT32') {throw 'A: no es FAT32.'}
-foreach($file in @('EFI/BMO-X2/DESKTOP.EFI','BMO-X2/DESKTOP/INICIO.X86','BMO-X2/DESKTOP/DESKTOP.SBF')) {
+$files=@($bootFile,"$dataFolder/INICIO.X86","$dataFolder/DESKTOP.SBF")
+if($NvidiaProbe) {
+    if ($manifest.BootFile -ne $path -or $manifest.Run -notmatch '^run-rmlui-media-[0-9a-f]{12}$') {
+        throw 'DEPLOY.JSON no identifica un candidato NVIDIA verificado.'
+    }
+    $runPath=Join-Path $root "build/CASM/$($manifest.Run)"
+    $proof=Get-Content -LiteralPath (Join-Path $runPath 'media/manifest.json') -Raw | ConvertFrom-Json
+    $normal=$proof.Cases | Where-Object { $_.Case -eq 'normal' } | Select-Object -First 1
+    if ($proof.run -ne $manifest.Run -or $proof.Passed -ne 2 -or $proof.Total -ne 2 -or
+        -not $proof.nvidia_pci_probe -or -not $normal.NvidiaPciProbeVerified) {
+        throw 'Falta la prueba QEMU del candidato NVIDIA.'
+    }
+    foreach($file in $files) {
+        if ($manifest.Files.$file -ne $proof.files.$file) {throw "Huella distinta del ensayo QEMU: $file"}
+    }
+}
+foreach($file in $files) {
     if ((Get-FileHash -LiteralPath (Join-Path 'A:\' $file) -Algorithm SHA256).Hash.ToLowerInvariant() -ne $manifest.Files.$file) {
         throw "Archivo no coincide con el candidato verificado: $file"
     }
+}
+if($Check) {
+    Write-Output "Archivos verificados para la entrada UEFI: $name"
+    return
 }
 function Invoke-Bcd([string[]]$BcdArgs) {
     $output=& bcdedit.exe @BcdArgs 2>&1
     if($LASTEXITCODE -ne 0){throw ($output -join "`n")}
     return ($output -join "`n")
 }
+function Get-FirmwareOrder([string]$Output) {
+    $order=[regex]::Match($Output,'(?im)^displayorder[^\S\r\n]+[^\r\n]+(?:\r?\n[ \t]+\{[^\r\n]+)*').Value
+    if(-not $order){throw 'No se puede leer el orden de arranque UEFI.'}
+    [regex]::Matches($order,'\{[^}]+\}') | ForEach-Object Value
+}
 $before=Invoke-Bcd @('/enum','firmware')
+$orderBefore=@(Get-FirmwareOrder (Invoke-Bcd @('/enum','{fwbootmgr}')))
 $blocks=$before -split '(?:\r?\n){2,}'
 $existing=@($blocks | Where-Object {$_ -match ('(?m)^description\s+'+[regex]::Escape($name)+'\s*$')})
 $created=$false
@@ -28,6 +57,7 @@ if($existing.Count -eq 1) {
     $id=[regex]::Match($existing[0],'\{[0-9a-fA-F-]{36}\}').Value
     if(-not $id -or $existing[0] -notmatch '(?im)^device\s+partition=A:\\?\s*$' -or
         $existing[0] -notmatch ('(?im)^path\s+'+[regex]::Escape($path)+'\s*$')) {throw 'Entrada existente incompatible.'}
+    if($id -notin $orderBefore){throw 'La entrada existe fuera del menu de arranque UEFI.'}
 } else {
     $legacy=@($blocks | Where-Object {$_ -match '(?m)^description\s+BMO-X2\s*$' -and $_ -match '(?im)^device\s+partition=A:\\?\s*$'})
     if($legacy.Count -gt 1){throw 'Mas de una entrada anterior; revisar antes de registrar.'}
@@ -43,6 +73,10 @@ if($existing.Count -eq 1) {
         Invoke-Bcd @('/set',$id,'device','partition=A:') | Out-Null
         Invoke-Bcd @('/set',$id,'path',$path) | Out-Null
         Invoke-Bcd @('/set','{fwbootmgr}','displayorder',$id,'/addlast') | Out-Null
+        $orderAfter=@(Get-FirmwareOrder (Invoke-Bcd @('/enum','{fwbootmgr}')))
+        if (($orderAfter -join ' ') -ne (($orderBefore + $id) -join ' ')) {
+            throw 'El firmware no agrego la entrada al final del orden existente.'
+        }
     } catch {
         Invoke-Bcd @('/delete',$id) | Out-Null
         throw

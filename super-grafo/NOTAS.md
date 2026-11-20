@@ -1522,14 +1522,14 @@ Pendiente: Confirmar variante silenciosa en METAL. USB HID aun sin conectar al c
 
 ## tools/desktop/rmlui/native/register-desktop.ps1
 
-Registra el candidato validado con un nombre distinto del diagnostico anterior.
+Registra el escritorio o el ensayo de inventario PCI NVIDIA como entradas UEFI independientes.
 
 Estado: HOST. Anillo: host. Lenguaje: PowerShell.
-Entrada: Volumen A: FAT32, recibo DEPLOY.JSON y hashes de los tres archivos activos.
-Salida: Entrada BMO-X2 Desktop (RmlUi) apunta al candidato; entrada antigua BMO-X2 retirada por pedido del propietario.
+Entrada: Volumen A: FAT32, recibo DEPLOY.JSON, hashes de los tres archivos activos y evidencia QEMU para el ensayo NVIDIA.
+Salida: BMO-X2 Desktop (RmlUi) apunta a DESKTOP.EFI. BMO-X2 (con NVIDIA) apunta a NVIDIA.EFI.
 Depende de: Candidato separado en FAT32 fisico (codigo).
-Aceptacion: Registro y reuso idempotente verificados en esta maquina; apunta a EFI/BMO-X2/DESKTOP.EFI. No reinicia ni selecciona el siguiente arranque.
-Pendiente: USB HID pendiente. Cada actualizacion del candidato requiere nueva confirmacion fisica.
+Aceptacion: Registro HOST verifica el dispositivo, la ruta y la presencia de la entrada. Al crearla, verifica que se agregue al final del orden anterior.
+Pendiente: METAL confirmo la entrada NVIDIA y GPULOG.TXT. Repetir con el inventario de recursos ampliado.
 
 ## userspace/drivers/usb/src/activation.rs
 
@@ -1597,7 +1597,7 @@ Depende de: contrato propio sin dependencias en este catalogo.
 Aceptacion: QEMU verifica teclado y raton simultaneos, rechazo W+X, puertos vacios y parada con revocacion PCI/MMIO.
 Pendiente: Prueba AMD del 17-11: USB ON, fase 199, CC 13 y puntero en movimiento con latencia. Falta medir respuesta fisica del puntero tras reducir el redibujado.
 
-## kernel/drivers/display/gop_stage.inc
+## kernel/drivers/display/GOP/gop_stage.inc
 
 Sonda ASM transitoria de Ring 0: el puente prepara el modulo CPU/GOP separado de xHCI. INVOKE 9 copia un cuadro e INVOKE 10 presenta regiones en escala 1.
 
@@ -1614,10 +1614,10 @@ Sonda ASM transitoria del puente UEFI antes de ExitBootServices. Lee PCI del seg
 
 Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: Inventario PCI de clase grafica, seleccionado con --nvidia-probe.
-Salida: GPULOG.TXT con recuentos y la primera funcion Nvidia: BDF, dispositivo, proveedor y estado PCI Command.
+Salida: GPULOG.TXT con recuentos, identidad NVIDIA, PCI Command y los seis registros BAR de la funcion grafica inventariada.
 Depende de: contrato propio sin dependencias en este catalogo.
-Aceptacion: QEMU arranca el escritorio desde BMO-X2/GPU, detecta una VGA virtual, cero Nvidia y mantiene el rechazo SBEF W+X.
-Pendiente: Confirmar identidad en METAL. Implementar inicializacion y una operacion verificable de GPU en un ensayo posterior.
+Aceptacion: QEMU coteja BDF y BAR de su VGA con QMP y verifica escritorio y rechazo SBEF W+X. METAL confirmo RTX 3060 10DE:2504 y CPU+GOP a 1920x1080.
+Pendiente: Leer las asignaciones BAR de la RTX en METAL. Preparar inicializacion y una operacion verificable de GPU.
 
 ## CASM
 

@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "evidence": "METAL: UEFI PCI boot log and user photographs of the boot menu and native desktop",
+  "run": "run-rmlui-media-47240bf1c3fa",
+  "boot_file": "EFI/BMO-X2/NVIDIA.EFI",
+  "boot_file_sha256": "9298b91d04667410fb2f7c3c5e0f62d31ac8e086b4d52369dfecc5f65eeaa58d",
+  "bootlog": "nvidia-pci-metal-20261120.bootlog.txt",
+  "bootlog_sha256": "f0a9aa2bc3c018e122c44b9d550c444e6fa570c4d1d4cbfb8fd319c94f035ad5",
+  "display_backend": "cpu-gop",
+  "gop": {"width": 1920, "height": 1080},
+  "pci": {
+    "display_functions": 1,
+    "nvidia_functions": 1,
+    "bdf": "0000:29:00.0",
+    "vendor": "10de",
+    "device": "2504",
+    "command": "0003",
+    "memory_decode_enabled": true,
+    "bus_master_enabled": false
+  },
+  "physical_desktop_presentation_verified": true,
+  "gsp_initialized_by_bmo": false,
+  "gpu_rendering_verified": false
+}

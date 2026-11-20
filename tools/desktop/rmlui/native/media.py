@@ -97,6 +97,8 @@ def main():
         '--ram-mib','1024','--casos','normal','external-permissions'],'qemu-fat32-desktop',cwd=run)
     report=json.loads((run/'build/puente-test-results.json').read_text())
     if report['Passed']!=2 or not report['Cases'][0].get('BootLogFat32Verified'):raise ValueError('Missing disk evidence')
+    if args.nvidia_probe and not report['Cases'][0].get('GpuBarRegisters'):
+        raise ValueError('Missing PCI resource evidence')
     media_prefix = 'BMO-X2/GPU' if args.nvidia_probe else 'BMO-X2/DESKTOP'
     fs=Fat32(run/'build/puente-normal.img')
     try:

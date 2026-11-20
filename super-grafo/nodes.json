@@ -2373,7 +2373,7 @@
     },
     {
       "id": "rmlui-desktop-firmware-entry",
-      "titulo": "Entrada UEFI del escritorio nuevo",
+      "titulo": "Entradas UEFI del escritorio y GPU",
       "ruta": "tools/desktop/rmlui/native/register-desktop.ps1",
       "estado": "host",
       "anillo": "host",
@@ -2382,11 +2382,11 @@
         8300,
         4100
       ],
-      "que": "Registra el candidato validado con un nombre distinto del diagnostico anterior.",
-      "entrada": "Volumen A: FAT32, recibo DEPLOY.JSON y hashes de los tres archivos activos.",
-      "salida": "Entrada BMO-X2 Desktop (RmlUi) apunta al candidato; entrada antigua BMO-X2 retirada por pedido del propietario.",
-      "aceptacion": "Registro y reuso idempotente verificados en esta maquina; apunta a EFI/BMO-X2/DESKTOP.EFI. No reinicia ni selecciona el siguiente arranque.",
-      "falta": "USB HID pendiente. Cada actualizacion del candidato requiere nueva confirmacion fisica."
+      "que": "Registra el escritorio o el ensayo de inventario PCI NVIDIA como entradas UEFI independientes.",
+      "entrada": "Volumen A: FAT32, recibo DEPLOY.JSON, hashes de los tres archivos activos y evidencia QEMU para el ensayo NVIDIA.",
+      "salida": "BMO-X2 Desktop (RmlUi) apunta a DESKTOP.EFI. BMO-X2 (con NVIDIA) apunta a NVIDIA.EFI.",
+      "aceptacion": "Registro HOST verifica el dispositivo, la ruta y la presencia de la entrada. Al crearla, verifica que se agregue al final del orden anterior.",
+      "falta": "METAL confirmo la entrada NVIDIA y GPULOG.TXT. Repetir con el inventario de recursos ampliado."
     },
     {
       "id": "usb-ring3-activation",
@@ -2495,7 +2495,7 @@
     {
       "id": "rmlui-gop-cursor-region",
       "titulo": "Presentacion GOP por CPU",
-      "ruta": "kernel/drivers/display/gop_stage.inc",
+      "ruta": "kernel/drivers/display/GOP/gop_stage.inc",
       "estado": "qemu",
       "anillo": "0",
       "lenguaje": "ASM x86-64",
@@ -2524,9 +2524,9 @@
       ],
       "que": "Sonda ASM transitoria del puente UEFI antes de ExitBootServices. Lee PCI del segmento 0 y conserva CPU/GOP como presentador.",
       "entrada": "Inventario PCI de clase grafica, seleccionado con --nvidia-probe.",
-      "salida": "GPULOG.TXT con recuentos y la primera funcion Nvidia: BDF, dispositivo, proveedor y estado PCI Command.",
-      "aceptacion": "QEMU arranca el escritorio desde BMO-X2/GPU, detecta una VGA virtual, cero Nvidia y mantiene el rechazo SBEF W+X.",
-      "falta": "Confirmar identidad en METAL. Implementar inicializacion y una operacion verificable de GPU en un ensayo posterior."
+      "salida": "GPULOG.TXT con recuentos, identidad NVIDIA, PCI Command y los seis registros BAR de la funcion grafica inventariada.",
+      "aceptacion": "QEMU coteja BDF y BAR de su VGA con QMP y verifica escritorio y rechazo SBEF W+X. METAL confirmo RTX 3060 10DE:2504 y CPU+GOP a 1920x1080.",
+      "falta": "Leer las asignaciones BAR de la RTX en METAL. Preparar inicializacion y una operacion verificable de GPU."
     }
   ],
   "relaciones": [

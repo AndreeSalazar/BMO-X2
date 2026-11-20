@@ -134,6 +134,31 @@ share = qemu.parent / 'share'
 results = []
 
 
+def verify_gpu_resources(fields, display):
+    bdf = display['bus'] << 8 | display['slot'] << 3 | display['function']
+    if (fields.get('GPU_RES_BDF') != f'{bdf:08X}' or
+        not re.fullmatch(r'[0-9A-F]{8}(?:,[0-9A-F]{8}){5}', fields.get('GPU_BARS', '')) or
+        not re.fullmatch(r'[0-9A-F]{8}', fields.get('GPU_SUBSYS', ''))):
+        raise ValueError('Invalid display resource snapshot')
+    bar_words = fields['GPU_BARS'].split(',')
+    bars = [int(word, 16) for word in bar_words]
+    regions = [region for region in display['regions']
+               if 0 <= region['bar'] < 6 and region['address'] >= 0]
+    if not regions:
+        raise ValueError('QEMU VGA has no assigned PCI resources')
+    for region in regions:
+        slot = region['bar']
+        word = bars[slot]
+        address = word & (~3 if word & 1 else ~15)
+        if (word & 7) == 4:
+            if slot == 5:
+                raise ValueError('64-bit GPU BAR has no upper word')
+            address |= bars[slot + 1] << 32
+        if address != region['address']:
+            raise ValueError(f'GPU BAR{slot} differs from QMP')
+    return dict(GpuResourceBdf=f'{bdf:04X}', GpuBarRegisters=bar_words, GpuSubsystemId=fields['GPU_SUBSYS'])
+
+
 def run(case):
     payload_case = case in ('normal', 'contexto', *MUTATIONS)
     disk_case = 'normal' if case == 'external-permissions' and not (args.doom_fixture and (desktop_media or native_media)) else case
@@ -240,7 +265,12 @@ def run(case):
                     return verify_sections(command, memory, prefix, external_image, case, ROOT / 'msvc-symbols.json')
                 if native_ui:
                     from rmlui_native_capture import verify_native_ui
-                    return verify_native_ui(command, memory, prefix, external_image, case, ROOT / 'ui-symbols.json')
+                    result = verify_native_ui(command, memory, prefix, external_image, case, ROOT / 'ui-symbols.json')
+                    if nvidia_probe and case == 'normal':
+                        result['GpuQmpDisplay'] = [device for bus in command('query-pci')
+                                                   for device in bus['devices']
+                                                   if device['class_info']['class'] >> 8 == 3]
+                    return result
                 from doom_engine_capture import verify_engine
                 return verify_engine(command, memory, prefix, external_image, case, desktop=desktop_doom)
             if case == 'external-permissions':
@@ -484,12 +514,16 @@ for case in args.casos:
                     if nvidia_probe:
                         values = dict(line.split('=', 1) for line in log.decode('ascii').splitlines()
                                       if line.startswith('GPU_'))
-                        if values != {
+                        expected = {
                             'GPU_PROBE': 'PCI_RO', 'GPU_DISPLAY_COUNT': '00000001',
                             'GPU_NVIDIA_COUNT': '00000000', 'GPU_NVIDIA_BDF': '--------',
                             'GPU_NVIDIA_ID': '--------', 'GPU_NVIDIA_CMD': '--------',
-                        }:
+                        }
+                        if any(values.get(key) != value for key, value in expected.items()):
                             raise ValueError('Unexpected PCI result for QEMU standard VGA')
+                        display, = result.pop('GpuQmpDisplay')
+                        if values.keys() != expected.keys():
+                            result.update(verify_gpu_resources(values, display))
                         result['NvidiaPciProbeVerified'] = True
                         result['GpuDisplayFunctions'] = 1
                         result['GpuNvidiaFunctions'] = 0

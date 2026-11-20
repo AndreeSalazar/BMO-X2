@@ -17,3 +17,4 @@ kernel/boot/genesis/evidence/registers.txt -text -diff
 # A stored patch contains significant context prefixes; keep its exact bytes.
 CASM/traspaso/*.patch whitespace=-blank-at-eol,cr-at-eol
 kernel/boot/stop/evidence/registers.txt -text -diff
+Reports/nvidia-pci-metal-20261120.bootlog.txt -text whitespace=cr-at-eol

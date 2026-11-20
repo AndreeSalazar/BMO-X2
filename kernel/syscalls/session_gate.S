@@ -1,6 +1,6 @@
 .text
 #ifdef RMLUI_GOP_REGIONS
-#include "../drivers/display/gop_layout.inc"
+#include "../drivers/display/GOP/gop_layout.inc"
 #endif
 .globl session_gate
 session_gate:
@@ -518,7 +518,7 @@ present_frame:
     call *%rax
     jmp finish
 #else
-#include "../drivers/display/frame_copy.inc"
+#include "../drivers/display/GOP/frame_copy.inc"
 #endif
 #endif
 #ifdef DOOM_WAD

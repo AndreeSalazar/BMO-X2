@@ -142,14 +142,14 @@
 | [Builder UEFI y perfiles xHCI del escritorio](../tools/desktop/rmlui/native/media.py) | qemu | host | Construye el perfil de escritorio FAT32 y las variantes xHCI de teclado/raton para QEMU, sin sustituir el candidato fisico. |
 | [Inspeccion acotada de FAT32](../tools/boot/fat32_read.py) | host | host | Lee la primera particion GPT/FAT32 de imagenes de prueba sin modificarlas. |
 | [Candidato separado en FAT32 fisico](../tools/desktop/rmlui/native/deploy.ps1) | host | host | Copia exclusivamente el candidato QEMU aprobado al volumen FAT32 A: y verifica hashes. |
-| [Entrada UEFI del escritorio nuevo](../tools/desktop/rmlui/native/register-desktop.ps1) | host | host | Registra el candidato validado con un nombre distinto del diagnostico anterior. |
+| [Entradas UEFI del escritorio y GPU](../tools/desktop/rmlui/native/register-desktop.ps1) | host | host | Registra el escritorio o el ensayo de inventario PCI NVIDIA como entradas UEFI independientes. |
 | [Activacion HID con confirmacion](../userspace/drivers/usb/src/activation.rs) | host | 3 | Secuencia configuracion, protocolo por interfaz y endpoints; no supone exito al emitir una peticion. |
 | [Contexto interrupt IN USB2](../userspace/drivers/usb/src/xhci.rs) | host | 3 | Calcula DCI e intervalo de cada endpoint descubierto, sin asumir endpoint 0x81. |
 | [Eventos xHCI al servicio HID](../userspace/drivers/usb/src/completion.rs) | host | 3 | Coteja eventos copiados antes de avanzar Activation o publicar un informe en InputService. |
 | [Retiro del perfil anterior de FAT32](../tools/desktop/rmlui/native/retire-legacy.ps1) | host | host | Archiva con hash y retira exactamente los cuatro archivos del BMO-X2 anterior desregistrado. |
 | [Informes USB al escritorio nativo](../tools/desktop/rmlui/native/usb_input.rs) | qemu | 3 | Payload Ring 3 compilado y admitido por HOST: recibe informes escalares mediados y entrega cambios de teclado o raton a RmlUi/DIRECTOR mediante InputService. |
 | [xHCI USB2 con dos dispositivos](../kernel/drivers/bus/native/controller.inc) | qemu | 0 | Sonda ASM transitoria de Ring 0: descubre bancos MMIO, configura dos slots y entrega informes HID mediados al escritorio; no reemplaza la implementacion estable CASM. |
-| [Presentacion GOP por CPU](../kernel/drivers/display/gop_stage.inc) | qemu | 0 | Sonda ASM transitoria de Ring 0: el puente prepara el modulo CPU/GOP separado de xHCI. INVOKE 9 copia un cuadro e INVOKE 10 presenta regiones en escala 1. |
+| [Presentacion GOP por CPU](../kernel/drivers/display/GOP/gop_stage.inc) | qemu | 0 | Sonda ASM transitoria de Ring 0: el puente prepara el modulo CPU/GOP separado de xHCI. INVOKE 9 copia un cuadro e INVOKE 10 presenta regiones en escala 1. |
 | [GPU / NVIDIA / Inventario PCI](../kernel/drivers/GPU/NVIDIA/pci_probe.inc) | qemu | 0 | Sonda ASM transitoria del puente UEFI antes de ExitBootServices. Lee PCI del segmento 0 y conserva CPU/GOP como presentador. |
 
 ## Dependencias declaradas

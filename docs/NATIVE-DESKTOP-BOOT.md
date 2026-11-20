@@ -152,7 +152,7 @@ ruta de aceleracion sera un backend separado con evidencia propia.
 
 HOST construye el perfil `cpu-gop` con PS/2 por defecto y admite xHCI
 como opcion de entrada. El puente nativo copia el [modulo de
-pantalla](../kernel/drivers/display/gop_stage.inc) a una pagina
+pantalla](../kernel/drivers/display/GOP/gop_stage.inc) a una pagina
 supervisora ya reservada dentro de su contexto. INVOKE 9 copia el cuadro
 completo e INVOKE 10 actualiza el cursor y la franja de estado en escala 1.
 En los demas modos el cliente usa INVOKE 9 para la presentacion.
@@ -194,6 +194,14 @@ dispositivo y proveedor, y el valor observado de PCI Command.
 Con PCI clasico, `BDF = bus << 8 | dispositivo << 3 | funcion`; en
 `GPU_NVIDIA_ID` el proveedor ocupa los 16 bits bajos.
 
+El inventario ampliado registra `GPU_RES_BDF`, `GPU_BARS` y
+`GPU_SUBSYS`. Lee las seis palabras BAR y el identificador de subsistema
+de un dispositivo de pantalla con cabecera PCI tipo 0. Da prioridad a
+la primera funcion NVIDIA. Los BAR de 64 bits ocupan dos palabras.
+Esta lectura conserva las asignaciones del firmware y no mide la
+longitud de los BAR ni la VRAM. Los BAR no se mapean ni se prueban con
+escrituras. QEMU compara el BDF y las direcciones de BAR de su VGA con QMP.
+
 El candidato usa `\EFI\BMO-X2\NVIDIA.EFI` y sus propios `INICIO.X86` y
 `DESKTOP.SBF` en `\BMO-X2\GPU\`. El reporte queda en
 `\BMO-X2\GPU\GPULOG.TXT`. Los valores `--------` indican ausencia de
@@ -203,17 +211,48 @@ de configuracion y termina en UEFI. El perfil usa el mismo presentador
 
 ULTRA-LinuX exige evidencia separada para identificar la tarjeta,
 inicializar el driver y confirmar que el compositor usa la GPU. BMO-X2
-adopta esa secuencia. La primera prueba en METAL confirma la identidad
-PCI. La aceleracion requiere luego una inicializacion fiable y un
-trabajo verificable de GPU en un buffer propio, antes de conectar
+adopta esa secuencia y usa el inventario de ULTRA-LinuX como referencia
+del equipo. Su pila combina modulos del kernel Linux, firmware GSP y
+componentes NVIDIA de una misma version. Aprovechar esa referencia en
+BMO-X2 requiere adaptar la inicializacion a sus propias interfaces de
+PCI, memoria y DMA. La aceleracion exige una inicializacion fiable y
+un trabajo verificable de GPU en un buffer propio, antes de conectar
 RmlUi. El caso GSP `0x15` de BMO-X sigue siendo una referencia de fallo.
 [Arranque NVIDIA de ULTRA-LinuX](https://github.com/AndreeSalazar/ULTRA-LinuX/blob/7c275c1a716a80226ff83e340258fb1cd6bb08c3/docs/HYPRLAND-W3C.md).
+El ensayo W3h en METAL confirma DRM, GL 3.2 y HDMI a 1920x1080/60 Hz
+en Hyprland sobre la misma RTX con firmware `615.78.08`. Es una
+referencia de version y de prueba, no un requisito de instalacion para
+el inventario BMO-X2. [Evidencia W3h](https://github.com/AndreeSalazar/ULTRA-LinuX/blob/7c275c1a716a80226ff83e340258fb1cd6bb08c3/docs/PC-REAL-W3H.md).
+[Capas del driver NVIDIA](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/main/README.md#directory-structure-layout).
 
 En el registro del equipo del autor, ULTRA-LinuX encontro
 `10de:2504` en `0000:29:00.0`. En BMO-X2 el par apareceria como
 `GPU_NVIDIA_ID=250410DE`. Con la misma enumeracion de buses,
 `GPU_NVIDIA_BDF=00002900`. El BDF puede variar segun el firmware.
 [Registro PCI de METAL](https://github.com/AndreeSalazar/ULTRA-LinuX/blob/7c275c1a716a80226ff83e340258fb1cd6bb08c3/evidencias/pc-real/nvidia-2026-10-19/dmesg-pc.txt#L414).
+
+La primera prueba BMO-X2 en METAL del 20-11-2026 obtuvo ambos valores y
+mostro el escritorio con GOP a 1920x1080. PCI Command era `0003` antes de
+ExitBootServices, con decodificacion de memoria y sin bus mastering.
+El inventario ampliado requiere otro arranque para capturar los BAR de
+la RTX. [Informe de METAL](../Reports/nvidia-pci-metal-20261120.json).
+
+El arranque de BMO-X2 conserva la pantalla configurada por UEFI y
+llega al escritorio con CPU + GOP. El inventario
+PCI es de solo lectura. BMO-X llego mas lejos con VERRANO: ejecuto
+trabajo en la RTX y comprobo rasterizado. Su fallo intermitente
+`MAILBOX0=0x15` ocurrio durante la inicializacion del GSP. La evidencia
+disponible no atribuye ese fallo a Rust. La comparacion equivalente
+empieza cuando ambos sistemas ejecutan trabajo en la GPU.
+[Investigacion GSP de BMO-X](https://github.com/AndreeSalazar/BMO-X-x86-64/blob/6076bdefefc67877419ca53633c6e40cb45fc92d/README.md#case-file-the-booter-that-said-no-0x15).
+
+Para integrar la RTX de este equipo, la proxima prueba debe identificar
+los BAR asignados a `10de:2504` y registrar el estado previo al
+controlador. La inicializacion posterior debe acreditar una version GSP
+compatible y recursos PCI y DMA acotados. El primer trabajo acelerado
+debe dejar un resultado verificable en un buffer propio antes de cambiar
+el presentador de RmlUi. El perfil NVIDIA puede seguir usando CPU + GOP
+durante todas estas pruebas.
 
 El ensayo `run-rmlui-media-00741e5f358f` verifica una VGA de clase 03,
 cero funciones NVIDIA, el escritorio y el rechazo W+X. El resultado se
@@ -227,6 +266,10 @@ El ensayo `run-rmlui-media-47240bf1c3fa` repite los dos casos con
 `--usb both`. QEMU verifica teclado y raton USB juntos, y la revocacion
 de bus mastering y MMIO al detener xHCI. El lector PCI sigue en la
 misma ruta anterior a ExitBootServices.
+El ensayo `run-rmlui-media-cf7403e99951` conserva el perfil USB dual y
+coteja el inventario BAR con QMP. El lector del candidato pasa de 2814 B
+a 3050 B dentro de la misma pagina EFI. El paquete CASM y el SBEF
+conservan sus bytes. `GPULOG.TXT` pasa de 397 B a 504 B.
 
 ```powershell
 python .\tools\desktop\rmlui\native\media.py <ABI_RUN> <GATO_COMPACTO_RUN> --nvidia-probe
@@ -236,8 +279,18 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1 -P
 `native/deploy.ps1 -Run <RUN> -Volume A:\ -NvidiaProbe -Check` comprueba
 el candidato para METAL. Agrega `-ExperimentalUsb` para el run USB dual.
 La copia explicita del perfil se hace con los mismos argumentos sin
-`-Check` y conserva el arranque principal. En UEFI se elige
-`\EFI\BMO-X2\NVIDIA.EFI` desde **Boot from file**.
+`-Check`. Tras la copia, PowerShell 5.1 elevado permite registrar
+**BMO-X2 (con NVIDIA)** al final del menu UEFI:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\desktop\rmlui\native\register-desktop.ps1 -NvidiaProbe
+```
+
+El registro comprueba el recibo en A:, sus tres hashes y la prueba
+QEMU del run. Si existe la misma entrada, la reutiliza. Al arrancar se
+elige **BMO-X2 (con NVIDIA)**. En un firmware con **Boot from file**
+tambien se puede abrir `\EFI\BMO-X2\NVIDIA.EFI` directamente. Cada
+ensayo en METAL deja `A:\BMO-X2\GPU\GPULOG.TXT`.
 
 ### Medir los tirones antes de cambiar el presentador
 

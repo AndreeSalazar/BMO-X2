@@ -9,7 +9,7 @@ nvidia_pci_observe:
     in %dx, %eax
     sub $4, %dx
     cmp $0x10de, %ax
-    jne .Lnvidia_done
+    jne .Lother_display
     inc %r11d
     cmp $1, %r11d
     jne .Lnvidia_done
@@ -34,7 +34,55 @@ nvidia_pci_observe:
     call report_hex32
     mov $0xcf8, %dx
     pop %rcx
+    jmp .Lread_resources
+
+.Lother_display:
+    cmp $1, %r10d
+    jne .Lnvidia_done
+.Lread_resources:
+    # Prefer the first NVIDIA function over the first display. Only type 0
+    # headers have six BAR dwords and a subsystem ID at these offsets.
+    lea 4(%rcx), %eax
+    call .Lread_config32
+    test $0x007f0000, %eax
+    jnz .Lnvidia_done
+
+    push %rcx
+    push %rsi
+    mov %ecx, %esi
+    mov %esi, %eax
+    shr $8, %eax
+    and $0xffff, %eax
+    lea (0x800+report_gpu_resource_bdf-report_template)(%rbp), %rdi
+    call report_hex32
+
+    lea (0x800+report_gpu_bars-report_template)(%rbp), %rdi
+    add $8, %esi
+.Lread_bar:
+    mov %esi, %eax
+    call .Lread_config32
+    call report_hex32
+    inc %rdi
+    add $4, %esi
+    cmp $0x28, %sil
+    jb .Lread_bar
+
+    lea 4(%rsi), %eax
+    call .Lread_config32
+    lea (0x800+report_gpu_subsys-report_template)(%rbp), %rdi
+    call report_hex32
+    mov $0xcf8, %dx
+    pop %rsi
+    pop %rcx
 .Lnvidia_done:
+    ret
+
+.Lread_config32:
+    mov $0xcf8, %dx
+    out %eax, %dx
+    add $4, %dx
+    in %dx, %eax
+    sub $4, %dx
     ret
 
 nvidia_pci_summary:
@@ -56,5 +104,11 @@ report_nvidia_bdf:
 report_nvidia_id:
     .ascii "--------\r\nGPU_NVIDIA_CMD="
 report_nvidia_cmd:
+    .ascii "--------\r\nGPU_RES_BDF="
+report_gpu_resource_bdf:
+    .ascii "--------\r\nGPU_BARS="
+report_gpu_bars:
+    .ascii "--------,--------,--------,--------,--------,--------\r\nGPU_SUBSYS="
+report_gpu_subsys:
     .ascii "--------\r\n"
     .endm
