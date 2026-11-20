@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "evidence": "QEMU: guest CPL0 AMD-Vi with EDU after ExitBootServices",
+  "run": "run-amdvi-edu-d34bb76f3647",
+  "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+  "scratch_bytes": 36864,
+  "authorized_page_bytes": 4096,
+  "test_transfer_bytes": 8,
+  "guest_probe_executed": true,
+  "physical_dma_verified": false,
+  "gpu_gsp_booted": false,
+  "inputs": {
+    "kernel/boot/bridge/cabecera.hex": "a9ad17e34a2a7c5ece9f0309bd40d4a8d81e1cf35db0b87c675af115c95264f1",
+    "kernel/boot/bridge/entrada.hex": "20a42e44122fe8cc719b15c7a5b4d1cb0c958dac7faa4f6adbba0d591e4339eb",
+    "kernel/boot/bridge/datos.hex": "45ed2b4b995e9dbbbb52a3e9cfaf464adc5cc28c7a4c1e9783baa22306f4d7b1",
+    "kernel/boot/bridge/fuente.hex": "82d4a1f3a4a1dd7fd4adb5523783ae1f921d2db94c30305b8206db49f5c95dc5",
+    "kernel/boot/bridge/desktop_media_alloc.S": "b454e53add02de6ce77b8472752ef13351d2b315838f2bfda0ca5b8b69f32da1",
+    "kernel/drivers/bus/amdvi/edu_probe.S": "60c2699fe90af341b3ca0da9f603e47ae59cdfe743928a7f32a62cdae98a7d40"
+  },
+  "cases": [
+    {
+      "case": "normal",
+      "passed": true,
+      "steps": [
+        "ENTER",
+        "GRANT",
+        "OUTSIDE",
+        "REVOKED",
+        "CLOSED",
+        "PASS"
+      ],
+      "probe_body_bytes": 1653,
+      "packet_sha256": "f6c0793a9c6c098c70f0799125f181e38c82a76602093489f4922a19807c2c63",
+      "bridge_sha256": "06260887c4f1935b12a6ed4b175fb5841da189501ef564391af897674f7566ff",
+      "allocator_bytes": 207
+    },
+    {
+      "case": "missing-iommu",
+      "passed": true,
+      "steps": [
+        "ENTER",
+        "FAIL 2"
+      ],
+      "probe_body_bytes": 1653,
+      "packet_sha256": "f6c0793a9c6c098c70f0799125f181e38c82a76602093489f4922a19807c2c63",
+      "bridge_sha256": "06260887c4f1935b12a6ed4b175fb5841da189501ef564391af897674f7566ff",
+      "allocator_bytes": 207
+    },
+    {
+      "case": "omit-invalidation",
+      "passed": true,
+      "steps": [
+        "ENTER",
+        "GRANT",
+        "OUTSIDE",
+        "STALE",
+        "CLOSED",
+        "FAIL 6"
+      ],
+      "probe_body_bytes": 1628,
+      "packet_sha256": "7df75ffd66d33f4d04b0bc659b875e067b502ce8c1b64452508208536f29456c",
+      "bridge_sha256": "06260887c4f1935b12a6ed4b175fb5841da189501ef564391af897674f7566ff",
+      "allocator_bytes": 207
+    }
+  ]
+}

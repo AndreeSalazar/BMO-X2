@@ -25,8 +25,10 @@ def main():
     p.add_argument('--usb',choices=['keyboard','mouse','both'],help='Mediated xHCI profile; both uses the dynamic USB2 root transport')
     p.add_argument('--usb-empty-ports',action='store_true',help='QEMU rejection test; never a metal candidate')
     p.add_argument('--nvidia-probe', action='store_true', help='Read PCI display inventory before ExitBootServices')
+    p.add_argument('--amdvi-probe', action='store_true', help='Add read-only AMD-Vi firmware inventory to the NVIDIA profile')
     args=p.parse_args()
     if args.usb_empty_ports and args.usb!='both':p.error('--usb-empty-ports requires --usb both')
+    if args.amdvi_probe and not args.nvidia_probe:p.error('--amdvi-probe requires --nvidia-probe')
     abi,splash=args.abi_run.resolve(),args.splash_run.resolve()
     for path in (abi,splash):
         if path.parent!=ROOT/'build/CASM':raise ValueError('Run outside build/CASM')
@@ -42,16 +44,21 @@ def main():
     (run/'gop-regions.txt').write_text('cpu-gop\n',encoding='ascii')
     if args.nvidia_probe:
         (run/'nvidia-pci-probe.txt').write_text('pci-read-only\n', encoding='ascii')
+    if args.amdvi_probe:
+        (run/'amdvi-efi-probe.txt').write_text('firmware-read-only\n', encoding='ascii')
     if args.low_gop:(run/'low-gop.txt').write_text('QEMU VGA preferred 1024x768\n',encoding='ascii')
     if args.usb:(run/'native-usb.txt').write_text(args.usb+'\n',encoding='ascii')
     if args.usb_empty_ports:(run/'native-usb-empty.txt').write_text('QEMU fault test\n',encoding='ascii')
     llvm=Path(os.environ['ProgramFiles'])/'LLVM/bin'
+    extra=12288 if args.usb=='both' else 8192 if args.usb else 4096
+    amdvi_offset=0x3000+extra
     units=[('allocator','kernel/boot/bridge/desktop_media_alloc.S'),('reader','kernel/boot/bridge/desktop_media_read.S'),
         ('gate','kernel/syscalls/session_gate.S'),('loader','kernel/loader/doom_engine_loader.S')]
     for name,source in units:
         flags=['-DRMLUI_USB','-DDESKTOP_MEDIA','-DXHCI_COMMAND_PROBE'] if args.usb else []
         if args.usb=='both':flags+=['-DXHCI_NATIVE_DUAL']
         if args.nvidia_probe and name == 'reader':flags+=['-DBMO_NVIDIA_PCI_PROBE']
+        if args.amdvi_probe and name == 'reader':flags+=[f'-DBMO_AMDVI_EFI_OFFSET={amdvi_offset}']
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf','-DRMLUI_MEDIA','-DRMLUI_NATIVE',
             '-DRMLUI_GOP_REGIONS','-DDOOM_ENGINE','-DDESKTOP_DOOM',*flags,
             '-c',ROOT/source,'-o',run/(name+'.o')],'compile-media-'+name)
@@ -65,7 +72,7 @@ def main():
     if len(image)!=0x3000 or len(reader)>4096 or len(allocator)>0xf0 or image[0x267:0x26c]!=bytes.fromhex('e894050000'):
         raise ValueError('Native EFI extension exceeds verified slots')
     struct.pack_into('<i',image,0x268,0x3000-0x267-5)
-    extra=12288 if args.usb=='both' else 8192 if args.usb else 4096
+    if args.amdvi_probe:extra+=4096
     for offset,old in ((0x5c,0x2e00),(0x90,0x4000),(0x150,0x2e00),(0x158,0x2e00)):
         if struct.unpack_from('<I',image,offset)[0]!=old:raise ValueError('EFI PE header changed')
         struct.pack_into('<I',image,offset,old+extra)
@@ -79,6 +86,17 @@ def main():
         budget=8192 if args.usb=='both' else 4096
         if not 0<len(stage)<=budget:raise ValueError('USB stage exceeds its explicit reserved code pages')
         image.extend(stage.ljust(budget,b'\0'))
+    if args.amdvi_probe:
+        source=ROOT/'kernel/drivers/bus/amdvi/firmware_probe.S'
+        native_probe=run/'amdvi-firmware.o'
+        command([llvm/'clang.exe','--target=x86_64-unknown-none-elf','-c',source,'-o',native_probe],'compile-amdvi-firmware')
+        relocations=subprocess.check_output([llvm/'llvm-objdump.exe','-r',native_probe],text=True)
+        if 'RELOCATION RECORDS' in relocations:raise ValueError('AMD-Vi firmware inventory must be position independent')
+        raw_probe=native_probe.with_suffix('.bin')
+        command([llvm/'llvm-objcopy.exe','-O','binary','--only-section=.text',native_probe,raw_probe],'extract-amdvi-firmware')
+        stage=raw_probe.read_bytes()
+        if len(image)!=amdvi_offset or not 0<len(stage)<=4096:raise ValueError('AMD-Vi EFI slot mismatch')
+        image.extend(stage.ljust(4096,b'\0'))
     image[0x400:0x400+len(allocator)]=allocator
     files={'reference.x86':reference,'rmlui.sbef':sbef,'session-gate.bin':gate,'external-loader.bin':loader,
         'INICIO.X86':packet,'intro.x86':intro,'intro.casm':(splash/'source.casm').read_bytes(),'profile.txt':b'rmlui-desktop-media\n',
@@ -100,6 +118,8 @@ def main():
     if args.nvidia_probe and (not report['Cases'][0].get('GpuBar0UefiBytes') or
                              not report['Cases'][0].get('GpuNvidiaMmioSkipped')):
         raise ValueError('Missing UEFI BAR0 bounds or device guard evidence')
+    if args.amdvi_probe and not all(case.get('AmdViFirmwareVerified') for case in report['Cases']):
+        raise ValueError('Missing AMD-Vi firmware inventory evidence')
     media_prefix = 'BMO-X2/GPU' if args.nvidia_probe else 'BMO-X2/DESKTOP'
     fs=Fat32(run/'build/puente-normal.img')
     try:
@@ -113,7 +133,7 @@ def main():
         target=media/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(data)
     report.update(run=run.name,evidence='QEMU',disk_sbef=True,physical_boot=False,physical_usb_proven=False,
         display_backend='cpu-gop',
-        nvidia_pci_probe=args.nvidia_probe,
+        nvidia_pci_probe=args.nvidia_probe, amdvi_efi_probe=args.amdvi_probe,
         qemu_only=bool(args.usb),usb_profile=args.usb,
         usb_empty_ports=args.usb_empty_ports,
         hardware_profile='amd149c-usb2-root-experimental' if args.usb=='both' and not args.usb_empty_ports else None,

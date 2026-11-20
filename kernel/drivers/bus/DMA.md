@@ -18,10 +18,32 @@ Si falla la confirmacion, el buffer sigue reservado y el diagnostico
 registra el dispositivo y la fase. Si el equipo carece de aislamiento
 DMA verificable, la ruta directa queda fuera del perfil de usuario.
 
-La primera prueba pendiente usara un dispositivo virtual y un buffer.
-Debe demostrar transferencia permitida, rechazo fuera del rango y
-retencion del buffer cuando la revocacion queda sin confirmar. El
-ensayo actual de revocacion de pagina cubre el TLB de una CPU.
+La [prueba qtest](../../../Reports/nvidia-amdvi-qemu-20261120.json)
+demuestra en el modelo AMD-Vi de QEMU una transferencia permitida, dos
+rechazos de escritura (fuera del rango y despues de invalidar), y la
+confirmacion de la invalidacion. El kernel invitado no interviene.
+La retencion del buffer al fallar la revocacion requiere una prueba
+nativa. El ensayo de revocacion de pagina cubre el TLB de una CPU.
+
+La [sonda nativa EDU](amdvi/edu_probe.S) arranca desde FAT32 en CPL0
+despues de ExitBootServices, reutilizando las tablas de CPU de OVMF.
+Reserva nueve paginas UEFI contiguas (36 KiB) y concede solo una pagina
+de DMA en AMD-Vi. El caso normal valida los bytes traducidos, dos
+bloqueos de escritura y el cierre. El caso sin AMD-Vi termina antes de
+programar DMA. Omitir la invalidacion conserva una traduccion antigua
+en el modelo, y la sonda detecta la escritura y cierra bus mastering.
+Los casos terminan el invitado de laboratorio y su memoria reservada.
+El dominio fisico y la retencion en un kernel que sigue ejecutando quedan
+pendientes. [Evidencia nativa QEMU](../../../Reports/amdvi-edu-native-qemu-20261120.json).
+
+```powershell
+python -B tools/boot/amdvi_edu.py
+```
+
+La [sonda UEFI de solo lectura](amdvi/firmware_probe.S) del perfil NVIDIA
+registra IVRS y la base PCI antes de ExitBootServices. Esta captura separa
+una unidad ausente, una base que difiere del firmware y el estado de
+decodificacion MMIO. El dominio propio se acredita despues del traspaso.
 
 El puente del escritorio reserva cinco paginas contiguas de EfiLoaderData
 por debajo de 256 MiB y las entrega en los campos B8/C0 del contexto.

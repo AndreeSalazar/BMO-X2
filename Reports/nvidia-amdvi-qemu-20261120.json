@@ -1,0 +1,26 @@
+{
+  "date": "2026-11-20",
+  "native_gsp_target": "615.78.08",
+  "schema": 1,
+  "evidence": "QEMU qtest: emulated AMD-Vi with EDU",
+  "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+  "guest_kernel_executed": false,
+  "physical_dma_verified": false,
+  "translated_dma_bytes": 14,
+  "outside_range_iova": "0x101000",
+  "outside_range_event_addresses": [
+    "0x0",
+    "0x0",
+    "0x0",
+    "0x0"
+  ],
+  "revoked_iova": "0x100000",
+  "revoked_event_addresses": [
+    "0x0",
+    "0x0",
+    "0x0",
+    "0x0"
+  ],
+  "invalidation_completed": true,
+  "bus_master_disabled": true
+}

@@ -60,7 +60,7 @@ intro_size = 0
 intro_rows = None
 external = None
 desktop_media = desktop_doom = native_media = native_ui = msvc_sections = False
-nvidia_probe = False
+nvidia_probe = amdvi_probe = False
 doom_engine = doom_external = desktop_fixture = toolchain_client = False
 if args.doom_fixture:
     from doom_fixture import make_packet, prepend_intro
@@ -74,6 +74,7 @@ if args.doom_fixture:
     desktop_doom = profile == 'desktop-doom'
     native_media = profile == 'rmlui-desktop-media'
     nvidia_probe = native_media and (ROOT / 'nvidia-pci-probe.txt').is_file()
+    amdvi_probe = nvidia_probe and (ROOT / 'amdvi-efi-probe.txt').is_file()
     native_ui = profile in ('rmlui-native','rmlui-desktop','rmlui-desktop-media')
     msvc_sections = profile == 'msvc-sections'
     doom_engine = profile == 'doom-engine' or desktop_doom or native_ui or msvc_sections
@@ -166,13 +167,31 @@ def verify_gpu_resources(fields, display):
     return result
 
 
+def verify_amdvi_firmware(log, units, present):
+    words = re.search(rb'(?m)^AMDVI=([0-9A-F]{8}(?: (?:[0-9A-F]{8}|--------)){4})\r$', log)
+    if not words:
+        raise ValueError('Missing AMD-Vi firmware report')
+    payload = words.group(1).decode('ascii')
+    status, length, unit, low, high = payload.split()
+    if len(units) != int(present):
+        raise ValueError('QMP AMD-Vi inventory differs from the test configuration')
+    if present:
+        if (unit != f'{units[0]:08X}' or high != '00000000' or low not in ('FED80000', 'FED80001')
+                or length == '--------' or not 48 <= int(length, 16) <= 65536
+                or int(status, 16) != 6 + (int(low, 16) & 1)):
+            raise ValueError(f'Unexpected QEMU AMD-Vi firmware report: {payload}')
+    elif (status, length, unit, low, high) != ('00000000', '--------', '--------', '--------', '--------'):
+        raise ValueError(f'Unexpected AMD-Vi report without IVRS: {payload}')
+    return dict(AmdViFirmwareVerified=True, AmdViPresent=present, AmdViReport=payload)
+
+
 def run(case):
     payload_case = case in ('normal', 'contexto', *MUTATIONS)
     disk_case = 'normal' if case == 'external-permissions' and not (args.doom_fixture and (desktop_media or native_media)) else case
     image = ROOT / 'build' / f'puente-{disk_case}.img'
     before = hashlib.sha256(image.read_bytes()).hexdigest()
     prefix = ROOT / 'build' / f'puente-{case}'
-    check_bootlog = args.doom_fixture and (desktop_media or native_media) and case == 'normal'
+    check_bootlog = (args.doom_fixture and (desktop_media or native_media) and case == 'normal') or amdvi_probe
     guest_disk = image
     if check_bootlog:
         guest_disk = Path(str(prefix) + '-bootlog.img')
@@ -181,6 +200,11 @@ def run(case):
     shutil.copyfile(share / 'edk2-i386-vars.fd', variables)
     module = ROOT / ('sbef-rejected.bin' if case == 'external-permissions' else 'sbef-module.bin')
     staging = ['-device', f'loader,file={module},addr=0x2000000,force-raw=on'] if external is not None and not (desktop_media or native_media) else []
+    machine = 'pc,pit=off' if (ROOT / 'xhci-timer-fault.txt').is_file() else 'pc'
+    if amdvi_probe:
+        machine = 'q35'
+        if case == 'normal':
+            staging += ['-device', 'amd-iommu,dma-remap=on']
     wad = ROOT / 'wad-module.bin'
     if wad.is_file():
         staging += ['-device', f'loader,file={wad},addr=0x3000000,force-raw=on']
@@ -207,7 +231,7 @@ def run(case):
             device='usb-kbd' if usb=='keyboard' else 'usb-mouse'
             staging+=['-device','qemu-xhci,id=bmo-native-xhci','-device',f'{device},bus=bmo-native-xhci.0']
     process = subprocess.Popen([
-        str(qemu), '-machine', 'pc,pit=off' if (ROOT / 'xhci-timer-fault.txt').is_file() else 'pc',
+        str(qemu), '-machine', machine,
         '-cpu', args.cpu, '-accel', 'tcg', '-m', f'{args.ram_mib}M', '-smp', '1',
         '-drive', f'if=pflash,format=raw,unit=0,readonly=on,file={share / "edk2-x86_64-code.fd"}',
         '-drive', f'if=pflash,format=raw,unit=1,file={variables}',
@@ -273,10 +297,15 @@ def run(case):
                 if native_ui:
                     from rmlui_native_capture import verify_native_ui
                     result = verify_native_ui(command, memory, prefix, external_image, case, ROOT / 'ui-symbols.json')
-                    if nvidia_probe and case == 'normal':
-                        result['GpuQmpDisplay'] = [device for bus in command('query-pci')
-                                                   for device in bus['devices']
-                                                   if device['class_info']['class'] >> 8 == 3]
+                    if amdvi_probe or (nvidia_probe and case == 'normal'):
+                        devices = [device for bus in command('query-pci') for device in bus['devices']]
+                        if case == 'normal':
+                            result['GpuQmpDisplay'] = [device for device in devices if device['class_info']['class'] >> 8 == 3]
+                        if amdvi_probe:
+                            result['AmdViQmpUnits'] = [
+                                device['bus'] << 8 | device['slot'] << 3 | device['function']
+                                for device in devices if device['id']['vendor'] == 0x1022 and device['id']['device'] == 0x1419
+                            ]
                     return result
                 from doom_engine_capture import verify_engine
                 return verify_engine(command, memory, prefix, external_image, case, desktop=desktop_doom)
@@ -504,9 +533,9 @@ def run(case):
 for case in args.casos:
     try:
         result = run(case)
-        if args.doom_fixture and (desktop_media or native_media) and case == 'normal':
+        if (args.doom_fixture and (desktop_media or native_media) and case == 'normal') or amdvi_probe:
             from desktop_session_capture import verify_bootlog_file
-            prefix = ROOT / 'build' / 'puente-normal'
+            prefix = ROOT / 'build' / f'puente-{case}'
             if native_media:
                 from fat32_read import Fat32
                 fs=Fat32(Path(str(prefix)+'-bootlog.img'))
@@ -515,10 +544,13 @@ for case in args.casos:
                     log_name = 'GPULOG.TXT' if nvidia_probe else 'BOOTLOG.TXT'
                     log=fs.file_bytes(f'{media_prefix}/{log_name}',4096)
                     loaded=fs.file_bytes(f'{media_prefix}/DESKTOP.SBF')
-                    if loaded!=external_image or not log.startswith(b'BMO-X2 DESKTOP UEFI PRE-EBS\r\n'):
+                    expected_image = external_image if case == 'normal' else (ROOT / 'rejected.sbef').read_bytes()
+                    if loaded!=expected_image or not log.startswith(b'BMO-X2 DESKTOP UEFI PRE-EBS\r\n'):
                         raise ValueError('Native FAT32 payload/report differs')
                     Path(str(prefix)+'-'+log_name).write_bytes(log)
-                    if nvidia_probe:
+                    if amdvi_probe:
+                        result.update(verify_amdvi_firmware(log, result.pop('AmdViQmpUnits'), case == 'normal'))
+                    if nvidia_probe and case == 'normal':
                         values = dict(line.split('=', 1) for line in log.decode('ascii').splitlines()
                                       if line.startswith('GPU_'))
                         expected = {

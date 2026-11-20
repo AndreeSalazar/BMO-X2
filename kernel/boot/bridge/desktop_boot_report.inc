@@ -133,6 +133,13 @@ report_pci_advance:
 #ifdef BMO_NVIDIA_PCI_PROBE
     call nvidia_pci_summary
     call nvidia_mmio_probe
+#ifdef BMO_AMDVI_EFI_OFFSET
+    mov 56(%rsp), %rcx              # EFI SystemTable saved above.
+    lea (0x800+report_amdvi-report_template)(%rbp), %rdx
+    lea report_hex32(%rip), %r8
+    .byte 0xe8
+    .long BMO_AMDVI_EFI_OFFSET - DESKTOP_READER_OFFSET - (. - desktop_media_read) - 4
+#endif
 #endif
 
     mov 0x38(%rbp), %rcx
@@ -213,6 +220,12 @@ report_pci1:
 #ifdef BMO_NVIDIA_PCI_PROBE
     nvidia_pci_report_fields
     nvidia_mmio_report_fields
+#ifdef BMO_AMDVI_EFI_OFFSET
+    # Packed words: status, IVRS bytes, requester, base register low/high.
+    .ascii "AMDVI="
+report_amdvi:
+    .ascii "-------- -------- -------- -------- --------\r\n"
+#endif
 #endif
 report_end:
 #ifdef BMO_NVIDIA_PCI_PROBE

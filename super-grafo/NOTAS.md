@@ -1494,7 +1494,7 @@ Construye el perfil de escritorio FAT32 y las variantes xHCI de teclado/raton pa
 Estado: QEMU. Anillo: host. Lenguaje: Python / LLVM / CASM / C++ / Rust.
 Entrada: Runs ABI y gato CASM verificados, ELF/SBEF nativo con hashes y selector explicito de perfil USB.
 Salida: EFI e INICIO con SBEF desde FAT32; perfiles QEMU con reserva DMA supervisada, etapa xHCI y reportes.
-Depende de: Interfaz RmlUi y ULTRA-J nativa (codigo), Inspeccion acotada de FAT32 (codigo), Buses, recursos y DMA (codigo), Informes USB al escritorio nativo (codigo), Presentacion GOP por CPU (codigo), GPU / NVIDIA / Inventario PCI (codigo), GPU / NVIDIA / Lectura MMIO (codigo).
+Depende de: Interfaz RmlUi y ULTRA-J nativa (codigo), Inspeccion acotada de FAT32 (codigo), Buses, recursos y DMA (codigo), Informes USB al escritorio nativo (codigo), Presentacion GOP por CPU (codigo), GPU / NVIDIA / Inventario PCI (codigo), AMD-Vi / Inventario UEFI (codigo), GPU / NVIDIA / Lectura MMIO (codigo).
 Aceptacion: FAT32: GOP 1280x800 y 1024x768, W+X rechazado, BOOTLOG/SBEF releidos. USB: teclado y raton en perfiles separados, W+X rechazado, limites de imagen comprobados y deploy.ps1 rechaza perfiles solo-QEMU.
 Pendiente: Arranque fisico del candidato y backend USB AMD completo; la supervision DMA no acredita IOMMU ni aislamiento de dispositivos hostiles.
 
@@ -1529,7 +1529,7 @@ Entrada: Volumen A: FAT32, recibo DEPLOY.JSON, hashes de los tres archivos activ
 Salida: BMO-X2 Desktop (RmlUi) apunta a DESKTOP.EFI. BMO-X2 (con NVIDIA) apunta a NVIDIA.EFI.
 Depende de: Candidato separado en FAT32 fisico (codigo).
 Aceptacion: Registro HOST verifica el dispositivo, la ruta y la presencia de la entrada. Al crearla, verifica que se agregue al final del orden anterior.
-Pendiente: METAL confirmo la entrada NVIDIA y el inventario BAR ampliado. El siguiente ensayo consulta limites y verifica MMIO.
+Pendiente: METAL confirmo la entrada NVIDIA y MMIO del GA106. La siguiente prueba de arranque requiere un candidato con DMA nativo.
 
 ## userspace/drivers/usb/src/activation.rs
 
@@ -1617,7 +1617,7 @@ Entrada: Inventario PCI de clase grafica, seleccionado con --nvidia-probe.
 Salida: GPULOG.TXT con recuentos, identidad NVIDIA, PCI Command y los seis registros BAR de la funcion grafica inventariada.
 Depende de: contrato propio sin dependencias en este catalogo.
 Aceptacion: QEMU coteja BDF y BAR de su VGA con QMP y verifica escritorio y rechazo SBEF W+X. METAL confirmo RTX 3060 10DE:2504, sus bases BAR y GOP a 1920x1080.
-Pendiente: La sonda MMIO siguiente usa este inventario como entrada y requiere una prueba fisica propia.
+Pendiente: La sonda MMIO confirmada en METAL usa este inventario como entrada. Falta la prueba GSP.
 
 ## kernel/drivers/GPU/NVIDIA/mmio_probe.inc
 
@@ -1627,8 +1627,63 @@ Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: BDF y BAR0 del inventario, protocolo EFI PCI I/O, identidad PCI y Command con memoria habilitada y bus mastering apagado.
 Salida: Longitud BAR0, palabra PMC_BOOT_0 y estado del ensayo en GPULOG.TXT.
 Depende de: GPU / NVIDIA / Inventario PCI (codigo).
-Aceptacion: QEMU coteja la longitud BAR0 de VGA con QMP y verifica que la lectura NVIDIA se omita. El perfil CPU + GOP sigue disponible.
-Pendiente: Confirmar NV_PMC_BOOT_0 y chipset GA106 en METAL. GSP y aceleracion tienen ensayos propios.
+Aceptacion: QEMU coteja la longitud BAR0 de VGA con QMP y omite la lectura NVIDIA. METAL confirmo BAR0 de 16 MiB y NV_PMC_BOOT_0 B76000A1 (GA106 A1).
+Pendiente: Acreditar inicio de GSP y una operacion GPU verificable antes de transferir la salida de pantalla.
+
+## tools/host/gpu/firmware.py
+
+Comprueba el conjunto original de una release GSP, por longitud y huella de referencia.
+
+Estado: HOST. Anillo: host. Lenguaje: Python.
+Entrada: Cuatro binarios locales NVIDIA de la release solicitada y manifiesto de huellas.
+Salida: Informe HOST de identidad, release, archivos y huellas.
+Depende de: GPU / NVIDIA / Lectura MMIO (plan).
+Aceptacion: Cuatro archivos verificados para 570.144 y 615.78.08; la opcion native selecciona 615.78.08. Rechaza cambios de bytes y releases cruzadas.
+Pendiente: Preparar y verificar el arranque GSP nativo con 615.78.08.
+
+## tools/host/gpu/ivrs.py
+
+Lee la descripcion ACPI IVRS y coteja las funciones PCI indicadas con los rangos IVHD.
+
+Estado: HOST. Anillo: host. Lenguaje: Python.
+Entrada: IVRS del firmware mediante Windows o archivo, y los BDF solicitados.
+Salida: Unidad AMD-Vi, base, segmento, alcance y alias descritos por el firmware.
+Depende de: Buses, recursos y DMA (verificacion).
+Aceptacion: HOST verifico que la RTX y su audio aparecen en la unidad AMD-Vi 00:00.2 del equipo.
+Pendiente: Entregar los solicitantes de IVRS al dominio nativo y verificar la concesion y revocacion de DMA.
+
+## tools/host/gpu/qemu_dma.py
+
+Comprueba traduccion, bloqueo e invalidacion DMA en AMD-Vi de QEMU con EDU mediante qtest.
+
+Estado: QEMU. Anillo: host. Lenguaje: Python.
+Entrada: q35, AMD-Vi, EDU y paginas virtuales de datos, eventos y comandos.
+Salida: Evidencia de transferencia, fallos DMA, invalidacion completada y bus mastering cerrado.
+Depende de: Buses, recursos y DMA (verificacion).
+Aceptacion: QEMU transfiere 14 bytes al destino traducido y conserva RAM fuera de rango y tras revocar.
+Pendiente: La sonda CPL0 ya repite el ensayo con EDU. Falta llevar el dominio a AMD-Vi fisico.
+
+## kernel/drivers/bus/amdvi/edu_probe.S
+
+Sonda ASM transitoria despues de ExitBootServices. Programa AMD-Vi en QEMU y prueba DMA de EDU.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: Traspaso UEFI, nueve paginas EfiLoaderData, QEMU TCG q35, dispositivo EDU y AMD-Vi.
+Salida: Informe serial de concesion, rechazo, revocacion y cierre, cotejado por HOST.
+Depende de: Buses, recursos y DMA (verificacion).
+Aceptacion: QEMU verifica transferencia de ocho bytes, bloqueos de rango y revocacion. Rechaza ausencia de AMD-Vi y omision de invalidacion.
+Pendiente: Verificar dominio y retencion de paginas en AMD-Vi de METAL.
+
+## kernel/drivers/bus/amdvi/firmware_probe.S
+
+Sonda ASM transitoria antes de ExitBootServices. Valida IVRS y coteja la base declarada con la capacidad PCI de AMD-Vi.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: Tabla de sistema UEFI, RSDP, XSDT y una sola unidad IVHD del segmento PCI 0.
+Salida: Estado, bytes IVRS, BDF y registros PCI de base en GPULOG.TXT. Sin programar la IOMMU.
+Depende de: HOST / Inventario AMD-Vi (verificacion).
+Aceptacion: QEMU q35 coteja la base PCI y el estado de decode con AMD-Vi y distingue IVRS ausente en el mismo binario.
+Pendiente: Cotejar el inventario en METAL y preparar el dominio nativo sin interrumpir otros aparatos.
 
 ## CASM
 
@@ -1652,4 +1707,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-148 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+153 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

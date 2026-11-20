@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "evidence": "METAL: BMO-X2 UEFI PRE-EBS GPU boot log",
+  "run": "run-rmlui-media-4910a511a24c",
+  "boot_file": "EFI/BMO-X2/NVIDIA.EFI",
+  "boot_file_sha256": "5073b322bf4f66ea0871d15ebe9713f653220d7f3227d24f71f33a5ca38d2ec6",
+  "bootlog": "nvidia-pci-metal-20261120-mmio.bootlog.txt",
+  "bootlog_sha256": "8617448ba43b7af648bba9165f81f0d791c566357bc3d0f261745c26b63897ff",
+  "pci": {
+    "bdf": "0000:29:00.0",
+    "vendor_device": "10de:2504",
+    "subsystem_vendor_device": "1462:397d",
+    "command_reported": "0003",
+    "command_stable_across_read_verified": true
+  },
+  "mmio": {
+    "bar_index": 0,
+    "base": "0xfb000000",
+    "uefi_length_bytes": 16777216,
+    "register": "NV_PMC_BOOT_0",
+    "offset_bytes": 0,
+    "width_bits": 32,
+    "value": "b76000a1",
+    "chipset_code": "176",
+    "chip": "GA106",
+    "revision": "A1",
+    "status": "08",
+    "verified": true
+  },
+  "gop": {"width": 1920, "height": 1080},
+  "display_backend": "cpu-gop",
+  "gsp_initialized_by_bmo_x2": false,
+  "gpu_rendering_verified": false,
+  "boot_time_measured": false
+}

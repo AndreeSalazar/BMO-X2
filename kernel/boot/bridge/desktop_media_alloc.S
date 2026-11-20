@@ -1,9 +1,11 @@
 .text
 #include "../../drivers/bus/xhci_dma_layout.inc"
-#ifdef XHCI_COMMAND_PROBE
-#define XHCI_RESERVE_PAGES XHCI_PROBE_PAGES
+#ifdef BMO_DMA_LAB_PAGES
+#define DMA_RESERVE_PAGES BMO_DMA_LAB_PAGES
+#elif defined(XHCI_COMMAND_PROBE)
+#define DMA_RESERVE_PAGES XHCI_PROBE_PAGES
 #else
-#define XHCI_RESERVE_PAGES XHCI_QUEUE_PAGES
+#define DMA_RESERVE_PAGES XHCI_QUEUE_PAGES
 #endif
 # Reserve the context and payload inside the CASM fixture's identity map.
 .globl desktop_media_alloc
@@ -48,21 +50,21 @@ desktop_media_alloc:
     movq $4096, 0x710(%rbp)
     jmp context_ready
 #else
-    # Reserve contiguous pages for the selected xHCI controller.
+    # Reserve contiguous pages for the selected DMA fixture.
     # Context offsets B8/C0 describe the reservation, not a DMA grant.
     movq $0x0fffffff, 32(%rsp)
     mov $1, %ecx
     mov $2, %edx
-    mov $XHCI_RESERVE_PAGES, %r8d
+    mov $DMA_RESERVE_PAGES, %r8d
     lea 32(%rsp), %r9
     call *0x28(%r14)
     test %rax, %rax
     js context_ready
     mov 32(%rsp), %rdi
     mov %rdi, 0xb8(%rbp)
-    movq $XHCI_RESERVE_PAGES, 0xc0(%rbp)
+    movq $DMA_RESERVE_PAGES, 0xc0(%rbp)
     xor %eax, %eax
-    mov $(512 * XHCI_RESERVE_PAGES), %ecx
+    mov $(512 * DMA_RESERVE_PAGES), %ecx
     cld
     rep stosq
 #endif

@@ -13,6 +13,17 @@ if ($gpuRun -ne [bool]$NvidiaProbe -or $gpuRun -ne [bool]$proof.nvidia_pci_probe
     ($gpuRun -and -not $normal.NvidiaPciProbeVerified)) {
     throw 'El ensayo GPU requiere -NvidiaProbe y su propia prueba PCI en QEMU.'
 }
+$amdviRun=Test-Path -LiteralPath (Join-Path $runPath 'amdvi-efi-probe.txt') -PathType Leaf
+if ($amdviRun -ne [bool]$proof.amdvi_efi_probe -or ($amdviRun -and -not $gpuRun)) {
+    throw 'La sonda AMD-Vi requiere el perfil NVIDIA y su manifiesto.'
+}
+if ($amdviRun) {
+    $rejected=$proof.Cases | Where-Object { $_.Case -eq 'external-permissions' } | Select-Object -First 1
+    if (-not $normal.AmdViFirmwareVerified -or -not $normal.AmdViPresent -or
+        -not $rejected.AmdViFirmwareVerified -or $rejected.AmdViPresent) {
+        throw 'Falta corroborar el informe AMD-Vi con y sin IVRS en QEMU.'
+    }
+}
 if($proof.qemu_only -or $proof.usb_profile -or (Test-Path -LiteralPath (Join-Path $runPath 'native-usb.txt'))) {
     if(-not $ExperimentalUsb -or $proof.usb_profile -ne 'both' -or $proof.usb_empty_ports -or
         $proof.hardware_profile -ne 'amd149c-usb2-root-experimental' -or
@@ -96,7 +107,7 @@ foreach($name in $legacy.Keys){
 }
 $record=[ordered]@{Schema=1;Evidence='HOST copy after QEMU FAT32 boot';Run=$proof.run;Volume=$Volume;FileSystem=$drive.DriveFormat;
     Files=$written;LegacyFilesUnchanged=$legacy;PhysicalBootVerified=$false;PhysicalUsbVerified=$false;
-    PreviousFiles=$previous;ExperimentalUsb=[bool]$ExperimentalUsb;HardwareProfile=$proof.hardware_profile;
+    PreviousFiles=$previous;ExperimentalUsb=[bool]$ExperimentalUsb;HardwareProfile=$proof.hardware_profile;AmdViFirmwareProbe=$amdviRun;
     BootFile=('\'+$bootFile.Replace('/','\'));ReportFile=('\'+$dataFolder.Replace('/','\')+'\'+$reportName);
     Note='USB HID fisico sigue pendiente; no cambia NVRAM ni archivos ajenos al candidato.'}
 $json=$record | ConvertTo-Json -Depth 8

@@ -2386,7 +2386,7 @@
       "entrada": "Volumen A: FAT32, recibo DEPLOY.JSON, hashes de los tres archivos activos y evidencia QEMU para el ensayo NVIDIA.",
       "salida": "BMO-X2 Desktop (RmlUi) apunta a DESKTOP.EFI. BMO-X2 (con NVIDIA) apunta a NVIDIA.EFI.",
       "aceptacion": "Registro HOST verifica el dispositivo, la ruta y la presencia de la entrada. Al crearla, verifica que se agregue al final del orden anterior.",
-      "falta": "METAL confirmo la entrada NVIDIA y el inventario BAR ampliado. El siguiente ensayo consulta limites y verifica MMIO."
+      "falta": "METAL confirmo la entrada NVIDIA y MMIO del GA106. La siguiente prueba de arranque requiere un candidato con DMA nativo."
     },
     {
       "id": "usb-ring3-activation",
@@ -2526,7 +2526,7 @@
       "entrada": "Inventario PCI de clase grafica, seleccionado con --nvidia-probe.",
       "salida": "GPULOG.TXT con recuentos, identidad NVIDIA, PCI Command y los seis registros BAR de la funcion grafica inventariada.",
       "aceptacion": "QEMU coteja BDF y BAR de su VGA con QMP y verifica escritorio y rechazo SBEF W+X. METAL confirmo RTX 3060 10DE:2504, sus bases BAR y GOP a 1920x1080.",
-      "falta": "La sonda MMIO siguiente usa este inventario como entrada y requiere una prueba fisica propia."
+      "falta": "La sonda MMIO confirmada en METAL usa este inventario como entrada. Falta la prueba GSP."
     },
     {
       "id": "nvidia-mmio-probe",
@@ -2543,8 +2543,95 @@
       "que": "Sonda transitoria UEFI: confirma limites de BAR0 y lee la identidad interna exclusivamente en la RTX 3060 10DE:2504.",
       "entrada": "BDF y BAR0 del inventario, protocolo EFI PCI I/O, identidad PCI y Command con memoria habilitada y bus mastering apagado.",
       "salida": "Longitud BAR0, palabra PMC_BOOT_0 y estado del ensayo en GPULOG.TXT.",
-      "aceptacion": "QEMU coteja la longitud BAR0 de VGA con QMP y verifica que la lectura NVIDIA se omita. El perfil CPU + GOP sigue disponible.",
-      "falta": "Confirmar NV_PMC_BOOT_0 y chipset GA106 en METAL. GSP y aceleracion tienen ensayos propios."
+      "aceptacion": "QEMU coteja la longitud BAR0 de VGA con QMP y omite la lectura NVIDIA. METAL confirmo BAR0 de 16 MiB y NV_PMC_BOOT_0 B76000A1 (GA106 A1).",
+      "falta": "Acreditar inicio de GSP y una operacion GPU verificable antes de transferir la salida de pantalla."
+    },
+    {
+      "id": "nvidia-gsp-firmware-host",
+      "titulo": "HOST / Firmware NVIDIA GA10x",
+      "ruta": "tools/host/gpu/firmware.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [
+        10800,
+        4600
+      ],
+      "que": "Comprueba el conjunto original de una release GSP, por longitud y huella de referencia.",
+      "entrada": "Cuatro binarios locales NVIDIA de la release solicitada y manifiesto de huellas.",
+      "salida": "Informe HOST de identidad, release, archivos y huellas.",
+      "aceptacion": "Cuatro archivos verificados para 570.144 y 615.78.08; la opcion native selecciona 615.78.08. Rechaza cambios de bytes y releases cruzadas.",
+      "falta": "Preparar y verificar el arranque GSP nativo con 615.78.08."
+    },
+    {
+      "id": "amd-ivrs-host",
+      "titulo": "HOST / Inventario AMD-Vi",
+      "ruta": "tools/host/gpu/ivrs.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [
+        11100,
+        4600
+      ],
+      "que": "Lee la descripcion ACPI IVRS y coteja las funciones PCI indicadas con los rangos IVHD.",
+      "entrada": "IVRS del firmware mediante Windows o archivo, y los BDF solicitados.",
+      "salida": "Unidad AMD-Vi, base, segmento, alcance y alias descritos por el firmware.",
+      "aceptacion": "HOST verifico que la RTX y su audio aparecen en la unidad AMD-Vi 00:00.2 del equipo.",
+      "falta": "Entregar los solicitantes de IVRS al dominio nativo y verificar la concesion y revocacion de DMA."
+    },
+    {
+      "id": "amdvi-edu-qtest",
+      "titulo": "AMD-Vi / Traduccion y revocacion virtual",
+      "ruta": "tools/host/gpu/qemu_dma.py",
+      "estado": "qemu",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [
+        11400,
+        4600
+      ],
+      "que": "Comprueba traduccion, bloqueo e invalidacion DMA en AMD-Vi de QEMU con EDU mediante qtest.",
+      "entrada": "q35, AMD-Vi, EDU y paginas virtuales de datos, eventos y comandos.",
+      "salida": "Evidencia de transferencia, fallos DMA, invalidacion completada y bus mastering cerrado.",
+      "aceptacion": "QEMU transfiere 14 bytes al destino traducido y conserva RAM fuera de rango y tras revocar.",
+      "falta": "La sonda CPL0 ya repite el ensayo con EDU. Falta llevar el dominio a AMD-Vi fisico."
+    },
+    {
+      "id": "amdvi-edu-guest",
+      "titulo": "AMD-Vi / Sonda de DMA del invitado",
+      "ruta": "kernel/drivers/bus/amdvi/edu_probe.S",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [
+        11400,
+        4300
+      ],
+      "que": "Sonda ASM transitoria despues de ExitBootServices. Programa AMD-Vi en QEMU y prueba DMA de EDU.",
+      "entrada": "Traspaso UEFI, nueve paginas EfiLoaderData, QEMU TCG q35, dispositivo EDU y AMD-Vi.",
+      "salida": "Informe serial de concesion, rechazo, revocacion y cierre, cotejado por HOST.",
+      "aceptacion": "QEMU verifica transferencia de ocho bytes, bloqueos de rango y revocacion. Rechaza ausencia de AMD-Vi y omision de invalidacion.",
+      "falta": "Verificar dominio y retencion de paginas en AMD-Vi de METAL."
+    },
+    {
+      "id": "amdvi-firmware-probe",
+      "titulo": "AMD-Vi / Inventario UEFI",
+      "ruta": "kernel/drivers/bus/amdvi/firmware_probe.S",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [
+        11100,
+        4300
+      ],
+      "que": "Sonda ASM transitoria antes de ExitBootServices. Valida IVRS y coteja la base declarada con la capacidad PCI de AMD-Vi.",
+      "entrada": "Tabla de sistema UEFI, RSDP, XSDT y una sola unidad IVHD del segmento PCI 0.",
+      "salida": "Estado, bytes IVRS, BDF y registros PCI de base en GPULOG.TXT. Sin programar la IOMMU.",
+      "aceptacion": "QEMU q35 coteja la base PCI y el estado de decode con AMD-Vi y distingue IVRS ausente en el mismo binario.",
+      "falta": "Cotejar el inventario en METAL y preparar el dominio nativo sin interrumpir otros aparatos."
     }
   ],
   "relaciones": [
@@ -3801,6 +3888,36 @@
     {
       "de": "rmlui-fat32-media",
       "a": "nvidia-pci-probe",
+      "clase": "codigo"
+    },
+    {
+      "de": "nvidia-gsp-firmware-host",
+      "a": "nvidia-mmio-probe",
+      "clase": "plan"
+    },
+    {
+      "de": "amd-ivrs-host",
+      "a": "device-bus",
+      "clase": "verificacion"
+    },
+    {
+      "de": "amdvi-edu-qtest",
+      "a": "device-bus",
+      "clase": "verificacion"
+    },
+    {
+      "de": "amdvi-edu-guest",
+      "a": "device-bus",
+      "clase": "verificacion"
+    },
+    {
+      "de": "amdvi-firmware-probe",
+      "a": "amd-ivrs-host",
+      "clase": "verificacion"
+    },
+    {
+      "de": "rmlui-fat32-media",
+      "a": "amdvi-firmware-probe",
       "clase": "codigo"
     },
     {

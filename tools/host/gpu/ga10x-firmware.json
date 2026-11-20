@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "family": "NVIDIA GA10x",
+  "pci_id": "10de:2504",
+  "native_target_release": "615.78.08",
+  "releases": {
+    "570.144": {
+      "reference": "BMO-X native VERRANO",
+      "files": {
+        "booter_load": [61304, "4497e3eff7e95c774b8a569d17b27c08c9650158d10b229d2be81cdcad9a085b"],
+        "booter_unload": [41080, "8e63db5b78d7d3e349f20a2d11099c3d7109081393cb09ffc0a28133324ae009"],
+        "bootloader": [24684, "82428f532240727e95bb3083fbaaba9b2cc7b937314323f2d546ce7245f27fad"],
+        "gsp": [63571696, "a8c3ebeed280323aedb51c061f321e73379cce7a9ae643a33dd03915df027f7f"]
+      }
+    },
+    "615.78.08": {
+      "reference": "ULTRA-LinuX NVIDIA reference release",
+      "files": {
+        "booter_load": [61816, "ad36e2044f76df6d0715031acb665c20cfcc70b0611748e41391b733a0d1db50"],
+        "booter_unload": [42616, "8f68eb5bc034009f5b874aa0aa5da81ecc1fdad8e892c16afd862d78cf34fdc2"],
+        "bootloader": [24684, "82428f532240727e95bb3083fbaaba9b2cc7b937314323f2d546ce7245f27fad"],
+        "gsp": [27043992, "a20100cafd5a85e22b3e13188339730c6ced94bd5f654984dd2ed274ed58d584"]
+      }
+    }
+  }
+}

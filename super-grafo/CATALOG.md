@@ -152,6 +152,11 @@
 | [Presentacion GOP por CPU](../kernel/drivers/display/GOP/gop_stage.inc) | qemu | 0 | Sonda ASM transitoria de Ring 0: el puente prepara el modulo CPU/GOP separado de xHCI. INVOKE 9 copia un cuadro e INVOKE 10 presenta regiones en escala 1. |
 | [GPU / NVIDIA / Inventario PCI](../kernel/drivers/GPU/NVIDIA/pci_probe.inc) | qemu | 0 | Sonda ASM transitoria del puente UEFI antes de ExitBootServices. Lee PCI del segmento 0 y conserva CPU/GOP como presentador. |
 | [GPU / NVIDIA / Lectura MMIO](../kernel/drivers/GPU/NVIDIA/mmio_probe.inc) | qemu | 0 | Sonda transitoria UEFI: confirma limites de BAR0 y lee la identidad interna exclusivamente en la RTX 3060 10DE:2504. |
+| [HOST / Firmware NVIDIA GA10x](../tools/host/gpu/firmware.py) | host | host | Comprueba el conjunto original de una release GSP, por longitud y huella de referencia. |
+| [HOST / Inventario AMD-Vi](../tools/host/gpu/ivrs.py) | host | host | Lee la descripcion ACPI IVRS y coteja las funciones PCI indicadas con los rangos IVHD. |
+| [AMD-Vi / Traduccion y revocacion virtual](../tools/host/gpu/qemu_dma.py) | qemu | host | Comprueba traduccion, bloqueo e invalidacion DMA en AMD-Vi de QEMU con EDU mediante qtest. |
+| [AMD-Vi / Sonda de DMA del invitado](../kernel/drivers/bus/amdvi/edu_probe.S) | qemu | 0 | Sonda ASM transitoria despues de ExitBootServices. Programa AMD-Vi en QEMU y prueba DMA de EDU. |
+| [AMD-Vi / Inventario UEFI](../kernel/drivers/bus/amdvi/firmware_probe.S) | qemu | 0 | Sonda ASM transitoria antes de ExitBootServices. Valida IVRS y coteja la base declarada con la capacidad PCI de AMD-Vi. |
 
 ## Dependencias declaradas
 
@@ -408,6 +413,12 @@
 | rmlui-native-usb-input | rmlui-usb-dual | codigo |
 | rmlui-fat32-media | rmlui-gop-cursor-region | codigo |
 | rmlui-fat32-media | nvidia-pci-probe | codigo |
+| nvidia-gsp-firmware-host | nvidia-mmio-probe | plan |
+| amd-ivrs-host | device-bus | verificacion |
+| amdvi-edu-qtest | device-bus | verificacion |
+| amdvi-edu-guest | device-bus | verificacion |
+| amdvi-firmware-probe | amd-ivrs-host | verificacion |
+| rmlui-fat32-media | amdvi-firmware-probe | codigo |
 | rmlui-fat32-media | nvidia-mmio-probe | codigo |
 | nvidia-mmio-probe | nvidia-pci-probe | codigo |
 

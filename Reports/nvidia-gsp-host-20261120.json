@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "evidence": "HOST: Windows ACPI and local firmware reference files",
+  "mmio_report": "nvidia-pci-metal-20261120-mmio.json",
+  "ivrs": {
+    "schema": 1,
+    "evidence": "HOST: ACPI firmware inventory",
+    "table_bytes": 208,
+    "table_revision": 2,
+    "table_sha256": "d2b4e55ee37be93d6e764136059f140e847368118d447c345964ef21471202ec",
+    "block_types": [
+      "10",
+      "11"
+    ],
+    "requesters": {
+      "0000:29:00.0": [
+        {
+          "unit_bdf": "0000:00:00.2",
+          "ivhd_type": "11",
+          "ivhd_flags": "b0",
+          "pci_capability_offset": "0x40",
+          "mmio_base": "0x00000000fd500000",
+          "range_first": "0000:00:01.0",
+          "range_last": "0000:ff:1f.6",
+          "alias": null
+        }
+      ],
+      "0000:29:00.1": [
+        {
+          "unit_bdf": "0000:00:00.2",
+          "ivhd_type": "11",
+          "ivhd_flags": "b0",
+          "pci_capability_offset": "0x40",
+          "mmio_base": "0x00000000fd500000",
+          "range_first": "0000:00:01.0",
+          "range_last": "0000:ff:1f.6",
+          "alias": null
+        }
+      ]
+    },
+    "bmo_x2_dma_isolation_verified": false,
+    "source": "Windows GetSystemFirmwareTable"
+  },
+  "ivrs_table_hex": "49565253d000000002e2414d44202000416d645461626c6501000000414d44200100000041302000000000000000000010b0480002004000000050fd00000000000000002e8f04800308000004feff004300ff0000a5000004ffff00000000004800000000a00002480000d70da00001480000000e01000111b0580002004000000050fd0000000000000000000204005a4a2922ef778f0500000000000000000308000004feff004300ff0000a5000004ffff00000000004800000000a00002480000d70da00001480000000e010001",
+  "firmware_releases": {
+    "570.144": {
+      "schema": 1,
+      "evidence": "HOST: local firmware hash comparison",
+      "family": "NVIDIA GA10x",
+      "pci_id": "10de:2504",
+      "release": "570.144",
+      "reference": "BMO-X native VERRANO",
+      "package_bytes": 63698764,
+      "files": {
+        "booter_load": {
+          "name": "booter_load-570.144.bin",
+          "bytes": 61304,
+          "sha256": "4497e3eff7e95c774b8a569d17b27c08c9650158d10b229d2be81cdcad9a085b"
+        },
+        "booter_unload": {
+          "name": "booter_unload-570.144.bin",
+          "bytes": 41080,
+          "sha256": "8e63db5b78d7d3e349f20a2d11099c3d7109081393cb09ffc0a28133324ae009"
+        },
+        "bootloader": {
+          "name": "bootloader-570.144.bin",
+          "bytes": 24684,
+          "sha256": "82428f532240727e95bb3083fbaaba9b2cc7b937314323f2d546ce7245f27fad"
+        },
+        "gsp": {
+          "name": "gsp-570.144.bin",
+          "bytes": 63571696,
+          "sha256": "a8c3ebeed280323aedb51c061f321e73379cce7a9ae643a33dd03915df027f7f"
+        }
+      },
+      "gsp_boot_verified": false
+    },
+    "615.78.08": {
+      "schema": 1,
+      "evidence": "HOST: local firmware hash comparison",
+      "family": "NVIDIA GA10x",
+      "pci_id": "10de:2504",
+      "release": "615.78.08",
+      "reference": "ULTRA-LinuX NVIDIA reference release",
+      "package_bytes": 27173108,
+      "files": {
+        "booter_load": {
+          "name": "booter_load-615.78.08.bin",
+          "bytes": 61816,
+          "sha256": "ad36e2044f76df6d0715031acb665c20cfcc70b0611748e41391b733a0d1db50"
+        },
+        "booter_unload": {
+          "name": "booter_unload-615.78.08.bin",
+          "bytes": 42616,
+          "sha256": "8f68eb5bc034009f5b874aa0aa5da81ecc1fdad8e892c16afd862d78cf34fdc2"
+        },
+        "bootloader": {
+          "name": "bootloader-615.78.08.bin",
+          "bytes": 24684,
+          "sha256": "82428f532240727e95bb3083fbaaba9b2cc7b937314323f2d546ce7245f27fad"
+        },
+        "gsp": {
+          "name": "gsp-615.78.08.bin",
+          "bytes": 27043992,
+          "sha256": "a20100cafd5a85e22b3e13188339730c6ced94bd5f654984dd2ed274ed58d584"
+        }
+      },
+      "gsp_boot_verified": false
+    }
+  },
+  "gsp_boot_verified": false,
+  "gpu_rendering_verified": false
+}

@@ -142,9 +142,11 @@ la llegada visual al escritorio no acredita teclado/raton USB.
 [Evidencia METAL](Reports/rmlui-desktop-metal-20261116.json).
 [Ruta de arranque, controles y limites](docs/NATIVE-DESKTOP-BOOT.md).
 
-GPU/NVIDIA tiene un candidato UEFI propio que registra el inventario
-PCI antes de entrar al escritorio. CPU y GOP siguen presentando la
-interfaz. [Ensayo directo de GPU](docs/NATIVE-DESKTOP-BOOT.md#gpu--nvidia).
+GPU/NVIDIA tiene un candidato UEFI propio. Antes de entrar al escritorio,
+registra el inventario PCI y coteja la unidad AMD-Vi que describe el
+firmware. CPU y GOP presentan la interfaz mientras se prepara el dominio
+DMA para el arranque del GSP.
+[Ensayo directo de GPU](docs/NATIVE-DESKTOP-BOOT.md#gpu--nvidia).
 
 El escritorio ya recibe entrada xHCI en QEMU con teclado y raton en
 perfiles separados, mediante el transporte de diagnostico y el servicio

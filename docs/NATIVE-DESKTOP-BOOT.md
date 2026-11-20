@@ -300,7 +300,7 @@ GA106 (`0x176`). Libera los buffers de UEFI y deja continuar GOP.
 | `05` | UEFI no pudo leer el registro |
 | `06` | Valor de `GPU_PMC_BOOT0` incompatible con GA106 |
 | `07` | PCI Command cambiado o no verificable despues de la lectura |
-| `08` | Lectura valida de GA106, pendiente de comprobar en METAL |
+| `08` | Lectura valida de GA106 |
 
 La lectura valida acredita acceso MMIO. GSP y la ejecucion de trabajo
 GPU requieren sus propias pruebas.
@@ -311,8 +311,15 @@ UEFI de la VGA, su longitud de 16 MiB cotejada con QMP, el estado
 `03`, teclado y raton USB simultaneos y el rechazo SBEF W+X. En HOST,
 la rutina compilada con servicios UEFI simulados verifica la lectura
 GA106, los rechazos y la liberacion de buffers. El lector ocupa 3880 B
-de la pagina EFI de 4096 B. El ensayo METAL espera el estado `08` y la
-palabra real de `GPU_PMC_BOOT0`.
+de la pagina EFI de 4096 B.
+
+El arranque en METAL del 20-11-2026 obtuvo `GPU_MMIO_STATUS=00000008`,
+`GPU_BAR0_LEN=01000000` (16 MiB informados por UEFI) y
+`GPU_PMC_BOOT0=B76000A1` (GA106 A1). Coincide con la lectura de BMO-X
+para esta tarjeta. El registro se genero antes de ExitBootServices y
+acredita la lectura MMIO. El escritorio sigue usando CPU + GOP.
+[Informe MMIO de METAL](../Reports/nvidia-pci-metal-20261120-mmio.json).
+[Identidad registrada por BMO-X](https://github.com/AndreeSalazar/BMO-X-x86-64/blob/6076bdefefc67877419ca53633c6e40cb45fc92d/platform/drivers/gpu/ga10x/ANATOMIA.md#L28).
 
 Despues del estado `08` quedan tres pruebas:
 
@@ -325,6 +332,109 @@ Despues del estado `08` quedan tres pruebas:
 3. Verificar el control de salida NVIDIA: configurar modo y conector,
    mostrar un cuadro de prueba y comprobar su reemplazo sincronizado.
    Luego DIRECTOR/RmlUi puede presentar por ese backend.
+
+#### Preparacion HOST del arranque GSP
+
+HOST comprobo los binarios locales `booter_load`, `booter_unload`,
+`bootloader` y `gsp` de cada release por longitud y SHA-256. El conjunto
+`570.144` permite comparar la futura secuencia nativa con VERRANO. El
+conjunto `615.78.08` corresponde a la version observada en ULTRA-LinuX.
+Es la release fijada como objetivo de BMO-X2. La opcion `native`
+del verificador selecciona ese conjunto completo.
+El verificador usa huellas de referencia del conjunto local, y rechaza
+archivos alterados y releases cruzadas. La autenticacion de firmware
+en hardware y el intercambio con el GSP quedan para el ensayo de
+arranque. [Verificacion HOST](../tools/host/gpu/firmware.py).
+[Procedencia de 570.144 en linux-firmware](https://kernel.googlesource.com/pub/scm/linux/kernel/git/firmware/linux-firmware/%2B/refs/tags/20250917/WHENCE).
+[GSP 615.78.08 de NVIDIA](https://download.nvidia.com/XFree86/Linux-x86_64/615.78.08/README/gsp.html).
+
+La tabla ACPI IVRS del equipo tiene 208 B y describe tanto
+`0000:29:00.0` (RTX) como `0000:29:00.1` (audio) bajo la unidad
+AMD-Vi `0000:00:00.2`, con base MMIO `0xFD500000`. El inventario
+usa la descripcion extendida IVHD `0x11`. ULTRA-LinuX tambien registra
+ambas funciones en el grupo IOMMU 16. El grupo de Linux es una
+observacion de ese sistema. La asignacion y revocacion del dominio en
+BMO-X2 requieren una prueba propia.
+[Lector IVRS HOST](../tools/host/gpu/ivrs.py).
+[Informe del equipo](../Reports/nvidia-gsp-host-20261120.json).
+[Registro AMD-Vi de ULTRA-LinuX](https://github.com/AndreeSalazar/ULTRA-LinuX/blob/7c275c1a716a80226ff83e340258fb1cd6bb08c3/evidencias/pc-real/nvidia-2026-10-19/dmesg-pc.txt#L584-L624).
+
+```powershell
+python -B tools/host/gpu/ivrs.py 0000:29:00.0 0000:29:00.1
+python -B tools/host/gpu/firmware.py native ..\BMO-externo\firmware\nvidia\ga102\gsp
+python -B tools/host/gpu/firmware.py 570.144 ..\BMO-externo\firmware\nvidia\ga102\gsp
+python -B tools/host/gpu/qemu_dma.py
+```
+
+QEMU `q35` con `amd-iommu,dma-remap=on` y EDU ya reproduce una
+transferencia de 14 bytes mediante una pagina autorizada, rechazo fuera
+del rango, e invalidacion confirmada seguida de un segundo rechazo. qtest
+programa los dispositivos emulados y lee RAM para comprobar que las
+peticiones rechazadas dejan intactos los marcadores. Esta version de QEMU
+registra los fallos de pagina con el solicitante EDU y direccion cero.
+El resultado se verifica tambien en RAM y el informe guarda las
+direcciones de eventos tal como las entrega QEMU.
+[Prueba AMD-Vi en QEMU](../Reports/nvidia-amdvi-qemu-20261120.json).
+[Dispositivo EDU](https://www.qemu.org/docs/master/specs/edu.html).
+
+La sonda de BMO-X2 `run-amdvi-edu-d34bb76f3647` repitio la concesion y
+revocacion desde CPL0 despues de `ExitBootServices`. Arranco desde FAT32
+con el puente heredado y programo AMD-Vi para EDU. QEMU comprobo la
+transferencia de ocho bytes a una pagina de 4 KiB autorizada, el bloqueo
+fuera de rango y el bloqueo despues de revocar. El caso sin IOMMU se
+detuvo en la deteccion, y el caso que omite la invalidacion detecto la
+traduccion antigua y cerro bus mastering. Es una sonda ASM exclusiva de
+QEMU TCG. [Prueba desde BMO-X2](../Reports/amdvi-edu-native-qemu-20261120.json).
+
+#### Punto de prueba antes de reiniciar
+
+El perfil `--nvidia-probe --amdvi-probe` agrega una sonda UEFI de
+solo lectura. Valida las sumas de RSDP, XSDT e IVRS, localiza una unidad
+IVHD del segmento PCI 0 y coteja su base con la capacidad PCI AMD.
+La sonda restaura el selector PCI y deja el subsistema DMA en manos del
+firmware durante la captura.
+[Tablas ACPI](https://uefi.org/specs/ACPI/6.5_A/05_ACPI_Software_Programming_Model.html).
+[Registros AMD-Vi](https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/specifications/48882_IOMMU.pdf).
+
+`run-rmlui-media-38ddb012ee7e` paso los dos arranques en QEMU q35.
+Con AMD-Vi, el BDF coincide con QMP y la base es `FED80000` con
+decodificacion desactivada. El otro arranque registra la ausencia de
+IVRS y rechaza el SBEF W+X. Con la sonda, el lector ocupa 3956 B
+dentro de su pagina y el EFI ocupa 28 KiB. El paquete CASM, el
+escritorio SBEF y la etapa xHCI conservan sus bytes.
+[Evidencia QEMU](../Reports/amdvi-firmware-uefi-qemu-20261120.json).
+
+La linea `AMDVI=` en `A:\BMO-X2\GPU\GPULOG.TXT` presenta cinco
+palabras hexadecimales en orden: estado, longitud IVRS validada, BDF
+de la unidad, mitad baja de la base PCI con bit de habilitacion y
+mitad alta. Los guiones representan campos sin lectura.
+
+| Estado | Captura pre-EBS |
+|---|---|
+| `00` | IVRS ausente |
+| `01` | Raiz ACPI invalida |
+| `02` | IVRS invalida |
+| `03` | Unidad unica del segmento 0 no identificada |
+| `04` | Capacidad PCI AMD-Vi ausente o invalida |
+| `05` | La base PCI difiere de IVRS |
+| `06` | Bases iguales, decodificacion MMIO desactivada |
+| `07` | Bases iguales, decodificacion MMIO activa |
+
+El estado `07` acredita decodificacion PCI en ese instante. La traduccion
+DMA y sus permisos requieren comprobaciones propias. El siguiente ensayo
+del dominio incluye los solicitantes RTX y audio, la continuidad de USB y
+almacenamiento y la retencion de paginas si falla una invalidacion.
+Tras probar aislamiento y revocacion en la unidad fisica, se pueden
+preparar las colas y buffers del GSP `615.78.08`.
+[Contrato DMA](../kernel/drivers/bus/DMA.md).
+
+En el equipo de referencia, el inventario HOST da IVRS `000000D0`,
+BDF `00000002` y base `FD500000` al enmascarar el bit de habilitacion.
+El candidato con la sonda se arranca desde la entrada existente
+**BMO-X2 (con NVIDIA)**. Al volver a Windows, leer `GPULOG.TXT` y
+comprobar que contiene la linea `AMDVI=` del nuevo arranque.
+El 20-11-2026 se verifico la copia de este candidato en `A:`, con
+respaldo del EFI NVIDIA anterior y sin cambiar el orden de arranque.
 
 La ruta de aceleracion y control de salida vive en `GPU/NVIDIA`.
 DIRECTOR/RmlUi entrega superficies a traves de la capacidad de pantalla.
@@ -356,6 +466,12 @@ conservan sus bytes. `GPULOG.TXT` pasa de 397 B a 504 B.
 ```powershell
 python .\tools\desktop\rmlui\native\media.py <ABI_RUN> <GATO_COMPACTO_RUN> --nvidia-probe
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\boot\view.ps1 -Profile rmlui-nvidia-probe
+```
+
+Para generar el candidato USB dual con inventario AMD-Vi:
+
+```powershell
+python .\tools\desktop\rmlui\native\media.py <ABI_RUN> <GATO_COMPACTO_RUN> --usb both --nvidia-probe --amdvi-probe
 ```
 
 `native/deploy.ps1 -Run <RUN> -Volume A:\ -NvidiaProbe -Check` comprueba
