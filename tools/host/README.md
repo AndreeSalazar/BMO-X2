@@ -94,7 +94,7 @@ python -B tools/sbef.py profiles
 
 | Orden | Puerta | Estado | Criterio de cierre |
 |---:|---|---|---|
-| 1 | Cargador externo SBEF | Parcial | CASM valida y mapea SBEF externos, prepara pila/BSS, entra a CPL3 y recupera paginas. QEMU comprueba casos validos, rechazos y concordancia HOST/CASM. |
+| 1 | Cargador externo SBEF | Parcial | Cierre: integrar en CASM la validacion y el mapeo de SBEF externos, la pila/BSS, entrada CPL3 y recuperacion de paginas; demostrar casos validos, rechazos y concordancia HOST/CASM en QEMU. |
 | 2 | Perfil ISA x86-64 | Parcial | Tabla y campo SBEF v2 definidos; falta integrar CPUID/XCR0 en el cargador general CASM y probar niveles con fixtures/QEMU. |
 | 3 | Fixtures freestanding por productor | Parcial | Muestras sin imports para MSVC, Clang/LLD, clang-cl/lld-link, GCC y Rust; registrar target, versiones, opciones y hashes de forma automatica. |
 | 4 | Puentes ABI | Parcial | Definir ABI BMO-X2 y probar Microsoft x64, SysV y los bordes C/Rust, incluidos registros, pila, retorno y errores. |

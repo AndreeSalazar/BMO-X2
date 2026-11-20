@@ -1,8 +1,11 @@
 # CASM para el kernel x86-64
 
-CASM se desarrolla para construir el Ring 0 de BMO-X2. Rust queda en Ring 3.
-El compilador puede ejecutarse en el anfitrion; su lugar de ejecucion no cambia
-el destino de los bytes emitidos. Native se conserva como referencia heredada.
+CASM se desarrolla dentro de BMO-X2 para emitir el subconjunto x86-64 que sus
+contratos de Ring 0 requieren. No comparte ni hereda el ABI del kernel de
+ULTRA-LinuX.
+Rust queda en Ring 3. El compilador puede ejecutarse en el HOST; eso no cambia
+el destino de los bytes emitidos. Native se conserva como perfil de referencia
+del HOST, no como prueba de que BMO-X2 lo ejecute.
 
 ## Que significa HEX preciso
 
@@ -10,10 +13,12 @@ Cada par hexadecimal representa un byte. La salida necesita un perfil declarado,
 una fuente congelada, IR, offsets, bytes y comprobacion independiente. Una
 operacion desconocida se rechaza; no se completa con bytes aproximados.
 
-El formato HEX no impone un nivel de privilegio. El futuro perfil Ring 0 debe
-declarar y comprobar sus precondiciones de CPU, entrada y efectos. El perfil
-activo metal64-0.2 sigue siendo una sonda con servicios del cargador: no acredita
-por si mismo ejecucion en Ring 0 ni un kernel autonomo.
+El formato HEX no impone un nivel de privilegio ni convierte por si solo una
+imagen en ejecutable. Cada perfil Ring 0 debe declarar y comprobar sus
+precondiciones de CPU, entrada, ABI y efectos. `metal64-0.2` es una sonda con
+servicios del cargador; los perfiles privilegiados enumerados en
+`STATUS-BMO-X2.md` acreditan solo sus casos concretos. Ninguno acredita por si
+mismo un kernel completo o un cargador general de procesos SBEF.
 
 ## Leer la primera entrada
 

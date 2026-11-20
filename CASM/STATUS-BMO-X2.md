@@ -3,6 +3,17 @@
 Esta pagina manda sobre los estados heredados de los README de origen.
 Esos documentos conservan la fecha, el entorno y el alcance de su trabajo.
 
+## Destino y frontera
+
+Esta copia, sus perfiles de salida y sus contratos pertenecen a BMO-X2. El
+destino actual es x86-64; ULTRA-LinuX es una referencia historica aparte y no
+define el ABI de este kernel. El compilador HOST puede estar escrito en C y
+construirse con GCC o Clang: esos son medios para ejecutar la herramienta en el
+HOST, no el lenguaje ni el backend que el Ring 0 ejecuta. El perfil Linux ELF y
+la autocompilacion Native son evidencia del taller Linux, no ejecucion dentro de
+BMO-X2. Para el estado de la admision general SBEF, consultar
+`../contracts/SBEF-LOADER.md` y `../docs/RING0-PLAN.md`.
+
 | Perfil | Fuentes | Lo disponible | Lo que no acredita |
 |---|---|---|---|
 | metal64 0.2 | `src/`, `verify.py`, `test.py` | Semilla C11, enteros constantes exactos, HEX e IR, paquete FAGRAW64 comprobado. | Kernel completo, variables de ejecucion, MMIO o cambios de privilegio. |

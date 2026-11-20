@@ -22,7 +22,7 @@ activos; los documentos duplicados de `contracts/plans/` se retiraron.
 |---|---|---|
 | 1. Entrega y diagnostico | `boot-context`, `x86_64-cpu`, `cpu-state`, `x86_64-exceptions`, `kernel-diagnostics`, `init` | Pila propia y excepcion controlada en QEMU. Diagnostico por fase. |
 | 2. Memoria y proceso | `physical-memory`, `virtual-memory`, `user-memory`, `process` | Un proceso de prueba entra en CPL3 y su fallo deja al kernel operativo. Sus marcos y capacidades se recuperan. |
-| 3. Imagen y admision | `sbef`, `sbef-loader`, `image-policy` | Un ejecutable minimo arranca. Lector HOST y CASM coinciden en el mapa y los rechazos. Aplicar la politica antes de ejecutar. |
+| 3. Imagen y admision | `sbef`, `sbef-loader`, `image-policy` | Cierre: arrancar un ejecutable minimo; cotejar lectores HOST y CASM en mapa y rechazos; aplicar la politica antes de entrar a CPL3. |
 | 4. Peticiones y espera | `capabilities`, `invoke`, `x86_64-interrupts`, `time`, `sched`, `ipc`, `wait` | Una operacion autorizada, rechazos de capacidad y buffer, un despertar por senal y otro por plazo. |
 | 5. Congelacion | `ring0-base-gate` | Vectores de oro de SBEF y ABI. Misma peticion desde compiladores distintos. Publicar version, registros, errores y permisos. |
 | 6. Plataforma y servicios | `device-bus`, `device-storage`, `file-access`, `device-io`, `device-network`, `multiprocessor` | Pruebas por dispositivo y recursos concedidos. Medir memoria, latencia y arranque. Hardware fisico tras evidencia QEMU y recuperacion definida. |

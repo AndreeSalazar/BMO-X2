@@ -1,15 +1,22 @@
-# CASM en ULTRA LinuX (emisor propio, semillas GCC/Clang, x86-64)
+# CASM de BMO-X2 (emisor propio, perfiles x86-64)
 
-**Dos perfiles explicitos:** el **metal64 0.2** descrito abajo conserva su frontend
-C y su contrato de bytes; **[CASM Native 0.1](native/README.md)** esta escrito en
-CASM y **ya se autocompila** para Linux x86-64, con funciones, bucles y buffers
-comprobados. No se declara autocompilado el frontend C por esa ampliacion.
+Esta copia de CASM pertenece al arbol de BMO-X2. Sus perfiles, bytes y contratos
+se definen aqui; no se heredan del kernel de ULTRA-LinuX. El compilador actual
+se ejecuta en el HOST y esta escrito en C11: GCC o Clang pueden construir esa
+herramienta, pero el emisor propio decide los bytes x86-64 del perfil elegido.
+Que el compilador HOST use C no convierte en C el codigo emitido para Ring 0.
 
-CASM es el lenguaje propio que emite x86-64 **exacto** a `.hex`: fuente con forma de C,
-IR acotada, codificador propio, verificador separado y paquete FAGRAW64 para el puente
-EFI (`metal64`). Esta carpeta es una **copia aislada** para construir BMO-X2 desde este
-Linux. La definicion del lenguaje esta en [LANGUAGE.md](LANGUAGE.md) y su rumbo, como
-samurai de la CPU, en [SAMURAI.md](SAMURAI.md).
+**Perfiles explicitos:** **metal64 0.2** acepta CASM con un frontend implementado
+en C, IR acotada, codificador x86-64 propio, verificador separado y paquete
+FAGRAW64 para el puente EFI. **[CASM Native 0.1](native/README.md)** esta escrito en CASM y se autocompila
+en Linux x86-64 con funciones, bucles y buffers comprobados. Esa evidencia
+corresponde al perfil Native en Linux; no demuestra autocompilacion dentro de
+BMO-X2 ni un cargador general de procesos Ring 0. La ampliacion Native no declara
+autocompilado el frontend C de metal64.
+
+La definicion del lenguaje esta en [LANGUAGE.md](LANGUAGE.md); el estado real de
+cada perfil para BMO-X2 esta en [STATUS-BMO-X2.md](STATUS-BMO-X2.md), y el rumbo
+del emisor en [SAMURAI.md](SAMURAI.md).
 
 ## Origen
 
@@ -34,7 +41,7 @@ y aqui crecio: cada katana tiene su caso aislado y cada caso exige SU regla. Des
 
 ## Aislado
 
-- **Semilla GCC o Clang.** El compilador sigue escrito en C. `construir.sh`
+- **Semilla GCC o Clang para el HOST.** El compilador sigue escrito en C. `construir.sh`
   acepta `--compilador gcc|clang`, conserva los avisos como errores y el
   endurecimiento; GCC añade `-fanalyzer`. Guarda version, banderas y huellas en
   `toolchain.txt` y `toolchain.json`. El codificador de CASM no usa el backend de
@@ -43,16 +50,19 @@ y aqui crecio: cada katana tiene su caso aislado y cada caso exige SU regla. Des
   de sus fuentes y ejecutable. `compilar.sh` ya no la reconstruye en cada uso.
   Si falta o cambia, necesita nuevamente una semilla externa. **Todavia no es
   autocompilacion:** el camino verificable esta en [AUTOCOMPILACION.md](AUTOCOMPILACION.md).
-- **x86-64 / metal64**, mas un adaptador opcional **Linux ELF** para el contrato
-  CASM 0.2, sin ensamblador ni enlazador externo. No es el ABI SysV general ni libc.
+- **Destino x86-64.** `metal64` es un perfil propio de emision; el adaptador
+  opcional **Linux ELF** es otro entorno de ejecucion de CASM 0.2, sin ensamblador
+  ni enlazador externo. No es el ABI SysV general ni libc, y no es el destino Ring 0.
 - **Sin dependencias externas:** C11 con la libc y Python 3 con su biblioteca estandar.
 - **Solo escribe en `build/CASM/`** (ignorado por git). No toca discos, entradas de
   arranque ni paquetes instalados.
 
 ## Uso
 
-Ejecutar desde una copia editable del proyecto dentro de Linux, por ejemplo en
-`~/Proyectos`; una copia montada en solo lectura no puede escribir `build/CASM`.
+Los comandos Linux de esta seccion usan Linux como HOST de construccion y prueba.
+No implican que BMO-X2 arranque Linux. Ejecutar desde una copia editable del
+proyecto, por ejemplo en `~/Proyectos`; una copia montada en solo lectura no
+puede escribir `build/CASM`.
 
 ```bash
 CASM/probar.sh                      # 108 casos (61 katanas) + paquete de oro (identico al .hex a mano)
