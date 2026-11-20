@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "evidence": "METAL: pre-EBS FAT32 boot log and post-EBS desktop photograph",
+  "run": "run-rmlui-media-61ebf6ff6e23",
+  "boot_file": "EFI/BMO-X2/NVIDIA.EFI",
+  "boot_file_sha256": "cd7cf341c01665c1785cb0b6da5a0332174fed521086846dd39726ab812c59cd",
+  "bootlog": "nvidia-pci-metal-20261120-amdvi-post-ebs.bootlog.txt",
+  "bootlog_sha256": "04c3dee1f6fe497afd2d89d6d0e90cda204e878040d2d7e10730c5b565d95f8d",
+  "post_ebs_photo_sha256": "b087331b0046647592af2a02cb36895fc73eccb9efb09176a1c3027402ef4d95",
+  "post_ebs_photo_values_transcribed": true,
+  "pre_ebs": {
+    "control": "0000220000000400",
+    "device_table": "0000000000000000",
+    "command_buffer_base": "08000001023F7000",
+    "event_log_base": "08000001023F9000",
+    "status": "0000000000000000"
+  },
+  "post_ebs": {
+    "control": "0000220000000400",
+    "device_table": "0000000000000000",
+    "command_buffer_base": "08000001023F7000",
+    "event_log_base": "08000001023F9000",
+    "status": "0000000000000000"
+  },
+  "amd_vi_bdf": "0000:00:00.2",
+  "amd_vi_mmio_base": "0xfd500000",
+  "snapshots_match": true,
+  "translation_enabled": false,
+  "command_buffer_enabled": false,
+  "event_log_enabled": false,
+  "device_table_programmed": false,
+  "command_ring_address": "0x00000001023f7000",
+  "event_ring_address": "0x00000001023f9000",
+  "mapped_queue_pages_verified": false,
+  "physical_dma_verified": false,
+  "gsp_booted": false,
+  "gpu_rendering_verified": false,
+  "display_backend": "cpu-gop"
+}

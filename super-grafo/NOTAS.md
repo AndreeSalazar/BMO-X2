@@ -1683,7 +1683,7 @@ Entrada: Tabla de sistema UEFI, RSDP, XSDT y una sola unidad IVHD del segmento P
 Salida: GPULOG.TXT con IVRS, BDF, base PCI, control, tabla, colas y estado AMD-Vi.
 Depende de: HOST / Inventario AMD-Vi (verificacion).
 Aceptacion: QEMU q35 coteja base PCI y registros con QMP y distingue IVRS ausente. METAL confirmo unidad 00:00.2, decode activo y cinco registros, con traduccion y colas desactivadas antes de ExitBootServices.
-Pendiente: Cotejar esta captura con la sonda post-EBS en METAL.
+Pendiente: Usar el inventario para preparar el dominio de la RTX.
 
 ## kernel/drivers/bus/amdvi/post_ebs_probe.inc
 
@@ -1693,8 +1693,8 @@ Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: Captura UEFI valida, capacidad PCI cotejada, mapa final UEFI y tablas propias CASM del escritorio nativo.
 Salida: Captura fija en contexto supervisor. INVOKE entrega seis escalares al pie del escritorio y a la serie de QEMU.
 Depende de: AMD-Vi / Inventario UEFI (codigo).
-Aceptacion: QEMU coteja registros antes y despues de EBS y los permisos de las dos paginas. Sin AMD-Vi, inicia el escritorio sin abrir la ventana MMIO.
-Pendiente: Cotejar en METAL. Despues acreditar dominio DMA con continuidad de USB y almacenamiento antes de arrancar GSP.
+Aceptacion: QEMU coteja registros y permisos de las dos paginas y arranca sin AMD-Vi. METAL cotejo los cinco registros en GPULOG y el escritorio Ring 0; la traduccion siguio desactivada.
+Pendiente: Acreditar dominio DMA con continuidad de USB y almacenamiento antes de arrancar GSP.
 
 ## CASM
 

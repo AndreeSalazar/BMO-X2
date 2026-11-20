@@ -54,14 +54,21 @@ MMIO propia y una prueba despues del traspaso.
 
 La captura MMIO en METAL confirma traduccion desactivada antes de
 ExitBootServices, con las bases de comandos y eventos programadas
-por encima de 4 GiB. Esas direcciones no se incorporan al asignador
-como propiedad del kernel a partir de esta lectura. El ensayo siguiente
-compara el estado despues del traspaso mediante dos paginas MMIO de
-solo lectura y con permisos de supervisor. La
+por encima de 4 GiB. La propiedad de esas paginas sigue por comprobar.
+El ensayo siguiente comparo el estado despues del traspaso mediante
+dos paginas MMIO de solo lectura y con permisos de supervisor. La
 [sonda post-EBS](amdvi/post_ebs_probe.inc) reutiliza la tabla temporal
 de xHCI antes de iniciar ese controlador. Revoca las dos entradas
 antes de entregar los valores capturados a Ring 3.
 [Registros en METAL](../../../Reports/nvidia-pci-metal-20261120-amdvi-registers.json).
+[Cotejo antes y despues](../../../Reports/nvidia-pci-metal-20261120-amdvi-post-ebs.json).
+
+La traduccion se habilita para la unidad AMD-Vi. Antes de cambiarla
+se requiere un inventario de solicitantes activos con mapeos validos
+o confirmacion de parada. El ensayo con EDU debe verificar que xHCI
+sigue entregando eventos mientras se concede y revoca la pagina de
+prueba. La comprobacion de almacenamiento fisico debe medir una
+transferencia despues de ExitBootServices con la traduccion activa.
 
 El puente del escritorio reserva cinco paginas contiguas de EfiLoaderData
 por debajo de 256 MiB y las entrega en los campos B8/C0 del contexto.

@@ -467,25 +467,30 @@ a cero antes del traspaso. El registro de tabla de dispositivos y
 el de estado tambien eran cero. El firmware habia programado bases
 de comandos (`0x1023F8000`) y eventos (`0x1023FA000`). La captura
 registra los valores de esos registros. La propiedad de las paginas
-apuntadas y el estado posterior al traspaso quedan por comprobar.
+apuntadas queda por comprobar.
 [Captura de registros en METAL](../Reports/nvidia-pci-metal-20261120-amdvi-registers.json).
+
+El siguiente arranque en METAL, con `run-rmlui-media-61ebf6ff6e23`,
+cotejo `GPULOG.TXT` con la foto del informe Ring 0. Los cinco
+registros coincidieron dentro de ese mismo arranque. El control siguio
+en `0000220000000400`, tabla y estado en cero, y las colas siguieron
+desactivadas con bases `0x1023F7000` y `0x1023F9000`. Esas bases
+difieren de las del arranque anterior.
+[Captura posterior al traspaso en METAL](../Reports/nvidia-pci-metal-20261120-amdvi-post-ebs.json).
 
 Siguientes pruebas y criterio de avance:
 
-1. Cotejar en METAL los valores del candidato con `--amdvi-post`.
-   Antes de inicializar xHCI, el escritorio solicita la lectura desde
-   Ring 0 despues de ExitBootServices. Ring 0 coteja de nuevo la base
-   PCI y el mapa UEFI final, verifica la entrada UC de PAT y mapea solo
-   las dos paginas de los cinco registros. Las paginas son supervisoras,
-   de solo lectura y NX. La sonda retira ambas y ejecuta `INVLPG`.
-   El pie del escritorio muestra la captura posterior. En QEMU consta
-   tambien en serie como `AMDVI_POST=`.
-2. Probar el dominio DMA fisico de la RTX y su funcion de audio
-   conservando la operacion de USB y almacenamiento. Acreditar acceso
-   concedido, rechazo fuera del rango y revocacion confirmada. Retener
-   las paginas si falla la invalidacion. Reservar tablas y colas propias
-   antes de configurar la traduccion. El log pre-EBS ya muestra dos
-   controladores xHCI con bus mastering habilitado.
+1. Extender la prueba QEMU a DMA concurrente del dispositivo de ensayo
+   y xHCI. Reservar tablas y colas propias y comprobar la lista de
+   solicitantes activos antes de habilitar la unidad. Cada solicitante
+   activo requiere mapeos conocidos o parada confirmada. El log
+   fisico pre-EBS ya muestra dos xHCI con bus mastering habilitado.
+2. Probar primero la tabla y las colas propias en METAL con la RTX y
+   su funcion de audio sin bus mastering. Verificar que USB sigue
+   operativo y, cuando el perfil disponga de acceso nativo al disco,
+   verificar una lectura con traduccion activa. Despues acreditar
+   acceso DMA concedido, rechazo fuera de rango y revocacion confirmada
+   en el dominio de la RTX. Retener los marcos si falla la invalidacion.
 3. Arrancar GSP `615.78.08` con los buffers autorizados y verificar
    una respuesta valida. Luego ejecutar una operacion sobre un buffer
    dedicado, comprobar su salida y demostrar dibujo 3D fuera de
@@ -496,6 +501,10 @@ La captura posterior usa los estados `01` (sin captura previa usable),
 `02` (mapeo, PAT o mapa de memoria rechazado), `03` (base PCI
 modificada), `04` (cinco registros leidos) y `05` (MMIO devolvio
 todo unos). INVOKE acepta solo los seis indices fijos del informe.
+Ring 0 coteja la base PCI y el mapa UEFI final, verifica el tipo UC
+de PAT y abre dos paginas supervisoras de solo lectura y NX. Retira
+ambas con `INVLPG` antes de inicializar xHCI. Los registros se muestran
+en el pie del escritorio y en la serie QEMU como `AMDVI_POST=`.
 [Paginacion y PAT de AMD64](https://docs.amd.com/v/u/en-US/24593_3.44_APM_Vol2).
 
 `run-rmlui-media-61ebf6ff6e23` paso tres arranques en QEMU.
