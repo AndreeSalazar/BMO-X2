@@ -7,7 +7,53 @@ import time
 from cpu_config import register
 from desktop_session_capture import verify_external_rejection
 
-def verify_dma_census(machine, command, memory, context, serial):
+def verify_storage_state(machine, pci_tree, memory, context, serial):
+    ahci, nvme = 0x010601, 0x010802
+    read = lambda address: int(machine.command('readl',address),16)
+    selector = int(machine.command('inl',0xcf8),16)
+    actual = {}
+    try:
+        for rid,entry in pci_tree.items():
+            kind = machine.pci(8,requester=rid)>>8
+            if kind not in (ahci,nvme):
+                continue
+            region, = (bar for bar in entry['regions'] if bar['bar']==(5 if kind==ahci else 0))
+            bar, length = region['address'],region['size']
+            command = machine.pci(4,word=True,requester=rid)
+            if not command&2:
+                raise ValueError(f'Storage decode disabled in QEMU for {rid:04X}')
+            a,b = (read(bar+4),read(bar+12)) if kind==ahci else (read(bar+0x14),read(bar+0x1c))
+            engines = pending = 0
+            if kind==ahci and a>>31:
+                for port in range(32):
+                    if b & 1<<port:
+                        offset=bar+0x100+port*0x80
+                        engines |= bool(read(offset+0x18)&0xc011)<<port
+                        pending |= bool(read(offset+0x34)|read(offset+0x38))<<port
+            actual[rid]=(kind,bar,length,machine.pci(0,requester=rid),command,2,a,b,engines,pending)
+    finally:
+        machine.command('outl',0xcf8,selector)
+    if sorted(row[0] for row in actual.values())!=[ahci,nvme]:
+        raise ValueError('QEMU must expose one AHCI and one NVMe controller')
+    stored,total=struct.unpack('<2I',memory(context+0xb50,8,'storage-state-count'))
+    if (stored,total)!=(2,2):
+        raise ValueError(f'Storage handoff count {stored}/{total}')
+    rows=list(struct.iter_unpack('<HHIQQIHHIIII',memory(context+0xf90,96,'storage-state-rows')))
+    observed={rid:tuple(tail) for rid,_,*tail in rows}
+    if observed!=actual:
+        raise ValueError(f'Storage handoff {observed} differs from QEMU {actual}')
+    lines=[line for line in serial.read_text(errors='replace').splitlines()
+           if line.startswith(('STORAGE_COUNT=','STORAGE_ROW='))]
+    expected=['STORAGE_COUNT=00000002 00000002']
+    expected += [f'STORAGE_ROW={rid:04X} {kind:06X} {pre:04X} {post:04X} {status} '
+                 f'{a:08X} {b:08X} {engines:08X} {pending:08X}'
+                 for rid,pre,kind,_,_,_,post,status,a,b,engines,pending in rows]
+    if lines!=expected:
+        raise ValueError('Ring 3 storage report differs from the kernel snapshot')
+    return dict(StorageStateVerified=True,StorageStateReport=lines)
+
+
+def verify_dma_census(machine, command, memory, context, serial, *, storage_state=False):
     def functions(devices):
         for entry in devices:
             yield (entry['bus'] << 8 | entry['slot'] << 3 | entry['function']), entry
@@ -39,8 +85,10 @@ def verify_dma_census(machine, command, memory, context, serial):
     expected_lines += [f'DMA_REQ={rid:04X} {ctrl:04X} {ids:08X} {kind:06X}' for rid, ctrl, ids, kind in rows]
     if rows != expected[:64] or lines != expected_lines:
         raise ValueError('PCI DMA inventory differs from PCI configuration or the Ring 3 report')
-    return dict(DmaCensusVerified=True, DmaCensusActive=total, DmaCensusXhci=f'{owner:04X}',
-                DmaCensusReport=lines)
+    proof=dict(DmaCensusVerified=True, DmaCensusActive=total, DmaCensusXhci=f'{owner:04X}', DmaCensusReport=lines)
+    if storage_state:
+        proof.update(verify_storage_state(machine,pci_tree,memory,context,serial))
+    return proof
 
 
 def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexist=None,dma_census=None):
@@ -96,7 +144,8 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
     if bool(symbols.get('dma_census')) != (dma_census is not None):
         raise ValueError('PCI DMA inventory profiles differ')
     if dma_census is not None:
-        amdvi_proof.update(verify_dma_census(dma_census,command,memory,context_address,serial))
+        amdvi_proof.update(verify_dma_census(dma_census,command,memory,context_address,serial,
+                                            storage_state=symbols.get('storage_state',False)))
     if symbols.get('amdvi_post'):
         base, _, _, status, control, table, cmd, events, hw_status, pte0, pte2 = struct.unpack(
             '<QII8Q', memory(context_address+0xb00,0x50,'amdvi-post'))
@@ -386,6 +435,17 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
                     toggle_panel('ON')
                     shot=Path(str(prefix)+'-dma-census.ppm')
                     command('screendump',{'filename':str(shot)})
+                    if symbols.get('storage_state'):
+                        _, previous=frame_counter()
+                        key('f3')
+                        def storage_open():
+                            phase, frames=frame_counter()
+                            return 'STORAGE_PANEL=ON' in serial.read_text(errors='replace') and phase==3 and frames>previous
+                        wait_input(storage_open, 'F3 did not present the storage handoff page', 75)
+                        storage_shot=Path(str(prefix)+'-storage-state.ppm')
+                        command('screendump',{'filename':str(storage_shot)})
+                        amdvi_proof.update(StoragePanelVerified=True,StorageScreenshot=storage_shot.name,
+                                           StorageScreenshotSHA256=hashlib.sha256(storage_shot.read_bytes()).hexdigest())
                     toggle_panel('OFF')
                     amdvi_proof.update(DmaCensusPanelVerified=True,DmaCensusScreenshot=shot.name,
                                        DmaCensusScreenshotSHA256=hashlib.sha256(shot.read_bytes()).hexdigest())

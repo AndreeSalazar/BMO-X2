@@ -1494,7 +1494,7 @@ Construye el perfil de escritorio FAT32 y las variantes xHCI de teclado/raton pa
 Estado: QEMU. Anillo: host. Lenguaje: Python / LLVM / CASM / C++ / Rust.
 Entrada: Runs ABI y gato CASM verificados, ELF/SBEF nativo con hashes y selector explicito de perfil USB.
 Salida: EFI e INICIO con SBEF desde FAT32; perfiles QEMU con reserva DMA supervisada, etapa xHCI y reportes.
-Depende de: Interfaz RmlUi y ULTRA-J nativa (codigo), Inspeccion acotada de FAT32 (codigo), Buses, recursos y DMA (codigo), Informes USB al escritorio nativo (codigo), Presentacion GOP por CPU (codigo), GPU / NVIDIA / Inventario PCI (codigo), AMD-Vi / Inventario UEFI (codigo), AMD-Vi / Captura Ring 0 (codigo), PCI / Inventario de solicitantes DMA (codigo), GPU / NVIDIA / Lectura MMIO (codigo).
+Depende de: Interfaz RmlUi y ULTRA-J nativa (codigo), Inspeccion acotada de FAT32 (codigo), Buses, recursos y DMA (codigo), Informes USB al escritorio nativo (codigo), Presentacion GOP por CPU (codigo), GPU / NVIDIA / Inventario PCI (codigo), AMD-Vi / Inventario UEFI (codigo), AMD-Vi / Captura Ring 0 (codigo), PCI / Inventario de solicitantes DMA (codigo), Almacenamiento / Estado posterior a UEFI (codigo), GPU / NVIDIA / Lectura MMIO (codigo).
 Aceptacion: FAT32: GOP 1280x800 y 1024x768, W+X rechazado, BOOTLOG/SBEF releidos. USB: teclado y raton en perfiles separados, W+X rechazado, limites de imagen comprobados y deploy.ps1 rechaza perfiles solo-QEMU.
 Pendiente: Arranque fisico del candidato y backend USB AMD completo; la supervision DMA no acredita IOMMU ni aislamiento de dispositivos hostiles.
 
@@ -1740,6 +1740,28 @@ Depende de: AMD-Vi / Captura Ring 0 (codigo), xHCI USB2 con dos dispositivos (co
 Aceptacion: QEMU coteja PCI con qtest, incluido un xHCI detras de un puente, con y sin AMD-Vi. En METAL F2 mostro los 15 BDF y el xHCI 2b:00.3. HOST cotejo su cobertura IVRS.
 Pendiente: Validar la transicion DMA con USB y almacenamiento fisicos.
 
+## kernel/drivers/storage/handoff_uefi.inc
+
+Registra los recursos MMIO de hasta dos controladores AHCI o NVMe del segmento PCI 0 mediante EFI PCI I/O.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: Dispositivos y BAR asignados por UEFI.
+Salida: Recuento, BDF, identidad, clase, PCI Command y limite del BAR en contexto supervisor.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: QEMU coteja BAR, clase y tamano con QMP para AHCI y NVMe.
+Pendiente: Cotejar esos recursos en el equipo fisico.
+
+## kernel/drivers/storage/handoff_post.inc
+
+Coteja el BAR con PCI y el mapa final. Lee el estado de AHCI y NVMe y revoca la ventana temporal antes de xHCI.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: Recursos validados por UEFI, contexto supervisor y copia final del mapa de memoria.
+Salida: Estado de motores y comandos AHCI, CC y CSTS de NVMe. F3 publica la captura en RmlUi.
+Depende de: Almacenamiento / Recursos UEFI AHCI y NVMe (codigo), PCI / Inventario de solicitantes DMA (codigo).
+Aceptacion: QEMU coteja los registros y mascaras con qtest y verifica la pagina F3 con USB en servicio.
+Pendiente: Medir el estado en METAL y construir el traspaso nativo de los controladores.
+
 ## tools/boot/amdvi_ahci.py
 
 Comprueba READ DMA EXT desde AHCI emulado en un dominio AMD-Vi separado, junto con xHCI y EDU.
@@ -1773,4 +1795,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-159 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+161 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

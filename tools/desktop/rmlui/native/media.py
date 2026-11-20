@@ -39,6 +39,7 @@ def main():
     p.add_argument('--amdvi-storage', action='store_true', help='Read a virtual AHCI disk in a third guest-managed domain')
     p.add_argument('--amdvi-routed', action='store_true', help='Exercise a high PCI requester ID behind a PCIe root port')
     p.add_argument('--dma-census', action='store_true', help='Capture PCI bus masters after USB startup')
+    p.add_argument('--storage-state', action='store_true', help='Observe AHCI and NVMe state immediately after UEFI handoff')
     args=p.parse_args()
     if args.usb_empty_ports and args.usb!='both':p.error('--usb-empty-ports requires --usb both')
     if args.amdvi_probe and not args.nvidia_probe:p.error('--amdvi-probe requires --nvidia-probe')
@@ -50,6 +51,7 @@ def main():
     if args.amdvi_routed and not args.amdvi_storage:p.error('--amdvi-routed requires --amdvi-storage')
     if args.dma_census and (not args.amdvi_post or args.amdvi_coexist):
         p.error('--dma-census requires --amdvi-post and its own context stage')
+    if args.storage_state and not args.dma_census:p.error('--storage-state requires --dma-census')
     abi,splash=args.abi_run.resolve(),args.splash_run.resolve()
     for path in (abi,splash):
         if path.parent!=ROOT/'build/CASM':raise ValueError('Run outside build/CASM')
@@ -59,6 +61,7 @@ def main():
     variant='desktop-usb-'+args.usb if args.usb else 'desktop'
     if args.amdvi_post:variant+='-amdvi-post'
     if args.dma_census:variant+='-dma-census'
+    if args.storage_state:variant+='-storage-state'
     app=OUT/(variant + ('-msvc' if args.msvc_panel else ''))
     hashes=json.loads((app/'artifacts.json').read_text())
     for name,digest in hashes.items():
@@ -73,6 +76,8 @@ def main():
         (run/'amdvi-post-probe.txt').write_text('post-ebs-read-only\n', encoding='ascii')
     if args.dma_census:
         (run/'dma-census-probe.txt').write_text('pci-segment0-bme\n', encoding='ascii')
+    if args.storage_state:
+        (run/'storage-state.txt').write_text('post-ebs-read-only\n', encoding='ascii')
     if args.amdvi_coexist:
         (run/'amdvi-coexist-probe.txt').write_text('qemu-only-edu-xhci\n', encoding='ascii')
     if args.amdvi_guest_dma:
@@ -133,6 +138,7 @@ def main():
         flags=['-DBMO_AMDVI_POST'] if args.amdvi_post else []
         if args.amdvi_coexist:flags+=['-DBMO_AMDVI_COEXIST']
         if args.dma_census:flags+=['-DBMO_DMA_CENSUS']
+        if args.storage_state:flags+=['-DBMO_STORAGE_STATE']
         if args.amdvi_guest_dma:flags+=['-DBMO_AMDVI_GUEST_DMA']
         if args.amdvi_storage:flags+=['-DBMO_AMDVI_STORAGE']
         if args.amdvi_routed:flags+=['-DBMO_AMDVI_ROUTED']
@@ -175,6 +181,9 @@ def main():
     if args.dma_census and (not all(report['Cases'][i].get('DmaCensusVerified') for i in (0,2)) or
                             not report['Cases'][0].get('DmaCensusPanelVerified')):
         raise ValueError('Missing PCI DMA inventory or its Ring 3 panel evidence')
+    if args.storage_state and (not all(report['Cases'][i].get('StorageStateVerified') for i in (0,2)) or
+                               not report['Cases'][0].get('StoragePanelVerified')):
+        raise ValueError('Missing storage state or its Ring 3 panel evidence')
     if args.amdvi_coexist and not report['Cases'][0].get('AmdViCoexistVerified'):
         raise ValueError('Missing simultaneous EDU and USB evidence')
     if args.amdvi_guest_dma and report['Cases'][0].get('DmaIssuer')!='Ring 0 guest':
@@ -200,6 +209,7 @@ def main():
         nvidia_pci_probe=args.nvidia_probe, amdvi_efi_probe=args.amdvi_probe, amdvi_mmio_probe=args.amdvi_probe,
         amdvi_post_probe=args.amdvi_post,
         dma_census=args.dma_census,
+        storage_state=args.storage_state,
         amdvi_coexist=args.amdvi_coexist,
         amdvi_guest_dma=args.amdvi_guest_dma,
         amdvi_storage=args.amdvi_storage,

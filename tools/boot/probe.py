@@ -59,6 +59,7 @@ amdvi_coexist = amdvi_post and (ROOT / 'amdvi-coexist-probe.txt').is_file()
 amdvi_storage = amdvi_coexist and (ROOT / 'amdvi-storage.txt').is_file()
 amdvi_routed = amdvi_storage and (ROOT / 'amdvi-routed.txt').is_file()
 dma_census = amdvi_post and (ROOT / 'dma-census-probe.txt').is_file()
+storage_state = dma_census and (ROOT / 'storage-state.txt').is_file()
 desktop_cases = ['normal', 'external-permissions']
 if args.doom_fixture and (not args.abi_probe or args.casos not in
                           (['normal'], desktop_cases, desktop_cases + (['amdvi-missing'] if amdvi_post else []))):
@@ -208,6 +209,7 @@ def run(case):
     storage = amdvi_storage and coexist
     routed = amdvi_routed and storage
     census = dma_census and case in ('normal','amdvi-missing')
+    storage_handoff = storage_state and census
     payload_case = case in ('normal', 'contexto', *MUTATIONS)
     disk_case = 'normal' if (case == 'amdvi-missing' or
                              (case == 'external-permissions' and not (args.doom_fixture and (desktop_media or native_media)))) else case
@@ -273,6 +275,11 @@ def run(case):
         staging += ['-drive', f'if=none,id=bmo-dma-sata,format=raw,file={sata_image},snapshot=on',
                     '-device', 'ich9-ahci,id=bmo-dma-ahci,addr=06.0',
                     '-device', 'ide-hd,drive=bmo-dma-sata,bus=bmo-dma-ahci.0']
+    if storage_handoff:
+        nvme = ROOT/'storage-state-nvme.raw'
+        nvme.write_bytes(bytes(1024*1024))
+        staging += ['-drive', f'if=none,id=bmo-nvme-state,format=raw,file={nvme},snapshot=on',
+                    '-device', 'nvme,drive=bmo-nvme-state,serial=BMO-STATE,addr=07.0']
     if coexist or census:
         listener = socket.socket()
         listener.bind(('127.0.0.1', 0))
@@ -598,6 +605,8 @@ def run(case):
         assert hashlib.sha256(image.read_bytes()).hexdigest() == before, 'La imagen base fue modificada'
         if storage and sata_image.read_bytes()!=DISK:
             raise ValueError('La imagen SATA del laboratorio cambio')
+        if storage_handoff and nvme.read_bytes()!=bytes(1024*1024):
+            raise ValueError('La imagen NVMe del laboratorio cambio')
 
 
 for case in args.casos:

@@ -2722,6 +2722,42 @@
       "falta": "Validar la transicion DMA con USB y almacenamiento fisicos."
     },
     {
+      "id": "storage-state-uefi",
+      "titulo": "Almacenamiento / Recursos UEFI AHCI y NVMe",
+      "ruta": "kernel/drivers/storage/handoff_uefi.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [
+        12000,
+        4050
+      ],
+      "que": "Registra los recursos MMIO de hasta dos controladores AHCI o NVMe del segmento PCI 0 mediante EFI PCI I/O.",
+      "entrada": "Dispositivos y BAR asignados por UEFI.",
+      "salida": "Recuento, BDF, identidad, clase, PCI Command y limite del BAR en contexto supervisor.",
+      "aceptacion": "QEMU coteja BAR, clase y tamano con QMP para AHCI y NVMe.",
+      "falta": "Cotejar esos recursos en el equipo fisico."
+    },
+    {
+      "id": "storage-state-post",
+      "titulo": "Almacenamiento / Estado posterior a UEFI",
+      "ruta": "kernel/drivers/storage/handoff_post.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [
+        12300,
+        4050
+      ],
+      "que": "Coteja el BAR con PCI y el mapa final. Lee el estado de AHCI y NVMe y revoca la ventana temporal antes de xHCI.",
+      "entrada": "Recursos validados por UEFI, contexto supervisor y copia final del mapa de memoria.",
+      "salida": "Estado de motores y comandos AHCI, CC y CSTS de NVMe. F3 publica la captura en RmlUi.",
+      "aceptacion": "QEMU coteja los registros y mascaras con qtest y verifica la pagina F3 con USB en servicio.",
+      "falta": "Medir el estado en METAL y construir el traspaso nativo de los controladores."
+    },
+    {
       "id": "amdvi-ahci-qemu",
       "titulo": "AMD-Vi / Lectura SATA traducida en QEMU",
       "ruta": "tools/boot/amdvi_ahci.py",
@@ -4078,6 +4114,21 @@
     {
       "de": "rmlui-fat32-media",
       "a": "dma-pci-census",
+      "clase": "codigo"
+    },
+    {
+      "de": "storage-state-post",
+      "a": "storage-state-uefi",
+      "clase": "codigo"
+    },
+    {
+      "de": "storage-state-post",
+      "a": "dma-pci-census",
+      "clase": "codigo"
+    },
+    {
+      "de": "rmlui-fat32-media",
+      "a": "storage-state-post",
       "clase": "codigo"
     },
     {

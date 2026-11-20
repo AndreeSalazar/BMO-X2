@@ -146,6 +146,9 @@ amdvi_post_begin:
     invlpg 0x2000(%rdi)
 .Lpost_done:
     mov %rbx, AMDVI_POST_STATUS(%rbp)
+#ifdef BMO_STORAGE_STATE
+    call storage_snapshot
+#endif
     pop %rbx
     ret
 
@@ -157,5 +160,8 @@ amdvi_post_begin:
 #endif
 #ifdef BMO_DMA_CENSUS
 #include "dma_census.inc"
+#endif
+#ifdef BMO_STORAGE_STATE
+#include "../../storage/handoff_post.inc"
 #endif
 amdvi_post_end:

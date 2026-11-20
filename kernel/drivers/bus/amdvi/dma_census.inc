@@ -1,6 +1,10 @@
 # Read PCI Command in segment 0 after xHCI startup. R10 selects one
 # bounded scalar. The snapshot writes only its reserved context range.
 dma_census:
+#ifdef BMO_STORAGE_STATE
+    cmp $STORAGE_SELECTOR_BASE, %r10
+    jae .Lstorage_result
+#endif
     cmp $DMA_CENSUS_MAX*2, %r10
     ja .Lcensus_denied
     cmpb $0, DMA_CENSUS_READY(%rbp)
@@ -74,6 +78,20 @@ dma_census:
 .Lcensus_denied:
     mov $257, %eax
     ret
+#ifdef BMO_STORAGE_STATE
+.Lstorage_result:
+    sub $STORAGE_SELECTOR_BASE, %r10
+    mov STORAGE_HEADER(%rbp), %rax
+    test %r10, %r10
+    jz .Lcensus_done
+    cmp $(STORAGE_LIMIT*STORAGE_ROW_BYTES/8), %r10
+    ja .Lcensus_denied
+    imul $(STORAGE_ROW_BYTES/8), %eax, %ecx
+    cmp %ecx, %r10d
+    ja .Lcensus_denied
+    mov (STORAGE_ROWS-8)(%rbp,%r10,8), %rax
+    ret
+#endif
 .Lcensus_read_pci:
     out %eax, %dx
     add $4, %dx

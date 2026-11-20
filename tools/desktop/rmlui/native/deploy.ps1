@@ -23,6 +23,7 @@ if ($gpuRun -ne [bool]$NvidiaProbe -or $gpuRun -ne [bool]$proof.nvidia_pci_probe
 $amdviRun=Test-Path -LiteralPath (Join-Path $runPath 'amdvi-efi-probe.txt') -PathType Leaf
 $amdviPost=Test-Path -LiteralPath (Join-Path $runPath 'amdvi-post-probe.txt') -PathType Leaf
 $dmaCensus=Test-Path -LiteralPath (Join-Path $runPath 'dma-census-probe.txt') -PathType Leaf
+$storageState=Test-Path -LiteralPath (Join-Path $runPath 'storage-state.txt') -PathType Leaf
 if ($amdviRun -ne [bool]$proof.amdvi_efi_probe -or ($amdviRun -and -not $gpuRun)) {
     throw 'La sonda AMD-Vi requiere el perfil NVIDIA y su manifiesto.'
 }
@@ -31,6 +32,9 @@ if ($amdviPost -ne [bool]$proof.amdvi_post_probe -or ($amdviPost -and -not $amdv
 }
 if ($dmaCensus -ne [bool]$proof.dma_census -or ($dmaCensus -and -not $amdviPost)) {
     throw 'El inventario DMA requiere el perfil post-EBS y su manifiesto.'
+}
+if ($storageState -ne [bool]$proof.storage_state -or ($storageState -and -not $dmaCensus)) {
+    throw 'El informe de almacenamiento requiere el inventario DMA y su manifiesto.'
 }
 if ($amdviPost) {
     $missing=$proof.Cases | Where-Object { $_.Case -eq 'amdvi-missing' } | Select-Object -First 1
@@ -41,6 +45,10 @@ if ($amdviPost) {
     if ($dmaCensus -and (-not $normal.DmaCensusVerified -or -not $missing.DmaCensusVerified -or
         -not $normal.DmaCensusPanelVerified)) {
         throw 'Falta comprobar el inventario DMA PCI y su panel de Ring 3.'
+    }
+    if ($storageState -and (-not $normal.StorageStateVerified -or -not $missing.StorageStateVerified -or
+        -not $normal.StoragePanelVerified)) {
+        throw 'Falta comprobar el estado AHCI/NVMe posterior al traspaso y el panel F3.'
     }
 }
 if ($amdviRun) {
@@ -141,6 +149,7 @@ $record=[ordered]@{Schema=1;Evidence='HOST copy after QEMU FAT32 boot';Run=$proo
     AmdViMmioProbe=[bool]$proof.amdvi_mmio_probe;
     AmdViPostProbe=$amdviPost;
     DmaCensus=$dmaCensus;
+    StorageState=$storageState;
     BootFile=('\'+$bootFile.Replace('/','\'));ReportFile=('\'+$dataFolder.Replace('/','\')+'\'+$reportName);
     Note='USB HID fisico sigue pendiente; no cambia NVRAM ni archivos ajenos al candidato.'}
 $json=$record | ConvertTo-Json -Depth 8

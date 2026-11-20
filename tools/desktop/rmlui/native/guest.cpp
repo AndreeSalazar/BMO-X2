@@ -42,7 +42,52 @@ namespace BmoUi {[[noreturn]] void native_failure(const char* s) {bmo_native_fai
 static void log(const char* s) {while(*s)doom_invoke(5,7,(unsigned char)*s++,0);}
 #ifdef BMO_DMA_CENSUS
 static void check(bool ok,const char* error);
-static unsigned read_dma_inventory(Rml::String (&pages)[4]) {
+#ifdef BMO_STORAGE_STATE
+static void read_storage_state(Rml::String& page) {
+    constexpr unsigned system=26, start=256;
+    const auto header=doom_invoke(3,3,system,start);
+    const unsigned stored=header,total=header>>32;
+    check(stored<=2 && stored<=total,"storage snapshot bounds");
+    check(doom_invoke(3,3,system,start+stored*6+1)==257,"storage snapshot rejection");
+    char line[200];
+    snprintf(line,sizeof(line),"STORAGE_COUNT=%08X %08X\n",stored,total);
+    log(line);
+    page="<h2>Almacenamiento al salir de UEFI</h2><p>F2 cerrar / F3 volver al inventario PCI</p>";
+    if(total==~0u)page+="<p>Inventario UEFI no disponible.</p>";
+    else {
+        snprintf(line,sizeof(line),"<p>Controladores AHCI y NVMe registrados %u de %u.</p>",stored,total);
+        page+=line;
+    }
+    for(unsigned i=0;i<stored;++i) {
+        uint64_t word[6];
+        for(unsigned j=0;j<6;++j)word[j]=doom_invoke(3,3,system,start+1+i*6+j);
+        const unsigned bdf=word[0]&0xffff, before=(word[0]>>16)&0xffff, kind=word[0]>>32;
+        const unsigned after=(word[3]>>32)&0xffff, status=word[3]>>48;
+        const unsigned a=word[4], b=word[4]>>32, engines=word[5], pending=word[5]>>32;
+        snprintf(line,sizeof(line),"STORAGE_ROW=%04X %06X %04X %04X %u %08X %08X %08X %08X\n",
+                 bdf,kind,before,after,status,a,b,engines,pending);
+        log(line);
+        const bool ahci=kind==0x010601;
+        snprintf(line,sizeof(line),"<p><strong>%s %02X:%02X.%u</strong> &nbsp; PCI antes %04X / despues %04X</p>",
+                 ahci?"SATA AHCI":"NVMe",bdf>>8,(bdf>>3)&31,bdf&7,before,after);
+        page+=line;
+        if(status!=2) {
+            page+=status==1?"<p>BAR UEFI identificado. Estado MMIO sin confirmar.</p>":"<p>BAR UEFI no validado.</p>";
+            continue;
+        }
+        if(ahci) {
+            snprintf(line,sizeof(line),"<p>GHC %08X / PI %08X</p><p>Motores %08X / Comandos pendientes %08X</p>",
+                     a,b,engines,pending);
+        } else {
+            snprintf(line,sizeof(line),"<p>CC %08X / CSTS %08X &nbsp; EN %u / RDY %u / CFS %u</p>",
+                     a,b,a&1,b&1,(b>>1)&1);
+        }
+        page+=line;
+    }
+    page+="<p>Lectura de registros. La traduccion DMA y los discos conservan su estado.</p>";
+}
+#endif
+static unsigned read_dma_inventory(Rml::String* pages) {
     constexpr unsigned selector=26;
     constexpr unsigned per_page=16;
     const auto header=doom_invoke(3,3,selector,0);
@@ -52,8 +97,12 @@ static unsigned read_dma_inventory(Rml::String (&pages)[4]) {
     char line[144];
     snprintf(line,sizeof(line),"DMA_CENSUS=%08X %04X %04X\n",total,xhci,stored);
     log(line);
-    const unsigned page_count=std::max(1u,(stored+per_page-1)/per_page);
-    for(unsigned i=0;i<page_count;++i) {
+    const unsigned pci_pages=std::max(1u,(stored+per_page-1)/per_page);
+    unsigned page_count=pci_pages;
+#ifdef BMO_STORAGE_STATE
+    read_storage_state(pages[page_count++]);
+#endif
+    for(unsigned i=0;i<pci_pages;++i) {
         snprintf(line,sizeof(line),"<h2>DMA habilitado en PCI</h2><p>Funciones %u de %u / xHCI %04X / Pagina %u de %u</p>",
                  stored,total,xhci,i+1,page_count);
         pages[i]=line;
@@ -298,7 +347,11 @@ extern "C" void bmo_main() {
 #ifdef BMO_DMA_CENSUS
     auto* dma_panel=doc->GetElementById("dma-census");
     check(dma_panel,"PCI DMA panel");
+#ifdef BMO_STORAGE_STATE
+    Rml::String dma_pages[5];
+#else
     Rml::String dma_pages[4];
+#endif
     const auto dma_page_count=read_dma_inventory(dma_pages);
     unsigned dma_page=0;
     bool dma_panel_open=false;
@@ -440,6 +493,9 @@ extern "C" void bmo_main() {
                 if(scan==0x3d && dma_panel_open && dma_page_count>1) {
                     dma_page=(dma_page+1)%dma_page_count;
                     dma_panel->SetInnerRML(dma_pages[dma_page]);
+#ifdef BMO_STORAGE_STATE
+                    if(dma_page+1==dma_page_count)log("STORAGE_PANEL=ON\n");
+#endif
                     dirty=true;
                     continue;
                 }

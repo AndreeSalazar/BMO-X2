@@ -567,6 +567,34 @@ En el arranque fotografiado, la RTX seguia con comando PCI
 `0003`, con BME apagado.
 [Inventario METAL y cotejo IVRS en HOST](../Reports/dma-pci-census-metal-20261120.json).
 
+El candidato `--storage-state` agrega una pagina de almacenamiento
+al inventario. UEFI registra hasta dos controladores AHCI/NVMe del
+segmento 0 con el recurso informado por EFI PCI I/O. Ring 0 vuelve
+a cotejar identidad, comando y BAR despues de `ExitBootServices`,
+antes de iniciar xHCI. Solo abre una ventana temporal UC, de
+supervisor, lectura y NX, si el recurso coincide y sus paginas
+quedan fuera de RAM en el mapa final. La ventana se revoca al
+terminar. Un recuento incompleto o un estado MMIO sin confirmar
+requiere otra comprobacion antes de transferir el controlador.
+
+Desde **BMO-X2 (con NVIDIA)**, pulsar **F2** y **F3** hasta ver
+**Almacenamiento al salir de UEFI**. Fotografiar ambas filas.
+Para SATA, `Motores` es una mascara de puertos con ST, FRE, CR
+o FR y `Comandos pendientes` recoge los que tienen PxCI o PxSACT.
+Para NVMe se muestran CC, CSTS, EN, RDY y CFS. Un motor habilitado
+puede estar ocioso entre comandos. Capturar estos registros
+determina que transicion necesita cada controlador antes de
+activar AMD-Vi. El candidato no inicia comandos ni cambia registros
+de AHCI/NVMe o la traduccion DMA. `GPULOG.TXT` sigue mostrando los
+datos pre-EBS. La captura posterior se lee en pantalla y en serie.
+El candidato `run-rmlui-media-028165bacf7a` paso los tres casos
+de QEMU y se verifico en FAT32 `A:`. Se guardaron las versiones
+previas de NVIDIA.EFI y DESKTOP.SBF. INICIO.X86 coincide byte a
+byte con el candidato anterior.
+[Prueba AHCI/NVMe y panel F3 en QEMU](../Reports/storage-state-qemu-20261120.json).
+[Especificacion AHCI](https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/serial-ata-ahci-spec-rev1-3-1.pdf).
+[Especificacion NVMe](https://nvmexpress.org/specification/nvm-express-base-specification/).
+
 El perfil QEMU `--amdvi-storage` agrega un AHCI virtual en un
 tercer dominio. Ring 0 instala su tabla de traduccion. HOST
 envia `READ DMA EXT` contra un disco de prueba, coteja 512 B
@@ -694,6 +722,8 @@ python .\tools\desktop\rmlui\native\media.py <ABI_RUN> <GATO_COMPACTO_RUN> --usb
 
 Para el candidato con inventario PCI, agregar `--dma-census` a las dos
 ordenes del perfil `--amdvi-post`.
+Para agregar la lectura AHCI/NVMe, pasar ademas `--storage-state` a
+las dos ordenes.
 
 `native/deploy.ps1 -Run <RUN> -Volume A:\ -NvidiaProbe -Check` comprueba
 el candidato para METAL. Agrega `-ExperimentalUsb` para el run USB dual.

@@ -30,6 +30,17 @@ amdvi_firmware_probe:
     mov %r9, (%rsp)
     mov 0x60(%rcx), %rax
     mov %rax, 8(%rsp)
+#ifdef BMO_STORAGE_STATE
+    push %rcx
+    push %rdx
+    push %r8
+    push %r9
+    call storage_discover
+    pop %r9
+    pop %r8
+    pop %rdx
+    pop %rcx
+#endif
 #ifdef BMO_AMDVI_COEXIST
     # Only the virtual coexistence profile reserves Host test memory.
     push %rcx
@@ -408,6 +419,10 @@ amdvi_uefi_snapshot:
 .p2align 3
 .Lcpu_io2_guid:
     .quad 0x4c0eae5fad61f191, 0x4fc688d269e8fab9
+
+#ifdef BMO_STORAGE_STATE
+#include "../../storage/handoff_uefi.inc"
+#endif
 
 #ifdef BMO_AMDVI_POST
 #include "post_ebs_probe.inc"
