@@ -32,6 +32,7 @@ def main():
     p.add_argument('--usb',choices=['keyboard','mouse','both'],help='Mediated xHCI profile; both uses the dynamic USB2 root transport')
     p.add_argument('--usb-empty-ports',action='store_true',help='QEMU rejection test; never a metal candidate')
     p.add_argument('--nvidia-probe', action='store_true', help='Read PCI display inventory before ExitBootServices')
+    p.add_argument('--nvidia-gsp-sample', action='store_true', help='Read the GA106 GSP and SEC2 boot state')
     p.add_argument('--amdvi-probe', action='store_true', help='Add read-only AMD-Vi firmware inventory to the NVIDIA profile')
     p.add_argument('--amdvi-post', action='store_true', help='Take a second AMD-Vi snapshot after ExitBootServices')
     p.add_argument('--amdvi-coexist', action='store_true', help='Exercise virtual EDU and USB DMA together in QEMU')
@@ -48,6 +49,8 @@ def main():
     args=p.parse_args()
     if args.usb_empty_ports and args.usb!='both':p.error('--usb-empty-ports requires --usb both')
     if args.amdvi_probe and not args.nvidia_probe:p.error('--amdvi-probe requires --nvidia-probe')
+    if args.nvidia_gsp_sample and (not args.nvidia_probe or not args.full_hd):
+        p.error('--nvidia-gsp-sample requires the NVIDIA Full HD profile')
     if args.amdvi_post and (not args.amdvi_probe or args.usb!='both' or args.msvc_panel or args.usb_empty_ports):
         p.error('--amdvi-post requires the NVIDIA AMD-Vi profile with USB both')
     if args.amdvi_coexist and not args.amdvi_post:p.error('--amdvi-coexist requires --amdvi-post')
@@ -86,6 +89,8 @@ def main():
     (run/'gop-regions.txt').write_text('cpu-gop\n',encoding='ascii')
     if args.nvidia_probe:
         (run/'nvidia-pci-probe.txt').write_text('pci-read-only\n', encoding='ascii')
+    if args.nvidia_gsp_sample:
+        (run/'nvidia-gsp-sample.txt').write_text('ga106-gsp-read-only\n', encoding='ascii')
     if args.amdvi_probe:
         (run/'amdvi-efi-probe.txt').write_text('firmware-read-only\n', encoding='ascii')
     if args.amdvi_post:
@@ -124,6 +129,7 @@ def main():
         flags=['-DRMLUI_USB','-DDESKTOP_MEDIA','-DXHCI_COMMAND_PROBE'] if args.usb else []
         if args.usb=='both':flags+=['-DXHCI_NATIVE_DUAL']
         if args.nvidia_probe and name == 'reader':flags+=['-DBMO_NVIDIA_PCI_PROBE']
+        if args.nvidia_gsp_sample and name == 'reader':flags+=['-DBMO_NVIDIA_GSP_SAMPLE']
         if args.amdvi_probe and name == 'reader':flags+=[f'-DBMO_AMDVI_EFI_OFFSET={amdvi_offset}']
         if args.amdvi_post and name in ('reader','gate'):flags+=['-DBMO_AMDVI_POST']
         if args.dma_census and name=='gate':flags+=['-DBMO_DMA_CENSUS']
@@ -211,6 +217,8 @@ def main():
     if args.nvidia_probe and (not report['Cases'][0].get('GpuBar0UefiBytes') or
                              not report['Cases'][0].get('GpuNvidiaMmioSkipped')):
         raise ValueError('Missing UEFI BAR0 bounds or device guard evidence')
+    if args.nvidia_gsp_sample and not all(case.get('GpuGspSampleSkipped') for case in report['Cases']):
+        raise ValueError('Missing GSP sampling exclusion evidence')
     if args.amdvi_probe and not all(case.get('AmdViMmioVerified') for case in report['Cases']):
         raise ValueError('Missing AMD-Vi MMIO evidence')
     if args.amdvi_post and not all(report['Cases'][i].get('AmdViPostVerified') for i in (0,2)):
@@ -260,6 +268,7 @@ def main():
     report.update(run=run.name,evidence='QEMU',disk_sbef=True,physical_boot=False,physical_usb_proven=False,
         display_backend='cpu-gop',
         nvidia_pci_probe=args.nvidia_probe, amdvi_efi_probe=args.amdvi_probe, amdvi_mmio_probe=args.amdvi_probe,
+        nvidia_gsp_sample=args.nvidia_gsp_sample,
         amdvi_post_probe=args.amdvi_post,
         dma_census=args.dma_census,
         storage_state=args.storage_state,

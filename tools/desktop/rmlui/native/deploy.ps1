@@ -32,6 +32,11 @@ $dmaCensus=Test-Path -LiteralPath (Join-Path $runPath 'dma-census-probe.txt') -P
 $storageState=Test-Path -LiteralPath (Join-Path $runPath 'storage-state.txt') -PathType Leaf
 $fullHd=Test-Path -LiteralPath (Join-Path $runPath 'full-hd.txt') -PathType Leaf
 $fullHdNative=$fullHd -and (Get-Content -LiteralPath (Join-Path $runPath 'full-hd.txt') -Raw).Trim() -eq 'cpu-gop-native-1920x1080'
+$gspSample=Test-Path -LiteralPath (Join-Path $runPath 'nvidia-gsp-sample.txt') -PathType Leaf
+if ($gspSample -ne [bool]$proof.nvidia_gsp_sample -or ($gspSample -and
+    (-not $gpuRun -or -not $fullHdNative -or @($proof.Cases | Where-Object { -not $_.GpuGspSampleSkipped }).Count))) {
+    throw 'La muestra GSP requiere el perfil NVIDIA Full HD y las exclusiones verificadas en QEMU.'
+}
 if ($amdviRun -ne [bool]$proof.amdvi_efi_probe -or ($amdviRun -and -not $gpuRun)) {
     throw 'La sonda AMD-Vi requiere el perfil NVIDIA y su manifiesto.'
 }
@@ -170,6 +175,7 @@ $record=[ordered]@{Schema=1;Evidence='HOST copy after QEMU FAT32 boot';Run=$proo
     StorageState=$storageState;
     FullHd=$fullHd;
     FullHdNative=$fullHdNative;
+    NvidiaGspSample=$gspSample;
     BootFile=('\'+$bootFile.Replace('/','\'));ReportFile=('\'+$dataFolder.Replace('/','\')+'\'+$reportName);
     Note='USB HID fisico sigue pendiente; no cambia NVRAM ni archivos ajenos al candidato.'}
 $json=$record | ConvertTo-Json -Depth 8

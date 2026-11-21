@@ -152,7 +152,12 @@ nvidia_mmio_probe:
     cmp $0x176, %eax   # GA106, excluding zero and PCI/PRIV error patterns.
     jne .Lmmio_finish
     mov $8, %ebx
+#ifdef BMO_NVIDIA_GSP_SAMPLE
+    # Reuse the PCI I/O handle and preserve the current stack frame.
+    jmp .Lgsp_sample
+#else
     jmp .Lmmio_finish
+#endif
 .Lmmio_other_gpu:
     mov $3, %ebx       # BAR validated, register access reserved for 10DE:2504.
 .Lmmio_finish:
@@ -175,6 +180,10 @@ nvidia_mmio_probe:
     pop %rbx
     ret
 
+#ifdef BMO_NVIDIA_GSP_SAMPLE
+#include "gsp_sample.inc"
+#endif
+
     .p2align 2
 .Lpci_io_guid:
     .long 0x4cf5b200
@@ -189,4 +198,9 @@ report_mmio_status:
     .ascii "00000000\r\nGPU_PMC_BOOT0="
 report_pmc_boot0:
     .ascii "--------\r\n"
+#ifdef BMO_NVIDIA_GSP_SAMPLE
+    .ascii "GSP1="
+report_gsp_sample:
+    .ascii "--------,--------,--------\r\n"
+#endif
     .endm

@@ -321,6 +321,27 @@ acredita la lectura MMIO. El escritorio sigue usando CPU + GOP.
 [Informe MMIO de METAL](../Reports/nvidia-pci-metal-20261120-mmio.json).
 [Identidad registrada por BMO-X](https://github.com/AndreeSalazar/BMO-X-x86-64/blob/6076bdefefc67877419ca53633c6e40cb45fc92d/platform/drivers/gpu/ga10x/ANATOMIA.md#L28).
 
+El perfil `--nvidia-gsp-sample` agrega una captura previa al inicio
+en `A:\BMO-X2\GPU\GPULOG.TXT`. La linea `GSP1` contiene, en orden, el
+control RISC-V del GSP (`111388`), el buzon 0 del GSP (`110040`) y el
+buzon 0 de SEC2 (`840040`). Son desplazamientos hexadecimales de BAR0.
+La sonda exige la identidad GA106, los tres registros dentro de BAR0
+y PCI Command estable con BME apagado. Publica las tres palabras juntas
+o conserva los guiones. Los patrones de acceso denegado son valores
+crudos del dispositivo y se conservan para diagnostico.
+
+La lectura ocurre antes de ExitBootServices. Registra el estado heredado
+de los motores, sin enviarles una orden de arranque. El ensayo HOST
+ejecuta la sonda con un protocolo EFI simulado. Los tres casos QEMU
+verifican que su VGA omite la lectura y que el arranque sigue su curso.
+El candidato `run-rmlui-media-480776a07a14` reemplazo solo
+`A:\EFI\BMO-X2\NVIDIA.EFI` y dejo un respaldo verificado. Elegir la
+entrada **BMO-X2 (con NVIDIA)** para producir la primera captura de METAL.
+[Prueba y despliegue](../Reports/nvidia-gsp-boot-sample-20261120.json).
+[Registros GSP](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/main/src/common/inc/swref/published/ampere/ga102/dev_gsp.h).
+[Control RISC-V](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/main/src/common/inc/swref/published/ampere/ga102/dev_riscv_pri.h).
+[Base MMIO de SEC2](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/main/src/common/inc/swref/published/ampere/ga102/dev_sec_pri.h).
+
 Despues del estado `08` quedan tres pruebas:
 
 1. Preparar la version compatible de GSP y su procedencia. Reservar y
@@ -373,6 +394,17 @@ reconstruyo su huella con IOVA no contiguas de ensayo. En METAL
 las IOVA deben venir de un dominio DMA activo y autorizado.
 [Evidencia Radix3](../Reports/nvidia-gsp-radix3-host-20261120.json).
 [Directorio GSP en NVIDIA](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/main/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c#L7198-L7343).
+
+El HOST codifica tambien la pagina RMARGS y las 129 paginas GspMem
+de `615.78.08`. Su entrada son IOVA asignadas por el futuro cargador.
+La salida incluye la tabla de paginas y la cabecera MSGQ 2.0 de la
+cola CPU a GSP. La cola de retorno queda a cero para que el GSP la
+inicialice. El ensayo usa IOVA de laboratorio no contiguas y decodifica
+el resultado de forma independiente. Todavia faltan LIBOS, la asignacion
+DMA fisica y el intercambio de mensajes en la RTX.
+[Codificador HOST](../tools/host/gpu/gsp_args.py).
+[Estructura RMARGS](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/inc/kernel/gpu/gsp/gsp_init_args.h).
+[Formato MSGQ 2.0](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/inc/libraries/msgq/msgq_priv.h).
 
 La tabla ACPI IVRS del equipo tiene 208 B y describe tanto
 `0000:29:00.0` (RTX) como `0000:29:00.1` (audio) bajo la unidad

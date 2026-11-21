@@ -2565,6 +2565,24 @@
       "falta": "Acreditar inicio de GSP y una operacion GPU verificable antes de transferir la salida de pantalla."
     },
     {
+      "id": "nvidia-gsp-boot-sample",
+      "titulo": "GPU / NVIDIA / Estado previo del GSP y SEC2",
+      "ruta": "kernel/drivers/GPU/NVIDIA/gsp_sample.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [
+        10800,
+        4050
+      ],
+      "que": "Captura tres registros NVIDIA de solo lectura en el perfil UEFI dedicado.",
+      "entrada": "GA106 10DE:2504 autenticada por identidad PCI y PMC, BAR0 acotada y bus mastering desactivado.",
+      "salida": "GSP1 en GPULOG.TXT, con CPUCTL RISC-V y buzones 0 de GSP y SEC2.",
+      "aceptacion": "Ejecutar casos positivos y rechazos con protocolo EFI simulado, omitir las lecturas en VGA QEMU y verificar el arranque FAT32.",
+      "falta": "Leer la captura real y acreditar la respuesta a un arranque GSP con DMA acotado."
+    },
+    {
       "id": "nvidia-gsp-firmware-host",
       "titulo": "HOST / Firmware NVIDIA GA10x",
       "ruta": "tools/host/gpu/firmware.py",
@@ -2597,6 +2615,23 @@
       "salida": "IOVA raiz y 15 paginas de directorio para la imagen GA10x 615.78.08.",
       "aceptacion": "Un recorrido independiente reconstruye las 6590 paginas de la imagen con IOVA no contiguas y coteja SHA-256. Rechaza cinco entradas invalidas.",
       "falta": "Vincular las IOVA al dominio de la RTX, construir metadatos y colas y confirmar el arranque en hardware."
+    },
+    {
+      "id": "nvidia-gsp-args-host",
+      "titulo": "HOST / Argumentos y colas GSP 615.78.08",
+      "ruta": "tools/host/gpu/gsp_args.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [
+        10800,
+        5100
+      ],
+      "que": "Codifica RMARGS y la memoria compartida de mensajes GspMem, con la cabecera MSGQ 2.0 de CPU a GSP.",
+      "entrada": "Una IOVA de RMARGS y 129 IOVA de GspMem, alineadas y distintas.",
+      "salida": "130 paginas iniciales, ordenadas como RMARGS, tabla GspMem, cola de comandos y cola de estado.",
+      "aceptacion": "Decodificar RMARGS, cabecera, IOVA no contiguas y ceros reservados; rechazar direcciones invalidas y proteger el archivo de salida.",
+      "falta": "Integrar el contrato con LIBOS, el dominio de la RTX y una respuesta MSGQ de hardware."
     },
     {
       "id": "amd-ivrs-host",
@@ -4139,12 +4174,22 @@
       "clase": "codigo"
     },
     {
+      "de": "nvidia-gsp-boot-sample",
+      "a": "nvidia-mmio-probe",
+      "clase": "codigo"
+    },
+    {
       "de": "nvidia-gsp-firmware-host",
       "a": "nvidia-mmio-probe",
       "clase": "plan"
     },
     {
       "de": "nvidia-gsp-radix3-host",
+      "a": "nvidia-gsp-firmware-host",
+      "clase": "verificacion"
+    },
+    {
+      "de": "nvidia-gsp-args-host",
       "a": "nvidia-gsp-firmware-host",
       "clase": "verificacion"
     },

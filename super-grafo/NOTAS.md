@@ -1641,6 +1641,17 @@ Depende de: GPU / NVIDIA / Inventario PCI (codigo).
 Aceptacion: QEMU coteja la longitud BAR0 de VGA con QMP y omite la lectura NVIDIA. METAL confirmo BAR0 de 16 MiB y NV_PMC_BOOT_0 B76000A1 (GA106 A1).
 Pendiente: Acreditar inicio de GSP y una operacion GPU verificable antes de transferir la salida de pantalla.
 
+## kernel/drivers/GPU/NVIDIA/gsp_sample.inc
+
+Captura tres registros NVIDIA de solo lectura en el perfil UEFI dedicado.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: GA106 10DE:2504 autenticada por identidad PCI y PMC, BAR0 acotada y bus mastering desactivado.
+Salida: GSP1 en GPULOG.TXT, con CPUCTL RISC-V y buzones 0 de GSP y SEC2.
+Depende de: GPU / NVIDIA / Lectura MMIO (codigo).
+Aceptacion: Ejecutar casos positivos y rechazos con protocolo EFI simulado, omitir las lecturas en VGA QEMU y verificar el arranque FAT32.
+Pendiente: Leer la captura real y acreditar la respuesta a un arranque GSP con DMA acotado.
+
 ## tools/host/gpu/firmware.py
 
 Comprueba el conjunto original de una release GSP, por longitud y huella de referencia.
@@ -1662,6 +1673,17 @@ Salida: IOVA raiz y 15 paginas de directorio para la imagen GA10x 615.78.08.
 Depende de: HOST / Firmware NVIDIA GA10x (verificacion).
 Aceptacion: Un recorrido independiente reconstruye las 6590 paginas de la imagen con IOVA no contiguas y coteja SHA-256. Rechaza cinco entradas invalidas.
 Pendiente: Vincular las IOVA al dominio de la RTX, construir metadatos y colas y confirmar el arranque en hardware.
+
+## tools/host/gpu/gsp_args.py
+
+Codifica RMARGS y la memoria compartida de mensajes GspMem, con la cabecera MSGQ 2.0 de CPU a GSP.
+
+Estado: HOST. Anillo: host. Lenguaje: Python.
+Entrada: Una IOVA de RMARGS y 129 IOVA de GspMem, alineadas y distintas.
+Salida: 130 paginas iniciales, ordenadas como RMARGS, tabla GspMem, cola de comandos y cola de estado.
+Depende de: HOST / Firmware NVIDIA GA10x (verificacion).
+Aceptacion: Decodificar RMARGS, cabecera, IOVA no contiguas y ceros reservados; rechazar direcciones invalidas y proteger el archivo de salida.
+Pendiente: Integrar el contrato con LIBOS, el dominio de la RTX y una respuesta MSGQ de hardware.
 
 ## tools/host/gpu/ivrs.py
 
@@ -1861,4 +1883,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-167 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+169 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

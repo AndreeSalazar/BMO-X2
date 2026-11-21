@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "run": "run-rmlui-media-480776a07a14",
+  "evidence": "HOST fixture, QEMU FAT32 boots and installed candidate hash verification",
+  "pci_id": "10de:2504",
+  "sample_phase": "UEFI before ExitBootServices",
+  "sample_requires_bus_mastering_off": true,
+  "registers_in_log_order": {
+    "gsp_riscv_cpuctl": "00111388",
+    "gsp_mailbox0": "00110040",
+    "sec2_mailbox0": "00840040"
+  },
+  "host_efi_cases_passed": 5,
+  "qemu_cases": {
+    "normal": {
+      "passed": true,
+      "snapshot_skipped": true,
+      "log_sha256": "2e65400f079952fc4c6e7daf0f7268ad96c534f6c00b5cb12af8a69ae3eaa2f2"
+    },
+    "external-permissions": {
+      "passed": true,
+      "snapshot_skipped": true,
+      "log_sha256": "a94fa176bc72a29b2bbc8ada84c5ee7178f54c732d54084089db002f0a801a21"
+    },
+    "amdvi-missing": {
+      "passed": true,
+      "snapshot_skipped": true,
+      "log_sha256": "29d814b6d3bc3bf60704ab34e926068c3cfbb5601aefc8b3753c96869d4cbaea"
+    }
+  },
+  "native_raster": [
+    1920,
+    1080
+  ],
+  "display_backend": "CPU + GOP",
+  "reader_bytes": 3342,
+  "host_gsp_queue_fixture": {
+    "release": "615.78.08",
+    "rmargs_iova": 1006632960,
+    "gspmem_root_iova": 1023410176,
+    "gspmem_pages": 129,
+    "bytes": 532480,
+    "sha256": "45811639a110a1070ac5c2afeb4cde2fb931b0f33c0917e0c986d5663ea195ec",
+    "layout_verified": true,
+    "rejection_cases": 7,
+    "test_addresses": true,
+    "hardware_verified": false
+  },
+  "fat32_install": {
+    "changed_files": [
+      "EFI/BMO-X2/NVIDIA.EFI"
+    ],
+    "verified_files": {
+      "EFI/BMO-X2/NVIDIA.EFI": "f4a7cba55918297b16080d6f10b429b5c49ff87f4c8d8b9b14859488cf620339",
+      "BMO-X2/GPU/DESKTOP.SBF": "62f8904a313046fcce94f5ea2f4a1347087e278111efe0d25266b094d305e999",
+      "BMO-X2/GPU/INICIO.X86": "4d07ad1120ed52c0c291a0600d4393e7e5a8ec9db173f3e6aaab03b774cc3070"
+    },
+    "previous_loader_sha256": "b05e4204d60b6ea19792e579dd606603bc697c1eeab0731e370457418941114e"
+  },
+  "physical_snapshot_verified": false,
+  "rtx_dma_verified": false,
+  "gsp_boot_verified": false,
+  "gpu_render_verified": false
+}

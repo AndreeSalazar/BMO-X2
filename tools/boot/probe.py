@@ -54,6 +54,7 @@ if any((args.identify,args.stack,args.splash,args.fault,memory_case,user_case)) 
 if (args.splash_hd and not args.splash) or ('contexto' in args.casos and not (args.stack or args.fault or memory_case or user_case)) or sum((args.identify,args.stack,args.splash,args.fault,args.memory,args.frame_cycle,args.paging,args.user_fault,args.abi_probe,args.hot_unmap)) > 1 or ((memory_case or user_case) and args.ram_mib != 256 and not args.doom_fixture):
     parser.error('Invalid combination of payload and probe cases')
 ROOT = workspace(args.workspace)
+nvidia_gsp_sample = args.doom_fixture and (ROOT / 'nvidia-gsp-sample.txt').is_file()
 amdvi_post = args.doom_fixture and (ROOT / 'amdvi-post-probe.txt').is_file()
 amdvi_coexist = amdvi_post and (ROOT / 'amdvi-coexist-probe.txt').is_file()
 amdvi_storage = amdvi_coexist and (ROOT / 'amdvi-storage.txt').is_file()
@@ -641,6 +642,11 @@ for case in args.casos:
                     if loaded!=expected_image or not log.startswith(b'BMO-X2 DESKTOP UEFI PRE-EBS\r\n'):
                         raise ValueError('Native FAT32 payload/report differs')
                     Path(str(prefix)+'-'+log_name).write_bytes(log)
+                    if nvidia_gsp_sample:
+                        samples = [line for line in log.splitlines() if line.startswith(b'GSP1=')]
+                        if samples != [b'GSP1=--------,--------,--------']:
+                            raise ValueError('GA106 GSP reads must be skipped on QEMU standard VGA')
+                        result['GpuGspSampleSkipped'] = True
                     if amdvi_probe:
                         result.update(verify_amdvi_firmware(log, result.pop('AmdViQmpUnits'),
                                                             result.pop('AmdViQmpRegisters'), case == 'normal'))
