@@ -1,0 +1,149 @@
+{
+  "schema": 1,
+  "evidence": "QEMU qtest: AMD-Vi with two emulated PCIe functions",
+  "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+  "release": "615.78.08",
+  "graphics_requester": "2900",
+  "audio_requester": "2901",
+  "firmware_container_sha256": "a20100cafd5a85e22b3e13188339730c6ced94bd5f654984dd2ed274ed58d584",
+  "aligned_payload_sha256": "13a2347e898f2282651e65eb4b0e565410ae4db1bfab2cfa49a83ba2521225a9",
+  "writable_pages": 1,
+  "device_table_pages": 96,
+  "table_tree_pages": 15,
+  "guest_kernel_executed": false,
+  "physical_gpu_verified": false,
+  "firmware_bytes": 26992640,
+  "signature_iova": 161210368,
+  "radix3_iova": 161214464,
+  "read_only_pages": 6606,
+  "verified_dma_samples": 5,
+  "verified_dma_pages": 6606,
+  "compared_dma_bytes": 27058176,
+  "received_dma_sha256": "13a2347e898f2282651e65eb4b0e565410ae4db1bfab2cfa49a83ba2521225a9",
+  "cached_firmware_write_blocked": true,
+  "bus_master_disabled": true,
+  "revoked_domain": 5,
+  "invalidation_verified": true,
+  "dma_faults": {
+    "firmware_write": {
+      "requester": "2900",
+      "event_count": 8,
+      "raw_events": [
+        [
+          "0000",
+          "0"
+        ]
+      ]
+    },
+    "unmapped_gap": {
+      "requester": "2900",
+      "event_count": 8,
+      "raw_events": [
+        [
+          "0000",
+          "0"
+        ]
+      ]
+    },
+    "audio_reply_write": {
+      "requester": "2901",
+      "event_count": 8,
+      "raw_events": [
+        [
+          "0001",
+          "0"
+        ]
+      ]
+    },
+    "audio_firmware_read": {
+      "requester": "2901",
+      "event_count": 8,
+      "raw_events": [
+        [
+          "0001",
+          "0"
+        ]
+      ]
+    },
+    "revoked_reply_write": {
+      "requester": "2900",
+      "event_count": 8,
+      "raw_events": [
+        [
+          "0000",
+          "0"
+        ]
+      ]
+    },
+    "revoked_firmware_read": {
+      "requester": "2900",
+      "event_count": 8,
+      "raw_events": [
+        [
+          "0000",
+          "0"
+        ]
+      ]
+    }
+  },
+  "date": "2026-11-20",
+  "host_table_checks": {
+    "dtes_checked": 12288,
+    "data_leaves_checked": 6607,
+    "invalid_layouts_rejected": 5,
+    "physical_ivrs": {
+      "schema": 1,
+      "evidence": "HOST: ACPI firmware inventory",
+      "table_bytes": 208,
+      "table_revision": 2,
+      "table_sha256": "d2b4e55ee37be93d6e764136059f140e847368118d447c345964ef21471202ec",
+      "block_types": [
+        "10",
+        "11"
+      ],
+      "requesters": {
+        "0000:29:00.0": [
+          {
+            "unit_bdf": "0000:00:00.2",
+            "ivhd_type": "11",
+            "ivhd_flags": "b0",
+            "pci_capability_offset": "0x40",
+            "mmio_base": "0x00000000fd500000",
+            "range_first": "0000:00:01.0",
+            "range_last": "0000:ff:1f.6",
+            "alias": null
+          }
+        ],
+        "0000:29:00.1": [
+          {
+            "unit_bdf": "0000:00:00.2",
+            "ivhd_type": "11",
+            "ivhd_flags": "b0",
+            "pci_capability_offset": "0x40",
+            "mmio_base": "0x00000000fd500000",
+            "range_first": "0000:00:01.0",
+            "range_last": "0000:ff:1f.6",
+            "alias": null
+          }
+        ]
+      },
+      "bmo_x2_dma_isolation_verified": false
+    }
+  },
+  "metal": {
+    "run": "run-rmlui-media-45164ef55d10",
+    "capture": "nvidia-pci-metal-20261120-gsp-stage.bootlog.txt",
+    "capture_sha256": "ce8b900ba7b7bab3fb9fbf05b01de47da510f879111c360adac5f67899a940db",
+    "firmware_loaded_into_ram": true,
+    "gsp_cpu_running": false,
+    "pci_bus_master_enabled": false,
+    "amdvi_translation_enabled": false,
+    "gsp_mailboxes": [
+      "00000000",
+      "00000000"
+    ],
+    "desktop_backend": "CPU + GOP",
+    "gsp_boot_verified": false,
+    "gpu_3d_verified": false
+  }
+}

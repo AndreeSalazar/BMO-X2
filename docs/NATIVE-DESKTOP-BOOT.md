@@ -364,6 +364,30 @@ huella de origen, la reserva del mapa EFI y las paginas de supervisor.
 [Evidencia de archivo y RAM](../Reports/nvidia-gsp-stage-20261120.json).
 [Calculo CRC32 en UEFI](https://uefi.org/specs/UEFI/2.10/07_Services_Boot_Services.html#efi-boot-services-calculatecrc32).
 
+El siguiente arranque fisico obtuvo `GSPLOAD=00000005` y
+`GSP1=00000010,00000000,00000000`. El contenedor llego a RAM y
+el GSP seguia detenido. PCI Command y AMD-Vi conservaban sus permisos
+anteriores al traspaso.
+[Lectura fisica del contenedor](../Reports/nvidia-pci-metal-20261120-gsp-stage.bootlog.txt).
+
+El banco AMD-Vi prepara la imagen firmada y la firma GA10x en paginas
+de 4 KiB alineadas. La imagen empieza a 64 B dentro del ELF y la firma comienza
+en otro desplazamiento no alineado. El directorio Radix3 usa las IOVA
+de las paginas de imagen resultantes. Las 6606 paginas de imagen,
+firma y directorio tienen permiso de lectura del dispositivo y solo
+una pagina de respuesta admite escritura. El dominio de prueba usa
+la funcion grafica `29:00.0`; la funcion de audio `29:00.1` tiene una
+raiz vacia. El hueco entre el firmware y la respuesta queda sin mapa.
+
+QEMU, con dos funciones EDU emuladas, transfiere todas esas paginas
+y coteja su SHA-256. Tambien comprueba bloqueos de firmware, hueco,
+audio y revocacion. El banco lo programa mediante qtest, sin ejecutar
+Ring 0 del invitado. El cargador de la RTX requiere asignar este
+dominio desde el kernel fisico, con los demas solicitantes del equipo
+bajo control, y ejecutar la secuencia firmada del GSP.
+[Prueba DMA del paquete completo](../Reports/nvidia-gsp-dma-qemu-20261120.json).
+[Comandos y formatos AMD-Vi](https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/specifications/48882_IOMMU.pdf).
+
 Despues del estado `08` quedan tres pruebas:
 
 1. Preparar la version compatible de GSP y su procedencia. Reservar y

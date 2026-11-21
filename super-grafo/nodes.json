@@ -2597,8 +2597,8 @@
       "que": "Lee el GSP original por UEFI, acota el tamano, coteja CRC32 y entrega la reserva al supervisor.",
       "entrada": "GSP.BIN 615.78.08 previamente verificado en HOST; protocolo EFI de archivos y servicios de memoria.",
       "salida": "Base y longitud del firmware en EfiLoaderData, junto al resultado GSPLOAD del arranque.",
-      "aceptacion": "Comparar SHA-256 del firmware residente en QEMU, mapa EFI, mapeo de supervisor y rechazo de archivo ausente o alterado.",
-      "falta": "Confirmar la reserva en METAL y programar la carga al motor con dominio DMA propio."
+      "aceptacion": "QEMU verifica firmware residente y rechazos. METAL confirma GSPLOAD=00000005 desde FAT32.",
+      "falta": "Programar la carga al motor con dominio DMA propio."
     },
     {
       "id": "nvidia-gsp-firmware-host",
@@ -2650,6 +2650,23 @@
       "salida": "130 paginas iniciales, ordenadas como RMARGS, tabla GspMem, cola de comandos y cola de estado.",
       "aceptacion": "Decodificar RMARGS, cabecera, IOVA no contiguas y ceros reservados; rechazar direcciones invalidas y proteger el archivo de salida.",
       "falta": "Integrar el contrato con LIBOS, el dominio de la RTX y una respuesta MSGQ de hardware."
+    },
+    {
+      "id": "nvidia-gsp-dma-layout",
+      "titulo": "GPU / NVIDIA / Mapa DMA de arranque GSP",
+      "ruta": "tools/host/gpu/gsp_dma.py",
+      "estado": "qemu",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [
+        10550,
+        4850
+      ],
+      "que": "Alinea imagen y firma GA10x, genera Radix3 y construye las tablas AMD-Vi de un dominio de arranque.",
+      "entrada": "Contenedor 615.78.08 verificado, bases fisicas reservadas y rango IOVA.",
+      "salida": "6606 paginas de solo lectura, una pagina de respuesta escribible y DTE bloqueadas para otras funciones.",
+      "aceptacion": "QEMU transfiere todo el paquete alineado; verifica SHA-256 y bloqueos de escritura, audio y revocacion.",
+      "falta": "Trasladar el dominio al administrador DMA del kernel y autenticar y ejecutar el GSP en METAL."
     },
     {
       "id": "amd-ivrs-host",
@@ -4215,6 +4232,16 @@
       "de": "nvidia-gsp-args-host",
       "a": "nvidia-gsp-firmware-host",
       "clase": "verificacion"
+    },
+    {
+      "de": "nvidia-gsp-dma-layout",
+      "a": "nvidia-gsp-firmware-host",
+      "clase": "codigo"
+    },
+    {
+      "de": "nvidia-gsp-dma-layout",
+      "a": "nvidia-gsp-radix3-host",
+      "clase": "codigo"
     },
     {
       "de": "amd-ivrs-host",

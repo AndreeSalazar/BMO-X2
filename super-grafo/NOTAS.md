@@ -1660,8 +1660,8 @@ Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: GSP.BIN 615.78.08 previamente verificado en HOST; protocolo EFI de archivos y servicios de memoria.
 Salida: Base y longitud del firmware en EfiLoaderData, junto al resultado GSPLOAD del arranque.
 Depende de: HOST / Firmware NVIDIA GA10x (verificacion).
-Aceptacion: Comparar SHA-256 del firmware residente en QEMU, mapa EFI, mapeo de supervisor y rechazo de archivo ausente o alterado.
-Pendiente: Confirmar la reserva en METAL y programar la carga al motor con dominio DMA propio.
+Aceptacion: QEMU verifica firmware residente y rechazos. METAL confirma GSPLOAD=00000005 desde FAT32.
+Pendiente: Programar la carga al motor con dominio DMA propio.
 
 ## tools/host/gpu/firmware.py
 
@@ -1695,6 +1695,17 @@ Salida: 130 paginas iniciales, ordenadas como RMARGS, tabla GspMem, cola de coma
 Depende de: HOST / Firmware NVIDIA GA10x (verificacion).
 Aceptacion: Decodificar RMARGS, cabecera, IOVA no contiguas y ceros reservados; rechazar direcciones invalidas y proteger el archivo de salida.
 Pendiente: Integrar el contrato con LIBOS, el dominio de la RTX y una respuesta MSGQ de hardware.
+
+## tools/host/gpu/gsp_dma.py
+
+Alinea imagen y firma GA10x, genera Radix3 y construye las tablas AMD-Vi de un dominio de arranque.
+
+Estado: QEMU. Anillo: host. Lenguaje: Python.
+Entrada: Contenedor 615.78.08 verificado, bases fisicas reservadas y rango IOVA.
+Salida: 6606 paginas de solo lectura, una pagina de respuesta escribible y DTE bloqueadas para otras funciones.
+Depende de: HOST / Firmware NVIDIA GA10x (codigo), HOST / Directorio GSP Radix3 (codigo).
+Aceptacion: QEMU transfiere todo el paquete alineado; verifica SHA-256 y bloqueos de escritura, audio y revocacion.
+Pendiente: Trasladar el dominio al administrador DMA del kernel y autenticar y ejecutar el GSP en METAL.
 
 ## tools/host/gpu/ivrs.py
 
@@ -1894,4 +1905,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-170 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+171 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
