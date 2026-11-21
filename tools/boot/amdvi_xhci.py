@@ -83,7 +83,8 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
     """Run at the first frozen desktop frame. Return with the guest paused."""
     scratch_pages = 18 if storage else 14 if guest_dma else 13
     if nvme:
-        require(storage and guest_dma and not routed, 'NVMe requiere el banco de cuatro dominios en el bus raiz')
+        require(storage and guest_dma and (not routed or gsp_dma),
+                'NVMe requiere el banco de cuatro dominios')
         scratch_pages = 31
     if routed:
         require(storage and guest_dma, 'El ensayo en buses altos requiere los tres dominios del invitado')
@@ -107,6 +108,9 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
         children = functions[0x40]['pci_bridge']['devices']
         require(0x2900<=edu<ROUTED_TABLE_PAGES*128 and functions[edu] in children,
                 f'EDU fuera del bus alto esperado: {edu:04x}')
+        if gsp_dma:
+            require(edu==0x2900 and functions.get(0x2901) in children,
+                    'El ensayo del firmware requiere las dos funciones PCIe 29:00')
     else:
         require(edu==EDU_REQUESTER, 'EDU debe estar en el bus raiz del perfil base')
     xhci, = (rid for rid, entry in functions.items() if entry['qdev_id'] == 'bmo-native-xhci')
@@ -141,16 +145,17 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
     require(bar_register == bar and 0x80000000 <= bar < 0x100000000 and bar % 0x100000 == 0,
             'BAR0 de EDU difiere del recurso asignado por OVMF')
     if routed:
-        denied = functions[EDU_REQUESTER]
+        denied_requester = 0x2901 if gsp_dma else EDU_REQUESTER
+        denied = functions[denied_requester]
         denied_bar, = (region['address'] for region in denied['regions'] if region['bar']==0)
         require(denied['qdev_id']=='bmo-edu-denied'
-                and machine.pci(0x10,requester=EDU_REQUESTER)==denied_bar
+                and machine.pci(0x10,requester=denied_requester)==denied_bar
                 and 0x80000000<=denied_bar<0x100000000, 'Falta el EDU sin dominio')
     require(not any(machine.read(AMDVI + off) for off in (0,8,16,24,0x2020)), 'AMD-Vi ya estaba activo')
     edu_idle_command = edu_command & ~4
     table, edu_root, usb_root = scratch, scratch+2*PAGE, scratch+4*PAGE
     if routed:
-        table += 18*PAGE
+        table += (31 if nvme else 18)*PAGE
     table_pages = ROUTED_TABLE_PAGES if routed else 2
     startup_tail = 32*len(functions) if routed else 128 if nvme else 96 if storage else 64
     commands, events, completion = (scratch+offset*PAGE for offset in (7,8,9))
@@ -216,11 +221,11 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
         return read_sector(machine,command,ahci_bar,scratch,activity)
 
     def denied_edu_write(prime):
-        pci_command = machine.pci(4,word=True,requester=EDU_REQUESTER)
+        pci_command = machine.pci(4,word=True,requester=denied_requester)
         require(not pci_command & 4,'El testigo EDU tiene BME activo')
-        machine.pci(4,pci_command | 6,word=True,requester=EDU_REQUESTER)
+        machine.pci(4,pci_command | 6,word=True,requester=denied_requester)
         try:
-            require(machine.pci(4,word=True,requester=EDU_REQUESTER) & 4
+            require(machine.pci(4,word=True,requester=denied_requester) & 4
                     and int(machine.command('readl',denied_bar),16)==0x010000ed,
                     'El segundo EDU no responde')
             if prime:
@@ -230,7 +235,17 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
             run_transfer(machine,command,denied_bar,EDU_BUFFER,outside,len(sentinel),3)
             return machine.get_bytes(outside,len(data))
         finally:
-            machine.pci(4,pci_command,word=True,requester=EDU_REQUESTER)
+            machine.pci(4,pci_command,word=True,requester=denied_requester)
+
+    def reported_requester(offset, requester):
+        if not routed:
+            return requester
+        # QEMU can emit devfn without the upstream bus. The DTE and the
+        # transfer are independently checked against the full requester.
+        reported = machine.read(events+offset) & 0xffff
+        require(reported in (requester, requester & 0xff),
+                f'Solicitante inesperado en el evento AMD-Vi: {reported:04x}')
+        return reported
 
     # The fixture owns the entire virtual machine. Quiesce other requesters
     # with PCI Command and keep their values to restore after the test.
@@ -276,8 +291,8 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
                     and not amdvi_nvme.read32(machine,nvme_bar,0x1c)&0x43,
                     'Ring 0 no confirmo el cierre del NVMe heredado')
             guest_request(7)
-            commands = [int(machine.command('readl',ahci_bar+0x118+0x80*port),16) for port in range(6)]
-            require(machine.read(context+0xbf0)==1 and not any(cmd&0xc011 for cmd in commands)
+            port_states = [int(machine.command('readl',ahci_bar+0x118+0x80*port),16) for port in range(6)]
+            require(machine.read(context+0xbf0)==1 and not any(cmd&0xc011 for cmd in port_states)
                     and machine.pci(4,word=True,requester=REQUESTER)==ahci_inherited&~4
                     and not machine.read(AMDVI+24), 'Ring 0 no confirmo el cierre del AHCI heredado')
         if routed:
@@ -291,12 +306,6 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
                 require(machine.read(context+0xb78)==edu and
                         [low for low,_,_,_ in queued]==[(2<<60)|rid for rid in sorted(functions)],
                         'Los BDF enumerados e invalidados por Ring 0 difieren de QMP')
-                default_dte = (scratch | READ_WRITE | 0x403, 0, 0, 0)
-                admitted = {edu, xhci, REQUESTER}
-                entries = struct.iter_unpack('<4Q', memory(table, table_pages*PAGE, 'routed-device-table'))
-                require(all(entry==default_dte for rid,entry in enumerate(entries) if rid not in admitted)
-                        and memory(scratch,PAGE,'routed-empty-root')==bytes(PAGE),
-                        'Quedo una entrada sin bloqueo por defecto')
         else:
             machine.put_bytes(scratch, bytes(13*PAGE))
             leaf = map_pages(machine, edu_root, iter((edu_root+PAGE,)), [(iova,payload)])
@@ -318,11 +327,15 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
             require(machine.read(table+edu*32)==gsp_root|READ_WRITE|0x403 and
                     machine.read(reply_pde)==(scratch+3*PAGE)|READ_WRITE|0x201,
                     'Ring 0 no vinculo el arbol preparado al solicitante')
-            default_dte = (edu_root | READ_WRITE | 0x403,0,0,0)
-            entries = struct.iter_unpack('<4Q', memory(table,table_pages*PAGE,'gsp-device-table'))
-            admitted = {edu,xhci,REQUESTER,nvme_rid}
+        if routed or gsp_dma:
+            empty_root = edu_root if gsp_dma else scratch
+            default_dte = (empty_root | READ_WRITE | 0x403,0,0,0)
+            entries = struct.iter_unpack('<4Q', memory(table,table_pages*PAGE,'blocked-device-table'))
+            admitted = {edu,xhci,REQUESTER}
+            if nvme:
+                admitted.add(nvme_rid)
             require(all(entry==default_dte for rid,entry in enumerate(entries) if rid not in admitted)
-                    and memory(edu_root,PAGE,'gsp-empty-root')==bytes(PAGE),
+                    and memory(empty_root,PAGE,'blocked-empty-root')==bytes(PAGE),
                     'Un solicitante sin dominio tiene acceso por defecto')
         storage_proof = {}
         if storage:
@@ -363,17 +376,35 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
             cold = gsp_iova+2*PAGE
             before_write = machine.get_bytes(gsp_image+2*PAGE,32)
             run_transfer(machine,command,bar,EDU_BUFFER,cold,32,3)
-            tail,_ = faults(machine,tail,cold,32,event_log=events,requester=edu)
+            tail,_ = faults(machine,tail,cold,32,event_log=events,
+                            requester=reported_requester(tail,edu))
             require(machine.get_bytes(gsp_image+2*PAGE,32)==before_write,
                     'EDU escribio en el firmware de solo lectura')
+            rmargs = machine.read(context+0x838)
+            if rmargs:
+                from host.gpu.NVIDIA.gsp_args import STATUS_OFFSET
+
+                page_mask = ((1<<52)-1) & -PAGE
+                queue_leaf = machine.read(gsp_root+(rmargs>>21)*8) & page_mask
+                queue_base = machine.read(queue_leaf) & page_mask
+                status_offset = PAGE+STATUS_OFFSET
+                status_iova, status_ram = rmargs+status_offset, queue_base+status_offset
+                require(machine.get_bytes(status_ram,len(data))==bytes(len(data)),
+                        'La cola GSP de retorno no estaba limpia')
+                machine.put_bytes(payload,data)
+                run_transfer(machine,command,bar,iova,EDU_BUFFER,len(data),1)
+                run_transfer(machine,command,bar,EDU_BUFFER,status_iova,len(data),3)
+                require(machine.get_bytes(status_ram,len(data))==data and machine.read(AMDVI+0x2018)==tail,
+                        'El DMA no pudo escribir la cola GSP de retorno')
+                before_args = machine.get_bytes(queue_base,len(data))
+                run_transfer(machine,command,bar,EDU_BUFFER,rmargs,len(data),3)
+                tail,_ = faults(machine,tail,rmargs,len(data),event_log=events,
+                                requester=reported_requester(tail,edu))
+                require(machine.get_bytes(queue_base,len(data))==before_args,
+                        'El DMA modifico RMARGS de solo lectura')
+                gsp_proof.update(GspStatusQueueDmaWriteVerified=True,GspRmargsDmaWriteDenied=True)
         run_transfer(machine, command, bar, EDU_BUFFER, outside, len(data), 3)
-        fault_rid = edu
-        if routed:
-            # Older QEMU AMD-Vi builds report only devfn for page faults
-            # behind a root port. Table lookup and DMA are checked above
-            # against the full BDF independently of this diagnostic field.
-            fault_rid = machine.read(events) & 0xffff
-            require(fault_rid in (edu, edu & 0xff), f'Solicitante inesperado en el evento AMD-Vi: {fault_rid:04x}')
+        fault_rid = reported_requester(tail,edu)
         tail, _ = faults(machine, tail, outside, len(data), event_log=events, requester=fault_rid)
         require(machine.get_bytes(outside,len(data)) == sentinel, 'Cambió la página fuera del préstamo')
         if guest_dma:
@@ -397,7 +428,8 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
             require(machine.read(reply_pde)==0 and machine.read(table+edu*32)==default_dte[0]
                     and machine.read(table+edu*32+8)==0, 'La entrada del firmware sigue activa')
             run_transfer(machine,command,bar,gsp_iova,EDU_BUFFER,32,1)
-            faults(machine,tail,gsp_iova,32,event_log=events,requester=edu,access=1)
+            faults(machine,tail,gsp_iova,32,event_log=events,
+                   requester=reported_requester(tail,edu),access=1)
             gsp_proof.update(GspDmaCoexistenceVerified=True,GspDmaReadSamples=len(proof_sources),
                              GspDmaSampleBytes=PAGE,GspFirmwareWriteDenied=True,
                              GspFirmwareDmaRevoked=True,GspUnassignedDtesDenied=True)
@@ -433,7 +465,10 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
         if routed:
             tail = machine.read(AMDVI+0x2018)
             require(denied_edu_write(prime=False)==sentinel,'Un solicitante sin dominio modifico RAM')
-            faults(machine,tail,outside,len(sentinel),event_log=events,requester=EDU_REQUESTER)
+            faults(machine,tail,outside,len(sentinel),event_log=events,
+                   requester=reported_requester(tail,denied_requester))
+            if gsp_dma:
+                gsp_proof.update(GspSiblingDmaDenied=True,GspSiblingRequester=f'{denied_requester:04x}')
     finally:
         failure = sys.exc_info()[1]
         edu_pci(4, edu_idle_command, word=True)
@@ -459,7 +494,7 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
                         FaultRequesterIncludesBus=fault_rid==edu,
                         DefaultDeniedDteVerified=True,
                         PresentRequestersInvalidated=len(functions),
-                        UnassignedRequesterBlocked=f'{EDU_REQUESTER:04x}') if routed else {}
+                        UnassignedRequesterBlocked=f'{denied_requester:04x}') if routed else {}
     return dict(AmdViCoexistVerified=True, DmaIssuer='Ring 0 guest' if guest_dma else 'QEMU qtest HOST',
                 EduRequester=f'{edu:04x}', XhciRequester=f'{xhci:04x}',
                 EduTransferredBytes=len(data), XhciIdentityPages=pages, ScratchPages=scratch_pages,

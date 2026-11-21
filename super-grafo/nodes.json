@@ -2612,11 +2612,29 @@
         10400,
         3750
       ],
-      "que": "Comprueba el traspaso GSP, alinea imagen y firma, y arma Radix3 y un arbol DMA de solo lectura despues de UEFI.",
+      "que": "Comprueba el traspaso GSP, alinea imagen y firma, y prepara Radix3 y las colas DMA despues de UEFI.",
       "entrada": "Reserva de supervisor y mapa EFI final, unicamente en el perfil NVIDIA.",
-      "salida": "Imagen, firma, Radix3 y arbol AMD-Vi provisional, con estado interno 3 exportado al escritorio.",
+      "salida": "Imagen, firma, Radix3, RMARGS, GspMem y arbol AMD-Vi provisional, con estado interno 4 exportado al escritorio.",
       "aceptacion": "QEMU coteja ambas huellas, el directorio, todas las entradas AMD-Vi y la exclusion con archivo ausente. HOST rechaza reservas ajenas o cortas.",
-      "falta": "Adjudicar las IOVA en METAL y arrancar el GSP."
+      "falta": "Adjudicar las IOVA en METAL, integrar los argumentos LIBOS y arrancar el GSP."
+    },
+    {
+      "id": "nvidia-gsp-queues-native",
+      "titulo": "GPU / NVIDIA / Colas preparadas en Ring 0",
+      "ruta": "kernel/drivers/GPU/NVIDIA/gsp_queues.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [
+        10900,
+        3750
+      ],
+      "que": "Inicializa RMARGS, GspMem y MSGQ 2.0 en memoria de supervisor reservada.",
+      "entrada": "Reserva EfiLoaderData comprobada y arbol AMD-Vi separado del dispositivo.",
+      "salida": "Dos paginas de metadatos de solo lectura, dos colas con permiso de escritura y la hoja DMA.",
+      "aceptacion": "QEMU compara las 130 paginas contra HOST y prueba la escritura a la cola de retorno y el rechazo en RMARGS.",
+      "falta": "Pasar la IOVA de RMARGS en LIBOS y recibir una respuesta de la RTX fisica."
     },
     {
       "id": "nvidia-gsp-ring0-radix3",
@@ -2668,7 +2686,7 @@
       "entrada": "Cuatro binarios locales NVIDIA de la release solicitada y manifiesto de huellas.",
       "salida": "Informe HOST de identidad, archivos y huellas. El layout nativo identifica imagen, version y firma GA10x dentro del ELF64 RISC-V.",
       "aceptacion": "Cuatro archivos verificados para 570.144 y 615.78.08. El layout 615.78.08 coteja la version interna y rechaza cabecera truncada, version distinta y secciones solapadas.",
-      "falta": "Construir los metadatos y colas DMA, y verificar respuesta del GSP nativo con 615.78.08."
+      "falta": "Construir argumentos LIBOS y WPR y verificar respuesta del GSP nativo con 615.78.08."
     },
     {
       "id": "nvidia-gsp-radix3-host",
@@ -4315,6 +4333,16 @@
       "de": "nvidia-gsp-ring0-prepare",
       "a": "nvidia-gsp-ring0-radix3",
       "clase": "codigo"
+    },
+    {
+      "de": "nvidia-gsp-ring0-prepare",
+      "a": "nvidia-gsp-queues-native",
+      "clase": "codigo"
+    },
+    {
+      "de": "nvidia-gsp-queues-native",
+      "a": "nvidia-gsp-args-host",
+      "clase": "verificacion"
     },
     {
       "de": "nvidia-gsp-ring0-prepare",

@@ -95,10 +95,16 @@ gsp_prepare_begin:
     mov %r9, GSP_POST_IMAGE(%rbp)
     lea BMO_GSP_IMAGE_BYTES(%r9), %rax
     mov %rax, GSP_POST_SIGNATURE(%rbp)
-    movl $3, GSP_POST_STATUS(%rbp)
+#ifdef BMO_NVIDIA_GSP_QUEUES
+    call nvidia_gsp_init_queues
+#endif
+    movl $GSP_POST_READY, GSP_POST_STATUS(%rbp)
     ret
 
 #include "gsp_radix3.inc"
 #include "../../bus/amdvi/stage_read_only.inc"
+#ifdef BMO_NVIDIA_GSP_QUEUES
+#include "gsp_queues.inc"
+#endif
 .globl gsp_prepare_end
 gsp_prepare_end:

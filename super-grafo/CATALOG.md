@@ -155,7 +155,8 @@
 | [GPU / NVIDIA / Lectura MMIO](../kernel/drivers/GPU/NVIDIA/mmio_probe.inc) | qemu | 0 | Sonda transitoria UEFI: confirma limites de BAR0 y lee la identidad interna exclusivamente en la RTX 3060 10DE:2504. |
 | [GPU / NVIDIA / Estado previo del GSP y SEC2](../kernel/drivers/GPU/NVIDIA/gsp_sample.inc) | qemu | 0 | Captura tres registros NVIDIA de solo lectura en el perfil UEFI dedicado. |
 | [GPU / NVIDIA / Firmware original de FAT32 a RAM](../kernel/drivers/GPU/NVIDIA/gsp_stage.inc) | qemu | 0 | Lee el GSP original por UEFI, acota el tamano, coteja CRC32 y entrega la reserva al supervisor. |
-| [GPU / NVIDIA / Preparacion pos-UEFI](../kernel/drivers/GPU/NVIDIA/gsp_prepare.inc) | qemu | 0 | Comprueba el traspaso GSP, alinea imagen y firma, y arma Radix3 y un arbol DMA de solo lectura despues de UEFI. |
+| [GPU / NVIDIA / Preparacion pos-UEFI](../kernel/drivers/GPU/NVIDIA/gsp_prepare.inc) | qemu | 0 | Comprueba el traspaso GSP, alinea imagen y firma, y prepara Radix3 y las colas DMA despues de UEFI. |
+| [GPU / NVIDIA / Colas preparadas en Ring 0](../kernel/drivers/GPU/NVIDIA/gsp_queues.inc) | qemu | 0 | Inicializa RMARGS, GspMem y MSGQ 2.0 en memoria de supervisor reservada. |
 | [GPU / NVIDIA / Directorio Radix3 x86-64](../kernel/drivers/GPU/NVIDIA/gsp_radix3.inc) | qemu | 0 | Construye el directorio de tres niveles para la imagen GSP con IOVA contiguas. |
 | [HOST / Empaquetado opcional NVIDIA](../tools/host/gpu/NVIDIA/bundle.py) | host | host | Coteja el firmware, limita su geometria y entrega el archivo y opciones de compilacion al empaquetador opcional. |
 | [HOST / Firmware NVIDIA GA10x](../tools/host/gpu/NVIDIA/firmware.py) | host | host | Comprueba el conjunto original de una release GSP, por longitud y huella de referencia. |
@@ -440,6 +441,8 @@
 | nvidia-gsp-stage | nvidia-gsp-firmware-host | verificacion |
 | nvidia-gsp-ring0-prepare | nvidia-gsp-stage | codigo |
 | nvidia-gsp-ring0-prepare | nvidia-gsp-ring0-radix3 | codigo |
+| nvidia-gsp-ring0-prepare | nvidia-gsp-queues-native | codigo |
+| nvidia-gsp-queues-native | nvidia-gsp-args-host | verificacion |
 | nvidia-gsp-ring0-prepare | amdvi-stage-read-only | codigo |
 | nvidia-gsp-ring0-radix3 | nvidia-gsp-radix3-host | verificacion |
 | nvidia-gsp-host-bundle | nvidia-gsp-firmware-host | codigo |

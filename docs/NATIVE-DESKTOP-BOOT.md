@@ -404,15 +404,15 @@ El perfil base puede conservar las sondas de plataforma con
 Con `--nvidia-gsp-prepare`, la entrada del loader llama a una rutina
 privada de Ring 0 tras ExitBootServices. La rutina vuelve a comprobar
 la reserva EfiLoaderData y coloca `.fwimage` y la firma GA10x en limites
-de pagina de la misma reserva. Ring 0 construye a continuacion las 15
-paginas Radix3 para la IOVA prevista y 14 paginas AMD-Vi con permisos de
-lectura para imagen, firma y Radix3. La reserva crece de 6603 a 6620
-paginas (68 KiB adicionales). Las propias tablas quedan fuera de las
-IOVA de la GPU. El supervisor publica estado 3 con el directorio y la
-raiz preparada. El pie del escritorio indica **NVIDIA / Radix3 listo /
-DMA pendiente**. El arbol permanece en RAM sin adjudicar a una funcion
-PCI. El indice 6 del diagnostico AMD-Vi entrega los estados de archivo
-y preparacion a Ring 3.
+de pagina de la misma reserva. Ring 0 construye las 15 paginas Radix3
+y 14 paginas AMD-Vi para exponer imagen, firma y directorio como solo
+lectura. Luego prepara RMARGS y GspMem e instala otra hoja AMD-Vi para
+las colas. La reserva pasa de 6620 a 6751 paginas (524 KiB adicionales).
+Las tablas AMD-Vi quedan fuera de las IOVA de la GPU. El supervisor
+publica estado 4 y el pie del escritorio indica **NVIDIA / Colas GSP
+listas / DMA pendiente**. Las tablas quedan en RAM hasta la adjudicacion
+del dominio. El indice 6 del diagnostico AMD-Vi entrega los estados de
+archivo y preparacion a Ring 3.
 
 ULTRA-LinuX arranco esta misma RTX 3060 con `nvidia-open` y GSP
 `615.78.08`, y preparo el control de pantalla con `nvidia-modeset` y
@@ -427,6 +427,7 @@ python -B -m tools.host.gpu.NVIDIA.qemu_gsp_dma build/gpu/NVIDIA/ga10x-615.78.08
 
 [Pruebas de independencia y preparacion NVIDIA](../Reports/nvidia-gsp-prepare-qemu-20261120.json).
 [Arbol preparado por Ring 0 y verificado en QEMU](../Reports/nvidia-gsp-detached-dma-qemu-20261120.json).
+[Colas GSP y dominio DMA en el bus PCIe 29](../Reports/nvidia-gsp-queues-routed-qemu-20261121.json).
 
 Despues del estado `08` quedan tres pruebas:
 
@@ -490,12 +491,12 @@ El perfil NVIDIA la llama tras ExitBootServices para preparar el arbol
 DMA en RAM. En METAL queda pendiente adjudicar las IOVA a la RTX.
 [Resultados del banco](../Reports/nvidia-triangle-host-20261120.json).
 
-El HOST codifica tambien la pagina RMARGS y las 129 paginas GspMem
-de `615.78.08`. Su entrada son IOVA asignadas por el futuro cargador.
-La salida incluye la tabla de paginas y la cabecera MSGQ 2.0 de la
-cola CPU a GSP. La cola de retorno queda a cero para que el GSP la
-inicialice. El ensayo usa IOVA de laboratorio no contiguas y decodifica
-el resultado de forma independiente. Todavia faltan LIBOS, la asignacion
+El codificador HOST de `615.78.08` sirve de referencia para la pagina
+RMARGS y las 129 paginas GspMem que ahora inicializa Ring 0. QEMU
+coteja todos sus bytes y verifica la hoja DMA. RMARGS y la tabla de
+paginas son de solo lectura, y ambas colas admiten escritura. La cola
+CPU a GSP recibe la cabecera MSGQ 2.0 y la de retorno queda a cero
+para que el GSP la inicialice. Todavia faltan LIBOS, la asignacion
 DMA fisica y el intercambio de mensajes en la RTX.
 [Codificador HOST](../tools/host/gpu/NVIDIA/gsp_args.py).
 [Estructura RMARGS](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/inc/kernel/gpu/gsp/gsp_init_args.h).

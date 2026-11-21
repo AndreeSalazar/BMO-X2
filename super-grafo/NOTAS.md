@@ -1665,14 +1665,25 @@ Pendiente: Programar la carga al motor con dominio DMA propio.
 
 ## kernel/drivers/GPU/NVIDIA/gsp_prepare.inc
 
-Comprueba el traspaso GSP, alinea imagen y firma, y arma Radix3 y un arbol DMA de solo lectura despues de UEFI.
+Comprueba el traspaso GSP, alinea imagen y firma, y prepara Radix3 y las colas DMA despues de UEFI.
 
 Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: Reserva de supervisor y mapa EFI final, unicamente en el perfil NVIDIA.
-Salida: Imagen, firma, Radix3 y arbol AMD-Vi provisional, con estado interno 3 exportado al escritorio.
-Depende de: GPU / NVIDIA / Firmware original de FAT32 a RAM (codigo), GPU / NVIDIA / Directorio Radix3 x86-64 (codigo), AMD-Vi / Arbol DMA de solo lectura (codigo).
+Salida: Imagen, firma, Radix3, RMARGS, GspMem y arbol AMD-Vi provisional, con estado interno 4 exportado al escritorio.
+Depende de: GPU / NVIDIA / Firmware original de FAT32 a RAM (codigo), GPU / NVIDIA / Directorio Radix3 x86-64 (codigo), GPU / NVIDIA / Colas preparadas en Ring 0 (codigo), AMD-Vi / Arbol DMA de solo lectura (codigo).
 Aceptacion: QEMU coteja ambas huellas, el directorio, todas las entradas AMD-Vi y la exclusion con archivo ausente. HOST rechaza reservas ajenas o cortas.
-Pendiente: Adjudicar las IOVA en METAL y arrancar el GSP.
+Pendiente: Adjudicar las IOVA en METAL, integrar los argumentos LIBOS y arrancar el GSP.
+
+## kernel/drivers/GPU/NVIDIA/gsp_queues.inc
+
+Inicializa RMARGS, GspMem y MSGQ 2.0 en memoria de supervisor reservada.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: Reserva EfiLoaderData comprobada y arbol AMD-Vi separado del dispositivo.
+Salida: Dos paginas de metadatos de solo lectura, dos colas con permiso de escritura y la hoja DMA.
+Depende de: HOST / Argumentos y colas GSP 615.78.08 (verificacion).
+Aceptacion: QEMU compara las 130 paginas contra HOST y prueba la escritura a la cola de retorno y el rechazo en RMARGS.
+Pendiente: Pasar la IOVA de RMARGS en LIBOS y recibir una respuesta de la RTX fisica.
 
 ## kernel/drivers/GPU/NVIDIA/gsp_radix3.inc
 
@@ -1705,7 +1716,7 @@ Entrada: Cuatro binarios locales NVIDIA de la release solicitada y manifiesto de
 Salida: Informe HOST de identidad, archivos y huellas. El layout nativo identifica imagen, version y firma GA10x dentro del ELF64 RISC-V.
 Depende de: GPU / NVIDIA / Lectura MMIO (plan).
 Aceptacion: Cuatro archivos verificados para 570.144 y 615.78.08. El layout 615.78.08 coteja la version interna y rechaza cabecera truncada, version distinta y secciones solapadas.
-Pendiente: Construir los metadatos y colas DMA, y verificar respuesta del GSP nativo con 615.78.08.
+Pendiente: Construir argumentos LIBOS y WPR y verificar respuesta del GSP nativo con 615.78.08.
 
 ## tools/host/gpu/NVIDIA/radix3.py
 
@@ -1960,4 +1971,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-176 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+177 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

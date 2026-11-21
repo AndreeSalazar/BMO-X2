@@ -65,8 +65,8 @@ def main():
     if args.amdvi_guest_dma and not args.amdvi_coexist:p.error('--amdvi-guest-dma requires --amdvi-coexist')
     if args.amdvi_storage and not args.amdvi_guest_dma:p.error('--amdvi-storage requires --amdvi-guest-dma')
     if args.amdvi_routed and not args.amdvi_storage:p.error('--amdvi-routed requires --amdvi-storage')
-    if args.amdvi_nvme and (not args.amdvi_storage or args.amdvi_routed):
-        p.error('--amdvi-nvme requires the root-bus --amdvi-storage layout')
+    if args.amdvi_nvme and (not args.amdvi_storage or (args.amdvi_routed and not args.amdvi_gsp_dma)):
+        p.error('--amdvi-nvme requires --amdvi-storage; the routed variant also requires --amdvi-gsp-dma')
     if args.amdvi_guest_nvme and not args.amdvi_nvme:
         p.error('--amdvi-guest-nvme requires --amdvi-nvme')
     if args.amdvi_guest_ahci and not args.amdvi_guest_nvme:
@@ -210,10 +210,10 @@ def main():
             flags+=['-DBMO_AMDVI_GSP_DMA','-DRMLUI_MEDIA','-DRMLUI_NATIVE','-DDESKTOP_DOOM',*nvidia_reader_flags]
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf',*flags,'-c',source,'-o',native_probe],'compile-amdvi-firmware')
         if args.amdvi_post:
-            post_budget=3072 if args.amdvi_gsp_dma else 2560 if args.amdvi_storage or args.storage_quiesce else 2048
+            post_budget=3168 if args.amdvi_gsp_dma else 2560 if args.amdvi_storage or args.storage_quiesce else 2048
             check_context_stage(llvm,native_probe,'amdvi_post',post_budget)
         if args.full_hd or args.amdvi_gsp_dma:
-            gop_budget=1024 if args.amdvi_gsp_dma else 1536 if args.storage_quiesce else 2048
+            gop_budget=928 if args.amdvi_gsp_dma else 1536 if args.storage_quiesce else 2048
             check_context_stage(llvm,native_probe,'gop_stage',gop_budget)
         if args.amdvi_guest_nvme:check_context_stage(llvm,native_probe,'nvme_guest',4096)
         relocations=subprocess.check_output([llvm/'llvm-objdump.exe','-r',native_probe],text=True)
@@ -273,6 +273,8 @@ def main():
     if args.nvidia_gsp_prepare and (not report['Cases'][0].get('GspDetachedDmaVerified') or
                                    not all(report['Cases'][i].get('GspStatusExportVerified') for i in (0,2))):
         raise ValueError('Missing Ring 0 detached DMA tree and Ring 3 status evidence')
+    if args.nvidia_gsp_prepare and not report['Cases'][0].get('GspQueuePermissionsVerified'):
+        raise ValueError('Missing Ring 0 GSP message queue evidence')
     if args.amdvi_probe and not all(case.get('AmdViMmioVerified') for case in report['Cases']):
         raise ValueError('Missing AMD-Vi MMIO evidence')
     if args.amdvi_post and not all(report['Cases'][i].get('AmdViPostVerified') for i in (0,2)):
@@ -303,8 +305,12 @@ def main():
     if args.amdvi_guest_ahci and (report['Cases'][0].get('AhciQueueOwner')!='Ring 0 guest' or
                                  not report['Cases'][0].get('GuestStorageHandoff')):
         raise ValueError('Missing guest-owned storage handoff and AHCI commands')
-    if args.amdvi_gsp_dma and not report['Cases'][0].get('GspDmaCoexistenceVerified'):
+    if args.amdvi_gsp_dma and not all(report['Cases'][0].get(field) for field in
+                                     ('GspDmaCoexistenceVerified','GspStatusQueueDmaWriteVerified',
+                                      'GspRmargsDmaWriteDenied')):
         raise ValueError('Missing prepared firmware DMA grant and revocation evidence')
+    if args.amdvi_gsp_dma and args.amdvi_routed and not report['Cases'][0].get('GspSiblingDmaDenied'):
+        raise ValueError('Missing isolation evidence for PCI function 29:00.1')
     if args.amdvi_routed and (not report['Cases'][0].get('RoutedDmaVerified') or
                              not report['Cases'][0].get('UnassignedRequesterBlocked')):
         raise ValueError('Missing translated DMA or default-deny evidence')

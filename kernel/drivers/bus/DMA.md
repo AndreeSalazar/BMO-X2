@@ -166,26 +166,32 @@ segmento 0 en orden BDF y deja los registros de cada funcion intactos.
 dominios. El escritorio arranca desde FAT32 y Ring 0 usa el arbol DMA
 preparado para el GSP como raiz del EDU virtual. Las otras entradas
 admitidas corresponden al xHCI, SATA AHCI y NVMe. Cada solicitante del
-bus raiz sin dominio concedido apunta a una raiz vacia.
+banco sin dominio concedido apunta a una raiz vacia. La variante
+`--amdvi-routed` usa las funciones PCIe 29:00.0 y 29:00.1 y cubre
+las entradas hasta 2fff. La funcion .1 repite una escritura testigo
+antes y despues de activar AMD-Vi para verificar su bloqueo.
 
 El banco coteja en RAM las 6606 paginas de solo lectura y luego lee por
 DMA una pagina de la imagen, una de la firma y una de Radix3. Un bufer
 de resultados del ensayo usa una entrada separada, fuera de esas IOVA.
 Ring 0 vuelve a bloquear el solicitante, invalida el dominio y la DTE
 y espera confirmacion de ambos comandos. QEMU observa fallos al intentar
-escribir en la imagen o leerla tras la revocacion. El teclado y el raton
+escribir en la imagen o leerla tras la revocacion. Ademas, el EDU
+escribe en la cola GSP de retorno y recibe un fallo sobre RMARGS.
+El teclado y el raton
 entregan informes antes y despues de retirar el acceso y los dos
 controladores de almacenamiento repiten sus lecturas.
 
 ```powershell
 python -B tools/desktop/rmlui/native/guest.py --desktop --usb both --amdvi-post
-python -B tools/desktop/rmlui/native/media.py <ABI_RUN> <GATO_COMPACTO_RUN> --usb both --nvidia-probe --amdvi-probe --amdvi-post --amdvi-coexist --amdvi-guest-dma --amdvi-storage --amdvi-nvme --amdvi-guest-nvme --amdvi-guest-ahci --nvidia-gsp-stage build/gpu/NVIDIA/ga10x-615.78.08 --nvidia-gsp-prepare --amdvi-gsp-dma
+python -B tools/desktop/rmlui/native/media.py <ABI_RUN> <GATO_COMPACTO_RUN> --usb both --nvidia-probe --amdvi-probe --amdvi-post --amdvi-coexist --amdvi-guest-dma --amdvi-storage --amdvi-routed --amdvi-nvme --amdvi-guest-nvme --amdvi-guest-ahci --nvidia-gsp-stage build/gpu/NVIDIA/ga10x-615.78.08 --nvidia-gsp-prepare --amdvi-gsp-dma
 ```
 
 En metal queda pendiente adjudicar los dominios a los BDF fisicos y
 verificar la propiedad de los controladores y sus reservas DMA. La
 respuesta del GSP requiere su propio ensayo en la RTX.
 [Evidencia de los cuatro dominios](../../../Reports/nvidia-gsp-dma-coexist-qemu-20261120.json).
+[Funciones PCIe en bus alto y colas del GSP](../../../Reports/nvidia-gsp-queues-routed-qemu-20261121.json).
 
 El puente del escritorio reserva cinco paginas contiguas de EfiLoaderData
 por debajo de 256 MiB y las entrega en los campos B8/C0 del contexto.

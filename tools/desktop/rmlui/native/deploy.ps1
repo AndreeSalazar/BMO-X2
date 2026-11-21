@@ -124,6 +124,10 @@ if ($gspStage) {
         -not $normal.GspStatusExportVerified -or -not $missing.GspStatusExportVerified)) {
         throw 'Falta comprobar las tablas DMA preparadas en RAM y el informe GSP.'
     }
+    if ($gspProof.queues -and (-not $gspProof.detached_dma -or -not $normal.GspQueuePermissionsVerified -or
+        $normal.GspQueuePagesVerified -ne 130)) {
+        throw 'Falta comprobar la reserva y los permisos DMA de RMARGS y GspMem.'
+    }
     $names+=$gspName
 }
 $names+=$bootFile
@@ -200,6 +204,8 @@ $record=[ordered]@{Schema=1;Evidence='HOST copy after QEMU FAT32 boot';Run=$proo
     NvidiaGspSample=$gspSample;
     NvidiaGspStage=$gspStage;
     NvidiaGspPrepare=[bool]$proof.nvidia_gsp_prepare;
+    NvidiaGspQueues=($gspStage -and [bool]$gspProof.queues);
+    PhysicalNvidiaGspResponseVerified=$false;
     BootFile=('\'+$bootFile.Replace('/','\'));ReportFile=('\'+$dataFolder.Replace('/','\')+'\'+$reportName);
     Note='USB HID fisico sigue pendiente; no cambia NVRAM ni archivos ajenos al candidato.'}
 $json=$record | ConvertTo-Json -Depth 8

@@ -4,17 +4,20 @@
 // Native desktop context. The snapshot follows the pre-EBS report buffer.
 #ifdef BMO_AMDVI_STORAGE
 #ifdef BMO_AMDVI_GSP_DMA
-#define AMDVI_POST_CODE 0x1b400
+#define AMDVI_POST_CODE 0x1b3a0
 #else
 #define AMDVI_POST_CODE 0x1b600
 #endif
+#ifdef BMO_AMDVI_NVME
+#define AMDVI_LAB_DATA_PAGES 31
+#else
+#define AMDVI_LAB_DATA_PAGES 18
+#endif
 #ifdef BMO_AMDVI_ROUTED
 #define AMDVI_LAB_TABLE_PAGES 96
-#define AMDVI_LAB_PAGES (18+AMDVI_LAB_TABLE_PAGES)
-#elif defined(BMO_AMDVI_NVME)
-#define AMDVI_LAB_PAGES 31
+#define AMDVI_LAB_PAGES (AMDVI_LAB_DATA_PAGES+AMDVI_LAB_TABLE_PAGES)
 #else
-#define AMDVI_LAB_PAGES 18
+#define AMDVI_LAB_PAGES AMDVI_LAB_DATA_PAGES
 #endif
 #else
 #ifdef BMO_STORAGE_QUIESCE
@@ -39,7 +42,12 @@
 #define AMDVI_LAB_CONTROL_AFTER_STOP 0xb70
 #define AMDVI_LAB_EDU_RID 0xb78
 #define AMDVI_LAB_PRESENT_COUNT 0xb80
+#if defined(BMO_AMDVI_ROUTED) && defined(BMO_AMDVI_NVME)
+// Keep the inventory away from the NVMe and AHCI counters at 0xbc0.
+#define AMDVI_LAB_PRESENT_RIDS 0x850
+#else
 #define AMDVI_LAB_PRESENT_RIDS 0xb88
+#endif
 #define AMDVI_LAB_MAX_PRESENT 64
 #ifdef BMO_AMDVI_GUEST_NVME
 #define AMDVI_GUEST_NVME_CODE 0x1f000

@@ -10,7 +10,7 @@
 .set LAB_EDU_IOVA, 0xb000
 .set LAB_EDU_PAYLOAD, 0xa000
 #ifdef BMO_AMDVI_ROUTED
-.set LAB_TABLE_OFFSET, 0x12000
+.set LAB_TABLE_OFFSET, AMDVI_LAB_DATA_PAGES*4096
 .set LAB_TABLE_LENGTH, AMDVI_LAB_TABLE_PAGES-1
 #else
 .set LAB_TABLE_OFFSET, 0
@@ -82,7 +82,7 @@ amdvi_lab_entry:
     call .Llab_loader_data
     jc .Llab_reject
 #ifdef BMO_AMDVI_GSP_DMA
-    cmpl $3, GSP_POST_STATUS(%rbp)
+    cmpl $GSP_POST_READY, GSP_POST_STATUS(%rbp)
     jne .Llab_reject
     mov GSP_STAGE_BASE(%rbp), %rdi
     lea (GSP_STAGE_PAGES*4096)(%rdi), %rsi
@@ -169,7 +169,7 @@ amdvi_lab_entry:
     and $0x1005, %eax
     cmp $0x1005, %eax
     jne .Llab_unmap
-    lea 1(%r12), %rax
+    lea (LAB_TABLE_OFFSET+LAB_TABLE_LENGTH)(%r12), %rax
     cmp %rax, (%r14)
     jne .Llab_unmap
     movabs $LAB_RW, %r8
@@ -178,18 +178,18 @@ amdvi_lab_entry:
     jne .Llab_check_nvme_dte
     lea (LAB_AHCI_ROOT+0x403)(%r12), %rax
     or %r8, %rax
-    cmp %rax, 0x600(%r12)
+    cmp %rax, (LAB_TABLE_OFFSET+0x600)(%r12)
     jne .Llab_unmap
-    cmpq $3, 0x608(%r12)
+    cmpq $3, (LAB_TABLE_OFFSET+0x608)(%r12)
     jne .Llab_unmap
     jmp .Llab_call_disk
 .Llab_check_nvme_dte:
 #endif
     lea (LAB_NVME_ROOT+0x403)(%r12), %rax
     or %r8, %rax
-    cmp %rax, 0x900(%r12)
+    cmp %rax, (LAB_TABLE_OFFSET+0x900)(%r12)
     jne .Llab_unmap
-    cmpq $4, 0x908(%r12)
+    cmpq $4, (LAB_TABLE_OFFSET+0x908)(%r12)
     jne .Llab_unmap
 #ifdef BMO_AMDVI_GUEST_AHCI
 .Llab_call_disk:
@@ -218,10 +218,13 @@ amdvi_lab_entry:
     # at an empty level-2 table in the reserved scratch range.
 #ifdef BMO_AMDVI_GSP_DMA
     lea 0x2403(%r12), %rax
-    mov $256, %ecx
 #else
     lea 0x403(%r12), %rax
+#endif
+#ifdef BMO_AMDVI_ROUTED
     mov $(AMDVI_LAB_TABLE_PAGES*128), %ecx
+#else
+    mov $256, %ecx
 #endif
     or %r8, %rax
 .Llab_deny_dte:
@@ -310,8 +313,8 @@ amdvi_lab_entry:
     # Five pages at distinct IOVAs for admin SQ/CQ, I/O SQ/CQ and data.
     lea (LAB_NVME_ROOT+0x403)(%r12), %rax
     or %r8, %rax
-    mov %rax, 0x900(%r12)        # 00:09.0, domain 4.
-    movq $4, 0x908(%r12)
+    mov %rax, (LAB_TABLE_OFFSET+0x900)(%r12) # 00:09.0, domain 4.
+    movq $4, (LAB_TABLE_OFFSET+0x908)(%r12)
     lea LAB_NVME_IOVA(%r12), %rdi
     lea LAB_NVME_BACKING(%r12), %r10
     mov %rdi, %rsi
@@ -403,8 +406,15 @@ amdvi_lab_entry:
     lea 0x2403(%r12), %rax
     movabs $LAB_RW, %r8
     or %r8, %rax
+#ifdef BMO_AMDVI_ROUTED
+    mov AMDVI_LAB_EDU_RID(%rbp), %esi
+    shl $5, %esi
+    mov %rax, LAB_TABLE_OFFSET(%r12,%rsi)
+    movq $0, (LAB_TABLE_OFFSET+8)(%r12,%rsi)
+#else
     mov %rax, 0x400(%r12)
     movq $0, 0x408(%r12)
+#endif
     movabs $0x7ffffffffffff003, %rdx # All IOVAs, including cached page-table entries.
 #else
     lea LAB_EDU_IOVA(%r12), %rdx
@@ -418,7 +428,12 @@ amdvi_lab_entry:
     call .Llab_publish
     jc .Llab_unmap               # Keep the reservation pinned on failure.
 #ifdef BMO_AMDVI_GSP_DMA
+#ifdef BMO_AMDVI_ROUTED
+    movabs $0x2000000000000000, %rax
+    or AMDVI_LAB_EDU_RID(%rbp), %rax
+#else
     movabs $0x2000000000000020, %rax
+#endif
     xor %edx, %edx
     call .Llab_publish
     jc .Llab_unmap
@@ -560,7 +575,12 @@ amdvi_lab_entry:
     inc %r8d
     cmp $0x11e81234, %eax
     jne .Llab_class
+#ifdef BMO_AMDVI_GSP_DMA
+    # The unassigned function on the same slot is checked for BME below.
+    cmp $0x80290100, %r10d
+#else
     cmp $0x80002000, %r10d        # Unassigned EDU witness at 00:04.0.
+#endif
     je .Llab_class
     # Obtain the BDF from PCI enumeration, never from the test mailbox.
     mov %r10d, %eax
@@ -621,8 +641,13 @@ amdvi_lab_entry:
 #ifdef BMO_AMDVI_ROUTED
     cmp $0x81000000, %r10d
     jne .Llab_scan
+#ifdef BMO_AMDVI_GSP_DMA
+    cmp $0x2900, %r11d
+    jne .Llab_pci_bad
+#else
     test %r11d, %r11d
     jz .Llab_pci_bad
+#endif
     mov %r11, AMDVI_LAB_EDU_RID(%rbp)
     mov %r8d, AMDVI_LAB_PRESENT_COUNT(%rbp)
 #else

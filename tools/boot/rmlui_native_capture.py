@@ -12,9 +12,11 @@ def verify_gsp_reservation(memory, context, expected, case):
     base, length, status, prepared, firmware, signature = struct.unpack(
         '<QQIIQQ', memory(context+0x800,40,'gsp-handoff'))
     detached = expected.get('detached_dma', False)
+    queues = expected.get('queues', False)
     radix, dma_root = struct.unpack('<QQ', memory(context+0x828,16,'gsp-dma-handoff')) if detached else (0,0)
+    rmargs, = struct.unpack('<Q',memory(context+0x838,8,'gsp-rmargs')) if queues else (0,)
     if case == 'amdvi-missing':
-        if (base, length, status, prepared, firmware, signature, radix, dma_root) != (0,0,1,0,0,0,0,0):
+        if (base, length, status, prepared, firmware, signature, radix, dma_root, rmargs) != (0,0,1,0,0,0,0,0,0):
             raise ValueError('Missing GSP file left a reservation')
         return {}
     reserved = (length+4096)//4096*4096
@@ -24,6 +26,13 @@ def verify_gsp_reservation(memory, context, expected, case):
         payload_pages = image_pages+1+directory_pages
         tree_pages = 1+(payload_pages+511)//512
         reserved = max(reserved,(payload_pages+tree_pages)*4096)
+    if queues:
+        from host.gpu.NVIDIA.gsp_args import GSPMEM_PAGES, encode
+
+        queue_iova = 0x0a000000
+        queue_pages = 1+GSPMEM_PAGES
+        queue_bytes = queue_pages*4096
+        reserved += queue_bytes+4096
     if (status!=5 or length!=expected['bytes'] or not 0x100000<=base<=0x10000000-reserved
             or base%4096):
         raise ValueError('Invalid GSP reservation in the handoff')
@@ -44,7 +53,8 @@ def verify_gsp_reservation(memory, context, expected, case):
     if expected.get('prepare'):
         sections = expected['layout']['sections']
         size = sections['.fwimage']['bytes']
-        if (prepared,firmware,signature)!=(3 if detached else 2,base,base+size):
+        ready = 4 if queues else 3 if detached else 2
+        if (prepared,firmware,signature)!=(ready,base,base+size):
             raise ValueError('Ring 0 GSP preparation pointers or status differ')
         if (hashlib.sha256(image[:size]).hexdigest()!=sections['.fwimage']['sha256'] or
                 hashlib.sha256(image[size:size+4096]).hexdigest()!=sections['.fwsignature_ga10x']['sha256']):
@@ -75,11 +85,32 @@ def verify_gsp_reservation(memory, context, expected, case):
             for index in range(payload_pages):
                 struct.pack_into('<Q',tree,4096+index*8,(base+index*4096)|read|1)
             used = directory_end+len(tree)
+            if queues:
+                if rmargs != queue_iova or first_iova+directory_end>queue_iova:
+                    raise ValueError('GSP queue IOVA overlaps firmware or moved')
+                page_table = base+used+queue_bytes
+                write = 1<<62
+                struct.pack_into('<Q',tree,(queue_iova>>21)*8,page_table|read|write|0x201)
             if image[directory_end:used]!=tree:
                 raise ValueError('Unexpected mapping or permission in the detached GSP DMA tree')
             result.update(GspDetachedDmaVerified=True,GspRadix3Pages=directory_pages,
                           GspReadOnlyDmaPages=payload_pages,GspDmaTablePages=tree_pages,
                           GspRadix3SHA256=hashlib.sha256(directory).hexdigest())
+        if queues:
+            args = encode(rmargs,[rmargs+4096*index for index in range(1,queue_pages)])
+            if image[used:used+queue_bytes]!=args:
+                raise ValueError('Ring 0 RMARGS, GspMem or initial MSGQ bytes differ from HOST')
+            table = bytearray(4096)
+            for index in range(queue_pages):
+                permissions = read | (write if index>=2 else 0)
+                struct.pack_into('<Q',table,index*8,(base+used+index*4096)|permissions|1)
+            used += queue_bytes
+            if image[used:used+4096]!=table:
+                raise ValueError('Detached GSP queue permissions differ')
+            used += 4096
+            result.update(GspQueuePagesVerified=queue_pages,GspQueuePermissionsVerified=True,
+                          GspQueueReadOnlyPages=2,GspQueueWritablePages=queue_pages-2,
+                          GspQueueSHA256=hashlib.sha256(args).hexdigest())
         if any(image[used:]):
             raise ValueError('GSP reservation lost its zero padding')
         return result
@@ -203,10 +234,11 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
         if not observed:
             r=regs()
             observed='CPL=3' in r and 0x40000000<=register(r,'RIP')<0x40200000
+    # Software float rasterization under TCG can exceed 45 s. Both the
+    # phase and DIRECTOR snapshots are published after frame presentation.
+    frame_timeout=90
     def until(phase,accepted=0):
-        # Software float rasterization under TCG can exceed 45 s after hover
-        # and click invalidation. Still require the completed presented frame.
-        deadline=time.monotonic()+90
+        deadline=time.monotonic()+frame_timeout
         while time.monotonic()<deadline:
             log=serial.read_text(errors='replace') if serial.exists() else ''
             if 'BMO UI FAIL:' in log:raise ValueError(log[-1800:]+'\n'+regs()[:600])
@@ -245,7 +277,8 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
         gsp_manifest=json.loads(gsp_path.read_text(encoding='ascii'))
         amdvi_proof.update(verify_gsp_reservation(memory,context_address,gsp_manifest,case))
         if gsp_manifest.get('detached_dma'):
-            marker='GSP_PREP=1 0' if case=='amdvi-missing' else 'GSP_PREP=5 3'
+            ready = 4 if gsp_manifest.get('queues') else 3
+            marker='GSP_PREP=1 0' if case=='amdvi-missing' else f'GSP_PREP=5 {ready}'
             if marker not in serial.read_text(errors='replace').splitlines():
                 raise ValueError('Missing Ring 3 GSP status')
             amdvi_proof['GspStatusExportVerified']=True
@@ -464,7 +497,7 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
         director=symbols['director']
         if not 0x40400000<=director<=0x40e00000-8:raise ValueError('DIRECTOR symbol')
         def policy(expected):
-            deadline=time.monotonic()+40
+            deadline=time.monotonic()+(frame_timeout if uses_full_hd else 40)
             while time.monotonic()<deadline:
                 observe_ring3()
                 state=struct.unpack('<Q',memory(director-0x3c000000,8,'director-state'))[0]

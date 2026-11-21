@@ -67,7 +67,9 @@ def shutdown(machine, command, bar):
 
 def check_domain(machine, scratch):
     root, backing, iova = (scratch+off for off in (ROOT_OFFSET,BACKING_OFFSET,IOVA_OFFSET))
-    entry = struct.unpack('<4Q',machine.get_bytes(scratch+REQUESTER*32,32))
+    device_table_page_mask = ((1<<52)-1) & -PAGE
+    table = machine.read(AMDVI) & device_table_page_mask
+    entry = struct.unpack('<4Q',machine.get_bytes(table+REQUESTER*32,32))
     require(entry==(root|READ_WRITE|0x403,4,0,0), 'NVMe no tiene dominio exclusivo 4')
     expected = {}
     for page in range(5):

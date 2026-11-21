@@ -61,6 +61,7 @@ amdvi_coexist = amdvi_post and (ROOT / 'amdvi-coexist-probe.txt').is_file()
 amdvi_storage = amdvi_coexist and (ROOT / 'amdvi-storage.txt').is_file()
 amdvi_routed = amdvi_storage and (ROOT / 'amdvi-routed.txt').is_file()
 amdvi_nvme = amdvi_storage and (ROOT / 'amdvi-nvme.txt').is_file()
+amdvi_gsp_dma = amdvi_nvme and (ROOT / 'amdvi-gsp-dma.txt').is_file()
 dma_census = amdvi_post and (ROOT / 'dma-census-probe.txt').is_file()
 storage_state = dma_census and (ROOT / 'storage-state.txt').is_file()
 full_hd = storage_state and (ROOT / 'full-hd.txt').is_file()
@@ -270,9 +271,13 @@ def run(case):
         staging += ['-nic', 'none']
         if routed:
             staging += ['-device', 'pcie-root-port,id=dma-reserve,addr=07.0,chassis=7,slot=7,bus-reserve=39',
-                        '-device', 'pcie-root-port,id=dma-target,addr=08.0,chassis=8,slot=8',
-                        '-device', 'edu,id=bmo-edu,bus=dma-target',
-                        '-device', 'edu,id=bmo-edu-denied,addr=04.0']
+                        '-device', 'pcie-root-port,id=dma-target,addr=08.0,chassis=8,slot=8']
+            if amdvi_gsp_dma:
+                staging += ['-device', 'edu,id=bmo-edu,bus=dma-target,addr=00.0,multifunction=on',
+                            '-device', 'edu,id=bmo-edu-denied,bus=dma-target,addr=00.1']
+            else:
+                staging += ['-device', 'edu,id=bmo-edu,bus=dma-target',
+                            '-device', 'edu,id=bmo-edu-denied,addr=04.0']
         else:
             staging += ['-device', 'edu,id=bmo-edu,addr=04.0']
     if storage:
