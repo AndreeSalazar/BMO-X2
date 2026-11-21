@@ -55,6 +55,41 @@
     "backup": "build/CASM/run-rmlui-media-fc8cd912afe4/fat32-backups"
   },
   "host_tests_passed": 10,
+  "metal_boot": {
+    "source_time": "2026-11-20T20:24:38-05:00",
+    "bootlog": "nvidia-gsp-detached-dma-metal-20261120.bootlog.txt",
+    "bootlog_archive_sha256": "34af36e8a453046ad97bfcf1f4ace8d6e75b5b17b2155859458b57898761a235",
+    "fat32_bootlog_sha256": "7081f177c80932e1c419b699a9f19e53ee3a14c476d5e62cf987699f28842a91",
+    "photo_sha256": "4c854f8fae0757c4496972ee2ba14da14dbe762a9474a0d7792b0f78de0d3fd1",
+    "installed_files_match_receipt": true,
+    "gsp_stage_status_pre_ebs": 5,
+    "nvidia_pci_command_pre_ebs": "0003",
+    "amdvi_control_post_ebs": "0000220000000400",
+    "amdvi_device_table_post_ebs": "0000000000000000",
+    "amdvi_command_buffer_post_ebs": "08000001023F7000",
+    "amdvi_event_log_post_ebs": "08000001023F9000",
+    "amdvi_status_post_ebs": "0000000000000000",
+    "translation_enabled": false,
+    "command_buffer_enabled": false,
+    "event_log_enabled": false,
+    "ring3_photo_status": "NVIDIA / Radix3 listo / DMA pendiente",
+    "detached_preparation_observed": true
+  },
+  "host_ivrs_recheck": {
+    "table_sha256": "d2b4e55ee37be93d6e764136059f140e847368118d447c345964ef21471202ec",
+    "unit": "0000:00:00.2",
+    "preferred_ivhd": "11",
+    "matches_per_requester": 1,
+    "alias_reported_for_observed_requesters": false,
+    "requesters": {
+      "rtx": "0000:29:00.0",
+      "rtx_audio": "0000:29:00.1",
+      "xhci_hid": "0000:2b:00.3",
+      "xhci_other": "0000:03:00.0",
+      "sata": "0000:03:00.1",
+      "nvme": "0000:01:00.0"
+    }
+  },
   "physical_amdvi_activation_verified": false,
   "physical_gsp_started": false,
   "physical_gpu_render_verified": false
