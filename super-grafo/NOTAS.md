@@ -1670,7 +1670,7 @@ Comprueba el traspaso GSP, alinea imagen y firma, y prepara Radix3 y las colas D
 Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: Reserva de supervisor y mapa EFI final, unicamente en el perfil NVIDIA.
 Salida: Imagen, firma, Radix3, RMARGS, GspMem y arbol AMD-Vi provisional, con estado interno 4 exportado al escritorio.
-Depende de: GPU / NVIDIA / Firmware original de FAT32 a RAM (codigo), GPU / NVIDIA / Directorio Radix3 x86-64 (codigo), GPU / NVIDIA / Colas preparadas en Ring 0 (codigo), AMD-Vi / Arbol DMA de solo lectura (codigo).
+Depende de: GPU / NVIDIA / Firmware original de FAT32 a RAM (codigo), GPU / NVIDIA / Directorio Radix3 x86-64 (codigo), GPU / NVIDIA / Colas preparadas en Ring 0 (codigo), GPU / NVIDIA / Argumentos LIBOS 3 (codigo), AMD-Vi / Arbol DMA de solo lectura (codigo).
 Aceptacion: QEMU coteja ambas huellas, el directorio, todas las entradas AMD-Vi y la exclusion con archivo ausente. HOST rechaza reservas ajenas o cortas.
 Pendiente: Adjudicar las IOVA en METAL, integrar los argumentos LIBOS y arrancar el GSP.
 
@@ -1683,7 +1683,29 @@ Entrada: Reserva EfiLoaderData comprobada y arbol AMD-Vi separado del dispositiv
 Salida: Dos paginas de metadatos de solo lectura, dos colas con permiso de escritura y la hoja DMA.
 Depende de: HOST / Argumentos y colas GSP 615.78.08 (verificacion).
 Aceptacion: QEMU compara las 130 paginas contra HOST y prueba la escritura a la cola de retorno y el rechazo en RMARGS.
-Pendiente: Pasar la IOVA de RMARGS en LIBOS y recibir una respuesta de la RTX fisica.
+Pendiente: Recibir una respuesta de la RTX fisica en la cola MSGQ.
+
+## kernel/drivers/GPU/NVIDIA/gsp_libos.inc
+
+Prepara la tabla LIBOS 3 de GA10x y los ocho buffers de registro del firmware fijado.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: Reserva EfiLoaderData comprobada, IOVA de RMARGS y hoja DMA de las colas.
+Salida: IOVA de argumentos y 99 paginas con permisos DMA por region.
+Depende de: GPU / NVIDIA / Colas preparadas en Ring 0 (codigo), HOST / Referencia de argumentos LIBOS 3 (verificacion).
+Aceptacion: El codificador HOST coteja las 99 paginas. EDU en bus 29 escribe LOGINIT y recibe un rechazo en los argumentos.
+Pendiente: Entregar la IOVA de los argumentos al GSP tras adjudicar el dominio fisico y validar WPR.
+
+## tools/host/gpu/NVIDIA/gsp_libos.py
+
+Codifica por separado los argumentos, punteros y buffers de log del arranque GA10x.
+
+Estado: HOST. Anillo: host. Lenguaje: Python.
+Entrada: IOVA del bloque LIBOS e IOVA de RMARGS.
+Salida: Tabla de nueve argumentos seguida por ocho buffers de registro.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: Rechaza IOVA desalineadas, fuera de rango o solapadas. QEMU compara el resultado con Ring 0.
+Pendiente: Cotejar el primer registro escrito por el firmware fisico.
 
 ## kernel/drivers/GPU/NVIDIA/gsp_radix3.inc
 
@@ -1971,4 +1993,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-177 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+179 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

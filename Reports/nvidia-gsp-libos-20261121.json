@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "date": "2026-11-21",
+  "metal_boot": {
+    "run": "run-rmlui-media-c460a9026dfd",
+    "evidence": "GPULOG.TXT written before ExitBootServices and owner's observation of the desktop",
+    "local_boot_log_time": "12:04:06",
+    "boot_log_sha256": "e039e621d98d7fc25f8fc67118f13c45708fc596044e34ae02b7d07d721a0005",
+    "gpu": "0000:29:00.0 10de:2504",
+    "pci_command": "0003",
+    "gop_resolution": [1920, 1080],
+    "gsp_file_stage_status": 5,
+    "amdvi_control": "0000220000000400",
+    "amdvi_translation_at_recording": false,
+    "desktop_queue_preparation_observed_by_owner": true
+  },
+  "host_triangle_recheck": {
+    "environment": "Windows x86-64 with NVIDIA Vulkan driver",
+    "gpu": "NVIDIA GeForce RTX 3060 (10de:2504)",
+    "frames": 48,
+    "resolution": [480, 360],
+    "rgba8_sequence_sha256": "ca5f50159c57ff65020ccef53ae87c69fcd2615ef5bd00615aa20ef651fa413a",
+    "previous_sequence_matched": true
+  },
+  "qemu_libos": {
+    "run": "run-rmlui-media-a7b7759466b9",
+    "cases_passed": 3,
+    "firmware_release": "615.78.08",
+    "graphics_surrogate": "QEMU EDU at 0000:29:00.0",
+    "ring0_status": "GSP_PREP=5 5",
+    "reserved_pages": 6850,
+    "libos_iova": "0x0a082000",
+    "descriptor_read_only_pages": 1,
+    "writable_log_pages": 98,
+    "libos_sha256": "25f0d83a47614141315275468808cc136542d93520d21f0fe6dfc5d7e0fe404c",
+    "matched_host_encoder_byte_for_byte": true,
+    "libos_argument_write_denied": true,
+    "loginit_write_verified": true,
+    "dma_revoked": true,
+    "audio_surrogate_blocked": true,
+    "usb_hid_verified": true,
+    "ahci_reads": 2,
+    "nvme_reads": 2,
+    "deployable": false
+  },
+  "physical_gsp_response_verified": false,
+  "native_bmo_x2_triangle_verified": false
+}

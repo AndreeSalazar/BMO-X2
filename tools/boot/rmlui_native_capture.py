@@ -13,10 +13,12 @@ def verify_gsp_reservation(memory, context, expected, case):
         '<QQIIQQ', memory(context+0x800,40,'gsp-handoff'))
     detached = expected.get('detached_dma', False)
     queues = expected.get('queues', False)
+    libos = expected.get('libos', False)
     radix, dma_root = struct.unpack('<QQ', memory(context+0x828,16,'gsp-dma-handoff')) if detached else (0,0)
     rmargs, = struct.unpack('<Q',memory(context+0x838,8,'gsp-rmargs')) if queues else (0,)
+    libos_iova, = struct.unpack('<Q',memory(context+0x840,8,'gsp-libos')) if libos else (0,)
     if case == 'amdvi-missing':
-        if (base, length, status, prepared, firmware, signature, radix, dma_root, rmargs) != (0,0,1,0,0,0,0,0,0):
+        if (base, length, status, prepared, firmware, signature, radix, dma_root, rmargs, libos_iova) != (0,0,1,0,0,0,0,0,0,0):
             raise ValueError('Missing GSP file left a reservation')
         return {}
     reserved = (length+4096)//4096*4096
@@ -33,6 +35,12 @@ def verify_gsp_reservation(memory, context, expected, case):
         queue_pages = 1+GSPMEM_PAGES
         queue_bytes = queue_pages*4096
         reserved += queue_bytes+4096
+        libos_bytes = 0
+        if libos:
+            from host.gpu.NVIDIA.gsp_libos import LIBOS_PAGES, encode as encode_libos
+
+            libos_bytes = LIBOS_PAGES*4096
+            reserved += libos_bytes
     if (status!=5 or length!=expected['bytes'] or not 0x100000<=base<=0x10000000-reserved
             or base%4096):
         raise ValueError('Invalid GSP reservation in the handoff')
@@ -53,7 +61,7 @@ def verify_gsp_reservation(memory, context, expected, case):
     if expected.get('prepare'):
         sections = expected['layout']['sections']
         size = sections['.fwimage']['bytes']
-        ready = 4 if queues else 3 if detached else 2
+        ready = 5 if libos else 4 if queues else 3 if detached else 2
         if (prepared,firmware,signature)!=(ready,base,base+size):
             raise ValueError('Ring 0 GSP preparation pointers or status differ')
         if (hashlib.sha256(image[:size]).hexdigest()!=sections['.fwimage']['sha256'] or
@@ -88,7 +96,7 @@ def verify_gsp_reservation(memory, context, expected, case):
             if queues:
                 if rmargs != queue_iova or first_iova+directory_end>queue_iova:
                     raise ValueError('GSP queue IOVA overlaps firmware or moved')
-                page_table = base+used+queue_bytes
+                page_table = base+used+queue_bytes+libos_bytes
                 write = 1<<62
                 struct.pack_into('<Q',tree,(queue_iova>>21)*8,page_table|read|write|0x201)
             if image[directory_end:used]!=tree:
@@ -105,6 +113,18 @@ def verify_gsp_reservation(memory, context, expected, case):
                 permissions = read | (write if index>=2 else 0)
                 struct.pack_into('<Q',table,index*8,(base+used+index*4096)|permissions|1)
             used += queue_bytes
+            if libos:
+                if libos_iova != rmargs+queue_bytes:
+                    raise ValueError('LIBOS arguments are outside the reserved IOVA layout')
+                libos_image = encode_libos(libos_iova, rmargs)
+                if image[used:used+libos_bytes]!=libos_image:
+                    raise ValueError('LIBOS descriptors, log pointers or zero padding differ from HOST')
+                for index in range(LIBOS_PAGES):
+                    permissions = read | (write if index else 0)
+                    struct.pack_into('<Q',table,(queue_pages+index)*8,(base+used+index*4096)|permissions|1)
+                used += libos_bytes
+                result.update(GspLibosVerified=True,GspLibosPages=LIBOS_PAGES,
+                              GspLibosSHA256=hashlib.sha256(libos_image).hexdigest())
             if image[used:used+4096]!=table:
                 raise ValueError('Detached GSP queue permissions differ')
             used += 4096
@@ -277,7 +297,7 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
         gsp_manifest=json.loads(gsp_path.read_text(encoding='ascii'))
         amdvi_proof.update(verify_gsp_reservation(memory,context_address,gsp_manifest,case))
         if gsp_manifest.get('detached_dma'):
-            ready = 4 if gsp_manifest.get('queues') else 3
+            ready = 5 if gsp_manifest.get('libos') else 4 if gsp_manifest.get('queues') else 3
             marker='GSP_PREP=1 0' if case=='amdvi-missing' else f'GSP_PREP=5 {ready}'
             if marker not in serial.read_text(errors='replace').splitlines():
                 raise ValueError('Missing Ring 3 GSP status')

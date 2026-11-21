@@ -128,6 +128,10 @@ if ($gspStage) {
         $normal.GspQueuePagesVerified -ne 130)) {
         throw 'Falta comprobar la reserva y los permisos DMA de RMARGS y GspMem.'
     }
+    if ($gspProof.libos -and (-not $gspProof.queues -or -not $normal.GspLibosVerified -or
+        $normal.GspLibosPages -ne 99)) {
+        throw 'Falta comprobar LIBOS y los ocho registros de arranque GSP.'
+    }
     $names+=$gspName
 }
 $names+=$bootFile
@@ -205,6 +209,7 @@ $record=[ordered]@{Schema=1;Evidence='HOST copy after QEMU FAT32 boot';Run=$proo
     NvidiaGspStage=$gspStage;
     NvidiaGspPrepare=[bool]$proof.nvidia_gsp_prepare;
     NvidiaGspQueues=($gspStage -and [bool]$gspProof.queues);
+    NvidiaGspLibos=($gspStage -and [bool]$gspProof.libos);
     PhysicalNvidiaGspResponseVerified=$false;
     BootFile=('\'+$bootFile.Replace('/','\'));ReportFile=('\'+$dataFolder.Replace('/','\')+'\'+$reportName);
     Note='USB HID fisico sigue pendiente; no cambia NVRAM ni archivos ajenos al candidato.'}

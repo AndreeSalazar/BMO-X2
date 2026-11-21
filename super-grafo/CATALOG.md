@@ -157,6 +157,8 @@
 | [GPU / NVIDIA / Firmware original de FAT32 a RAM](../kernel/drivers/GPU/NVIDIA/gsp_stage.inc) | qemu | 0 | Lee el GSP original por UEFI, acota el tamano, coteja CRC32 y entrega la reserva al supervisor. |
 | [GPU / NVIDIA / Preparacion pos-UEFI](../kernel/drivers/GPU/NVIDIA/gsp_prepare.inc) | qemu | 0 | Comprueba el traspaso GSP, alinea imagen y firma, y prepara Radix3 y las colas DMA despues de UEFI. |
 | [GPU / NVIDIA / Colas preparadas en Ring 0](../kernel/drivers/GPU/NVIDIA/gsp_queues.inc) | qemu | 0 | Inicializa RMARGS, GspMem y MSGQ 2.0 en memoria de supervisor reservada. |
+| [GPU / NVIDIA / Argumentos LIBOS 3](../kernel/drivers/GPU/NVIDIA/gsp_libos.inc) | qemu | 0 | Prepara la tabla LIBOS 3 de GA10x y los ocho buffers de registro del firmware fijado. |
+| [HOST / Referencia de argumentos LIBOS 3](../tools/host/gpu/NVIDIA/gsp_libos.py) | host | host | Codifica por separado los argumentos, punteros y buffers de log del arranque GA10x. |
 | [GPU / NVIDIA / Directorio Radix3 x86-64](../kernel/drivers/GPU/NVIDIA/gsp_radix3.inc) | qemu | 0 | Construye el directorio de tres niveles para la imagen GSP con IOVA contiguas. |
 | [HOST / Empaquetado opcional NVIDIA](../tools/host/gpu/NVIDIA/bundle.py) | host | host | Coteja el firmware, limita su geometria y entrega el archivo y opciones de compilacion al empaquetador opcional. |
 | [HOST / Firmware NVIDIA GA10x](../tools/host/gpu/NVIDIA/firmware.py) | host | host | Comprueba el conjunto original de una release GSP, por longitud y huella de referencia. |
@@ -443,6 +445,9 @@
 | nvidia-gsp-ring0-prepare | nvidia-gsp-ring0-radix3 | codigo |
 | nvidia-gsp-ring0-prepare | nvidia-gsp-queues-native | codigo |
 | nvidia-gsp-queues-native | nvidia-gsp-args-host | verificacion |
+| nvidia-gsp-ring0-prepare | nvidia-gsp-libos-native | codigo |
+| nvidia-gsp-libos-native | nvidia-gsp-queues-native | codigo |
+| nvidia-gsp-libos-native | nvidia-gsp-libos-host | verificacion |
 | nvidia-gsp-ring0-prepare | amdvi-stage-read-only | codigo |
 | nvidia-gsp-ring0-radix3 | nvidia-gsp-radix3-host | verificacion |
 | nvidia-gsp-host-bundle | nvidia-gsp-firmware-host | codigo |

@@ -406,11 +406,10 @@ privada de Ring 0 tras ExitBootServices. La rutina vuelve a comprobar
 la reserva EfiLoaderData y coloca `.fwimage` y la firma GA10x en limites
 de pagina de la misma reserva. Ring 0 construye las 15 paginas Radix3
 y 14 paginas AMD-Vi para exponer imagen, firma y directorio como solo
-lectura. Luego prepara RMARGS y GspMem e instala otra hoja AMD-Vi para
-las colas. La reserva pasa de 6620 a 6751 paginas (524 KiB adicionales).
-Las tablas AMD-Vi quedan fuera de las IOVA de la GPU. El supervisor
-publica estado 4 y el pie del escritorio indica **NVIDIA / Colas GSP
-listas / DMA pendiente**. Las tablas quedan en RAM hasta la adjudicacion
+lectura. Luego prepara RMARGS, GspMem y LIBOS en una hoja AMD-Vi
+compartida. Las tablas AMD-Vi quedan fuera de las IOVA de la GPU.
+El supervisor publica estado 5 y el pie del escritorio indica
+**NVIDIA / LIBOS y colas GSP listos / DMA pendiente**. Las tablas quedan en RAM hasta la adjudicacion
 del dominio. El indice 6 del diagnostico AMD-Vi entrega los estados de
 archivo y preparacion a Ring 3.
 
@@ -496,11 +495,21 @@ RMARGS y las 129 paginas GspMem que ahora inicializa Ring 0. QEMU
 coteja todos sus bytes y verifica la hoja DMA. RMARGS y la tabla de
 paginas son de solo lectura, y ambas colas admiten escritura. La cola
 CPU a GSP recibe la cabecera MSGQ 2.0 y la de retorno queda a cero
-para que el GSP la inicialice. Todavia faltan LIBOS, la asignacion
-DMA fisica y el intercambio de mensajes en la RTX.
+para que el GSP la inicialice.
 [Codificador HOST](../tools/host/gpu/NVIDIA/gsp_args.py).
 [Estructura RMARGS](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/inc/kernel/gpu/gsp/gsp_init_args.h).
 [Formato MSGQ 2.0](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/inc/libraries/msgq/msgq_priv.h).
+
+El perfil preparado anade 99 paginas para LIBOS 3. Una pagina de
+solo lectura contiene las ocho descripciones de log y RMARGS. Las
+98 paginas de log admiten DMA de lectura y escritura. La reserva
+total llega a 6850 paginas y reutiliza la hoja DMA de las colas.
+El estado 5 indica que Ring 0 publico la IOVA de LIBOS. El primer
+resultado de la RTX requiere adjudicar el dominio real, preparar
+WPR y recibir la confirmacion del firmware antes del trabajo 3D.
+[Seleccion de logs y arranque de NVIDIA 615.78.08](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c).
+[Formato de argumentos LIBOS](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/common/uproc/os/common/include/libos_init_args.h).
+[Registro METAL, referencia Vulkan y ensayo LIBOS en QEMU](../Reports/nvidia-gsp-libos-20261121.json).
 
 La tabla ACPI IVRS del equipo tiene 208 B y describe tanto
 `0000:29:00.0` (RTX) como `0000:29:00.1` (audio) bajo la unidad

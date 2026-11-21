@@ -2634,7 +2634,42 @@
       "entrada": "Reserva EfiLoaderData comprobada y arbol AMD-Vi separado del dispositivo.",
       "salida": "Dos paginas de metadatos de solo lectura, dos colas con permiso de escritura y la hoja DMA.",
       "aceptacion": "QEMU compara las 130 paginas contra HOST y prueba la escritura a la cola de retorno y el rechazo en RMARGS.",
-      "falta": "Pasar la IOVA de RMARGS en LIBOS y recibir una respuesta de la RTX fisica."
+      "falta": "Recibir una respuesta de la RTX fisica en la cola MSGQ."
+    },
+    {
+      "id": "nvidia-gsp-libos-native",
+      "titulo": "GPU / NVIDIA / Argumentos LIBOS 3",
+      "ruta": "kernel/drivers/GPU/NVIDIA/gsp_libos.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [
+        11200,
+        3750
+      ],
+      "que": "Prepara la tabla LIBOS 3 de GA10x y los ocho buffers de registro del firmware fijado.",
+      "entrada": "Reserva EfiLoaderData comprobada, IOVA de RMARGS y hoja DMA de las colas.",
+      "salida": "IOVA de argumentos y 99 paginas con permisos DMA por region.",
+      "aceptacion": "El codificador HOST coteja las 99 paginas. EDU en bus 29 escribe LOGINIT y recibe un rechazo en los argumentos.",
+      "falta": "Entregar la IOVA de los argumentos al GSP tras adjudicar el dominio fisico y validar WPR."
+    },
+    {
+      "id": "nvidia-gsp-libos-host",
+      "titulo": "HOST / Referencia de argumentos LIBOS 3",
+      "ruta": "tools/host/gpu/NVIDIA/gsp_libos.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [
+        11200,
+        4600
+      ],
+      "que": "Codifica por separado los argumentos, punteros y buffers de log del arranque GA10x.",
+      "entrada": "IOVA del bloque LIBOS e IOVA de RMARGS.",
+      "salida": "Tabla de nueve argumentos seguida por ocho buffers de registro.",
+      "aceptacion": "Rechaza IOVA desalineadas, fuera de rango o solapadas. QEMU compara el resultado con Ring 0.",
+      "falta": "Cotejar el primer registro escrito por el firmware fisico."
     },
     {
       "id": "nvidia-gsp-ring0-radix3",
@@ -4342,6 +4377,21 @@
     {
       "de": "nvidia-gsp-queues-native",
       "a": "nvidia-gsp-args-host",
+      "clase": "verificacion"
+    },
+    {
+      "de": "nvidia-gsp-ring0-prepare",
+      "a": "nvidia-gsp-libos-native",
+      "clase": "codigo"
+    },
+    {
+      "de": "nvidia-gsp-libos-native",
+      "a": "nvidia-gsp-queues-native",
+      "clase": "codigo"
+    },
+    {
+      "de": "nvidia-gsp-libos-native",
+      "a": "nvidia-gsp-libos-host",
       "clase": "verificacion"
     },
     {

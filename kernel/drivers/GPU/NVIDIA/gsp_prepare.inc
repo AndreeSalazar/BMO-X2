@@ -98,6 +98,9 @@ gsp_prepare_begin:
 #ifdef BMO_NVIDIA_GSP_QUEUES
     call nvidia_gsp_init_queues
 #endif
+#ifdef BMO_NVIDIA_GSP_LIBOS
+    call nvidia_gsp_init_libos
+#endif
     movl $GSP_POST_READY, GSP_POST_STATUS(%rbp)
     ret
 
@@ -105,6 +108,9 @@ gsp_prepare_begin:
 #include "../../bus/amdvi/stage_read_only.inc"
 #ifdef BMO_NVIDIA_GSP_QUEUES
 #include "gsp_queues.inc"
+#endif
+#ifdef BMO_NVIDIA_GSP_LIBOS
+#include "gsp_libos.inc"
 #endif
 .globl gsp_prepare_end
 gsp_prepare_end:

@@ -403,6 +403,20 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
                 require(machine.get_bytes(queue_base,len(data))==before_args,
                         'El DMA modifico RMARGS de solo lectura')
                 gsp_proof.update(GspStatusQueueDmaWriteVerified=True,GspRmargsDmaWriteDenied=True)
+                libos = machine.read(context+0x840)
+                if libos:
+                    libos_ram = queue_base+libos-rmargs
+                    before_libos = machine.get_bytes(libos_ram,len(data))
+                    run_transfer(machine,command,bar,EDU_BUFFER,libos,len(data),3)
+                    tail,_ = faults(machine,tail,libos,len(data),event_log=events,
+                                    requester=reported_requester(tail,edu))
+                    require(machine.get_bytes(libos_ram,len(data))==before_libos,
+                            'El DMA modifico los argumentos de LIBOS')
+                    run_transfer(machine,command,bar,EDU_BUFFER,libos+PAGE,len(data),3)
+                    require(machine.get_bytes(libos_ram+PAGE,len(data))==data
+                            and machine.read(AMDVI+0x2018)==tail,
+                            'El DMA no pudo escribir en LOGINIT')
+                    gsp_proof.update(GspLibosArgumentWriteDenied=True,GspLibosLogWriteVerified=True)
         run_transfer(machine, command, bar, EDU_BUFFER, outside, len(data), 3)
         fault_rid = reported_requester(tail,edu)
         tail, _ = faults(machine, tail, outside, len(data), event_log=events, requester=fault_rid)

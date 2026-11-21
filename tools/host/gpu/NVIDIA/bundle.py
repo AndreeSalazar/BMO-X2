@@ -18,7 +18,7 @@ def stage_firmware(run, directory, prepare):
         if (not image['bytes'] or image['bytes']%4096 or signature['bytes']!=4096
                 or signature['offset']<image['offset']+image['bytes']):
             raise ValueError('The NVIDIA preparation requires ordered whole-page slices')
-        flags += ['-DBMO_NVIDIA_GSP_PREPARE','-DBMO_NVIDIA_GSP_QUEUES',
+        flags += ['-DBMO_NVIDIA_GSP_PREPARE','-DBMO_NVIDIA_GSP_QUEUES','-DBMO_NVIDIA_GSP_LIBOS',
                   f'-DBMO_GSP_IMAGE_OFFSET={image["offset"]}',
                   f'-DBMO_GSP_IMAGE_BYTES={image["bytes"]}',
                   f'-DBMO_GSP_SIGNATURE_OFFSET={signature["offset"]}']
@@ -27,6 +27,6 @@ def stage_firmware(run, directory, prepare):
     corrupted[len(firmware)//2] ^= 1
     (run/'corrupted-gsp.bin').write_bytes(corrupted)
     metadata = dict(release=NATIVE_RELEASE,bytes=len(firmware),sha256=info['sha256'],
-                    crc32=crc,layout=sections,prepare=prepare,detached_dma=prepare,queues=prepare)
+                    crc32=crc,layout=sections,prepare=prepare,detached_dma=prepare,queues=prepare,libos=prepare)
     (run/'nvidia-gsp-stage.json').write_text(json.dumps(metadata)+'\n',encoding='ascii')
     return firmware,flags

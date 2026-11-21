@@ -257,7 +257,8 @@ extern "C" void bmo_main() {
         snprintf(amdvi_line,sizeof(amdvi_line),"GSP_PREP=%u %u\n",file_status,dma_status);
         log(amdvi_line);
         hardware_report+="<br/>";
-        if(dma_status==4)hardware_report+="NVIDIA / Colas GSP listas / DMA pendiente";
+        if(dma_status==5)hardware_report+="NVIDIA / LIBOS y colas GSP listos / DMA pendiente";
+        else if(dma_status==4)hardware_report+="NVIDIA / Colas GSP listas / DMA pendiente";
         else if(dma_status==3)hardware_report+="NVIDIA / Radix3 listo / DMA pendiente";
         else if(file_status==5)hardware_report+="NVIDIA / No se preparo Radix3";
         else hardware_report+="NVIDIA / Firmware no disponible";
