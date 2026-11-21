@@ -2579,8 +2579,26 @@
       "que": "Captura tres registros NVIDIA de solo lectura en el perfil UEFI dedicado.",
       "entrada": "GA106 10DE:2504 autenticada por identidad PCI y PMC, BAR0 acotada y bus mastering desactivado.",
       "salida": "GSP1 en GPULOG.TXT, con CPUCTL RISC-V y buzones 0 de GSP y SEC2.",
-      "aceptacion": "Ejecutar casos positivos y rechazos con protocolo EFI simulado, omitir las lecturas en VGA QEMU y verificar el arranque FAT32.",
-      "falta": "Leer la captura real y acreditar la respuesta a un arranque GSP con DMA acotado."
+      "aceptacion": "HOST y QEMU prueban restricciones; METAL obtuvo los tres registros 00000010,00000000,00000000 previos al arranque del GSP.",
+      "falta": "Acreditar la respuesta a un arranque GSP con DMA acotado."
+    },
+    {
+      "id": "nvidia-gsp-stage",
+      "titulo": "GPU / NVIDIA / Firmware original de FAT32 a RAM",
+      "ruta": "kernel/drivers/GPU/NVIDIA/gsp_stage.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [
+        10550,
+        4050
+      ],
+      "que": "Lee el GSP original por UEFI, acota el tamano, coteja CRC32 y entrega la reserva al supervisor.",
+      "entrada": "GSP.BIN 615.78.08 previamente verificado en HOST; protocolo EFI de archivos y servicios de memoria.",
+      "salida": "Base y longitud del firmware en EfiLoaderData, junto al resultado GSPLOAD del arranque.",
+      "aceptacion": "Comparar SHA-256 del firmware residente en QEMU, mapa EFI, mapeo de supervisor y rechazo de archivo ausente o alterado.",
+      "falta": "Confirmar la reserva en METAL y programar la carga al motor con dominio DMA propio."
     },
     {
       "id": "nvidia-gsp-firmware-host",
@@ -4177,6 +4195,11 @@
       "de": "nvidia-gsp-boot-sample",
       "a": "nvidia-mmio-probe",
       "clase": "codigo"
+    },
+    {
+      "de": "nvidia-gsp-stage",
+      "a": "nvidia-gsp-firmware-host",
+      "clase": "verificacion"
     },
     {
       "de": "nvidia-gsp-firmware-host",

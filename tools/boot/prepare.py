@@ -18,7 +18,10 @@ parser.add_argument('--profile',choices=['hello','flappy-preview'],default='hell
 parser.add_argument('--bmo-x2-folder', action='store_true', help='Use a separate payload folder in the virtual image')
 parser.add_argument('--desktop', type=Path, help='Add the desktop SBEF to the BMO-X2 folder')
 parser.add_argument('--native-ui',action='store_true',help='Explicit large UI profile in BMO-X2/DESKTOP')
+parser.add_argument('--native-case', choices=['external-permissions', 'amdvi-missing'],
+                    help='Keep the native desktop case on a separate virtual disk')
 parser.add_argument('--nvidia-probe', action='store_true', help='Place the native UI candidate in BMO-X2/GPU')
+parser.add_argument('--gsp-firmware', type=Path, help='Add the GSP container to the NVIDIA virtual disk')
 parser.add_argument('--ultra-j-action', type=Path, help='Add ACTION.UJB alongside the desktop SBEF')
 args = parser.parse_args()
 if args.bmo_x2_folder and (args.profile != 'hello' or args.caso != 'normal'):
@@ -26,14 +29,16 @@ if args.bmo_x2_folder and (args.profile != 'hello' or args.caso != 'normal'):
 if args.desktop and not args.bmo_x2_folder:
     parser.error('--desktop requires --bmo-x2-folder')
 if args.native_ui and not args.desktop:parser.error('--native-ui requires --desktop')
+if args.native_case and not args.native_ui:parser.error('--native-case requires --native-ui')
 if args.nvidia_probe and not args.native_ui:parser.error('--nvidia-probe requires --native-ui')
+if args.gsp_firmware and not args.nvidia_probe:parser.error('--gsp-firmware requires --nvidia-probe')
 if args.ultra_j_action and not args.desktop:
     parser.error('--ultra-j-action requires --desktop')
 root = workspace(args.workspace)
 build = root / 'build'
 if args.profile=='flappy-preview' and args.caso!='normal':raise ValueError('Visual preview uses only the normal virtual image case')
 source = build / 'disco-fat32-gpt.img'
-output = build / f'puente-{args.caso}.img'
+output = build / f'puente-{args.native_case or args.caso}.img'
 if not source.resolve().is_relative_to(build.resolve()) or not output.resolve().is_relative_to(build.resolve()):
     raise ValueError('Las imagenes deben estar dentro de build/')
 shutil.copyfile(source, output)
@@ -186,6 +191,17 @@ with output.open('r+b') as disk:
         write(cluster_offset(action_cluster), action.ljust(cluster_bytes, b'\0'))
         slot = next(i for i in range(0, len(directory), 32) if directory[i] == 0)
         directory[slot:slot+32] = entry(b'ACTION  UJB', 0x20, action_cluster, len(action))
+    if args.gsp_firmware:
+        source_bin = args.gsp_firmware.resolve()
+        if not source_bin.is_relative_to(root.resolve()) or not 0 < source_bin.stat().st_size <= 32*1024*1024:
+            raise ValueError('GSP de prueba fuera del run o de su limite de 32 MiB')
+        firmware = source_bin.read_bytes()
+        firmware_chain = allocate((len(firmware) + cluster_bytes - 1) // cluster_bytes)
+        for index, cluster in enumerate(firmware_chain):
+            data = firmware[index*cluster_bytes:(index+1)*cluster_bytes]
+            write(cluster_offset(cluster), data.ljust(cluster_bytes, b'\0'))
+        slot = next(i for i in range(0, len(directory), 32) if directory[i] == 0)
+        directory[slot:slot+32] = entry(b'GSP     BIN', 0x20, firmware_chain[0], len(firmware))
     write(metal_offset, directory)
 
     efi_dir, boot_dir = allocate(2)

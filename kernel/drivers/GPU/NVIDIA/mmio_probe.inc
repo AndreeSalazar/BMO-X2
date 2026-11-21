@@ -97,7 +97,7 @@ nvidia_mmio_probe:
     jb .Lmmio_finish
     shr $32, %rdx
     jnz .Lmmio_finish
-    lea (0x800+report_bar0_len-report_template)(%rbp), %rdi
+    lea (BMO_BOOT_REPORT_AREA+report_bar0_len-report_template)(%rbp), %rdi
     call report_hex32
 
     mov $4, %ebx
@@ -145,7 +145,7 @@ nvidia_mmio_probe:
 
     mov $6, %ebx
     mov 120(%rsp), %eax
-    lea (0x800+report_pmc_boot0-report_template)(%rbp), %rdi
+    lea (BMO_BOOT_REPORT_AREA+report_pmc_boot0-report_template)(%rbp), %rdi
     call report_hex32
     shr $20, %eax
     and $0x1ff, %eax
@@ -172,7 +172,7 @@ nvidia_mmio_probe:
     call *0x48(%r14)
 .Lmmio_report:
     mov %ebx, %eax
-    lea (0x800+report_mmio_status-report_template)(%rbp), %rdi
+    lea (BMO_BOOT_REPORT_AREA+report_mmio_status-report_template)(%rbp), %rdi
     call report_hex32
     add $128, %rsp
     pop %rdi

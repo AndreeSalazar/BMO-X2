@@ -17,12 +17,12 @@ nvidia_pci_observe:
 
     # Keep the first match in BDF order. Preserve the inventory cursor.
     push %rcx
-    lea (0x800+report_nvidia_id-report_template)(%rbp), %rdi
+    lea (BMO_BOOT_REPORT_AREA+report_nvidia_id-report_template)(%rbp), %rdi
     call report_hex32
     mov (%rsp), %eax
     shr $8, %eax
     and $0xffff, %eax
-    lea (0x800+report_nvidia_bdf-report_template)(%rbp), %rdi
+    lea (BMO_BOOT_REPORT_AREA+report_nvidia_bdf-report_template)(%rbp), %rdi
     call report_hex32
     mov (%rsp), %eax
     sub $4, %eax
@@ -31,7 +31,7 @@ nvidia_pci_observe:
     add $4, %dx
     xor %eax, %eax
     in %dx, %ax
-    lea (0x800+report_nvidia_cmd-report_template)(%rbp), %rdi
+    lea (BMO_BOOT_REPORT_AREA+report_nvidia_cmd-report_template)(%rbp), %rdi
     call report_hex32
     mov $0xcf8, %dx
     pop %rcx
@@ -55,10 +55,10 @@ nvidia_pci_observe:
     mov %esi, %eax
     shr $8, %eax
     and $0xffff, %eax
-    lea (0x800+report_gpu_resource_bdf-report_template)(%rbp), %rdi
+    lea (BMO_BOOT_REPORT_AREA+report_gpu_resource_bdf-report_template)(%rbp), %rdi
     call report_hex32
 
-    lea (0x800+report_gpu_bars-report_template)(%rbp), %rdi
+    lea (BMO_BOOT_REPORT_AREA+report_gpu_bars-report_template)(%rbp), %rdi
     add $8, %esi
 .Lread_bar:
     mov %esi, %eax
@@ -75,7 +75,7 @@ nvidia_pci_observe:
 
     lea 4(%rsi), %eax
     call .Lread_config32
-    lea (0x800+report_gpu_subsys-report_template)(%rbp), %rdi
+    lea (BMO_BOOT_REPORT_AREA+report_gpu_subsys-report_template)(%rbp), %rdi
     call report_hex32
     mov $0xcf8, %dx
     pop %rsi
@@ -92,10 +92,10 @@ nvidia_pci_observe:
     ret
 
 nvidia_pci_summary:
-    lea (0x800+report_gpu_display-report_template)(%rbp), %rdi
+    lea (BMO_BOOT_REPORT_AREA+report_gpu_display-report_template)(%rbp), %rdi
     mov %r10d, %eax
     call report_hex32
-    lea (0x800+report_nvidia_count-report_template)(%rbp), %rdi
+    lea (BMO_BOOT_REPORT_AREA+report_nvidia_count-report_template)(%rbp), %rdi
     mov %r11d, %eax
     jmp report_hex32
 

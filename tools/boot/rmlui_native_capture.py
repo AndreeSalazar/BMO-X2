@@ -7,6 +7,36 @@ import time
 from cpu_config import register
 from desktop_session_capture import verify_external_rejection
 
+
+def verify_gsp_reservation(memory, context, run, case):
+    base, length, status = struct.unpack('<QQI', memory(context+0x800,20,'gsp-handoff'))
+    if case == 'amdvi-missing':
+        if (base, length, status) != (0, 0, 1):
+            raise ValueError('Missing GSP file left a reservation')
+        return {}
+    expected = json.loads((run/'nvidia-gsp-stage.json').read_text(encoding='ascii'))
+    reserved = (length+4096)//4096*4096
+    if (status!=5 or length!=expected['bytes'] or not 0x100000<=base<=0x10000000-reserved
+            or base%4096):
+        raise ValueError('Invalid GSP reservation in the handoff')
+    map_length, stride = struct.unpack('<Q8xQ', memory(context+0x50,24,'gsp-map-geometry'))
+    if not (40<=stride<=256 and 0<map_length<=65536 and map_length%stride==0):
+        raise ValueError('Invalid final EFI map')
+    memmap = memory(context+0x1000,map_length,'gsp-efi-map')
+    descriptors = (struct.unpack_from('<I4xQQQ',memmap,offset)
+                   for offset in range(0,len(memmap),stride))
+    if not any(kind==2 and start<=base and base+reserved<=start+pages*4096
+               for kind,start,_,pages in descriptors):
+        raise ValueError('GSP data is not reserved in the final EFI map')
+    for index in range(base>>21, ((base+reserved-1)>>21)+1):
+        pde, = struct.unpack('<Q', memory(context+0x15000+index*8,8,'gsp-identity-pde'))
+        if pde&0x85!=0x81 or pde&0x000fffffffe00000!=index<<21:
+            raise ValueError('GSP reservation is outside supervisor identity memory')
+    image = memory(base,reserved,'gsp-resident')
+    if (hashlib.sha256(image[:length]).hexdigest()!=expected['sha256'] or any(image[length:])):
+        raise ValueError('GSP resident bytes or final page padding differ')
+    return dict(GspResidentVerified=True,GspResidentBytes=length,GspReservedPages=reserved//4096)
+
 def verify_storage_state(machine, pci_tree, memory, context, serial, *, quiesce=None):
     ahci, nvme = 0x010601, 0x010802
     read = lambda address: int(machine.command('readl',address),16)
@@ -159,6 +189,8 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
     context=memory(context_address,0x30,'ui-context')
     if context[:8]!=b'METAL64!':raise ValueError('Native UI handoff signature')
     amdvi_proof={}
+    if (run/'nvidia-gsp-stage.json').is_file():
+        amdvi_proof.update(verify_gsp_reservation(memory,context_address,run,case))
     if full_hd_profile:
         pool,pages=struct.unpack('<QQ',memory(context_address+0x708,16,'native-ui-pool'))
         if (pool,pages)!=(0x04000000,4608):

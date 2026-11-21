@@ -342,6 +342,28 @@ entrada **BMO-X2 (con NVIDIA)** para producir la primera captura de METAL.
 [Control RISC-V](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/main/src/common/inc/swref/published/ampere/ga102/dev_riscv_pri.h).
 [Base MMIO de SEC2](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/main/src/common/inc/swref/published/ampere/ga102/dev_sec_pri.h).
 
+La primera captura METAL de este perfil obtuvo
+`GSP1=00000010,00000000,00000000`. El control RISC-V marca HALTED y
+ACTIVE_STAT a cero. Los buzones reportan cero antes de enviar una
+orden. PCI Command sigue en `0003` y AMD-Vi tiene la traduccion apagada.
+[Registro UEFI de la RTX](../Reports/nvidia-pci-metal-20261120-gsp-sample.bootlog.txt).
+
+El perfil `--nvidia-gsp-stage` agrega el original `GSP.BIN` de
+`615.78.08` en `A:\BMO-X2\GPU\`. El HOST coteja la huella fijada y
+valida las secciones ELF. UEFI lee exactamente 27 043 992 B, coteja
+CRC32 y reserva 6603 paginas `EfiLoaderData`. Entrega base, longitud
+y estado al supervisor. El coste de la reserva es 26 MiB redondeados.
+El paso de FAT32 a RAM precede a la carga del firmware en la GPU.
+
+El mismo perfil produce `GSPLOAD=00000005` tras una lectura correcta,
+`00000001` si falta el archivo, `00000002` si falla la reserva,
+`00000003` si falla la lectura, el tamano o el cierre, y `00000004`
+si falla la integridad. Los fallos dejan continuar el escritorio.
+En QEMU se comparan los bytes residentes despues de EBS con la
+huella de origen, la reserva del mapa EFI y las paginas de supervisor.
+[Evidencia de archivo y RAM](../Reports/nvidia-gsp-stage-20261120.json).
+[Calculo CRC32 en UEFI](https://uefi.org/specs/UEFI/2.10/07_Services_Boot_Services.html#efi-boot-services-calculatecrc32).
+
 Despues del estado `08` quedan tres pruebas:
 
 1. Preparar la version compatible de GSP y su procedencia. Reservar y

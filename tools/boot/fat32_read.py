@@ -28,10 +28,10 @@ class Fat32:
         self.file.seek(offset);data=self.file.read(size)
         if len(data)!=size:raise ValueError('Truncated image')
         return data
-    def chain(self,start):
+    def chain(self,start,maximum=16385):
         seen=set();cluster=start
         while cluster<0xffffff8:
-            if not 2<=cluster<self.count+2 or cluster in seen or len(seen)>16384:raise ValueError('FAT chain bounds/cycle')
+            if not 2<=cluster<self.count+2 or cluster in seen or len(seen)>=maximum:raise ValueError('FAT chain bounds/cycle')
             seen.add(cluster)
             offset=self.data+(cluster-2)*self.cluster
             if offset+self.cluster>self.end:raise ValueError('Partition bounds')
@@ -59,7 +59,8 @@ class Fat32:
                 size=struct.unpack_from('<I',found,28)[0]
                 if found[11]&16 or size>limit:raise ValueError('FAT file bounds')
                 data=bytearray()
-                for block in self.chain(cluster):
+                clusters=max(1,(size+self.cluster-1)//self.cluster)
+                for block in self.chain(cluster,clusters):
                     data.extend(block)
                     if len(data)>=size:break
                 if len(data)<size:raise ValueError('Short FAT file')

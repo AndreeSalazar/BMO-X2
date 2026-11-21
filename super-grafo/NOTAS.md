@@ -1649,8 +1649,19 @@ Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: GA106 10DE:2504 autenticada por identidad PCI y PMC, BAR0 acotada y bus mastering desactivado.
 Salida: GSP1 en GPULOG.TXT, con CPUCTL RISC-V y buzones 0 de GSP y SEC2.
 Depende de: GPU / NVIDIA / Lectura MMIO (codigo).
-Aceptacion: Ejecutar casos positivos y rechazos con protocolo EFI simulado, omitir las lecturas en VGA QEMU y verificar el arranque FAT32.
-Pendiente: Leer la captura real y acreditar la respuesta a un arranque GSP con DMA acotado.
+Aceptacion: HOST y QEMU prueban restricciones; METAL obtuvo los tres registros 00000010,00000000,00000000 previos al arranque del GSP.
+Pendiente: Acreditar la respuesta a un arranque GSP con DMA acotado.
+
+## kernel/drivers/GPU/NVIDIA/gsp_stage.inc
+
+Lee el GSP original por UEFI, acota el tamano, coteja CRC32 y entrega la reserva al supervisor.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: GSP.BIN 615.78.08 previamente verificado en HOST; protocolo EFI de archivos y servicios de memoria.
+Salida: Base y longitud del firmware en EfiLoaderData, junto al resultado GSPLOAD del arranque.
+Depende de: HOST / Firmware NVIDIA GA10x (verificacion).
+Aceptacion: Comparar SHA-256 del firmware residente en QEMU, mapa EFI, mapeo de supervisor y rechazo de archivo ausente o alterado.
+Pendiente: Confirmar la reserva en METAL y programar la carga al motor con dominio DMA propio.
 
 ## tools/host/gpu/firmware.py
 
@@ -1883,4 +1894,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-169 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+170 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

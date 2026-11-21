@@ -154,6 +154,7 @@
 | [GPU / NVIDIA / Inventario PCI](../kernel/drivers/GPU/NVIDIA/pci_probe.inc) | qemu | 0 | Sonda ASM transitoria del puente UEFI antes de ExitBootServices. Lee PCI del segmento 0 y conserva CPU/GOP como presentador. |
 | [GPU / NVIDIA / Lectura MMIO](../kernel/drivers/GPU/NVIDIA/mmio_probe.inc) | qemu | 0 | Sonda transitoria UEFI: confirma limites de BAR0 y lee la identidad interna exclusivamente en la RTX 3060 10DE:2504. |
 | [GPU / NVIDIA / Estado previo del GSP y SEC2](../kernel/drivers/GPU/NVIDIA/gsp_sample.inc) | qemu | 0 | Captura tres registros NVIDIA de solo lectura en el perfil UEFI dedicado. |
+| [GPU / NVIDIA / Firmware original de FAT32 a RAM](../kernel/drivers/GPU/NVIDIA/gsp_stage.inc) | qemu | 0 | Lee el GSP original por UEFI, acota el tamano, coteja CRC32 y entrega la reserva al supervisor. |
 | [HOST / Firmware NVIDIA GA10x](../tools/host/gpu/firmware.py) | host | host | Comprueba el conjunto original de una release GSP, por longitud y huella de referencia. |
 | [HOST / Directorio GSP Radix3](../tools/host/gpu/radix3.py) | host | host | Codifica las paginas del directorio Radix3 que enumera la imagen de firmware mediante IOVA. |
 | [HOST / Argumentos y colas GSP 615.78.08](../tools/host/gpu/gsp_args.py) | host | host | Codifica RMARGS y la memoria compartida de mensajes GspMem, con la cabecera MSGQ 2.0 de CPU a GSP. |
@@ -430,6 +431,7 @@
 | rmlui-fat32-media | rmlui-gop-cursor-region | codigo |
 | rmlui-fat32-media | nvidia-pci-probe | codigo |
 | nvidia-gsp-boot-sample | nvidia-mmio-probe | codigo |
+| nvidia-gsp-stage | nvidia-gsp-firmware-host | verificacion |
 | nvidia-gsp-firmware-host | nvidia-mmio-probe | plan |
 | nvidia-gsp-radix3-host | nvidia-gsp-firmware-host | verificacion |
 | nvidia-gsp-args-host | nvidia-gsp-firmware-host | verificacion |

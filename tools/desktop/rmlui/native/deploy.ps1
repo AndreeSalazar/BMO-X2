@@ -33,9 +33,14 @@ $storageState=Test-Path -LiteralPath (Join-Path $runPath 'storage-state.txt') -P
 $fullHd=Test-Path -LiteralPath (Join-Path $runPath 'full-hd.txt') -PathType Leaf
 $fullHdNative=$fullHd -and (Get-Content -LiteralPath (Join-Path $runPath 'full-hd.txt') -Raw).Trim() -eq 'cpu-gop-native-1920x1080'
 $gspSample=Test-Path -LiteralPath (Join-Path $runPath 'nvidia-gsp-sample.txt') -PathType Leaf
+$gspStage=Test-Path -LiteralPath (Join-Path $runPath 'nvidia-gsp-stage.json') -PathType Leaf
 if ($gspSample -ne [bool]$proof.nvidia_gsp_sample -or ($gspSample -and
     (-not $gpuRun -or -not $fullHdNative -or @($proof.Cases | Where-Object { -not $_.GpuGspSampleSkipped }).Count))) {
     throw 'La muestra GSP requiere el perfil NVIDIA Full HD y las exclusiones verificadas en QEMU.'
+}
+if ($gspStage -ne [bool]$proof.nvidia_gsp_stage -or ($gspStage -and (-not $gspSample -or
+    -not $normal.GspResidentVerified -or (($proof.Cases.GspStageStatus -join ',') -ne '5,4,1')))) {
+    throw 'El GSP.BIN requiere la lectura completa y los rechazos verificados en QEMU.'
 }
 if ($amdviRun -ne [bool]$proof.amdvi_efi_probe -or ($amdviRun -and -not $gpuRun)) {
     throw 'La sonda AMD-Vi requiere el perfil NVIDIA y su manifiesto.'
@@ -104,7 +109,15 @@ if (-not $drive.IsReady -or $drive.DriveFormat -ne 'FAT32') { throw 'A: debe ser
 $dataFolder=if($gpuRun){'BMO-X2/GPU'}else{'BMO-X2/DESKTOP'}
 $bootFile=if($gpuRun){'EFI/BMO-X2/NVIDIA.EFI'}else{'EFI/BMO-X2/DESKTOP.EFI'}
 $reportName=if($gpuRun){'GPULOG.TXT'}else{'BOOTLOG.TXT'}
-$names=@("$dataFolder/INICIO.X86","$dataFolder/DESKTOP.SBF",$bootFile)
+$names=@("$dataFolder/INICIO.X86","$dataFolder/DESKTOP.SBF")
+if ($gspStage) {
+    $gspProof=Get-Content -LiteralPath (Join-Path $runPath 'nvidia-gsp-stage.json') -Raw | ConvertFrom-Json
+    $gspName="$dataFolder/GSP.BIN"
+    if ($gspProof.release -ne '615.78.08' -or $gspProof.sha256 -ne $proof.files.$gspName -or
+        $gspProof.bytes -ne $normal.GspResidentBytes) {throw 'El manifiesto GSP difiere de la prueba UEFI.'}
+    $names+=$gspName
+}
+$names+=$bootFile
 if (@($proof.files.PSObject.Properties).Count -ne $names.Count) { throw 'Manifiesto de archivos inesperado.' }
 foreach($name in $names) {
     $source=Get-Item -LiteralPath (Join-Path $media $name)
@@ -113,7 +126,7 @@ foreach($name in $names) {
         throw "Fuente modificada: $name"
     }
 }
-if($Check){Write-Output 'Preflight correcto: perfil, pruebas, FAT32 y tres hashes verificados; sin escrituras.';return}
+if($Check){Write-Output "Preflight correcto: perfil, pruebas, FAT32 y $($names.Count) hashes verificados; sin escrituras.";return}
 $legacy=@{}
 foreach($name in @('EFI/BMO-X2/BMO-X2.EFI','BMO-X2/INICIO.X86','BMO-X2/DESKTOP.SBF','BMO-X2/BOOTLOG.TXT')) {
     $path=Join-Path $Volume $name
@@ -176,6 +189,7 @@ $record=[ordered]@{Schema=1;Evidence='HOST copy after QEMU FAT32 boot';Run=$proo
     FullHd=$fullHd;
     FullHdNative=$fullHdNative;
     NvidiaGspSample=$gspSample;
+    NvidiaGspStage=$gspStage;
     BootFile=('\'+$bootFile.Replace('/','\'));ReportFile=('\'+$dataFolder.Replace('/','\')+'\'+$reportName);
     Note='USB HID fisico sigue pendiente; no cambia NVRAM ni archivos ajenos al candidato.'}
 $json=$record | ConvertTo-Json -Depth 8

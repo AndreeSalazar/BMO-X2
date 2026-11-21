@@ -33,7 +33,7 @@
     mov 124(%rsp), %ax
     cmp 116(%rsp), %ax
     jne .Lgsp_command_unverified
-    lea (0x800+report_gsp_sample-report_template)(%rbp), %rdi
+    lea (BMO_BOOT_REPORT_AREA+report_gsp_sample-report_template)(%rbp), %rdi
     xor %esi, %esi
 .Lgsp_write_next:
     mov 72(%rsp,%rsi,4), %eax

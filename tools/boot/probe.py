@@ -55,6 +55,7 @@ if (args.splash_hd and not args.splash) or ('contexto' in args.casos and not (ar
     parser.error('Invalid combination of payload and probe cases')
 ROOT = workspace(args.workspace)
 nvidia_gsp_sample = args.doom_fixture and (ROOT / 'nvidia-gsp-sample.txt').is_file()
+nvidia_gsp_stage = nvidia_gsp_sample and (ROOT / 'nvidia-gsp-stage.json').is_file()
 amdvi_post = args.doom_fixture and (ROOT / 'amdvi-post-probe.txt').is_file()
 amdvi_coexist = amdvi_post and (ROOT / 'amdvi-coexist-probe.txt').is_file()
 amdvi_storage = amdvi_coexist and (ROOT / 'amdvi-storage.txt').is_file()
@@ -217,7 +218,7 @@ def run(case):
     census = dma_census and case in ('normal','amdvi-missing')
     storage_handoff = storage_state and census
     payload_case = case in ('normal', 'contexto', *MUTATIONS)
-    disk_case = 'normal' if (case == 'amdvi-missing' or
+    disk_case = 'normal' if ((case == 'amdvi-missing' and not nvidia_gsp_stage) or
                              (case == 'external-permissions' and not (args.doom_fixture and (desktop_media or native_media)))) else case
     image = ROOT / 'build' / f'puente-{disk_case}.img'
     before = hashlib.sha256(image.read_bytes()).hexdigest()
@@ -647,6 +648,12 @@ for case in args.casos:
                         if samples != [b'GSP1=--------,--------,--------']:
                             raise ValueError('GA106 GSP reads must be skipped on QEMU standard VGA')
                         result['GpuGspSampleSkipped'] = True
+                    if nvidia_gsp_stage:
+                        stage = [line for line in log.splitlines() if line.startswith(b'GSPLOAD=')]
+                        expected = {'normal': 5, 'external-permissions': 4, 'amdvi-missing': 1}[case]
+                        if stage != [f'GSPLOAD={expected:08X}'.encode('ascii')]:
+                            raise ValueError(f'Unexpected FAT32 GSP staging result: {stage!r}')
+                        result['GspStageStatus'] = expected
                     if amdvi_probe:
                         result.update(verify_amdvi_firmware(log, result.pop('AmdViQmpUnits'),
                                                             result.pop('AmdViQmpRegisters'), case == 'normal'))

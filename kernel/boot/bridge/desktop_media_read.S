@@ -195,6 +195,9 @@ staging_ready:
     xor %eax, %eax
     jmp finish
 release:
+#ifdef BMO_NVIDIA_GSP_STAGE
+    call nvidia_gsp_release
+#endif
     # The inherited error path closes any handles that are still open.
     mov 0xa8(%rbp), %rcx
     mov 0xc8(%rbp), %rdx

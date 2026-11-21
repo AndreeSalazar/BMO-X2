@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "run": "run-rmlui-media-45164ef55d10",
+  "evidence": "METAL register snapshot, QEMU EFI firmware staging, FAT32 deployment",
+  "metal_gsp_sample": {
+    "boot": "run-rmlui-media-480776a07a14",
+    "log": "nvidia-pci-metal-20261120-gsp-sample.bootlog.txt",
+    "sha256": "72f3f81b8292ab135b5704fb6329e4eabfb18dfb26057531c0a9abfd3019a390",
+    "pci_command": "0003",
+    "riscv_halted": true,
+    "riscv_active": false,
+    "mailboxes": [
+      "00000000",
+      "00000000"
+    ],
+    "amdvi_translation_enabled": false
+  },
+  "firmware": {
+    "release": "615.78.08",
+    "bytes": 27043992,
+    "sha256": "a20100cafd5a85e22b3e13188339730c6ced94bd5f654984dd2ed274ed58d584",
+    "crc32": 712561159,
+    "layout": {
+      "container": "ELF64 RISC-V",
+      "internal_version": "615.78.08",
+      "fwimage_pages_4k": 6590,
+      "sections": {
+        ".fwimage": {
+          "offset": 64,
+          "bytes": 26992640,
+          "sha256": "13d2f9514bb90c899b6db598e881a1728f894f38be79fa935ad9f1ce30b0b5e0"
+        },
+        ".fwversion": {
+          "offset": 26992740,
+          "bytes": 10,
+          "sha256": "f1227d1b149790a51b995cea19e9576ceb5e05f2ecc9360b2643d81846e866b9"
+        },
+        ".fwsignature_ga10x": {
+          "offset": 27037806,
+          "bytes": 4096,
+          "sha256": "be6e5cc134c610c5abdaea22b6ebdc262e1b71bcb394a8339c41ca05720d9cba"
+        }
+      }
+    }
+  },
+  "qemu_cases": {
+    "normal": {
+      "passed": true,
+      "gsp_load_status": 5,
+      "log_sha256": "5785f4e8fa16a7fc260c4fdf19b4fe54436be2ec2772b83e366c03badb59696e"
+    },
+    "external-permissions": {
+      "passed": true,
+      "gsp_load_status": 4,
+      "log_sha256": "537737b2fda774c64a1a8e2c84721ca3c3c1ee9b53690c4eaabc45c71c1df57d"
+    },
+    "amdvi-missing": {
+      "passed": true,
+      "gsp_load_status": 1,
+      "log_sha256": "a447315677983fc5b8fcca505bd48bab84b14d632600501c37c7431ce7254ae6"
+    }
+  },
+  "qemu_resident_base": 239087616,
+  "qemu_reserved_pages": 6603,
+  "qemu_post_ebs_sha256_verified": true,
+  "reader_bytes": 3806,
+  "display_backend": "CPU + GOP",
+  "installed": {
+    "EFI/BMO-X2/NVIDIA.EFI": "63e2e1037dcd3e31408ddeca9ff213099d785626aa517c83050d8a2bea038b29",
+    "BMO-X2/GPU/GSP.BIN": "a20100cafd5a85e22b3e13188339730c6ced94bd5f654984dd2ed274ed58d584"
+  },
+  "rollback_loader_sha256": "f4a7cba55918297b16080d6f10b429b5c49ff87f4c8d8b9b14859488cf620339",
+  "physical_staging_verified": false,
+  "rtx_dma_verified": false,
+  "gsp_started": false
+}

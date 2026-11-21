@@ -1,7 +1,17 @@
 # Snapshot before ExitBootServices. Failure leaves desktop boot available.
+#ifdef BMO_NVIDIA_GSP_STAGE
+#define BMO_BOOT_REPORT_AREA 0xc00
+#define BMO_BOOT_REPORT_LIMIT 0x360
+#else
+#define BMO_BOOT_REPORT_AREA 0x800
+#define BMO_BOOT_REPORT_LIMIT 0x300
+#endif
 #ifdef BMO_NVIDIA_PCI_PROBE
 #include "../../drivers/GPU/NVIDIA/pci_probe.inc"
 #include "../../drivers/GPU/NVIDIA/mmio_probe.inc"
+#ifdef BMO_NVIDIA_GSP_STAGE
+#include "../../drivers/GPU/NVIDIA/gsp_stage.inc"
+#endif
 #endif
 boot_report:
     push %rsi
@@ -14,27 +24,27 @@ boot_report:
 #endif
     sub $56, %rsp
     lea report_template(%rip), %rsi
-    lea 0x800(%rbp), %rdi
+    lea BMO_BOOT_REPORT_AREA(%rbp), %rdi
     mov $(report_end-report_template), %ecx
     cld
     rep movsb
-    lea (0x800+report_sbef-report_template)(%rbp), %rdi
+    lea (BMO_BOOT_REPORT_AREA+report_sbef-report_template)(%rbp), %rdi
     mov 0xb0(%rbp), %eax
     call report_hex32
 #ifdef RMLUI_MEDIA
-    lea (0x800+report_width-report_template)(%rbp), %rdi
+    lea (BMO_BOOT_REPORT_AREA+report_width-report_template)(%rbp), %rdi
     mov 0x20(%rbp), %eax
     call report_hex32
-    lea (0x800+report_height-report_template)(%rbp), %rdi
+    lea (BMO_BOOT_REPORT_AREA+report_height-report_template)(%rbp), %rdi
     mov 0x24(%rbp), %eax
     call report_hex32
 #endif
-    lea (0x800+report_l1-report_template)(%rbp), %rdi
+    lea (BMO_BOOT_REPORT_AREA+report_l1-report_template)(%rbp), %rdi
     mov 0xd0(%rbp), %eax
     call report_hex32
     xor %eax, %eax
     in $0x64, %al
-    lea (0x800+report_ps2-report_template)(%rbp), %rdi
+    lea (BMO_BOOT_REPORT_AREA+report_ps2-report_template)(%rbp), %rdi
     call report_hex32
     mov $0xcf8, %dx
     in %dx, %eax
@@ -67,7 +77,7 @@ report_pci_xhci:
     jae report_pci_count
     push %rcx
     push %rdx
-    lea (0x800+report_pci0-report_template)(%rbp), %rdi
+    lea (BMO_BOOT_REPORT_AREA+report_pci0-report_template)(%rbp), %rdi
     imul $(report_pci1-report_pci0), %r8d, %eax
     add %rax, %rdi
     mov %ecx, %eax
@@ -128,16 +138,22 @@ report_pci_advance:
     mov %r9d, %eax
     out %eax, %dx
     mov %r8d, %eax
-    lea (0x800+report_xhci-report_template)(%rbp), %rdi
+    lea (BMO_BOOT_REPORT_AREA+report_xhci-report_template)(%rbp), %rdi
     call report_hex32
 #ifdef BMO_NVIDIA_PCI_PROBE
     call nvidia_pci_summary
     call nvidia_mmio_probe
+#ifdef BMO_NVIDIA_GSP_STAGE
+    call nvidia_gsp_stage
+    mov GSP_STAGE_STATUS(%rbp), %eax
+    lea (BMO_BOOT_REPORT_AREA+report_gsp_stage-report_template)(%rbp), %rdi
+    call report_hex32
+#endif
 #ifdef BMO_AMDVI_EFI_OFFSET
     mov 56(%rsp), %rcx              # EFI SystemTable saved above.
-    lea (0x800+report_amdvi-report_template)(%rbp), %rdx
+    lea (BMO_BOOT_REPORT_AREA+report_amdvi-report_template)(%rbp), %rdx
     lea report_hex32(%rip), %r8
-    lea (0x800+report_amdvi_mmio-report_template)(%rbp), %r9
+    lea (BMO_BOOT_REPORT_AREA+report_amdvi_mmio-report_template)(%rbp), %r9
     .byte 0xe8
     .long BMO_AMDVI_EFI_OFFSET - DESKTOP_READER_OFFSET - (. - desktop_media_read) - 4
 #endif
@@ -154,7 +170,7 @@ report_pci_advance:
     movq $(report_end-report_template), 48(%rsp)
     mov 40(%rsp), %rcx
     lea 48(%rsp), %rdx
-    lea 0x800(%rbp), %r8
+    lea BMO_BOOT_REPORT_AREA(%rbp), %r8
     call *0x28(%rcx)
     test %rax, %rax
     js report_close
@@ -221,6 +237,11 @@ report_pci1:
 #ifdef BMO_NVIDIA_PCI_PROBE
     nvidia_pci_report_fields
     nvidia_mmio_report_fields
+#ifdef BMO_NVIDIA_GSP_STAGE
+    .ascii "GSPLOAD="
+report_gsp_stage:
+    .ascii "00000000\r\n"
+#endif
 #ifdef BMO_AMDVI_EFI_OFFSET
     # Packed words: status, IVRS bytes, requester, base register low/high.
     .ascii "AMDVI="
@@ -233,11 +254,11 @@ report_amdvi_mmio:
 #endif
 report_end:
 #ifdef BMO_NVIDIA_PCI_PROBE
-    # The NVIDIA profile owns 0x800..0xaff; native UI does not load ACTION.UJB.
+    # Native UI owns the report region and does not load ACTION.UJB.
 #if defined(ULTRA_J_MEDIA) || !defined(RMLUI_MEDIA)
 #error "NVIDIA report requires the dedicated native UI profile"
 #endif
-    .if (report_end-report_template) > 0x300
+    .if (report_end-report_template) > BMO_BOOT_REPORT_LIMIT
     .error "Boot report exceeds context buffer"
     .endif
 #endif
