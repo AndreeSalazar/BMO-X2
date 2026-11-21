@@ -5,6 +5,9 @@
 #ifdef BMO_AMDVI_POST
 #include "../drivers/bus/amdvi/post_layout.inc"
 #endif
+#ifdef BMO_NVIDIA_GSP_STATUS
+#include "../drivers/GPU/NVIDIA/gsp_layout.inc"
+#endif
 .globl session_gate
 session_gate:
     swapgs
@@ -370,7 +373,16 @@ diagnostics_result:
 #ifdef BMO_AMDVI_POST
 amdvi_diagnostic:
     cmp $5, %r10
+#ifdef BMO_NVIDIA_GSP_STATUS
+    jbe .Lamdvi_snapshot
+    cmp $6, %r10
+    jne denied
+    mov GSP_STAGE_STATUS(%rbp), %rax
+    jmp finish
+.Lamdvi_snapshot:
+#else
     ja denied
+#endif
     cmpq $0, AMDVI_POST_STATUS(%rbp)
     jne .Lamdvi_diagnostic_ready
     push %r10

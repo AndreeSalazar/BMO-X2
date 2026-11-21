@@ -404,11 +404,21 @@ El perfil base puede conservar las sondas de plataforma con
 Con `--nvidia-gsp-prepare`, la entrada del loader llama a una rutina
 privada de Ring 0 tras ExitBootServices. La rutina vuelve a comprobar
 la reserva EfiLoaderData y coloca `.fwimage` y la firma GA10x en limites
-de pagina de la misma reserva. Las paginas sobrantes quedan a cero.
-Con esto el camino DMA puede usar las dos bases alineadas sin otra
-reserva del tamano del firmware. La publicacion interna usa estado 2
-y dos punteros. QEMU coteja ambas huellas y conserva el arranque del
-escritorio ante archivo ausente o alterado.
+de pagina de la misma reserva. Ring 0 construye a continuacion las 15
+paginas Radix3 para la IOVA prevista y 14 paginas AMD-Vi con permisos de
+lectura para imagen, firma y Radix3. La reserva crece de 6603 a 6620
+paginas (68 KiB adicionales). Las propias tablas quedan fuera de las
+IOVA de la GPU. El supervisor publica estado 3 con el directorio y la
+raiz preparada. El pie del escritorio indica **NVIDIA / Radix3 listo /
+DMA pendiente**. El arbol permanece en RAM sin adjudicar a una funcion
+PCI. El indice 6 del diagnostico AMD-Vi entrega los estados de archivo
+y preparacion a Ring 3.
+
+ULTRA-LinuX arranco esta misma RTX 3060 con `nvidia-open` y GSP
+`615.78.08`, y preparo el control de pantalla con `nvidia-modeset` y
+`nvidia-drm`. BMO-X2 conserva esa separacion de hitos. Preparar las
+tablas deja por verificar la adjudicacion de DMA con USB y discos
+activos, la respuesta del GSP y el primer trabajo grafico.
 
 ```powershell
 python -B tools/desktop/rmlui/native/media.py <ABI_RUN> <GATO_COMPACTO_RUN> --usb both --nvidia-probe --amdvi-probe --amdvi-post --dma-census --storage-state --full-hd --nvidia-gsp-sample --nvidia-gsp-stage build/gpu/NVIDIA/ga10x-615.78.08 --nvidia-gsp-prepare
@@ -416,6 +426,7 @@ python -B -m tools.host.gpu.NVIDIA.qemu_gsp_dma build/gpu/NVIDIA/ga10x-615.78.08
 ```
 
 [Pruebas de independencia y preparacion NVIDIA](../Reports/nvidia-gsp-prepare-qemu-20261120.json).
+[Arbol preparado por Ring 0 y verificado en QEMU](../Reports/nvidia-gsp-detached-dma-qemu-20261120.json).
 
 Despues del estado `08` quedan tres pruebas:
 
@@ -471,12 +482,12 @@ las IOVA deben venir de un dominio DMA activo y autorizado.
 [Directorio GSP en NVIDIA](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/main/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c#L7198-L7343).
 
 La sonda x86-64 de `kernel/drivers/GPU/NVIDIA/gsp_radix3.inc` recibe
-dos rangos IOVA contiguos de un dominio autorizado y un buffer reservado
+dos rangos IOVA contiguos y un buffer reservado
 por el supervisor. Valida alineacion, capacidad, limite de direccion y
 solapamiento antes de escribir. La prueba HOST coteja byte por byte el
 directorio de 15 paginas del ensayo DMA y cinco geometrias de borde.
-La sonda se ejecuta en el banco HOST. Integrarla al perfil de arranque
-requiere asignar las IOVA desde el supervisor en METAL.
+El perfil NVIDIA la llama tras ExitBootServices para preparar el arbol
+DMA en RAM. En METAL queda pendiente adjudicar las IOVA a la RTX.
 [Resultados del banco](../Reports/nvidia-triangle-host-20261120.json).
 
 El HOST codifica tambien la pagina RMARGS y las 129 paginas GspMem

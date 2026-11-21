@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "reference": {
+    "system": "ULTRA-LinuX PC",
+    "evidence": "evidencias/audio-juegos/pc-real/gpu-7.3.0-rc7-pc-g32c52ec87d62-nvidia-hyprland.txt",
+    "gpu": "NVIDIA GeForce RTX 3060",
+    "device": "0000:29:00.0 10de:2504",
+    "driver_and_gsp": "615.78.08"
+  },
+  "boot_profile": {
+    "run": "run-rmlui-media-fc8cd912afe4",
+    "launcher": "tools/desktop/rmlui/native/media.py --nvidia-gsp-prepare",
+    "image_pages": 6590,
+    "signature_pages": 1,
+    "radix3_pages": 15,
+    "amdvi_table_pages": 14,
+    "prepared_read_only_pages": 6606,
+    "reserved_pages": 6620,
+    "added_reserved_pages": 17,
+    "stage_code_bytes": 669,
+    "stage_code_sha256": "be54b904e0763a69e36fbd643097d96ebe705e25a735109b9e201367b3562a91",
+    "x86_boot_packet_bytes": 4092,
+    "ring3_status": "GSP_PREP=5 3",
+    "cpu_gop_screenshot_sha256": "3e54cc599cc6942d57afb3e4dc7f2d485f36e84d18c4a367153473de933c2f2b"
+  },
+  "qtest_dma_replay": {
+    "tool": "QEMU 11.1.0 AMD-Vi and EDU",
+    "input": "Physical RAM capture of the GSP provisioning stage in the normal QEMU boot",
+    "test_fixture": "Installed the captured graphics tree with a separate writable result page in a previously unused root slot",
+    "read_pages": 6606,
+    "read_sha256": "13a2347e898f2282651e65eb4b0e565410ae4db1bfab2cfa49a83ba2521225a9",
+    "signed_image_write_blocked": true,
+    "audio_requester_read_blocked": true
+  },
+  "qemu_boot": {
+    "passed": 3,
+    "total": 3,
+    "gsp_stage_status_by_case": {
+      "normal": 5,
+      "external-permissions": 4,
+      "amdvi-missing": 1
+    },
+    "normal_usb_keyboard_and_mouse_verified": true,
+    "storage_panel_verified": true,
+    "normal_gop_1920x1080_verified": true,
+    "missing_firmware_ring3_status": "GSP_PREP=1 0"
+  },
+  "fat32": {
+    "uefi_entry": "BMO-X2 (con NVIDIA)",
+    "volume": "A:",
+    "receipt": "A:/BMO-X2/GPU/DEPLOY.JSON",
+    "files_sha256_verified": 4,
+    "ultra_linux_efi_hashes_preserved": true,
+    "backup": "build/CASM/run-rmlui-media-fc8cd912afe4/fat32-backups"
+  },
+  "host_tests_passed": 10,
+  "physical_amdvi_activation_verified": false,
+  "physical_gsp_started": false,
+  "physical_gpu_render_verified": false
+}

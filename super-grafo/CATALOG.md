@@ -155,8 +155,8 @@
 | [GPU / NVIDIA / Lectura MMIO](../kernel/drivers/GPU/NVIDIA/mmio_probe.inc) | qemu | 0 | Sonda transitoria UEFI: confirma limites de BAR0 y lee la identidad interna exclusivamente en la RTX 3060 10DE:2504. |
 | [GPU / NVIDIA / Estado previo del GSP y SEC2](../kernel/drivers/GPU/NVIDIA/gsp_sample.inc) | qemu | 0 | Captura tres registros NVIDIA de solo lectura en el perfil UEFI dedicado. |
 | [GPU / NVIDIA / Firmware original de FAT32 a RAM](../kernel/drivers/GPU/NVIDIA/gsp_stage.inc) | qemu | 0 | Lee el GSP original por UEFI, acota el tamano, coteja CRC32 y entrega la reserva al supervisor. |
-| [GPU / NVIDIA / Preparacion pos-UEFI](../kernel/drivers/GPU/NVIDIA/gsp_prepare.inc) | qemu | 0 | Comprueba el traspaso GSP y alinea imagen y firma en la reserva existente despues de UEFI. |
-| [GPU / NVIDIA / Directorio Radix3 x86-64](../kernel/drivers/GPU/NVIDIA/gsp_radix3.inc) | investigacion | 0 | Construye el directorio de tres niveles para la imagen GSP con IOVA contiguas. |
+| [GPU / NVIDIA / Preparacion pos-UEFI](../kernel/drivers/GPU/NVIDIA/gsp_prepare.inc) | qemu | 0 | Comprueba el traspaso GSP, alinea imagen y firma, y arma Radix3 y un arbol DMA de solo lectura despues de UEFI. |
+| [GPU / NVIDIA / Directorio Radix3 x86-64](../kernel/drivers/GPU/NVIDIA/gsp_radix3.inc) | qemu | 0 | Construye el directorio de tres niveles para la imagen GSP con IOVA contiguas. |
 | [HOST / Empaquetado opcional NVIDIA](../tools/host/gpu/NVIDIA/bundle.py) | host | host | Coteja el firmware, limita su geometria y entrega el archivo y opciones de compilacion al empaquetador opcional. |
 | [HOST / Firmware NVIDIA GA10x](../tools/host/gpu/NVIDIA/firmware.py) | host | host | Comprueba el conjunto original de una release GSP, por longitud y huella de referencia. |
 | [HOST / Directorio GSP Radix3](../tools/host/gpu/NVIDIA/radix3.py) | host | host | Codifica las paginas del directorio Radix3 que enumera la imagen de firmware mediante IOVA. |
@@ -168,6 +168,7 @@
 | [AMD-Vi / Sonda de DMA del invitado](../kernel/drivers/bus/amdvi/edu_probe.S) | qemu | 0 | Sonda ASM transitoria despues de ExitBootServices. Programa AMD-Vi en QEMU y prueba DMA de EDU. |
 | [AMD-Vi / Inventario UEFI](../kernel/drivers/bus/amdvi/firmware_probe.S) | qemu | 0 | Sonda ASM transitoria antes de ExitBootServices. Valida IVRS y la base PCI y lee cinco registros AMD-Vi mediante CPU I/O 2. |
 | [AMD-Vi / Captura Ring 0](../kernel/drivers/bus/amdvi/post_ebs_probe.inc) | qemu | 0 | Lee los cinco registros AMD-Vi despues de ExitBootServices. Abre y revoca dos paginas MMIO de solo lectura antes de iniciar USB. |
+| [AMD-Vi / Arbol DMA de solo lectura](../kernel/drivers/bus/amdvi/stage_read_only.inc) | qemu | 0 | Construye un arbol DMA modo 2 con hojas contiguas y permiso de lectura en ambos niveles. |
 | [AMD-Vi / DMA y USB concurrentes en QEMU](../tools/boot/amdvi_xhci.py) | qemu | host | Usa qtest para configurar dominios distintos para EDU y xHCI en el escritorio virtual. |
 | [AMD-Vi / Dominios en el invitado](../kernel/drivers/bus/amdvi/coexist_guest.inc) | qemu | 0 | Sonda exclusiva de QEMU TCG. Ring 0 comprueba bus masters y configura, invalida y cierra dos dominios AMD-Vi. |
 | [PCI / Inventario de solicitantes DMA](../kernel/drivers/bus/amdvi/dma_census.inc) | qemu | 0 | Captura los BDF del segmento PCI 0 con bus mastering habilitado despues de arrancar xHCI. |
@@ -438,6 +439,8 @@
 | nvidia-gsp-boot-sample | nvidia-mmio-probe | codigo |
 | nvidia-gsp-stage | nvidia-gsp-firmware-host | verificacion |
 | nvidia-gsp-ring0-prepare | nvidia-gsp-stage | codigo |
+| nvidia-gsp-ring0-prepare | nvidia-gsp-ring0-radix3 | codigo |
+| nvidia-gsp-ring0-prepare | amdvi-stage-read-only | codigo |
 | nvidia-gsp-ring0-radix3 | nvidia-gsp-radix3-host | verificacion |
 | nvidia-gsp-host-bundle | nvidia-gsp-firmware-host | codigo |
 | nvidia-gsp-firmware-host | nvidia-mmio-probe | plan |

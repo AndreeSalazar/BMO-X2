@@ -8,15 +8,22 @@ from cpu_config import register
 from desktop_session_capture import verify_external_rejection
 
 
-def verify_gsp_reservation(memory, context, run, case):
+def verify_gsp_reservation(memory, context, expected, case):
     base, length, status, prepared, firmware, signature = struct.unpack(
         '<QQIIQQ', memory(context+0x800,40,'gsp-handoff'))
+    detached = expected.get('detached_dma', False)
+    radix, dma_root = struct.unpack('<QQ', memory(context+0x828,16,'gsp-dma-handoff')) if detached else (0,0)
     if case == 'amdvi-missing':
-        if (base, length, status, prepared, firmware, signature) != (0, 0, 1, 0, 0, 0):
+        if (base, length, status, prepared, firmware, signature, radix, dma_root) != (0,0,1,0,0,0,0,0):
             raise ValueError('Missing GSP file left a reservation')
         return {}
-    expected = json.loads((run/'nvidia-gsp-stage.json').read_text(encoding='ascii'))
     reserved = (length+4096)//4096*4096
+    if detached:
+        image_pages = expected['layout']['sections']['.fwimage']['bytes']//4096
+        directory_pages = 2+(image_pages+511)//512
+        payload_pages = image_pages+1+directory_pages
+        tree_pages = 1+(payload_pages+511)//512
+        reserved = max(reserved,(payload_pages+tree_pages)*4096)
     if (status!=5 or length!=expected['bytes'] or not 0x100000<=base<=0x10000000-reserved
             or base%4096):
         raise ValueError('Invalid GSP reservation in the handoff')
@@ -37,14 +44,45 @@ def verify_gsp_reservation(memory, context, run, case):
     if expected.get('prepare'):
         sections = expected['layout']['sections']
         size = sections['.fwimage']['bytes']
-        if (prepared,firmware,signature)!=(2,base,base+size):
+        if (prepared,firmware,signature)!=(3 if detached else 2,base,base+size):
             raise ValueError('Ring 0 GSP preparation pointers or status differ')
         if (hashlib.sha256(image[:size]).hexdigest()!=sections['.fwimage']['sha256'] or
-                hashlib.sha256(image[size:size+4096]).hexdigest()!=sections['.fwsignature_ga10x']['sha256'] or
-                any(image[size+4096:])):
-            raise ValueError('Ring 0 altered the signed firmware, signature or unused pages')
-        return dict(GspResidentVerified=True,GspResidentBytes=length,GspReservedPages=reserved//4096,
-                    GspPreparedByRing0=True,GspPreparedPages=(size//4096)+1)
+                hashlib.sha256(image[size:size+4096]).hexdigest()!=sections['.fwsignature_ga10x']['sha256']):
+            raise ValueError('Ring 0 altered the signed firmware or signature')
+        used = size+4096
+        result = dict(GspResidentVerified=True,GspResidentBytes=length,GspReservedPages=reserved//4096,
+                      GspPreparedByRing0=True,GspPreparedPages=(size//4096)+1)
+        if detached:
+            first_iova = 0x08000000
+            if radix != first_iova+used or dma_root != base+payload_pages*4096:
+                raise ValueError('Detached GSP directory or DMA root is misplaced')
+            middle, leaves = radix+4096, radix+8192
+            directory = bytearray(directory_pages*4096)
+            struct.pack_into('<Q',directory,0,middle)
+            for index in range(directory_pages-2):
+                struct.pack_into('<Q',directory,4096+index*8,leaves+index*4096)
+            for index in range(image_pages):
+                struct.pack_into('<Q',directory,8192+index*8,first_iova+index*4096)
+            directory_end = payload_pages*4096
+            if image[used:directory_end]!=directory:
+                raise ValueError('Radix3 does not map each signed firmware page exactly once')
+
+            tree = bytearray(tree_pages*4096)
+            read = 1<<61
+            for index in range(tree_pages-1):
+                struct.pack_into('<Q',tree,((first_iova>>21)+index)*8,
+                                 (dma_root+(index+1)*4096)|read|0x201)
+            for index in range(payload_pages):
+                struct.pack_into('<Q',tree,4096+index*8,(base+index*4096)|read|1)
+            used = directory_end+len(tree)
+            if image[directory_end:used]!=tree:
+                raise ValueError('Unexpected mapping or permission in the detached GSP DMA tree')
+            result.update(GspDetachedDmaVerified=True,GspRadix3Pages=directory_pages,
+                          GspReadOnlyDmaPages=payload_pages,GspDmaTablePages=tree_pages,
+                          GspRadix3SHA256=hashlib.sha256(directory).hexdigest())
+        if any(image[used:]):
+            raise ValueError('GSP reservation lost its zero padding')
+        return result
     if (prepared or firmware or signature or
             hashlib.sha256(image[:length]).hexdigest()!=expected['sha256'] or any(image[length:])):
         raise ValueError('GSP resident bytes or final page padding differ')
@@ -202,8 +240,15 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
     context=memory(context_address,0x30,'ui-context')
     if context[:8]!=b'METAL64!':raise ValueError('Native UI handoff signature')
     amdvi_proof={}
-    if (run/'nvidia-gsp-stage.json').is_file():
-        amdvi_proof.update(verify_gsp_reservation(memory,context_address,run,case))
+    gsp_path=run/'nvidia-gsp-stage.json'
+    if gsp_path.is_file():
+        gsp_manifest=json.loads(gsp_path.read_text(encoding='ascii'))
+        amdvi_proof.update(verify_gsp_reservation(memory,context_address,gsp_manifest,case))
+        if gsp_manifest.get('detached_dma'):
+            marker='GSP_PREP=1 0' if case=='amdvi-missing' else 'GSP_PREP=5 3'
+            if marker not in serial.read_text(errors='replace').splitlines():
+                raise ValueError('Missing Ring 3 GSP status')
+            amdvi_proof['GspStatusExportVerified']=True
     if full_hd_profile:
         pool,pages=struct.unpack('<QQ',memory(context_address+0x708,16,'native-ui-pool'))
         if (pool,pages)!=(0x04000000,4608):

@@ -16,7 +16,9 @@ FILE_BYTES = 0x3500
 IMAGE_OFFSET = 64
 IMAGE_BYTES = 8192
 SIGNATURE_OFFSET = 0x23c0
-PAGES = 4
+PAGES = 8
+IOVA = 0x08000000
+RADIX_IOVA = IOVA+3*PAGE
 FIXTURE = r"""
 .text
 .globl prepare_fixture
@@ -47,6 +49,7 @@ class NvidiaGspPrepare(unittest.TestCase):
         source, obj, dll = directory/'probe.S', directory/'probe.obj', directory/'probe.dll'
         source.write_text(FIXTURE, encoding='ascii')
         subprocess.run([LLVM/'clang.exe','--target=x86_64-pc-windows-msvc',
+                        '-DBMO_NVIDIA_GSP_PREPARE',
                         f'-DBMO_GSP_FILE_BYTES={FILE_BYTES}', f'-DBMO_GSP_IMAGE_OFFSET={IMAGE_OFFSET}',
                         f'-DBMO_GSP_IMAGE_BYTES={IMAGE_BYTES}', f'-DBMO_GSP_SIGNATURE_OFFSET={SIGNATURE_OFFSET}',
                         '-I', ROOT, '-c', source, '-o', obj], check=True)
@@ -92,12 +95,21 @@ class NvidiaGspPrepare(unittest.TestCase):
         struct.pack_into('<I4xQQQ',self.context,0x1000,kind,self.base,0,pages)
 
     def status(self):
-        return struct.unpack_from('<IQQ',self.context,0x814)
+        return struct.unpack_from('<I4Q',self.context,0x814)
 
     def test_aligns_both_slices_without_a_second_copy(self):
         self.prepare(self.mapping)
-        after = self.image + self.signature + bytes(PAGE)
-        self.assertEqual(self.status(),(2,self.base,self.base+IMAGE_BYTES))
+        root = self.base+6*PAGE
+        tail = bytearray(5*PAGE)
+        struct.pack_into('<Q',tail,0,RADIX_IOVA+PAGE)
+        struct.pack_into('<Q',tail,PAGE,RADIX_IOVA+2*PAGE)
+        struct.pack_into('<2Q',tail,2*PAGE,IOVA,IOVA+PAGE)
+        read = 1<<61
+        struct.pack_into('<Q',tail,3*PAGE+(IOVA>>21)*8,(root+PAGE)|read|0x201)
+        for page in range(6):
+            struct.pack_into('<Q',tail,4*PAGE+page*8,(self.base+page*PAGE)|read|1)
+        after = self.image + self.signature + tail
+        self.assertEqual(self.status(),(3,self.base,self.base+IMAGE_BYTES,RADIX_IOVA,root))
         self.assertEqual(c.string_at(self.base,len(self.raw)),after)
         self.prepare(self.mapping)
         self.assertEqual(c.string_at(self.base,len(self.raw)),after)
@@ -105,18 +117,18 @@ class NvidiaGspPrepare(unittest.TestCase):
     def test_rejects_unowned_or_short_ranges(self):
         self.descriptor(7,PAGES)
         self.prepare(self.mapping)
-        self.assertEqual(self.status(),(1,0,0))
+        self.assertEqual(self.status(),(1,0,0,0,0))
         self.assertEqual(c.string_at(self.base,len(self.raw)),self.raw)
         struct.pack_into('<I',self.context,0x814,0)
         self.descriptor(2,PAGES-1)
         self.prepare(self.mapping)
-        self.assertEqual(self.status(),(1,0,0))
+        self.assertEqual(self.status(),(1,0,0,0,0))
         self.assertEqual(c.string_at(self.base,len(self.raw)),self.raw)
 
     def test_skips_unstaged_firmware(self):
         struct.pack_into('<I',self.context,0x810,4)
         self.prepare(self.mapping)
-        self.assertEqual(self.status(),(0,0,0))
+        self.assertEqual(self.status(),(0,0,0,0,0))
         self.assertEqual(c.string_at(self.base,len(self.raw)),self.raw)
 
 

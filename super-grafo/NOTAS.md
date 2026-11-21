@@ -1665,24 +1665,24 @@ Pendiente: Programar la carga al motor con dominio DMA propio.
 
 ## kernel/drivers/GPU/NVIDIA/gsp_prepare.inc
 
-Comprueba el traspaso GSP y alinea imagen y firma en la reserva existente despues de UEFI.
+Comprueba el traspaso GSP, alinea imagen y firma, y arma Radix3 y un arbol DMA de solo lectura despues de UEFI.
 
 Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: Reserva de supervisor y mapa EFI final, unicamente en el perfil NVIDIA.
-Salida: Dos rangos contiguos por pagina para imagen y firma, estado interno 2, y resto de la reserva limpio.
-Depende de: GPU / NVIDIA / Firmware original de FAT32 a RAM (codigo).
-Aceptacion: QEMU verifica ambas huellas por separado y arranca con el modulo ausente. HOST ejercita rechazo de rango ajeno o corto.
-Pendiente: Adjudicar las IOVA en METAL, llamar a la sonda Radix3 y arrancar el GSP.
+Salida: Imagen, firma, Radix3 y arbol AMD-Vi provisional, con estado interno 3 exportado al escritorio.
+Depende de: GPU / NVIDIA / Firmware original de FAT32 a RAM (codigo), GPU / NVIDIA / Directorio Radix3 x86-64 (codigo), AMD-Vi / Arbol DMA de solo lectura (codigo).
+Aceptacion: QEMU coteja ambas huellas, el directorio, todas las entradas AMD-Vi y la exclusion con archivo ausente. HOST rechaza reservas ajenas o cortas.
+Pendiente: Adjudicar las IOVA en METAL y arrancar el GSP.
 
 ## kernel/drivers/GPU/NVIDIA/gsp_radix3.inc
 
 Construye el directorio de tres niveles para la imagen GSP con IOVA contiguas.
 
-Estado: INVESTIGACION. Anillo: 0. Lenguaje: ASM x86-64.
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: Reserva de escritura del supervisor, dos rangos IOVA disjuntos y cantidad de paginas de firmware.
 Salida: Paginas Radix3 e IOVA raiz, o rechazo sin escribir.
 Depende de: HOST / Directorio GSP Radix3 (verificacion).
-Aceptacion: HOST compara seis geometrias byte por byte con el codificador Python y verifica catorce rechazos sin escrituras.
+Aceptacion: QEMU verifica las 15 paginas creadas tras UEFI. HOST compara seis geometrias y verifica catorce rechazos sin escrituras.
 Pendiente: Conectar al dominio DMA del supervisor y validar la lectura de la RTX.
 
 ## tools/host/gpu/NVIDIA/bundle.py
@@ -1805,6 +1805,17 @@ Salida: Captura fija en contexto supervisor. INVOKE entrega seis escalares al pi
 Depende de: AMD-Vi / Inventario UEFI (codigo).
 Aceptacion: QEMU coteja registros y permisos de las dos paginas y arranca sin AMD-Vi. METAL cotejo los cinco registros en GPULOG y el escritorio Ring 0; la traduccion siguio desactivada.
 Pendiente: Acreditar dominio DMA con continuidad de USB y almacenamiento antes de arrancar GSP.
+
+## kernel/drivers/bus/amdvi/stage_read_only.inc
+
+Construye un arbol DMA modo 2 con hojas contiguas y permiso de lectura en ambos niveles.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: Raiz y hojas en RAM de supervisor a cero, rango fisico contiguo e indice inicial de IOVA.
+Salida: Arbol desconectado de los registros y de la tabla de dispositivos.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: QEMU coteja 14 paginas de tablas, 6606 hojas de lectura y todas las entradas vacias.
+Pendiente: Conectarlo al dominio del solicitante PCI con revocacion e invalidacion comprobadas.
 
 ## tools/boot/amdvi_xhci.py
 
@@ -1949,4 +1960,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-175 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+176 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

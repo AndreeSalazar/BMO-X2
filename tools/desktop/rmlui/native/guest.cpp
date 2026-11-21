@@ -249,7 +249,19 @@ extern "C" void bmo_main() {
         log(amdvi_line);
         snprintf(amdvi_line,sizeof(amdvi_line),"AMD-Vi Ring 0 / captura %02lX",amdvi_status);
     }
-    amdvi_panel->SetInnerRML(amdvi_line);
+    Rml::String hardware_report=amdvi_line;
+    const auto gsp=doom_invoke(3,3,amdvi_diagnostic,6);
+    const unsigned file_status=unsigned(gsp);
+    const unsigned dma_status=unsigned(gsp>>32);
+    if(file_status>=1 && file_status<=5) {
+        snprintf(amdvi_line,sizeof(amdvi_line),"GSP_PREP=%u %u\n",file_status,dma_status);
+        log(amdvi_line);
+        hardware_report+="<br/>";
+        if(dma_status==3)hardware_report+="NVIDIA / Radix3 listo / DMA pendiente";
+        else if(file_status==5)hardware_report+="NVIDIA / No se preparo Radix3";
+        else hardware_report+="NVIDIA / Firmware no disponible";
+    }
+    amdvi_panel->SetInnerRML(hardware_report);
 #endif
 #ifdef BMO_DESKTOP_UI
     bmo_director_init();bmo_director_open();Launcher launcher(bmo_director_open);

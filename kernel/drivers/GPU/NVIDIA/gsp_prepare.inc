@@ -1,6 +1,11 @@
 # Post-EBS, opt-in NVIDIA profile. RBP holds the boot context.
 # Publish page-aligned slices only after validating the complete
 # LoaderData reservation. Preserve R10-R15 for the CASM continuation.
+#include "gsp_layout.inc"
+
+.text
+.globl gsp_prepare_begin
+gsp_prepare_begin:
 .Lgsp_prepare_begin:
     cmpl $0, GSP_POST_STATUS(%rbp)
     jne .Lgsp_prepare_done
@@ -56,14 +61,44 @@
     lea BMO_GSP_IMAGE_OFFSET(%r9), %rsi
     mov $(BMO_GSP_IMAGE_BYTES/8), %ecx
     rep movsq
-    mov %rdi, GSP_POST_SIGNATURE(%rbp)
     lea BMO_GSP_SIGNATURE_OFFSET(%r9), %rsi
     mov $512, %ecx
     rep movsq
     mov $((GSP_STAGE_PAGES*4096-BMO_GSP_IMAGE_BYTES-4096)/8), %ecx
     xor %eax, %eax
     rep stosq
+
+    # Pending IOVAs for the detached DMA tree. Neither DTE nor PCI
+    # bus mastering is installed here.
+    push %r10
+    push %r11
+    lea GSP_RADIX_OFFSET(%r9), %rdi
+    mov $GSP_DMA_FIRST_IOVA, %esi
+    mov $(GSP_DMA_FIRST_IOVA+GSP_RADIX_OFFSET), %edx
+    mov $GSP_IMAGE_PAGES, %ecx
+    mov $(GSP_RADIX_PAGES*4096), %r8d
+    call nvidia_gsp_radix3
+    pop %r11
+    pop %r10
+    test %rax, %rax
+    jz .Lgsp_prepare_done
+    mov %rax, GSP_POST_RADIX3(%rbp)
+
+    mov GSP_STAGE_BASE(%rbp), %r9
+    lea GSP_DMA_TABLE_OFFSET(%r9), %rdi
+    mov %rdi, GSP_POST_DMA_ROOT(%rbp)
+    mov %r9, %rsi
+    mov $GSP_DMA_READ_PAGES, %edx
+    mov $(GSP_DMA_FIRST_IOVA >> 21), %ecx
+    call amdvi_stage_read_only
+
     mov %r9, GSP_POST_IMAGE(%rbp)
-    movl $2, GSP_POST_STATUS(%rbp)
+    lea BMO_GSP_IMAGE_BYTES(%r9), %rax
+    mov %rax, GSP_POST_SIGNATURE(%rbp)
+    movl $3, GSP_POST_STATUS(%rbp)
     ret
-.Lgsp_prepare_end:
+
+#include "gsp_radix3.inc"
+#include "../../bus/amdvi/stage_read_only.inc"
+.globl gsp_prepare_end
+gsp_prepare_end:

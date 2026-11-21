@@ -119,6 +119,10 @@ if ($gspStage) {
         ($gspProof.prepare -and -not $normal.GspPreparedByRing0)) {
         throw 'Falta verificar la preparacion pos-EBS de Ring 0.'
     }
+    if ($gspProof.detached_dma -and (-not $gspProof.prepare -or -not $normal.GspDetachedDmaVerified -or
+        -not $normal.GspStatusExportVerified -or -not $missing.GspStatusExportVerified)) {
+        throw 'Falta comprobar las tablas DMA preparadas en RAM y el informe GSP.'
+    }
     $names+=$gspName
 }
 $names+=$bootFile

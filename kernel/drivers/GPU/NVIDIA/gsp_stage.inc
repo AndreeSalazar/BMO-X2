@@ -77,11 +77,13 @@ nvidia_gsp_stage:
 #ifdef BMO_NVIDIA_GSP_PREPARE
     push %rsi
     push %rdi
-    lea .Lgsp_prepare_begin(%rip), %rsi
+    # RIP-relative address of the separate NVIDIA PE extension.
+    .byte 0x48, 0x8d, 0x35
+    .long BMO_GSP_PREPARE_OFFSET - DESKTOP_READER_OFFSET - (. - desktop_media_read) - 4
     lea GSP_POST_CODE(%rbp), %rdi
-    mov $(.Lgsp_prepare_end-.Lgsp_prepare_begin), %ecx
+    mov $512, %ecx
     cld
-    rep movsb
+    rep movsq
     pop %rdi
     pop %rsi
 #endif
@@ -110,7 +112,3 @@ nvidia_gsp_release:
 .Lgsp_stage_path:
     # \BMO-X2\GPU\GSP.BIN
     .short 92,66,77,79,45,88,50,92,71,80,85,92,71,83,80,46,66,73,78,0
-
-#ifdef BMO_NVIDIA_GSP_PREPARE
-#include "gsp_prepare.inc"
-#endif

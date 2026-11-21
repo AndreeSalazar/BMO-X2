@@ -34,7 +34,7 @@ def main():
     p.add_argument('--nvidia-probe', action='store_true', help='Read PCI display inventory before ExitBootServices')
     p.add_argument('--nvidia-gsp-sample', action='store_true', help='Read the GA106 GSP and SEC2 boot state')
     p.add_argument('--nvidia-gsp-stage', type=Path, help='Directory of the original NVIDIA 615.78.08 files')
-    p.add_argument('--nvidia-gsp-prepare', action='store_true', help='Align the verified GSP image and signature in Ring 0')
+    p.add_argument('--nvidia-gsp-prepare', action='store_true', help='Prepare the NVIDIA firmware and detached DMA tree in Ring 0')
     p.add_argument('--amdvi-probe', action='store_true', help='Add read-only AMD-Vi firmware inventory')
     p.add_argument('--amdvi-post', action='store_true', help='Take a second AMD-Vi snapshot after ExitBootServices')
     p.add_argument('--amdvi-coexist', action='store_true', help='Exercise virtual EDU and USB DMA together in QEMU')
@@ -54,8 +54,8 @@ def main():
         p.error('--nvidia-gsp-sample requires the NVIDIA Full HD profile')
     if args.nvidia_gsp_stage and (not args.nvidia_gsp_sample or args.storage_quiesce):
         p.error('--nvidia-gsp-stage requires the NVIDIA sample on the deployable Full HD profile')
-    if args.nvidia_gsp_prepare and not args.nvidia_gsp_stage:
-        p.error('--nvidia-gsp-prepare requires --nvidia-gsp-stage')
+    if args.nvidia_gsp_prepare and (not args.nvidia_gsp_stage or args.amdvi_coexist):
+        p.error('--nvidia-gsp-prepare requires --nvidia-gsp-stage and the standard AMD-Vi profile')
     if args.amdvi_post and (not args.amdvi_probe or args.usb!='both' or args.msvc_panel or args.usb_empty_ports):
         p.error('--amdvi-post requires --amdvi-probe with USB both')
     if args.amdvi_coexist and not args.amdvi_post:p.error('--amdvi-coexist requires --amdvi-post')
@@ -134,6 +134,8 @@ def main():
     llvm=Path(os.environ['ProgramFiles'])/'LLVM/bin'
     extra=12288 if args.usb=='both' else 8192 if args.usb else 4096
     amdvi_offset=0x3000+extra
+    amdvi_budget=8192 if args.full_hd or args.amdvi_guest_nvme else 4096
+    gsp_offset=amdvi_offset+amdvi_budget
     units=[('allocator','kernel/boot/bridge/desktop_media_alloc.S'),('reader','kernel/boot/bridge/desktop_media_read.S'),
         ('gate','kernel/syscalls/session_gate.S'),('loader','kernel/loader/doom_engine_loader.S')]
     for name,source in units:
@@ -142,7 +144,9 @@ def main():
         if args.nvidia_probe and name == 'reader':flags+=['-DBMO_NVIDIA_PCI_PROBE']
         if args.nvidia_gsp_sample and name == 'reader':flags+=['-DBMO_NVIDIA_GSP_SAMPLE']
         if name=='reader':flags+=nvidia_reader_flags
+        if args.nvidia_gsp_prepare and name=='reader':flags+=[f'-DBMO_GSP_PREPARE_OFFSET={gsp_offset}']
         if args.nvidia_gsp_prepare and name=='loader':flags+=['-DBMO_NVIDIA_GSP_PREPARE']
+        if args.nvidia_gsp_prepare and name=='gate':flags+=['-DBMO_NVIDIA_GSP_STATUS']
         if args.amdvi_probe and name == 'reader':flags+=[f'-DBMO_AMDVI_EFI_OFFSET={amdvi_offset}']
         if args.amdvi_post and name in ('reader','gate'):flags+=['-DBMO_AMDVI_POST']
         if args.dma_census and name=='gate':flags+=['-DBMO_DMA_CENSUS']
@@ -165,8 +169,8 @@ def main():
     if len(image)!=0x3000 or len(reader)>4096 or len(allocator)>0xf0 or image[0x267:0x26c]!=bytes.fromhex('e894050000'):
         raise ValueError('Native EFI extension exceeds verified slots')
     struct.pack_into('<i',image,0x268,0x3000-0x267-5)
-    amdvi_budget=8192 if args.full_hd or args.amdvi_guest_nvme else 4096
     if args.amdvi_probe:extra+=amdvi_budget
+    if args.nvidia_gsp_prepare:extra+=4096
     for offset,old in ((0x5c,0x2e00),(0x90,0x4000),(0x150,0x2e00),(0x158,0x2e00)):
         if struct.unpack_from('<I',image,offset)[0]!=old:raise ValueError('EFI PE header changed')
         struct.pack_into('<I',image,offset,old+extra)
@@ -208,6 +212,19 @@ def main():
         stage=raw_probe.read_bytes()
         if len(image)!=amdvi_offset or not 0<len(stage)<=amdvi_budget:raise ValueError('AMD-Vi EFI slot mismatch')
         image.extend(stage.ljust(amdvi_budget,b'\0'))
+    if args.nvidia_gsp_prepare:
+        source=ROOT/'kernel/drivers/GPU/NVIDIA/gsp_prepare.inc'
+        obj=run/'nvidia-gsp-prepare.o'
+        command([llvm/'clang.exe','--target=x86_64-unknown-none-elf','-x','assembler-with-cpp',
+                 *nvidia_reader_flags,'-c',source,'-o',obj],'compile-nvidia-gsp-prepare')
+        check_context_stage(llvm,obj,'gsp_prepare',4096)
+        relocations=subprocess.check_output([llvm/'llvm-objdump.exe','-r',obj],text=True)
+        if 'RELOCATION RECORDS' in relocations:raise ValueError('NVIDIA stage must be position independent')
+        binary=obj.with_suffix('.bin')
+        command([llvm/'llvm-objcopy.exe','-O','binary','--only-section=.text',obj,binary],'extract-nvidia-gsp-prepare')
+        stage=binary.read_bytes()
+        if len(image)!=gsp_offset or not 0<len(stage)<=4096:raise ValueError('NVIDIA EFI slot mismatch')
+        image.extend(stage.ljust(4096,b'\0'))
     image[0x400:0x400+len(allocator)]=allocator
     files={'reference.x86':reference,'rmlui.sbef':sbef,'session-gate.bin':gate,'external-loader.bin':loader,
         'INICIO.X86':packet,'intro.x86':intro,'intro.casm':(splash/'source.casm').read_bytes(),'profile.txt':b'rmlui-desktop-media\n',
@@ -242,8 +259,9 @@ def main():
     if gsp is not None and ([case.get('GspStageStatus') for case in report['Cases']] != [5,4,1] or
                             not report['Cases'][0].get('GspResidentVerified')):
         raise ValueError('Missing GSP staging or file rejection evidence')
-    if args.nvidia_gsp_prepare and not report['Cases'][0].get('GspPreparedByRing0'):
-        raise ValueError('Missing Ring 0 firmware and signature preparation evidence')
+    if args.nvidia_gsp_prepare and (not report['Cases'][0].get('GspDetachedDmaVerified') or
+                                   not all(report['Cases'][i].get('GspStatusExportVerified') for i in (0,2))):
+        raise ValueError('Missing Ring 0 detached DMA tree and Ring 3 status evidence')
     if args.amdvi_probe and not all(case.get('AmdViMmioVerified') for case in report['Cases']):
         raise ValueError('Missing AMD-Vi MMIO evidence')
     if args.amdvi_post and not all(report['Cases'][i].get('AmdViPostVerified') for i in (0,2)):
