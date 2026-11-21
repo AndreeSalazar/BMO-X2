@@ -211,6 +211,19 @@ respuesta del GSP requiere su propio ensayo en la RTX.
 [Evidencia de los cuatro dominios](../../../Reports/nvidia-gsp-dma-coexist-qemu-20261120.json).
 [Funciones PCIe en bus alto y colas del GSP](../../../Reports/nvidia-gsp-queues-routed-qemu-20261121.json).
 
+### Requisito de tabla IVRS de la placa
+
+El inventario vivo de Windows confirma que la unidad `0000:00:00.2` cubre
+`0000:00:01.0` a `0000:ff:1f.6` y tiene otro rango con alias que llega a
+`0000:ff:1f.7`. Por tanto la tabla debe indexar `ffff`: 65 536 DTE,
+2 MiB o 512 paginas de 4 KiB en el perfil contiguo sin segmentacion.
+El banco routed de QEMU reserva 96 paginas y solo llega a `2fff`; no sirve
+como tabla metal. El informe del HOST conserva la huella IVRS, los 17
+solicitantes cotejados y este requisito. Esto mide cobertura; no activa la
+IOMMU ni concede DMA.
+[Requisito fisico de tabla](../../../Reports/amdvi-physical-table-requirement-20261121.json).
+[Especificacion AMD: tabla DTE de 64K entradas y alineacion/tamano](https://docs.amd.com/api/khub/documents/GD6kOXjzWsek8QUbn_qMvg/content).
+
 El puente del escritorio reserva cinco paginas contiguas de EfiLoaderData
 por debajo de 256 MiB y las entrega en los campos B8/C0 del contexto.
 La variante QEMU de comandos agrega una pagina para contextos

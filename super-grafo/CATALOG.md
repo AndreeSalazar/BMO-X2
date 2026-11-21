@@ -172,7 +172,7 @@
 | [HOST / Argumentos y colas GSP 615.78.08](../tools/host/gpu/NVIDIA/gsp_args.py) | host | host | Codifica RMARGS y la memoria compartida de mensajes GspMem, con la cabecera MSGQ 2.0 de CPU a GSP. |
 | [GPU / NVIDIA / Mapa DMA de arranque GSP](../tools/host/gpu/NVIDIA/gsp_dma.py) | qemu | host | Alinea imagen y firma GA10x, genera Radix3 y construye las tablas AMD-Vi de un dominio de arranque. |
 | [HOST / Triangulo Vulkan en RTX 3060](../tools/host/gpu/NVIDIA/triangle/triangle.cpp) | host | host | Dibuja un triangulo 3D giratorio y lee los cuadros renderizados por la RTX. |
-| [HOST / Inventario AMD-Vi](../tools/host/gpu/ivrs.py) | host | host | Lee la descripcion ACPI IVRS y coteja las funciones PCI indicadas con los rangos IVHD. |
+| [HOST / Inventario AMD-Vi](../tools/host/gpu/ivrs.py) | host | host | Lee IVRS, coteja los solicitantes y calcula el tamano minimo de DTE segun el DeviceID mas alto y sus alias. |
 | [AMD-Vi / Traduccion y revocacion virtual](../tools/host/gpu/qemu_dma.py) | qemu | host | Comprueba traduccion, bloqueo e invalidacion DMA en AMD-Vi de QEMU con EDU mediante qtest. |
 | [AMD-Vi / Sonda de DMA del invitado](../kernel/drivers/bus/amdvi/edu_probe.S) | qemu | 0 | Sonda ASM transitoria despues de ExitBootServices. Programa AMD-Vi en QEMU y prueba DMA de EDU. |
 | [AMD-Vi / Inventario UEFI](../kernel/drivers/bus/amdvi/firmware_probe.S) | qemu | 0 | Sonda ASM transitoria antes de ExitBootServices. Valida IVRS y la base PCI y lee cinco registros AMD-Vi mediante CPU I/O 2. |

@@ -81,6 +81,40 @@ def scopes(block, header_size):
     return result
 
 
+def device_table_requirements(units):
+    requirements = []
+    for (segment, requester), (kind, _flags, _capability, _mmio, scope) in sorted(units.items()):
+        if not scope:
+            continue
+        first = min(item[0] for item in scope)
+        scope_last = max(last for _, last, _ in scope)
+        highest = max(max(last, alias if alias is not None else last) for _, last, alias in scope)
+        entries = highest + 1
+        raw_bytes = entries * 32
+        pages = (raw_bytes + 4095) // 4096
+        requirements.append({
+            'unit_bdf': bdf_text(segment, requester),
+            'ivhd_type': f'{kind:02x}',
+            'scope_first': bdf_text(segment, first),
+            'scope_last': bdf_text(segment, scope_last),
+            'scope_ranges': [
+                {
+                    'first': bdf_text(segment, range_first),
+                    'last': bdf_text(segment, range_last),
+                    'alias': None if alias is None else f'{alias:04x}',
+                }
+                for range_first, range_last, alias in scope
+            ],
+            'highest_device_id': f'{highest:04x}',
+            'minimum_entries': entries,
+            'minimum_bytes': raw_bytes,
+            'minimum_4k_pages': pages,
+            'minimum_aligned_bytes': pages * 4096,
+            'layout': 'contiguous without DTE segmentation',
+        })
+    return requirements
+
+
 def inspect(data, requested):
     if not 48 <= len(data) <= MAX_TABLE_BYTES or data[:4] != b'IVRS':
         raise ValueError('Cabecera ACPI IVRS invalida')
@@ -135,7 +169,9 @@ def inspect(data, requested):
         targets[bdf_text(segment, requester)] = matches
     return dict(schema=1, evidence='HOST: ACPI firmware inventory', table_bytes=len(data),
                 table_revision=data[8], table_sha256=hashlib.sha256(data).hexdigest(),
-                block_types=blocks, requesters=targets, bmo_x2_dma_isolation_verified=False)
+                block_types=blocks, requesters=targets,
+                device_table_requirements=device_table_requirements(units),
+                bmo_x2_dma_isolation_verified=False)
 
 
 def main():

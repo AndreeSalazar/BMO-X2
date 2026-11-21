@@ -1852,14 +1852,14 @@ Pendiente: Reproducir la prueba con un canal grafico nativo de BMO-X2.
 
 ## tools/host/gpu/ivrs.py
 
-Lee la descripcion ACPI IVRS y coteja las funciones PCI indicadas con los rangos IVHD.
+Lee IVRS, coteja los solicitantes y calcula el tamano minimo de DTE segun el DeviceID mas alto y sus alias.
 
 Estado: HOST. Anillo: host. Lenguaje: Python.
 Entrada: IVRS del firmware mediante Windows o archivo, y los BDF solicitados.
-Salida: Unidad AMD-Vi, base, segmento, alcance y alias descritos por el firmware.
+Salida: Unidad AMD-Vi, alcance IVHD, alias y numero minimo de DTE, bytes y paginas de 4 KiB.
 Depende de: Buses, recursos y DMA (verificacion).
-Aceptacion: HOST verifico que la RTX y su audio aparecen en la unidad AMD-Vi 00:00.2 del equipo.
-Pendiente: Entregar los solicitantes de IVRS al dominio nativo y verificar la concesion y revocacion de DMA.
+Aceptacion: HOST cotejo los 17 BDF del inventario con la IVRS viva. Reporta DeviceID ffff y requiere 512 paginas contiguas; dos pruebas cubren la placa y la tabla routed de QEMU.
+Pendiente: Asignar la tabla fisica de 512 paginas con DTE denegadas por defecto y transferir con seguridad cada dispositivo antes de activar AMD-Vi.
 
 ## tools/host/gpu/qemu_dma.py
 
@@ -1958,7 +1958,7 @@ Entrada: EDU virtual en el BDF de ensayo, dominio DMA preparado y cola de comand
 Salida: PCI Command confirmado y prestamo revocado. Una confirmacion incompleta retiene las reservas.
 Depende de: contrato propio sin dependencias en este catalogo.
 Aceptacion: Reports/amdvi-gsp-bme-qemu-20261121.json registra 3/3 casos QEMU, concesion y revocacion por Ring 0, funcion hermana bloqueada y fallo cerrado ante cola suspendida. No acredita DMA de RTX fisica.
-Pendiente: Detener y transferir todos los solicitantes fisicos, activar AMD-Vi con una tabla completa de bloqueo y despues verificar la RTX y el arranque del GSP en METAL.
+Pendiente: El ensayo de 96 paginas QEMU no se puede usar en METAL: la IVRS fisica exige al menos 512 paginas para cubrir DeviceID ffff. Falta asignar esa tabla y detener/transferir todos los solicitantes antes de probar la RTX y el GSP.
 
 ## kernel/drivers/storage/handoff_uefi.inc
 
