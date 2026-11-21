@@ -132,6 +132,10 @@ if ($gspStage) {
         $normal.GspLibosPages -ne 99)) {
         throw 'Falta comprobar LIBOS y los ocho registros de arranque GSP.'
     }
+    if ($gspProof.boot_chain -and (-not $gspProof.libos -or -not $normal.GspBootChainVerified -or
+        $normal.GspBootChainPages -ne $gspProof.boot_chain.pages)) {
+        throw 'Falta verificar los binarios firmados de arranque GSP y sus permisos DMA.'
+    }
     $names+=$gspName
 }
 $names+=$bootFile

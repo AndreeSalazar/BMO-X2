@@ -417,6 +417,26 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
                             and machine.read(AMDVI+0x2018)==tail,
                             'El DMA no pudo escribir en LOGINIT')
                     gsp_proof.update(GspLibosArgumentWriteDenied=True,GspLibosLogWriteVerified=True)
+                boot_iova = machine.read(context+0x848)
+                if boot_iova:
+                    boot_entry = (boot_iova-rmargs)//PAGE
+                    boot_ram = machine.read(queue_leaf+boot_entry*8) & page_mask
+                    signed_sample = machine.get_bytes(boot_ram,PAGE)
+                    machine.put_bytes(payload,bytes(value ^ 0xff for value in signed_sample))
+                    run_transfer(machine,command,bar,boot_iova,EDU_BUFFER,PAGE,1)
+                    run_transfer(machine,command,bar,EDU_BUFFER,iova,PAGE,3)
+                    require(machine.get_bytes(payload,PAGE)==signed_sample and machine.read(AMDVI+0x2018)==tail,
+                            'La lectura DMA del monitor firmado difiere')
+                    # Use a page that this requester has not read yet, as in
+                    # the firmware-image fault test above.
+                    cold = boot_iova+PAGE
+                    before_boot_write = machine.get_bytes(boot_ram+PAGE,len(data))
+                    run_transfer(machine,command,bar,EDU_BUFFER,cold,len(data),3)
+                    tail,_ = faults(machine,tail,cold,len(data),event_log=events,
+                                    requester=reported_requester(tail,edu))
+                    require(machine.get_bytes(boot_ram+PAGE,len(data))==before_boot_write,
+                            'El DMA modifico el monitor firmado')
+                    gsp_proof.update(GspBootChainReadVerified=True,GspBootChainWriteDenied=True)
         run_transfer(machine, command, bar, EDU_BUFFER, outside, len(data), 3)
         fault_rid = reported_requester(tail,edu)
         tail, _ = faults(machine, tail, outside, len(data), event_log=events, requester=fault_rid)

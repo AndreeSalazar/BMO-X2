@@ -1670,7 +1670,7 @@ Comprueba el traspaso GSP, alinea imagen y firma, y prepara Radix3 y las colas D
 Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: Reserva de supervisor y mapa EFI final, unicamente en el perfil NVIDIA.
 Salida: Imagen, firma, Radix3, RMARGS, GspMem y arbol AMD-Vi provisional, con estado interno 4 exportado al escritorio.
-Depende de: GPU / NVIDIA / Firmware original de FAT32 a RAM (codigo), GPU / NVIDIA / Directorio Radix3 x86-64 (codigo), GPU / NVIDIA / Colas preparadas en Ring 0 (codigo), GPU / NVIDIA / Argumentos LIBOS 3 (codigo), AMD-Vi / Arbol DMA de solo lectura (codigo).
+Depende de: GPU / NVIDIA / Firmware original de FAT32 a RAM (codigo), GPU / NVIDIA / Directorio Radix3 x86-64 (codigo), GPU / NVIDIA / Colas preparadas en Ring 0 (codigo), GPU / NVIDIA / Argumentos LIBOS 3 (codigo), GPU / NVIDIA / Binarios firmados de arranque (codigo), AMD-Vi / Arbol DMA de solo lectura (codigo).
 Aceptacion: QEMU coteja ambas huellas, el directorio, todas las entradas AMD-Vi y la exclusion con archivo ausente. HOST rechaza reservas ajenas o cortas.
 Pendiente: Adjudicar las IOVA en METAL, integrar los argumentos LIBOS y arrancar el GSP.
 
@@ -1706,6 +1706,28 @@ Salida: Tabla de nueve argumentos seguida por ocho buffers de registro.
 Depende de: contrato propio sin dependencias en este catalogo.
 Aceptacion: Rechaza IOVA desalineadas, fuera de rango o solapadas. QEMU compara el resultado con Ring 0.
 Pendiente: Cotejar el primer registro escrito por el firmware fisico.
+
+## kernel/drivers/GPU/NVIDIA/gsp_boot_chain.inc
+
+Mapea el monitor RISC-V y los binarios de carga y descarga SEC2 en la hoja GSP.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: Trailer de integridad comprobada en la reserva EfiLoaderData y arbol DMA independiente.
+Salida: 33 paginas de codigo firmado con permiso DMA de solo lectura y su IOVA inicial.
+Depende de: HOST / Empaquetado opcional NVIDIA (generacion).
+Aceptacion: QEMU coteja los tres binarios y el relleno. EDU lee el monitor y recibe un fallo al escribir una pagina del monitor sin lectura previa.
+Pendiente: Ejecutar FWSEC y SEC2 en GA106 tras comprobar la adjudicacion DMA fisica.
+
+## tools/host/gpu/NVIDIA/gsp_wpr.py
+
+Reparte la ventana de VRAM y codifica el bloque WPR V1 de 256 bytes para GA10x.
+
+Estado: HOST. Anillo: host. Lenguaje: Python.
+Entrada: Limites explicitos de VRAM, FRTS y heaps; tamanos, offsets e IOVA del firmware.
+Salida: Bloque de arranque en frio y mapa de VRAM, o rechazo ante un solapamiento.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: Compara los bytes con la estructura C de NVIDIA 615.78.08 y ensaya limites e IOVA solapadas.
+Pendiente: Alimentar la geometria observada por Ring 0 y confirmar los campos que escriba SEC2.
 
 ## kernel/drivers/GPU/NVIDIA/gsp_radix3.inc
 
@@ -1993,4 +2015,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-179 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+181 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

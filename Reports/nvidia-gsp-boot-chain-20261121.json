@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "date": "2026-11-21",
+  "release": "615.78.08",
+  "host": {
+    "original_file_hashes_verified": 4,
+    "riscv_monitor_bytes": 24576,
+    "riscv_monitor_offsets": {"manifest": "0x0", "data": "0x800", "code": "0x1800"},
+    "archive_bytes": 27179160,
+    "archive_sha256": "cf5fa5b8092b84fe4b0be999f26bcf172a8fe29ae3873833038e076dbda54f2d",
+    "wpr_reference": "GspFwWprMetaV1 from the NVIDIA C header, compiled under Windows x86-64",
+    "wpr_fixture": "Historical 12 GiB GA106 geometry, not a new pre-EBS measurement",
+    "wpr_bytes_compared": 256,
+    "wpr_sha256": "246adb13aa9fb3f100f1b4fd4e60110957cca2fa813926d7fbece9e020af32f2",
+    "wpr_fixture_start": "0x2f6300000",
+    "wpr_fixture_end": "0x2fff00000",
+    "tests_passed": 14
+  },
+  "qemu": {
+    "run": "run-rmlui-media-63a367db7b50",
+    "cases_passed": 3,
+    "graphics_surrogate": "QEMU EDU at 0000:29:00.0",
+    "reserved_pages": 6883,
+    "signed_read_only_pages": 33,
+    "signed_bytes_and_padding_verified": true,
+    "signed_chain_sha256": "b8a1a208fab79e308bc311e34d6db3c35acb560510cf390f24444db03003f483",
+    "tampered_trailer_rejected": true,
+    "boot_monitor_readback_verified": true,
+    "monitor_write_fault_verified_on_previously_unaccessed_page": true,
+    "warm_page_probe": "Initial run ed45f1f15082 did not advance the QEMU fault queue after a read followed by a write to the same page. This report claims only the separate cold-page write check and the byte-for-byte page-table inspection.",
+    "audio_surrogate_blocked": true,
+    "usb_hid_verified": true,
+    "translated_ahci_reads": 2,
+    "translated_nvme_reads": 2,
+    "gsp_dma_revoked": true,
+    "deployable": false
+  },
+  "physical_wpr_programmed": false,
+  "physical_dma_assignment_verified": false,
+  "physical_gsp_response_verified": false,
+  "native_bmo_x2_triangle_verified": false
+}

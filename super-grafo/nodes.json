@@ -2672,6 +2672,41 @@
       "falta": "Cotejar el primer registro escrito por el firmware fisico."
     },
     {
+      "id": "nvidia-gsp-boot-chain",
+      "titulo": "GPU / NVIDIA / Binarios firmados de arranque",
+      "ruta": "kernel/drivers/GPU/NVIDIA/gsp_boot_chain.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [
+        11450,
+        3750
+      ],
+      "que": "Mapea el monitor RISC-V y los binarios de carga y descarga SEC2 en la hoja GSP.",
+      "entrada": "Trailer de integridad comprobada en la reserva EfiLoaderData y arbol DMA independiente.",
+      "salida": "33 paginas de codigo firmado con permiso DMA de solo lectura y su IOVA inicial.",
+      "aceptacion": "QEMU coteja los tres binarios y el relleno. EDU lee el monitor y recibe un fallo al escribir una pagina del monitor sin lectura previa.",
+      "falta": "Ejecutar FWSEC y SEC2 en GA106 tras comprobar la adjudicacion DMA fisica."
+    },
+    {
+      "id": "nvidia-gsp-wpr-host",
+      "titulo": "HOST / Metadatos WPR V1",
+      "ruta": "tools/host/gpu/NVIDIA/gsp_wpr.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [
+        11450,
+        4600
+      ],
+      "que": "Reparte la ventana de VRAM y codifica el bloque WPR V1 de 256 bytes para GA10x.",
+      "entrada": "Limites explicitos de VRAM, FRTS y heaps; tamanos, offsets e IOVA del firmware.",
+      "salida": "Bloque de arranque en frio y mapa de VRAM, o rechazo ante un solapamiento.",
+      "aceptacion": "Compara los bytes con la estructura C de NVIDIA 615.78.08 y ensaya limites e IOVA solapadas.",
+      "falta": "Alimentar la geometria observada por Ring 0 y confirmar los campos que escriba SEC2."
+    },
+    {
       "id": "nvidia-gsp-ring0-radix3",
       "titulo": "GPU / NVIDIA / Directorio Radix3 x86-64",
       "ruta": "kernel/drivers/GPU/NVIDIA/gsp_radix3.inc",
@@ -4393,6 +4428,16 @@
       "de": "nvidia-gsp-libos-native",
       "a": "nvidia-gsp-libos-host",
       "clase": "verificacion"
+    },
+    {
+      "de": "nvidia-gsp-ring0-prepare",
+      "a": "nvidia-gsp-boot-chain",
+      "clase": "codigo"
+    },
+    {
+      "de": "nvidia-gsp-boot-chain",
+      "a": "nvidia-gsp-host-bundle",
+      "clase": "generacion"
     },
     {
       "de": "nvidia-gsp-ring0-prepare",

@@ -14,33 +14,39 @@ def verify_gsp_reservation(memory, context, expected, case):
     detached = expected.get('detached_dma', False)
     queues = expected.get('queues', False)
     libos = expected.get('libos', False)
+    boot_chain = expected.get('boot_chain')
     radix, dma_root = struct.unpack('<QQ', memory(context+0x828,16,'gsp-dma-handoff')) if detached else (0,0)
     rmargs, = struct.unpack('<Q',memory(context+0x838,8,'gsp-rmargs')) if queues else (0,)
     libos_iova, = struct.unpack('<Q',memory(context+0x840,8,'gsp-libos')) if libos else (0,)
+    boot_iova, = struct.unpack('<Q',memory(context+0x848,8,'gsp-boot-chain')) if boot_chain else (0,)
     if case == 'amdvi-missing':
-        if (base, length, status, prepared, firmware, signature, radix, dma_root, rmargs, libos_iova) != (0,0,1,0,0,0,0,0,0,0):
+        if status!=1 or any((base,length,prepared,firmware,signature,radix,dma_root,rmargs,libos_iova,boot_iova)):
             raise ValueError('Missing GSP file left a reservation')
         return {}
     reserved = (length+4096)//4096*4096
+    prepared_bytes = 0
     if detached:
         image_pages = expected['layout']['sections']['.fwimage']['bytes']//4096
         directory_pages = 2+(image_pages+511)//512
         payload_pages = image_pages+1+directory_pages
         tree_pages = 1+(payload_pages+511)//512
-        reserved = max(reserved,(payload_pages+tree_pages)*4096)
+        prepared_bytes = (payload_pages+tree_pages)*4096
     if queues:
         from host.gpu.NVIDIA.gsp_args import GSPMEM_PAGES, encode
 
         queue_iova = 0x0a000000
         queue_pages = 1+GSPMEM_PAGES
         queue_bytes = queue_pages*4096
-        reserved += queue_bytes+4096
+        prepared_bytes += queue_bytes+4096
         libos_bytes = 0
         if libos:
             from host.gpu.NVIDIA.gsp_libos import LIBOS_PAGES, encode as encode_libos
 
             libos_bytes = LIBOS_PAGES*4096
-            reserved += libos_bytes
+            prepared_bytes += libos_bytes
+        if boot_chain:
+            prepared_bytes += boot_chain['pages']*4096
+    reserved = max(reserved, prepared_bytes)
     if (status!=5 or length!=expected['bytes'] or not 0x100000<=base<=0x10000000-reserved
             or base%4096):
         raise ValueError('Invalid GSP reservation in the handoff')
@@ -125,12 +131,29 @@ def verify_gsp_reservation(memory, context, expected, case):
                 used += libos_bytes
                 result.update(GspLibosVerified=True,GspLibosPages=LIBOS_PAGES,
                               GspLibosSHA256=hashlib.sha256(libos_image).hexdigest())
+            if boot_chain:
+                if boot_iova!=rmargs+queue_bytes+libos_bytes:
+                    raise ValueError('Signed boot chain IOVA is outside its expected aperture')
+                first = (boot_iova-rmargs)//4096
+                for index in range(boot_chain['pages']):
+                    struct.pack_into('<Q',table,(first+index)*8,(base+used+4096*(1+index))|read|1)
             if image[used:used+4096]!=table:
                 raise ValueError('Detached GSP queue permissions differ')
             used += 4096
             result.update(GspQueuePagesVerified=queue_pages,GspQueuePermissionsVerified=True,
                           GspQueueReadOnlyPages=2,GspQueueWritablePages=queue_pages-2,
                           GspQueueSHA256=hashlib.sha256(args).hexdigest())
+        if boot_chain:
+            chain = image[used:used+boot_chain['pages']*4096]
+            if hashlib.sha256(chain).hexdigest()!=boot_chain['sha256']:
+                raise ValueError('Ring 0 signed boot chain differs from HOST')
+            for role,entry in boot_chain['entries'].items():
+                start,end = entry['offset'],entry['offset']+entry['bytes']
+                if hashlib.sha256(chain[start:end]).hexdigest()!=entry['sha256'] or any(chain[end:(end+4095)&-4096]):
+                    raise ValueError(f'Signed payload or padding differs: {role}')
+            used += len(chain)
+            result.update(GspBootChainVerified=True,GspBootChainPages=boot_chain['pages'],
+                          GspBootChainSHA256=boot_chain['sha256'])
         if any(image[used:]):
             raise ValueError('GSP reservation lost its zero padding')
         return result

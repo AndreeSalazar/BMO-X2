@@ -277,6 +277,8 @@ def main():
         raise ValueError('Missing Ring 0 GSP message queue evidence')
     if args.nvidia_gsp_prepare and not report['Cases'][0].get('GspLibosVerified'):
         raise ValueError('Missing Ring 0 GSP LIBOS argument and log evidence')
+    if args.nvidia_gsp_prepare and not report['Cases'][0].get('GspBootChainVerified'):
+        raise ValueError('Missing signed GSP boot chain in the detached DMA tree')
     if args.amdvi_probe and not all(case.get('AmdViMmioVerified') for case in report['Cases']):
         raise ValueError('Missing AMD-Vi MMIO evidence')
     if args.amdvi_post and not all(report['Cases'][i].get('AmdViPostVerified') for i in (0,2)):
@@ -310,7 +312,8 @@ def main():
     if args.amdvi_gsp_dma and not all(report['Cases'][0].get(field) for field in
                                      ('GspDmaCoexistenceVerified','GspStatusQueueDmaWriteVerified',
                                       'GspRmargsDmaWriteDenied','GspLibosArgumentWriteDenied',
-                                      'GspLibosLogWriteVerified')):
+                                      'GspLibosLogWriteVerified','GspBootChainReadVerified',
+                                      'GspBootChainWriteDenied')):
         raise ValueError('Missing prepared firmware DMA grant and revocation evidence')
     if args.amdvi_gsp_dma and args.amdvi_routed and not report['Cases'][0].get('GspSiblingDmaDenied'):
         raise ValueError('Missing isolation evidence for PCI function 29:00.1')

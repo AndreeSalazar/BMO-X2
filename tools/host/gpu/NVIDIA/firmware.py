@@ -12,6 +12,8 @@ NATIVE_RELEASE = '615.78.08'
 ELF_HEADER = struct.Struct('<16sHHIQQQIHHHHHH')
 SECTION_HEADER = struct.Struct('<IIQQQQIIQQ')
 GA10X_SECTIONS = (b'.fwimage', b'.fwversion', b'.fwsignature_ga10x')
+BIN_HEADER = struct.Struct('<6I')
+RISCV_DESCRIPTOR = struct.Struct('<21I')
 
 
 def verify(directory, release, profile):
@@ -85,14 +87,43 @@ def layout(image, release):
                           for name,(offset,size) in sections.items()})
 
 
-def read_native_gsp(directory):
-    profiles = json.loads(PROFILES.read_text(encoding='ascii'))
-    info = verify(directory,NATIVE_RELEASE,profiles['releases'][NATIVE_RELEASE])['gsp']
+def read_verified(directory, info):
     with (directory/info['name']).open('rb') as source:
         image = source.read(info['bytes']+1)
     if len(image)!=info['bytes'] or hashlib.sha256(image).hexdigest()!=info['sha256']:
-        raise ValueError('GSP original cambio durante la lectura')
-    return image,info
+        raise ValueError(f'{info["name"]}: cambio durante la lectura')
+    return image
+
+
+def read_native_files(directory):
+    profiles = json.loads(PROFILES.read_text(encoding='ascii'))
+    return verify(directory,NATIVE_RELEASE,profiles['releases'][NATIVE_RELEASE])
+
+
+def read_native_gsp(directory):
+    info = read_native_files(directory)['gsp']
+    return read_verified(directory, info), info
+
+
+def riscv_bootloader(container):
+    """Return the signed ucode and monitor offsets relative to that ucode."""
+    if len(container) < BIN_HEADER.size:
+        raise ValueError('Bootloader RISC-V: cabecera truncada')
+    magic, version, length, descriptor, start, size = BIN_HEADER.unpack_from(container)
+    if ((magic,version,length)!=(0x10de,1,(len(container)+255)&-256) or
+            not BIN_HEADER.size<=descriptor<=start-RISCV_DESCRIPTOR.size or
+            not 0<size<=len(container)-start or start+size!=len(container) or size%4096):
+        raise ValueError('Bootloader RISC-V: contenedor invalido')
+    words = RISCV_DESCRIPTOR.unpack_from(container, descriptor)
+    if words[0]!=5:
+        raise ValueError('Bootloader RISC-V: revision desconocida')
+    ranges = dict(zip(('manifest','data','code'), zip(words[8:14:2],words[9:14:2])))
+    if any(not 0<count<=size-offset or offset%256 for offset,count in ranges.values()):
+        raise ValueError('Bootloader RISC-V: segmento fuera del ucode')
+    ordered = sorted(ranges.values())
+    if any(offset+count>next_offset for (offset,count),(next_offset,_) in zip(ordered,ordered[1:])):
+        raise ValueError('Bootloader RISC-V: segmentos solapados')
+    return memoryview(container)[start:start+size], {name:offset for name,(offset,_) in ranges.items()}
 
 
 def main():

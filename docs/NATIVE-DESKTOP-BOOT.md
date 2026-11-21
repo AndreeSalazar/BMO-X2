@@ -348,7 +348,7 @@ ACTIVE_STAT a cero. Los buzones reportan cero antes de enviar una
 orden. PCI Command sigue en `0003` y AMD-Vi tiene la traduccion apagada.
 [Registro UEFI de la RTX](../Reports/nvidia-pci-metal-20261120-gsp-sample.bootlog.txt).
 
-El perfil `--nvidia-gsp-stage` agrega el original `GSP.BIN` de
+El perfil `--nvidia-gsp-stage` sin preparacion agrega el original `GSP.BIN` de
 `615.78.08` en `A:\BMO-X2\GPU\`. El HOST coteja la huella fijada y
 valida las secciones ELF. UEFI lee exactamente 27 043 992 B, coteja
 CRC32 y reserva 6603 paginas `EfiLoaderData`. Entrega base, longitud
@@ -502,14 +502,34 @@ para que el GSP la inicialice.
 
 El perfil preparado anade 99 paginas para LIBOS 3. Una pagina de
 solo lectura contiene las ocho descripciones de log y RMARGS. Las
-98 paginas de log admiten DMA de lectura y escritura. La reserva
-total llega a 6850 paginas y reutiliza la hoja DMA de las colas.
+98 paginas de log admiten DMA de lectura y escritura. LIBOS
+reutiliza la hoja DMA de las colas.
 El estado 5 indica que Ring 0 publico la IOVA de LIBOS. El primer
 resultado de la RTX requiere adjudicar el dominio real, preparar
 WPR y recibir la confirmacion del firmware antes del trabajo 3D.
 [Seleccion de logs y arranque de NVIDIA 615.78.08](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c).
 [Formato de argumentos LIBOS](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/common/uproc/os/common/include/libos_init_args.h).
 [Registro METAL, referencia Vulkan y ensayo LIBOS en QEMU](../Reports/nvidia-gsp-libos-20261121.json).
+
+Con `--nvidia-gsp-prepare`, `GSP.BIN` contiene el ELF original y un
+trailer de 33 paginas con el monitor RISC-V y los binarios SEC2 de
+carga y descarga. El CRC32 cubre ambos. Ring 0 conserva los bytes
+firmados al reordenar la reserva y agrega las 33 paginas de solo
+lectura a la hoja DMA existente. La reserva total es de 6883 paginas.
+QEMU verifico el trailer y el rechazo del archivo con un byte
+alterado en el trailer. EDU leyo una pagina del monitor y recibio un
+fallo al escribir otra pagina del monitor sin lectura previa.
+
+`tools/host/gpu/NVIDIA/gsp_wpr.py` emite los 256 bytes de WPR V1 a
+partir de los limites efectivos de VRAM y las IOVA del firmware.
+Comprueba la reserva de la VBIOS, la ventana permitida y los
+solapamientos. Una estructura C de NVIDIA sirvio de referencia
+byte por byte. El ensayo uso los limites historicos de la RTX como
+fixture. El arranque necesita cotejar esos limites en el equipo,
+adjudicar DMA y ejecutar FWSEC-FRTS y SEC2 antes de esperar la
+respuesta del firmware.
+[Verificacion del arranque firmado y WPR V1](../Reports/nvidia-gsp-boot-chain-20261121.json).
+[Geometria WPR V1 en NVIDIA 615.78.08](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/arch/turing/kernel_gsp_tu102.c).
 
 La tabla ACPI IVRS del equipo tiene 208 B y describe tanto
 `0000:29:00.0` (RTX) como `0000:29:00.1` (audio) bajo la unidad

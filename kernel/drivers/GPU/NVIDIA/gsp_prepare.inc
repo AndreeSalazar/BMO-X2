@@ -64,7 +64,18 @@ gsp_prepare_begin:
     lea BMO_GSP_SIGNATURE_OFFSET(%r9), %rsi
     mov $512, %ecx
     rep movsq
+#ifdef BMO_NVIDIA_GSP_BOOT_CHAIN
+    # Preserve the signed trailer before recycling the original file space.
+    mov %rdi, %r8
+    lea BMO_GSP_BOOT_FILE_OFFSET(%r9), %rsi
+    lea GSP_BOOT_AREA_OFFSET(%r9), %rdi
+    mov $(BMO_GSP_BOOT_PAGES*512), %ecx
+    rep movsq
+    mov %r8, %rdi
+    mov $((GSP_BOOT_AREA_OFFSET-BMO_GSP_IMAGE_BYTES-4096)/8), %ecx
+#else
     mov $((GSP_STAGE_PAGES*4096-BMO_GSP_IMAGE_BYTES-4096)/8), %ecx
+#endif
     xor %eax, %eax
     rep stosq
 
@@ -101,6 +112,9 @@ gsp_prepare_begin:
 #ifdef BMO_NVIDIA_GSP_LIBOS
     call nvidia_gsp_init_libos
 #endif
+#ifdef BMO_NVIDIA_GSP_BOOT_CHAIN
+    call nvidia_gsp_map_boot_chain
+#endif
     movl $GSP_POST_READY, GSP_POST_STATUS(%rbp)
     ret
 
@@ -111,6 +125,9 @@ gsp_prepare_begin:
 #endif
 #ifdef BMO_NVIDIA_GSP_LIBOS
 #include "gsp_libos.inc"
+#endif
+#ifdef BMO_NVIDIA_GSP_BOOT_CHAIN
+#include "gsp_boot_chain.inc"
 #endif
 .globl gsp_prepare_end
 gsp_prepare_end:
