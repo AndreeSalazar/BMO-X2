@@ -57,6 +57,7 @@ ROOT = workspace(args.workspace)
 nvidia_gsp_sample = args.doom_fixture and (ROOT / 'nvidia-gsp-sample.txt').is_file()
 nvidia_gsp_stage = args.doom_fixture and (ROOT / 'nvidia-gsp-stage.json').is_file()
 amdvi_post = args.doom_fixture and (ROOT / 'amdvi-post-probe.txt').is_file()
+amdvi_dte_reserve = args.doom_fixture and (ROOT / 'amdvi-dte-reserve.txt').is_file()
 amdvi_coexist = amdvi_post and (ROOT / 'amdvi-coexist-probe.txt').is_file()
 amdvi_storage = amdvi_coexist and (ROOT / 'amdvi-storage.txt').is_file()
 amdvi_routed = amdvi_storage and (ROOT / 'amdvi-routed.txt').is_file()
@@ -209,6 +210,27 @@ def verify_amdvi_firmware(log, units, register_words, present):
         raise ValueError(f'AMD-Vi register report {mmio} differs from {expected}')
     return dict(AmdViFirmwareVerified=True, AmdViPresent=present, AmdViReport=payload,
                 AmdViMmioVerified=True, AmdViMmioReport=' '.join(mmio))
+
+
+def verify_amdvi_dte_reservation(log, mmio_report, present):
+    fields = re.search(rb'(?m)^AMDVI_DTE=([0-9A-F]{8}(?: [0-9A-F]{8}){4})\r$', log)
+    if not fields:
+        raise ValueError('Missing AMD-Vi DTE reservation report')
+    status, pages, base_hi, base_lo, zero_qwords = (
+        int(word, 16) for word in fields.group(1).decode('ascii').split())
+    base = (base_hi << 32) | base_lo
+    if (status != 1 or pages != 512 or not base or base & 0xfff or
+            base + pages * 4096 >= 1 << 64 or zero_qwords != pages * 512):
+        raise ValueError(f'Invalid AMD-Vi DTE reservation: {fields.group(1)!r}')
+    registers = mmio_report.split()
+    if present:
+        if len(registers) != 6 or any(int(word, 16) for word in registers[1:]):
+            raise ValueError('DTE preparation changed or enabled an AMD-Vi register')
+    elif registers != ['00000000'] + ['----------------'] * 5:
+        raise ValueError('Unexpected AMD-Vi state in the absent-device case')
+    return dict(AmdViDteReservationVerified=True, AmdViDteBase=base,
+                AmdViDtePages=pages, AmdViDteZeroQwords=zero_qwords,
+                AmdViMmioUnchanged=True, AmdViActivated=False)
 
 
 def run(case):
@@ -667,6 +689,9 @@ for case in args.casos:
                     if amdvi_probe:
                         result.update(verify_amdvi_firmware(log, result.pop('AmdViQmpUnits'),
                                                             result.pop('AmdViQmpRegisters'), case == 'normal'))
+                    if amdvi_dte_reserve:
+                        result.update(verify_amdvi_dte_reservation(
+                            log, result['AmdViMmioReport'], result['AmdViPresent']))
                     if amdvi_post and case == 'normal':
                         pre = result['AmdViMmioReport'].split()[1:]
                         post = result['AmdViPostReport'].split()[1:]

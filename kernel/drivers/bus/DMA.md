@@ -224,6 +224,23 @@ IOMMU ni concede DMA.
 [Requisito fisico de tabla](../../../Reports/amdvi-physical-table-requirement-20261121.json).
 [Especificacion AMD: tabla DTE de 64K entradas y alineacion/tamano](https://docs.amd.com/api/khub/documents/GD6kOXjzWsek8QUbn_qMvg/content).
 
+El paso `--amdvi-dte-reserve` reserva en UEFI 512 paginas contiguas de
+`EfiLoaderData`, limpia los 2 MiB y lee de vuelta las 262 144 palabras de
+64 bits antes de `ExitBootServices`. QEMU paso 2/2 casos: unidad presente y
+SBEF rechazado. La base quedo alineada a 4 KiB; las cinco lecturas de
+registros AMD-Vi permanecieron en cero en el caso normal. Esto solo demuestra
+la reserva y su inicializacion antes del traspaso. No instala la tabla, no
+activa traduccion ni DMA y el perfil no emite medios instalables.
+[Captura QEMU de reserva DTE](../../../Reports/amdvi-dte-reservation-qemu-20261121.json).
+
+La tabla vacia no se debe publicar al hardware: antes de habilitar traduccion
+hay que comprobar la propiedad y el acceso a la reserva despues de EBS,
+construir entradas bloqueadas por defecto para todos los DeviceID y probar
+que cada solicitante activo queda aislado. Luego hay que probar colas e
+invalidaciones con dispositivos virtuales y verificar su cierre antes de
+considerar una prueba en metal. La reserva por si sola no acelera el render
+ni acredita ejecucion GSP o 3D en la RTX.
+
 El puente del escritorio reserva cinco paginas contiguas de EfiLoaderData
 por debajo de 256 MiB y las entrega en los campos B8/C0 del contexto.
 La variante QEMU de comandos agrega una pagina para contextos

@@ -1,5 +1,5 @@
 .text
-#ifdef BMO_AMDVI_POST
+#if defined(BMO_AMDVI_POST) || defined(BMO_AMDVI_DTE_RESERVE)
 #include "post_layout.inc"
 #endif
 #if defined(BMO_FULL_HD) || defined(BMO_AMDVI_GSP_DMA)
@@ -51,6 +51,57 @@ amdvi_firmware_probe:
     mov %r9, (%rsp)
     mov 0x60(%rcx), %rax
     mov %rax, 8(%rsp)
+#ifdef BMO_AMDVI_DTE_RESERVE
+    # QEMU-only preparation: reserve and verify the complete 2 MiB DTE
+    # array as EfiLoaderData. No AMD-Vi register or PCI command is touched.
+    movq $0, AMDVI_DTE_RESERVE_BASE(%rbp)
+    movq $AMDVI_DTE_TABLE_PAGES, AMDVI_DTE_RESERVE_PAGES(%rbp)
+    movq $0, AMDVI_DTE_RESERVE_STATUS(%rbp)
+    movq $0, AMDVI_DTE_RESERVE_ZERO_QWORDS(%rbp)
+    push %rcx
+    push %rdx
+    push %r8
+    push %r9
+    sub $32, %rsp
+    xor %ecx, %ecx                  # AllocateAnyPages
+    mov $2, %edx                    # EfiLoaderData
+    mov $AMDVI_DTE_TABLE_PAGES, %r8d
+    lea AMDVI_DTE_RESERVE_BASE(%rbp), %r9
+    call *0x28(%rax)                # EFI_BOOT_SERVICES.AllocatePages
+    add $32, %rsp
+    pop %r9
+    pop %r8
+    pop %rdx
+    pop %rcx
+    mov %rcx, %r10                  # Preserve SystemTable across REP scans.
+    test %rax, %rax
+    jnz .Ldte_allocate_failed
+    mov AMDVI_DTE_RESERVE_BASE(%rbp), %rdi
+    test %rdi, %rdi
+    jz .Ldte_verify_failed
+    test $0xfff, %edi
+    jnz .Ldte_verify_failed
+    mov %rdi, %rsi
+    xor %eax, %eax
+    mov $AMDVI_DTE_TABLE_QWORDS, %ecx
+    cld
+    rep stosq
+    mov %rsi, %rdi
+    xor %eax, %eax
+    mov $AMDVI_DTE_TABLE_QWORDS, %ecx
+    repe scasq
+    jne .Ldte_verify_failed
+    movq $AMDVI_DTE_TABLE_QWORDS, AMDVI_DTE_RESERVE_ZERO_QWORDS(%rbp)
+    movq $1, AMDVI_DTE_RESERVE_STATUS(%rbp)
+    jmp .Ldte_done
+.Ldte_allocate_failed:
+    movq $2, AMDVI_DTE_RESERVE_STATUS(%rbp)
+    jmp .Ldte_done
+.Ldte_verify_failed:
+    movq $3, AMDVI_DTE_RESERVE_STATUS(%rbp)
+.Ldte_done:
+    mov %r10, %rcx
+#endif
 #ifdef BMO_STORAGE_QUIESCE_METAL
     push %rcx
     push %rdx

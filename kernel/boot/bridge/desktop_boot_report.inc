@@ -151,6 +151,9 @@ report_pci_advance:
 #endif
 #endif
 #ifdef BMO_AMDVI_EFI_OFFSET
+#ifdef BMO_AMDVI_DTE_RESERVE
+#include "../../drivers/bus/amdvi/post_layout.inc"
+#endif
 #ifdef BMO_NVIDIA_PCI_PROBE
     mov 56(%rsp), %rcx              # EFI SystemTable saved above.
 #else
@@ -161,6 +164,23 @@ report_pci_advance:
     lea (BMO_BOOT_REPORT_AREA+report_amdvi_mmio-report_template)(%rbp), %r9
     .byte 0xe8
     .long BMO_AMDVI_EFI_OFFSET - DESKTOP_READER_OFFSET - (. - desktop_media_read) - 4
+#ifdef BMO_AMDVI_DTE_RESERVE
+    mov AMDVI_DTE_RESERVE_STATUS(%rbp), %eax
+    lea (BMO_BOOT_REPORT_AREA+report_amdvi_dte_status-report_template)(%rbp), %rdi
+    call report_hex32
+    mov AMDVI_DTE_RESERVE_PAGES(%rbp), %eax
+    lea (BMO_BOOT_REPORT_AREA+report_amdvi_dte_pages-report_template)(%rbp), %rdi
+    call report_hex32
+    mov AMDVI_DTE_RESERVE_BASE+4(%rbp), %eax
+    lea (BMO_BOOT_REPORT_AREA+report_amdvi_dte_base_hi-report_template)(%rbp), %rdi
+    call report_hex32
+    mov AMDVI_DTE_RESERVE_BASE(%rbp), %eax
+    lea (BMO_BOOT_REPORT_AREA+report_amdvi_dte_base_lo-report_template)(%rbp), %rdi
+    call report_hex32
+    mov AMDVI_DTE_RESERVE_ZERO_QWORDS(%rbp), %eax
+    lea (BMO_BOOT_REPORT_AREA+report_amdvi_dte_zero_qwords-report_template)(%rbp), %rdi
+    call report_hex32
+#endif
 #endif
 
     mov 0x38(%rbp), %rcx
@@ -255,6 +275,19 @@ report_amdvi:
     .ascii "AMDVI_MMIO="
 report_amdvi_mmio:
     .ascii "00000000 ---------------- ---------------- ---------------- ---------------- ----------------\r\n"
+#ifdef BMO_AMDVI_DTE_RESERVE
+    .ascii "AMDVI_DTE="
+report_amdvi_dte_status:
+    .ascii "00000000 "
+report_amdvi_dte_pages:
+    .ascii "00000000 "
+report_amdvi_dte_base_hi:
+    .ascii "00000000 "
+report_amdvi_dte_base_lo:
+    .ascii "00000000 "
+report_amdvi_dte_zero_qwords:
+    .ascii "00000000\r\n"
+#endif
 #endif
 report_end:
 #if defined(BMO_NVIDIA_PCI_PROBE) || defined(BMO_AMDVI_EFI_OFFSET)

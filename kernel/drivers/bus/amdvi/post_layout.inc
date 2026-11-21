@@ -42,6 +42,15 @@
 #define AMDVI_LAB_CONTROL_AFTER_STOP 0xb70
 #define AMDVI_LAB_EDU_RID 0xb78
 #define AMDVI_LAB_PRESENT_COUNT 0xb80
+#ifdef BMO_AMDVI_DTE_RESERVE
+// UEFI-owned memory reservation only; this does not program AMD-Vi.
+#define AMDVI_DTE_RESERVE_BASE 0x738
+#define AMDVI_DTE_RESERVE_PAGES 0x740
+#define AMDVI_DTE_RESERVE_STATUS 0x748
+#define AMDVI_DTE_RESERVE_ZERO_QWORDS 0x750
+#define AMDVI_DTE_TABLE_PAGES 512
+#define AMDVI_DTE_TABLE_QWORDS (AMDVI_DTE_TABLE_PAGES*4096/8)
+#endif
 #if defined(BMO_AMDVI_ROUTED) && defined(BMO_AMDVI_NVME)
 // Keep the inventory away from the NVMe and AHCI counters at 0xbc0.
 #define AMDVI_LAB_PRESENT_RIDS 0x850

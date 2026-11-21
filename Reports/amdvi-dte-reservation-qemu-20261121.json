@@ -1,0 +1,42 @@
+{
+  "Schema": 1,
+  "Profile": "amdvi-dte-reserve",
+  "Evidence": "QEMU",
+  "Run": "run-rmlui-media-d6b159f03e97",
+  "Passed": 2,
+  "Total": 2,
+  "DteEntries": 65536,
+  "DteBytes": 2097152,
+  "DtePages": 512,
+  "ZeroQwords": 262144,
+  "TranslationActivated": false,
+  "InstallableMediaEmitted": false,
+  "MetalTested": false,
+  "GpuExecutionTested": false,
+  "Cases": [
+    {
+      "Case": "normal",
+      "Passed": true,
+      "AmdViPresent": true,
+      "DteBasePhysical": "0x000000003DB45000",
+      "DtePages": 512,
+      "DteBytes": 2097152,
+      "DteZeroQwords": 262144,
+      "DteAligned4KiB": true,
+      "AmdViMmioUnchanged": true,
+      "AmdViActivated": false
+    },
+    {
+      "Case": "external-permissions",
+      "Passed": true,
+      "AmdViPresent": false,
+      "DteBasePhysical": "0x000000003DB4A000",
+      "DtePages": 512,
+      "DteBytes": 2097152,
+      "DteZeroQwords": 262144,
+      "DteAligned4KiB": true,
+      "AmdViMmioUnchanged": true,
+      "AmdViActivated": false
+    }
+  ]
+}

@@ -37,6 +37,7 @@ def main():
     p.add_argument('--nvidia-gsp-prepare', action='store_true', help='Prepare the NVIDIA firmware and detached DMA tree in Ring 0')
     p.add_argument('--nvidia-fwsec-vbios', type=Path, help='Pin FWSEC preparation to the verified MSI GA106 VBIOS')
     p.add_argument('--amdvi-probe', action='store_true', help='Add read-only AMD-Vi firmware inventory')
+    p.add_argument('--amdvi-dte-reserve', action='store_true', help='QEMU-only: reserve and verify the full zeroed 2 MiB AMD-Vi DTE table without enabling the IOMMU')
     p.add_argument('--amdvi-post', action='store_true', help='Take a second AMD-Vi snapshot after ExitBootServices')
     p.add_argument('--amdvi-coexist', action='store_true', help='Exercise virtual EDU and USB DMA together in QEMU')
     p.add_argument('--amdvi-guest-dma', action='store_true', help='Let the guest program AMD-Vi in the virtual lab')
@@ -65,6 +66,8 @@ def main():
         p.error('--nvidia-fwsec-vbios requires the sampled NVIDIA profile and --nvidia-gsp-prepare')
     if args.amdvi_post and (not args.amdvi_probe or args.usb!='both' or args.msvc_panel or args.usb_empty_ports):
         p.error('--amdvi-post requires --amdvi-probe with USB both')
+    if args.amdvi_dte_reserve and not args.amdvi_probe:
+        p.error('--amdvi-dte-reserve requires --amdvi-probe')
     if args.amdvi_coexist and not args.amdvi_post:p.error('--amdvi-coexist requires --amdvi-post')
     if args.amdvi_guest_dma and not args.amdvi_coexist:p.error('--amdvi-guest-dma requires --amdvi-coexist')
     if args.amdvi_storage and not args.amdvi_guest_dma:p.error('--amdvi-storage requires --amdvi-guest-dma')
@@ -114,6 +117,8 @@ def main():
         (run/'nvidia-gsp-sample.txt').write_text('ga106-gsp-wpr-read-only\n', encoding='ascii')
     if args.amdvi_probe:
         (run/'amdvi-efi-probe.txt').write_text('firmware-read-only\n', encoding='ascii')
+    if args.amdvi_dte_reserve:
+        (run/'amdvi-dte-reserve.txt').write_text('qemu-only-512-page-zeroed-table\n', encoding='ascii')
     if args.amdvi_post:
         (run/'amdvi-post-probe.txt').write_text('post-ebs-read-only\n', encoding='ascii')
     if args.dma_census:
@@ -163,6 +168,7 @@ def main():
         if args.nvidia_gsp_prepare and name=='loader':flags+=['-DBMO_NVIDIA_GSP_PREPARE']
         if args.nvidia_gsp_prepare and name=='gate':flags+=['-DBMO_NVIDIA_GSP_STATUS']
         if args.amdvi_probe and name == 'reader':flags+=[f'-DBMO_AMDVI_EFI_OFFSET={amdvi_offset}']
+        if args.amdvi_dte_reserve and name == 'reader':flags+=['-DBMO_AMDVI_DTE_RESERVE']
         if args.amdvi_post and name in ('reader','gate'):flags+=['-DBMO_AMDVI_POST']
         if args.dma_census and name=='gate':flags+=['-DBMO_DMA_CENSUS']
         if args.amdvi_guest_dma and name=='gate':flags+=['-DBMO_AMDVI_GUEST_DMA']
@@ -204,6 +210,7 @@ def main():
         source=ROOT/'kernel/drivers/bus/amdvi/firmware_probe.S'
         native_probe=run/'amdvi-firmware.o'
         flags=['-DBMO_AMDVI_POST'] if args.amdvi_post else []
+        if args.amdvi_dte_reserve:flags+=['-DBMO_AMDVI_DTE_RESERVE']
         if args.amdvi_coexist:flags+=['-DBMO_AMDVI_COEXIST']
         if args.dma_census:flags+=['-DBMO_DMA_CENSUS']
         if args.storage_state:flags+=['-DBMO_STORAGE_STATE']
@@ -356,7 +363,7 @@ def main():
     staged={f'EFI/BMO-X2/{boot_name}':image,f'{media_prefix}/INICIO.X86':packet,f'{media_prefix}/DESKTOP.SBF':sbef}
     if gsp is not None:
         staged[f'{media_prefix}/GSP.BIN'] = gsp
-    storage_lab_only = args.storage_quiesce or args.amdvi_nvme
+    storage_lab_only = args.storage_quiesce or args.amdvi_nvme or args.amdvi_dte_reserve
     if not storage_lab_only:
         for name,data in staged.items():
             target=media/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(data)
@@ -382,7 +389,8 @@ def main():
         amdvi_guest_nvme=args.amdvi_guest_nvme,
         amdvi_guest_ahci=args.amdvi_guest_ahci,
         amdvi_gsp_dma=args.amdvi_gsp_dma,
-        qemu_only=bool(args.usb),usb_profile=args.usb,
+        amdvi_dte_reserve=args.amdvi_dte_reserve,
+        qemu_only=bool(args.usb) or args.amdvi_dte_reserve,usb_profile=args.usb,
         usb_empty_ports=args.usb_empty_ports,
         hardware_profile='amd149c-usb2-root-experimental' if args.usb=='both' and not args.usb_empty_ports else None,
         note=('QEMU-only lab; no installable media is emitted.' if storage_lab_only else
