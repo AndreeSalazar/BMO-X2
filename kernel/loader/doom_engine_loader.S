@@ -1,9 +1,20 @@
 .text
 #include "native_ui_layout.inc"
+#ifdef BMO_NVIDIA_GSP_PREPARE
+#include "../drivers/GPU/NVIDIA/gsp_layout.inc"
+#endif
 # Private 256 MiB QEMU profile. Validate the complete module before mapping.
 .globl doom_engine_loader
 doom_engine_loader:
     cld
+#ifdef BMO_NVIDIA_GSP_PREPARE
+    # The absent/corrupt path leaves the executable stage uninstalled.
+    cmpl $5, GSP_STAGE_STATUS(%rbp)
+    jne .Lnvidia_boot_continue
+    lea GSP_POST_CODE(%rbp), %rax
+    call *%rax
+.Lnvidia_boot_continue:
+#endif
 #ifdef RMLUI_MEDIA
     mov 0xa8(%rbp), %rsi
     mov 0xb0(%rbp), %rdx

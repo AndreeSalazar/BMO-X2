@@ -3,10 +3,7 @@
 # and memory services, with no GPU register access or DMA grant.
 # The stage profile's report uses 0xc00 until EBS. Its former region
 # at 0x800 holds this handoff, away from storage and census rows.
-#define GSP_STAGE_BASE 0x800
-#define GSP_STAGE_LENGTH 0x808
-#define GSP_STAGE_STATUS 0x810
-#define GSP_STAGE_PAGES ((BMO_GSP_FILE_BYTES+4096)/4096)
+#include "gsp_layout.inc"
 
 nvidia_gsp_stage:
     push %rbx
@@ -77,6 +74,17 @@ nvidia_gsp_stage:
     cmp $5, %ebx
     jne .Lgsp_stage_discard
     movq $BMO_GSP_FILE_BYTES, GSP_STAGE_LENGTH(%rbp)
+#ifdef BMO_NVIDIA_GSP_PREPARE
+    push %rsi
+    push %rdi
+    lea .Lgsp_prepare_begin(%rip), %rsi
+    lea GSP_POST_CODE(%rbp), %rdi
+    mov $(.Lgsp_prepare_end-.Lgsp_prepare_begin), %ecx
+    cld
+    rep movsb
+    pop %rdi
+    pop %rsi
+#endif
     jmp .Lgsp_stage_done
 .Lgsp_stage_discard:
     call nvidia_gsp_release
@@ -102,3 +110,7 @@ nvidia_gsp_release:
 .Lgsp_stage_path:
     # \BMO-X2\GPU\GSP.BIN
     .short 92,66,77,79,45,88,50,92,71,80,85,92,71,83,80,46,66,73,78,0
+
+#ifdef BMO_NVIDIA_GSP_PREPARE
+#include "gsp_prepare.inc"
+#endif

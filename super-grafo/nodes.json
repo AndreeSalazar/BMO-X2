@@ -2601,9 +2601,44 @@
       "falta": "Programar la carga al motor con dominio DMA propio."
     },
     {
+      "id": "nvidia-gsp-ring0-prepare",
+      "titulo": "GPU / NVIDIA / Preparacion pos-UEFI",
+      "ruta": "kernel/drivers/GPU/NVIDIA/gsp_prepare.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [
+        10400,
+        3750
+      ],
+      "que": "Comprueba el traspaso GSP y alinea imagen y firma en la reserva existente despues de UEFI.",
+      "entrada": "Reserva de supervisor y mapa EFI final, unicamente en el perfil NVIDIA.",
+      "salida": "Dos rangos contiguos por pagina para imagen y firma, estado interno 2, y resto de la reserva limpio.",
+      "aceptacion": "QEMU verifica ambas huellas por separado y arranca con el modulo ausente. HOST ejercita rechazo de rango ajeno o corto.",
+      "falta": "Construir el directorio Radix3 con IOVA adjudicadas en METAL y arrancar el GSP."
+    },
+    {
+      "id": "nvidia-gsp-host-bundle",
+      "titulo": "HOST / Empaquetado opcional NVIDIA",
+      "ruta": "tools/host/gpu/NVIDIA/bundle.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [
+        10550,
+        4600
+      ],
+      "que": "Coteja el firmware, limita su geometria y entrega el archivo y opciones de compilacion al empaquetador opcional.",
+      "entrada": "Firmware NVIDIA original de la release fijada y seleccion del perfil.",
+      "salida": "GSP.BIN, manifiesto y parametros del lector; un testigo alterado para el ensayo.",
+      "aceptacion": "FAT32 conserva la huella original y el escritorio base excluye este empaquetador.",
+      "falta": "Integrar el resto de artefactos cuando el controlador pueda autenticar y arrancar el GSP."
+    },
+    {
       "id": "nvidia-gsp-firmware-host",
       "titulo": "HOST / Firmware NVIDIA GA10x",
-      "ruta": "tools/host/gpu/firmware.py",
+      "ruta": "tools/host/gpu/NVIDIA/firmware.py",
       "estado": "host",
       "anillo": "host",
       "lenguaje": "Python",
@@ -2620,7 +2655,7 @@
     {
       "id": "nvidia-gsp-radix3-host",
       "titulo": "HOST / Directorio GSP Radix3",
-      "ruta": "tools/host/gpu/radix3.py",
+      "ruta": "tools/host/gpu/NVIDIA/radix3.py",
       "estado": "host",
       "anillo": "host",
       "lenguaje": "Python",
@@ -2637,7 +2672,7 @@
     {
       "id": "nvidia-gsp-args-host",
       "titulo": "HOST / Argumentos y colas GSP 615.78.08",
-      "ruta": "tools/host/gpu/gsp_args.py",
+      "ruta": "tools/host/gpu/NVIDIA/gsp_args.py",
       "estado": "host",
       "anillo": "host",
       "lenguaje": "Python",
@@ -2654,7 +2689,7 @@
     {
       "id": "nvidia-gsp-dma-layout",
       "titulo": "GPU / NVIDIA / Mapa DMA de arranque GSP",
-      "ruta": "tools/host/gpu/gsp_dma.py",
+      "ruta": "tools/host/gpu/NVIDIA/gsp_dma.py",
       "estado": "qemu",
       "anillo": "host",
       "lenguaje": "Python",
@@ -4217,6 +4252,16 @@
       "de": "nvidia-gsp-stage",
       "a": "nvidia-gsp-firmware-host",
       "clase": "verificacion"
+    },
+    {
+      "de": "nvidia-gsp-ring0-prepare",
+      "a": "nvidia-gsp-stage",
+      "clase": "codigo"
+    },
+    {
+      "de": "nvidia-gsp-host-bundle",
+      "a": "nvidia-gsp-firmware-host",
+      "clase": "codigo"
     },
     {
       "de": "nvidia-gsp-firmware-host",

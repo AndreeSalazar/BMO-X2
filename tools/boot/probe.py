@@ -90,7 +90,7 @@ if args.doom_fixture:
     desktop_doom = profile == 'desktop-doom'
     native_media = profile == 'rmlui-desktop-media'
     nvidia_probe = native_media and (ROOT / 'nvidia-pci-probe.txt').is_file()
-    amdvi_probe = nvidia_probe and (ROOT / 'amdvi-efi-probe.txt').is_file()
+    amdvi_probe = (ROOT / 'amdvi-efi-probe.txt').is_file()
     native_ui = profile in ('rmlui-native','rmlui-desktop','rmlui-desktop-media')
     msvc_sections = profile == 'msvc-sections'
     doom_engine = profile == 'doom-engine' or desktop_doom or native_ui or msvc_sections

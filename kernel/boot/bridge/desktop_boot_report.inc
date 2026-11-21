@@ -149,14 +149,18 @@ report_pci_advance:
     lea (BMO_BOOT_REPORT_AREA+report_gsp_stage-report_template)(%rbp), %rdi
     call report_hex32
 #endif
+#endif
 #ifdef BMO_AMDVI_EFI_OFFSET
+#ifdef BMO_NVIDIA_PCI_PROBE
     mov 56(%rsp), %rcx              # EFI SystemTable saved above.
+#else
+    mov %r13, %rcx                  # No GPU inventory used this register.
+#endif
     lea (BMO_BOOT_REPORT_AREA+report_amdvi-report_template)(%rbp), %rdx
     lea report_hex32(%rip), %r8
     lea (BMO_BOOT_REPORT_AREA+report_amdvi_mmio-report_template)(%rbp), %r9
     .byte 0xe8
     .long BMO_AMDVI_EFI_OFFSET - DESKTOP_READER_OFFSET - (. - desktop_media_read) - 4
-#endif
 #endif
 
     mov 0x38(%rbp), %rcx
@@ -242,6 +246,7 @@ report_pci1:
 report_gsp_stage:
     .ascii "00000000\r\n"
 #endif
+#endif
 #ifdef BMO_AMDVI_EFI_OFFSET
     # Packed words: status, IVRS bytes, requester, base register low/high.
     .ascii "AMDVI="
@@ -251,12 +256,11 @@ report_amdvi:
 report_amdvi_mmio:
     .ascii "00000000 ---------------- ---------------- ---------------- ---------------- ----------------\r\n"
 #endif
-#endif
 report_end:
-#ifdef BMO_NVIDIA_PCI_PROBE
+#if defined(BMO_NVIDIA_PCI_PROBE) || defined(BMO_AMDVI_EFI_OFFSET)
     # Native UI owns the report region and does not load ACTION.UJB.
 #if defined(ULTRA_J_MEDIA) || !defined(RMLUI_MEDIA)
-#error "NVIDIA report requires the dedicated native UI profile"
+#error "Platform report requires the dedicated native UI profile"
 #endif
     .if (report_end-report_template) > BMO_BOOT_REPORT_LIMIT
     .error "Boot report exceeds context buffer"

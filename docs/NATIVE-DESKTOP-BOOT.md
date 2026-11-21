@@ -388,6 +388,35 @@ bajo control, y ejecutar la secuencia firmada del GSP.
 [Prueba DMA del paquete completo](../Reports/nvidia-gsp-dma-qemu-20261120.json).
 [Comandos y formatos AMD-Vi](https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/specifications/48882_IOMMU.pdf).
 
+#### Perfil NVIDIA opcional
+
+El codigo del perfil vive en `kernel/drivers/GPU/NVIDIA/`. Sus
+herramientas y el manifiesto de firmware viven en
+`tools/host/gpu/NVIDIA/`. El escritorio base se construye con
+`--usb both`; las opciones NVIDIA agregan sus includes y archivos
+al candidato dedicado. Para arrancar el perfil base se usa su
+`DESKTOP.EFI` independiente. Al preparar el perfil sin NVIDIA se
+omiten las dos carpetas del modulo.
+El perfil base puede conservar las sondas de plataforma con
+`--usb both --amdvi-probe --amdvi-post`. Sus registros aparecen en
+`BMO-X2/DESKTOP/BOOTLOG.TXT`.
+
+Con `--nvidia-gsp-prepare`, la entrada del loader llama a una rutina
+privada de Ring 0 tras ExitBootServices. La rutina vuelve a comprobar
+la reserva EfiLoaderData y coloca `.fwimage` y la firma GA10x en limites
+de pagina de la misma reserva. Las paginas sobrantes quedan a cero.
+Con esto el camino DMA puede usar las dos bases alineadas sin otra
+reserva del tamano del firmware. La publicacion interna usa estado 2
+y dos punteros. QEMU coteja ambas huellas y conserva el arranque del
+escritorio ante archivo ausente o alterado.
+
+```powershell
+python -B tools/desktop/rmlui/native/media.py <ABI_RUN> <GATO_COMPACTO_RUN> --usb both --nvidia-probe --amdvi-probe --amdvi-post --dma-census --storage-state --full-hd --nvidia-gsp-sample --nvidia-gsp-stage build/gpu/NVIDIA/ga10x-615.78.08 --nvidia-gsp-prepare
+python -B -m tools.host.gpu.NVIDIA.qemu_gsp_dma build/gpu/NVIDIA/ga10x-615.78.08
+```
+
+[Pruebas de independencia y preparacion NVIDIA](../Reports/nvidia-gsp-prepare-qemu-20261120.json).
+
 Despues del estado `08` quedan tres pruebas:
 
 1. Preparar la version compatible de GSP y su procedencia. Reservar y
@@ -411,7 +440,7 @@ del verificador selecciona ese conjunto completo.
 El verificador usa huellas de referencia del conjunto local, y rechaza
 archivos alterados y releases cruzadas. La autenticacion de firmware
 en hardware y el intercambio con el GSP quedan para el ensayo de
-arranque. [Verificacion HOST](../tools/host/gpu/firmware.py).
+arranque. [Verificacion HOST](../tools/host/gpu/NVIDIA/firmware.py).
 [Procedencia de 570.144 en linux-firmware](https://kernel.googlesource.com/pub/scm/linux/kernel/git/firmware/linux-firmware/%2B/refs/tags/20250917/WHENCE).
 [GSP 615.78.08 de NVIDIA](https://download.nvidia.com/XFree86/Linux-x86_64/615.78.08/README/gsp.html).
 
@@ -430,7 +459,7 @@ local `build/gpu/NVIDIA/ga10x-615.78.08` para el cargador NVIDIA separado.
 Las longitudes, las huellas y las secciones coinciden con el original.
 El manifiesto de esa copia registra la comprobacion HOST.
 
-El codificador `tools/host/gpu/radix3.py` arma un directorio para
+El codificador `tools/host/gpu/NVIDIA/radix3.py` arma un directorio para
 `.fwimage` usando las IOVA de reserva que recibe. Cada entrada
 es una direccion LE64 visible al dispositivo. Las listas de imagen
 y del directorio se comprueban por tamano, alineacion y unicidad.
@@ -448,7 +477,7 @@ cola CPU a GSP. La cola de retorno queda a cero para que el GSP la
 inicialice. El ensayo usa IOVA de laboratorio no contiguas y decodifica
 el resultado de forma independiente. Todavia faltan LIBOS, la asignacion
 DMA fisica y el intercambio de mensajes en la RTX.
-[Codificador HOST](../tools/host/gpu/gsp_args.py).
+[Codificador HOST](../tools/host/gpu/NVIDIA/gsp_args.py).
 [Estructura RMARGS](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/inc/kernel/gpu/gsp/gsp_init_args.h).
 [Formato MSGQ 2.0](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/inc/libraries/msgq/msgq_priv.h).
 
@@ -465,8 +494,8 @@ BMO-X2 requieren una prueba propia.
 
 ```powershell
 python -B tools/host/gpu/ivrs.py 0000:29:00.0 0000:29:00.1
-python -B tools/host/gpu/firmware.py native ..\BMO-externo\firmware\nvidia\ga102\gsp
-python -B tools/host/gpu/firmware.py 570.144 ..\BMO-externo\firmware\nvidia\ga102\gsp
+python -B tools/host/gpu/NVIDIA/firmware.py native ..\BMO-externo\firmware\nvidia\ga102\gsp
+python -B tools/host/gpu/NVIDIA/firmware.py 570.144 ..\BMO-externo\firmware\nvidia\ga102\gsp
 python -B tools/host/gpu/qemu_dma.py
 ```
 

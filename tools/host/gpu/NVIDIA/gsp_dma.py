@@ -1,14 +1,11 @@
 """Prepare the 615.78.08 firmware pages and their AMD-Vi boot mappings."""
 
-import hashlib
-import json
 import struct
 
-from firmware import PROFILES, layout, verify
-from radix3 import ENTRIES, PAGE, encode
+from .firmware import NATIVE_RELEASE as RELEASE, layout
+from .radix3 import ENTRIES, PAGE, encode
 
 
-RELEASE = '615.78.08'
 READ = 1 << 61
 WRITE = 1 << 62
 READ_WRITE = READ | WRITE
@@ -18,17 +15,6 @@ RID_GRAPHICS = 0x2900
 RID_AUDIO = 0x2901
 MODE2 = 2 << 9
 TABLE_LIMIT = 1 << 30
-
-
-def load_firmware(directory):
-    profiles = json.loads(PROFILES.read_text(encoding='ascii'))
-    info = verify(directory, RELEASE, profiles['releases'][RELEASE])['gsp']
-    path = directory / info['name']
-    with path.open('rb') as source:
-        image = source.read(info['bytes'] + 1)
-    if len(image) != info['bytes'] or hashlib.sha256(image).hexdigest() != info['sha256']:
-        raise ValueError('GSP original cambio durante la lectura')
-    return image
 
 
 def aligned_payload(container, first_iova):

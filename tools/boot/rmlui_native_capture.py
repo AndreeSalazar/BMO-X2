@@ -9,9 +9,10 @@ from desktop_session_capture import verify_external_rejection
 
 
 def verify_gsp_reservation(memory, context, run, case):
-    base, length, status = struct.unpack('<QQI', memory(context+0x800,20,'gsp-handoff'))
+    base, length, status, prepared, firmware, signature = struct.unpack(
+        '<QQIIQQ', memory(context+0x800,40,'gsp-handoff'))
     if case == 'amdvi-missing':
-        if (base, length, status) != (0, 0, 1):
+        if (base, length, status, prepared, firmware, signature) != (0, 0, 1, 0, 0, 0):
             raise ValueError('Missing GSP file left a reservation')
         return {}
     expected = json.loads((run/'nvidia-gsp-stage.json').read_text(encoding='ascii'))
@@ -33,7 +34,19 @@ def verify_gsp_reservation(memory, context, run, case):
         if pde&0x85!=0x81 or pde&0x000fffffffe00000!=index<<21:
             raise ValueError('GSP reservation is outside supervisor identity memory')
     image = memory(base,reserved,'gsp-resident')
-    if (hashlib.sha256(image[:length]).hexdigest()!=expected['sha256'] or any(image[length:])):
+    if expected.get('prepare'):
+        sections = expected['layout']['sections']
+        size = sections['.fwimage']['bytes']
+        if (prepared,firmware,signature)!=(2,base,base+size):
+            raise ValueError('Ring 0 GSP preparation pointers or status differ')
+        if (hashlib.sha256(image[:size]).hexdigest()!=sections['.fwimage']['sha256'] or
+                hashlib.sha256(image[size:size+4096]).hexdigest()!=sections['.fwsignature_ga10x']['sha256'] or
+                any(image[size+4096:])):
+            raise ValueError('Ring 0 altered the signed firmware, signature or unused pages')
+        return dict(GspResidentVerified=True,GspResidentBytes=length,GspReservedPages=reserved//4096,
+                    GspPreparedByRing0=True,GspPreparedPages=(size//4096)+1)
+    if (prepared or firmware or signature or
+            hashlib.sha256(image[:length]).hexdigest()!=expected['sha256'] or any(image[length:])):
         raise ValueError('GSP resident bytes or final page padding differ')
     return dict(GspResidentVerified=True,GspResidentBytes=length,GspReservedPages=reserved//4096)
 

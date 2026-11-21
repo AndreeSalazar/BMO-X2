@@ -9,7 +9,7 @@ import tempfile
 import unittest
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[4]
 LLVM = Path(os.environ.get('ProgramFiles', 'C:/Program Files')) / 'LLVM/bin'
 OFFSETS = (0, 0x111388, 0x110040, 0x840040)
 REGISTERS = (0xb76000a1, 0x00000010, 0xbadf1002, 0x00000015)

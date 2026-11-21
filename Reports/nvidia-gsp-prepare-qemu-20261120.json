@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "evidence": "QEMU boot verification for three optional desktop profiles; HOST code fixtures",
+  "profiles": {
+    "base": {
+      "run": "run-rmlui-media-ea798c1e9e77",
+      "cases": 2,
+      "nvidia_includes": false
+    },
+    "base_amdvi": {
+      "run": "run-rmlui-media-b84a6541ebba",
+      "cases": 3,
+      "nvidia_includes": false,
+      "amdvi_post_verified": true,
+      "usb_hid_verified": true
+    },
+    "nvidia": {
+      "run": "run-rmlui-media-828cb05741de",
+      "cases": 3,
+      "gsp_stage_status": [
+        5,
+        4,
+        1
+      ],
+      "post_ebs_status": 2,
+      "prepared_by_ring0": true,
+      "reserved_pages": 6603,
+      "prepared_pages": 6591,
+      "image_sha256": "13d2f9514bb90c899b6db598e881a1728f894f38be79fa935ad9f1ce30b0b5e0",
+      "signature_sha256": "be6e5cc134c610c5abdaea22b6ebdc262e1b71bcb394a8339c41ca05720d9cba",
+      "reader_bytes": 4080,
+      "packet_bytes": 4070
+    }
+  },
+  "host_tests_passed": 8,
+  "isolated_nvidia_dma_fixture_pages": 6606,
+  "installed_metal_run": "run-rmlui-media-45164ef55d10",
+  "installed_hashes_verified": true,
+  "physical_preparation_verified": false,
+  "physical_dma_verified": false,
+  "gsp_started": false,
+  "gpu_3d_verified": false
+}

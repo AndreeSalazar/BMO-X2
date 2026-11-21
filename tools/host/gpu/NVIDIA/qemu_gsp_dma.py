@@ -8,10 +8,11 @@ import struct
 import subprocess
 import tempfile
 
-from gsp_dma import (DEVICE_TABLE_PAGES, DOMAIN, PAGE, RELEASE, RID_AUDIO, RID_GRAPHICS,
-                     aligned_payload, build_tables, load_firmware)
-from qemu_dma import (AMDVI, COMMAND_RING, COMPLETION, EVENT_LOG, QTest,
-                      publish_command, require, submit_transfer)
+from .firmware import NATIVE_RELEASE as RELEASE, read_native_gsp
+from .gsp_dma import (DEVICE_TABLE_PAGES, DOMAIN, PAGE, RID_AUDIO, RID_GRAPHICS,
+                      aligned_payload, build_tables)
+from ..qemu_dma import (AMDVI, COMMAND_RING, COMPLETION, EVENT_LOG, QTest,
+                       publish_command, require, submit_transfer)
 
 
 BRIDGE = 0x18
@@ -166,7 +167,7 @@ def main():
     parser.add_argument('firmware_directory', type=Path)
     parser.add_argument('--qemu', type=Path, default=Path('C:/Program Files/qemu/qemu-system-x86_64.exe'))
     args = parser.parse_args()
-    container = load_firmware(args.firmware_directory)
+    container,_ = read_native_gsp(args.firmware_directory)
     payload, layout = aligned_payload(container, IOVA)
     devices, tree, reply_iova, denied = build_tables(
         DEVICE_TABLE, ROOTS, BACKING, IOVA, layout['read_only_pages'])

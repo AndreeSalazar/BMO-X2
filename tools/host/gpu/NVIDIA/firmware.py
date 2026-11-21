@@ -8,6 +8,7 @@ import struct
 
 
 PROFILES = Path(__file__).with_name('ga10x-firmware.json')
+NATIVE_RELEASE = '615.78.08'
 ELF_HEADER = struct.Struct('<16sHHIQQQIHHHHHH')
 SECTION_HEADER = struct.Struct('<IIQQQQIIQQ')
 GA10X_SECTIONS = (b'.fwimage', b'.fwversion', b'.fwsignature_ga10x')
@@ -82,6 +83,16 @@ def layout(image, release):
                 sections={name.decode('ascii'):dict(offset=offset,bytes=size,
                     sha256=hashlib.sha256(memoryview(image)[offset:offset+size]).hexdigest())
                           for name,(offset,size) in sections.items()})
+
+
+def read_native_gsp(directory):
+    profiles = json.loads(PROFILES.read_text(encoding='ascii'))
+    info = verify(directory,NATIVE_RELEASE,profiles['releases'][NATIVE_RELEASE])['gsp']
+    with (directory/info['name']).open('rb') as source:
+        image = source.read(info['bytes']+1)
+    if len(image)!=info['bytes'] or hashlib.sha256(image).hexdigest()!=info['sha256']:
+        raise ValueError('GSP original cambio durante la lectura')
+    return image,info
 
 
 def main():

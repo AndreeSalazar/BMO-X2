@@ -42,8 +42,8 @@ if ($gspStage -ne [bool]$proof.nvidia_gsp_stage -or ($gspStage -and (-not $gspSa
     -not $normal.GspResidentVerified -or (($proof.Cases.GspStageStatus -join ',') -ne '5,4,1')))) {
     throw 'El GSP.BIN requiere la lectura completa y los rechazos verificados en QEMU.'
 }
-if ($amdviRun -ne [bool]$proof.amdvi_efi_probe -or ($amdviRun -and -not $gpuRun)) {
-    throw 'La sonda AMD-Vi requiere el perfil NVIDIA y su manifiesto.'
+if ($amdviRun -ne [bool]$proof.amdvi_efi_probe) {
+    throw 'La sonda AMD-Vi requiere su manifiesto.'
 }
 if ($amdviPost -ne [bool]$proof.amdvi_post_probe -or ($amdviPost -and -not $amdviRun)) {
     throw 'La captura post-EBS requiere el perfil AMD-Vi y su manifiesto.'
@@ -115,6 +115,10 @@ if ($gspStage) {
     $gspName="$dataFolder/GSP.BIN"
     if ($gspProof.release -ne '615.78.08' -or $gspProof.sha256 -ne $proof.files.$gspName -or
         $gspProof.bytes -ne $normal.GspResidentBytes) {throw 'El manifiesto GSP difiere de la prueba UEFI.'}
+    if ([bool]$gspProof.prepare -ne [bool]$proof.nvidia_gsp_prepare -or
+        ($gspProof.prepare -and -not $normal.GspPreparedByRing0)) {
+        throw 'Falta verificar la preparacion pos-EBS de Ring 0.'
+    }
     $names+=$gspName
 }
 $names+=$bootFile
@@ -190,6 +194,7 @@ $record=[ordered]@{Schema=1;Evidence='HOST copy after QEMU FAT32 boot';Run=$proo
     FullHdNative=$fullHdNative;
     NvidiaGspSample=$gspSample;
     NvidiaGspStage=$gspStage;
+    NvidiaGspPrepare=[bool]$proof.nvidia_gsp_prepare;
     BootFile=('\'+$bootFile.Replace('/','\'));ReportFile=('\'+$dataFolder.Replace('/','\')+'\'+$reportName);
     Note='USB HID fisico sigue pendiente; no cambia NVRAM ni archivos ajenos al candidato.'}
 $json=$record | ConvertTo-Json -Depth 8

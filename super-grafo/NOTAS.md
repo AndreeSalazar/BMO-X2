@@ -1663,7 +1663,29 @@ Depende de: HOST / Firmware NVIDIA GA10x (verificacion).
 Aceptacion: QEMU verifica firmware residente y rechazos. METAL confirma GSPLOAD=00000005 desde FAT32.
 Pendiente: Programar la carga al motor con dominio DMA propio.
 
-## tools/host/gpu/firmware.py
+## kernel/drivers/GPU/NVIDIA/gsp_prepare.inc
+
+Comprueba el traspaso GSP y alinea imagen y firma en la reserva existente despues de UEFI.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: Reserva de supervisor y mapa EFI final, unicamente en el perfil NVIDIA.
+Salida: Dos rangos contiguos por pagina para imagen y firma, estado interno 2, y resto de la reserva limpio.
+Depende de: GPU / NVIDIA / Firmware original de FAT32 a RAM (codigo).
+Aceptacion: QEMU verifica ambas huellas por separado y arranca con el modulo ausente. HOST ejercita rechazo de rango ajeno o corto.
+Pendiente: Construir el directorio Radix3 con IOVA adjudicadas en METAL y arrancar el GSP.
+
+## tools/host/gpu/NVIDIA/bundle.py
+
+Coteja el firmware, limita su geometria y entrega el archivo y opciones de compilacion al empaquetador opcional.
+
+Estado: HOST. Anillo: host. Lenguaje: Python.
+Entrada: Firmware NVIDIA original de la release fijada y seleccion del perfil.
+Salida: GSP.BIN, manifiesto y parametros del lector; un testigo alterado para el ensayo.
+Depende de: HOST / Firmware NVIDIA GA10x (codigo).
+Aceptacion: FAT32 conserva la huella original y el escritorio base excluye este empaquetador.
+Pendiente: Integrar el resto de artefactos cuando el controlador pueda autenticar y arrancar el GSP.
+
+## tools/host/gpu/NVIDIA/firmware.py
 
 Comprueba el conjunto original de una release GSP, por longitud y huella de referencia.
 
@@ -1674,7 +1696,7 @@ Depende de: GPU / NVIDIA / Lectura MMIO (plan).
 Aceptacion: Cuatro archivos verificados para 570.144 y 615.78.08. El layout 615.78.08 coteja la version interna y rechaza cabecera truncada, version distinta y secciones solapadas.
 Pendiente: Construir los metadatos y colas DMA, y verificar respuesta del GSP nativo con 615.78.08.
 
-## tools/host/gpu/radix3.py
+## tools/host/gpu/NVIDIA/radix3.py
 
 Codifica las paginas del directorio Radix3 que enumera la imagen de firmware mediante IOVA.
 
@@ -1685,7 +1707,7 @@ Depende de: HOST / Firmware NVIDIA GA10x (verificacion).
 Aceptacion: Un recorrido independiente reconstruye las 6590 paginas de la imagen con IOVA no contiguas y coteja SHA-256. Rechaza cinco entradas invalidas.
 Pendiente: Vincular las IOVA al dominio de la RTX, construir metadatos y colas y confirmar el arranque en hardware.
 
-## tools/host/gpu/gsp_args.py
+## tools/host/gpu/NVIDIA/gsp_args.py
 
 Codifica RMARGS y la memoria compartida de mensajes GspMem, con la cabecera MSGQ 2.0 de CPU a GSP.
 
@@ -1696,7 +1718,7 @@ Depende de: HOST / Firmware NVIDIA GA10x (verificacion).
 Aceptacion: Decodificar RMARGS, cabecera, IOVA no contiguas y ceros reservados; rechazar direcciones invalidas y proteger el archivo de salida.
 Pendiente: Integrar el contrato con LIBOS, el dominio de la RTX y una respuesta MSGQ de hardware.
 
-## tools/host/gpu/gsp_dma.py
+## tools/host/gpu/NVIDIA/gsp_dma.py
 
 Alinea imagen y firma GA10x, genera Radix3 y construye las tablas AMD-Vi de un dominio de arranque.
 
@@ -1905,4 +1927,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-171 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+173 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

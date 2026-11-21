@@ -155,10 +155,12 @@
 | [GPU / NVIDIA / Lectura MMIO](../kernel/drivers/GPU/NVIDIA/mmio_probe.inc) | qemu | 0 | Sonda transitoria UEFI: confirma limites de BAR0 y lee la identidad interna exclusivamente en la RTX 3060 10DE:2504. |
 | [GPU / NVIDIA / Estado previo del GSP y SEC2](../kernel/drivers/GPU/NVIDIA/gsp_sample.inc) | qemu | 0 | Captura tres registros NVIDIA de solo lectura en el perfil UEFI dedicado. |
 | [GPU / NVIDIA / Firmware original de FAT32 a RAM](../kernel/drivers/GPU/NVIDIA/gsp_stage.inc) | qemu | 0 | Lee el GSP original por UEFI, acota el tamano, coteja CRC32 y entrega la reserva al supervisor. |
-| [HOST / Firmware NVIDIA GA10x](../tools/host/gpu/firmware.py) | host | host | Comprueba el conjunto original de una release GSP, por longitud y huella de referencia. |
-| [HOST / Directorio GSP Radix3](../tools/host/gpu/radix3.py) | host | host | Codifica las paginas del directorio Radix3 que enumera la imagen de firmware mediante IOVA. |
-| [HOST / Argumentos y colas GSP 615.78.08](../tools/host/gpu/gsp_args.py) | host | host | Codifica RMARGS y la memoria compartida de mensajes GspMem, con la cabecera MSGQ 2.0 de CPU a GSP. |
-| [GPU / NVIDIA / Mapa DMA de arranque GSP](../tools/host/gpu/gsp_dma.py) | qemu | host | Alinea imagen y firma GA10x, genera Radix3 y construye las tablas AMD-Vi de un dominio de arranque. |
+| [GPU / NVIDIA / Preparacion pos-UEFI](../kernel/drivers/GPU/NVIDIA/gsp_prepare.inc) | qemu | 0 | Comprueba el traspaso GSP y alinea imagen y firma en la reserva existente despues de UEFI. |
+| [HOST / Empaquetado opcional NVIDIA](../tools/host/gpu/NVIDIA/bundle.py) | host | host | Coteja el firmware, limita su geometria y entrega el archivo y opciones de compilacion al empaquetador opcional. |
+| [HOST / Firmware NVIDIA GA10x](../tools/host/gpu/NVIDIA/firmware.py) | host | host | Comprueba el conjunto original de una release GSP, por longitud y huella de referencia. |
+| [HOST / Directorio GSP Radix3](../tools/host/gpu/NVIDIA/radix3.py) | host | host | Codifica las paginas del directorio Radix3 que enumera la imagen de firmware mediante IOVA. |
+| [HOST / Argumentos y colas GSP 615.78.08](../tools/host/gpu/NVIDIA/gsp_args.py) | host | host | Codifica RMARGS y la memoria compartida de mensajes GspMem, con la cabecera MSGQ 2.0 de CPU a GSP. |
+| [GPU / NVIDIA / Mapa DMA de arranque GSP](../tools/host/gpu/NVIDIA/gsp_dma.py) | qemu | host | Alinea imagen y firma GA10x, genera Radix3 y construye las tablas AMD-Vi de un dominio de arranque. |
 | [HOST / Inventario AMD-Vi](../tools/host/gpu/ivrs.py) | host | host | Lee la descripcion ACPI IVRS y coteja las funciones PCI indicadas con los rangos IVHD. |
 | [AMD-Vi / Traduccion y revocacion virtual](../tools/host/gpu/qemu_dma.py) | qemu | host | Comprueba traduccion, bloqueo e invalidacion DMA en AMD-Vi de QEMU con EDU mediante qtest. |
 | [AMD-Vi / Sonda de DMA del invitado](../kernel/drivers/bus/amdvi/edu_probe.S) | qemu | 0 | Sonda ASM transitoria despues de ExitBootServices. Programa AMD-Vi en QEMU y prueba DMA de EDU. |
@@ -433,6 +435,8 @@
 | rmlui-fat32-media | nvidia-pci-probe | codigo |
 | nvidia-gsp-boot-sample | nvidia-mmio-probe | codigo |
 | nvidia-gsp-stage | nvidia-gsp-firmware-host | verificacion |
+| nvidia-gsp-ring0-prepare | nvidia-gsp-stage | codigo |
+| nvidia-gsp-host-bundle | nvidia-gsp-firmware-host | codigo |
 | nvidia-gsp-firmware-host | nvidia-mmio-probe | plan |
 | nvidia-gsp-radix3-host | nvidia-gsp-firmware-host | verificacion |
 | nvidia-gsp-args-host | nvidia-gsp-firmware-host | verificacion |

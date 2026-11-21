@@ -9,7 +9,6 @@ import struct
 import subprocess
 import sys
 import uuid
-import zlib
 from build import ROOT,OUT,command
 sys.path.insert(0,str(ROOT/'tools'))
 sys.path.insert(0,str(ROOT/'tools/boot'))
@@ -35,7 +34,8 @@ def main():
     p.add_argument('--nvidia-probe', action='store_true', help='Read PCI display inventory before ExitBootServices')
     p.add_argument('--nvidia-gsp-sample', action='store_true', help='Read the GA106 GSP and SEC2 boot state')
     p.add_argument('--nvidia-gsp-stage', type=Path, help='Directory of the original NVIDIA 615.78.08 files')
-    p.add_argument('--amdvi-probe', action='store_true', help='Add read-only AMD-Vi firmware inventory to the NVIDIA profile')
+    p.add_argument('--nvidia-gsp-prepare', action='store_true', help='Align the verified GSP image and signature in Ring 0')
+    p.add_argument('--amdvi-probe', action='store_true', help='Add read-only AMD-Vi firmware inventory')
     p.add_argument('--amdvi-post', action='store_true', help='Take a second AMD-Vi snapshot after ExitBootServices')
     p.add_argument('--amdvi-coexist', action='store_true', help='Exercise virtual EDU and USB DMA together in QEMU')
     p.add_argument('--amdvi-guest-dma', action='store_true', help='Let the guest program AMD-Vi in the virtual lab')
@@ -50,13 +50,14 @@ def main():
     p.add_argument('--full-hd', action='store_true', help='Render the desktop at native 1920x1080 for GOP')
     args=p.parse_args()
     if args.usb_empty_ports and args.usb!='both':p.error('--usb-empty-ports requires --usb both')
-    if args.amdvi_probe and not args.nvidia_probe:p.error('--amdvi-probe requires --nvidia-probe')
     if args.nvidia_gsp_sample and (not args.nvidia_probe or not args.full_hd):
         p.error('--nvidia-gsp-sample requires the NVIDIA Full HD profile')
     if args.nvidia_gsp_stage and (not args.nvidia_gsp_sample or args.storage_quiesce):
         p.error('--nvidia-gsp-stage requires the NVIDIA sample on the deployable Full HD profile')
+    if args.nvidia_gsp_prepare and not args.nvidia_gsp_stage:
+        p.error('--nvidia-gsp-prepare requires --nvidia-gsp-stage')
     if args.amdvi_post and (not args.amdvi_probe or args.usb!='both' or args.msvc_panel or args.usb_empty_ports):
-        p.error('--amdvi-post requires the NVIDIA AMD-Vi profile with USB both')
+        p.error('--amdvi-post requires --amdvi-probe with USB both')
     if args.amdvi_coexist and not args.amdvi_post:p.error('--amdvi-coexist requires --amdvi-post')
     if args.amdvi_guest_dma and not args.amdvi_coexist:p.error('--amdvi-guest-dma requires --amdvi-coexist')
     if args.amdvi_storage and not args.amdvi_guest_dma:p.error('--amdvi-storage requires --amdvi-guest-dma')
@@ -91,21 +92,11 @@ def main():
         if hashlib.sha256((app/name).read_bytes()).hexdigest()!=digest:raise ValueError('Stale desktop build: '+name)
     run=ROOT/'build/CASM'/('run-rmlui-media-'+uuid.uuid4().hex[:12]);run.mkdir()
     gsp = None
+    nvidia_reader_flags = []
     if args.nvidia_gsp_stage:
-        from host.gpu.firmware import PROFILES, layout, verify
+        from host.gpu.NVIDIA.bundle import stage_firmware
 
-        profiles = json.loads(PROFILES.read_text(encoding='ascii'))
-        release = '615.78.08'
-        package = verify(args.nvidia_gsp_stage, release, profiles['releases'][release])['gsp']
-        gsp = (args.nvidia_gsp_stage / package['name']).read_bytes()
-        if len(gsp) != package['bytes'] or hashlib.sha256(gsp).hexdigest() != package['sha256']:
-            raise ValueError('GSP container changed after verification')
-        (run/'GSP.BIN').write_bytes(gsp)
-        corrupted = bytearray(gsp)
-        corrupted[len(gsp)//2] ^= 1
-        (run/'corrupted-gsp.bin').write_bytes(corrupted)
-        (run/'nvidia-gsp-stage.json').write_text(json.dumps(dict(release=release, bytes=len(gsp),
-            sha256=package['sha256'], crc32=zlib.crc32(gsp), layout=layout(gsp,release)))+'\n', encoding='ascii')
+        gsp,nvidia_reader_flags = stage_firmware(run,args.nvidia_gsp_stage,args.nvidia_gsp_prepare)
     (run/'gop-regions.txt').write_text('cpu-gop\n',encoding='ascii')
     if args.nvidia_probe:
         (run/'nvidia-pci-probe.txt').write_text('pci-read-only\n', encoding='ascii')
@@ -150,9 +141,8 @@ def main():
         if args.usb=='both':flags+=['-DXHCI_NATIVE_DUAL']
         if args.nvidia_probe and name == 'reader':flags+=['-DBMO_NVIDIA_PCI_PROBE']
         if args.nvidia_gsp_sample and name == 'reader':flags+=['-DBMO_NVIDIA_GSP_SAMPLE']
-        if gsp is not None and name == 'reader':
-            flags+=['-DBMO_NVIDIA_GSP_STAGE', f'-DBMO_GSP_FILE_BYTES={len(gsp)}',
-                    f'-DBMO_GSP_FILE_CRC={zlib.crc32(gsp)}']
+        if name=='reader':flags+=nvidia_reader_flags
+        if args.nvidia_gsp_prepare and name=='loader':flags+=['-DBMO_NVIDIA_GSP_PREPARE']
         if args.amdvi_probe and name == 'reader':flags+=[f'-DBMO_AMDVI_EFI_OFFSET={amdvi_offset}']
         if args.amdvi_post and name in ('reader','gate'):flags+=['-DBMO_AMDVI_POST']
         if args.dma_census and name=='gate':flags+=['-DBMO_DMA_CENSUS']
@@ -252,6 +242,8 @@ def main():
     if gsp is not None and ([case.get('GspStageStatus') for case in report['Cases']] != [5,4,1] or
                             not report['Cases'][0].get('GspResidentVerified')):
         raise ValueError('Missing GSP staging or file rejection evidence')
+    if args.nvidia_gsp_prepare and not report['Cases'][0].get('GspPreparedByRing0'):
+        raise ValueError('Missing Ring 0 firmware and signature preparation evidence')
     if args.amdvi_probe and not all(case.get('AmdViMmioVerified') for case in report['Cases']):
         raise ValueError('Missing AMD-Vi MMIO evidence')
     if args.amdvi_post and not all(report['Cases'][i].get('AmdViPostVerified') for i in (0,2)):
@@ -307,6 +299,7 @@ def main():
         nvidia_pci_probe=args.nvidia_probe, amdvi_efi_probe=args.amdvi_probe, amdvi_mmio_probe=args.amdvi_probe,
         nvidia_gsp_sample=args.nvidia_gsp_sample,
         nvidia_gsp_stage=gsp is not None,
+        nvidia_gsp_prepare=args.nvidia_gsp_prepare,
         amdvi_post_probe=args.amdvi_post,
         dma_census=args.dma_census,
         storage_state=args.storage_state,
