@@ -95,7 +95,9 @@ amdvi_lab_entry:
     mov AMDVI_LAB_REQUEST(%rbp), %r15
     cmp $1, %r15
     jb .Llab_reject
-#ifdef BMO_AMDVI_GUEST_AHCI
+#ifdef BMO_AMDVI_GSP_DMA
+    cmp $8, %r15
+#elif defined(BMO_AMDVI_GUEST_AHCI)
     cmp $7, %r15
 #elif defined(BMO_AMDVI_GUEST_NVME)
     cmp $4, %r15
@@ -106,8 +108,9 @@ amdvi_lab_entry:
     cmp $1, %r15
     je .Llab_initial_phase
 #ifdef BMO_AMDVI_GUEST_AHCI
-    cmp $6, %r15
-    jae .Llab_initial_phase
+    lea -6(%r15), %rax
+    cmp $1, %rax
+    jbe .Llab_initial_phase
 #endif
     jmp .Llab_running_phase
 .Llab_initial_phase:
@@ -119,8 +122,13 @@ amdvi_lab_entry:
     dec %rax
     cmp $1, %rax
     ja .Llab_reject
+#ifdef BMO_AMDVI_GSP_DMA
+    cmp $8, %r15
+    je .Llab_need_grant
+#endif
     cmp $2, %r15
     jne .Llab_check_pci
+.Llab_need_grant:
     test %rax, %rax
     jne .Llab_reject
 .Llab_check_pci:
@@ -157,11 +165,38 @@ amdvi_lab_entry:
     je .Llab_disk
 #endif
 #ifdef BMO_AMDVI_GUEST_AHCI
+#ifdef BMO_AMDVI_GSP_DMA
+    cmp $8, %r15
+    je .Llab_arm_graphics
+#endif
     cmp $5, %r15
     je .Llab_disk
     ja .Llab_start
 #endif
     jmp .Llab_stop
+
+#ifdef BMO_AMDVI_GSP_DMA
+.Llab_arm_graphics:
+    cmpl $0x1005, 0x18(%r14)
+    jne .Llab_unmap
+    lea (LAB_TABLE_OFFSET+LAB_TABLE_LENGTH)(%r12), %rax
+    cmp %rax, (%r14)
+    jne .Llab_unmap
+    call .Llab_graphics_index
+    mov GSP_POST_DMA_ROOT(%rbp), %rax
+    movabs $LAB_RW|0x403, %rdx
+    or %rdx, %rax
+    cmp %rax, LAB_TABLE_OFFSET(%r12,%rsi)
+    jne .Llab_unmap
+    cmpq $1, (LAB_TABLE_OFFSET+8)(%r12,%rsi)
+    jne .Llab_unmap
+    mov $6, %dil                   # Memory decode and bus mastering.
+    call .Llab_graphics_command
+    jnc .Llab_ok                   # Keep phase 1 until revocation.
+    xor %edi, %edi
+    call .Llab_graphics_command    # Roll back an uncertain activation.
+    jmp .Llab_unmap
+#endif
 
 #ifdef BMO_AMDVI_GUEST_NVME
 .Llab_disk:
@@ -396,6 +431,11 @@ amdvi_lab_entry:
 #endif
     jmp .Llab_success
 .Llab_revoke:
+#ifdef BMO_AMDVI_GSP_DMA
+    xor %edi, %edi                 # Close BME and confirm before changing the DTE.
+    call .Llab_graphics_command
+    jc .Llab_unmap
+#endif
     testb $1, 0x18(%r14)
     jz .Llab_unmap
     call .Llab_edu_leaf
@@ -406,21 +446,22 @@ amdvi_lab_entry:
     lea 0x2403(%r12), %rax
     movabs $LAB_RW, %r8
     or %r8, %rax
-#ifdef BMO_AMDVI_ROUTED
-    mov AMDVI_LAB_EDU_RID(%rbp), %esi
-    shl $5, %esi
+    call .Llab_graphics_index
     mov %rax, LAB_TABLE_OFFSET(%r12,%rsi)
     movq $0, (LAB_TABLE_OFFSET+8)(%r12,%rsi)
-#else
-    mov %rax, 0x400(%r12)
-    movq $0, 0x408(%r12)
-#endif
+    shr $5, %esi
+    movabs $0x2000000000000000, %rax
+    or %rsi, %rax
+    xor %edx, %edx
+    mov 0x9000(%r12), %ecx
+    call .Llab_publish
+    jc .Llab_unmap               # BME is closed and the reservation stays pinned.
     movabs $0x7ffffffffffff003, %rdx # All IOVAs, including cached page-table entries.
 #else
     lea LAB_EDU_IOVA(%r12), %rdx
 #endif
     movabs $0x3000000100000000, %rax
-#ifdef BMO_AMDVI_ROUTED
+#if defined(BMO_AMDVI_ROUTED) || defined(BMO_AMDVI_GSP_DMA)
     mov 0x9000(%r12), %ecx
 #else
     mov $LAB_EDU_REVOKE, %ecx
@@ -428,18 +469,16 @@ amdvi_lab_entry:
     call .Llab_publish
     jc .Llab_unmap               # Keep the reservation pinned on failure.
 #ifdef BMO_AMDVI_GSP_DMA
-#ifdef BMO_AMDVI_ROUTED
-    movabs $0x2000000000000000, %rax
-    or AMDVI_LAB_EDU_RID(%rbp), %rax
-#else
-    movabs $0x2000000000000020, %rax
-#endif
-    xor %edx, %edx
-    call .Llab_publish
-    jc .Llab_unmap
+    cmp $3, %r15
+    je .Llab_clear_after_revoke
 #endif
     jmp .Llab_success
 .Llab_stop:
+#ifdef BMO_AMDVI_GSP_DMA
+    cmpq $1, AMDVI_LAB_PHASE(%rbp)
+    je .Llab_revoke
+.Llab_clear_after_revoke:
+#endif
     xor %ebx, %ebx
 .Llab_clear:
     movq $0, 0x18(%r14)
@@ -462,6 +501,7 @@ amdvi_lab_entry:
     jmp .Llab_unmap
 .Llab_success:
     mov %r15, AMDVI_LAB_PHASE(%rbp)
+.Llab_ok:
     xor %ebx, %ebx
 .Llab_unmap:
     movq $0, 0x15408(%rbp)
@@ -499,6 +539,10 @@ amdvi_lab_entry:
     ret
 
 .Llab_publish:
+#ifdef BMO_AMDVI_GSP_DMA
+    cmp %rcx, 0x2008(%r14)       # Never overwrite a command awaiting completion.
+    jne .Llab_completion_failed
+#endif
     lea 0x7000(%r12,%rcx), %rdi
     mov %rax, (%rdi)
     mov %rdx, 8(%rdi)
@@ -633,6 +677,21 @@ amdvi_lab_entry:
     jae .Llab_advance
     jmp .Llab_pci_bad
 .Llab_usb_master:
+#ifdef BMO_AMDVI_GSP_DMA
+    cmp $2, %r15
+    je .Llab_owned_graphics
+    cmp $3, %r15
+    jne .Llab_regular_usb
+    cmpq $1, AMDVI_LAB_PHASE(%rbp)
+    jne .Llab_regular_usb
+.Llab_owned_graphics:
+    call .Llab_graphics_index
+    shl $3, %esi
+    or $0x80000000, %esi
+    cmp %esi, %r10d
+    je .Llab_advance
+.Llab_regular_usb:
+#endif
 #endif
     cmp $0x80002800, %r10d
     jne .Llab_pci_bad
@@ -669,6 +728,10 @@ amdvi_lab_entry:
     in %dx, %eax
     sub $4, %dx
     ret
+
+#ifdef BMO_AMDVI_GSP_DMA
+#include "graphics_bus_master.inc"
+#endif
 
 .Llab_loader_data:
     mov 0x60(%rbp), %r8

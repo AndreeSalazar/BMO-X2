@@ -181,6 +181,7 @@
 | [AMD-Vi / DMA y USB concurrentes en QEMU](../tools/boot/amdvi_xhci.py) | qemu | host | Usa qtest para configurar dominios distintos para EDU y xHCI en el escritorio virtual. |
 | [AMD-Vi / Dominios en el invitado](../kernel/drivers/bus/amdvi/coexist_guest.inc) | qemu | 0 | Sonda exclusiva de QEMU TCG. Ring 0 comprueba bus masters y configura, invalida y cierra dominios AMD-Vi. |
 | [PCI / Inventario de solicitantes DMA](../kernel/drivers/bus/amdvi/dma_census.inc) | qemu | 0 | Captura los BDF del segmento PCI 0 con bus mastering habilitado despues de arrancar xHCI. |
+| [AMD-Vi / Concesion y cierre PCI de graficos en QEMU](../kernel/drivers/bus/amdvi/graphics_bus_master.inc) | qemu | 0 | Abre BME del EDU de QEMU, usado como solicitante GSP de prueba, solo tras conceder su dominio AMD-Vi. Lo cierra antes de invalidar la DTE y las traducciones. |
 | [Almacenamiento / Recursos UEFI AHCI y NVMe](../kernel/drivers/storage/handoff_uefi.inc) | qemu | 0 | Registra los recursos MMIO de hasta dos controladores AHCI o NVMe del segmento PCI 0 mediante EFI PCI I/O. |
 | [Almacenamiento / Estado posterior a UEFI](../kernel/drivers/storage/handoff_post.inc) | qemu | 0 | Coteja el BAR con PCI y el mapa final. Lee el estado de AHCI y NVMe y revoca la ventana temporal antes de xHCI. |
 | [Almacenamiento / Cierre AHCI y NVMe tras UEFI](../kernel/drivers/storage/quiesce.inc) | qemu | 0 | Detiene los motores AHCI y solicita el cierre normal de NVMe antes de retirar BME. |
@@ -484,6 +485,7 @@
 | amdvi-xhci-coexist | amdvi-xhci-guest | verificacion |
 | amdvi-xhci-guest | amdvi-post-ebs-probe | codigo |
 | amdvi-xhci-guest | nvidia-gsp-ring0-prepare | codigo |
+| amdvi-xhci-guest | amdvi-graphics-bme-gate | codigo |
 | amdvi-ahci-qemu | amdvi-xhci-guest | verificacion |
 | dma-pci-census | amdvi-post-ebs-probe | codigo |
 | dma-pci-census | rmlui-usb-dual | codigo |

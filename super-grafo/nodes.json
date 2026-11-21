@@ -3045,6 +3045,21 @@
       "falta": "Validar la transicion DMA con USB y almacenamiento fisicos."
     },
     {
+      "id": "amdvi-graphics-bme-gate",
+      "titulo": "AMD-Vi / Concesion y cierre PCI de graficos en QEMU",
+      "ruta": "kernel/drivers/bus/amdvi/graphics_bus_master.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [11950, 4300],
+      "que": "Abre BME del EDU de QEMU, usado como solicitante GSP de prueba, solo tras conceder su dominio AMD-Vi. Lo cierra antes de invalidar la DTE y las traducciones.",
+      "entrada": "EDU virtual en el BDF de ensayo, dominio DMA preparado y cola de comandos de Ring 0.",
+      "salida": "PCI Command confirmado y prestamo revocado. Una confirmacion incompleta retiene las reservas.",
+      "aceptacion": "Reports/amdvi-gsp-bme-qemu-20261121.json registra 3/3 casos QEMU, concesion y revocacion por Ring 0, funcion hermana bloqueada y fallo cerrado ante cola suspendida. No acredita DMA de RTX fisica.",
+      "falta": "Detener y transferir todos los solicitantes fisicos, activar AMD-Vi con una tabla completa de bloqueo y despues verificar la RTX y el arranque del GSP en METAL."
+    },
+    {
       "id": "storage-state-uefi",
       "titulo": "Almacenamiento / Recursos UEFI AHCI y NVMe",
       "ruta": "kernel/drivers/storage/handoff_uefi.inc",
@@ -4646,6 +4661,11 @@
     {
       "de": "amdvi-xhci-guest",
       "a": "nvidia-gsp-ring0-prepare",
+      "clase": "codigo"
+    },
+    {
+      "de": "amdvi-xhci-guest",
+      "a": "amdvi-graphics-bme-gate",
       "clase": "codigo"
     },
     {

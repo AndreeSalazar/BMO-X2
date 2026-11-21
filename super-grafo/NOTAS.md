@@ -1934,7 +1934,7 @@ Sonda exclusiva de QEMU TCG. Ring 0 comprueba bus masters y configura, invalida 
 Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: Escritorio USB dual activo, EDU, reservas UEFI y orden fija de QEMU. Variantes para BDF alto, AHCI y NVMe, y arbol de firmware NVIDIA.
 Salida: Estado de rechazo, tablas y colas propios y comprobantes de invalidacion y cierre.
-Depende de: AMD-Vi / Captura Ring 0 (codigo), GPU / NVIDIA / Preparacion pos-UEFI (codigo).
+Depende de: AMD-Vi / Captura Ring 0 (codigo), GPU / NVIDIA / Preparacion pos-UEFI (codigo), AMD-Vi / Concesion y cierre PCI de graficos en QEMU (codigo).
 Aceptacion: QEMU prueba DMA en bus alto con SATA e HID, y en otro perfil prueba la lectura de imagen, firma y Radix3 con HID, SATA y NVMe, tambien tras revocacion.
 Pendiente: Confirmar la propiedad de los solicitantes fisicos y sus reservas antes de activar el dominio de la RTX.
 
@@ -1948,6 +1948,17 @@ Salida: Total y hasta 64 registros leidos por INVOKE. F2 muestra el inventario e
 Depende de: AMD-Vi / Captura Ring 0 (codigo), xHCI USB2 con dos dispositivos (codigo).
 Aceptacion: QEMU coteja PCI con qtest, incluido un xHCI detras de un puente, con y sin AMD-Vi. En METAL F2 mostro los 15 BDF y el xHCI 2b:00.3. HOST cotejo su cobertura IVRS.
 Pendiente: Validar la transicion DMA con USB y almacenamiento fisicos.
+
+## kernel/drivers/bus/amdvi/graphics_bus_master.inc
+
+Abre BME del EDU de QEMU, usado como solicitante GSP de prueba, solo tras conceder su dominio AMD-Vi. Lo cierra antes de invalidar la DTE y las traducciones.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: EDU virtual en el BDF de ensayo, dominio DMA preparado y cola de comandos de Ring 0.
+Salida: PCI Command confirmado y prestamo revocado. Una confirmacion incompleta retiene las reservas.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: Reports/amdvi-gsp-bme-qemu-20261121.json registra 3/3 casos QEMU, concesion y revocacion por Ring 0, funcion hermana bloqueada y fallo cerrado ante cola suspendida. No acredita DMA de RTX fisica.
+Pendiente: Detener y transferir todos los solicitantes fisicos, activar AMD-Vi con una tabla completa de bloqueo y despues verificar la RTX y el arranque del GSP en METAL.
 
 ## kernel/drivers/storage/handoff_uefi.inc
 
@@ -2070,4 +2081,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-186 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+187 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

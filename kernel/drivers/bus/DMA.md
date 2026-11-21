@@ -174,13 +174,30 @@ antes y despues de activar AMD-Vi para verificar su bloqueo.
 El banco coteja en RAM las 6606 paginas de solo lectura y luego lee por
 DMA una pagina de la imagen, una de la firma y una de Radix3. Un bufer
 de resultados del ensayo usa una entrada separada, fuera de esas IOVA.
-Ring 0 vuelve a bloquear el solicitante, invalida el dominio y la DTE
-y espera confirmacion de ambos comandos. QEMU observa fallos al intentar
+Ring 0 habilita bus mastering despues de comprobar la tabla activa y la
+DTE del dominio. Para revocarlo, apaga bus mastering y coteja PCI Command,
+instala una DTE de bloqueo, invalida la DTE e invalida todas las paginas
+del dominio. Cada comando requiere confirmacion. QEMU observa fallos al intentar
 escribir en la imagen o leerla tras la revocacion. Ademas, el EDU
 escribe en la cola GSP de retorno y recibe un fallo sobre RMARGS.
-El teclado y el raton
-entregan informes antes y despues de retirar el acceso y los dos
-controladores de almacenamiento repiten sus lecturas.
+El teclado y el raton entregan informes antes y despues de retirar el
+acceso y los dos controladores de almacenamiento repiten sus lecturas.
+
+Al detener la cola de comandos en el banco, la revocacion deja BME
+apagado y las reservas retenidas. El siguiente intento conserva el
+comando pendiente. Tras volver a confirmar la cola, Ring 0 termina la
+revocacion y rechaza abrir otra vez el prestamo. Antes de llevar este
+cierre a un dispositivo PCIe fisico, el controlador debe detener sus
+transferencias y verificar que no quedan transacciones pendientes.
+La traduccion permanece activa mientras se revoca el dominio del
+dispositivo. El banco apaga la unidad emulada al finalizar las pruebas.
+[Invalidaciones de la especificacion AMD](https://docs.amd.com/api/khub/documents/GD6kOXjzWsek8QUbn_qMvg/content).
+
+La funcion 29:00.0 es un EDU de QEMU, no la RTX 3060. Este ensayo
+comprueba el protocolo PCI/AMD-Vi, pero no carga ni ejecuta GSP en la GPU,
+no activa el acelerador 3D y no prueba el firmware NVIDIA. El resultado
+3/3 se conserva en `Reports/amdvi-gsp-bme-qemu-20261121.json`; su perfil
+es solo QEMU y no emite medios instalables.
 
 ```powershell
 python -B tools/desktop/rmlui/native/guest.py --desktop --usb both --amdvi-post
@@ -190,6 +207,7 @@ python -B tools/desktop/rmlui/native/media.py <ABI_RUN> <GATO_COMPACTO_RUN> --us
 En metal queda pendiente adjudicar los dominios a los BDF fisicos y
 verificar la propiedad de los controladores y sus reservas DMA. La
 respuesta del GSP requiere su propio ensayo en la RTX.
+[Concesion y cierre BME por Ring 0 en QEMU](../../../Reports/amdvi-gsp-bme-qemu-20261121.json).
 [Evidencia de los cuatro dominios](../../../Reports/nvidia-gsp-dma-coexist-qemu-20261120.json).
 [Funciones PCIe en bus alto y colas del GSP](../../../Reports/nvidia-gsp-queues-routed-qemu-20261121.json).
 

@@ -267,6 +267,9 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
             guest_request(5,1)
             require(machine.read(context+0xbd8)==0 and machine.read(context+0xbe0)==0,
                     'Ring 0 inicio AHCI sin dominio activo')
+        if gsp_dma:
+            guest_request(8,1)
+            require(not edu_pci(4,word=True)&4, 'Ring 0 habilito BME sin dominio')
         if nvme:
             inherited = pending.pop(nvme_rid)
             require(inherited&6==6, 'OVMF no dejo NVMe inicializado')
@@ -289,7 +292,10 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
             require(nvme_shutdown&0x4e==8 and machine.pci(4,word=True,requester=nvme_rid)==inherited&~4
                     and not amdvi_nvme.read32(machine,nvme_bar,0x14)&0xc001
                     and not amdvi_nvme.read32(machine,nvme_bar,0x1c)&0x43,
-                    'Ring 0 no confirmo el cierre del NVMe heredado')
+                    f'Ring 0 no confirmo el cierre del NVMe heredado: ack={nvme_shutdown:#x}, '
+                    f'PCI={machine.pci(4,word=True,requester=nvme_rid):#x}/{inherited&~4:#x}, '
+                    f'CC={amdvi_nvme.read32(machine,nvme_bar,0x14):#x}, '
+                    f'CSTS={amdvi_nvme.read32(machine,nvme_bar,0x1c):#x}')
             guest_request(7)
             port_states = [int(machine.command('readl',ahci_bar+0x118+0x80*port),16) for port in range(6)]
             require(machine.read(context+0xbf0)==1 and not any(cmd&0xc011 for cmd in port_states)
@@ -349,7 +355,12 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
         edu_pci(4, edu_idle_command | 2, word=True)
         require(int(machine.command('readl',bar),16)==0x010000ed and not machine.read(bar+0x98) & 1,
                 f'EDU no estaba listo en {bar:#x}')
-        edu_pci(4, edu_idle_command | 6, word=True)
+        if gsp_dma:
+            guest_request(8)
+            require(edu_pci(4,word=True)==(edu_idle_command | 6) and machine.read(context+0xb68)==1,
+                    'Ring 0 no habilito BME despues de validar el dominio')
+        else:
+            edu_pci(4, edu_idle_command | 6, word=True)
         machine.put_bytes(payload, data)
         machine.put_bytes(iova, sentinel)
         machine.put_bytes(iova+0x100, sentinel)
@@ -442,11 +453,47 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
         tail, _ = faults(machine, tail, outside, len(data), event_log=events, requester=fault_rid)
         require(machine.get_bytes(outside,len(data)) == sentinel, 'Cambió la página fuera del préstamo')
         if guest_dma:
-            edu_pci(4,edu_idle_command | 2,word=True)
+            revoke_start = startup_tail
+            if not gsp_dma:
+                edu_pci(4,edu_idle_command | 2,word=True)
+            else:
+                require(edu_pci(4,word=True)&4 and not machine.read(bar+0x98)&1,
+                        'La prueba de revocacion necesita BME activo y la transferencia terminada')
+                control = machine.read(AMDVI+24)
+                # Keep translation active and withhold command completion.
+                machine.write(AMDVI+24,control & ~0x1000)
+                guest_request(2,3)
+                revoke_start += 32
+                queued = machine.get_bytes(commands+startup_tail,32)
+                require(not edu_pci(4,word=True)&4 and machine.read(context+0xb68)==1
+                        and machine.read(AMDVI+0x2008)==revoke_start and machine.read(completion)==startup_tail
+                        and machine.read(table+edu*32)==default_dte[0],
+                        'Una revocacion sin confirmacion debe cerrar BME sin liberar las reservas')
+                guest_request(2,3)
+                require(machine.read(AMDVI+0x2008)==revoke_start
+                        and machine.get_bytes(commands+startup_tail,32)==queued,
+                        'El reintento sobreescribio un comando pendiente')
+                machine.write(AMDVI+24,control)
+                machine.write(AMDVI+0x2008,revoke_start)
+                require(machine.read(completion)==revoke_start, 'La cola DMA no se recupero')
+                guest_request(8,3)
+                require(not edu_pci(4,word=True)&4, 'Se reabrio BME con DTE retirada')
+                gsp_proof['GspIncompleteRevocationClosedAndPinned']=True
             guest_request(2)
             revoke_bytes = 64 if gsp_dma else 32
-            require(machine.read(context+0xb68)==2 and machine.read(completion)==startup_tail+revoke_bytes,
+            require(machine.read(context+0xb68)==2 and machine.read(completion)==revoke_start+revoke_bytes,
                     'Ring 0 no confirmó la invalidación')
+            if gsp_dma:
+                require(edu_pci(4,word=True)==(edu_idle_command | 2), 'Ring 0 dejo BME activo al revocar')
+                guest_request(8,1)
+                require(not edu_pci(4,word=True)&4, 'Ring 0 reabrio un dominio revocado')
+                first, _, _, _, second, address, _, _ = struct.unpack(
+                    '<8Q', machine.get_bytes(commands+revoke_start,revoke_bytes))
+                require(first==(2<<60 | edu) and second==(3<<60 | 1<<32) and address==0x7ffffffffffff003,
+                        'La invalidacion debe retirar primero la DTE y luego todas las paginas del dominio')
+                gsp_proof.update(GspBusMasterGrantedByRing0=True,GspBusMasterClosedByRing0=True,
+                                 GspDteThenDomainInvalidationVerified=True,GspReopenRejected=True)
+            # qtest alone reopens BME as an adversarial probe of the revoked DTE.
             edu_pci(4,edu_idle_command | 6,word=True)
         else:
             machine.write(leaf, 0)

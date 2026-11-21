@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "date": "2026-11-21",
+  "run": "run-rmlui-media-77162fe3400f",
+  "evidence": "QEMU TCG, FAT32 boot, AMD-Vi routed GSP-DMA lab",
+  "cpu": "qemu64",
+  "ram_mib": 1024,
+  "qemu_only": true,
+  "cases_passed": 3,
+  "gsp_test_requester": "QEMU EDU at 0000:29:00.0; not the RTX 3060",
+  "ring0_checks": {
+    "gsp_domain_prepared": true,
+    "bus_master_granted_after_domain_check": true,
+    "bus_master_closed_before_revoke": true,
+    "dte_then_domain_invalidation_confirmed": true,
+    "suspended_command_queue_kept_bme_off_and_reservations_pinned": true,
+    "reopen_after_revoke_rejected": true,
+    "sibling_requester_dma_denied": true
+  },
+  "gsp_stage_status": 5,
+  "firmware_interpretation": "prepared in memory and sampled through the QEMU EDU model; NVIDIA GSP did not execute",
+  "physical_rtx_dma_verified": false,
+  "physical_amdvi_activation_verified": false,
+  "nvidia_3d_render_verified": false,
+  "deployable_to_metal": false,
+  "physical_blocker": "The METAL census records 15 bus-master requesters including root bridges, FCH, xHCI, AHCI and NVMe. Full physical requester ownership and quiesce are not yet proven.",
+  "source_sha256": {
+    "kernel/drivers/bus/amdvi/coexist_guest.inc": "8ffb56c672a162edb403e4def9a53cd8a8c202fad0d2f9cdcf7e4f12125cfedb",
+    "kernel/drivers/bus/amdvi/graphics_bus_master.inc": "b24a52ee5ccf5523769c68b60092274e9fca55da17bdc7ce6fd7f9294f554c03",
+    "tools/boot/amdvi_xhci.py": "6d8698eb1e5388292f1294a7364746876f5e8fde0b18a22c4c0aa7f12a0fde04",
+    "tools/desktop/rmlui/native/media.py": "cb1495156a19eeb74e4b9f8e01756ecd9778a6b5ac5c54e17610954d5e76e5ae"
+  }
+}

@@ -335,6 +335,11 @@ def main():
         raise ValueError('Missing prepared firmware DMA grant and revocation evidence')
     if args.amdvi_gsp_dma and args.amdvi_routed and not report['Cases'][0].get('GspSiblingDmaDenied'):
         raise ValueError('Missing isolation evidence for PCI function 29:00.1')
+    if args.amdvi_gsp_dma and not all(report['Cases'][0].get(field) for field in (
+        'GspBusMasterGrantedByRing0','GspBusMasterClosedByRing0','GspDteThenDomainInvalidationVerified',
+        'GspReopenRejected','GspIncompleteRevocationClosedAndPinned',
+    )):
+        raise ValueError('Missing Ring 0 graphics DMA grant and closed revocation')
     if args.amdvi_routed and (not report['Cases'][0].get('RoutedDmaVerified') or
                              not report['Cases'][0].get('UnassignedRequesterBlocked')):
         raise ValueError('Missing translated DMA or default-deny evidence')
