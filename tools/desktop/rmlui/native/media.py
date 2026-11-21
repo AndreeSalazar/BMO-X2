@@ -104,7 +104,7 @@ def main():
     if args.nvidia_probe:
         (run/'nvidia-pci-probe.txt').write_text('pci-read-only\n', encoding='ascii')
     if args.nvidia_gsp_sample:
-        (run/'nvidia-gsp-sample.txt').write_text('ga106-gsp-read-only\n', encoding='ascii')
+        (run/'nvidia-gsp-sample.txt').write_text('ga106-gsp-wpr-read-only\n', encoding='ascii')
     if args.amdvi_probe:
         (run/'amdvi-efi-probe.txt').write_text('firmware-read-only\n', encoding='ascii')
     if args.amdvi_post:
@@ -267,6 +267,8 @@ def main():
         raise ValueError('Missing UEFI BAR0 bounds or device guard evidence')
     if args.nvidia_gsp_sample and not all(case.get('GpuGspSampleSkipped') for case in report['Cases']):
         raise ValueError('Missing GSP sampling exclusion evidence')
+    if args.nvidia_gsp_sample and not all(case.get('GpuWprSampleSkipped') for case in report['Cases']):
+        raise ValueError('Missing WPR sampling exclusion evidence')
     if gsp is not None and ([case.get('GspStageStatus') for case in report['Cases']] != [5,4,1] or
                             not report['Cases'][0].get('GspResidentVerified')):
         raise ValueError('Missing GSP staging or file rejection evidence')
@@ -341,6 +343,7 @@ def main():
         display_backend='cpu-gop',
         nvidia_pci_probe=args.nvidia_probe, amdvi_efi_probe=args.amdvi_probe, amdvi_mmio_probe=args.amdvi_probe,
         nvidia_gsp_sample=args.nvidia_gsp_sample,
+        nvidia_wpr_sample=args.nvidia_gsp_sample,
         nvidia_gsp_stage=gsp is not None,
         nvidia_gsp_prepare=args.nvidia_gsp_prepare,
         amdvi_post_probe=args.amdvi_post,

@@ -11,9 +11,13 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[4]
 LLVM = Path(os.environ.get('ProgramFiles', 'C:/Program Files')) / 'LLVM/bin'
-OFFSETS = (0, 0x111388, 0x110040, 0x840040)
-REGISTERS = (0xb76000a1, 0x00000010, 0xbadf1002, 0x00000015)
+OFFSETS = (0, 0x111388, 0x110040, 0x840040, 0x118128, 0x118234, 0x1183a4,
+           0x625f04, 0x1fa7c8, 0x1fa82c, 0x1fa830, 0x1fa828)
+REGISTERS = (0xb76000a1, 0x00000010, 0xbadf1002, 0x00000015, 1, 0xff, 0x3000,
+             0x02fff008, 1, 0x10, 0, 0)
 EMPTY = b'GSP1=--------,--------,--------'
+EMPTY_WPR = b'WPR='+b','.join([b'--------']*8)
+COMPLETE_WPR = b'WPR='+b','.join(f'{value:08X}'.encode('ascii') for value in REGISTERS[4:])
 
 FIXTURE = r"""
 .text
@@ -141,18 +145,19 @@ class NvidiaGspSample(unittest.TestCase):
         cls.probe.argtypes = [c.c_void_p, c.c_void_p]
         cls.probe.restype = None
 
-    def check_sample(self, offsets, status, expected=EMPTY, **settings):
+    def check_sample(self, offsets, status, expected=EMPTY, wpr=EMPTY_WPR, **settings):
         pci = PciIo(**settings)
         context = c.create_string_buffer(0xb00)
         self.probe(pci.boot, context)
         lines = context.raw[0x800:].split(b'\0', 1)[0].splitlines()
         self.assertIn(f'GPU_MMIO_STATUS={status:08X}'.encode('ascii'), lines)
         self.assertIn(expected, lines)
+        self.assertIn(wpr, lines)
         self.assertEqual(pci.reads, [(2, 0, offset, 1) for offset in offsets])
         self.assertEqual(pci.freed, [c.addressof(pci.resource), c.addressof(pci.handles)])
 
     def test_reads_ga106(self):
-        self.check_sample(OFFSETS, 8, b'GSP1=00000010,BADF1002,00000015')
+        self.check_sample(OFFSETS, 8, b'GSP1=00000010,BADF1002,00000015', wpr=COMPLETE_WPR)
 
     def test_skips_other_vendor_or_active_dma(self):
         self.check_sample((), 3, pci_id=0x11111234)
@@ -163,6 +168,7 @@ class NvidiaGspSample(unittest.TestCase):
 
     def test_discards_partial_snapshot(self):
         self.check_sample(OFFSETS[:3], 8, denied=0x110040)
+        self.check_sample(OFFSETS[:7], 8, b'GSP1=00000010,BADF1002,00000015', denied=0x1183a4)
 
     def test_rechecks_command_after_sample(self):
         self.check_sample(OFFSETS, 7, changed=True)

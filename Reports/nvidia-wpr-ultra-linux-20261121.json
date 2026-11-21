@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "date": "2026-11-21",
+  "ultra_linux": {
+    "source_commit": "27fafba1ea733b67ced86f375427c189121b7b97",
+    "metal_log": "A:/ULTRA/informe/gpu-7.3.0-rc7-pc-g32c52ec87d62-nvidia-hyprland.txt",
+    "metal_log_sha256": "41d4984d0b4305e226016df281c0a23dd66b349e35d51e9e227794d822cc9edc",
+    "logged_at_utc": "2026-11-20T18:59:08Z",
+    "kernel": "7.3.0-rc7-pc-g32c52ec87d62",
+    "gpu": "NVIDIA GeForce RTX 3060 0000:29:00.0",
+    "gpu_firmware": "615.78.08",
+    "dma_address_bits_reported_by_driver": 47,
+    "compositor": "Hyprland",
+    "mode": "nvidia",
+    "backend": "drm",
+    "observed_display": "HDMI-A-1 1920x1080",
+    "translated_iommu_observed_in_earlier_boot": true,
+    "earlier_log_sha256": "963fa674790d28b171cafb69e397fa949daf2e95d671ccb6574ab28f1072295f"
+  },
+  "bmo_x2_probe": {
+    "phase": "UEFI before ExitBootServices",
+    "row": "WPR",
+    "requires": "GA106 10de:2504, enabled memory decoding, disabled PCI bus mastering, validated BAR0",
+    "fields": ["gfw_read_permission", "gfw_progress", "usable_vram_mib", "vga_workspace_raw",
+               "mmu_lock_read_permission", "mmu_lock_low", "mmu_lock_high", "wpr2_high"],
+    "reader_bytes": 4006,
+    "host_tests_passed": 17,
+    "physical_wpr_sample_verified": false,
+    "physical_gsp_response_verified": false,
+    "native_bmo_x2_acceleration_verified": false
+  },
+  "qemu": {
+    "run": "run-rmlui-media-919ceb641706",
+    "cases_passed": 3,
+    "gop_resolution": [1920, 1080],
+    "native_1080p_desktop_verified": true,
+    "usb_keyboard_and_mouse_verified": true,
+    "wpr_skipped_on_standard_vga_in_all_cases": true,
+    "bootlog_recovered_from_fat32_in_all_cases": true,
+    "gsp_libos_and_signed_boot_chain_verified": true
+  },
+  "deployment": {
+    "volume": "A:\\",
+    "boot_entry": "BMO-X2 (con NVIDIA)",
+    "receipt": "BMO-X2/GPU/DEPLOY.JSON",
+    "candidate_sha256_matches": 4,
+    "ultra_efi_sha256_matches_before": 2,
+    "physical_boot_pending": true
+  }
+}

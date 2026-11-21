@@ -153,7 +153,7 @@
 | [GOP / Escritorio nativo 1920x1080](../kernel/drivers/display/GOP/full_hd.inc) | qemu | 0 | Publica en GOP cada pixel producido por RmlUi y el raster de Ring 3 a 1920x1080. |
 | [GPU / NVIDIA / Inventario PCI](../kernel/drivers/GPU/NVIDIA/pci_probe.inc) | qemu | 0 | Sonda ASM transitoria del puente UEFI antes de ExitBootServices. Lee PCI del segmento 0 y conserva CPU/GOP como presentador. |
 | [GPU / NVIDIA / Lectura MMIO](../kernel/drivers/GPU/NVIDIA/mmio_probe.inc) | qemu | 0 | Sonda transitoria UEFI: confirma limites de BAR0 y lee la identidad interna exclusivamente en la RTX 3060 10DE:2504. |
-| [GPU / NVIDIA / Estado previo del GSP y SEC2](../kernel/drivers/GPU/NVIDIA/gsp_sample.inc) | qemu | 0 | Captura tres registros NVIDIA de solo lectura en el perfil UEFI dedicado. |
+| [GPU / NVIDIA / Estado previo de GSP, SEC2 y WPR](../kernel/drivers/GPU/NVIDIA/gsp_sample.inc) | qemu | 0 | Captura el estado de GSP y SEC2, los limites de VRAM y WPR2 antes de ExitBootServices. |
 | [GPU / NVIDIA / Firmware original de FAT32 a RAM](../kernel/drivers/GPU/NVIDIA/gsp_stage.inc) | qemu | 0 | Lee el GSP original por UEFI, acota el tamano, coteja CRC32 y entrega la reserva al supervisor. |
 | [GPU / NVIDIA / Preparacion pos-UEFI](../kernel/drivers/GPU/NVIDIA/gsp_prepare.inc) | qemu | 0 | Comprueba el traspaso GSP, alinea imagen y firma, y prepara Radix3 y las colas DMA despues de UEFI. |
 | [GPU / NVIDIA / Colas preparadas en Ring 0](../kernel/drivers/GPU/NVIDIA/gsp_queues.inc) | qemu | 0 | Inicializa RMARGS, GspMem y MSGQ 2.0 en memoria de supervisor reservada. |

@@ -653,6 +653,11 @@ for case in args.casos:
                         if samples != [b'GSP1=--------,--------,--------']:
                             raise ValueError('GA106 GSP reads must be skipped on QEMU standard VGA')
                         result['GpuGspSampleSkipped'] = True
+                        if (ROOT/'nvidia-gsp-sample.txt').read_text(encoding='ascii').strip()=='ga106-gsp-wpr-read-only':
+                            wpr = [line for line in log.splitlines() if line.startswith(b'WPR=')]
+                            if wpr != [b'WPR='+b','.join([b'--------']*8)]:
+                                raise ValueError('GA106 WPR reads must be skipped on QEMU standard VGA')
+                            result['GpuWprSampleSkipped'] = True
                     if nvidia_gsp_stage:
                         stage = [line for line in log.splitlines() if line.startswith(b'GSPLOAD=')]
                         expected = {'normal': 5, 'external-permissions': 4, 'amdvi-missing': 1}[case]

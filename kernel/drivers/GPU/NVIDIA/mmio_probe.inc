@@ -4,7 +4,11 @@ nvidia_mmio_probe:
     push %rbx
     push %rsi
     push %rdi
+#ifdef BMO_NVIDIA_GSP_SAMPLE
+    sub $176, %rsp
+#else
     sub $128, %rsp
+#endif
     xor %ebx, %ebx
     movq $0, 56(%rsp)   # HandleBuffer
     movq $0, 104(%rsp)  # Resource descriptor
@@ -174,7 +178,11 @@ nvidia_mmio_probe:
     mov %ebx, %eax
     lea (BMO_BOOT_REPORT_AREA+report_mmio_status-report_template)(%rbp), %rdi
     call report_hex32
+#ifdef BMO_NVIDIA_GSP_SAMPLE
+    add $176, %rsp
+#else
     add $128, %rsp
+#endif
     pop %rdi
     pop %rsi
     pop %rbx
@@ -202,5 +210,8 @@ report_pmc_boot0:
     .ascii "GSP1="
 report_gsp_sample:
     .ascii "--------,--------,--------\r\n"
+    .ascii "WPR="
+report_wpr_sample:
+    .ascii "--------,--------,--------,--------,--------,--------,--------,--------\r\n"
 #endif
     .endm

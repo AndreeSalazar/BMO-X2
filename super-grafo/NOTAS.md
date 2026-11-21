@@ -1643,14 +1643,14 @@ Pendiente: Acreditar inicio de GSP y una operacion GPU verificable antes de tran
 
 ## kernel/drivers/GPU/NVIDIA/gsp_sample.inc
 
-Captura tres registros NVIDIA de solo lectura en el perfil UEFI dedicado.
+Captura el estado de GSP y SEC2, los limites de VRAM y WPR2 antes de ExitBootServices.
 
 Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: GA106 10DE:2504 autenticada por identidad PCI y PMC, BAR0 acotada y bus mastering desactivado.
-Salida: GSP1 en GPULOG.TXT, con CPUCTL RISC-V y buzones 0 de GSP y SEC2.
+Salida: GSP1 y WPR en GPULOG.TXT; una lectura incompleta deja guiones en su fila.
 Depende de: GPU / NVIDIA / Lectura MMIO (codigo).
-Aceptacion: HOST y QEMU prueban restricciones; METAL obtuvo los tres registros 00000010,00000000,00000000 previos al arranque del GSP.
-Pendiente: Acreditar la respuesta a un arranque GSP con DMA acotado.
+Aceptacion: HOST coteja las once lecturas y su orden; QEMU excluye VGA. METAL confirmo la fila GSP1 en el candidato anterior.
+Pendiente: Obtener la fila WPR en METAL para cotejar VRAM, bloqueo de VBIOS y WPR2 activa.
 
 ## kernel/drivers/GPU/NVIDIA/gsp_stage.inc
 
@@ -1723,11 +1723,11 @@ Pendiente: Ejecutar FWSEC y SEC2 en GA106 tras comprobar la adjudicacion DMA fis
 Reparte la ventana de VRAM y codifica el bloque WPR V1 de 256 bytes para GA10x.
 
 Estado: HOST. Anillo: host. Lenguaje: Python.
-Entrada: Limites explicitos de VRAM, FRTS y heaps; tamanos, offsets e IOVA del firmware.
-Salida: Bloque de arranque en frio y mapa de VRAM, o rechazo ante un solapamiento.
+Entrada: Fila WPR del arranque real para lectura, o limites explicitos de VRAM, FRTS, heaps e IOVA para codificar.
+Salida: Restricciones observadas, o bloque WPR de arranque en frio y mapa de VRAM sobre una geometria comprobada.
 Depende de: contrato propio sin dependencias en este catalogo.
 Aceptacion: Compara los bytes con la estructura C de NVIDIA 615.78.08 y ensaya limites e IOVA solapadas.
-Pendiente: Alimentar la geometria observada por Ring 0 y confirmar los campos que escriba SEC2.
+Pendiente: Cotejar la primera captura METAL, adjudicar DMA y confirmar los campos que escriba SEC2.
 
 ## kernel/drivers/GPU/NVIDIA/gsp_radix3.inc
 

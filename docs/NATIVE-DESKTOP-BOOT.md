@@ -348,6 +348,35 @@ ACTIVE_STAT a cero. Los buzones reportan cero antes de enviar una
 orden. PCI Command sigue en `0003` y AMD-Vi tiene la traduccion apagada.
 [Registro UEFI de la RTX](../Reports/nvidia-pci-metal-20261120-gsp-sample.bootlog.txt).
 
+ULTRA-LinuX activo la traduccion AMD-Vi antes de cargar `nvidia-open`.
+La prueba del 20 de noviembre registro firmware `615.78.08` en la
+RTX `29:00.0`, `nvidia-drm` inicializado y HDMI-A-1 a 1920x1080 en
+la sesion Hyprland en modo NVIDIA. La preparacion DMA del driver precede
+al traspaso de pantalla. El lector de BMO-X2 recoge la geometria desde
+UEFI para preparar ese paso en su propio controlador.
+[Compilacion de nvidia-open para el kernel de ULTRA-LinuX](https://github.com/AndreeSalazar/ULTRA-LinuX/blob/27fafba1ea733b67ced86f375427c189121b7b97/scripts/build-baseline.sh#L160-L186).
+
+En el perfil Full HD la fila `WPR` de `GPULOG.TXT` contiene ocho
+palabras de 32 bits, en orden: permiso y progreso GFW, MiB de VRAM
+utiles, base VGA, permiso y limites inferior y superior del bloqueo
+MMU, y limite superior de WPR2. La captura se publica despues de
+releer PCI Command. Una lectura incompleta conserva la fila con
+guiones. El analizador distingue una region MMU ausente de una
+region valida y distingue WPR2 activa de una captura invalida.
+Para codificar WPR, `locked_start: null` indica que VBIOS no marco una
+region. El valor `0` representa un bloqueo valido desde la pagina cero.
+
+```powershell
+python -B -m tools.host.gpu.NVIDIA.gsp_wpr A:/BMO-X2/GPU/GPULOG.TXT --from-bootlog
+```
+
+Esta lectura permite determinar si el estado previo del firmware
+acepta un arranque en frio. La traduccion DMA nativa, el traspaso
+de almacenamiento y la respuesta del GSP se validan por separado.
+[Evidencia de ULTRA-LinuX y de la sonda WPR](../Reports/nvidia-wpr-ultra-linux-20261121.json).
+[Limites VGA segun NVIDIA](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/disp/arch/v04/kern_disp_0400.c).
+[Registros de bloqueo MMU](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/common/inc/swref/published/ampere/ga100/dev_fb.h).
+
 El perfil `--nvidia-gsp-stage` sin preparacion agrega el original `GSP.BIN` de
 `615.78.08` en `A:\BMO-X2\GPU\`. El HOST coteja la huella fijada y
 valida las secciones ELF. UEFI lee exactamente 27 043 992 B, coteja

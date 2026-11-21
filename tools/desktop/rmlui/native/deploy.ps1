@@ -35,6 +35,11 @@ $fullHd=Test-Path -LiteralPath (Join-Path $runPath 'full-hd.txt') -PathType Leaf
 $fullHdNative=$fullHd -and (Get-Content -LiteralPath (Join-Path $runPath 'full-hd.txt') -Raw).Trim() -eq 'cpu-gop-native-1920x1080'
 $gspSample=Test-Path -LiteralPath (Join-Path $runPath 'nvidia-gsp-sample.txt') -PathType Leaf
 $gspStage=Test-Path -LiteralPath (Join-Path $runPath 'nvidia-gsp-stage.json') -PathType Leaf
+$wprSample=$gspSample -and ((Get-Content -LiteralPath (Join-Path $runPath 'nvidia-gsp-sample.txt') -Raw).Trim() -eq 'ga106-gsp-wpr-read-only')
+if ($wprSample -ne [bool]$proof.nvidia_wpr_sample -or
+    ($wprSample -and @($proof.Cases | Where-Object { -not $_.GpuWprSampleSkipped }).Count)) {
+    throw 'Falta la prueba de exclusion WPR para dispositivos que no son GA106.'
+}
 if ($gspSample -ne [bool]$proof.nvidia_gsp_sample -or ($gspSample -and
     (-not $gpuRun -or -not $fullHdNative -or @($proof.Cases | Where-Object { -not $_.GpuGspSampleSkipped }).Count))) {
     throw 'La muestra GSP requiere el perfil NVIDIA Full HD y las exclusiones verificadas en QEMU.'
@@ -210,6 +215,7 @@ $record=[ordered]@{Schema=1;Evidence='HOST copy after QEMU FAT32 boot';Run=$proo
     FullHd=$fullHd;
     FullHdNative=$fullHdNative;
     NvidiaGspSample=$gspSample;
+    NvidiaWprProbe=$wprSample;
     NvidiaGspStage=$gspStage;
     NvidiaGspPrepare=[bool]$proof.nvidia_gsp_prepare;
     NvidiaGspQueues=($gspStage -and [bool]$gspProof.queues);
