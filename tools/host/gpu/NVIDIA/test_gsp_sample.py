@@ -35,7 +35,7 @@ probe_fixture:
     mov $0x80290000, %r12d
     mov $0xfb000000, %r13d
     lea report_template(%rip), %rsi
-    lea 0x800(%rbp), %rdi
+    lea 0xc00(%rbp), %rdi
     mov $(report_end-report_template), %ecx
     cld
     rep movsb
@@ -136,6 +136,8 @@ class NvidiaGspSample(unittest.TestCase):
         source.write_text(FIXTURE, encoding='ascii')
         subprocess.run([LLVM / 'clang.exe', '--target=x86_64-pc-windows-msvc',
                         '-DBMO_NVIDIA_GSP_SAMPLE', '-DBMO_NVIDIA_PCI_PROBE', '-DRMLUI_MEDIA',
+                        '-DBMO_NVIDIA_GSP_BOOT_CHAIN', '-DBMO_NVIDIA_GSP_STAGE',
+                        '-DBMO_GSP_FILE_BYTES=27043992', '-DBMO_GSP_FILE_CRC=0',
                         '-I', ROOT, '-c', source, '-o', obj], check=True)
         subprocess.run([LLVM / 'lld-link.exe', '/dll', '/noentry', '/nodefaultlib',
                         '/export:probe_fixture', f'/out:{dll}', obj], check=True)
@@ -147,12 +149,14 @@ class NvidiaGspSample(unittest.TestCase):
 
     def check_sample(self, offsets, status, expected=EMPTY, wpr=EMPTY_WPR, **settings):
         pci = PciIo(**settings)
-        context = c.create_string_buffer(0xb00)
+        context = c.create_string_buffer(0x1000)
         self.probe(pci.boot, context)
-        lines = context.raw[0x800:].split(b'\0', 1)[0].splitlines()
+        lines = context.raw[0xc00:].split(b'\0', 1)[0].splitlines()
         self.assertIn(f'GPU_MMIO_STATUS={status:08X}'.encode('ascii'), lines)
         self.assertIn(expected, lines)
         self.assertIn(wpr, lines)
+        handoff = REGISTERS[4:] if wpr==COMPLETE_WPR else (0,)*8
+        self.assertEqual(struct.unpack_from('<8I',context,0x8d0),handoff)
         self.assertEqual(pci.reads, [(2, 0, offset, 1) for offset in offsets])
         self.assertEqual(pci.freed, [c.addressof(pci.resource), c.addressof(pci.handles)])
 

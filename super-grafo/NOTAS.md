@@ -1650,7 +1650,7 @@ Entrada: GA106 10DE:2504 autenticada por identidad PCI y PMC, BAR0 acotada y bus
 Salida: GSP1 y WPR en GPULOG.TXT; una lectura incompleta deja guiones en su fila.
 Depende de: GPU / NVIDIA / Lectura MMIO (codigo).
 Aceptacion: HOST coteja las once lecturas y su orden; QEMU excluye VGA. METAL confirmo la fila GSP1 en el candidato anterior.
-Pendiente: Obtener la fila WPR en METAL para cotejar VRAM, bloqueo de VBIOS y WPR2 activa.
+Pendiente: Confirmar WPR2 despues de ejecutar FWSEC-FRTS en la placa.
 
 ## kernel/drivers/GPU/NVIDIA/gsp_stage.inc
 
@@ -1670,7 +1670,7 @@ Comprueba el traspaso GSP, alinea imagen y firma, y prepara Radix3 y las colas D
 Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: Reserva de supervisor y mapa EFI final, unicamente en el perfil NVIDIA.
 Salida: Imagen, firma, Radix3, RMARGS, GspMem y arbol AMD-Vi provisional, con estado interno 4 exportado al escritorio.
-Depende de: GPU / NVIDIA / Firmware original de FAT32 a RAM (codigo), GPU / NVIDIA / Directorio Radix3 x86-64 (codigo), GPU / NVIDIA / Colas preparadas en Ring 0 (codigo), GPU / NVIDIA / Argumentos LIBOS 3 (codigo), GPU / NVIDIA / Binarios firmados de arranque (codigo), AMD-Vi / Arbol DMA de solo lectura (codigo).
+Depende de: GPU / NVIDIA / Firmware original de FAT32 a RAM (codigo), GPU / NVIDIA / Directorio Radix3 x86-64 (codigo), GPU / NVIDIA / Colas preparadas en Ring 0 (codigo), GPU / NVIDIA / Argumentos LIBOS 3 (codigo), GPU / NVIDIA / Binarios firmados de arranque (codigo), GPU / NVIDIA / WPR para GA106 (codigo), AMD-Vi / Arbol DMA de solo lectura (codigo).
 Aceptacion: QEMU coteja ambas huellas, el directorio, todas las entradas AMD-Vi y la exclusion con archivo ausente. HOST rechaza reservas ajenas o cortas.
 Pendiente: Adjudicar las IOVA en METAL, integrar los argumentos LIBOS y arrancar el GSP.
 
@@ -1727,7 +1727,29 @@ Entrada: Fila WPR del arranque real para lectura, o limites explicitos de VRAM, 
 Salida: Restricciones observadas, o bloque WPR de arranque en frio y mapa de VRAM sobre una geometria comprobada.
 Depende de: contrato propio sin dependencias en este catalogo.
 Aceptacion: Compara los bytes con la estructura C de NVIDIA 615.78.08 y ensaya limites e IOVA solapadas.
-Pendiente: Cotejar la primera captura METAL, adjudicar DMA y confirmar los campos que escriba SEC2.
+Pendiente: Confirmar los campos que escriba SEC2 en la placa.
+
+## kernel/drivers/GPU/NVIDIA/gsp_wpr_prepare.inc
+
+Calcula la geometria de VRAM y publica WPR V1 en el arbol DMA separado.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: Captura PCI y MMIO validada, VBIOS lista y WPR2 apagada.
+Salida: 256 bytes de metadatos y una IOVA para SEC2.
+Depende de: HOST / Metadatos WPR V1 (verificacion).
+Aceptacion: La rutina nativa produce los mismos bytes que el HOST con la captura real. QEMU comprueba que la VGA virtual deja la pagina vacia y fuera del mapa DMA.
+Pendiente: Adjudicar DMA fisico y verificar la region con FWSEC y SEC2.
+
+## tools/host/gpu/NVIDIA/gsp_fwsec.py
+
+Prepara la orden FRTS sobre la VBIOS medida y conserva las firmas de NVIDIA.
+
+Estado: HOST. Anillo: host. Lenguaje: Python.
+Entrada: VBIOS GA106 identificada por SHA-256 y metadatos WPR V1.
+Salida: Firmware con la orden FRTS, firmas originales y manifiesto.
+Depende de: HOST / Metadatos WPR V1 (generacion).
+Aceptacion: Coteja las regiones IMEM y DMEM de la VBIOS archivada y los campos de la orden.
+Pendiente: Seleccionar la firma por fusible, cargar el firmware y verificar su finalizacion en la RTX.
 
 ## kernel/drivers/GPU/NVIDIA/gsp_radix3.inc
 
@@ -2015,4 +2037,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-181 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+183 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

@@ -15,6 +15,7 @@ WPR_ALIGN = 128 << 10
 WPR_MAGIC = 0xdc3aae21371a60b3
 WPR_BYTES = 256
 VBIOS_RELOCATED_WORKSPACE_BYTES = 128 << 10
+GA106_PRESCRUBBED_BYTES = 256*MIB
 
 
 def decode_bootlog(log):
@@ -60,6 +61,20 @@ def decode_bootlog(log):
     return dict(vram_bytes=vram, vga_workspace_raw=raw_workspace,
                 workspace_start=workspace, mmu_locked_pages=lock,
                 wpr2_active=bool(wpr_hi>>4), gfw_ready=True)
+
+
+def ga106_cold_vram(report):
+    """Select the physical GA106 cold-boot policy for OpenRM 615.78.08."""
+    vram = report['vram_bytes']
+    if report['wpr2_active'] or not report['gfw_ready'] or vram<GA106_PRESCRUBBED_BYTES:
+        raise ValueError('GA106 no confirma las condiciones de arranque en frio')
+    gib = 1 << 30
+    heap_per_gib = (vram+gib-1)//gib*98304
+    heap = (22+8+96)*MIB + ((heap_per_gib+MIB-1)&-MIB)
+    # Only GA100 uses the raw VBIOS MMU-lock words in this OpenRM HAL.
+    return dict(bytes=vram,workspace_start=report['workspace_start'],locked_start=None,
+                permitted_start=vram-GA106_PRESCRUBBED_BYTES,end_margin=0,frts_bytes=MIB,
+                heap_bytes=heap,non_wpr_heap_bytes=MIB)
 
 
 def encode(*, vram, firmware, radix_iova, boot_iova, signature_iova):
@@ -132,7 +147,10 @@ def main():
     try:
         payload = args.input.read_text(encoding='ascii')
         if args.from_bootlog:
-            print(json.dumps(decode_bootlog(payload),indent=2))
+            report = decode_bootlog(payload)
+            if not report['wpr2_active'] and report['vram_bytes']>=GA106_PRESCRUBBED_BYTES:
+                report['cold_boot_geometry'] = ga106_cold_vram(report)
+            print(json.dumps(report,indent=2))
             return
         metadata, ranges = encode(**json.loads(payload))
         with args.output.open('xb') as stream:

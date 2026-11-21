@@ -71,6 +71,9 @@ gsp_prepare_begin:
     lea GSP_BOOT_AREA_OFFSET(%r9), %rdi
     mov $(BMO_GSP_BOOT_PAGES*512), %ecx
     rep movsq
+    xor %eax, %eax
+    mov $512, %ecx
+    rep stosq                         # WPR page follows the signed chain.
     mov %r8, %rdi
     mov $((GSP_BOOT_AREA_OFFSET-BMO_GSP_IMAGE_BYTES-4096)/8), %ecx
 #else
@@ -112,10 +115,11 @@ gsp_prepare_begin:
 #ifdef BMO_NVIDIA_GSP_LIBOS
     call nvidia_gsp_init_libos
 #endif
+    movl $GSP_POST_READY, GSP_POST_STATUS(%rbp)
 #ifdef BMO_NVIDIA_GSP_BOOT_CHAIN
     call nvidia_gsp_map_boot_chain
+    call nvidia_gsp_prepare_wpr
 #endif
-    movl $GSP_POST_READY, GSP_POST_STATUS(%rbp)
     ret
 
 #include "gsp_radix3.inc"
@@ -128,6 +132,7 @@ gsp_prepare_begin:
 #endif
 #ifdef BMO_NVIDIA_GSP_BOOT_CHAIN
 #include "gsp_boot_chain.inc"
+#include "gsp_wpr_prepare.inc"
 #endif
 .globl gsp_prepare_end
 gsp_prepare_end:

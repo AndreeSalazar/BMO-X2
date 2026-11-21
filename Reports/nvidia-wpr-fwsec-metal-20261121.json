@@ -1,0 +1,54 @@
+{
+  "metal_capture": {
+    "boot_profile": "run-rmlui-media-919ceb641706",
+    "path": "A:/BMO-X2/GPU/GPULOG.TXT",
+    "sha256": "fae3b7ee0cbddf6ccb1b84dede05245364ed5e478e4e5d9c7c46fc8be9298e85",
+    "pci_bdf": "29:00.0",
+    "pci_id": "10de:2504",
+    "pci_subsystem": "1462:397d",
+    "gpu": "NVIDIA RTX 3060 12 GiB (GA106)",
+    "pci_command": "0003",
+    "pci_bus_master_enabled": false,
+    "gsp1": "00000010,00000000,00000000",
+    "wpr": "00008B8F,000003FF,00003000,00000001,0045CB8F,00100000,02EFFFF0,00000000",
+    "vbios_gfw_complete": true,
+    "usable_vram_bytes": 12884901888,
+    "wpr2_active": false,
+    "amdvi_translation_enabled": false
+  },
+  "wpr_preparation": {
+    "nvidia_release": "615.78.08",
+    "prescrubbed_vram_bytes": 268435456,
+    "vga_workspace_start": "0x2fff00000",
+    "wpr_range_end_exclusive": ["0x2f6300000", "0x2fff00000"],
+    "frts_range_end_exclusive": ["0x2ffe00000", "0x2fff00000"],
+    "detached_iova": "0x0a106000",
+    "metadata_bytes": 256,
+    "metadata_sha256": "246adb13aa9fb3f100f1b4fd4e60110957cca2fa813926d7fbece9e020af32f2",
+    "references": [
+      "https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/generated/g_mem_mgr_nvoc.c#L1303-L1315",
+      "https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/arch/turing/kernel_gsp_tu102.c"
+    ]
+  },
+  "fwsec_host": {
+    "vbios_sha256": "3ea3feda53d5a8821c5a68fd1d44bf285100d65abe9661e3598bfd06fd804f61",
+    "imem_bytes": 57856,
+    "dmem_bytes": 2048,
+    "candidate_signatures": 3,
+    "signature_fuse_mmio": "0x8241e0",
+    "frts_command_image_sha256": "e50901cde77cbc7e0fbdfcf8fc3a3187abcdf3c0568f59b77903a046b7406355",
+    "original_signature_candidates_sha256": "3661b5d8e4585e724b7f3d86718f666e81e85cfe9bbc7c9cbd855cb10a073210",
+    "reference": "https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/arch/turing/kernel_gsp_frts_tu102.c"
+  },
+  "validation": {
+    "ring0_replayed_with_metal_sample_on_host": true,
+    "wpr_bytes_match_host_encoder": true,
+    "qemu_run": "run-rmlui-media-bb3ad73ea042",
+    "qemu_cases_passed": 3,
+    "qemu_vga_omits_wpr_mapping": true,
+    "metal_dma_takeover_verified": false,
+    "metal_fwsec_execution_verified": false,
+    "metal_gsp_response_verified": false,
+    "gpu_render_verified": false
+  }
+}

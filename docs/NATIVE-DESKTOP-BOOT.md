@@ -373,7 +373,14 @@ python -B -m tools.host.gpu.NVIDIA.gsp_wpr A:/BMO-X2/GPU/GPULOG.TXT --from-bootl
 Esta lectura permite determinar si el estado previo del firmware
 acepta un arranque en frio. La traduccion DMA nativa, el traspaso
 de almacenamiento y la respuesta del GSP se validan por separado.
+La captura de la RTX 3060 GA106 confirma 12 GiB de VRAM, VBIOS
+inicializada y WPR2 desactivada. Los limites de bloqueo MMU se
+conservan como diagnostico. En 615.78.08 la regla que los usa para
+recortar la ventana WPR se asigna a GA100. Para GA106 se toma la
+ventana de 256 MiB preinicializada al final de VRAM.
 [Evidencia de ULTRA-LinuX y de la sonda WPR](../Reports/nvidia-wpr-ultra-linux-20261121.json).
+[Captura real y preparacion WPR de GA106](../Reports/nvidia-wpr-fwsec-metal-20261121.json).
+[Seleccion de implementacion MMU por GPU](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/generated/g_mem_mgr_nvoc.c#L1303-L1315).
 [Limites VGA segun NVIDIA](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/disp/arch/v04/kern_disp_0400.c).
 [Registros de bloqueo MMU](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/common/inc/swref/published/ampere/ga100/dev_fb.h).
 
@@ -544,7 +551,9 @@ Con `--nvidia-gsp-prepare`, `GSP.BIN` contiene el ELF original y un
 trailer de 33 paginas con el monitor RISC-V y los binarios SEC2 de
 carga y descarga. El CRC32 cubre ambos. Ring 0 conserva los bytes
 firmados al reordenar la reserva y agrega las 33 paginas de solo
-lectura a la hoja DMA existente. La reserva total es de 6883 paginas.
+lectura a la hoja DMA existente. La reserva suma 6884 paginas con
+la pagina WPR. Esta se publica en `0x0a106000` dentro del arbol
+DMA separado cuando la muestra GA106 permite el arranque en frio.
 QEMU verifico el trailer y el rechazo del archivo con un byte
 alterado en el trailer. EDU leyo una pagina del monitor y recibio un
 fallo al escribir otra pagina del monitor sin lectura previa.
@@ -552,12 +561,29 @@ fallo al escribir otra pagina del monitor sin lectura previa.
 `tools/host/gpu/NVIDIA/gsp_wpr.py` emite los 256 bytes de WPR V1 a
 partir de los limites efectivos de VRAM y las IOVA del firmware.
 Comprueba la reserva de la VBIOS, la ventana permitida y los
-solapamientos. Una estructura C de NVIDIA sirvio de referencia
-byte por byte. El ensayo uso los limites historicos de la RTX como
-fixture. El arranque necesita cotejar esos limites en el equipo,
-adjudicar DMA y ejecutar FWSEC-FRTS y SEC2 antes de esperar la
-respuesta del firmware.
+solapamientos. Con la captura real de GA106, la rutina de Ring 0
+produce el mismo bloque de 256 bytes que la referencia C y el HOST.
+El intervalo WPR calculado es `0x2f6300000..0x2fff00000`. FRTS
+ocupa el ultimo MiB, desde `0x2ffe00000`. Ring 3 muestra `WPR preparada`
+cuando existe el bloque. En QEMU, la VGA virtual conserva la pagina
+vacia y sin IOVA publicada.
+
+El HOST prepara la orden FRTS con el FWSEC firmado de la VBIOS medida.
+El binario preparado conserva el codigo original y las firmas se
+exportan para que el controlador seleccione la correspondiente al
+fusible fisico.
+
+```powershell
+python -B -m tools.host.gpu.NVIDIA.gsp_wpr limites-y-layout.json wpr.bin
+python -B -m tools.host.gpu.NVIDIA.gsp_fwsec vbios.rom wpr.bin fwsec
+```
+
+El arranque fisico aun requiere adjudicar DMA con USB, SATA y NVMe
+bajo control, ejecutar FWSEC-FRTS, comprobar WPR2 y arrancar SEC2 y
+GSP. El primer trabajo 3D se valida al recibir la confirmacion GSP
+y comprobar que el resultado de dibujo fue escrito por la RTX.
 [Verificacion del arranque firmado y WPR V1](../Reports/nvidia-gsp-boot-chain-20261121.json).
+[Preparacion FWSEC-FRTS con la VBIOS GA106](../Reports/nvidia-wpr-fwsec-metal-20261121.json).
 [Geometria WPR V1 en NVIDIA 615.78.08](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/arch/turing/kernel_gsp_tu102.c).
 
 La tabla ACPI IVRS del equipo tiene 208 B y describe tanto

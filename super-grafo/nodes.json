@@ -2580,7 +2580,7 @@
       "entrada": "GA106 10DE:2504 autenticada por identidad PCI y PMC, BAR0 acotada y bus mastering desactivado.",
       "salida": "GSP1 y WPR en GPULOG.TXT; una lectura incompleta deja guiones en su fila.",
       "aceptacion": "HOST coteja las once lecturas y su orden; QEMU excluye VGA. METAL confirmo la fila GSP1 en el candidato anterior.",
-      "falta": "Obtener la fila WPR en METAL para cotejar VRAM, bloqueo de VBIOS y WPR2 activa."
+      "falta": "Confirmar WPR2 despues de ejecutar FWSEC-FRTS en la placa."
     },
     {
       "id": "nvidia-gsp-stage",
@@ -2704,7 +2704,36 @@
       "entrada": "Fila WPR del arranque real para lectura, o limites explicitos de VRAM, FRTS, heaps e IOVA para codificar.",
       "salida": "Restricciones observadas, o bloque WPR de arranque en frio y mapa de VRAM sobre una geometria comprobada.",
       "aceptacion": "Compara los bytes con la estructura C de NVIDIA 615.78.08 y ensaya limites e IOVA solapadas.",
-      "falta": "Cotejar la primera captura METAL, adjudicar DMA y confirmar los campos que escriba SEC2."
+      "falta": "Confirmar los campos que escriba SEC2 en la placa."
+    },
+    {
+      "id": "nvidia-gsp-wpr-native",
+      "titulo": "GPU / NVIDIA / WPR para GA106",
+      "ruta": "kernel/drivers/GPU/NVIDIA/gsp_wpr_prepare.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [11600, 3750],
+      "que": "Calcula la geometria de VRAM y publica WPR V1 en el arbol DMA separado.",
+      "entrada": "Captura PCI y MMIO validada, VBIOS lista y WPR2 apagada.",
+      "salida": "256 bytes de metadatos y una IOVA para SEC2.",
+      "aceptacion": "La rutina nativa produce los mismos bytes que el HOST con la captura real. QEMU comprueba que la VGA virtual deja la pagina vacia y fuera del mapa DMA.",
+      "falta": "Adjudicar DMA fisico y verificar la region con FWSEC y SEC2."
+    },
+    {
+      "id": "nvidia-gsp-fwsec-host",
+      "titulo": "HOST / Orden FWSEC-FRTS para GA106",
+      "ruta": "tools/host/gpu/NVIDIA/gsp_fwsec.py",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "Python",
+      "posicion": [11600, 4600],
+      "que": "Prepara la orden FRTS sobre la VBIOS medida y conserva las firmas de NVIDIA.",
+      "entrada": "VBIOS GA106 identificada por SHA-256 y metadatos WPR V1.",
+      "salida": "Firmware con la orden FRTS, firmas originales y manifiesto.",
+      "aceptacion": "Coteja las regiones IMEM y DMEM de la VBIOS archivada y los campos de la orden.",
+      "falta": "Seleccionar la firma por fusible, cargar el firmware y verificar su finalizacion en la RTX."
     },
     {
       "id": "nvidia-gsp-ring0-radix3",
@@ -4437,6 +4466,21 @@
     {
       "de": "nvidia-gsp-boot-chain",
       "a": "nvidia-gsp-host-bundle",
+      "clase": "generacion"
+    },
+    {
+      "de": "nvidia-gsp-ring0-prepare",
+      "a": "nvidia-gsp-wpr-native",
+      "clase": "codigo"
+    },
+    {
+      "de": "nvidia-gsp-wpr-native",
+      "a": "nvidia-gsp-wpr-host",
+      "clase": "verificacion"
+    },
+    {
+      "de": "nvidia-gsp-fwsec-host",
+      "a": "nvidia-gsp-wpr-host",
       "clase": "generacion"
     },
     {

@@ -1,5 +1,6 @@
 # Sample GA106 through EFI PCI I/O with BME off. GSP1 retains its three
 # registers. WPR records the GFW and MMU permissions and the VRAM limits.
+#include "gsp_layout.inc"
 .Lgsp_sample:
     mov 104(%rsp), %rax             # Validated BAR0 descriptor.
     cmpq $0x840044, 38(%rax)
@@ -55,6 +56,14 @@
     inc %esi
     cmp $11, %esi
     jne .Lwpr_write_next
+#ifdef BMO_NVIDIA_GSP_BOOT_CHAIN
+    # Only the checked GA106 sample can feed the post-EBS WPR page.
+    lea 140(%rsp), %rsi
+    lea GSP_WPR_SAMPLE(%rbp), %rdi
+    mov $4, %ecx
+    cld
+    rep movsq
+#endif
     jmp .Lmmio_finish
 .Lgsp_command_unverified:
     mov $7, %ebx

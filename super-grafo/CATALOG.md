@@ -161,6 +161,8 @@
 | [HOST / Referencia de argumentos LIBOS 3](../tools/host/gpu/NVIDIA/gsp_libos.py) | host | host | Codifica por separado los argumentos, punteros y buffers de log del arranque GA10x. |
 | [GPU / NVIDIA / Binarios firmados de arranque](../kernel/drivers/GPU/NVIDIA/gsp_boot_chain.inc) | qemu | 0 | Mapea el monitor RISC-V y los binarios de carga y descarga SEC2 en la hoja GSP. |
 | [HOST / Metadatos WPR V1](../tools/host/gpu/NVIDIA/gsp_wpr.py) | host | host | Reparte la ventana de VRAM y codifica el bloque WPR V1 de 256 bytes para GA10x. |
+| [GPU / NVIDIA / WPR para GA106](../kernel/drivers/GPU/NVIDIA/gsp_wpr_prepare.inc) | qemu | 0 | Calcula la geometria de VRAM y publica WPR V1 en el arbol DMA separado. |
+| [HOST / Orden FWSEC-FRTS para GA106](../tools/host/gpu/NVIDIA/gsp_fwsec.py) | host | host | Prepara la orden FRTS sobre la VBIOS medida y conserva las firmas de NVIDIA. |
 | [GPU / NVIDIA / Directorio Radix3 x86-64](../kernel/drivers/GPU/NVIDIA/gsp_radix3.inc) | qemu | 0 | Construye el directorio de tres niveles para la imagen GSP con IOVA contiguas. |
 | [HOST / Empaquetado opcional NVIDIA](../tools/host/gpu/NVIDIA/bundle.py) | host | host | Coteja el firmware, limita su geometria y entrega el archivo y opciones de compilacion al empaquetador opcional. |
 | [HOST / Firmware NVIDIA GA10x](../tools/host/gpu/NVIDIA/firmware.py) | host | host | Comprueba el conjunto original de una release GSP, por longitud y huella de referencia. |
@@ -452,6 +454,9 @@
 | nvidia-gsp-libos-native | nvidia-gsp-libos-host | verificacion |
 | nvidia-gsp-ring0-prepare | nvidia-gsp-boot-chain | codigo |
 | nvidia-gsp-boot-chain | nvidia-gsp-host-bundle | generacion |
+| nvidia-gsp-ring0-prepare | nvidia-gsp-wpr-native | codigo |
+| nvidia-gsp-wpr-native | nvidia-gsp-wpr-host | verificacion |
+| nvidia-gsp-fwsec-host | nvidia-gsp-wpr-host | generacion |
 | nvidia-gsp-ring0-prepare | amdvi-stage-read-only | codigo |
 | nvidia-gsp-ring0-radix3 | nvidia-gsp-radix3-host | verificacion |
 | nvidia-gsp-host-bundle | nvidia-gsp-firmware-host | codigo |

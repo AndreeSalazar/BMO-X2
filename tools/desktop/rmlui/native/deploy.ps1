@@ -141,6 +141,9 @@ if ($gspStage) {
         $normal.GspBootChainPages -ne $gspProof.boot_chain.pages)) {
         throw 'Falta verificar los binarios firmados de arranque GSP y sus permisos DMA.'
     }
+    if ($gspProof.wpr_page -and (-not $wprSample -or -not $normal.GspWprPageExcluded)) {
+        throw 'Falta verificar que el perfil WPR excluye la VGA estandar.'
+    }
     $names+=$gspName
 }
 $names+=$bootFile
@@ -216,6 +219,7 @@ $record=[ordered]@{Schema=1;Evidence='HOST copy after QEMU FAT32 boot';Run=$proo
     FullHdNative=$fullHdNative;
     NvidiaGspSample=$gspSample;
     NvidiaWprProbe=$wprSample;
+    NvidiaWprPreparation=($gspStage -and [bool]$gspProof.wpr_page);
     NvidiaGspStage=$gspStage;
     NvidiaGspPrepare=[bool]$proof.nvidia_gsp_prepare;
     NvidiaGspQueues=($gspStage -and [bool]$gspProof.queues);

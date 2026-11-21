@@ -41,7 +41,10 @@ def stage_firmware(run, directory, prepare):
                   f'-DBMO_GSP_SIGNATURE_OFFSET={signature["offset"]}']
         chain, layout_boot = boot_chain(directory, files)
         flags += ['-DBMO_NVIDIA_GSP_BOOT_CHAIN',f'-DBMO_GSP_BOOT_FILE_OFFSET={len(firmware)}',
-                  f'-DBMO_GSP_BOOT_PAGES={layout_boot["pages"]}']
+                  f'-DBMO_GSP_BOOT_PAGES={layout_boot["pages"]}',
+                  f'-DBMO_GSP_MONITOR_BYTES={layout_boot["entries"]["riscv"]["bytes"]}']
+        flags += [f'-DBMO_GSP_MONITOR_{role.upper()}={offset}'
+                  for role,offset in layout_boot['monitor_offsets'].items()]
         archive += chain
     crc = zlib.crc32(archive)
     flags += [f'-DBMO_GSP_FILE_BYTES={len(archive)}', f'-DBMO_GSP_FILE_CRC={crc}']
@@ -52,6 +55,6 @@ def stage_firmware(run, directory, prepare):
     metadata = dict(release=NATIVE_RELEASE,bytes=len(archive),sha256=hashlib.sha256(archive).hexdigest(),
                     crc32=crc,layout=sections,prepare=prepare,detached_dma=prepare,queues=prepare,libos=prepare)
     if layout_boot:
-        metadata.update(firmware_file_sha256=files['gsp']['sha256'],boot_chain=layout_boot)
+        metadata.update(firmware_file_sha256=files['gsp']['sha256'],boot_chain=layout_boot,wpr_page=True)
     (run/'nvidia-gsp-stage.json').write_text(json.dumps(metadata)+'\n',encoding='ascii')
     return archive,flags
