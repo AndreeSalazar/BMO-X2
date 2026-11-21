@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "host": {
+    "environment": "Windows x86-64 with the installed NVIDIA driver",
+    "inputs": "Original vertex and fragment shaders in tools/host/gpu/NVIDIA/triangle",
+    "launcher": "tools/host/gpu/NVIDIA/triangle/run.ps1",
+    "gpu": "NVIDIA GeForce RTX 3060",
+    "pci_id": "10de:2504",
+    "pci_bdf": "29:00.0",
+    "vram_mib": 12288,
+    "driver": "610.74",
+    "vulkan_device_api": "1.4.341",
+    "vulkan_sdk": "1.4.350.0",
+    "validation_layer": "VK_LAYER_KHRONOS_validation",
+    "validation_messages_observed": 0,
+    "vertex_spirv_sha256": "dfa3fb3af6039513546ba7aed259ffc998765dc7bdb2878289fcd6b7b43b26a2",
+    "fragment_spirv_sha256": "61243a84acfea7069e04d5ac84cf1d124660bbce246036d49fb78d071f12619a",
+    "width": 480,
+    "height": 360,
+    "unique_rgba8_frames": 48,
+    "colored_pixels_per_frame": {
+      "min": 1569,
+      "max": 27324
+    },
+    "rgba8_sequence_sha256": "ca5f50159c57ff65020ccef53ae87c69fcd2615ef5bd00615aa20ef651fa413a",
+    "gif_frame_duration_ms": 50,
+    "gif_sha256": "72eb661a8d2d7e655a17326f66a6d4501e9277301d25cf5e41175bf157ac4f30",
+    "png_sha256": "495d84b0acff6477df18cc0ce415d5d4ddfc776fe6539f21098e99c5726bc2f3",
+    "presentation": "Offscreen Vulkan readback and Pillow export. GIF timing is playback timing."
+  },
+  "radix3": {
+    "scope": "Windows HOST runs the x86-64 probe with LLVM and compares it with the independent Python encoder",
+    "source": "kernel/drivers/GPU/NVIDIA/gsp_radix3.inc",
+    "source_sha256": "468f5457815aa4ea65988e6a980d181fa80dcff4bdfafa89f403dc20d0bd699d",
+    "ga10x_geometry": {
+      "firmware_release": "615.78.08",
+      "firmware_pages": 6590,
+      "directory_pages": 15,
+      "root_iova": 161214464
+    },
+    "matching_geometries": 6,
+    "rejections_with_untouched_output": 14
+  },
+  "qemu_dma_recheck": {
+    "scope": "QEMU qtest with emulated AMD-Vi and two EDU devices using the HOST-built package",
+    "qemu": "11.1.0 (v11.1.0-12130-ge470268ff4)",
+    "verified_dma_pages": 6606,
+    "received_dma_sha256": "13a2347e898f2282651e65eb4b0e565410ae4db1bfab2cfa49a83ba2521225a9",
+    "firmware_write_blocked": true,
+    "audio_requester_blocked": true,
+    "domain_revocation_verified": true
+  },
+  "bmo_native_gsp_boot_verified": false,
+  "bmo_native_render_verified": false
+}

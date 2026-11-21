@@ -470,6 +470,15 @@ las IOVA deben venir de un dominio DMA activo y autorizado.
 [Evidencia Radix3](../Reports/nvidia-gsp-radix3-host-20261120.json).
 [Directorio GSP en NVIDIA](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/main/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c#L7198-L7343).
 
+La sonda x86-64 de `kernel/drivers/GPU/NVIDIA/gsp_radix3.inc` recibe
+dos rangos IOVA contiguos de un dominio autorizado y un buffer reservado
+por el supervisor. Valida alineacion, capacidad, limite de direccion y
+solapamiento antes de escribir. La prueba HOST coteja byte por byte el
+directorio de 15 paginas del ensayo DMA y cinco geometrias de borde.
+La sonda se ejecuta en el banco HOST. Integrarla al perfil de arranque
+requiere asignar las IOVA desde el supervisor en METAL.
+[Resultados del banco](../Reports/nvidia-triangle-host-20261120.json).
+
 El HOST codifica tambien la pagina RMARGS y las 129 paginas GspMem
 de `615.78.08`. Su entrada son IOVA asignadas por el futuro cargador.
 La salida incluye la tabla de paginas y la cabecera MSGQ 2.0 de la
@@ -988,6 +997,25 @@ QEMU del run. Si existe la misma entrada, la reutiliza. Al arrancar se
 elige **BMO-X2 (con NVIDIA)**. En un firmware con **Boot from file**
 tambien se puede abrir `\EFI\BMO-X2\NVIDIA.EFI` directamente. Cada
 ensayo en METAL deja `A:\BMO-X2\GPU\GPULOG.TXT`.
+
+### Primer triangulo giratorio
+
+La RTX 3060 renderiza en Windows 48 cuadros RGBA8 de 480 por 360 con
+Vulkan. El shader inclina el triangulo alrededor de un eje oblicuo y
+proyecta cada cuadro en perspectiva. El exportador verifica los cuadros
+y empaqueta una vuelta de 2,4 segundos como GIF. El ensayo de HOST usa
+el controlador de Windows y sirve de referencia visual para METAL.
+
+En un entorno x64 de MSVC, con Vulkan SDK y Python con Pillow:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\host\gpu\NVIDIA\triangle\run.ps1
+```
+
+La salida queda en `build/gpu/NVIDIA/triangle-host`. Para dibujar el
+primer cuadro nativo, el perfil NVIDIA necesita adjudicar el dominio
+DMA real, obtener respuesta del GSP y enviar trabajo a un canal grafico.
+[Informe del triangulo](../Reports/nvidia-triangle-host-20261120.json).
 
 ### Medir los tirones antes de cambiar el presentador
 

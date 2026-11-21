@@ -1672,7 +1672,18 @@ Entrada: Reserva de supervisor y mapa EFI final, unicamente en el perfil NVIDIA.
 Salida: Dos rangos contiguos por pagina para imagen y firma, estado interno 2, y resto de la reserva limpio.
 Depende de: GPU / NVIDIA / Firmware original de FAT32 a RAM (codigo).
 Aceptacion: QEMU verifica ambas huellas por separado y arranca con el modulo ausente. HOST ejercita rechazo de rango ajeno o corto.
-Pendiente: Construir el directorio Radix3 con IOVA adjudicadas en METAL y arrancar el GSP.
+Pendiente: Adjudicar las IOVA en METAL, llamar a la sonda Radix3 y arrancar el GSP.
+
+## kernel/drivers/GPU/NVIDIA/gsp_radix3.inc
+
+Construye el directorio de tres niveles para la imagen GSP con IOVA contiguas.
+
+Estado: INVESTIGACION. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: Reserva de escritura del supervisor, dos rangos IOVA disjuntos y cantidad de paginas de firmware.
+Salida: Paginas Radix3 e IOVA raiz, o rechazo sin escribir.
+Depende de: HOST / Directorio GSP Radix3 (verificacion).
+Aceptacion: HOST compara seis geometrias byte por byte con el codificador Python y verifica catorce rechazos sin escrituras.
+Pendiente: Conectar al dominio DMA del supervisor y validar la lectura de la RTX.
 
 ## tools/host/gpu/NVIDIA/bundle.py
 
@@ -1728,6 +1739,17 @@ Salida: 6606 paginas de solo lectura, una pagina de respuesta escribible y DTE b
 Depende de: HOST / Firmware NVIDIA GA10x (codigo), HOST / Directorio GSP Radix3 (codigo).
 Aceptacion: QEMU transfiere todo el paquete alineado; verifica SHA-256 y bloqueos de escritura, audio y revocacion.
 Pendiente: Trasladar el dominio al administrador DMA del kernel y autenticar y ejecutar el GSP en METAL.
+
+## tools/host/gpu/NVIDIA/triangle/triangle.cpp
+
+Dibuja un triangulo 3D giratorio y lee los cuadros renderizados por la RTX.
+
+Estado: HOST. Anillo: host. Lenguaje: C++.
+Entrada: Dos shaders SPIR-V, Vulkan 1.3 y el dispositivo fisico 10DE:2504 en Windows.
+Salida: 48 cuadros RGBA8 y una vista animada de 480 por 360.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: La RTX 3060 produce 48 cuadros distintos con variacion de area proyectada.
+Pendiente: Reproducir la prueba con un canal grafico nativo de BMO-X2.
 
 ## tools/host/gpu/ivrs.py
 
@@ -1927,4 +1949,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-173 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+175 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

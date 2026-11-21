@@ -2616,7 +2616,25 @@
       "entrada": "Reserva de supervisor y mapa EFI final, unicamente en el perfil NVIDIA.",
       "salida": "Dos rangos contiguos por pagina para imagen y firma, estado interno 2, y resto de la reserva limpio.",
       "aceptacion": "QEMU verifica ambas huellas por separado y arranca con el modulo ausente. HOST ejercita rechazo de rango ajeno o corto.",
-      "falta": "Construir el directorio Radix3 con IOVA adjudicadas en METAL y arrancar el GSP."
+      "falta": "Adjudicar las IOVA en METAL, llamar a la sonda Radix3 y arrancar el GSP."
+    },
+    {
+      "id": "nvidia-gsp-ring0-radix3",
+      "titulo": "GPU / NVIDIA / Directorio Radix3 x86-64",
+      "ruta": "kernel/drivers/GPU/NVIDIA/gsp_radix3.inc",
+      "estado": "investigacion",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [
+        10650,
+        3750
+      ],
+      "que": "Construye el directorio de tres niveles para la imagen GSP con IOVA contiguas.",
+      "entrada": "Reserva de escritura del supervisor, dos rangos IOVA disjuntos y cantidad de paginas de firmware.",
+      "salida": "Paginas Radix3 e IOVA raiz, o rechazo sin escribir.",
+      "aceptacion": "HOST compara seis geometrias byte por byte con el codificador Python y verifica catorce rechazos sin escrituras.",
+      "falta": "Conectar al dominio DMA del supervisor y validar la lectura de la RTX."
     },
     {
       "id": "nvidia-gsp-host-bundle",
@@ -2702,6 +2720,23 @@
       "salida": "6606 paginas de solo lectura, una pagina de respuesta escribible y DTE bloqueadas para otras funciones.",
       "aceptacion": "QEMU transfiere todo el paquete alineado; verifica SHA-256 y bloqueos de escritura, audio y revocacion.",
       "falta": "Trasladar el dominio al administrador DMA del kernel y autenticar y ejecutar el GSP en METAL."
+    },
+    {
+      "id": "nvidia-triangle-host",
+      "titulo": "HOST / Triangulo Vulkan en RTX 3060",
+      "ruta": "tools/host/gpu/NVIDIA/triangle/triangle.cpp",
+      "estado": "host",
+      "anillo": "host",
+      "lenguaje": "C++",
+      "posicion": [
+        10550,
+        5150
+      ],
+      "que": "Dibuja un triangulo 3D giratorio y lee los cuadros renderizados por la RTX.",
+      "entrada": "Dos shaders SPIR-V, Vulkan 1.3 y el dispositivo fisico 10DE:2504 en Windows.",
+      "salida": "48 cuadros RGBA8 y una vista animada de 480 por 360.",
+      "aceptacion": "La RTX 3060 produce 48 cuadros distintos con variacion de area proyectada.",
+      "falta": "Reproducir la prueba con un canal grafico nativo de BMO-X2."
     },
     {
       "id": "amd-ivrs-host",
@@ -4257,6 +4292,11 @@
       "de": "nvidia-gsp-ring0-prepare",
       "a": "nvidia-gsp-stage",
       "clase": "codigo"
+    },
+    {
+      "de": "nvidia-gsp-ring0-radix3",
+      "a": "nvidia-gsp-radix3-host",
+      "clase": "verificacion"
     },
     {
       "de": "nvidia-gsp-host-bundle",
