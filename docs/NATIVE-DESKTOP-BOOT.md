@@ -569,9 +569,16 @@ cuando existe el bloque. En QEMU, la VGA virtual conserva la pagina
 vacia y sin IOVA publicada.
 
 El HOST prepara la orden FRTS con el FWSEC firmado de la VBIOS medida.
-El binario preparado conserva el codigo original y las firmas se
-exportan para que el controlador seleccione la correspondiente al
-fusible fisico.
+Con `--nvidia-fwsec-vbios <VBIOS.ROM>`, el empaquetador valida la huella
+de la VBIOS MSI e incluye el codigo y las tres firmas originales en el
+archivo verificado. Durante el arranque, la sonda confirma el subsistema
+`1462:397D`, toma el fusible mediante EFI PCI I/O y relee PCI Command.
+Con WPR disponible, Ring 0 fija base y longitud FRTS, incorpora la firma
+original que corresponde al fusible y publica 15 paginas DMA de solo
+lectura desde `0x0a107000` en el arbol separado. El escritorio informa
+`FWSEC listo para cargar`. La reserva total sube a 6899 paginas.
+Ante otra GPU, un fusible invalido o WPR activa, Ring 0 borra esa region
+y deja la IOVA sin publicar.
 
 ```powershell
 python -B -m tools.host.gpu.NVIDIA.gsp_wpr limites-y-layout.json wpr.bin
@@ -584,6 +591,7 @@ GSP. El primer trabajo 3D se valida al recibir la confirmacion GSP
 y comprobar que el resultado de dibujo fue escrito por la RTX.
 [Verificacion del arranque firmado y WPR V1](../Reports/nvidia-gsp-boot-chain-20261121.json).
 [Preparacion FWSEC-FRTS con la VBIOS GA106](../Reports/nvidia-wpr-fwsec-metal-20261121.json).
+[Seleccion de firma FWSEC para Ampere en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#95).
 [Geometria WPR V1 en NVIDIA 615.78.08](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/arch/turing/kernel_gsp_tu102.c).
 
 La tabla ACPI IVRS del equipo tiene 208 B y describe tanto

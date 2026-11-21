@@ -16,22 +16,16 @@ FWSEC_V3 = struct.Struct('<9IHBBHH')
 RSA_BYTES = 384
 
 
-def prepare(rom, metadata):
+def template(rom):
     if hashlib.sha256(rom).hexdigest()!=ROM_SHA256:
         raise ValueError('VBIOS distinta de la captura cotejada para 1462:397D')
-    if len(metadata)!=WPR_BYTES or struct.unpack_from('<2Q',metadata)!=(WPR_MAGIC,1) or any(metadata[200:]):
-        raise ValueError('Se requiere WPR V1 nueva y sin respuesta de firmware')
-    frts_start, frts_size, wpr_end, fb_size = struct.unpack_from('<4Q',metadata,152)
-    if (fb_size!=12288*MIB or frts_size!=MIB or frts_start%PAGE or
-            not fb_size-256*MIB<=frts_start<wpr_end<fb_size or frts_start+frts_size!=wpr_end):
-        raise ValueError('Ventana FRTS fuera de la VRAM pre-limpiada de GA106')
-
     header, size, pkc, interface, imem_base, imem, entry, dmem_base, dmem, engine, code_id, count, versions, _ = (
         FWSEC_V3.unpack_from(rom,DESCRIPTOR))
     signature_start = DESCRIPTOR+FWSEC_V3.size
     ucode = DESCRIPTOR+(header>>16)
     if ((header>>8)&0xff!=3 or size!=imem+dmem or engine!=0x0400 or code_id!=9 or
-            signature_start+count*RSA_BYTES>ucode or ucode+size>len(rom) or pkc+RSA_BYTES>dmem):
+            count!=versions.bit_count() or signature_start+count*RSA_BYTES>ucode or
+            ucode+size>len(rom) or pkc+RSA_BYTES>dmem):
         raise ValueError('Descriptor FWSEC de produccion invalido')
     image = bytearray(rom[ucode:ucode+size])
     app = imem+interface
@@ -45,16 +39,29 @@ def prepare(rom, metadata):
         raise ValueError('Falta DMEMMAPPER de FWSEC')
     mapper = imem+mappers[0]
     command_offset, capacity = struct.unpack_from('<2I',image,mapper+8)
-    if capacity<44 or command_offset+capacity>dmem:
+    if (capacity<44 or command_offset+capacity>dmem or
+            command_offset<pkc+RSA_BYTES and pkc<command_offset+44):
         raise ValueError('El comando FRTS no cabe en DMEM')
-    struct.pack_into('<11I',image,imem+command_offset,1,24,0,0,0,2,1,20,frts_start//PAGE,frts_size//PAGE,2)
+    struct.pack_into('<11I',image,imem+command_offset,1,24,0,0,0,2,1,20,0,0,2)
     struct.pack_into('<I',image,mapper+44,0x15)
     signatures = rom[signature_start:signature_start+count*RSA_BYTES]
-    return bytes(image),signatures,dict(
+    return image,signatures,dict(
         imem_bytes=imem,imem_destination=imem_base,entry=entry,dmem_bytes=dmem,dmem_destination=dmem_base,
         signature_offset_in_dmem=pkc,signature_candidates=count,signature_bytes=RSA_BYTES,
         signature_versions=versions,signature_fuse_mmio=0x8241c0+(code_id-1)*4,
-        frts_start=frts_start,frts_bytes=frts_size,physical_execution_verified=False)
+        frts_region_offset=imem+command_offset+32,physical_execution_verified=False)
+
+
+def prepare(rom, metadata):
+    if len(metadata)!=WPR_BYTES or struct.unpack_from('<2Q',metadata)!=(WPR_MAGIC,1) or any(metadata[200:]):
+        raise ValueError('Se requiere WPR V1 nueva y sin respuesta de firmware')
+    frts_start, frts_size, wpr_end, fb_size = struct.unpack_from('<4Q',metadata,152)
+    if (fb_size!=12288*MIB or frts_size!=MIB or frts_start%PAGE or
+            not fb_size-256*MIB<=frts_start<wpr_end<fb_size or frts_start+frts_size!=wpr_end):
+        raise ValueError('Ventana FRTS fuera de la VRAM pre-limpiada de GA106')
+    image, signatures, layout = template(rom)
+    struct.pack_into('<2I',image,layout['frts_region_offset'],frts_start//PAGE,frts_size//PAGE)
+    return bytes(image),signatures,dict(layout,frts_start=frts_start,frts_bytes=frts_size)
 
 
 def main():

@@ -2733,7 +2733,37 @@
       "entrada": "VBIOS GA106 identificada por SHA-256 y metadatos WPR V1.",
       "salida": "Firmware con la orden FRTS, firmas originales y manifiesto.",
       "aceptacion": "Coteja las regiones IMEM y DMEM de la VBIOS archivada y los campos de la orden.",
-      "falta": "Seleccionar la firma por fusible, cargar el firmware y verificar su finalizacion en la RTX."
+      "falta": "Cargar la imagen final desde su IOVA y verificar su finalizacion en la RTX."
+    },
+    {
+      "id": "nvidia-fwsec-fuse",
+      "titulo": "GPU / NVIDIA / Lectura del fusible FWSEC",
+      "ruta": "kernel/drivers/GPU/NVIDIA/gsp_fwsec_fuse.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [11850, 3750],
+      "que": "Lee el fusible de firma de FWSEC antes de ExitBootServices para el subsistema MSI cotejado.",
+      "entrada": "Handle EFI PCI I/O ya validado para GA106, BAR0 y PCI Command con BME apagado.",
+      "salida": "Valor del fusible y bit independiente de validez en el contexto de Ring 0.",
+      "aceptacion": "Conserva cero valido y rechaza otro subsistema, error de lectura y cambio de PCI Command en la prueba HOST.",
+      "falta": "Cotejar la lectura real al arrancar el perfil firmado en la RTX."
+    },
+    {
+      "id": "nvidia-fwsec-detached-dma",
+      "titulo": "GPU / NVIDIA / FWSEC listo para Falcon",
+      "ruta": "kernel/drivers/GPU/NVIDIA/gsp_fwsec_dma.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [11850, 3950],
+      "que": "Selecciona la firma FWSEC original, fija FRTS y publica quince paginas DMA de solo lectura.",
+      "entrada": "Fusible valido, WPR recien preparada y plantilla de la VBIOS cotejada.",
+      "salida": "IOVA FWSEC en el arbol separado. Las firmas descartadas se borran antes de publicar.",
+      "aceptacion": "HOST comprueba todas las versiones disponibles. En QEMU la VGA estandar no recibe ese mapeo.",
+      "falta": "Conceder el dominio fisico y cargar Falcon para obtener WPR2 activa."
     },
     {
       "id": "nvidia-gsp-ring0-radix3",
@@ -4482,6 +4512,26 @@
       "de": "nvidia-gsp-fwsec-host",
       "a": "nvidia-gsp-wpr-host",
       "clase": "generacion"
+    },
+    {
+      "de": "nvidia-gsp-ring0-prepare",
+      "a": "nvidia-fwsec-detached-dma",
+      "clase": "codigo"
+    },
+    {
+      "de": "nvidia-fwsec-detached-dma",
+      "a": "nvidia-gsp-wpr-native",
+      "clase": "codigo"
+    },
+    {
+      "de": "nvidia-fwsec-detached-dma",
+      "a": "nvidia-gsp-fwsec-host",
+      "clase": "generacion"
+    },
+    {
+      "de": "nvidia-fwsec-detached-dma",
+      "a": "nvidia-fwsec-fuse",
+      "clase": "codigo"
     },
     {
       "de": "nvidia-gsp-ring0-prepare",

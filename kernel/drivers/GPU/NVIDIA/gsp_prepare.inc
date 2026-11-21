@@ -6,6 +6,12 @@
 .text
 .globl gsp_prepare_begin
 gsp_prepare_begin:
+#ifdef BMO_NVIDIA_FWSEC
+    .byte 0xe9
+    .long .Lgsp_prepare_begin - . - 4
+    .byte 0xe9
+    .long nvidia_fwsec_read_fuse - . - 4
+#endif
 .Lgsp_prepare_begin:
     cmpl $0, GSP_POST_STATUS(%rbp)
     jne .Lgsp_prepare_done
@@ -67,6 +73,12 @@ gsp_prepare_begin:
 #ifdef BMO_NVIDIA_GSP_BOOT_CHAIN
     # Preserve the signed trailer before recycling the original file space.
     mov %rdi, %r8
+#ifdef BMO_NVIDIA_FWSEC
+    lea BMO_FWSEC_FILE_OFFSET(%r9), %rsi
+    lea GSP_FWSEC_AREA_OFFSET(%r9), %rdi
+    mov $(BMO_FWSEC_PAGES*512), %ecx
+    rep movsq
+#endif
     lea BMO_GSP_BOOT_FILE_OFFSET(%r9), %rsi
     lea GSP_BOOT_AREA_OFFSET(%r9), %rdi
     mov $(BMO_GSP_BOOT_PAGES*512), %ecx
@@ -119,6 +131,9 @@ gsp_prepare_begin:
 #ifdef BMO_NVIDIA_GSP_BOOT_CHAIN
     call nvidia_gsp_map_boot_chain
     call nvidia_gsp_prepare_wpr
+#ifdef BMO_NVIDIA_FWSEC
+    call nvidia_fwsec_finalize
+#endif
 #endif
     ret
 
@@ -133,6 +148,10 @@ gsp_prepare_begin:
 #ifdef BMO_NVIDIA_GSP_BOOT_CHAIN
 #include "gsp_boot_chain.inc"
 #include "gsp_wpr_prepare.inc"
+#ifdef BMO_NVIDIA_FWSEC
+#include "gsp_fwsec_fuse.inc"
+#include "gsp_fwsec_dma.inc"
+#endif
 #endif
 .globl gsp_prepare_end
 gsp_prepare_end:

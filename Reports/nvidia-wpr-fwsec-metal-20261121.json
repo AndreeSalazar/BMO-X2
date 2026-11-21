@@ -40,6 +40,25 @@
     "original_signature_candidates_sha256": "3661b5d8e4585e724b7f3d86718f666e81e85cfe9bbc7c9cbd855cb10a073210",
     "reference": "https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/arch/turing/kernel_gsp_frts_tu102.c"
   },
+  "fwsec_native_preparation": {
+    "profile": "run-rmlui-media-4279b6ff7fa3",
+    "reader_bytes": 4038,
+    "nvidia_stage_bytes": 2505,
+    "detached_read_only_iova": "0x0a107000",
+    "detached_read_only_pages": 15,
+    "total_reserved_pages": 6899,
+    "payload_sha256": "d070ae4cca3f10994dc63556236fdbf084946d27dbba17ba061bccd83bd9bb1d",
+    "host_final_page_range_sha256_by_simulated_fuse": {
+      "0x00000000": "255e99d5ea4d1609a73d1285c47370149e5c19c5b4ef375701f6053a5e2208dc",
+      "0x00000001": "2532d3c5c8d2b7c64a4a6e8f8334ccfebf60183cd960e290fac7a6baa7b49386",
+      "0x00000003": "7c71c89b1183f27a879b53724c5f752e585dc4e8ab8137b450d4e69db4178879"
+    },
+    "host_test_count": 23,
+    "qemu_vga_erased_firmware_and_omitted_mappings": true,
+    "qemu_desktop_resolution": [1920, 1080],
+    "metal_fuse_read_verified": false,
+    "reference": "https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#95"
+  },
   "validation": {
     "ring0_replayed_with_metal_sample_on_host": true,
     "wpr_bytes_match_host_encoder": true,

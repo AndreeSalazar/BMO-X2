@@ -16,13 +16,16 @@ def verify_gsp_reservation(memory, context, expected, case):
     libos = expected.get('libos', False)
     boot_chain = expected.get('boot_chain')
     wpr_page = expected.get('wpr_page',False)
+    fwsec = expected.get('fwsec')
     radix, dma_root = struct.unpack('<QQ', memory(context+0x828,16,'gsp-dma-handoff')) if detached else (0,0)
     rmargs, = struct.unpack('<Q',memory(context+0x838,8,'gsp-rmargs')) if queues else (0,)
     libos_iova, = struct.unpack('<Q',memory(context+0x840,8,'gsp-libos')) if libos else (0,)
     boot_iova, = struct.unpack('<Q',memory(context+0x848,8,'gsp-boot-chain')) if boot_chain else (0,)
     wpr_iova, = struct.unpack('<Q',memory(context+0x8f0,8,'gsp-wpr-iova')) if wpr_page else (0,)
+    fuse, fwsec_iova = struct.unpack('<QQ',memory(context+0x8f8,16,'gsp-fwsec')) if fwsec else (0,0)
     if case == 'amdvi-missing':
-        if status!=1 or any((base,length,prepared,firmware,signature,radix,dma_root,rmargs,libos_iova,boot_iova,wpr_iova)):
+        if status!=1 or any((base,length,prepared,firmware,signature,radix,dma_root,rmargs,libos_iova,
+                             boot_iova,wpr_iova,fuse,fwsec_iova)):
             raise ValueError('Missing GSP file left a reservation')
         return {}
     reserved = (length+4096)//4096*4096
@@ -50,6 +53,8 @@ def verify_gsp_reservation(memory, context, expected, case):
             prepared_bytes += boot_chain['pages']*4096
         if wpr_page:
             prepared_bytes += 4096
+        if fwsec:
+            prepared_bytes += fwsec['pages']*4096
     reserved = max(reserved, prepared_bytes)
     if (status!=5 or length!=expected['bytes'] or not 0x100000<=base<=0x10000000-reserved
             or base%4096):
@@ -163,6 +168,12 @@ def verify_gsp_reservation(memory, context, expected, case):
                 raise ValueError('Standard VGA must leave the WPR page zeroed and unpublished')
             used += 4096
             result['GspWprPageExcluded']=True
+        if fwsec:
+            end = used+fwsec['pages']*4096
+            if fuse or fwsec_iova or any(image[used:end]):
+                raise ValueError('Standard VGA must erase the FWSEC payload and leave its IOVA unpublished')
+            used = end
+            result['GspFwsecExcluded']=True
         if any(image[used:]):
             raise ValueError('GSP reservation lost its zero padding')
         return result

@@ -64,6 +64,11 @@
     cld
     rep movsq
 #endif
+#ifdef BMO_NVIDIA_FWSEC
+    mov %rsp, %rdx
+    .byte 0xe8
+    .long BMO_GSP_PREPARE_OFFSET + 5 - DESKTOP_READER_OFFSET - (. - desktop_media_read) - 4
+#endif
     jmp .Lmmio_finish
 .Lgsp_command_unverified:
     mov $7, %ebx

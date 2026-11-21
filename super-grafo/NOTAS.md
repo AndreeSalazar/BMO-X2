@@ -1670,7 +1670,7 @@ Comprueba el traspaso GSP, alinea imagen y firma, y prepara Radix3 y las colas D
 Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
 Entrada: Reserva de supervisor y mapa EFI final, unicamente en el perfil NVIDIA.
 Salida: Imagen, firma, Radix3, RMARGS, GspMem y arbol AMD-Vi provisional, con estado interno 4 exportado al escritorio.
-Depende de: GPU / NVIDIA / Firmware original de FAT32 a RAM (codigo), GPU / NVIDIA / Directorio Radix3 x86-64 (codigo), GPU / NVIDIA / Colas preparadas en Ring 0 (codigo), GPU / NVIDIA / Argumentos LIBOS 3 (codigo), GPU / NVIDIA / Binarios firmados de arranque (codigo), GPU / NVIDIA / WPR para GA106 (codigo), AMD-Vi / Arbol DMA de solo lectura (codigo).
+Depende de: GPU / NVIDIA / Firmware original de FAT32 a RAM (codigo), GPU / NVIDIA / Directorio Radix3 x86-64 (codigo), GPU / NVIDIA / Colas preparadas en Ring 0 (codigo), GPU / NVIDIA / Argumentos LIBOS 3 (codigo), GPU / NVIDIA / Binarios firmados de arranque (codigo), GPU / NVIDIA / WPR para GA106 (codigo), GPU / NVIDIA / FWSEC listo para Falcon (codigo), AMD-Vi / Arbol DMA de solo lectura (codigo).
 Aceptacion: QEMU coteja ambas huellas, el directorio, todas las entradas AMD-Vi y la exclusion con archivo ausente. HOST rechaza reservas ajenas o cortas.
 Pendiente: Adjudicar las IOVA en METAL, integrar los argumentos LIBOS y arrancar el GSP.
 
@@ -1749,7 +1749,29 @@ Entrada: VBIOS GA106 identificada por SHA-256 y metadatos WPR V1.
 Salida: Firmware con la orden FRTS, firmas originales y manifiesto.
 Depende de: HOST / Metadatos WPR V1 (generacion).
 Aceptacion: Coteja las regiones IMEM y DMEM de la VBIOS archivada y los campos de la orden.
-Pendiente: Seleccionar la firma por fusible, cargar el firmware y verificar su finalizacion en la RTX.
+Pendiente: Cargar la imagen final desde su IOVA y verificar su finalizacion en la RTX.
+
+## kernel/drivers/GPU/NVIDIA/gsp_fwsec_fuse.inc
+
+Lee el fusible de firma de FWSEC antes de ExitBootServices para el subsistema MSI cotejado.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: Handle EFI PCI I/O ya validado para GA106, BAR0 y PCI Command con BME apagado.
+Salida: Valor del fusible y bit independiente de validez en el contexto de Ring 0.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: Conserva cero valido y rechaza otro subsistema, error de lectura y cambio de PCI Command en la prueba HOST.
+Pendiente: Cotejar la lectura real al arrancar el perfil firmado en la RTX.
+
+## kernel/drivers/GPU/NVIDIA/gsp_fwsec_dma.inc
+
+Selecciona la firma FWSEC original, fija FRTS y publica quince paginas DMA de solo lectura.
+
+Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: Fusible valido, WPR recien preparada y plantilla de la VBIOS cotejada.
+Salida: IOVA FWSEC en el arbol separado. Las firmas descartadas se borran antes de publicar.
+Depende de: GPU / NVIDIA / WPR para GA106 (codigo), HOST / Orden FWSEC-FRTS para GA106 (generacion), GPU / NVIDIA / Lectura del fusible FWSEC (codigo).
+Aceptacion: HOST comprueba todas las versiones disponibles. En QEMU la VGA estandar no recibe ese mapeo.
+Pendiente: Conceder el dominio fisico y cargar Falcon para obtener WPR2 activa.
 
 ## kernel/drivers/GPU/NVIDIA/gsp_radix3.inc
 
@@ -2037,4 +2059,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-183 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+185 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

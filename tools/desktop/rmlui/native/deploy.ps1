@@ -144,6 +144,9 @@ if ($gspStage) {
     if ($gspProof.wpr_page -and (-not $wprSample -or -not $normal.GspWprPageExcluded)) {
         throw 'Falta verificar que el perfil WPR excluye la VGA estandar.'
     }
+    if ($gspProof.fwsec -and (-not $gspProof.wpr_page -or -not $normal.GspFwsecExcluded)) {
+        throw 'Falta verificar que el perfil FWSEC excluye la VGA estandar.'
+    }
     $names+=$gspName
 }
 $names+=$bootFile
@@ -220,6 +223,7 @@ $record=[ordered]@{Schema=1;Evidence='HOST copy after QEMU FAT32 boot';Run=$proo
     NvidiaGspSample=$gspSample;
     NvidiaWprProbe=$wprSample;
     NvidiaWprPreparation=($gspStage -and [bool]$gspProof.wpr_page);
+    NvidiaFwsecPreparation=($gspStage -and [bool]$gspProof.fwsec);
     NvidiaGspStage=$gspStage;
     NvidiaGspPrepare=[bool]$proof.nvidia_gsp_prepare;
     NvidiaGspQueues=($gspStage -and [bool]$gspProof.queues);

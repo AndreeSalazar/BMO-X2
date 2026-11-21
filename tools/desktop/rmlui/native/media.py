@@ -35,6 +35,7 @@ def main():
     p.add_argument('--nvidia-gsp-sample', action='store_true', help='Read the GA106 GSP and SEC2 boot state')
     p.add_argument('--nvidia-gsp-stage', type=Path, help='Directory of the original NVIDIA 615.78.08 files')
     p.add_argument('--nvidia-gsp-prepare', action='store_true', help='Prepare the NVIDIA firmware and detached DMA tree in Ring 0')
+    p.add_argument('--nvidia-fwsec-vbios', type=Path, help='Pin FWSEC preparation to the verified MSI GA106 VBIOS')
     p.add_argument('--amdvi-probe', action='store_true', help='Add read-only AMD-Vi firmware inventory')
     p.add_argument('--amdvi-post', action='store_true', help='Take a second AMD-Vi snapshot after ExitBootServices')
     p.add_argument('--amdvi-coexist', action='store_true', help='Exercise virtual EDU and USB DMA together in QEMU')
@@ -59,6 +60,8 @@ def main():
         p.error('--nvidia-gsp-stage requires the NVIDIA sample on the deployable Full HD profile')
     if args.nvidia_gsp_prepare and (not args.nvidia_gsp_stage or (args.amdvi_coexist and not args.amdvi_gsp_dma)):
         p.error('--nvidia-gsp-prepare requires --nvidia-gsp-stage and a compatible AMD-Vi profile')
+    if args.nvidia_fwsec_vbios and not (args.nvidia_gsp_prepare and args.nvidia_gsp_sample):
+        p.error('--nvidia-fwsec-vbios requires the sampled NVIDIA profile and --nvidia-gsp-prepare')
     if args.amdvi_post and (not args.amdvi_probe or args.usb!='both' or args.msvc_panel or args.usb_empty_ports):
         p.error('--amdvi-post requires --amdvi-probe with USB both')
     if args.amdvi_coexist and not args.amdvi_post:p.error('--amdvi-coexist requires --amdvi-post')
@@ -99,7 +102,7 @@ def main():
     if args.nvidia_gsp_stage:
         from host.gpu.NVIDIA.bundle import stage_firmware
 
-        gsp,nvidia_reader_flags = stage_firmware(run,args.nvidia_gsp_stage,args.nvidia_gsp_prepare)
+        gsp,nvidia_reader_flags = stage_firmware(run,args.nvidia_gsp_stage,args.nvidia_gsp_prepare,args.nvidia_fwsec_vbios)
     (run/'gop-regions.txt').write_text('cpu-gop\n',encoding='ascii')
     if args.nvidia_probe:
         (run/'nvidia-pci-probe.txt').write_text('pci-read-only\n', encoding='ascii')
@@ -283,6 +286,8 @@ def main():
         raise ValueError('Missing signed GSP boot chain in the detached DMA tree')
     if args.nvidia_gsp_prepare and not report['Cases'][0].get('GspWprPageExcluded'):
         raise ValueError('Missing reserved WPR page exclusion on standard VGA')
+    if args.nvidia_fwsec_vbios and not report['Cases'][0].get('GspFwsecExcluded'):
+        raise ValueError('Missing FWSEC exclusion on standard VGA')
     if args.amdvi_probe and not all(case.get('AmdViMmioVerified') for case in report['Cases']):
         raise ValueError('Missing AMD-Vi MMIO evidence')
     if args.amdvi_post and not all(report['Cases'][i].get('AmdViPostVerified') for i in (0,2)):

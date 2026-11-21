@@ -18,6 +18,7 @@ REGISTERS = (0xb76000a1, 0x00000010, 0xbadf1002, 0x00000015, 1, 0xff, 0x3000,
 EMPTY = b'GSP1=--------,--------,--------'
 EMPTY_WPR = b'WPR='+b','.join([b'--------']*8)
 COMPLETE_WPR = b'WPR='+b','.join(f'{value:08X}'.encode('ascii') for value in REGISTERS[4:])
+FUSE_OFFSET = 0x8241e0
 
 FIXTURE = r"""
 .text
@@ -49,12 +50,26 @@ probe_fixture:
     pop %rbp
     ret
 #include "kernel/boot/bridge/desktop_boot_report.inc"
+#define BMO_FWSEC_SIGNATURE_FUSE_MMIO 0x8241e0
+.globl fuse_fixture
+fuse_fixture:
+    push %rbp
+    sub $128, %rsp
+    mov %rdx, %rbp
+    mov %rcx, 64(%rsp)
+    movw $3, 116(%rsp)
+    mov %rsp, %rdx
+    call nvidia_fwsec_read_fuse
+    add $128, %rsp
+    pop %rbp
+    ret
+#include "kernel/drivers/GPU/NVIDIA/gsp_fwsec_fuse.inc"
 """
 
 
 class PciIo:
     def __init__(self, *, pci_id=0x250410de, aperture=0x1000000, command=3,
-                 denied=None, changed=False):
+                 denied=None, changed=False, subsystem=0x397d1462, fuse=0):
         self.boot = (c.c_void_p * (0x140 // 8))()
         self.protocol = (c.c_void_p * (0x88 // 8))()
         self.resource = c.create_string_buffer(46)
@@ -97,6 +112,9 @@ class PciIo:
             if (width, offset, count) == (2, 0, 2):
                 struct.pack_into('<II', (c.c_ubyte * 8).from_address(result), 0, pci_id, command)
                 return 0
+            if (width, offset, count) == (2, 0x2c, 1):
+                put(result, c.c_uint32, subsystem)
+                return 0
             if (width, offset, count) != (1, 4, 1):
                 return -1
             self.command_reads += 1
@@ -105,6 +123,9 @@ class PciIo:
 
         def read_mmio(_self, width, bar, offset, count, result):
             self.reads.append((width, bar, offset, count))
+            if (width, bar, offset, count) == (2, 0, FUSE_OFFSET, 1) and offset != denied:
+                put(result, c.c_uint32, fuse)
+                return 0
             if (width, bar, count) != (2, 0, 1) or offset not in OFFSETS or offset == denied:
                 return -1
             put(result, c.c_uint32, REGISTERS[OFFSETS.index(offset)])
@@ -140,12 +161,15 @@ class NvidiaGspSample(unittest.TestCase):
                         '-DBMO_GSP_FILE_BYTES=27043992', '-DBMO_GSP_FILE_CRC=0',
                         '-I', ROOT, '-c', source, '-o', obj], check=True)
         subprocess.run([LLVM / 'lld-link.exe', '/dll', '/noentry', '/nodefaultlib',
-                        '/export:probe_fixture', f'/out:{dll}', obj], check=True)
+                        '/export:probe_fixture', '/export:fuse_fixture', f'/out:{dll}', obj], check=True)
         cls.library = c.WinDLL(str(dll))
         cls.addClassCleanup(FreeLibrary, cls.library._handle)
         cls.probe = cls.library.probe_fixture
         cls.probe.argtypes = [c.c_void_p, c.c_void_p]
         cls.probe.restype = None
+        cls.read_fuse = cls.library.fuse_fixture
+        cls.read_fuse.argtypes = [c.c_void_p, c.c_void_p]
+        cls.read_fuse.restype = None
 
     def check_sample(self, offsets, status, expected=EMPTY, wpr=EMPTY_WPR, **settings):
         pci = PciIo(**settings)
@@ -176,6 +200,19 @@ class NvidiaGspSample(unittest.TestCase):
 
     def test_rechecks_command_after_sample(self):
         self.check_sample(OFFSETS, 7, changed=True)
+
+    def test_fuse_zero_is_valid_and_errors_stay_unpublished(self):
+        for settings, value, reads in (
+            ({'fuse': 0}, 1<<32, 1), ({'fuse': 3}, (1<<32)|3, 1),
+            ({'subsystem': 0xffff1462}, 0, 0), ({'denied': FUSE_OFFSET}, 0, 1),
+            ({'fuse': 0xbad00001}, 0, 1), ({'fuse': 0xffffffff}, 0, 1), ({'command': 7}, 0, 1),
+        ):
+            with self.subTest(settings=settings):
+                pci = PciIo(**settings)
+                context = c.create_string_buffer(0x1000)
+                self.read_fuse(pci.protocol, context)
+                self.assertEqual(struct.unpack_from('<Q', context, 0x8f8)[0], value)
+                self.assertEqual(pci.reads, [(2, 0, FUSE_OFFSET, 1)]*reads)
 
 
 if __name__ == '__main__':
