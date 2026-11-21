@@ -9,7 +9,13 @@
 #define GSP_POST_SIGNATURE 0x820
 #define GSP_POST_RADIX3 0x828
 #define GSP_POST_DMA_ROOT 0x830
+#ifdef BMO_AMDVI_GSP_DMA
+// This QEMU profile owns the separate NVMe code page at 0x1f000.
+// The GSP stage runs once before AMD-Vi and USB reuse the scratch PT.
+#define GSP_POST_CODE 0x1e000
+#else
 #define GSP_POST_CODE 0x1f000
+#endif
 #define GSP_FILE_PAGES ((BMO_GSP_FILE_BYTES+4096)/4096)
 #if defined(BMO_NVIDIA_GSP_PREPARE) && defined(BMO_GSP_IMAGE_BYTES)
 #define GSP_IMAGE_PAGES (BMO_GSP_IMAGE_BYTES/4096)

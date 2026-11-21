@@ -2873,11 +2873,11 @@
         11700,
         4300
       ],
-      "que": "Sonda exclusiva de QEMU TCG. Ring 0 comprueba bus masters y configura, invalida y cierra dos dominios AMD-Vi.",
-      "entrada": "Escritorio USB dual activo, EDU, reservas UEFI propias y orden fija del banco QEMU. El perfil PCIe descubre el BDF alto y reserva una tabla de 96 paginas.",
+      "que": "Sonda exclusiva de QEMU TCG. Ring 0 comprueba bus masters y configura, invalida y cierra dominios AMD-Vi.",
+      "entrada": "Escritorio USB dual activo, EDU, reservas UEFI y orden fija de QEMU. Variantes para BDF alto, AHCI y NVMe, y arbol de firmware NVIDIA.",
       "salida": "Estado de rechazo, tablas y colas propios y comprobantes de invalidacion y cierre.",
-      "aceptacion": "QEMU coteja DTE, invalidacion y DMA en un bus alto. Conserva HID y SATA y comprueba que un segundo EDU con BME no accede sin un dominio concedido.",
-      "falta": "Integrar la transicion con los solicitantes fisicos, validar sus reservas y probar almacenamiento real antes de activar el dominio para NVIDIA."
+      "aceptacion": "QEMU prueba DMA en bus alto con SATA e HID, y en otro perfil prueba la lectura de imagen, firma y Radix3 con HID, SATA y NVMe, tambien tras revocacion.",
+      "falta": "Confirmar la propiedad de los solicitantes fisicos y sus reservas antes de activar el dominio de la RTX."
     },
     {
       "id": "dma-pci-census",
@@ -4409,6 +4409,11 @@
     {
       "de": "amdvi-xhci-guest",
       "a": "amdvi-post-ebs-probe",
+      "clase": "codigo"
+    },
+    {
+      "de": "amdvi-xhci-guest",
+      "a": "nvidia-gsp-ring0-prepare",
       "clase": "codigo"
     },
     {

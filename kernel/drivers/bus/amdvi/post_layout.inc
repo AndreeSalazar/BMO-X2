@@ -3,7 +3,11 @@
 
 // Native desktop context. The snapshot follows the pre-EBS report buffer.
 #ifdef BMO_AMDVI_STORAGE
+#ifdef BMO_AMDVI_GSP_DMA
+#define AMDVI_POST_CODE 0x1b400
+#else
 #define AMDVI_POST_CODE 0x1b600
+#endif
 #ifdef BMO_AMDVI_ROUTED
 #define AMDVI_LAB_TABLE_PAGES 96
 #define AMDVI_LAB_PAGES (18+AMDVI_LAB_TABLE_PAGES)

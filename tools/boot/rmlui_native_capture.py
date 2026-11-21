@@ -334,7 +334,8 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
                            guest_dma=guest_dma, storage=(run/'amdvi-storage.txt').is_file(),
                            routed=(run/'amdvi-routed.txt').is_file(), nvme=(run/'amdvi-nvme.txt').is_file(),
                            guest_nvme=(run/'amdvi-guest-nvme.txt').is_file(),
-                           guest_ahci=(run/'amdvi-guest-ahci.txt').is_file()))
+                           guest_ahci=(run/'amdvi-guest-ahci.txt').is_file(),
+                           gsp_dma=(run/'amdvi-gsp-dma.txt').is_file()))
         if (run/'amdvi-guest-ahci.txt').is_file():
             command('screendump',{'filename':str(prefix)+'-storage-lab.png','format':'png'})
         if amdvi_proof.get('NvmeTranslatedReadsVerified'):

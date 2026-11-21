@@ -43,6 +43,7 @@ def main():
     p.add_argument('--amdvi-nvme', action='store_true', help='Recover a virtual NVMe namespace in a fourth domain')
     p.add_argument('--amdvi-guest-nvme', action='store_true', help='Let Ring 0 program the fixed NVMe read in QEMU')
     p.add_argument('--amdvi-guest-ahci', action='store_true', help='Let Ring 0 program both fixed disk reads in QEMU')
+    p.add_argument('--amdvi-gsp-dma', action='store_true', help='QEMU only: grant and revoke the prepared firmware to EDU alongside USB, AHCI and NVMe')
     p.add_argument('--amdvi-routed', action='store_true', help='Exercise a high PCI requester ID behind a PCIe root port')
     p.add_argument('--dma-census', action='store_true', help='Capture PCI bus masters after USB startup')
     p.add_argument('--storage-state', action='store_true', help='Observe AHCI and NVMe state immediately after UEFI handoff')
@@ -52,10 +53,12 @@ def main():
     if args.usb_empty_ports and args.usb!='both':p.error('--usb-empty-ports requires --usb both')
     if args.nvidia_gsp_sample and (not args.nvidia_probe or not args.full_hd):
         p.error('--nvidia-gsp-sample requires the NVIDIA Full HD profile')
-    if args.nvidia_gsp_stage and (not args.nvidia_gsp_sample or args.storage_quiesce):
+    if args.amdvi_gsp_dma and not (args.amdvi_guest_ahci and args.nvidia_probe and args.nvidia_gsp_prepare):
+        p.error('--amdvi-gsp-dma requires both guest disk readers and the prepared NVIDIA file')
+    if args.nvidia_gsp_stage and ((not args.nvidia_gsp_sample and not args.amdvi_gsp_dma) or args.storage_quiesce):
         p.error('--nvidia-gsp-stage requires the NVIDIA sample on the deployable Full HD profile')
-    if args.nvidia_gsp_prepare and (not args.nvidia_gsp_stage or args.amdvi_coexist):
-        p.error('--nvidia-gsp-prepare requires --nvidia-gsp-stage and the standard AMD-Vi profile')
+    if args.nvidia_gsp_prepare and (not args.nvidia_gsp_stage or (args.amdvi_coexist and not args.amdvi_gsp_dma)):
+        p.error('--nvidia-gsp-prepare requires --nvidia-gsp-stage and a compatible AMD-Vi profile')
     if args.amdvi_post and (not args.amdvi_probe or args.usb!='both' or args.msvc_panel or args.usb_empty_ports):
         p.error('--amdvi-post requires --amdvi-probe with USB both')
     if args.amdvi_coexist and not args.amdvi_post:p.error('--amdvi-coexist requires --amdvi-post')
@@ -128,6 +131,8 @@ def main():
         (run/'amdvi-guest-nvme.txt').write_text('qemu-only-nvme-queues-ring0\n', encoding='ascii')
     if args.amdvi_guest_ahci:
         (run/'amdvi-guest-ahci.txt').write_text('qemu-only-ahci-commands-ring0\n', encoding='ascii')
+    if args.amdvi_gsp_dma:
+        (run/'amdvi-gsp-dma.txt').write_text('qemu-only-prepared-firmware\n', encoding='ascii')
     if args.low_gop:(run/'low-gop.txt').write_text('QEMU VGA preferred 1024x768\n',encoding='ascii')
     if args.usb:(run/'native-usb.txt').write_text(args.usb+'\n',encoding='ascii')
     if args.usb_empty_ports:(run/'native-usb-empty.txt').write_text('QEMU fault test\n',encoding='ascii')
@@ -140,6 +145,7 @@ def main():
         ('gate','kernel/syscalls/session_gate.S'),('loader','kernel/loader/doom_engine_loader.S')]
     for name,source in units:
         flags=['-DRMLUI_USB','-DDESKTOP_MEDIA','-DXHCI_COMMAND_PROBE'] if args.usb else []
+        if args.amdvi_gsp_dma:flags+=['-DBMO_AMDVI_GSP_DMA']
         if args.usb=='both':flags+=['-DXHCI_NATIVE_DUAL']
         if args.nvidia_probe and name == 'reader':flags+=['-DBMO_NVIDIA_PCI_PROBE']
         if args.nvidia_gsp_sample and name == 'reader':flags+=['-DBMO_NVIDIA_GSP_SAMPLE']
@@ -157,7 +163,7 @@ def main():
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf','-DRMLUI_MEDIA','-DRMLUI_NATIVE',
             '-DRMLUI_GOP_REGIONS','-DDOOM_ENGINE','-DDESKTOP_DOOM',*flags,
             '-c',ROOT/source,'-o',run/(name+'.o')],'compile-media-'+name)
-        if args.amdvi_post and name=='reader' and not args.full_hd:
+        if args.amdvi_post and name=='reader' and not (args.full_hd or args.amdvi_gsp_dma):
             check_context_stage(llvm,run/'reader.o','gop_stage',1536 if args.amdvi_storage else 2048)
         command([llvm/'llvm-objcopy.exe','-O','binary','--only-section=.text',run/(name+'.o'),run/(name+'.bin')],'extract-media-'+name)
     sbef=(app/'rmlui.sbef').read_bytes();reference=(abi/'INICIO.X86').read_bytes()
@@ -200,10 +206,15 @@ def main():
         if args.amdvi_nvme:flags+=['-DBMO_AMDVI_NVME']
         if args.amdvi_guest_nvme:flags+=['-DBMO_AMDVI_GUEST_NVME']
         if args.amdvi_guest_ahci:flags+=['-DBMO_AMDVI_GUEST_AHCI']
+        if args.amdvi_gsp_dma:
+            flags+=['-DBMO_AMDVI_GSP_DMA','-DRMLUI_MEDIA','-DRMLUI_NATIVE','-DDESKTOP_DOOM',*nvidia_reader_flags]
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf',*flags,'-c',source,'-o',native_probe],'compile-amdvi-firmware')
         if args.amdvi_post:
-            check_context_stage(llvm,native_probe,'amdvi_post',2560 if args.amdvi_storage or args.storage_quiesce else 2048)
-        if args.full_hd:check_context_stage(llvm,native_probe,'gop_stage',1536 if args.storage_quiesce else 2048)
+            post_budget=3072 if args.amdvi_gsp_dma else 2560 if args.amdvi_storage or args.storage_quiesce else 2048
+            check_context_stage(llvm,native_probe,'amdvi_post',post_budget)
+        if args.full_hd or args.amdvi_gsp_dma:
+            gop_budget=1024 if args.amdvi_gsp_dma else 1536 if args.storage_quiesce else 2048
+            check_context_stage(llvm,native_probe,'gop_stage',gop_budget)
         if args.amdvi_guest_nvme:check_context_stage(llvm,native_probe,'nvme_guest',4096)
         relocations=subprocess.check_output([llvm/'llvm-objdump.exe','-r',native_probe],text=True)
         if 'RELOCATION RECORDS' in relocations:raise ValueError('AMD-Vi firmware inventory must be position independent')
@@ -292,6 +303,8 @@ def main():
     if args.amdvi_guest_ahci and (report['Cases'][0].get('AhciQueueOwner')!='Ring 0 guest' or
                                  not report['Cases'][0].get('GuestStorageHandoff')):
         raise ValueError('Missing guest-owned storage handoff and AHCI commands')
+    if args.amdvi_gsp_dma and not report['Cases'][0].get('GspDmaCoexistenceVerified'):
+        raise ValueError('Missing prepared firmware DMA grant and revocation evidence')
     if args.amdvi_routed and (not report['Cases'][0].get('RoutedDmaVerified') or
                              not report['Cases'][0].get('UnassignedRequesterBlocked')):
         raise ValueError('Missing translated DMA or default-deny evidence')
@@ -331,6 +344,7 @@ def main():
         amdvi_nvme=args.amdvi_nvme,
         amdvi_guest_nvme=args.amdvi_guest_nvme,
         amdvi_guest_ahci=args.amdvi_guest_ahci,
+        amdvi_gsp_dma=args.amdvi_gsp_dma,
         qemu_only=bool(args.usb),usb_profile=args.usb,
         usb_empty_ports=args.usb_empty_ports,
         hardware_profile='amd149c-usb2-root-experimental' if args.usb=='both' and not args.usb_empty_ports else None,

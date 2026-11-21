@@ -1830,14 +1830,14 @@ Pendiente: Poner bajo control nativo la lista de solicitantes activos y probar e
 
 ## kernel/drivers/bus/amdvi/coexist_guest.inc
 
-Sonda exclusiva de QEMU TCG. Ring 0 comprueba bus masters y configura, invalida y cierra dos dominios AMD-Vi.
+Sonda exclusiva de QEMU TCG. Ring 0 comprueba bus masters y configura, invalida y cierra dominios AMD-Vi.
 
 Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
-Entrada: Escritorio USB dual activo, EDU, reservas UEFI propias y orden fija del banco QEMU. El perfil PCIe descubre el BDF alto y reserva una tabla de 96 paginas.
+Entrada: Escritorio USB dual activo, EDU, reservas UEFI y orden fija de QEMU. Variantes para BDF alto, AHCI y NVMe, y arbol de firmware NVIDIA.
 Salida: Estado de rechazo, tablas y colas propios y comprobantes de invalidacion y cierre.
-Depende de: AMD-Vi / Captura Ring 0 (codigo).
-Aceptacion: QEMU coteja DTE, invalidacion y DMA en un bus alto. Conserva HID y SATA y comprueba que un segundo EDU con BME no accede sin un dominio concedido.
-Pendiente: Integrar la transicion con los solicitantes fisicos, validar sus reservas y probar almacenamiento real antes de activar el dominio para NVIDIA.
+Depende de: AMD-Vi / Captura Ring 0 (codigo), GPU / NVIDIA / Preparacion pos-UEFI (codigo).
+Aceptacion: QEMU prueba DMA en bus alto con SATA e HID, y en otro perfil prueba la lectura de imagen, firma y Radix3 con HID, SATA y NVMe, tambien tras revocacion.
+Pendiente: Confirmar la propiedad de los solicitantes fisicos y sus reservas antes de activar el dominio de la RTX.
 
 ## kernel/drivers/bus/amdvi/dma_census.inc
 

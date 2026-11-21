@@ -55,7 +55,7 @@ if (args.splash_hd and not args.splash) or ('contexto' in args.casos and not (ar
     parser.error('Invalid combination of payload and probe cases')
 ROOT = workspace(args.workspace)
 nvidia_gsp_sample = args.doom_fixture and (ROOT / 'nvidia-gsp-sample.txt').is_file()
-nvidia_gsp_stage = nvidia_gsp_sample and (ROOT / 'nvidia-gsp-stage.json').is_file()
+nvidia_gsp_stage = args.doom_fixture and (ROOT / 'nvidia-gsp-stage.json').is_file()
 amdvi_post = args.doom_fixture and (ROOT / 'amdvi-post-probe.txt').is_file()
 amdvi_coexist = amdvi_post and (ROOT / 'amdvi-coexist-probe.txt').is_file()
 amdvi_storage = amdvi_coexist and (ROOT / 'amdvi-storage.txt').is_file()

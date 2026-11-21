@@ -2,7 +2,7 @@
 #ifdef BMO_AMDVI_POST
 #include "post_layout.inc"
 #endif
-#ifdef BMO_FULL_HD
+#if defined(BMO_FULL_HD) || defined(BMO_AMDVI_GSP_DMA)
 #include "../../display/GOP/gop_layout.inc"
 #endif
 # Read-only AMD-Vi inventory while UEFI still owns the platform.
@@ -38,7 +38,7 @@ amdvi_firmware_probe:
     rep movsb
     pop %rcx
 #endif
-#ifdef BMO_FULL_HD
+#if defined(BMO_FULL_HD) || defined(BMO_AMDVI_GSP_DMA)
     push %rcx
     lea .Lgop_stage(%rip), %rsi
     lea GOP_CODE_OFFSET(%rbp), %rdi
@@ -451,6 +451,6 @@ amdvi_uefi_snapshot:
 #ifdef BMO_AMDVI_GUEST_NVME
 #include "../../storage/nvme_guest.inc"
 #endif
-#ifdef BMO_FULL_HD
+#if defined(BMO_FULL_HD) || defined(BMO_AMDVI_GSP_DMA)
 #include "../../display/GOP/gop_stage.inc"
 #endif

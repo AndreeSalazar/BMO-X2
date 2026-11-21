@@ -79,7 +79,7 @@ def run_transfer(machine, command, bar, source, destination, size, direction, ac
 
 def verify_coexistence(machine, command, memory, context, symbols, *,
                        guest_dma=False, storage=False, routed=False, nvme=False,
-                       guest_nvme=False, guest_ahci=False):
+                       guest_nvme=False, guest_ahci=False, gsp_dma=False):
     """Run at the first frozen desktop frame. Return with the guest paused."""
     scratch_pages = 18 if storage else 14 if guest_dma else 13
     if nvme:
@@ -88,6 +88,8 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
     if routed:
         require(storage and guest_dma, 'El ensayo en buses altos requiere los tres dominios del invitado')
         scratch_pages += ROUTED_TABLE_PAGES
+    if gsp_dma:
+        require(guest_ahci and guest_nvme, 'El firmware requiere el banco con ambos controladores del invitado')
     scratch, usb, pages = dma_ranges(memory, context, scratch_pages)
     devices = command('query-pci')
     require(len(devices)==1, 'Segmentos PCI QEMU fuera del ensayo')
@@ -154,6 +156,13 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
     commands, events, completion = (scratch+offset*PAGE for offset in (7,8,9))
     payload, iova, outside = (scratch+offset*PAGE for offset in (10,11,12))
     sentinel, data = bytes([0xa5])*8, b'BMOX2DMA'
+    if gsp_dma:
+        gsp_image, gsp_signature, gsp_radix, gsp_root = struct.unpack('<4Q',
+            memory(context+0x818,32,'coexist-gsp-ranges'))
+        gsp_iova = 0x08000000
+        proof_sources = (gsp_iova,gsp_iova+gsp_signature-gsp_image,gsp_radix)
+        reply_pde = gsp_root+(iova>>21)*8
+        require(machine.read(reply_pde)==0, 'El testigo solapa una IOVA del firmware')
     readers = [symbols[name]-0x3c000000 for name in ('usb_keyboard_reports','usb_mouse_reports')]
 
     def guest_request(operation, result=0):
@@ -305,6 +314,16 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
         require(machine.read(AMDVI+24) & 0x1005 == 0x1005, 'AMD-Vi no entró en traducción')
         require(machine.read(AMDVI)==table|(table_pages-1) and machine.read(table+edu*32+8)==1
                 and machine.read(table+xhci*32+8)==2, 'Los solicitantes no recibieron dominios separados')
+        if gsp_dma:
+            require(machine.read(table+edu*32)==gsp_root|READ_WRITE|0x403 and
+                    machine.read(reply_pde)==(scratch+3*PAGE)|READ_WRITE|0x201,
+                    'Ring 0 no vinculo el arbol preparado al solicitante')
+            default_dte = (edu_root | READ_WRITE | 0x403,0,0,0)
+            entries = struct.iter_unpack('<4Q', memory(table,table_pages*PAGE,'gsp-device-table'))
+            admitted = {edu,xhci,REQUESTER,nvme_rid}
+            require(all(entry==default_dte for rid,entry in enumerate(entries) if rid not in admitted)
+                    and memory(edu_root,PAGE,'gsp-empty-root')==bytes(PAGE),
+                    'Un solicitante sin dominio tiene acceso por defecto')
         storage_proof = {}
         if storage:
             if guest_ahci:
@@ -330,6 +349,23 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
         require(machine.get_bytes(payload+0x100,len(data)) == data and not machine.read(AMDVI+0x2018),
                 'DMA concedido o USB produjo un resultado inesperado')
         require(machine.get_bytes(iova+0x100,len(data)) == sentinel, 'Cambió la RAM de la IOVA')
+        tail = 0
+        gsp_proof = {}
+        if gsp_dma:
+            for source in proof_sources:
+                physical = gsp_image+source-gsp_iova
+                expected = machine.get_bytes(physical,PAGE)
+                machine.put_bytes(payload, bytes(value ^ 0xff for value in expected))
+                run_transfer(machine,command,bar,source,EDU_BUFFER,PAGE,1)
+                run_transfer(machine,command,bar,EDU_BUFFER,iova,PAGE,3)
+                require(machine.get_bytes(payload,PAGE)==expected and not machine.read(AMDVI+0x2018),
+                        f'El DMA del firmware difiere en IOVA {source:#x}')
+            cold = gsp_iova+2*PAGE
+            before_write = machine.get_bytes(gsp_image+2*PAGE,32)
+            run_transfer(machine,command,bar,EDU_BUFFER,cold,32,3)
+            tail,_ = faults(machine,tail,cold,32,event_log=events,requester=edu)
+            require(machine.get_bytes(gsp_image+2*PAGE,32)==before_write,
+                    'EDU escribio en el firmware de solo lectura')
         run_transfer(machine, command, bar, EDU_BUFFER, outside, len(data), 3)
         fault_rid = edu
         if routed:
@@ -338,12 +374,13 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
             # against the full BDF independently of this diagnostic field.
             fault_rid = machine.read(events) & 0xffff
             require(fault_rid in (edu, edu & 0xff), f'Solicitante inesperado en el evento AMD-Vi: {fault_rid:04x}')
-        tail, _ = faults(machine, 0, outside, len(data), event_log=events, requester=fault_rid)
+        tail, _ = faults(machine, tail, outside, len(data), event_log=events, requester=fault_rid)
         require(machine.get_bytes(outside,len(data)) == sentinel, 'Cambió la página fuera del préstamo')
         if guest_dma:
             edu_pci(4,edu_idle_command | 2,word=True)
             guest_request(2)
-            require(machine.read(context+0xb68)==2 and machine.read(completion)==startup_tail+32,
+            revoke_bytes = 64 if gsp_dma else 32
+            require(machine.read(context+0xb68)==2 and machine.read(completion)==startup_tail+revoke_bytes,
                     'Ring 0 no confirmó la invalidación')
             edu_pci(4,edu_idle_command | 6,word=True)
         else:
@@ -353,9 +390,17 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
         run_transfer(machine, command, bar, EDU_BUFFER, iova, len(data), 3,
                      lambda: hid_activity(granted,-8))
         revoked = counters()
-        faults(machine, tail, iova, len(data), event_log=events, requester=fault_rid)
+        tail,_ = faults(machine, tail, iova, len(data), event_log=events, requester=fault_rid)
         require(machine.get_bytes(payload,len(data)) == machine.get_bytes(iova,len(data)) == sentinel,
                 'DMA revocado alteró la memoria')
+        if gsp_dma:
+            require(machine.read(reply_pde)==0 and machine.read(table+edu*32)==default_dte[0]
+                    and machine.read(table+edu*32+8)==0, 'La entrada del firmware sigue activa')
+            run_transfer(machine,command,bar,gsp_iova,EDU_BUFFER,32,1)
+            faults(machine,tail,gsp_iova,32,event_log=events,requester=edu,access=1)
+            gsp_proof.update(GspDmaCoexistenceVerified=True,GspDmaReadSamples=len(proof_sources),
+                             GspDmaSampleBytes=PAGE,GspFirmwareWriteDenied=True,
+                             GspFirmwareDmaRevoked=True,GspUnassignedDtesDenied=True)
         if guest_ahci:
             guest_request(5,2)
             require(machine.read(context+0xbd8)==1, 'Ring 0 leyo AHCI con EDU activo')
@@ -422,4 +467,5 @@ def verify_coexistence(machine, command, memory, context, symbols, *,
                 UsbReportsDuringGrant=[b-a for a,b in zip(initial,granted)],
                 UsbReportsAfterRevocation=[b-a for a,b in zip(granted,revoked)],
                 BoundedDmaRejected=True, RevokedDmaRejected=True,
-                TemporarilyQuiescedRequesters=[f'{rid:04x}' for rid in disabled], **storage_proof, **routed_proof)
+                TemporarilyQuiescedRequesters=[f'{rid:04x}' for rid in disabled],
+                **storage_proof, **routed_proof, **gsp_proof)

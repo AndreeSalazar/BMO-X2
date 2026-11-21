@@ -170,7 +170,7 @@
 | [AMD-Vi / Captura Ring 0](../kernel/drivers/bus/amdvi/post_ebs_probe.inc) | qemu | 0 | Lee los cinco registros AMD-Vi despues de ExitBootServices. Abre y revoca dos paginas MMIO de solo lectura antes de iniciar USB. |
 | [AMD-Vi / Arbol DMA de solo lectura](../kernel/drivers/bus/amdvi/stage_read_only.inc) | qemu | 0 | Construye un arbol DMA modo 2 con hojas contiguas y permiso de lectura en ambos niveles. |
 | [AMD-Vi / DMA y USB concurrentes en QEMU](../tools/boot/amdvi_xhci.py) | qemu | host | Usa qtest para configurar dominios distintos para EDU y xHCI en el escritorio virtual. |
-| [AMD-Vi / Dominios en el invitado](../kernel/drivers/bus/amdvi/coexist_guest.inc) | qemu | 0 | Sonda exclusiva de QEMU TCG. Ring 0 comprueba bus masters y configura, invalida y cierra dos dominios AMD-Vi. |
+| [AMD-Vi / Dominios en el invitado](../kernel/drivers/bus/amdvi/coexist_guest.inc) | qemu | 0 | Sonda exclusiva de QEMU TCG. Ring 0 comprueba bus masters y configura, invalida y cierra dominios AMD-Vi. |
 | [PCI / Inventario de solicitantes DMA](../kernel/drivers/bus/amdvi/dma_census.inc) | qemu | 0 | Captura los BDF del segmento PCI 0 con bus mastering habilitado despues de arrancar xHCI. |
 | [Almacenamiento / Recursos UEFI AHCI y NVMe](../kernel/drivers/storage/handoff_uefi.inc) | qemu | 0 | Registra los recursos MMIO de hasta dos controladores AHCI o NVMe del segmento PCI 0 mediante EFI PCI I/O. |
 | [Almacenamiento / Estado posterior a UEFI](../kernel/drivers/storage/handoff_post.inc) | qemu | 0 | Coteja el BAR con PCI y el mapa final. Lee el estado de AHCI y NVMe y revoca la ventana temporal antes de xHCI. |
@@ -459,6 +459,7 @@
 | amdvi-xhci-coexist | rmlui-usb-dual | verificacion |
 | amdvi-xhci-coexist | amdvi-xhci-guest | verificacion |
 | amdvi-xhci-guest | amdvi-post-ebs-probe | codigo |
+| amdvi-xhci-guest | nvidia-gsp-ring0-prepare | codigo |
 | amdvi-ahci-qemu | amdvi-xhci-guest | verificacion |
 | dma-pci-census | amdvi-post-ebs-probe | codigo |
 | dma-pci-census | rmlui-usb-dual | codigo |

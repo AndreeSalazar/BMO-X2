@@ -171,7 +171,7 @@ staging_ready:
     call *0x10(%rcx)
     test %rax, %rax
     js release
-#if defined(RMLUI_GOP_REGIONS) && !defined(BMO_FULL_HD)
+#if defined(RMLUI_GOP_REGIONS) && !defined(BMO_FULL_HD) && !defined(BMO_AMDVI_GSP_DMA)
     lea .Lgop_stage(%rip), %rsi
     lea GOP_CODE_OFFSET(%rbp), %rdi
     mov $(.Lgop_stage_end - .Lgop_stage), %ecx
@@ -232,6 +232,6 @@ action_path:
 #endif
 error:
     .short 66,77,79,45,88,50,58,32,101,114,114,111,114,32,68,69,83,75,84,79,80,46,83,66,70,13,10,0
-#if defined(RMLUI_GOP_REGIONS) && !defined(BMO_FULL_HD)
+#if defined(RMLUI_GOP_REGIONS) && !defined(BMO_FULL_HD) && !defined(BMO_AMDVI_GSP_DMA)
 #include "../../drivers/display/GOP/gop_stage.inc"
 #endif

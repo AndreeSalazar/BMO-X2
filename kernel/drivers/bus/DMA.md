@@ -160,6 +160,33 @@ segmento 0 en orden BDF y deja los registros de cada funcion intactos.
 [Prueba de captura y panel](../../../Reports/dma-pci-census-qemu-20261120.json).
 [Inventario fisico y cobertura IVRS](../../../Reports/dma-pci-census-metal-20261120.json).
 
+### Firmware NVIDIA junto con USB, SATA y NVMe
+
+`--amdvi-gsp-dma` activa un banco exclusivo de QEMU TCG con cuatro
+dominios. El escritorio arranca desde FAT32 y Ring 0 usa el arbol DMA
+preparado para el GSP como raiz del EDU virtual. Las otras entradas
+admitidas corresponden al xHCI, SATA AHCI y NVMe. Cada solicitante del
+bus raiz sin dominio concedido apunta a una raiz vacia.
+
+El banco coteja en RAM las 6606 paginas de solo lectura y luego lee por
+DMA una pagina de la imagen, una de la firma y una de Radix3. Un bufer
+de resultados del ensayo usa una entrada separada, fuera de esas IOVA.
+Ring 0 vuelve a bloquear el solicitante, invalida el dominio y la DTE
+y espera confirmacion de ambos comandos. QEMU observa fallos al intentar
+escribir en la imagen o leerla tras la revocacion. El teclado y el raton
+entregan informes antes y despues de retirar el acceso y los dos
+controladores de almacenamiento repiten sus lecturas.
+
+```powershell
+python -B tools/desktop/rmlui/native/guest.py --desktop --usb both --amdvi-post
+python -B tools/desktop/rmlui/native/media.py <ABI_RUN> <GATO_COMPACTO_RUN> --usb both --nvidia-probe --amdvi-probe --amdvi-post --amdvi-coexist --amdvi-guest-dma --amdvi-storage --amdvi-nvme --amdvi-guest-nvme --amdvi-guest-ahci --nvidia-gsp-stage build/gpu/NVIDIA/ga10x-615.78.08 --nvidia-gsp-prepare --amdvi-gsp-dma
+```
+
+En metal queda pendiente adjudicar los dominios a los BDF fisicos y
+verificar la propiedad de los controladores y sus reservas DMA. La
+respuesta del GSP requiere su propio ensayo en la RTX.
+[Evidencia de los cuatro dominios](../../../Reports/nvidia-gsp-dma-coexist-qemu-20261120.json).
+
 El puente del escritorio reserva cinco paginas contiguas de EfiLoaderData
 por debajo de 256 MiB y las entrega en los campos B8/C0 del contexto.
 La variante QEMU de comandos agrega una pagina para contextos

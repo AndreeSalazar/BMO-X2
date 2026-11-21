@@ -1,5 +1,8 @@
 # QEMU TCG only. The lab mailbox requests a fixed operation.
 # Ring 0 owns the IOMMU registers, tables and invalidation commands.
+#ifdef BMO_AMDVI_GSP_DMA
+#include "../../GPU/NVIDIA/gsp_layout.inc"
+#endif
 .set LAB_PAGES, AMDVI_LAB_PAGES
 .set LAB_RW, 0x6000000000000000
 .set LAB_VA, 0x10200000
@@ -78,6 +81,17 @@ amdvi_lab_entry:
     mov %r12, %rdi
     call .Llab_loader_data
     jc .Llab_reject
+#ifdef BMO_AMDVI_GSP_DMA
+    cmpl $3, GSP_POST_STATUS(%rbp)
+    jne .Llab_reject
+    mov GSP_STAGE_BASE(%rbp), %rdi
+    lea (GSP_STAGE_PAGES*4096)(%rdi), %rsi
+    lea GSP_DMA_TABLE_OFFSET(%rdi), %rax
+    cmp GSP_POST_DMA_ROOT(%rbp), %rax
+    jne .Llab_reject
+    call .Llab_loader_data
+    jc .Llab_reject
+#endif
     mov AMDVI_LAB_REQUEST(%rbp), %r15
     cmp $1, %r15
     jb .Llab_reject
@@ -199,23 +213,35 @@ amdvi_lab_entry:
 #endif
     movabs $LAB_RW, %r8
     lea LAB_TABLE_OFFSET(%r12), %rdi
-#ifdef BMO_AMDVI_ROUTED
+#if defined(BMO_AMDVI_ROUTED) || defined(BMO_AMDVI_GSP_DMA)
     # A zero DTE can pass DMA through. Point every unassigned requester
-    # at the empty level-2 table in the first reserved scratch page.
+    # at an empty level-2 table in the reserved scratch range.
+#ifdef BMO_AMDVI_GSP_DMA
+    lea 0x2403(%r12), %rax
+    mov $256, %ecx
+#else
     lea 0x403(%r12), %rax
-    or %r8, %rax
     mov $(AMDVI_LAB_TABLE_PAGES*128), %ecx
+#endif
+    or %r8, %rax
 .Llab_deny_dte:
     mov %rax, (%rdi)
     add $32, %rdi
     loop .Llab_deny_dte
     lea LAB_TABLE_OFFSET(%r12), %rdi
+#endif
+#ifdef BMO_AMDVI_ROUTED
     mov AMDVI_LAB_EDU_RID(%rbp), %esi
     shl $5, %esi
 #else
     mov $0x400, %esi
 #endif
+#ifdef BMO_AMDVI_GSP_DMA
+    mov GSP_POST_DMA_ROOT(%rbp), %rax
+    or $0x403, %rax
+#else
     lea 0x2403(%r12), %rax
+#endif
     or %r8, %rax
     mov %rax, (%rdi,%rsi)         # EDU, domain 1.
     movq $1, 8(%rdi,%rsi)
@@ -226,7 +252,16 @@ amdvi_lab_entry:
     call .Llab_edu_leaf
     lea 0x3201(%r12), %rax
     or %r8, %rax
+#ifdef BMO_AMDVI_GSP_DMA
+    # EDU needs a result page. Use an unused root slot outside the
+    # firmware aperture and preserve every firmware mapping.
+    mov GSP_POST_DMA_ROOT(%rbp), %rsi
+    cmpq $0, (%rsi,%rdx,8)
+    jne .Llab_unmap
+    mov %rax, (%rsi,%rdx,8)
+#else
     mov %rax, 0x2000(%r12,%rdx,8)
+#endif
     lea (LAB_EDU_PAYLOAD+1)(%r12), %rax
     or %r8, %rax
     mov %rax, (%r11)
@@ -362,7 +397,18 @@ amdvi_lab_entry:
     jz .Llab_unmap
     call .Llab_edu_leaf
     movq $0, (%r11)
+#ifdef BMO_AMDVI_GSP_DMA
+    mov GSP_POST_DMA_ROOT(%rbp), %rax
+    movq $0, (%rax,%rdx,8)
+    lea 0x2403(%r12), %rax
+    movabs $LAB_RW, %r8
+    or %r8, %rax
+    mov %rax, 0x400(%r12)
+    movq $0, 0x408(%r12)
+    movabs $0x7ffffffffffff003, %rdx # All IOVAs, including cached page-table entries.
+#else
     lea LAB_EDU_IOVA(%r12), %rdx
+#endif
     movabs $0x3000000100000000, %rax
 #ifdef BMO_AMDVI_ROUTED
     mov 0x9000(%r12), %ecx
@@ -371,6 +417,12 @@ amdvi_lab_entry:
 #endif
     call .Llab_publish
     jc .Llab_unmap               # Keep the reservation pinned on failure.
+#ifdef BMO_AMDVI_GSP_DMA
+    movabs $0x2000000000000020, %rax
+    xor %edx, %edx
+    call .Llab_publish
+    jc .Llab_unmap
+#endif
     jmp .Llab_success
 .Llab_stop:
     xor %ebx, %ebx

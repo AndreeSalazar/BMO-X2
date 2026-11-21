@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "date": "2026-11-20",
+  "run": "run-rmlui-media-144e8c83813e",
+  "evidence": "QEMU TCG FAT32 boot and a four-domain transition with the prepared GSP tree",
+  "qemu": "11.1.0 (v11.1.0-12130-ge470268ff4)",
+  "gsp_stage_status_by_case": {
+    "normal": 5,
+    "external-permissions": 4,
+    "amdvi-missing": 1
+  },
+  "cases_passed": 3,
+  "host_tests_passed": 10,
+  "storage_lab_without_gsp": {
+    "run": "run-rmlui-media-72c09b8e7cee",
+    "cases_passed": 3
+  },
+  "firmware": {
+    "release": "615.78.08",
+    "sha256": "a20100cafd5a85e22b3e13188339730c6ced94bd5f654984dd2ed274ed58d584",
+    "dma_requester": "0000:00:04.0",
+    "device": "QEMU EDU",
+    "domain": 1,
+    "mapping_pages_checked": 6606,
+    "sampled_pages_via_dma": ["image", "signature", "Radix3"],
+    "bytes_per_dma_sample": 4096,
+    "image_write_denied": true,
+    "image_read_denied_after_revocation": true,
+    "unassigned_root_bus_entries_point_to_empty_root": true
+  },
+  "domain_and_revocation_owner": "Ring 0 guest",
+  "revocation_completions": ["IOMMU domain pages", "PCI device table entry"],
+  "other_virtual_bus_masters_prepared_by": "QEMU qtest HOST",
+  "xhci": {
+    "requester": "0000:00:05.0",
+    "domain": 2,
+    "reports_during_grant": {"keyboard": 2, "mouse": 1},
+    "reports_after_revocation": {"keyboard": 2, "mouse": 1}
+  },
+  "storage": {
+    "handoff_and_queues": "Ring 0 guest",
+    "ahci": {
+      "requester": "0000:00:06.0",
+      "domain": 3,
+      "reads": 2,
+      "read_after_revocation": true,
+      "matched_sector_sha256": "3fee31287e0da91f7967b55bdae95dc073704978ace7f0456ff0c7e0b7d3bb"
+    },
+    "nvme": {
+      "requester": "0000:00:09.0",
+      "domain": 4,
+      "reads": 2,
+      "read_after_revocation": true,
+      "matched_sector_sha256": "84a44019110911e9865fa73b29b90ee38a3f098b8f33c39fd273df0c739dc34d"
+    }
+  },
+  "amdvi_post_stage_bytes": 3003,
+  "boot_packet_bytes": 4091,
+  "screenshot_sha256": "50d9bae5ddc8320622a6caccd3cd0677ba6c39ef31febf8c914c94d598728642",
+  "fat32_install_guard_verified": true,
+  "installable_media_emitted": false,
+  "physical_rtx_dma_verified": false,
+  "gsp_boot_verified": false
+}
