@@ -25,4 +25,5 @@
 #define QUIESCE_FINAL0 4
 #define QUIESCE_FINAL1 8
 #define QUIESCE_ACK 12
+#define STORAGE_TSC_10MS 0xb78
 #endif

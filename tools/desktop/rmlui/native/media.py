@@ -49,6 +49,7 @@ def main():
     p.add_argument('--dma-census', action='store_true', help='Capture PCI bus masters after USB startup')
     p.add_argument('--storage-state', action='store_true', help='Observe AHCI and NVMe state immediately after UEFI handoff')
     p.add_argument('--storage-quiesce', action='store_true', help='Stop emulated AHCI and NVMe after EBS (QEMU only)')
+    p.add_argument('--storage-quiesce-metal', action='store_true', help='Test the measured AMD board storage handoff before DMA activation')
     p.add_argument('--full-hd', action='store_true', help='Render the desktop at native 1920x1080 for GOP')
     args=p.parse_args()
     if args.usb_empty_ports and args.usb!='both':p.error('--usb-empty-ports requires --usb both')
@@ -81,6 +82,9 @@ def main():
         p.error('--full-hd requires --storage-state and its own QEMU display mode')
     if args.storage_quiesce and not args.full_hd:
         p.error('--storage-quiesce uses the combined platform stage of --full-hd')
+    if args.storage_quiesce_metal and not (args.full_hd and args.nvidia_fwsec_vbios and not args.storage_quiesce):
+        p.error('--storage-quiesce-metal requires the measured NVIDIA FWSEC Full HD profile')
+    storage_handoff = args.storage_quiesce or args.storage_quiesce_metal
     abi,splash=args.abi_run.resolve(),args.splash_run.resolve()
     for path in (abi,splash):
         if path.parent!=ROOT/'build/CASM':raise ValueError('Run outside build/CASM')
@@ -118,6 +122,8 @@ def main():
         (run/'storage-state.txt').write_text('post-ebs-read-only\n', encoding='ascii')
     if args.storage_quiesce:
         (run/'storage-quiesce.txt').write_text('qemu-only-ahci-nvme-shutdown\n', encoding='ascii')
+    if args.storage_quiesce_metal:
+        (run/'storage-quiesce-metal.txt').write_text('board-matched-ahci-nvme-shutdown\n', encoding='ascii')
     if args.full_hd:
         (run/'full-hd.txt').write_text('cpu-gop-native-1920x1080\n', encoding='ascii')
     if args.amdvi_coexist:
@@ -162,7 +168,7 @@ def main():
         if args.amdvi_guest_dma and name=='gate':flags+=['-DBMO_AMDVI_GUEST_DMA']
         if args.amdvi_storage and name in ('reader','gate'):flags+=['-DBMO_AMDVI_STORAGE']
         if args.full_hd and name in ('allocator','reader','loader'):flags+=['-DBMO_FULL_HD']
-        if args.storage_quiesce and name=='gate':flags+=['-DBMO_STORAGE_QUIESCE']
+        if storage_handoff and name=='gate':flags+=['-DBMO_STORAGE_QUIESCE']
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf','-DRMLUI_MEDIA','-DRMLUI_NATIVE',
             '-DRMLUI_GOP_REGIONS','-DDOOM_ENGINE','-DDESKTOP_DOOM',*flags,
             '-c',ROOT/source,'-o',run/(name+'.o')],'compile-media-'+name)
@@ -201,7 +207,8 @@ def main():
         if args.amdvi_coexist:flags+=['-DBMO_AMDVI_COEXIST']
         if args.dma_census:flags+=['-DBMO_DMA_CENSUS']
         if args.storage_state:flags+=['-DBMO_STORAGE_STATE']
-        if args.storage_quiesce:flags+=['-DBMO_STORAGE_QUIESCE']
+        if storage_handoff:flags+=['-DBMO_STORAGE_QUIESCE']
+        if args.storage_quiesce_metal:flags+=['-DBMO_STORAGE_QUIESCE_METAL']
         if args.full_hd:flags+=['-DBMO_FULL_HD','-DRMLUI_MEDIA','-DRMLUI_NATIVE','-DDESKTOP_DOOM']
         if args.amdvi_guest_dma:flags+=['-DBMO_AMDVI_GUEST_DMA']
         if args.amdvi_storage:flags+=['-DBMO_AMDVI_STORAGE']
@@ -213,10 +220,10 @@ def main():
             flags+=['-DBMO_AMDVI_GSP_DMA','-DRMLUI_MEDIA','-DRMLUI_NATIVE','-DDESKTOP_DOOM',*nvidia_reader_flags]
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf',*flags,'-c',source,'-o',native_probe],'compile-amdvi-firmware')
         if args.amdvi_post:
-            post_budget=3168 if args.amdvi_gsp_dma else 2560 if args.amdvi_storage or args.storage_quiesce else 2048
+            post_budget=3168 if args.amdvi_gsp_dma else 2560 if args.amdvi_storage or storage_handoff else 2048
             check_context_stage(llvm,native_probe,'amdvi_post',post_budget)
         if args.full_hd or args.amdvi_gsp_dma:
-            gop_budget=928 if args.amdvi_gsp_dma else 1536 if args.storage_quiesce else 2048
+            gop_budget=928 if args.amdvi_gsp_dma else 1536 if storage_handoff else 2048
             check_context_stage(llvm,native_probe,'gop_stage',gop_budget)
         if args.amdvi_guest_nvme:check_context_stage(llvm,native_probe,'nvme_guest',4096)
         relocations=subprocess.check_output([llvm/'llvm-objdump.exe','-r',native_probe],text=True)
@@ -298,6 +305,8 @@ def main():
     if args.storage_state and (not all(report['Cases'][i].get('StorageStateVerified') for i in (0,2)) or
                                (not args.storage_quiesce and not report['Cases'][0].get('StoragePanelVerified'))):
         raise ValueError('Missing storage state or its Ring 3 panel evidence')
+    if args.storage_quiesce_metal and not all(report['Cases'][i].get('StorageQuiesceSkippedVerified') for i in (0,2)):
+        raise ValueError('The board-specific shutdown was not excluded in QEMU')
     if args.storage_quiesce and (not report['Cases'][0].get('StorageQuiesceVerified') or
                                  not report['Cases'][0].get('StorageQuiesceHidVerified') or
                                  not report['Cases'][2].get('StorageQuiesceSkippedVerified')):
@@ -357,6 +366,7 @@ def main():
         dma_census=args.dma_census,
         storage_state=args.storage_state,
         storage_quiesce=args.storage_quiesce,
+        storage_quiesce_metal=args.storage_quiesce_metal,
         full_hd=args.full_hd,
         full_hd_native=args.full_hd,
         amdvi_coexist=args.amdvi_coexist,

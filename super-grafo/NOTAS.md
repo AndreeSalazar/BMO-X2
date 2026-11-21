@@ -1973,14 +1973,25 @@ Pendiente: Completar la reanudacion con colas propias y probar el traspaso en ME
 
 ## kernel/drivers/storage/quiesce.inc
 
-Detiene motores AHCI y solicita el cierre normal NVMe en el banco virtual antes de retirar BME.
+Detiene los motores AHCI y solicita el cierre normal de NVMe antes de retirar BME.
 
 Estado: QEMU. Anillo: 0. Lenguaje: ASM x86-64.
-Entrada: Captura post-EBS, BAR validado, identidades PCI del banco y AMD-Vi de TCG desactivado.
-Salida: Parada confirmada de ambos controladores e informes HID posteriores. El banco solo emite imagen QEMU.
-Depende de: Almacenamiento / Estado posterior a UEFI (codigo).
-Aceptacion: QEMU coteja los registros vivos, confirma SHST y que BME se retira, y verifica omision cuando falta AMD-Vi.
-Pendiente: Reanudar AHCI y NVMe con colas propias y lecturas traducidas antes de ensayar en METAL.
+Entrada: Captura post-EBS, BAR validado y AMD-Vi inactivo. Para la placa AMD requiere FWSEC, identidades de los discos y reloj medido.
+Salida: Confirmacion de parada y lectura de PCI Command. Si falla, se retienen los buffers de firmware.
+Depende de: Almacenamiento / Estado posterior a UEFI (codigo), Almacenamiento / Reloj de cierre post-UEFI (codigo), GPU / NVIDIA / FWSEC listo para Falcon (codigo).
+Aceptacion: El banco virtual comprueba SHST y BME. La variante fisica exige el inventario de la placa y rechaza la maquina QEMU.
+Pendiente: Verificar la parada en la placa y transferir el otro xHCI antes de activar AMD-Vi.
+
+## kernel/drivers/storage/calibrate_tsc.inc
+
+Mide diez milisegundos de TSC invariante mediante EFI Stall antes de ExitBootServices.
+
+Estado: INVESTIGACION. Anillo: 0. Lenguaje: ASM x86-64.
+Entrada: CPUID, TSC y tabla de servicios EFI.
+Salida: Intervalo acotado en el contexto de supervisor para cronometrar la parada de los discos.
+Depende de: contrato propio sin dependencias en este catalogo.
+Aceptacion: HOST comprueba la llamada EFI simulada y el intervalo real de TSC, y el sondeo termina ante espera agotada o MMIO invalido.
+Pendiente: Confirmar la calibracion y la parada en la placa.
 
 ## tools/boot/amdvi_ahci.py
 
@@ -2059,4 +2070,4 @@ Crates y perfiles HOST/QEMU existentes no acreditan aun todos los procesos y ser
 
 Mesa de trabajo: catalogo, notas, posiciones y fotografia real del analizador.
 
-185 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.
+186 nodos del catalogo; relaciones de codigo y de plan distinguidas por clase.

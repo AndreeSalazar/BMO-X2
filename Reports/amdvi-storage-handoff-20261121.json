@@ -1,0 +1,45 @@
+{
+  "board_profile": {
+    "ivrs_sha256": "d2b4e55ee37be93d6e764136059f140e847368118d447c345964ef21471202ec",
+    "iommu_bdf": "0000:00:00.2",
+    "iommu_capability_offset": "0x40",
+    "iommu_mmio_base": "0xfd500000",
+    "in_use_xhci": "0000:2b:00.3",
+    "pending_xhci_handoff": "0000:03:00.0",
+    "expected_storage": {
+      "0000:03:00.1": "1022:43b8",
+      "0000:01:00.0": "2646:5017"
+    }
+  },
+  "host": {
+    "verification": "Native ASM through Win64 test wrappers; ACPI through GetSystemFirmwareTable",
+    "tests_passed": 26,
+    "requires_invariant_tsc_before_handoff": true,
+    "firmware_calibration_microseconds": 10000
+  },
+  "qemu_positive": {
+    "run": "run-rmlui-media-3596dd9d8d03",
+    "cases_passed": 3,
+    "nvme_shutdown_csts": "0x00000009",
+    "nvme_cc_after": "0x00000000",
+    "nvme_csts_after": "0x00000000",
+    "ahci_running_engines_before": "0x0000003a",
+    "ahci_running_engines_after": 0,
+    "storage_pci_command_before": "0x0007",
+    "storage_pci_command_after": "0x0003",
+    "usb_hid_after_storage_shutdown": true
+  },
+  "qemu_board_exclusion": {
+    "run": "run-rmlui-media-362e700f8855",
+    "expected_storage_requests_excluded": true,
+    "live_nvme_pci_command": "0x0007",
+    "live_ahci_pci_command": "0x0007",
+    "all_shutdown_result_bytes_zero": true
+  },
+  "metal": {
+    "storage_shutdown_verified": false,
+    "iommu_translation_verified": false,
+    "gsp_execution_verified": false,
+    "rtx_render_verified": false
+  }
+}

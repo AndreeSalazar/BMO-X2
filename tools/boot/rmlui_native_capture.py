@@ -280,6 +280,7 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
     empty_usb=(run/'native-usb-empty.txt').is_file()
     gop_regions=(run/'gop-regions.txt').is_file()
     storage_lab=(run/'storage-quiesce.txt').is_file()
+    metal_quiesce=(run/'storage-quiesce-metal.txt').is_file()
     full_hd_profile=bool(symbols.get('full_hd'))
     uses_full_hd=full_hd_profile and case=='normal'
     render_width,render_height=(1920,1080) if uses_full_hd else (1280,800)
@@ -360,7 +361,7 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
     if dma_census is not None:
         amdvi_proof.update(verify_dma_census(dma_census,command,memory,context_address,serial,
                                             storage_state=symbols.get('storage_state',False),
-                                            quiesce=(case=='normal') if storage_lab else None))
+                                            quiesce=(case=='normal') if storage_lab else False if metal_quiesce else None))
     if symbols.get('amdvi_post'):
         base, _, _, status, control, table, cmd, events, hw_status, pte0, pte2 = struct.unpack(
             '<QII8Q', memory(context_address+0xb00,0x50,'amdvi-post'))

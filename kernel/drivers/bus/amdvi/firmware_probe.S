@@ -51,6 +51,18 @@ amdvi_firmware_probe:
     mov %r9, (%rsp)
     mov 0x60(%rcx), %rax
     mov %rax, 8(%rsp)
+#ifdef BMO_STORAGE_QUIESCE_METAL
+    push %rcx
+    push %rdx
+    push %r8
+    push %r9
+    mov %rax, %rcx
+    call storage_calibrate_tsc
+    pop %r9
+    pop %r8
+    pop %rdx
+    pop %rcx
+#endif
 #ifdef BMO_STORAGE_STATE
     push %rcx
     push %rdx
@@ -329,6 +341,9 @@ finish:
     ret
 
 # Helpers use the volatile registers only and preserve the PCI selector.
+#ifdef BMO_STORAGE_QUIESCE_METAL
+#include "../../storage/calibrate_tsc.inc"
+#endif
 pci_read:
     mov %r9d, %eax
     or %ecx, %eax

@@ -31,6 +31,11 @@ $amdviRun=Test-Path -LiteralPath (Join-Path $runPath 'amdvi-efi-probe.txt') -Pat
 $amdviPost=Test-Path -LiteralPath (Join-Path $runPath 'amdvi-post-probe.txt') -PathType Leaf
 $dmaCensus=Test-Path -LiteralPath (Join-Path $runPath 'dma-census-probe.txt') -PathType Leaf
 $storageState=Test-Path -LiteralPath (Join-Path $runPath 'storage-state.txt') -PathType Leaf
+$storageMetal=Test-Path -LiteralPath (Join-Path $runPath 'storage-quiesce-metal.txt') -PathType Leaf
+if ($storageMetal -ne [bool]$proof.storage_quiesce_metal -or ($storageMetal -and
+    (-not $normal.StorageQuiesceSkippedVerified -or -not $normal.GspFwsecExcluded))) {
+    throw 'Falta acreditar la exclusion de la parada fisica bajo QEMU.'
+}
 $fullHd=Test-Path -LiteralPath (Join-Path $runPath 'full-hd.txt') -PathType Leaf
 $fullHdNative=$fullHd -and (Get-Content -LiteralPath (Join-Path $runPath 'full-hd.txt') -Raw).Trim() -eq 'cpu-gop-native-1920x1080'
 $gspSample=Test-Path -LiteralPath (Join-Path $runPath 'nvidia-gsp-sample.txt') -PathType Leaf
@@ -224,6 +229,7 @@ $record=[ordered]@{Schema=1;Evidence='HOST copy after QEMU FAT32 boot';Run=$proo
     NvidiaWprProbe=$wprSample;
     NvidiaWprPreparation=($gspStage -and [bool]$gspProof.wpr_page);
     NvidiaFwsecPreparation=($gspStage -and [bool]$gspProof.fwsec);
+    PhysicalStorageHandoffCandidate=$storageMetal;
     NvidiaGspStage=$gspStage;
     NvidiaGspPrepare=[bool]$proof.nvidia_gsp_prepare;
     NvidiaGspQueues=($gspStage -and [bool]$gspProof.queues);

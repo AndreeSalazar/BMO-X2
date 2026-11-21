@@ -889,6 +889,27 @@ python -B tools/desktop/rmlui/native/media.py <ABI_RUN> <GATO_COMPACTO_RUN> --us
 [Especificacion AHCI](https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/serial-ata-ahci-spec-rev1-3-1.pdf#page=112).
 [Especificacion NVMe](https://nvmexpress.org/specification/nvm-express-base-specification/).
 
+`--storage-quiesce-metal` usa la misma secuencia de parada para los
+controladores capturados en la placa AMD. El perfil requiere `--full-hd`
+y `--nvidia-fwsec-vbios`. Ring 0 exige la unidad AMD-Vi `00:00.2`
+inactiva en `0xFD500000`, FWSEC listo para cargar, dos filas de
+almacenamiento y la identidad PCI del controlador antes de escribir.
+El SATA `1022:43B8` debe estar en `03:00.1`, sin comandos pendientes ni
+propiedad del BIOS. El NVMe `2646:5017` debe estar en `01:00.0` con
+CC.EN y CSTS.RDY activos. Los plazos se miden con TSC invariante,
+calibrado con EFI Stall. El cierre normal de NVMe espera hasta cinco
+segundos y la espera de RDY considera tambien CAP.TO.
+
+F3 muestra la retirada de bus mastering tras confirmar la parada.
+Una parada incompleta retiene las reservas DMA y se informa en F3.
+El perfil queda por verificar en la placa. Antes de activar AMD-Vi
+aun se debe transferir el segundo xHCI y comprobar los solicitantes
+restantes y el acceso a almacenamiento bajo traduccion.
+[Inventario PCI en METAL](../Reports/dma-pci-census-metal-20261120.json).
+[Estado de los discos en METAL](../Reports/storage-state-metal-20261120.json).
+[Evidencia del candidato de cierre](../Reports/amdvi-storage-handoff-20261121.json).
+[EFI Stall](https://uefi.org/specs/UEFI/2.10_A/07_Services_Boot_Services.html#efi-boot-services-stall).
+
 El perfil QEMU `--amdvi-storage` agrega un AHCI virtual en un
 tercer dominio. Ring 0 instala su tabla de traduccion. HOST
 envia `READ DMA EXT` contra un disco de prueba, coteja 512 B

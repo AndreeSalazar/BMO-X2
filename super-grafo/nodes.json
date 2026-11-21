@@ -3082,7 +3082,7 @@
     },
     {
       "id": "storage-quiesce-qemu",
-      "titulo": "Almacenamiento / Cierre AHCI y NVMe en QEMU",
+      "titulo": "Almacenamiento / Cierre AHCI y NVMe tras UEFI",
       "ruta": "kernel/drivers/storage/quiesce.inc",
       "estado": "qemu",
       "anillo": "0",
@@ -3092,11 +3092,26 @@
         12300,
         3910
       ],
-      "que": "Detiene motores AHCI y solicita el cierre normal NVMe en el banco virtual antes de retirar BME.",
-      "entrada": "Captura post-EBS, BAR validado, identidades PCI del banco y AMD-Vi de TCG desactivado.",
-      "salida": "Parada confirmada de ambos controladores e informes HID posteriores. El banco solo emite imagen QEMU.",
-      "aceptacion": "QEMU coteja los registros vivos, confirma SHST y que BME se retira, y verifica omision cuando falta AMD-Vi.",
-      "falta": "Reanudar AHCI y NVMe con colas propias y lecturas traducidas antes de ensayar en METAL."
+      "que": "Detiene los motores AHCI y solicita el cierre normal de NVMe antes de retirar BME.",
+      "entrada": "Captura post-EBS, BAR validado y AMD-Vi inactivo. Para la placa AMD requiere FWSEC, identidades de los discos y reloj medido.",
+      "salida": "Confirmacion de parada y lectura de PCI Command. Si falla, se retienen los buffers de firmware.",
+      "aceptacion": "El banco virtual comprueba SHST y BME. La variante fisica exige el inventario de la placa y rechaza la maquina QEMU.",
+      "falta": "Verificar la parada en la placa y transferir el otro xHCI antes de activar AMD-Vi."
+    },
+    {
+      "id": "storage-tsc-uefi",
+      "titulo": "Almacenamiento / Reloj de cierre post-UEFI",
+      "ruta": "kernel/drivers/storage/calibrate_tsc.inc",
+      "estado": "investigacion",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [12550, 3910],
+      "que": "Mide diez milisegundos de TSC invariante mediante EFI Stall antes de ExitBootServices.",
+      "entrada": "CPUID, TSC y tabla de servicios EFI.",
+      "salida": "Intervalo acotado en el contexto de supervisor para cronometrar la parada de los discos.",
+      "aceptacion": "HOST comprueba la llamada EFI simulada y el intervalo real de TSC, y el sondeo termina ante espera agotada o MMIO invalido.",
+      "falta": "Confirmar la calibracion y la parada en la placa."
     },
     {
       "id": "amdvi-ahci-qemu",
@@ -4666,6 +4681,16 @@
     {
       "de": "storage-quiesce-qemu",
       "a": "storage-state-post",
+      "clase": "codigo"
+    },
+    {
+      "de": "storage-quiesce-qemu",
+      "a": "storage-tsc-uefi",
+      "clase": "codigo"
+    },
+    {
+      "de": "storage-quiesce-qemu",
+      "a": "nvidia-fwsec-detached-dma",
       "clase": "codigo"
     },
     {

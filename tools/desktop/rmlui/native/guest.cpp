@@ -62,6 +62,7 @@ static void read_storage_state(Rml::String& page) {
         snprintf(line,sizeof(line),"<p>Controladores AHCI y NVMe registrados %u de %u.</p>",stored,total);
         page+=line;
     }
+    bool handoff_attempted=false;
     for(unsigned i=0;i<stored;++i) {
         uint64_t word[6];
         for(unsigned j=0;j<6;++j)word[j]=doom_invoke(3,3,system,start+1+i*6+j);
@@ -75,6 +76,12 @@ static void read_storage_state(Rml::String& page) {
         snprintf(line,sizeof(line),"<p><strong>%s %02X:%02X.%u</strong> &nbsp; PCI antes %04X / despues %04X</p>",
                  ahci?"SATA AHCI":"NVMe",bdf>>8,(bdf>>3)&31,bdf&7,before,after);
         page+=line;
+        if(status==3 || status==4) {
+            handoff_attempted=true;
+            page+=status==3?"<p>Parada confirmada y bus mastering retirado.</p>":
+                            "<p>Parada incompleta. Reservas DMA retenidas.</p>";
+            continue;
+        }
         if(status!=2) {
             page+=status==1?"<p>BAR UEFI identificado. Estado MMIO sin confirmar.</p>":"<p>BAR UEFI no validado.</p>";
             continue;
@@ -88,7 +95,7 @@ static void read_storage_state(Rml::String& page) {
         }
         page+=line;
     }
-    page+="<p>Lectura de registros. La traduccion DMA y los discos conservan su estado.</p>";
+    if(!handoff_attempted)page+="<p>Lectura de registros. La traduccion DMA y los discos conservan su estado.</p>";
 }
 #endif
 static unsigned read_dma_inventory(Rml::String* pages) {

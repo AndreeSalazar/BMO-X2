@@ -183,7 +183,8 @@
 | [PCI / Inventario de solicitantes DMA](../kernel/drivers/bus/amdvi/dma_census.inc) | qemu | 0 | Captura los BDF del segmento PCI 0 con bus mastering habilitado despues de arrancar xHCI. |
 | [Almacenamiento / Recursos UEFI AHCI y NVMe](../kernel/drivers/storage/handoff_uefi.inc) | qemu | 0 | Registra los recursos MMIO de hasta dos controladores AHCI o NVMe del segmento PCI 0 mediante EFI PCI I/O. |
 | [Almacenamiento / Estado posterior a UEFI](../kernel/drivers/storage/handoff_post.inc) | qemu | 0 | Coteja el BAR con PCI y el mapa final. Lee el estado de AHCI y NVMe y revoca la ventana temporal antes de xHCI. |
-| [Almacenamiento / Cierre AHCI y NVMe en QEMU](../kernel/drivers/storage/quiesce.inc) | qemu | 0 | Detiene motores AHCI y solicita el cierre normal NVMe en el banco virtual antes de retirar BME. |
+| [Almacenamiento / Cierre AHCI y NVMe tras UEFI](../kernel/drivers/storage/quiesce.inc) | qemu | 0 | Detiene los motores AHCI y solicita el cierre normal de NVMe antes de retirar BME. |
+| [Almacenamiento / Reloj de cierre post-UEFI](../kernel/drivers/storage/calibrate_tsc.inc) | investigacion | 0 | Mide diez milisegundos de TSC invariante mediante EFI Stall antes de ExitBootServices. |
 | [AMD-Vi / Lectura SATA traducida en QEMU](../tools/boot/amdvi_ahci.py) | qemu | host | Comprueba READ DMA EXT desde AHCI emulado en un dominio AMD-Vi separado, junto con xHCI y EDU. |
 | [AMD-Vi / Lectura NVMe traducida en QEMU](../tools/boot/amdvi_nvme.py) | qemu | host | Cierra las colas de OVMF, instala colas NVMe del laboratorio y lee en un cuarto dominio AMD-Vi administrado por Ring 0. |
 | [Almacenamiento / Colas NVMe de Ring 0](../kernel/drivers/storage/nvme_guest.inc) | qemu | 0 | Crea CQ1 y SQ1, lee un sector en el dominio 4, confirma cierre y revoca su ventana temporal. |
@@ -490,6 +491,8 @@
 | storage-state-post | storage-state-uefi | codigo |
 | storage-state-post | dma-pci-census | codigo |
 | storage-quiesce-qemu | storage-state-post | codigo |
+| storage-quiesce-qemu | storage-tsc-uefi | codigo |
+| storage-quiesce-qemu | nvidia-fwsec-detached-dma | codigo |
 | amdvi-nvme-qemu | amdvi-ahci-qemu | codigo |
 | nvme-guest-qemu | amdvi-nvme-qemu | verificacion |
 | nvme-guest-qemu | amdvi-xhci-guest | codigo |
