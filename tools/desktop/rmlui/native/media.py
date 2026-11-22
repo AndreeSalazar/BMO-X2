@@ -68,6 +68,8 @@ def main():
         p.error('--amdvi-post requires --amdvi-probe with USB both')
     if args.amdvi_dte_reserve and not args.amdvi_probe:
         p.error('--amdvi-dte-reserve requires --amdvi-probe')
+    if args.amdvi_dte_reserve and (not args.amdvi_post or args.usb!='both'):
+        p.error('--amdvi-dte-reserve requires --amdvi-post and --usb both for post-EBS verification')
     if args.amdvi_coexist and not args.amdvi_post:p.error('--amdvi-coexist requires --amdvi-post')
     if args.amdvi_guest_dma and not args.amdvi_coexist:p.error('--amdvi-guest-dma requires --amdvi-coexist')
     if args.amdvi_storage and not args.amdvi_guest_dma:p.error('--amdvi-storage requires --amdvi-guest-dma')
@@ -96,6 +98,7 @@ def main():
         raise ValueError('ABI probe and compact CASM cat required')
     variant='desktop-usb-'+args.usb if args.usb else 'desktop'
     if args.amdvi_post:variant+='-amdvi-post'
+    if args.amdvi_dte_reserve:variant+='-amdvi-dte-report'
     if args.dma_census:variant+='-dma-census'
     if args.storage_state:variant+='-storage-state'
     if args.full_hd:variant+='-full-hd'
@@ -306,6 +309,8 @@ def main():
         raise ValueError('Missing AMD-Vi MMIO evidence')
     if args.amdvi_post and not all(report['Cases'][i].get('AmdViPostVerified') for i in (0,2)):
         raise ValueError('Missing post-EBS AMD-Vi evidence')
+    if args.amdvi_dte_reserve and not report['Cases'][0].get('AmdViDtePostReadVerified'):
+        raise ValueError('Missing post-EBS DTE read and alias-revocation evidence')
     if args.dma_census and (not all(report['Cases'][i].get('DmaCensusVerified') for i in (0,2)) or
                             (not args.storage_quiesce and not report['Cases'][0].get('DmaCensusPanelVerified'))):
         raise ValueError('Missing PCI DMA inventory or its Ring 3 panel evidence')

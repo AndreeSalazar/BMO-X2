@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "date": "2026-11-21",
+  "evidence": "QEMU q35; native Ring 3 desktop after ExitBootServices",
+  "run": "run-rmlui-media-31fb1d468f06",
+  "passed": 3,
+  "total": 3,
+  "table": {
+    "entries": 65536,
+    "bytes": 2097152,
+    "pages": 512,
+    "pre_ebs_zero_qwords": 262144,
+    "post_ebs_zero_qwords": 262144,
+    "base_physical": "0x000000003DB1B000",
+    "read_only_nx_alias_pte_first": "0x800000003DB1B001",
+    "read_only_nx_alias_pte_last": "0x800000003DD1A001",
+    "alias_revoked_before_xhci": true
+  },
+  "amdvi_registers_unchanged": true,
+  "translation_activated": false,
+  "usb_keyboard_and_mouse_qemu_verified": true,
+  "physical_usb_verified": false,
+  "nvidia_gsp_booted": false,
+  "rtx_3d_render_verified": false,
+  "installable_metal_media_emitted": false,
+  "cases": [
+    {
+      "case": "normal",
+      "passed": true,
+      "post_ebs_dte_read_verified": true,
+      "alias_read_only": true,
+      "alias_nx": true,
+      "alias_revoked": true,
+      "desktop_usb_and_input_verified": true
+    },
+    {
+      "case": "external-permissions",
+      "passed": true,
+      "external_sbef_rejected": true,
+      "amdvi_registers_unchanged": true
+    },
+    {
+      "case": "amdvi-missing",
+      "passed": true,
+      "dte_post_alias_not_created": true
+    }
+  ]
+}

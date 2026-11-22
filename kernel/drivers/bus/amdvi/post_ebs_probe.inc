@@ -17,7 +17,14 @@ amdvi_post_begin:
 .Lpost_census_entry:
 #endif
     push %rbx
+    push %r12
     mov $1, %ebx                   # No usable pre-EBS capture.
+#ifdef BMO_AMDVI_DTE_RESERVE
+    movq $0, AMDVI_DTE_POST_STATUS(%rbp)
+    movq $0, AMDVI_DTE_POST_ZERO_QWORDS(%rbp)
+    movq $0, AMDVI_DTE_POST_PTE_FIRST(%rbp)
+    movq $0, AMDVI_DTE_POST_PTE_LAST(%rbp)
+#endif
     mov AMDVI_POST_BASE(%rbp), %r8
     test %r8, %r8
     jz .Lpost_done
@@ -75,6 +82,119 @@ amdvi_post_begin:
     add %r9, %rsi
     sub %r9, %rcx
     jnz .Lpost_descriptor
+
+#ifdef BMO_AMDVI_DTE_RESERVE
+    # Revalidate the firmware reservation from the final EFI memory map.
+    # The descriptor must still own every page as EfiLoaderData (type 2).
+    mov $2, %ebx                   # Reservation absent or not retained by EBS.
+    cmpq $1, AMDVI_DTE_RESERVE_STATUS(%rbp)
+    jne .Ldte_post_done
+    cmpq $AMDVI_DTE_TABLE_PAGES, AMDVI_DTE_RESERVE_PAGES(%rbp)
+    jne .Ldte_post_done
+    mov AMDVI_DTE_RESERVE_BASE(%rbp), %r12
+    test %r12, %r12
+    jz .Ldte_post_done
+    test $0xfff, %r12
+    jnz .Ldte_post_done
+    mov %r12, %rax
+    add $AMDVI_DTE_TABLE_BYTES, %rax
+    jc .Ldte_post_done
+    mov 0x50(%rbp), %rcx
+    mov 0x60(%rbp), %r9
+    cmp $40, %r9
+    jb .Ldte_post_done
+    cmp $256, %r9
+    ja .Ldte_post_done
+    cmp $65536, %rcx
+    ja .Ldte_post_done
+    lea 0x1000(%rbp), %rsi
+    mov $3, %ebx                   # Reservation does not fit an EFI loader descriptor.
+.Ldte_post_memory:
+    cmp %r9, %rcx
+    jb .Ldte_post_done
+    cmpl $2, (%rsi)
+    jne .Ldte_post_memory_next
+    mov 8(%rsi), %rax
+    mov 24(%rsi), %rdx
+    shl $12, %rdx
+    add %rax, %rdx
+    jc .Ldte_post_memory_next
+    cmp %rax, %r12
+    jb .Ldte_post_memory_next
+    mov %r12, %r11
+    add $AMDVI_DTE_TABLE_BYTES, %r11
+    jc .Ldte_post_memory_next
+    cmp %rdx, %r11
+    jbe .Ldte_post_memory_found
+.Ldte_post_memory_next:
+    add %r9, %rsi
+    sub %r9, %rcx
+    jnz .Ldte_post_memory
+    jmp .Ldte_post_done
+.Ldte_post_memory_found:
+    # Alias exactly one 2 MiB region through the scratch PT. Leaf PTEs are
+    # supervisor, read-only, NX, and write-back; no device sees this mapping.
+    lea 0x1e000(%rbp), %rdi
+    mov %r12, %r10
+    mov $AMDVI_DTE_TABLE_PAGES, %ecx
+.Ldte_post_map:
+    mov %r10, %rax
+    or $1, %rax
+    bts $63, %rax
+    mov %rax, (%rdi)
+    add $4096, %r10
+    add $8, %rdi
+    loop .Ldte_post_map
+    mov 0x1e000(%rbp), %rax
+    mov %rax, AMDVI_DTE_POST_PTE_FIRST(%rbp)
+    mov 0x1eff8(%rbp), %rax
+    mov %rax, AMDVI_DTE_POST_PTE_LAST(%rbp)
+    lea 0x1e003(%rbp), %rax
+    mov %rax, 0x15400(%rbp)
+    mov $0x10000000, %edi
+    mov $AMDVI_DTE_TABLE_PAGES, %ecx
+.Ldte_post_invalidate:
+    invlpg (%rdi)
+    add $4096, %rdi
+    loop .Ldte_post_invalidate
+    mov $4, %ebx                   # Readback failed; still revoke the alias.
+    xor %eax, %eax
+    mov $0x10000000, %edi
+    mov $AMDVI_DTE_TABLE_QWORDS, %ecx
+    cld
+    repe scasq
+    jne .Ldte_post_revoke
+    mov $1, %ebx
+    movq $AMDVI_DTE_TABLE_QWORDS, AMDVI_DTE_POST_ZERO_QWORDS(%rbp)
+.Ldte_post_revoke:
+    # Remove the PDE first, invalidate every address, then clear the PT.
+    movq $0, 0x15400(%rbp)
+    mov $0x10000000, %rdi
+    lea 0x1e000(%rbp), %rsi
+    mov $AMDVI_DTE_TABLE_PAGES, %ecx
+.Ldte_post_unmap:
+    invlpg (%rdi)
+    movq $0, (%rsi)
+    add $4096, %rdi
+    add $8, %rsi
+    loop .Ldte_post_unmap
+    cmpq $0, 0x15400(%rbp)
+    jne .Ldte_post_revoke_failed
+    lea 0x1e000(%rbp), %rdi
+    xor %eax, %eax
+    mov $512, %ecx
+    cld
+    repe scasq
+    jne .Ldte_post_revoke_failed
+    mov %rbx, AMDVI_DTE_POST_STATUS(%rbp)
+    jmp .Ldte_post_done
+.Ldte_post_revoke_failed:
+    movq $5, AMDVI_DTE_POST_STATUS(%rbp)
+    jmp .Ldte_post_continue
+.Ldte_post_done:
+    mov %rbx, AMDVI_DTE_POST_STATUS(%rbp)
+.Ldte_post_continue:
+#endif
 
     mov $3, %ebx                   # PCI base or decode changed since pre-EBS.
     mov $0xcf8, %dx
@@ -149,6 +269,7 @@ amdvi_post_begin:
 #ifdef BMO_STORAGE_STATE
     call storage_snapshot
 #endif
+    pop %r12
     pop %rbx
     ret
 

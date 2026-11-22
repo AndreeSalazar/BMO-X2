@@ -150,6 +150,11 @@ En el candidato de inventario PCI, F2 muestra los dispositivos con DMA
 habilitado despues de iniciar USB. Esa captura permite preparar sus
 mapeos antes de activar AMD-Vi en el equipo fisico.
 [Ensayo directo de GPU](docs/NATIVE-DESKTOP-BOOT.md#gpu--nvidia).
+El ensayo QEMU mas reciente reserva y relee las 65,536 entradas DTE
+despues de ExitBootServices con alias CPU supervisor, de solo lectura y
+NX; luego lo revoca. Es preparacion de memoria, no aceleracion: AMD-Vi
+sigue apagado, la RTX no recibe DMA y no se emite medio para METAL.
+[Evidencia del traspaso DTE](Reports/amdvi-dte-post-ebs-qemu-20261121.json).
 
 El escritorio ya recibe entrada xHCI en QEMU con teclado y raton en
 perfiles separados, mediante el transporte de diagnostico y el servicio

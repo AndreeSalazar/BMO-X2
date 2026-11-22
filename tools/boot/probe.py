@@ -401,7 +401,8 @@ def run(case):
                     from rmlui_native_capture import verify_native_ui
                     result = verify_native_ui(command, memory, prefix, external_image, case, ROOT / 'ui-symbols.json',
                                               amdvi_coexist=qtest if coexist else None,
-                                              dma_census=qtest if census else None)
+                                              dma_census=qtest if census else None,
+                                              amdvi_dte_reserve=amdvi_dte_reserve)
                     if amdvi_probe or (nvidia_probe and case == 'normal'):
                         devices = [device for bus in command('query-pci') for device in bus['devices']]
                         if case == 'normal':

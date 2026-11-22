@@ -306,6 +306,31 @@ La lectura valida acredita acceso MMIO. GSP y la ejecucion de trabajo
 GPU requieren sus propias pruebas.
 [Registro de identificacion en NVIDIA](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/main/src/common/inc/swref/published/nv_ref.h).
 
+#### Reserva y lectura de la tabla DTE
+
+El perfil QEMU `--amdvi-dte-reserve` reserva 512 paginas (2 MiB) en UEFI
+y comprueba las 262,144 palabras iniciales en cero. Tras
+`ExitBootServices`, Ring 0 vuelve a comprobar que el mapa EFI conserva
+todo el rango como `EfiLoaderData`; lo lee mediante un alias CPU
+supervisor de solo lectura y NX, verifica las 262,144 palabras y revoca
+el alias antes de reutilizar la tabla temporal para xHCI. Ring 3 muestra
+`AMDVI_DTE_POST=01 00040000` cuando completa esa prueba.
+
+```powershell
+$py = Join-Path $env:USERPROFILE '.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe'
+& $py -B tools/desktop/rmlui/native/guest.py --desktop --usb both --amdvi-post --amdvi-dte-report
+& $py -B tools/desktop/rmlui/native/media.py <ABI_RUN> <GATO_COMPACTO_RUN> --usb both --amdvi-probe --amdvi-post --amdvi-dte-reserve
+```
+
+El perfil es de laboratorio QEMU y no genera medio instalable. La tabla
+sigue en cero y AMD-Vi permanece apagado; esto no concede DMA a la GPU ni
+prueba GSP o renderizado 3D. El siguiente umbral es construir en QEMU los
+65536 DTE con denegacion por defecto y validar concesion, invalidacion y
+revocacion de un solicitante aislado. Para METAL aun se requiere cotejar
+el mapa IVRS completo y demostrar control de todos los solicitantes DMA
+del equipo antes de activar AMD-Vi.
+[Reporte post-EBS](../Reports/amdvi-dte-post-ebs-qemu-20261121.json).
+
 El ensayo `run-rmlui-media-4910a511a24c` verifica en QEMU el descriptor
 UEFI de la VGA, su longitud de 16 MiB cotejada con QMP, el estado
 `03`, teclado y raton USB simultaneos y el rechazo SBEF W+X. En HOST,

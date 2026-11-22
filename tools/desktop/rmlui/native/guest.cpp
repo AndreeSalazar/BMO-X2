@@ -272,6 +272,16 @@ extern "C" void bmo_main() {
         else if(file_status==5)hardware_report+="NVIDIA / No se preparo Radix3";
         else hardware_report+="NVIDIA / Firmware no disponible";
     }
+#ifdef BMO_AMDVI_DTE_REPORT
+    const auto dte=doom_invoke(3,3,amdvi_diagnostic,7);
+    const auto dte_status=unsigned(dte);
+    const auto zero_qwords=unsigned(dte>>32);
+    if(dte_status==1) {
+        snprintf(amdvi_line,sizeof(amdvi_line),"AMDVI_DTE_POST=%02X %08X\n",dte_status,zero_qwords);
+        log(amdvi_line);
+        hardware_report+="<br/>AMD-Vi DTE / 2 MiB leidos / alias RO y NX revocado";
+    }
+#endif
     amdvi_panel->SetInnerRML(hardware_report);
 #endif
 #ifdef BMO_DESKTOP_UI

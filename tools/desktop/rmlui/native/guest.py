@@ -40,6 +40,7 @@ def main():
     parser.add_argument('--msvc-panel-cc', help='Optional cl.exe for the trusted Win64 panel')
     parser.add_argument('--usb',choices=['keyboard','mouse','both'])
     parser.add_argument('--amdvi-post',action='store_true')
+    parser.add_argument('--amdvi-dte-report',action='store_true',help='Expose the QEMU-only post-EBS DTE read and alias-revocation proof')
     parser.add_argument('--dma-census',action='store_true')
     parser.add_argument('--storage-state',action='store_true')
     parser.add_argument('--full-hd',action='store_true')
@@ -48,6 +49,8 @@ def main():
     if args.msvc_panel_cc and not args.desktop:parser.error('--msvc-panel-cc requires --desktop')
     if args.amdvi_post and (not args.desktop or args.usb!='both' or args.msvc_panel_cc):
         parser.error('--amdvi-post requires the desktop with USB both')
+    if args.amdvi_dte_report and not args.amdvi_post:
+        parser.error('--amdvi-dte-report requires --amdvi-post')
     if args.dma_census and not args.amdvi_post:
         parser.error('--dma-census requires --amdvi-post')
     if args.storage_state and not args.dma_census:
@@ -59,6 +62,7 @@ def main():
     llvm=Path(os.environ['ProgramFiles'])/'LLVM/bin'
     variant='desktop-usb-'+args.usb if args.usb else 'desktop' if args.desktop else 'guest'
     if args.amdvi_post:variant+='-amdvi-post'
+    if args.amdvi_dte_report:variant+='-amdvi-dte-report'
     if args.dma_census:variant+='-dma-census'
     if args.storage_state:variant+='-storage-state'
     if args.full_hd:variant+='-full-hd'
@@ -80,6 +84,7 @@ def main():
     if args.usb=='both':cppflags+=['-DBMO_USB_DUAL']
     if args.msvc_panel_cc:cppflags+=['-DBMO_MSVC_PANEL']
     if args.amdvi_post:cppflags+=['-DBMO_AMDVI_POST']
+    if args.amdvi_dte_report:cppflags+=['-DBMO_AMDVI_DTE_REPORT']
     if args.dma_census:cppflags+=['-DBMO_DMA_CENSUS']
     if args.storage_state:cppflags+=['-DBMO_STORAGE_STATE']
     if args.full_hd:cppflags+=['-DBMO_FULL_HD']
@@ -184,6 +189,7 @@ def main():
         manifest['msvc_panel_draws']=symbols['bmo_ui_msvc_draws']
     if args.usb:manifest.update(usb=args.usb,usb_reports=symbols['bmo_ui_usb_reports'])
     if args.amdvi_post:manifest['amdvi_post']=True
+    if args.amdvi_dte_report:manifest['amdvi_dte_report']=True
     if args.dma_census:manifest['dma_census']=True
     if args.storage_state:manifest['storage_state']=True
     if args.full_hd:manifest['full_hd']=True

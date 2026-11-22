@@ -270,7 +270,8 @@ def verify_dma_census(machine, command, memory, context, serial, *, storage_stat
     return proof
 
 
-def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexist=None,dma_census=None):
+def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexist=None,dma_census=None,
+                     amdvi_dte_reserve=False):
     if case=='external-permissions':
         result=verify_external_rejection(command,memory,image)
         if memory(0x4000000,4096,'ui-rejected-code')!=bytes(4096):raise ValueError('UI copied before permission validation')
@@ -372,11 +373,31 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
         if case == 'amdvi-missing':
             if (base,status,control,table,cmd,events,hw_status,pte0,pte2) != (0,1,0,0,0,0,0,0,0):
                 raise ValueError('Absent AMD-Vi opened a post-EBS alias')
+            if amdvi_dte_reserve and memory(context_address+0x758,32,'dte-post-empty')!=bytes(32):
+                raise ValueError('Absent AMD-Vi left DTE proof data behind')
             return dict(Case=case,Passed=True,AmdViPostVerified=True,AmdViPostReport='01',AmdViPostPages=0,**amdvi_proof)
         if base!=0xfed80000 or status!=4 or (pte0,pte2)!=(0x80000000fed80019,0x80000000fed82019):
             raise ValueError('Unexpected post-EBS AMD-Vi aperture or permissions')
         amdvi_proof.update(AmdViPostVerified=True,AmdViPostReport=expected.removeprefix('AMDVI_POST='),
                            AmdViPostPages=2,AmdViPostPtes=[f'{pte0:016X}',f'{pte2:016X}'])
+        if amdvi_dte_reserve:
+            dte_status,zero_qwords,first_pte,last_pte=struct.unpack(
+                '<QQQQ',memory(context_address+0x758,32,'dte-post-proof'))
+            reserve_base,reserve_pages,reserve_status,reserve_zero=struct.unpack(
+                '<QQQQ',memory(context_address+0x738,32,'dte-reservation'))
+            expected_first=reserve_base|0x8000000000000001
+            expected_last=(reserve_base+511*4096)|0x8000000000000001
+            expected_line=(f'AMDVI_DTE_POST=01 {zero_qwords:08X}')
+            serial_lines=serial.read_bytes().splitlines()
+            if (dte_status,zero_qwords)!=(1,262144) or reserve_status!=1 or reserve_pages!=512 or \
+                    reserve_zero!=262144 or not reserve_base or reserve_base&0xfff or \
+                    (first_pte,last_pte)!=(expected_first,expected_last) or \
+                    expected_line.encode('ascii') not in serial_lines:
+                raise ValueError('Post-EBS DTE read, read-only PTEs, or revocation did not verify')
+            amdvi_proof.update(AmdViDtePostReadVerified=True,AmdViDtePostStatus=dte_status,
+                               AmdViDtePostZeroQwords=zero_qwords,AmdViDtePages=reserve_pages,
+                               AmdViDteBase=reserve_base,DteAliasReadOnly=True,DteAliasNx=True,
+                               DteAliasRevoked=True,DtePostPtes=[f'{first_pte:016X}',f'{last_pte:016X}'])
     if symbols.get('usb')=='both':
         live=memory(context_address+0x1a3c8,1,'dual-live')[0]
         roles=memory(context_address+0x1a770,1,'dual-roles')[0]

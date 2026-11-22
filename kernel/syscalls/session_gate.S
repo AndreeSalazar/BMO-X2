@@ -376,13 +376,21 @@ amdvi_diagnostic:
 #ifdef BMO_NVIDIA_GSP_STATUS
     jbe .Lamdvi_snapshot
     cmp $6, %r10
-    jne denied
+    je .Lamdvi_gsp_status
+#else
+    jbe .Lamdvi_snapshot
+#endif
+    cmp $7, %r10
+    jb denied
+    cmp $7, %r10
+    ja denied
+    jmp .Lamdvi_snapshot
+#ifdef BMO_NVIDIA_GSP_STATUS
+.Lamdvi_gsp_status:
     mov GSP_STAGE_STATUS(%rbp), %rax
     jmp finish
-.Lamdvi_snapshot:
-#else
-    ja denied
 #endif
+.Lamdvi_snapshot:
     cmpq $0, AMDVI_POST_STATUS(%rbp)
     jne .Lamdvi_diagnostic_ready
     push %r10
@@ -395,7 +403,14 @@ amdvi_diagnostic:
     jz finish
     cmp $4, %eax
     jne denied
+    cmp $7, %r10
+    je .Lamdvi_dte_status
     mov AMDVI_POST_STATUS(%rbp,%r10,8), %rax
+    jmp finish
+.Lamdvi_dte_status:
+    mov AMDVI_DTE_POST_ZERO_QWORDS(%rbp), %rax
+    shl $32, %rax
+    or AMDVI_DTE_POST_STATUS(%rbp), %rax
     jmp finish
 #endif
 #ifdef DESKTOP_MEDIA

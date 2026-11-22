@@ -32,12 +32,24 @@
     "highest_requester": "2fff",
     "fits_metal_ivrs": false
   },
+  "qemu_reserved_table": {
+    "run": "run-rmlui-media-31fb1d468f06",
+    "entries": 65536,
+    "bytes": 2097152,
+    "pages": 512,
+    "pre_ebs_zero_qwords": 262144,
+    "post_ebs_zero_qwords": 262144,
+    "read_only_nx_cpu_alias": true,
+    "alias_revoked_before_xhci": true,
+    "translation_activated": false,
+    "gpu_dma_tested": false
+  },
   "physical_amdvi_enabled": false,
   "physical_dma_isolation_verified": false,
   "rtx_gsp_executed": false,
   "rtx_3d_render_verified": false,
   "deployable_to_metal": false,
-  "next_gate": "Implement and verify a full 512-page physical DTE table plus safe ownership/quiesce for every physical DMA requester before enabling AMD-Vi.",
+  "next_gate": "Build a QEMU default-deny DTE table covering all 65536 requesters, then prove one isolated requester can be granted and revoked. Before METAL activation, reconcile every physical IVRS scope and quiesce or safely map every DMA requester.",
   "source_sha256": {
     "tools/host/gpu/ivrs.py": "217e691b226047243d4ad60b0a5e65e95e156cb559f39ad7e9dbf41d7926f46c",
     "Reports/dma-pci-census-metal-20261120.json": "99b1a582901fa859d8d699d8736b8d76d9f8484e1edc711579fd3e4c0bf686bf"
