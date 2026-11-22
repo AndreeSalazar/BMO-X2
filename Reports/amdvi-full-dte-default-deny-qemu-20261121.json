@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "date": "2026-11-21",
+  "run": "run-rmlui-media-29fb2cbe0ef2",
+  "evidence": "QEMU TCG, FAT32 EFI boot, three complete cases",
+  "command": [
+    "--usb",
+    "both",
+    "--amdvi-probe",
+    "--amdvi-post",
+    "--amdvi-coexist",
+    "--amdvi-guest-dma",
+    "--amdvi-storage",
+    "--amdvi-routed"
+  ],
+  "result": {
+    "passed": 3,
+    "total": 3,
+    "cases": [
+      "normal",
+      "external-permissions",
+      "amdvi-missing"
+    ]
+  },
+  "device_table": {
+    "device_id_entries": 65536,
+    "highest_device_id": "ffff",
+    "bytes": 2097152,
+    "pages_4k": 512,
+    "policy": "Unassigned DTEs point to a zeroed deny-only root; three explicitly assigned domains.",
+    "default_denied_entries": 65533,
+    "default_deny_verified": true,
+    "assigned_requesters": [
+      {
+        "bdf": "0000:29:00.0",
+        "role": "QEMU EDU test device",
+        "device_id": "2900",
+        "domain": 1
+      },
+      {
+        "bdf": "0000:00:05.0",
+        "role": "QEMU xHCI",
+        "device_id": "0028",
+        "domain": 2
+      },
+      {
+        "bdf": "0000:00:06.0",
+        "role": "QEMU AHCI",
+        "device_id": "0030",
+        "domain": 3
+      }
+    ],
+    "present_requesters_invalidated": 12,
+    "unassigned_requester_blocked": "0020",
+    "edu_dte_byte_offset": 335872
+  },
+  "dma": {
+    "issuer": "Ring 0 guest",
+    "edu_transferred_bytes": 8,
+    "bounded_transfer_rejected": true,
+    "revoked_transfer_rejected": true,
+    "guest_invalidation_verified": true,
+    "xhci_hid_reports_during_and_after_grant": true,
+    "ahci_translated_reads": 2,
+    "physical_storage_tested": false
+  },
+  "desktop": {
+    "cpl": 3,
+    "gop": [
+      1280,
+      800
+    ],
+    "renderer": "CPU GOP",
+    "usb_keyboard_reports": 66,
+    "usb_mouse_reports": 15
+  },
+  "physical_hardware": {
+    "booted": false,
+    "amdvi_enabled": false,
+    "rtx_dma_granted": false,
+    "gsp_executed": false,
+    "rtx_3d_render_verified": false,
+    "deployable_to_metal": false
+  },
+  "limits": [
+    "QEMU devices only; QEMU VGA, not the RTX 3060.",
+    "The QEMU requester range now covers ffff, but physical IVRS scope/alias ownership and every real bus master still need reconciliation.",
+    "This proves DMA isolation and test rendering only; not NVIDIA GSP startup or 3D acceleration.",
+    "The routed profile emits no installable media."
+  ],
+  "qemu_results_sha256": "266b51382893eee924c8768c978555648d2128af5e4ad51f5ea34e1c7bd974ac",
+  "source_sha256": {
+    "kernel/drivers/bus/amdvi/post_layout.inc": "51f00e791f31de6e8afdf2641feba793e6d2ab19f04289ba656951f7465a5f97",
+    "kernel/drivers/bus/amdvi/coexist_guest.inc": "8ffb56c672a162edb403e4def9a53cd8a8c202fad0d2f9cdcf7e4f12125cfedb",
+    "kernel/syscalls/session_gate.S": "9c6b2d991afb71f875458f966c1825cae3cc888cdfe96100b8945f916ba5b061",
+    "tools/boot/amdvi_xhci.py": "36720c245e53412921b701d4b6a054586efc7d5696563fca2aa3a1bf27b2b0b5",
+    "tools/desktop/rmlui/native/media.py": "3a6d6d6945bb325326da721f9a0b333f322124007cf69b732e75a3bff80f8880"
+  }
+}

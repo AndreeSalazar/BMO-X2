@@ -156,6 +156,13 @@ NX; luego lo revoca. Es preparacion de memoria, no aceleracion: AMD-Vi
 sigue apagado, la RTX no recibe DMA y no se emite medio para METAL.
 [Evidencia del traspaso DTE](Reports/amdvi-dte-post-ebs-qemu-20261121.json).
 
+El siguiente perfil QEMU de AMD-Vi configura las 65,536 entradas con
+denegacion predeterminada, concede dominios separados a EDU, xHCI y AHCI,
+invalida los solicitantes presentes y comprueba una transferencia traducida,
+su rechazo fuera de rango y la revocacion. Los tres casos QEMU pasaron.
+Esto valida el laboratorio virtual; no enciende DMA de la RTX ni acelera
+el escritorio fisico. [Evidencia de tabla completa](Reports/amdvi-full-dte-default-deny-qemu-20261121.json).
+
 El escritorio ya recibe entrada xHCI en QEMU con teclado y raton en
 perfiles separados, mediante el transporte de diagnostico y el servicio
 HID Rust de Ring 3. Cada prueba desactiva su alternativa PS/2. No acredita

@@ -27,10 +27,13 @@
     "safe_layout": "contiguous without DTE segmentation"
   },
   "qemu_lab_comparison": {
-    "run": "run-rmlui-media-77162fe3400f",
-    "device_table_pages": 96,
-    "highest_requester": "2fff",
-    "fits_metal_ivrs": false
+    "run": "run-rmlui-media-29fb2cbe0ef2",
+    "device_table_pages": 512,
+    "highest_requester": "ffff",
+    "device_id_range_covered": true,
+    "default_deny_verified": true,
+    "present_requesters_invalidated": 12,
+    "physical_topology_reconciled": false
   },
   "qemu_reserved_table": {
     "run": "run-rmlui-media-31fb1d468f06",
@@ -49,9 +52,22 @@
   "rtx_gsp_executed": false,
   "rtx_3d_render_verified": false,
   "deployable_to_metal": false,
-  "next_gate": "Build a QEMU default-deny DTE table covering all 65536 requesters, then prove one isolated requester can be granted and revoked. Before METAL activation, reconcile every physical IVRS scope and quiesce or safely map every DMA requester.",
+  "next_gate": "Derive and review physical requester ownership from complete IVRS scopes plus the PCI census, including bridges, siblings, storage and USB bus masters. Keep AMD-Vi off until every active requester is quiesced or assigned a bounded domain; then test the RTX grant/revoke and signed GSP separately.",
   "source_sha256": {
     "tools/host/gpu/ivrs.py": "217e691b226047243d4ad60b0a5e65e95e156cb559f39ad7e9dbf41d7926f46c",
-    "Reports/dma-pci-census-metal-20261120.json": "99b1a582901fa859d8d699d8736b8d76d9f8484e1edc711579fd3e4c0bf686bf"
+    "Reports/dma-pci-census-metal-20261120.json": "99b1a582901fa859d8d699d8736b8d76d9f8484e1edc711579fd3e4c0bf686bf",
+    "tools/boot/amdvi_xhci.py": "36720c245e53412921b701d4b6a054586efc7d5696563fca2aa3a1bf27b2b0b5",
+    "tools/desktop/rmlui/native/media.py": "3a6d6d6945bb325326da721f9a0b333f322124007cf69b732e75a3bff80f8880"
+  },
+  "qemu_full_table_test": {
+    "report": "amdvi-full-dte-default-deny-qemu-20261121.json",
+    "passed": 3,
+    "total": 3,
+    "assigned_domains": 3,
+    "default_denied_entries": 65533,
+    "bounded_dma_rejected": true,
+    "revoked_dma_rejected": true,
+    "physical_rtx_tested": false,
+    "installable_media_emitted": false
   }
 }

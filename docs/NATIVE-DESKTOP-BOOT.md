@@ -322,13 +322,24 @@ $py = Join-Path $env:USERPROFILE '.cache/codex-runtimes/codex-primary-runtime/de
 & $py -B tools/desktop/rmlui/native/media.py <ABI_RUN> <GATO_COMPACTO_RUN> --usb both --amdvi-probe --amdvi-post --amdvi-dte-reserve
 ```
 
-El perfil es de laboratorio QEMU y no genera medio instalable. La tabla
-sigue en cero y AMD-Vi permanece apagado; esto no concede DMA a la GPU ni
-prueba GSP o renderizado 3D. El siguiente umbral es construir en QEMU los
-65536 DTE con denegacion por defecto y validar concesion, invalidacion y
-revocacion de un solicitante aislado. Para METAL aun se requiere cotejar
-el mapa IVRS completo y demostrar control de todos los solicitantes DMA
-del equipo antes de activar AMD-Vi.
+El perfil es de laboratorio QEMU y no genera medio instalable. La reserva
+UEFI y su lectura post-EBS son un ensayo separado. La siguiente ejecucion
+QEMU construyo una tabla de 512 paginas (2 MiB) con 65,536 DTE: las
+entradas sin dominio apuntan a una raiz vacia de denegacion, EDU, xHCI y
+AHCI reciben dominios independientes, se invalidan los 12 solicitantes
+presentes y la prueba confirma DMA traducido, rechazo fuera de rango,
+revocacion y continuidad de HID. Pasaron los tres casos QEMU: normal,
+rechazo W+X y AMD-Vi ausente.
+[Evidencia de tabla DTE completa](../Reports/amdvi-full-dte-default-deny-qemu-20261121.json).
+
+Esto solo valida dispositivos virtuales. AMD-Vi fisico sigue apagado; la RTX
+no recibio DMA y este ensayo no prueba GSP ni dibujo 3D. El siguiente umbral
+es preparar la misma politica de denegacion desde la topologia IVRS y el
+censo PCI fisicos, incluyendo puentes y funciones hermanas; identificar
+cada bus master, detenerlo o darle un dominio acotado, y revisar la tabla
+antes de habilitar traduccion en METAL. Despues se puede probar una
+concesion y revocacion de la RTX sin presentar el resultado como aceleracion
+hasta verificar el inicio del GSP y un render escrito por la GPU.
 [Reporte post-EBS](../Reports/amdvi-dte-post-ebs-qemu-20261121.json).
 
 El ensayo `run-rmlui-media-4910a511a24c` verifica en QEMU el descriptor
@@ -1013,18 +1024,20 @@ python -B tools/desktop/rmlui/native/media.py <ABI_RUN> <GATO_COMPACTO_RUN> --us
 
 El perfil `--amdvi-routed` agrega un dispositivo EDU detras de un
 puerto PCIe en un bus alto. Ring 0 descubre el BDF completo, valida
-la reserva UEFI y programa su entrada en una tabla AMD-Vi de 96
-paginas. El banco verifica por separado la entrada, la invalidacion
-y las transferencias a RAM. SATA y xHCI conservan sus dominios.
-En `run-rmlui-media-30dc9e18a054` EDU obtuvo `29:00.0`, el
-mismo BDF observado para la RTX en METAL. Su entrada quedo en
-`0x52000` respecto al comienzo de la tabla.
-La configuracion rechaza otras funciones con BME. La version QEMU
-del banco puede registrar solo dispositivo y funcion en el evento
-de fallo de una transferencia en otro bus. El informe conserva ese
-valor de QEMU y verifica por separado el aislamiento con testigos
-en RAM. El perfil es exclusivo de QEMU.
-[Prueba DMA en un bus PCIe alto](../Reports/amdvi-routed-qemu-20261120.json).
+la reserva UEFI y programa 512 paginas (2 MiB), suficientes para cubrir
+los 65,536 valores DTE de `0000` a `ffff`. En
+`run-rmlui-media-29fb2cbe0ef2` verifica todas las entradas restantes
+contra la raiz vacia de denegacion, instala dominios independientes para
+EDU `29:00.0`, xHCI `00:05.0` y AHCI `00:06.0`, e invalida los 12
+solicitantes presentes. La transferencia DMA de EDU funciona solo dentro
+del rango concedido; el testigo fuera de rango permanece igual y la
+revocacion cierra la transferencia sin interrumpir teclado, raton o SATA.
+Los otros dos casos rechazan W+X y AMD-Vi ausente. Los tres pasaron.
+El evento de QEMU puede informar solo dispositivo y funcion para una
+solicitud fallida de otro bus; el informe conserva esa limitacion y coteja
+el BDF completo por separado. El perfil es exclusivo de QEMU y no concede
+DMA a la RTX fisica.
+[Prueba DMA con tabla completa](../Reports/amdvi-full-dte-default-deny-qemu-20261121.json).
 
 Antes de activar la traduccion en METAL hay que bloquear los
 solicitantes sin dominio. Una DTE a cero deja V desactivado y

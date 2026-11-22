@@ -381,9 +381,7 @@ amdvi_diagnostic:
     jbe .Lamdvi_snapshot
 #endif
     cmp $7, %r10
-    jb denied
-    cmp $7, %r10
-    ja denied
+    jne denied
     jmp .Lamdvi_snapshot
 #ifdef BMO_NVIDIA_GSP_STATUS
 .Lamdvi_gsp_status:

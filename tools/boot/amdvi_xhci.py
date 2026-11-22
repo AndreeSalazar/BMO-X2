@@ -12,7 +12,7 @@ from host.gpu.qemu_dma import (
 
 PAGE = 4096
 EDU_BUFFER = 0x40000
-ROUTED_TABLE_PAGES = 96
+ROUTED_TABLE_PAGES = 512
 
 
 class SocketQTest(QTest):

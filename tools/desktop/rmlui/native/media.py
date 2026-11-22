@@ -156,7 +156,7 @@ def main():
     llvm=Path(os.environ['ProgramFiles'])/'LLVM/bin'
     extra=12288 if args.usb=='both' else 8192 if args.usb else 4096
     amdvi_offset=0x3000+extra
-    amdvi_budget=8192 if args.full_hd or args.amdvi_guest_nvme else 4096
+    amdvi_budget=8192 if args.full_hd or args.amdvi_guest_nvme or (args.amdvi_routed and args.amdvi_dte_reserve) else 4096
     gsp_offset=amdvi_offset+amdvi_budget
     units=[('allocator','kernel/boot/bridge/desktop_media_alloc.S'),('reader','kernel/boot/bridge/desktop_media_read.S'),
         ('gate','kernel/syscalls/session_gate.S'),('loader','kernel/loader/doom_engine_loader.S')]
@@ -230,7 +230,7 @@ def main():
             flags+=['-DBMO_AMDVI_GSP_DMA','-DRMLUI_MEDIA','-DRMLUI_NATIVE','-DDESKTOP_DOOM',*nvidia_reader_flags]
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf',*flags,'-c',source,'-o',native_probe],'compile-amdvi-firmware')
         if args.amdvi_post:
-            post_budget=3168 if args.amdvi_gsp_dma else 2560 if args.amdvi_storage or storage_handoff else 2048
+            post_budget=3168 if args.amdvi_gsp_dma else 3072 if args.amdvi_routed else 2560 if args.amdvi_storage or storage_handoff else 2048
             check_context_stage(llvm,native_probe,'amdvi_post',post_budget)
         if args.full_hd or args.amdvi_gsp_dma:
             gop_budget=928 if args.amdvi_gsp_dma else 1536 if storage_handoff else 2048
@@ -355,6 +355,8 @@ def main():
     if args.amdvi_routed and (not report['Cases'][0].get('RoutedDmaVerified') or
                              not report['Cases'][0].get('UnassignedRequesterBlocked')):
         raise ValueError('Missing translated DMA or default-deny evidence')
+    if args.amdvi_routed and report['Cases'][0].get('DeviceTablePages')!=512:
+        raise ValueError('The routed QEMU domain does not cover all 65536 requester IDs')
     media_prefix = 'BMO-X2/GPU' if args.nvidia_probe else 'BMO-X2/DESKTOP'
     fs=Fat32(run/'build/puente-normal.img')
     try:
@@ -368,7 +370,7 @@ def main():
     staged={f'EFI/BMO-X2/{boot_name}':image,f'{media_prefix}/INICIO.X86':packet,f'{media_prefix}/DESKTOP.SBF':sbef}
     if gsp is not None:
         staged[f'{media_prefix}/GSP.BIN'] = gsp
-    storage_lab_only = args.storage_quiesce or args.amdvi_nvme or args.amdvi_dte_reserve
+    storage_lab_only = args.storage_quiesce or args.amdvi_nvme or args.amdvi_dte_reserve or args.amdvi_routed
     if not storage_lab_only:
         for name,data in staged.items():
             target=media/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(data)
