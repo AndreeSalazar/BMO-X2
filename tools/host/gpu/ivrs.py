@@ -174,23 +174,138 @@ def inspect(data, requested):
                 bmo_x2_dma_isolation_verified=False)
 
 
+def reconcile_census(report, census, census_sha256=None):
+    """Coteja los solicitantes observados; no asigna dominios ni activa DMA."""
+    active = {}
+    for device in census.get('bus_master_enabled', []):
+        bdf = device.get('bdf')
+        if not isinstance(bdf, str):
+            raise ValueError('Solicitante activo sin BDF valido en el censo')
+        try:
+            bdf_arg(bdf)
+        except argparse.ArgumentTypeError as error:
+            raise ValueError(f'BDF invalido en el censo: {bdf}') from error
+        if bdf in active:
+            raise ValueError(f'Solicitante bus-master duplicado: {bdf}')
+        command = device.get('pci_command')
+        if not isinstance(command, str) or not re.fullmatch(r'[0-9a-fA-F]{4}', command):
+            raise ValueError(f'PCI Command invalido para {bdf}')
+        if not int(command, 16) & 0x0004:
+            raise ValueError(f'{bdf} figura como activo pero PCI Command no tiene Bus Master')
+        active[bdf] = device
+
+    known = dict(active)
+    for device in census.get('physical_device_hints', []):
+        bdf = device.get('bdf')
+        if not isinstance(bdf, str):
+            raise ValueError('Dato auxiliar de dispositivo sin BDF valido')
+        try:
+            bdf_arg(bdf)
+        except argparse.ArgumentTypeError as error:
+            raise ValueError(f'BDF auxiliar invalido: {bdf}') from error
+        command = device.get('pci_command')
+        if not isinstance(command, str) or not re.fullmatch(r'[0-9a-fA-F]{4}', command):
+            raise ValueError(f'PCI Command auxiliar invalido para {bdf}')
+        if bdf in known and known[bdf] != device:
+            raise ValueError(f'Datos auxiliares contradicen el censo para {bdf}')
+        known[bdf] = device
+
+    observed = set(known)
+    for bdf in census.get('ivrs_requesters', []):
+        if not isinstance(bdf, str):
+            raise ValueError('Lista IVRS contiene un BDF no textual')
+        try:
+            bdf_arg(bdf)
+        except argparse.ArgumentTypeError as error:
+            raise ValueError(f'BDF IVRS invalido en el censo: {bdf}') from error
+        observed.add(bdf)
+
+    rows = []
+    uncovered = []
+    for bdf in sorted(observed):
+        device = known.get(bdf)
+        matches = report['requesters'].get(bdf, [])
+        if not matches:
+            uncovered.append(bdf)
+        command = None if device is None else device['pci_command'].lower()
+        rows.append({
+            'bdf': bdf,
+            'vendor_device': None if device is None else device.get('id'),
+            'pci_class': None if device is None else device.get('pci_class'),
+            'pci_command': command,
+            'bus_master_enabled': None if command is None else bool(int(command, 16) & 0x0004),
+            'device_evidence': None if device is None else device.get('evidence'),
+            'ivrs_scope_matches': len(matches),
+            'ivrs_unit': None if not matches else matches[0]['unit_bdf'],
+            'ivrs_alias': None if not matches else matches[0]['alias'],
+            'scope_covered': bool(matches),
+            'scope_unambiguous': len(matches) == 1,
+            'domain_assignment_verified': False,
+        })
+
+    active_count = sum(1 for row in rows if row['bus_master_enabled'])
+    ambiguous = [row['bdf'] for row in rows if row['ivrs_scope_matches'] > 1]
+    return {
+        'evidence': 'HOST static join of the captured PCI census and ACPI IVRS scopes',
+        'census_sha256': census_sha256,
+        'ivrs_sha256': report['table_sha256'],
+        'observed_requesters': len(rows),
+        'bus_master_enabled': active_count,
+        'scope_covered': len(rows) - len(uncovered),
+        'uncovered_requesters': uncovered,
+        'ambiguous_requesters': ambiguous,
+        'all_observed_requesters_in_ivrs_scope': not uncovered,
+        'all_observed_requesters_unambiguous': not ambiguous,
+        'all_domains_verified': False,
+        'physical_translation_permitted': False,
+        'reason': 'IVRS scope coverage is not proof of DTE programming, quiescence, invalidation, or a bounded DMA domain.',
+        'requesters': rows,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('bdf', type=bdf_arg, nargs='+')
+    parser.add_argument('bdf', type=bdf_arg, nargs='*')
     parser.add_argument('--ivrs', type=Path, help='Archivo IVRS. Por defecto consulta la tabla de Windows.')
+    parser.add_argument('--census-json', type=Path, help='Censo PCI METAL; solo lectura, no habilita AMD-Vi.')
+    parser.add_argument('--output-json', type=Path, help='Guarda el inventario HOST resultante en JSON.')
     args = parser.parse_args()
     try:
+        census = None
+        census_sha256 = None
+        requested = list(args.bdf)
+        if args.census_json:
+            census_bytes = args.census_json.read_bytes()
+            if len(census_bytes) > MAX_TABLE_BYTES * 4:
+                raise ValueError('Censo PCI fuera de limite')
+            census = json.loads(census_bytes)
+            census_sha256 = hashlib.sha256(census_bytes).hexdigest()
+            requested.extend(bdf_arg(item) for item in census.get('ivrs_requesters', []))
+            requested.extend(bdf_arg(item['bdf']) for item in census.get('bus_master_enabled', []))
+        if not requested:
+            parser.error('Indique uno o mas BDF o --census-json')
+        requested = sorted(set(requested))
         if args.ivrs:
             with args.ivrs.open('rb') as stream:
                 data = stream.read(MAX_TABLE_BYTES + 1)
         else:
             data = windows_ivrs()
-        report = inspect(data, args.bdf)
+        report = inspect(data, requested)
+        if census is not None:
+            report['physical_dma_preflight'] = reconcile_census(report, census, census_sha256)
     except (OSError, ValueError) as error:
         parser.exit(1, f'IVRS: {error}\n')
     report['source'] = 'file' if args.ivrs else 'Windows GetSystemFirmwareTable'
-    print(json.dumps(report, indent=2))
-    return 0 if all(report['requesters'].values()) else 1
+    report['tool_sha256'] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+    output = json.dumps(report, indent=2)
+    if args.output_json:
+        args.output_json.write_text(output + '\n', encoding='ascii')
+    print(output)
+    scope_ok = all(report['requesters'].values())
+    if census is not None:
+        audit = report['physical_dma_preflight']
+        scope_ok = scope_ok and not audit['uncovered_requesters'] and not audit['ambiguous_requesters']
+    return 0 if scope_ok else 1
 
 
 if __name__ == '__main__':

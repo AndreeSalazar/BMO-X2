@@ -163,6 +163,20 @@ su rechazo fuera de rango y la revocacion. Los tres casos QEMU pasaron.
 Esto valida el laboratorio virtual; no enciende DMA de la RTX ni acelera
 el escritorio fisico. [Evidencia de tabla completa](Reports/amdvi-full-dte-default-deny-qemu-20261121.json).
 
+El preflight HOST coteja los BDF del censo METAL con los alcances IVRS
+leidos ahora de ACPI. El censo guardado queda cubierto por una sola unidad
+IVHD: 17 de 17 solicitantes observados, incluidos 15 con Bus Master activo.
+La RTX `29:00.0` (`10de:2504`) figura con Bus Master apagado.
+Es solo una union estatica; no demuestra DTE, dominios ni invalidacion,
+por eso mantiene bloqueada la traduccion fisica. Se regenera con:
+
+```powershell
+$py = Join-Path $env:USERPROFILE '.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe'
+& $py -B tools/host/gpu/ivrs.py --census-json Reports/dma-pci-census-metal-20261120.json --output-json Reports/amdvi-physical-dma-preflight-20261121.json
+```
+
+[Matriz de preflight](Reports/amdvi-physical-dma-preflight-20261121.json).
+
 El escritorio ya recibe entrada xHCI en QEMU con teclado y raton en
 perfiles separados, mediante el transporte de diagnostico y el servicio
 HID Rust de Ring 3. Cada prueba desactiva su alternativa PS/2. No acredita

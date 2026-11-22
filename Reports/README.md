@@ -15,6 +15,10 @@ Codigo: [panel](../tools/desktop/reports.rs),
 [exportador HOST](../tools/boot/report.py). Evidencia QEMU en
 [evidence.json](evidence.json).
 
+El preflight AMD-Vi se produce desde HOST sin tocar dispositivos: cruza la
+tabla ACPI IVRS con el censo METAL y mantiene `physical_translation_permitted`
+en `false`. [Matriz de solicitantes](amdvi-physical-dma-preflight-20261121.json).
+
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\build-desktop.ps1 -Session -External -Reports -AbiRun build/CASM/run-20261112-174958-944cb997
 # Como tercer argumento se utiliza un run desktop-external ya comprobado.

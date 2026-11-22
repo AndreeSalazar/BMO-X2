@@ -136,6 +136,14 @@
   "ivrs_preferred_block": "11",
   "ivrs_no_alias_reported_for_observed_functions": true,
   "rtx_pci_command": "0003",
+  "physical_device_hints": [
+    {
+      "bdf": "0000:29:00.0",
+      "id": "10de:2504",
+      "pci_command": "0003",
+      "evidence": "Reports/nvidia-pci-metal-20261120.json"
+    }
+  ],
   "physical_dma_isolation_verified": false,
   "rtx_render_verified": false,
   "bootlog_fat32_sha256": "e74d5bf30dc2ac640ef7228de979a2aa2eb37ad7320e1c959cbd1d09041f216e",

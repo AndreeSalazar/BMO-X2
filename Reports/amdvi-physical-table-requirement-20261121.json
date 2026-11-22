@@ -18,6 +18,15 @@
     }
   ],
   "observed_requesters_matched": 17,
+  "physical_dma_preflight": {
+    "report": "amdvi-physical-dma-preflight-20261121.json",
+    "ivrs_scope_matches": 17,
+    "observed_requesters": 17,
+    "bus_master_enabled": 15,
+    "uncovered_requesters": 0,
+    "domains_verified": false,
+    "translation_permitted": false
+  },
   "device_table": {
     "highest_device_id": "ffff",
     "minimum_entries": 65536,
@@ -52,10 +61,11 @@
   "rtx_gsp_executed": false,
   "rtx_3d_render_verified": false,
   "deployable_to_metal": false,
-  "next_gate": "Derive and review physical requester ownership from complete IVRS scopes plus the PCI census, including bridges, siblings, storage and USB bus masters. Keep AMD-Vi off until every active requester is quiesced or assigned a bounded domain; then test the RTX grant/revoke and signed GSP separately.",
+  "next_gate": "The static HOST join confirms scope coverage for all 17 recorded requesters but also finds 15 Bus Master functions and no verified domains. Build and review physical per-requester DTE programming, quiesce or bound every active DMA source, and prove invalidation before enabling translation; only then test the RTX grant/revoke, GSP response, and GPU render separately.",
   "source_sha256": {
-    "tools/host/gpu/ivrs.py": "217e691b226047243d4ad60b0a5e65e95e156cb559f39ad7e9dbf41d7926f46c",
-    "Reports/dma-pci-census-metal-20261120.json": "99b1a582901fa859d8d699d8736b8d76d9f8484e1edc711579fd3e4c0bf686bf",
+    "tools/host/gpu/ivrs.py": "143fc84857b44386b9a8944c9a68d60a2db18d9435a1f20f700a3d520f281424",
+    "Reports/dma-pci-census-metal-20261120.json": "609c0544c0c0c1b85eb3ddad98c303b715ef6c43185d386c4b26b5df2b3eec6a",
+    "Reports/nvidia-pci-metal-20261120.json": "1e04eec25737c34f6ee42e346322ec941ca2382202f11401427d403691e93e29",
     "tools/boot/amdvi_xhci.py": "36720c245e53412921b701d4b6a054586efc7d5696563fca2aa3a1bf27b2b0b5",
     "tools/desktop/rmlui/native/media.py": "3a6d6d6945bb325326da721f9a0b333f322124007cf69b732e75a3bff80f8880"
   },

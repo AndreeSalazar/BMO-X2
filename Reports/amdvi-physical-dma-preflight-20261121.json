@@ -1,0 +1,501 @@
+{
+  "schema": 1,
+  "evidence": "HOST: ACPI firmware inventory",
+  "table_bytes": 208,
+  "table_revision": 2,
+  "table_sha256": "d2b4e55ee37be93d6e764136059f140e847368118d447c345964ef21471202ec",
+  "block_types": [
+    "10",
+    "11"
+  ],
+  "requesters": {
+    "0000:00:01.1": [
+      {
+        "unit_bdf": "0000:00:00.2",
+        "ivhd_type": "11",
+        "ivhd_flags": "b0",
+        "pci_capability_offset": "0x40",
+        "mmio_base": "0x00000000fd500000",
+        "range_first": "0000:00:01.0",
+        "range_last": "0000:ff:1f.6",
+        "alias": null
+      }
+    ],
+    "0000:00:01.3": [
+      {
+        "unit_bdf": "0000:00:00.2",
+        "ivhd_type": "11",
+        "ivhd_flags": "b0",
+        "pci_capability_offset": "0x40",
+        "mmio_base": "0x00000000fd500000",
+        "range_first": "0000:00:01.0",
+        "range_last": "0000:ff:1f.6",
+        "alias": null
+      }
+    ],
+    "0000:00:03.1": [
+      {
+        "unit_bdf": "0000:00:00.2",
+        "ivhd_type": "11",
+        "ivhd_flags": "b0",
+        "pci_capability_offset": "0x40",
+        "mmio_base": "0x00000000fd500000",
+        "range_first": "0000:00:01.0",
+        "range_last": "0000:ff:1f.6",
+        "alias": null
+      }
+    ],
+    "0000:00:07.1": [
+      {
+        "unit_bdf": "0000:00:00.2",
+        "ivhd_type": "11",
+        "ivhd_flags": "b0",
+        "pci_capability_offset": "0x40",
+        "mmio_base": "0x00000000fd500000",
+        "range_first": "0000:00:01.0",
+        "range_last": "0000:ff:1f.6",
+        "alias": null
+      }
+    ],
+    "0000:00:08.1": [
+      {
+        "unit_bdf": "0000:00:00.2",
+        "ivhd_type": "11",
+        "ivhd_flags": "b0",
+        "pci_capability_offset": "0x40",
+        "mmio_base": "0x00000000fd500000",
+        "range_first": "0000:00:01.0",
+        "range_last": "0000:ff:1f.6",
+        "alias": null
+      }
+    ],
+    "0000:00:14.3": [
+      {
+        "unit_bdf": "0000:00:00.2",
+        "ivhd_type": "11",
+        "ivhd_flags": "b0",
+        "pci_capability_offset": "0x40",
+        "mmio_base": "0x00000000fd500000",
+        "range_first": "0000:00:01.0",
+        "range_last": "0000:ff:1f.6",
+        "alias": null
+      }
+    ],
+    "0000:01:00.0": [
+      {
+        "unit_bdf": "0000:00:00.2",
+        "ivhd_type": "11",
+        "ivhd_flags": "b0",
+        "pci_capability_offset": "0x40",
+        "mmio_base": "0x00000000fd500000",
+        "range_first": "0000:00:01.0",
+        "range_last": "0000:ff:1f.6",
+        "alias": null
+      }
+    ],
+    "0000:03:00.0": [
+      {
+        "unit_bdf": "0000:00:00.2",
+        "ivhd_type": "11",
+        "ivhd_flags": "b0",
+        "pci_capability_offset": "0x40",
+        "mmio_base": "0x00000000fd500000",
+        "range_first": "0000:00:01.0",
+        "range_last": "0000:ff:1f.6",
+        "alias": null
+      }
+    ],
+    "0000:03:00.1": [
+      {
+        "unit_bdf": "0000:00:00.2",
+        "ivhd_type": "11",
+        "ivhd_flags": "b0",
+        "pci_capability_offset": "0x40",
+        "mmio_base": "0x00000000fd500000",
+        "range_first": "0000:00:01.0",
+        "range_last": "0000:ff:1f.6",
+        "alias": null
+      }
+    ],
+    "0000:03:00.2": [
+      {
+        "unit_bdf": "0000:00:00.2",
+        "ivhd_type": "11",
+        "ivhd_flags": "b0",
+        "pci_capability_offset": "0x40",
+        "mmio_base": "0x00000000fd500000",
+        "range_first": "0000:00:01.0",
+        "range_last": "0000:ff:1f.6",
+        "alias": null
+      }
+    ],
+    "0000:20:04.0": [
+      {
+        "unit_bdf": "0000:00:00.2",
+        "ivhd_type": "11",
+        "ivhd_flags": "b0",
+        "pci_capability_offset": "0x40",
+        "mmio_base": "0x00000000fd500000",
+        "range_first": "0000:00:01.0",
+        "range_last": "0000:ff:1f.6",
+        "alias": null
+      }
+    ],
+    "0000:20:05.0": [
+      {
+        "unit_bdf": "0000:00:00.2",
+        "ivhd_type": "11",
+        "ivhd_flags": "b0",
+        "pci_capability_offset": "0x40",
+        "mmio_base": "0x00000000fd500000",
+        "range_first": "0000:00:01.0",
+        "range_last": "0000:ff:1f.6",
+        "alias": null
+      }
+    ],
+    "0000:20:06.0": [
+      {
+        "unit_bdf": "0000:00:00.2",
+        "ivhd_type": "11",
+        "ivhd_flags": "b0",
+        "pci_capability_offset": "0x40",
+        "mmio_base": "0x00000000fd500000",
+        "range_first": "0000:00:01.0",
+        "range_last": "0000:ff:1f.6",
+        "alias": null
+      }
+    ],
+    "0000:20:07.0": [
+      {
+        "unit_bdf": "0000:00:00.2",
+        "ivhd_type": "11",
+        "ivhd_flags": "b0",
+        "pci_capability_offset": "0x40",
+        "mmio_base": "0x00000000fd500000",
+        "range_first": "0000:00:01.0",
+        "range_last": "0000:ff:1f.6",
+        "alias": null
+      }
+    ],
+    "0000:29:00.0": [
+      {
+        "unit_bdf": "0000:00:00.2",
+        "ivhd_type": "11",
+        "ivhd_flags": "b0",
+        "pci_capability_offset": "0x40",
+        "mmio_base": "0x00000000fd500000",
+        "range_first": "0000:00:01.0",
+        "range_last": "0000:ff:1f.6",
+        "alias": null
+      }
+    ],
+    "0000:29:00.1": [
+      {
+        "unit_bdf": "0000:00:00.2",
+        "ivhd_type": "11",
+        "ivhd_flags": "b0",
+        "pci_capability_offset": "0x40",
+        "mmio_base": "0x00000000fd500000",
+        "range_first": "0000:00:01.0",
+        "range_last": "0000:ff:1f.6",
+        "alias": null
+      }
+    ],
+    "0000:2b:00.3": [
+      {
+        "unit_bdf": "0000:00:00.2",
+        "ivhd_type": "11",
+        "ivhd_flags": "b0",
+        "pci_capability_offset": "0x40",
+        "mmio_base": "0x00000000fd500000",
+        "range_first": "0000:00:01.0",
+        "range_last": "0000:ff:1f.6",
+        "alias": null
+      }
+    ]
+  },
+  "device_table_requirements": [
+    {
+      "unit_bdf": "0000:00:00.2",
+      "ivhd_type": "11",
+      "scope_first": "0000:00:01.0",
+      "scope_last": "0000:ff:1f.7",
+      "scope_ranges": [
+        {
+          "first": "0000:00:01.0",
+          "last": "0000:ff:1f.6",
+          "alias": null
+        },
+        {
+          "first": "0000:ff:00.0",
+          "last": "0000:ff:1f.7",
+          "alias": "00a5"
+        }
+      ],
+      "highest_device_id": "ffff",
+      "minimum_entries": 65536,
+      "minimum_bytes": 2097152,
+      "minimum_4k_pages": 512,
+      "minimum_aligned_bytes": 2097152,
+      "layout": "contiguous without DTE segmentation"
+    }
+  ],
+  "bmo_x2_dma_isolation_verified": false,
+  "physical_dma_preflight": {
+    "evidence": "HOST static join of the captured PCI census and ACPI IVRS scopes",
+    "census_sha256": "609c0544c0c0c1b85eb3ddad98c303b715ef6c43185d386c4b26b5df2b3eec6a",
+    "ivrs_sha256": "d2b4e55ee37be93d6e764136059f140e847368118d447c345964ef21471202ec",
+    "observed_requesters": 17,
+    "bus_master_enabled": 15,
+    "scope_covered": 17,
+    "uncovered_requesters": [],
+    "ambiguous_requesters": [],
+    "all_observed_requesters_in_ivrs_scope": true,
+    "all_observed_requesters_unambiguous": true,
+    "all_domains_verified": false,
+    "physical_translation_permitted": false,
+    "reason": "IVRS scope coverage is not proof of DTE programming, quiescence, invalidation, or a bounded DMA domain.",
+    "requesters": [
+      {
+        "bdf": "0000:00:01.1",
+        "vendor_device": "1022:1483",
+        "pci_class": "060400",
+        "pci_command": "0007",
+        "bus_master_enabled": true,
+        "device_evidence": null,
+        "ivrs_scope_matches": 1,
+        "ivrs_unit": "0000:00:00.2",
+        "ivrs_alias": null,
+        "scope_covered": true,
+        "scope_unambiguous": true,
+        "domain_assignment_verified": false
+      },
+      {
+        "bdf": "0000:00:01.3",
+        "vendor_device": "1022:1483",
+        "pci_class": "060400",
+        "pci_command": "0007",
+        "bus_master_enabled": true,
+        "device_evidence": null,
+        "ivrs_scope_matches": 1,
+        "ivrs_unit": "0000:00:00.2",
+        "ivrs_alias": null,
+        "scope_covered": true,
+        "scope_unambiguous": true,
+        "domain_assignment_verified": false
+      },
+      {
+        "bdf": "0000:00:03.1",
+        "vendor_device": "1022:1483",
+        "pci_class": "060400",
+        "pci_command": "0007",
+        "bus_master_enabled": true,
+        "device_evidence": null,
+        "ivrs_scope_matches": 1,
+        "ivrs_unit": "0000:00:00.2",
+        "ivrs_alias": null,
+        "scope_covered": true,
+        "scope_unambiguous": true,
+        "domain_assignment_verified": false
+      },
+      {
+        "bdf": "0000:00:07.1",
+        "vendor_device": "1022:1484",
+        "pci_class": "060400",
+        "pci_command": "0007",
+        "bus_master_enabled": true,
+        "device_evidence": null,
+        "ivrs_scope_matches": 1,
+        "ivrs_unit": "0000:00:00.2",
+        "ivrs_alias": null,
+        "scope_covered": true,
+        "scope_unambiguous": true,
+        "domain_assignment_verified": false
+      },
+      {
+        "bdf": "0000:00:08.1",
+        "vendor_device": "1022:1484",
+        "pci_class": "060400",
+        "pci_command": "0007",
+        "bus_master_enabled": true,
+        "device_evidence": null,
+        "ivrs_scope_matches": 1,
+        "ivrs_unit": "0000:00:00.2",
+        "ivrs_alias": null,
+        "scope_covered": true,
+        "scope_unambiguous": true,
+        "domain_assignment_verified": false
+      },
+      {
+        "bdf": "0000:00:14.3",
+        "vendor_device": "1022:790e",
+        "pci_class": "060100",
+        "pci_command": "000f",
+        "bus_master_enabled": true,
+        "device_evidence": null,
+        "ivrs_scope_matches": 1,
+        "ivrs_unit": "0000:00:00.2",
+        "ivrs_alias": null,
+        "scope_covered": true,
+        "scope_unambiguous": true,
+        "domain_assignment_verified": false
+      },
+      {
+        "bdf": "0000:01:00.0",
+        "vendor_device": "2646:5017",
+        "pci_class": "010802",
+        "pci_command": "0006",
+        "bus_master_enabled": true,
+        "device_evidence": null,
+        "ivrs_scope_matches": 1,
+        "ivrs_unit": "0000:00:00.2",
+        "ivrs_alias": null,
+        "scope_covered": true,
+        "scope_unambiguous": true,
+        "domain_assignment_verified": false
+      },
+      {
+        "bdf": "0000:03:00.0",
+        "vendor_device": "1022:43bc",
+        "pci_class": "0c0330",
+        "pci_command": "0006",
+        "bus_master_enabled": true,
+        "device_evidence": null,
+        "ivrs_scope_matches": 1,
+        "ivrs_unit": "0000:00:00.2",
+        "ivrs_alias": null,
+        "scope_covered": true,
+        "scope_unambiguous": true,
+        "domain_assignment_verified": false
+      },
+      {
+        "bdf": "0000:03:00.1",
+        "vendor_device": "1022:43b8",
+        "pci_class": "010601",
+        "pci_command": "0006",
+        "bus_master_enabled": true,
+        "device_evidence": null,
+        "ivrs_scope_matches": 1,
+        "ivrs_unit": "0000:00:00.2",
+        "ivrs_alias": null,
+        "scope_covered": true,
+        "scope_unambiguous": true,
+        "domain_assignment_verified": false
+      },
+      {
+        "bdf": "0000:03:00.2",
+        "vendor_device": "1022:43b3",
+        "pci_class": "060400",
+        "pci_command": "0007",
+        "bus_master_enabled": true,
+        "device_evidence": null,
+        "ivrs_scope_matches": 1,
+        "ivrs_unit": "0000:00:00.2",
+        "ivrs_alias": null,
+        "scope_covered": true,
+        "scope_unambiguous": true,
+        "domain_assignment_verified": false
+      },
+      {
+        "bdf": "0000:20:04.0",
+        "vendor_device": "1022:43b4",
+        "pci_class": "060400",
+        "pci_command": "0007",
+        "bus_master_enabled": true,
+        "device_evidence": null,
+        "ivrs_scope_matches": 1,
+        "ivrs_unit": "0000:00:00.2",
+        "ivrs_alias": null,
+        "scope_covered": true,
+        "scope_unambiguous": true,
+        "domain_assignment_verified": false
+      },
+      {
+        "bdf": "0000:20:05.0",
+        "vendor_device": "1022:43b4",
+        "pci_class": "060400",
+        "pci_command": "0007",
+        "bus_master_enabled": true,
+        "device_evidence": null,
+        "ivrs_scope_matches": 1,
+        "ivrs_unit": "0000:00:00.2",
+        "ivrs_alias": null,
+        "scope_covered": true,
+        "scope_unambiguous": true,
+        "domain_assignment_verified": false
+      },
+      {
+        "bdf": "0000:20:06.0",
+        "vendor_device": "1022:43b4",
+        "pci_class": "060400",
+        "pci_command": "0007",
+        "bus_master_enabled": true,
+        "device_evidence": null,
+        "ivrs_scope_matches": 1,
+        "ivrs_unit": "0000:00:00.2",
+        "ivrs_alias": null,
+        "scope_covered": true,
+        "scope_unambiguous": true,
+        "domain_assignment_verified": false
+      },
+      {
+        "bdf": "0000:20:07.0",
+        "vendor_device": "1022:43b4",
+        "pci_class": "060400",
+        "pci_command": "0007",
+        "bus_master_enabled": true,
+        "device_evidence": null,
+        "ivrs_scope_matches": 1,
+        "ivrs_unit": "0000:00:00.2",
+        "ivrs_alias": null,
+        "scope_covered": true,
+        "scope_unambiguous": true,
+        "domain_assignment_verified": false
+      },
+      {
+        "bdf": "0000:29:00.0",
+        "vendor_device": "10de:2504",
+        "pci_class": null,
+        "pci_command": "0003",
+        "bus_master_enabled": false,
+        "device_evidence": "Reports/nvidia-pci-metal-20261120.json",
+        "ivrs_scope_matches": 1,
+        "ivrs_unit": "0000:00:00.2",
+        "ivrs_alias": null,
+        "scope_covered": true,
+        "scope_unambiguous": true,
+        "domain_assignment_verified": false
+      },
+      {
+        "bdf": "0000:29:00.1",
+        "vendor_device": null,
+        "pci_class": null,
+        "pci_command": null,
+        "bus_master_enabled": null,
+        "device_evidence": null,
+        "ivrs_scope_matches": 1,
+        "ivrs_unit": "0000:00:00.2",
+        "ivrs_alias": null,
+        "scope_covered": true,
+        "scope_unambiguous": true,
+        "domain_assignment_verified": false
+      },
+      {
+        "bdf": "0000:2b:00.3",
+        "vendor_device": "1022:149c",
+        "pci_class": "0c0330",
+        "pci_command": "0007",
+        "bus_master_enabled": true,
+        "device_evidence": null,
+        "ivrs_scope_matches": 1,
+        "ivrs_unit": "0000:00:00.2",
+        "ivrs_alias": null,
+        "scope_covered": true,
+        "scope_unambiguous": true,
+        "domain_assignment_verified": false
+      }
+    ]
+  },
+  "source": "Windows GetSystemFirmwareTable",
+  "tool_sha256": "143fc84857b44386b9a8944c9a68d60a2db18d9435a1f20f700a3d520f281424"
+}

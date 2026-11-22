@@ -1039,6 +1039,19 @@ el BDF completo por separado. El perfil es exclusivo de QEMU y no concede
 DMA a la RTX fisica.
 [Prueba DMA con tabla completa](../Reports/amdvi-full-dte-default-deny-qemu-20261121.json).
 
+El HOST coteja tambien la tabla IVRS actual contra el censo METAL archivado:
+```powershell
+$py = Join-Path $env:USERPROFILE '.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe'
+& $py -B tools/host/gpu/ivrs.py --census-json Reports/dma-pci-census-metal-20261120.json --output-json Reports/amdvi-physical-dma-preflight-20261121.json
+```
+El resultado cubrio los 17 BDF registrados y encontro 15 con Bus Master
+activo; la RTX `29:00.0` (`10de:2504`) aparece con Bus Master apagado.
+Ningun dominio queda marcado como verificado y la herramienta
+siempre niega permiso de traduccion: la cobertura IVRS no acredita DTE,
+quiesce, invalidacion ni limites DMA. El censo fisico tiene que actualizarse
+si cambia el hardware o su configuracion antes de usarlo como plan.
+[Preflight de solicitantes DMA](../Reports/amdvi-physical-dma-preflight-20261121.json).
+
 Antes de activar la traduccion en METAL hay que bloquear los
 solicitantes sin dominio. Una DTE a cero deja V desactivado y
 AMD-Vi puede encaminar la solicitud sin traducir. El perfil
