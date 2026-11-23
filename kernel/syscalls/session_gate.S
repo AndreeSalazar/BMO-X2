@@ -376,10 +376,17 @@ amdvi_diagnostic:
 #ifdef BMO_NVIDIA_GSP_STATUS
     jbe .Lamdvi_snapshot
     cmp $6, %r10
+#ifdef BMO_AMDVI_DTE_RESERVE
     je .Lamdvi_gsp_status
+#else
+    jne denied
+    mov GSP_STAGE_STATUS(%rbp), %rax
+    jmp finish
+#endif
 #else
     jbe .Lamdvi_snapshot
 #endif
+#ifdef BMO_AMDVI_DTE_RESERVE
     cmp $7, %r10
     jne denied
     jmp .Lamdvi_snapshot
@@ -387,6 +394,9 @@ amdvi_diagnostic:
 .Lamdvi_gsp_status:
     mov GSP_STAGE_STATUS(%rbp), %rax
     jmp finish
+#endif
+#elif !defined(BMO_NVIDIA_GSP_STATUS)
+    jmp denied
 #endif
 .Lamdvi_snapshot:
     cmpq $0, AMDVI_POST_STATUS(%rbp)
@@ -401,15 +411,19 @@ amdvi_diagnostic:
     jz finish
     cmp $4, %eax
     jne denied
+#ifdef BMO_AMDVI_DTE_RESERVE
     cmp $7, %r10
     je .Lamdvi_dte_status
+#endif
     mov AMDVI_POST_STATUS(%rbp,%r10,8), %rax
     jmp finish
+#ifdef BMO_AMDVI_DTE_RESERVE
 .Lamdvi_dte_status:
     mov AMDVI_DTE_POST_ZERO_QWORDS(%rbp), %rax
     shl $32, %rax
     or AMDVI_DTE_POST_STATUS(%rbp), %rax
     jmp finish
+#endif
 #endif
 #ifdef DESKTOP_MEDIA
 usb_controllers:

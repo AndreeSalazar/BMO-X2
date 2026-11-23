@@ -85,6 +85,19 @@ def verify_gsp_reservation(memory, context, expected, case):
         used = size+4096
         result = dict(GspResidentVerified=True,GspResidentBytes=length,GspReservedPages=reserved//4096,
                       GspPreparedByRing0=True,GspPreparedPages=(size//4096)+1)
+        if expected.get('physical_tables'):
+            if memory(context+0x908,4,'physical-dte-status')!=b'\x01\0\0\0':
+                raise ValueError('Ring 0 did not build the detached physical DTE')
+            table=base+reserved
+            deny=table+0x200000
+            usb_root=deny+4096
+            rows=memory(table,0x200000,'physical-dte')
+            rw=0x6000000000000403
+            for rid, row in enumerate(struct.iter_unpack('<4Q',rows)):
+                target,domain=(dma_root,5) if rid==0x2900 else (usb_root,2) if rid==0x2b03 else (deny,0)
+                if row!=(target|rw,domain,0,0):
+                    raise ValueError(f'Physical DTE differs for requester {rid:#06x}')
+            result['PhysicalDteBuiltDetached']=True
         if detached:
             first_iova = 0x08000000
             if radix != first_iova+used or dma_root != base+payload_pages*4096:

@@ -7,6 +7,7 @@
 .text
 .globl amdvi_build_physical_tables
 amdvi_build_physical_tables:
+.Lbuild_physical_tables:
     test %rcx, %rcx
     jz .Linvalid
     test %rdx, %rdx
@@ -146,6 +147,7 @@ amdvi_build_physical_tables:
 # Runs with the supervisor's writable low identity map. No PCI or MMIO.
 .globl amdvi_prepare_from_efi_map
 amdvi_prepare_from_efi_map:
+.Lprepare_from_efi_map:
     test %rcx, %rcx
     jz .Linvalid
     test %rdx, %rdx
@@ -226,7 +228,7 @@ amdvi_prepare_from_efi_map:
     mov 40(%rsi), %rax
     mov %rax, 48(%rsp)
     lea 32(%rsp), %r9
-    call amdvi_build_physical_tables
+    call .Lbuild_physical_tables
     jmp .Lefi_done
 .Lefi_reject:
     xor %eax, %eax

@@ -22,7 +22,7 @@ nvidia_gsp_stage:
     movq $0x0fffffff, 48(%rsp)
     mov $1, %ecx                   # AllocateMaxAddress.
     mov $2, %edx                   # EfiLoaderData.
-    mov $GSP_STAGE_PAGES, %r8d
+    mov $GSP_STAGE_ALLOC_PAGES, %r8d
     lea 48(%rsp), %r9
     call *0x28(%r14)
     test %rax, %rax
@@ -31,7 +31,7 @@ nvidia_gsp_stage:
     mov %rax, GSP_STAGE_BASE(%rbp)
     cmp $0x100000, %rax
     jb .Lgsp_stage_close
-    cmp $(0x10000000-GSP_STAGE_PAGES*4096), %rax
+    cmp $(0x10000000-GSP_STAGE_ALLOC_PAGES*4096), %rax
     ja .Lgsp_stage_close
     test $4095, %eax
     jnz .Lgsp_stage_close
@@ -59,7 +59,7 @@ nvidia_gsp_stage:
     # Clear the padding before exposing the reserved range in the handoff.
     mov GSP_STAGE_BASE(%rbp), %rcx
     add $BMO_GSP_FILE_BYTES, %rcx
-    mov $(GSP_STAGE_PAGES*4096-BMO_GSP_FILE_BYTES), %edx
+    mov $(GSP_STAGE_ALLOC_PAGES*4096-BMO_GSP_FILE_BYTES), %edx
     xor %r8d, %r8d
     call *0x168(%r14)              # SetMem.
     mov $5, %ebx
@@ -100,7 +100,7 @@ nvidia_gsp_release:
     mov GSP_STAGE_BASE(%rbp), %rcx
     test %rcx, %rcx
     jz .Lgsp_stage_released
-    mov $GSP_STAGE_PAGES, %edx
+    mov $GSP_STAGE_ALLOC_PAGES, %edx
     call *0x30(%r14)
     movq $0, GSP_STAGE_BASE(%rbp)
     movq $0, GSP_STAGE_LENGTH(%rbp)

@@ -1097,6 +1097,18 @@ RTX y la propiedad de los controladores. HOST ejecuto la entrada nativa
 con memoria baja, un mapa valido y cinco mapas o reservas rechazados
 sin modificar la tabla. Falta llamar esta entrada desde el arranque
 fisico y comprobar la publicacion y revocacion de los dominios.
+
+La variante optativa `--amdvi-physical-prepare` llama esa entrada desde
+la preparacion NVIDIA pos-EBS. UEFI reserva 516 paginas adicionales al
+final de la reserva del firmware: 512 para DTE y cuatro para las
+raices y hojas xHCI. El constructor utiliza el mapa EFI final y la
+reserva USB del mismo arranque. La variante requiere la entrega
+experimental de SATA, NVMe y el xHCI secundario. QEMU inspecciona las
+65,536 DTE antes de habilitar traduccion alguna. Ninguna de esas
+tablas se publica todavia en AMD-Vi.
+El candidato `run-rmlui-media-640292d69a5d` paso los tres casos QEMU.
+La tabla se construyo en Ring 0 durante el arranque normal, y el
+paquete de entrada con el saludo quedo en 4092 bytes.
 [Inventario PCI en METAL](../Reports/dma-pci-census-metal-20261120.json).
 [Estado de los discos en METAL](../Reports/storage-state-metal-20261120.json).
 [Evidencia del candidato de cierre](../Reports/amdvi-storage-handoff-20261121.json).

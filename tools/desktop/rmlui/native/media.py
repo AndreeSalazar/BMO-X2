@@ -56,6 +56,8 @@ def main():
     p.add_argument('--storage-quiesce-metal', action='store_true', help='Test the measured AMD board storage handoff before DMA activation')
     p.add_argument('--xhci-secondary-quiesce', action='store_true',
                    help='Revoke bus mastering on the measured secondary xHCI only if halted and empty')
+    p.add_argument('--amdvi-physical-prepare', action='store_true',
+                   help='Build detached board DMA tables during the NVIDIA boot stage')
     p.add_argument('--full-hd', action='store_true', help='Render the desktop at native 1920x1080 for GOP')
     args=p.parse_args()
     if args.usb_empty_ports and args.usb!='both':p.error('--usb-empty-ports requires --usb both')
@@ -109,6 +111,8 @@ def main():
         p.error('--storage-quiesce-metal requires the measured NVIDIA FWSEC Full HD profile')
     if args.xhci_secondary_quiesce and not args.storage_quiesce_metal:
         p.error('--xhci-secondary-quiesce requires --storage-quiesce-metal')
+    if args.amdvi_physical_prepare and not (args.storage_quiesce_metal and args.xhci_secondary_quiesce):
+        p.error('--amdvi-physical-prepare requires the board storage and secondary xHCI profile')
     storage_handoff = args.storage_quiesce or args.storage_quiesce_metal
     abi,splash=args.abi_run.resolve(),args.splash_run.resolve()
     for path in (abi,splash):
@@ -134,6 +138,12 @@ def main():
         from host.gpu.NVIDIA.bundle import stage_firmware
 
         gsp,nvidia_reader_flags = stage_firmware(run,args.nvidia_gsp_stage,args.nvidia_gsp_prepare,args.nvidia_fwsec_vbios)
+    if args.amdvi_physical_prepare:
+        nvidia_reader_flags+=['-DBMO_AMDVI_PHYSICAL_PREPARE']
+        manifest_path=run/'nvidia-gsp-stage.json'
+        manifest=json.loads(manifest_path.read_text())
+        manifest['physical_tables']=True
+        manifest_path.write_text(json.dumps(manifest,indent=2)+'\n',encoding='ascii')
     (run/'gop-regions.txt').write_text('cpu-gop\n',encoding='ascii')
     if args.nvidia_probe:
         (run/'nvidia-pci-probe.txt').write_text('pci-read-only\n', encoding='ascii')
@@ -199,13 +209,14 @@ def main():
         if args.nvidia_gsp_prepare and name=='loader':flags+=['-DBMO_NVIDIA_GSP_PREPARE']
         if args.nvidia_gsp_prepare and name=='gate':flags+=['-DBMO_NVIDIA_GSP_STATUS']
         if args.amdvi_probe and name == 'reader':flags+=[f'-DBMO_AMDVI_EFI_OFFSET={amdvi_offset}']
-        if args.amdvi_dte_reserve and name == 'reader':flags+=['-DBMO_AMDVI_DTE_RESERVE']
+        if args.amdvi_dte_reserve and name in ('reader','gate'):flags+=['-DBMO_AMDVI_DTE_RESERVE']
         if args.amdvi_post and name in ('reader','gate'):flags+=['-DBMO_AMDVI_POST']
         if args.dma_census and name=='gate':flags+=['-DBMO_DMA_CENSUS']
         if args.amdvi_guest_dma and name=='gate':flags+=['-DBMO_AMDVI_GUEST_DMA']
         if args.amdvi_storage and name in ('reader','gate'):flags+=['-DBMO_AMDVI_STORAGE']
         if args.full_hd and name in ('allocator','reader','loader'):flags+=['-DBMO_FULL_HD']
         if storage_handoff and name=='gate':flags+=['-DBMO_STORAGE_QUIESCE']
+        if args.amdvi_physical_prepare and name=='gate':flags+=['-DBMO_AMDVI_PHYSICAL_PREPARE']
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf','-DRMLUI_MEDIA','-DRMLUI_NATIVE',
             '-DRMLUI_GOP_REGIONS','-DDOOM_ENGINE','-DDESKTOP_DOOM',*flags,
             '-c',ROOT/source,'-o',run/(name+'.o')],'compile-media-'+name)
@@ -249,6 +260,7 @@ def main():
         if args.storage_state:flags+=['-DBMO_STORAGE_STATE']
         if storage_handoff:flags+=['-DBMO_STORAGE_QUIESCE']
         if args.storage_quiesce_metal:flags+=['-DBMO_STORAGE_QUIESCE_METAL']
+        if args.amdvi_physical_prepare:flags+=['-DBMO_AMDVI_PHYSICAL_PREPARE']
         if args.full_hd:flags+=['-DBMO_FULL_HD','-DRMLUI_MEDIA','-DRMLUI_NATIVE','-DDESKTOP_DOOM']
         if args.amdvi_guest_dma:flags+=['-DBMO_AMDVI_GUEST_DMA']
         if args.amdvi_storage:flags+=['-DBMO_AMDVI_STORAGE']
@@ -261,9 +273,11 @@ def main():
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf',*flags,'-c',source,'-o',native_probe],'compile-amdvi-firmware')
         if args.amdvi_post:
             post_budget=3168 if args.amdvi_gsp_dma else 3072 if args.amdvi_routed else 2560 if args.amdvi_storage or storage_handoff else 2048
+            if args.amdvi_physical_prepare:post_budget=2576
             check_context_stage(llvm,native_probe,'amdvi_post',post_budget)
         if args.full_hd or args.amdvi_gsp_dma:
             gop_budget=928 if args.amdvi_gsp_dma else 1536 if storage_handoff else 2048
+            if args.amdvi_physical_prepare:gop_budget=1520
             check_context_stage(llvm,native_probe,'gop_stage',gop_budget)
         if args.amdvi_guest_nvme:check_context_stage(llvm,native_probe,'nvme_guest',4096)
         relocations=subprocess.check_output([llvm/'llvm-objdump.exe','-r',native_probe],text=True)
@@ -328,6 +342,8 @@ def main():
     if args.nvidia_gsp_prepare and (not report['Cases'][0].get('GspDetachedDmaVerified') or
                                    not all(report['Cases'][i].get('GspStatusExportVerified') for i in (0,2))):
         raise ValueError('Missing Ring 0 detached DMA tree and Ring 3 status evidence')
+    if args.amdvi_physical_prepare and not report['Cases'][0].get('PhysicalDteBuiltDetached'):
+        raise ValueError('Missing physical DTE construction evidence')
     if args.nvidia_gsp_prepare and not report['Cases'][0].get('GspQueuePermissionsVerified'):
         raise ValueError('Missing Ring 0 GSP message queue evidence')
     if args.nvidia_gsp_prepare and not report['Cases'][0].get('GspLibosVerified'):
@@ -424,6 +440,7 @@ def main():
         storage_quiesce=args.storage_quiesce,
         storage_quiesce_metal=args.storage_quiesce_metal,
         xhci_secondary_quiesce=args.xhci_secondary_quiesce,
+        amdvi_physical_prepare=args.amdvi_physical_prepare,
         full_hd=args.full_hd,
         full_hd_native=args.full_hd,
         amdvi_coexist=args.amdvi_coexist,

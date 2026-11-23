@@ -23,7 +23,7 @@ gsp_prepare_begin:
     mov GSP_STAGE_BASE(%rbp), %r9
     cmp $0x100000, %r9
     jb .Lgsp_prepare_done
-    cmp $(0x10000000-GSP_STAGE_PAGES*4096), %r9
+    cmp $(0x10000000-GSP_STAGE_ALLOC_PAGES*4096), %r9
     ja .Lgsp_prepare_done
     test $4095, %r9d
     jnz .Lgsp_prepare_done
@@ -49,7 +49,7 @@ gsp_prepare_begin:
     test $4095, %edx
     jnz .Lgsp_prepare_done
     shr $12, %rdx
-    add $GSP_STAGE_PAGES, %rdx
+    add $GSP_STAGE_ALLOC_PAGES, %rdx
     cmp 24(%rdi), %rdx
     jbe .Lgsp_prepare_copy
 .Lgsp_prepare_next:
@@ -135,6 +135,36 @@ gsp_prepare_begin:
     call nvidia_fwsec_finalize
 #endif
 #endif
+#ifdef BMO_AMDVI_PHYSICAL_PREPARE
+    # In this profile the extra 516 pages are at the end of LoaderData.
+    # The detached RTX tree is already built above. Leave AMD-Vi disabled.
+    cmpq $14, 0xc0(%rbp)
+    jne .Lphysical_dte_done
+    push %r10
+    push %r11
+    sub $88, %rsp
+    mov GSP_STAGE_BASE(%rbp), %rax
+    lea (GSP_STAGE_PAGES*4096)(%rax), %rdx
+    mov %rdx, 32(%rsp)
+    add $0x200000, %rdx
+    mov %rdx, 40(%rsp)
+    mov %rax, 48(%rsp)
+    movq $(GSP_STAGE_PAGES*4096), 56(%rsp)
+    mov GSP_POST_DMA_ROOT(%rbp), %rax
+    mov %rax, 64(%rsp)
+    mov 0xb8(%rbp), %rax
+    mov %rax, 72(%rsp)
+    lea 32(%rsp), %rcx
+    lea 0x1000(%rbp), %rdx
+    mov 0x50(%rbp), %r8
+    mov 0x60(%rbp), %r9
+    call .Lprepare_from_efi_map
+    mov %eax, GSP_PHYSICAL_DTE_STATUS(%rbp)
+    add $88, %rsp
+    pop %r11
+    pop %r10
+.Lphysical_dte_done:
+#endif
     ret
 
 #include "gsp_radix3.inc"
@@ -152,6 +182,9 @@ gsp_prepare_begin:
 #include "gsp_fwsec_fuse.inc"
 #include "gsp_fwsec_dma.inc"
 #endif
+#endif
+#ifdef BMO_AMDVI_PHYSICAL_PREPARE
+#include "../../bus/amdvi/physical_tables.S"
 #endif
 .globl gsp_prepare_end
 gsp_prepare_end:
