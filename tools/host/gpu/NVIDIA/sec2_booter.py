@@ -1,13 +1,19 @@
-"""Describe the signed GA10x SEC2 booter without modifying its bytes."""
+"""Prepare a DMA-aligned copy of the signed GA10x SEC2 load booter in HOST."""
 
+import argparse
+import hashlib
+import json
+from pathlib import Path
 import struct
 
-from .firmware import BIN_HEADER
+from .firmware import BIN_HEADER, read_native_files, read_verified
 
 
 HS_HEADER = struct.Struct('<9I')
 LOAD_HEADER = struct.Struct('<9I')  # Header and one application descriptor.
 SIGNATURE_BYTES = 384  # RSA-3072.
+PAGE_BYTES = 4096
+SEC2_UCODE1_FUSE = 0x824140
 
 
 def sec2_booter_layout(container):
@@ -72,3 +78,60 @@ def sec2_booter_layout(container):
         'engine_mask': engine_mask,
         'ucode_id': ucode_id,
     }
+
+
+def prepare_sec2_booter(container, fuse_word):
+    """Materialize an authenticated container using a caller-supplied SEC2 fuse read."""
+    if (type(fuse_word) is not int or not 0 <= fuse_word < 0xffffffff
+            or fuse_word >> 20 == 0xbad):
+        raise ValueError('SEC2 booter: lectura del fusible invalida')
+    layout = sec2_booter_layout(container)
+    signature = layout['signature']
+    version = (fuse_word & 0xffff).bit_length()
+    # The SEC2 HS booter uses a scalar version, unlike the FWSEC version mask.
+    index = signature['count'] - 1 if version == 0 else signature['fuse_versions'] - version
+    if not 0 <= index < signature['count']:
+        raise ValueError('SEC2 booter: no hay firma para la version del fusible')
+    source = signature['source'] + index * signature['bytes']
+    slot = layout['dmem']['offset'] + signature['dmem_offset']
+    image = bytearray(container[layout['image_offset']:])
+    image[slot:slot + signature['bytes']] = container[source:source + signature['bytes']]
+    image.extend(bytes(-len(image) % PAGE_BYTES))
+    return bytes(image), {
+        'scope': 'HOST',
+        'fuse_register': SEC2_UCODE1_FUSE + 4 * (layout['ucode_id'] - 1),
+        'fuse_word': fuse_word,
+        'fuse_version': version,
+        'signature_index': index,
+        'imem': layout['imem'],
+        'dmem': layout['dmem'],
+        'dmem_signature_offset': signature['dmem_offset'],
+        'bootvec': layout['bootvec'],
+        'engine_mask': layout['engine_mask'],
+        'ucode_id': layout['ucode_id'],
+        'dma_pages': len(image) // PAGE_BYTES,
+        'sha256': hashlib.sha256(image).hexdigest(),
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('directory', type=Path, help='Verified NVIDIA release directory')
+    parser.add_argument('--fuse-word', type=lambda word: int(word, 0), required=True,
+                        help='Raw SEC2 signature fuse word, from a live measurement or HOST test')
+    parser.add_argument('--output', type=Path, help='New file for the signed, page-aligned image')
+    args = parser.parse_args()
+    try:
+        files = read_native_files(args.directory)
+        container = read_verified(args.directory, files['booter_load'])
+        image, receipt = prepare_sec2_booter(container, args.fuse_word)
+        if args.output:
+            with args.output.open('xb') as stream:
+                stream.write(image)
+    except (ValueError, OSError) as error:
+        parser.exit(1, f'{error}\n')
+    print(json.dumps(receipt, indent=2))
+
+
+if __name__ == '__main__':
+    main()

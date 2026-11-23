@@ -2827,7 +2827,7 @@
       "entrada": "Firmware NVIDIA original de la release fijada y seleccion del perfil.",
       "salida": "GSP.BIN, parametros del lector y manifiesto con geometria SEC2; un testigo alterado para el ensayo.",
       "aceptacion": "FAT32 conserva la huella original y el escritorio base excluye este empaquetador.",
-      "falta": "Entregar al cargador SEC2 los rangos validados y seleccionar la firma por el fusible antes de arrancar GSP."
+      "falta": "Leer el fusible SEC2 en METAL y conectar al cargador nativo la copia DMA y la seleccion de firma probadas en HOST."
     },
     {
       "id": "nvidia-gsp-firmware-host",

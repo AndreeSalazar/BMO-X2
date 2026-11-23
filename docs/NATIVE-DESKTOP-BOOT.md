@@ -1262,10 +1262,16 @@ Para SEC2, HOST desglosa `booter_load` y `booter_unload` de la release
 `615.78.08` comprobada por SHA-256. Cada entrada conserva los bytes
 originales y define los rangos IMEM y DMEM, BOOTVEC, destino SEC2 y
 ubicaciones de las firmas de produccion. QEMU coteja esos rangos con los
-binarios reubicados cuando el manifiesto los incluye. La siguiente
+binarios reubicados cuando el manifiesto los incluye. El preparador HOST
+`python -m tools.host.gpu.NVIDIA.sec2_booter` recibe el valor crudo del
+fusible SEC2 y genera una copia DMA alineada. Con el valor cero elige
+la ultima firma; para una version positiva resta la version del fusible
+a la del booter y exige un indice valido. Conserva los offsets de ucode
+y solo sustituye la ranura de firma en DMEM. La siguiente
 prueba fisica debe cargar el booter firmado y confirmar su respuesta
 en los buzones antes de lanzar GSP-RM.
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
+[Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
 [Mapa de registros PCIe Device Status](https://codebrowser.dev/linux/linux/include/uapi/linux/pci_regs.h.html#532).
 [Secuencia de preparacion y limpieza de Falcon GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/falcon/ga102.c.html#70).
 [Seleccion de Falcon y estado RISC-V en el controlador abierto de NVIDIA](https://raw.githubusercontent.com/NVIDIA/open-gpu-kernel-modules/main/src/nvidia/src/kernel/gpu/falcon/arch/ampere/kernel_falcon_ga102.c).
