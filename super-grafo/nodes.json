@@ -2788,10 +2788,10 @@
       "lenguaje": "ASM x86-64",
       "ring0_platform_probe": true,
       "posicion": [12100, 3950],
-      "que": "Carga IMEM y DMEM por DMA, configura BROM, emite STARTCPU y comprueba la WPR2 medida.",
-      "entrada": "GA106 frio con Falcon reiniciado y seleccionado, BAR0 exclusivo, reloj calibrado e IOVA FWSEC autorizada.",
+      "que": "Prepara Falcon con reset acotado, carga IMEM y DMEM por DMA, configura BROM, emite STARTCPU y comprueba la WPR2 medida.",
+      "entrada": "GA106 frio, BAR0 exclusivo y reloj calibrado para preparar Falcon. La carga exige ademas la IOVA FWSEC autorizada.",
       "salida": "Recibo privado de la fase, bytes transferidos, buzones y limites WPR2.",
-      "aceptacion": "HOST ejecuta el codigo nativo con registros simulados y verifica los 234 bloques, ambas rutas STARTCPU y los rechazos.",
+      "aceptacion": "HOST ejecuta el codigo nativo con registros simulados y verifica la preparacion de Falcon, los plazos de seleccion y borrado, los 234 bloques y ambas rutas STARTCPU.",
       "falta": "Invocar desde la adjudicacion DMA fisica, validar METAL y usar WPR2 para iniciar SEC2."
     },
     {

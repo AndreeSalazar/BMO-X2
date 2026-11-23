@@ -15,6 +15,126 @@
 .set FWSEC_SIGNATURE_OFFSET, 1444
 .set WPR2_LOW, 0x1fa824
 .set WPR2_HIGH, 0x1fa828
+
+# RCX = exclusive GA106 BAR0 alias. RDX = calibrated TSC ticks per 10 ms.
+# Call before granting GPU bus mastering, with cold firmware and GOP retained.
+# Return 1 ready for FWSEC, 0 rejected before writes, 2 state uncertain.
+# Uses the GA102 Falcon select/reset/scrub sequence from Nouveau.
+.globl nvidia_prepare_ga106_falcon
+nvidia_prepare_ga106_falcon:
+    test %rcx, %rcx
+    jz .Lreject
+    cmp $1000000, %rdx
+    jb .Lreject
+    cmp $100000000, %rdx
+    ja .Lreject
+    cmpl $0xb76000a1, (%rcx)
+    jne .Lreject
+    cmpl $0x10, 0x111388(%rcx)
+    jne .Lreject
+    cmpl $16, WPR2_HIGH(%rcx)
+    jae .Lreject
+    push %r13
+    push %r15
+    mov %rdx, %r11
+    lea GSP_FALCON(%rcx), %r13
+    mov 0x3c0(%r13), %eax
+    call .Lvalid_read
+    jc .Lprep_reject
+    test $1, %eax
+    jnz .Lprep_reject
+    mov 0x1668(%r13), %eax
+    call .Lvalid_read
+    jc .Lprep_reject
+    test $0x10, %eax
+    jz .Lprep_reset
+    movl $0, 0x1668(%r13)
+    mov %r11, %r10
+    call .Lprep_deadline
+.Lwait_falcon_select:
+    mov 0x1668(%r13), %eax
+    call .Lvalid_read
+    jc .Lprep_uncertain
+    and $0x11, %eax
+    cmp $1, %eax
+    je .Lprep_reset
+    call .Lwithin_deadline
+    jb .Lwait_falcon_select
+    jmp .Lprep_uncertain
+.Lprep_reset:
+    mov 0x48(%r13), %eax
+    call .Lvalid_read
+    jc .Lprep_uncertain
+    and $-4, %eax
+    mov %eax, 0x48(%r13)
+    movl $-1, 0x14(%r13)
+    mov 0x3c0(%r13), %eax
+    call .Lvalid_read
+    jc .Lprep_uncertain
+    or $1, %eax
+    mov %eax, 0x3c0(%r13)
+    mov 0x3c0(%r13), %eax        # Drain posted assertion before timing it.
+    call .Lvalid_read
+    jc .Lprep_uncertain
+    test $1, %eax
+    jz .Lprep_uncertain
+    mov %r11, %rax
+    xor %edx, %edx
+    mov $1000, %r10d
+    div %r10                      # At least 10 us of reset assertion.
+    lea 1(%rax), %r10
+    call .Lprep_deadline
+.Lhold_reset:
+    call .Lwithin_deadline
+    jb .Lhold_reset
+    mov 0x3c0(%r13), %eax
+    call .Lvalid_read
+    jc .Lprep_uncertain
+    and $-2, %eax
+    mov %eax, 0x3c0(%r13)
+    mov 0x40(%r13), %eax         # Drain posted deassertion.
+    call .Lvalid_read
+    jc .Lprep_uncertain
+    lea (%r11,%r11), %r10
+    call .Lprep_deadline
+.Lwait_falcon_scrub:
+    mov 0xf4(%r13), %eax
+    call .Lvalid_read
+    jc .Lprep_uncertain
+    and $0x80001000, %eax
+    cmp $0x80000000, %eax
+    je .Lprep_ready
+    call .Lwithin_deadline
+    jb .Lwait_falcon_scrub
+    jmp .Lprep_uncertain
+.Lprep_ready:
+    cmpl $0x10, 0x111388(%rcx)
+    jne .Lprep_uncertain
+    mov 0x1668(%r13), %eax
+    call .Lvalid_read
+    jc .Lprep_uncertain
+    test $0x10, %eax
+    jnz .Lprep_uncertain
+    movl $0xb76000a1, 0x84(%r13)
+    mov $1, %eax
+    jmp .Lprep_done
+.Lprep_reject:
+    xor %eax, %eax
+    jmp .Lprep_done
+.Lprep_uncertain:
+    mov $2, %eax
+.Lprep_done:
+    pop %r15
+    pop %r13
+    ret
+.Lprep_deadline:
+    lfence
+    rdtsc
+    shl $32, %rdx
+    or %rdx, %rax
+    lea (%rax,%r10), %r15
+    ret
+
 .globl nvidia_launch_ga106_fwsec
 nvidia_launch_ga106_fwsec:
     test %rcx, %rcx

@@ -33,12 +33,16 @@ class FwsecLaunch(unittest.TestCase):
         subprocess.run([LLVM / "clang.exe", "--target=x86_64-pc-windows-msvc",
                         "-c", source, "-o", obj], check=True)
         subprocess.run([LLVM / "lld-link.exe", "/dll", "/noentry", "/nodefaultlib",
-                        "/export:nvidia_launch_ga106_fwsec", f"/out:{dll}", obj], check=True)
+                        "/export:nvidia_launch_ga106_fwsec", "/export:nvidia_prepare_ga106_falcon",
+                        f"/out:{dll}", obj], check=True)
         cls.library = ctypes.WinDLL(str(dll))
         cls.addClassCleanup(FreeLibrary, cls.library._handle)
         cls.launch = cls.library.nvidia_launch_ga106_fwsec
         cls.launch.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint64, ctypes.c_void_p]
         cls.launch.restype = ctypes.c_int
+        cls.prepare = cls.library.nvidia_prepare_ga106_falcon
+        cls.prepare.argtypes = [ctypes.c_void_p, ctypes.c_uint64]
+        cls.prepare.restype = ctypes.c_int
 
     def setUp(self):
         self.bar = bytearray(0x200000)
@@ -54,6 +58,36 @@ class FwsecLaunch(unittest.TestCase):
 
     def write(self, offset, value):
         struct.pack_into("<I", self.bar, offset, value)
+
+    def test_prepares_cold_falcon_without_starting_or_issuing_dma(self):
+        self.write(FALCON + 0x3C0, 0xA0)
+        self.write(FALCON + 0x48, 0xF)
+        self.assertEqual(self.prepare(self.mapping, 25_000_000), 1)
+        self.assertEqual(self.read(FALCON + 0x3C0), 0xA0)
+        self.assertEqual(self.read(FALCON + 0x48), 0xC)
+        self.assertEqual(self.read(FALCON + 0x14), 0xFFFFFFFF)
+        self.assertEqual(self.read(FALCON + 0x84), 0xB76000A1)
+        self.assertEqual(self.read(FALCON + 0x100), 0)
+        self.assertEqual(self.read(DMA_COMMAND), 0)
+
+    def test_prepare_rejects_active_riscv_or_reset_before_writes(self):
+        for offset, value in ((0x111388, 0x80), (FALCON + 0x3C0, 1)):
+            with self.subTest(offset=offset):
+                original = self.read(offset)
+                self.write(offset, value)
+                before = bytes(self.bar)
+                self.assertEqual(self.prepare(self.mapping, 25_000_000), 0)
+                self.assertEqual(self.bar, before)
+                self.write(offset, original)
+
+    def test_prepare_reports_selector_or_scrub_timeout(self):
+        self.write(FALCON + 0x1668, 0x10)
+        self.assertEqual(self.prepare(self.mapping, 1_000_000), 2)
+        self.assertEqual(self.read(FALCON + 0x14), 0)
+        self.write(FALCON + 0xF4, 0x80001000)
+        self.assertEqual(self.prepare(self.mapping, 1_000_000), 2)
+        self.assertEqual(self.read(FALCON + 0x84), 0)
+        self.assertEqual(self.read(DMA_COMMAND), 0)
 
     def test_rejects_wrong_dma_window_and_active_wpr_before_writes(self):
         before = bytes(self.bar)

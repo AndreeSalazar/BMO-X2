@@ -717,13 +717,21 @@ SCRATCH14 sin error, y WPR2 `02FFE000/02FFEE00`. El plazo total es de
 dos segundos a partir del TSC calibrado. El banco HOST enlaza esa misma
 rutina y simula la respuesta de los registros de Falcon.
 
-La rutina queda fuera del arranque desplegado hasta que el llamador
-adquiera el dispositivo, reinicie Falcon y adjudique el DMA fisico con
-USB, SATA y NVMe bajo control. Un fallo requiere cerrar el bus mastering
+La preparacion de Falcon selecciona el nucleo, mantiene el reset al menos
+10 us y espera un maximo de 20 ms por la limpieza de memoria y el estado
+listo. El llamador conserva el bus mastering de la GPU apagado durante
+esta preparacion. El banco HOST cubre el estado frio, los rechazos antes
+de escribir y los plazos agotados con registros simulados.
+
+Estas rutinas quedan fuera del arranque desplegado hasta que el llamador
+adquiera el dispositivo y adjudique el DMA fisico con todos los
+solicitantes bajo control. Un fallo requiere cerrar el bus mastering
 y detener la GPU antes de recuperar las paginas. El resultado de FWSEC
 habilita la siguiente etapa de SEC2. GSP y el resultado escrito por la
 RTX se verifican por separado.
 [Banco HOST de FWSEC](../tools/host/gpu/NVIDIA/test_fwsec_launch.py).
+[Reset del motor Falcon](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/falcon/gp102.c.html#67).
+[Seleccion y espera de Falcon en Ampere](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/falcon/ga102.c.html#70).
 [Verificacion del arranque firmado y WPR V1](../Reports/nvidia-gsp-boot-chain-20261121.json).
 [Preparacion FWSEC-FRTS con la VBIOS GA106](../Reports/nvidia-wpr-fwsec-metal-20261121.json).
 [Seleccion de firma FWSEC para Ampere en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#95).
