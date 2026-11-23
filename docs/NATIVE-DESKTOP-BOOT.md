@@ -1215,7 +1215,7 @@ podian impedir la apertura.
 
 La etapa NVIDIA ahora espera el No-Op traducido y comprueba el dominio
 limitado de FWSEC. Relee en PCI identidad, BAR0, Command y estado PCIe
-de `29:00.0`. Con Bus Master apagado, abre un alias supervisor de cuatro
+de `29:00.0`. Con Bus Master apagado, abre un alias supervisor de cinco
 paginas de BAR0 y prepara Falcon. Solo entonces habilita Bus Master y
 llama al cargador firmado. Retira el alias al volver y restaura PCI
 Command en todas las salidas posteriores a la
@@ -1248,8 +1248,14 @@ valida. El estado `HALTED` pertenece al nucleo RISC-V.
 cuatro resultados, el escritorio recupera las lecturas CPUCTL y BCR
 tomadas con el alias supervisor antes de retirarlo.
 La captura de Falcon en `0x998` conserva la fase y los registros incluso
-en caso de cierre incierto. La siguiente etapa de SEC2 requiere verificar
-el resultado en la placa.
+en caso de cierre incierto. En `427281f` el arranque fisico mostro el gato
+y no llego al escritorio. `GPULOG.TXT` confirma la etapa UEFI, anterior
+a la prueba FWSEC. La revision del codigo encontro que la lectura
+del resultado `SCRATCH14` (BAR0+`0x1438`) caia fuera del alias supervisor.
+La pagina BAR0+`0x1000` queda ahora incluida en el alias y se retira junto
+con las otras cuatro. Los permisos DMA del dispositivo siguen en su
+tabla separada. La siguiente etapa de SEC2 requiere un resultado
+confirmado en la placa.
 [Mapa de registros PCIe Device Status](https://codebrowser.dev/linux/linux/include/uapi/linux/pci_regs.h.html#532).
 [Secuencia de preparacion y limpieza de Falcon GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/falcon/ga102.c.html#70).
 [Seleccion de Falcon y estado RISC-V en el controlador abierto de NVIDIA](https://raw.githubusercontent.com/NVIDIA/open-gpu-kernel-modules/main/src/nvidia/src/kernel/gpu/falcon/arch/ampere/kernel_falcon_ga102.c).

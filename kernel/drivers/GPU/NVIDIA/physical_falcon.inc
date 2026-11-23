@@ -3,6 +3,9 @@
 .set FALCON_BOARD_PDE, 0x15408
 .set FALCON_BOARD_VA, 0x10200000
 .set FALCON_BOARD_RID, 0x80290000
+# PMC, SCRATCH14, Falcon, RISC-V/BROM and WPR2. CPU alias only.
+# Use the same pages when installing, invalidating and retiring the alias.
+#define FALCON_CPU_PAGES 0, 1, 0x110, 0x111, 0x1fa
 
 .globl nvidia_physical_begin
 nvidia_physical_begin:
@@ -80,13 +83,10 @@ nvidia_physical_begin:
     jne .Lboard_exit
     mov %r10, 32(%rsp)
     movabs $0x80000000fb00001b, %rax
-    mov %rax, 0(%r10)
-    lea 0x110000(%rax), %rcx
-    mov %rcx, (0x110*8)(%r10)
-    lea 4096(%rcx), %rcx
-    mov %rcx, (0x111*8)(%r10)
-    add $0x1fa000, %rax
-    mov %rax, (0x1fa*8)(%r10)
+    .irp page,FALCON_CPU_PAGES
+    lea (\page*4096)(%rax), %rcx
+    mov %rcx, (\page*8)(%r10)
+    .endr
     lea 3(%r10), %rax
     mov %rax, FALCON_BOARD_PDE(%rbp)
     call .Lboard_flush
@@ -144,10 +144,9 @@ nvidia_physical_begin:
     movq $0, FALCON_BOARD_PDE(%rbp)
     call .Lboard_flush
     mov 32(%rsp), %r10
-    movq $0, 0(%r10)
-    movq $0, (0x110*8)(%r10)
-    movq $0, (0x111*8)(%r10)
-    movq $0, (0x1fa*8)(%r10)
+    .irp page,FALCON_CPU_PAGES
+    movq $0, (\page*8)(%r10)
+    .endr
 .Lboard_exit:
     mov $0xcf8, %dx
     mov %ebx, %eax
@@ -219,11 +218,11 @@ nvidia_physical_begin:
     in %dx, %eax
     ret
 .Lboard_flush:
-    invlpg FALCON_BOARD_VA
-    invlpg (FALCON_BOARD_VA+0x110000)
-    invlpg (FALCON_BOARD_VA+0x111000)
-    invlpg (FALCON_BOARD_VA+0x1fa000)
+    .irp page,FALCON_CPU_PAGES
+    invlpg (FALCON_BOARD_VA+\page*4096)
+    .endr
     ret
+#undef FALCON_CPU_PAGES
 
 #include "fwsec_launch.S"
 .globl nvidia_physical_end
