@@ -263,13 +263,64 @@ def reconcile_census(report, census, census_sha256=None):
     }
 
 
+def reconcile_linux_groups(preflight, log_bytes):
+    """Cruza grupos historicos de Linux con el censo de BMO-X2."""
+    groups = {}
+    identities = {}
+    bdf_pattern = r'([0-9a-f]{4}:[0-9a-f]{2}:[01][0-9a-f]\.[0-7])'
+    for line in log_bytes.decode('utf-8', errors='replace').splitlines():
+        member = re.search(r'\bpci ' + bdf_pattern + r': Adding to iommu group (\d+)\s*$', line, re.I)
+        if member:
+            bdf, group = member[1].lower(), int(member[2])
+            if groups.setdefault(bdf, group) != group:
+                raise ValueError(f'Grupos Linux contradictorios para {bdf}')
+        identity = re.search(r'\bpci ' + bdf_pattern + r': \[([0-9a-f]{4}:[0-9a-f]{4})\] type ', line, re.I)
+        if identity:
+            bdf, vendor_device = identity[1].lower(), identity[2].lower()
+            if identities.setdefault(bdf, vendor_device) != vendor_device:
+                raise ValueError(f'Identidades PCI Linux contradictorias para {bdf}')
+    if not groups:
+        raise ValueError('El registro Linux no contiene grupos IOMMU')
+
+    metal = {row['bdf']: row for row in preflight['requesters']}
+    relevant_groups = {groups[bdf] for bdf in metal if bdf in groups}
+    members = []
+    for bdf, group in sorted(groups.items()):
+        if group not in relevant_groups:
+            continue
+        row = metal.get(bdf, {})
+        metal_id = row.get('vendor_device')
+        linux_id = identities.get(bdf)
+        members.append({
+            'bdf': bdf,
+            'linux_group': group,
+            'linux_id': linux_id,
+            'metal_id': metal_id,
+            'identity_matches': None if not metal_id or not linux_id else metal_id == linux_id,
+            'metal_bus_master_enabled': row.get('bus_master_enabled'),
+        })
+    return {
+        'evidence': 'Historical Linux groups joined by BDF; not current DMA ownership',
+        'linux_log_sha256': hashlib.sha256(log_bytes).hexdigest(),
+        'members': members,
+        'metal_requesters_without_linux_group': sorted(set(metal) - groups.keys()),
+        'members_without_metal_pci_command': [
+            row['bdf'] for row in members if row['metal_bus_master_enabled'] is None
+        ],
+        'conflicting_identities': [row['bdf'] for row in members if row['identity_matches'] is False],
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('bdf', type=bdf_arg, nargs='*')
     parser.add_argument('--ivrs', type=Path, help='Archivo IVRS. Por defecto consulta la tabla de Windows.')
     parser.add_argument('--census-json', type=Path, help='Censo PCI METAL; solo lectura, no habilita AMD-Vi.')
+    parser.add_argument('--linux-pci-log', type=Path, help='Registro dmesg historico con grupos PCI IOMMU.')
     parser.add_argument('--output-json', type=Path, help='Guarda el inventario HOST resultante en JSON.')
     args = parser.parse_args()
+    if args.linux_pci_log and not args.census_json:
+        parser.error('--linux-pci-log requiere --census-json')
     try:
         census = None
         census_sha256 = None
@@ -293,6 +344,12 @@ def main():
         report = inspect(data, requested)
         if census is not None:
             report['physical_dma_preflight'] = reconcile_census(report, census, census_sha256)
+        if args.linux_pci_log:
+            with args.linux_pci_log.open('rb') as stream:
+                log = stream.read(8 * MAX_TABLE_BYTES + 1)
+            if len(log) > 8 * MAX_TABLE_BYTES:
+                raise ValueError('Registro Linux fuera de limite')
+            report['linux_iommu_reference'] = reconcile_linux_groups(report['physical_dma_preflight'], log)
     except (OSError, ValueError) as error:
         parser.exit(1, f'IVRS: {error}\n')
     report['source'] = 'file' if args.ivrs else 'Windows GetSystemFirmwareTable'

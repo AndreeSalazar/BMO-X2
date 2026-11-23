@@ -1,0 +1,168 @@
+{
+  "evidence": "Historical Linux groups joined by BDF; not current DMA ownership",
+  "linux_log_sha256": "963fa674790d28b171cafb69e397fa949daf2e95d671ccb6574ab28f1072295f",
+  "members": [
+    {
+      "bdf": "0000:00:01.1",
+      "linux_group": 1,
+      "linux_id": "1022:1483",
+      "metal_id": "1022:1483",
+      "identity_matches": true,
+      "metal_bus_master_enabled": true
+    },
+    {
+      "bdf": "0000:00:01.3",
+      "linux_group": 2,
+      "linux_id": "1022:1483",
+      "metal_id": "1022:1483",
+      "identity_matches": true,
+      "metal_bus_master_enabled": true
+    },
+    {
+      "bdf": "0000:00:03.1",
+      "linux_group": 5,
+      "linux_id": "1022:1483",
+      "metal_id": "1022:1483",
+      "identity_matches": true,
+      "metal_bus_master_enabled": true
+    },
+    {
+      "bdf": "0000:00:07.1",
+      "linux_group": 9,
+      "linux_id": "1022:1484",
+      "metal_id": "1022:1484",
+      "identity_matches": true,
+      "metal_bus_master_enabled": true
+    },
+    {
+      "bdf": "0000:00:08.1",
+      "linux_group": 11,
+      "linux_id": "1022:1484",
+      "metal_id": "1022:1484",
+      "identity_matches": true,
+      "metal_bus_master_enabled": true
+    },
+    {
+      "bdf": "0000:00:14.0",
+      "linux_group": 12,
+      "linux_id": "1022:790b",
+      "metal_id": null,
+      "identity_matches": null,
+      "metal_bus_master_enabled": null
+    },
+    {
+      "bdf": "0000:00:14.3",
+      "linux_group": 12,
+      "linux_id": "1022:790e",
+      "metal_id": "1022:790e",
+      "identity_matches": true,
+      "metal_bus_master_enabled": true
+    },
+    {
+      "bdf": "0000:01:00.0",
+      "linux_group": 14,
+      "linux_id": "2646:5017",
+      "metal_id": "2646:5017",
+      "identity_matches": true,
+      "metal_bus_master_enabled": true
+    },
+    {
+      "bdf": "0000:03:00.0",
+      "linux_group": 15,
+      "linux_id": "1022:43bc",
+      "metal_id": "1022:43bc",
+      "identity_matches": true,
+      "metal_bus_master_enabled": true
+    },
+    {
+      "bdf": "0000:03:00.1",
+      "linux_group": 15,
+      "linux_id": "1022:43b8",
+      "metal_id": "1022:43b8",
+      "identity_matches": true,
+      "metal_bus_master_enabled": true
+    },
+    {
+      "bdf": "0000:03:00.2",
+      "linux_group": 15,
+      "linux_id": "1022:43b3",
+      "metal_id": "1022:43b3",
+      "identity_matches": true,
+      "metal_bus_master_enabled": true
+    },
+    {
+      "bdf": "0000:20:04.0",
+      "linux_group": 15,
+      "linux_id": "1022:43b4",
+      "metal_id": "1022:43b4",
+      "identity_matches": true,
+      "metal_bus_master_enabled": true
+    },
+    {
+      "bdf": "0000:20:05.0",
+      "linux_group": 15,
+      "linux_id": "1022:43b4",
+      "metal_id": "1022:43b4",
+      "identity_matches": true,
+      "metal_bus_master_enabled": true
+    },
+    {
+      "bdf": "0000:20:06.0",
+      "linux_group": 15,
+      "linux_id": "1022:43b4",
+      "metal_id": "1022:43b4",
+      "identity_matches": true,
+      "metal_bus_master_enabled": true
+    },
+    {
+      "bdf": "0000:20:07.0",
+      "linux_group": 15,
+      "linux_id": "1022:43b4",
+      "metal_id": "1022:43b4",
+      "identity_matches": true,
+      "metal_bus_master_enabled": true
+    },
+    {
+      "bdf": "0000:25:00.0",
+      "linux_group": 15,
+      "linux_id": "10ec:8168",
+      "metal_id": null,
+      "identity_matches": null,
+      "metal_bus_master_enabled": null
+    },
+    {
+      "bdf": "0000:29:00.0",
+      "linux_group": 16,
+      "linux_id": "10de:2504",
+      "metal_id": "10de:2504",
+      "identity_matches": true,
+      "metal_bus_master_enabled": false
+    },
+    {
+      "bdf": "0000:29:00.1",
+      "linux_group": 16,
+      "linux_id": "10de:228e",
+      "metal_id": null,
+      "identity_matches": null,
+      "metal_bus_master_enabled": null
+    },
+    {
+      "bdf": "0000:2b:00.3",
+      "linux_group": 20,
+      "linux_id": "1022:149c",
+      "metal_id": "1022:149c",
+      "identity_matches": true,
+      "metal_bus_master_enabled": true
+    }
+  ],
+  "metal_requesters_without_linux_group": [],
+  "members_without_metal_pci_command": [
+    "0000:00:14.0",
+    "0000:25:00.0",
+    "0000:29:00.1"
+  ],
+  "conflicting_identities": [],
+  "ivrs_sha256": "d2b4e55ee37be93d6e764136059f140e847368118d447c345964ef21471202ec",
+  "census_sha256": "609c0544c0c0c1b85eb3ddad98c303b715ef6c43185d386c4b26b5df2b3eec6a",
+  "physical_translation_permitted": false
+}

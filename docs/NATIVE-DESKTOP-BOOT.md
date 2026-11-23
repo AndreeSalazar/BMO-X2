@@ -394,6 +394,16 @@ incluidas las funciones hermanas y los dispositivos que ya tienen DMA.
 La primera prueba NVIDIA debe comprobar la concesion y la revocacion
 del DMA acotado antes de avanzar a la respuesta del GSP y al dibujo 3D.
 
+El HOST puede cruzar el mismo censo con el dmesg de ULTRA-LinuX usando
+`ivrs.py --census-json ... --linux-pci-log ...`. En esa captura, NVIDIA
+`29:00.0` y su audio HDMI `29:00.1` comparten el grupo 16. El segundo
+xHCI `03:00.0` comparte el grupo 15 con SATA, Ethernet y puentes PCI.
+El censo BMO-X2 no aporta PCI Command para `00:14.0`, `25:00.0` ni
+`29:00.1`. Hay que leer esas funciones en el mismo arranque y validar
+la parada o el dominio de los dispositivos activos. Los grupos de Linux
+quedan como referencia historica, sin conceder DMA en BMO-X2.
+[Cotejo de grupos PCI](../Reports/amdvi-linux-group-reference-20261122.json).
+
 El ensayo `run-rmlui-media-4910a511a24c` verifica en QEMU el descriptor
 UEFI de la VGA, su longitud de 16 MiB cotejada con QMP, el estado
 `03`, teclado y raton USB simultaneos y el rechazo SBEF W+X. En HOST,
