@@ -3180,18 +3180,18 @@
     },
     {
       "id": "amdvi-board-lpc-admission",
-      "titulo": "AMD-Vi / Retiro temporal de Bus Master en LPC",
+      "titulo": "AMD-Vi / Admision del puente LPC medido",
       "ruta": "kernel/drivers/bus/amdvi/board_ivrs.S",
       "estado": "host",
       "anillo": "0",
       "lenguaje": "ASM x86-64",
       "ring0_platform_probe": true,
       "posicion": [12750, 3700],
-      "que": "Valida la topologia IVRS exacta que habilita retirar Bus Master del LPC medido antes de abrir AMD-Vi.",
+      "que": "Valida la topologia IVRS exacta antes de cerrar los controles DMA legado y LDRQ del LPC medido.",
       "entrada": "IVRS de la placa, censo de bus mastering, identidad en PCI y Command original de 00:14.3.",
-      "salida": "LPC apartado con lectura de vuelta o admision rechazada. Command original se restaura tras cierre confirmado.",
+      "salida": "LPC apartado con lectura de vuelta o admision rechazada. Restaura los controles tras un cierre confirmado.",
       "aceptacion": "HOST verifica el cuerpo de la IVRS medida y rechaza cambios de enrutamiento. QEMU excluye las escrituras fisicas y lee el recibo despues de iniciar USB.",
-      "falta": "Confirmar en METAL 000F a 000B y el primer No-Op traducido antes de FWSEC."
+      "falta": "Verificar la restauracion LPC al cerrar la traduccion en METAL."
     },
     {
       "id": "amdvi-physical-usb",
@@ -3205,8 +3205,8 @@
       "que": "Conecta la sesion AMD-Vi al reset, primer No-Op y parada del xHCI seleccionado. Cierra y restaura los controles DMA legado y LDRQ del LPC medido.",
       "entrada": "Paradas SATA/NVMe confirmadas y PCI Command en vivo; USB reservado y xHC detenido.",
       "salida": "Primer evento traducido o recibo de rechazo con el solicitante pendiente.",
-      "aceptacion": "QEMU verifica que no cambia la reserva, el alias ni el recibo de la placa fisica.",
-      "falta": "Confirmar los controles LPC y el No-Op traducido en METAL antes de abrir el DMA de la RTX."
+      "aceptacion": "METAL con 4e3c07d muestra USB 212 y LPC 501: controles LPC confirmados y No-Op recibido sin evento AMD-Vi. QEMU verifica la exclusion de la ruta fisica.",
+      "falta": "Confirmar en METAL FWSEC, el cierre PCIe de la RTX y la recuperacion completa ante fallo."
     },
     {
       "id": "storage-state-uefi",

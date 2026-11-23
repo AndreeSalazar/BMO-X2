@@ -459,6 +459,14 @@ extern "C" void bmo_main() {
         log(amdvi_line);
         const char* status=fwsec==0x401 ? "WPR2 confirmada" :
             fwsec==0x404 ? "cierre PCIe sin confirmar" :
+            fwsec==0x405 ? "codigo Falcon ausente" :
+            fwsec==0x406 ? "dominio FWSEC sin confirmar" :
+            fwsec==0x407 ? "identidad PCI o reloj no validos" :
+            fwsec==0x408 ? "PCIe no listo" :
+            fwsec==0x409 ? "alias BAR0 no disponible" :
+            fwsec==0x40a ? "Falcon rechazado antes del reset" :
+            fwsec==0x40b ? "Bus Master RTX sin confirmar" :
+            fwsec==0x40c ? "reset Falcon sin confirmar" :
             fwsec>=0x402 ? "FWSEC fallo" :
             fwsec==0x400 ? "FWSEC rechazado" : "FWSEC pendiente";
         snprintf(amdvi_line,sizeof(amdvi_line),"RTX / %s / USB %03X LPC %03X FWSEC %03X",

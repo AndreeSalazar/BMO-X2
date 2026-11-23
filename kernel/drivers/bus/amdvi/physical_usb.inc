@@ -94,8 +94,10 @@
     movq $0x212, AMDVI_PHYSICAL_USB_RESULT(%rbp) # xHC No-Op matched, no IOMMU event.
     mov NVIDIA_PHYSICAL_CODE_BASE(%rbp), %rax
     test %rax, %rax
-    jz .Lphysical_usb_pass
-    add $NVIDIA_PHYSICAL_FWSEC_ENTRY, %rax
+    jnz .Lphysical_usb_fwsec
+    movl $0x405, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)
+    jmp .Lphysical_usb_pass
+.Lphysical_usb_fwsec:
     call *%rax
     cmp $3, %eax
     je .Lphysical_usb_pin

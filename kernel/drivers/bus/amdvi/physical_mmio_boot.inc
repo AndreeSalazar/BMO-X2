@@ -70,14 +70,6 @@ amdvi_physical_mmio_begin:
     invlpg (%rdi)
     invlpg 0x2000(%rdi)
     mov 104(%rsp), %rsp
-#ifdef BMO_AMDVI_PHYSICAL_USB_TEST
-    cmpq $0x101, GSP_PHYSICAL_MMIO_RESULT(%rbp)
-    jne .Lmmio_boot_done
-    mov NVIDIA_PHYSICAL_CODE_BASE(%rbp), %rax
-    test %rax, %rax
-    jz .Lmmio_boot_done
-    call *%rax
-#endif
 .Lmmio_boot_done:
     ret
 #include "physical_mmio.S"

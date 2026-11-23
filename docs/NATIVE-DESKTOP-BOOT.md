@@ -1208,23 +1208,29 @@ originales. La pagina adicional para el alias de CPU queda fuera de
 los dominios DMA. El perfil prueba la exclusion de la ruta fisica en
 QEMU y no emite medio FAT32 de despliegue.
 
-El mismo perfil ensaya la preparacion de Falcon despues de restaurar los
-registros de AMD-Vi y antes de arrancar USB. Relee en PCI el ID, subsistema,
-BAR0 y Command de `29:00.0`, con Bus Master apagado. El alias de CPU
-expone cuatro paginas de BAR0 al supervisor y las retira al volver. El
-recibo privado en `0x980` distingue `300` (rechazado), `301` (Falcon listo)
-y `302` (estado incierto). La segunda entrada de la etapa NVIDIA espera
-el No-Op xHCI con traduccion AMD-Vi, el dominio limitado de FWSEC y el
-recibo `301` antes de habilitar Bus Master de `29:00.0`. Llama al cargador
-firmado y restaura PCI Command en todas las salidas posteriores a la
+El arranque fisico con `4e3c07d` mostro `USB 212 LPC 501 FWSEC 000`.
+El primer No-Op bajo AMD-Vi y los controles del puente quedaron
+confirmados. El estado cero de FWSEC no distinguia las guardas que
+podian impedir la apertura.
+
+La etapa NVIDIA ahora espera el No-Op traducido y comprueba el dominio
+limitado de FWSEC. Relee en PCI identidad, BAR0, Command y estado PCIe
+de `29:00.0`. Con Bus Master apagado, abre un alias supervisor de cuatro
+paginas de BAR0 y prepara Falcon. Solo entonces habilita Bus Master y
+llama al cargador firmado. Retira el alias al volver y restaura PCI
+Command en todas las salidas posteriores a la
 apertura. Si hay transacciones PCIe pendientes cuando vence el plazo o
 falla la lectura de vuelta, conserva la traduccion y fija las reservas.
 UEFI reserva una pagina LoaderCode independiente para esta etapa. QEMU
-comprueba la reserva y exige que las entradas fisicas queden excluidas.
+comprueba la reserva y exige que la secuencia fisica quede excluida.
 
 El estado de lanzamiento en `0x990` registra `400` si la prueba se rechaza,
 `401` si el cargador confirma WPR2, `402` si falla DMA, `403` si falla la
 ejecucion de Falcon o WPR2, y `404` si no se confirma el cierre PCIe.
+`405` indica ausencia de la pagina de codigo, `406` dominio o sesion
+sin confirmar, `407` identidad PCI o reloj invalidos, `408` PCIe no listo
+y `409` alias BAR0 no disponible. `40A` indica rechazo previo al reset,
+`40B` apertura de Bus Master sin confirmar y `40C` reset sin confirmar.
 La captura de Falcon en `0x998` conserva la fase y los registros incluso
 en caso de cierre incierto. La siguiente etapa de SEC2 requiere verificar
 el resultado en la placa.

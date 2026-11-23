@@ -1,5 +1,5 @@
 # GA106 board stage. Runs on the supervisor stack after ExitBootServices.
-# Reset runs with the IOMMU restored. Launch runs after translated xHCI No-Op.
+# Runs after the translated xHCI No-Op; GPU BME stays off during Falcon reset.
 .set FALCON_BOARD_PDE, 0x15408
 .set FALCON_BOARD_VA, 0x10200000
 .set FALCON_BOARD_RID, 0x80290000
@@ -7,16 +7,6 @@
 .globl nvidia_physical_begin
 nvidia_physical_begin:
 .Lnvidia_physical_begin:
-    .byte 0xe9
-    .long .Lboard_reset - . - 4
-    .byte 0xe9
-    .long .Lboard_launch - . - 4
-.Lboard_reset:
-    xor %eax, %eax
-    jmp .Lboard_enter
-.Lboard_launch:
-    mov $1, %eax
-.Lboard_enter:
     push %rbx
     push %r12
     push %r13
@@ -26,28 +16,19 @@ nvidia_physical_begin:
     mov %rsp, %r13
     and $-16, %rsp
     sub $48, %rsp
-    mov %eax, %r14d
-    test %eax, %eax
-    jz .Lboard_enter_pci
     cmpq $0, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)
     jne .Lboard_skip
-    cmpq $0x301, NVIDIA_FALCON_RESET_RESULT(%rbp)
-    jne .Lboard_skip
+    movl $0x406, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)
     cmpl $2, GSP_FWSEC_DOMAIN_STATUS(%rbp)
     jne .Lboard_skip
     cmpq $0x0a107000, GSP_POST_FWSEC(%rbp)
     jne .Lboard_skip
     cmpq $1, AMDVI_PHYSICAL_USB_STATE(%rbp)
     jne .Lboard_skip
-    movq $0x400, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)
-.Lboard_enter_pci:
+    movl $0x407, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)
     mov $0xcf8, %dx
     in %dx, %eax
     mov %eax, %ebx
-    test %r14d, %r14d
-    jnz .Lboard_identity
-    movq $0x300, NVIDIA_FALCON_RESET_RESULT(%rbp)
-.Lboard_identity:
     xor %eax, %eax
     call .Lboard_pci_read
     cmp $0x250410de, %eax
@@ -71,15 +52,16 @@ nvidia_physical_begin:
     jb .Lboard_exit
     cmp $100000000, %r15
     ja .Lboard_exit
-    test %r14d, %r14d
-    jz .Lboard_map
+    movl $0x408, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)
     call .Lboard_pcie_status
     jc .Lboard_exit
     mov %r14d, %eax
     call .Lboard_pci_read
+    cmp $-1, %eax
+    je .Lboard_exit
     test $0x00200000, %eax
     jnz .Lboard_exit
-.Lboard_map:
+    movl $0x409, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)
     cmpq $0, FALCON_BOARD_PDE(%rbp)
     jne .Lboard_exit
     mov GSP_PHYSICAL_DTE_BASE(%rbp), %r10
@@ -108,15 +90,16 @@ nvidia_physical_begin:
     lea 3(%r10), %rax
     mov %rax, FALCON_BOARD_PDE(%rbp)
     call .Lboard_flush
-    test %r14d, %r14d
-    jnz .Lboard_fwsec
     mov $FALCON_BOARD_VA, %ecx
     mov %r15, %rdx
     call .Lprepare_ga106_falcon
-    or $0x300, %eax
-    mov %rax, NVIDIA_FALCON_RESET_RESULT(%rbp)
+    cmp $1, %eax
+    je .Lboard_fwsec
+    add $0x40a, %eax
+    mov %rax, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)
     jmp .Lboard_unmap
 .Lboard_fwsec:
+    movl $0x40b, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)
     mov %r12d, %ecx
     or $4, %ecx
     call .Lboard_command
