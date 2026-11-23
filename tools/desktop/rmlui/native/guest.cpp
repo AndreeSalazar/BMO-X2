@@ -472,6 +472,17 @@ extern "C" void bmo_main() {
         const auto init_code=unsigned(init>>32);
         snprintf(amdvi_line,sizeof(amdvi_line),"GSP_INIT=%03X %08X\n",init_code,unsigned(init));
         log(amdvi_line);
+        const auto mailbox=doom_invoke(3,3,amdvi_diagnostic,12);
+        const auto core=doom_invoke(3,3,amdvi_diagnostic,13);
+        const auto progress=doom_invoke(3,3,amdvi_diagnostic,14);
+        const auto event=doom_invoke(3,3,amdvi_diagnostic,15);
+        const auto iova=doom_invoke(3,3,amdvi_diagnostic,16);
+        snprintf(amdvi_line,sizeof(amdvi_line),
+                 "GSP_TRACE=%08X %08X %08X %08X %08X %08X %08X %08X %08X%08X\n",
+                 unsigned(mailbox),unsigned(mailbox>>32),unsigned(core),unsigned(core>>32),
+                 unsigned(progress),unsigned(progress>>32),unsigned(event),unsigned(event>>32),
+                 unsigned(iova>>32),unsigned(iova));
+        log(amdvi_line);
         const char* status=fwsec==0x401 ? "WPR2 confirmada" :
             fwsec==0x404 ? "cierre PCIe sin confirmar" :
             fwsec==0x405 ? "codigo Falcon ausente" :
@@ -538,6 +549,18 @@ extern "C" void bmo_main() {
             snprintf(amdvi_line,sizeof(amdvi_line),"GSP / %s / %03X / DATO %08X",
                      result,init_code,unsigned(init));
             hardware_report+="<br/>";
+            hardware_report+=amdvi_line;
+        }
+        if(init_code==0x804) {
+            snprintf(amdvi_line,sizeof(amdvi_line),
+                     "<br/>GSP / CPU %08X / RX %08X / MB %08X %08X / LOGINIT %08X",
+                     unsigned(core),unsigned(core>>32),unsigned(mailbox),unsigned(mailbox>>32),
+                     unsigned(progress));
+            hardware_report+=amdvi_line;
+            snprintf(amdvi_line,sizeof(amdvi_line),
+                     "<br/>AMD-Vi / COLA %08X / ESTADO %08X / EVENTO %08X / IOVA %08X%08X",
+                     unsigned(progress>>32),unsigned(event),unsigned(event>>32),
+                     unsigned(iova>>32),unsigned(iova));
             hardware_report+=amdvi_line;
         }
         amdvi_panel->SetInnerRML(hardware_report);

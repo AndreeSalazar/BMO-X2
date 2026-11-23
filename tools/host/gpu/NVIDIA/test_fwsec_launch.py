@@ -55,7 +55,7 @@ class FwsecLaunch(unittest.TestCase):
                         "/export:nvidia_launch_ga106_fwsec", "/export:nvidia_prepare_ga106_falcon",
                         "/export:amdvi_stage_fwsec_domain", "/export:amdvi_matches_board_ivrs",
                         "/export:nvidia_prepare_sec2_image", "/export:nvidia_execute_sec2_booter",
-                        "/export:nvidia_gsp_init_615",
+                        "/export:nvidia_gsp_init_615", "/export:nvidia_gsp_snapshot_615",
                         f"/out:{dll}", sec2_object, domain, ivrs, sec2], check=True)
         cls.library = ctypes.WinDLL(str(dll))
         cls.addClassCleanup(FreeLibrary, cls.library._handle)
@@ -80,6 +80,28 @@ class FwsecLaunch(unittest.TestCase):
         cls.gsp_init = cls.library.nvidia_gsp_init_615
         cls.gsp_init.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint32]
         cls.gsp_init.restype = ctypes.c_uint64
+        cls.gsp_snapshot = cls.library.nvidia_gsp_snapshot_615
+        cls.gsp_snapshot.argtypes = [ctypes.c_void_p]*5
+        cls.gsp_snapshot.restype = None
+
+    def test_gsp_snapshot_reads_only_published_event(self):
+        self.write(FALCON+0x40,0x1234)
+        self.write(FALCON+0x44,0x5678)
+        self.write(FALCON+0x1388,0x80)
+        self.write(FALCON+0xc80,0)
+        producer = ctypes.c_uint64(0x19)
+        registers = (ctypes.c_uint64*5)(0,0,0,16,2)
+        entry = (ctypes.c_uint32*4)(0x2900,0x20020005,0xa042000,0)
+        snapshot = (ctypes.c_uint32*10)()
+        for tail, event in ((16,0x20022900),(0,0),(17,0),(4096,0)):
+            with self.subTest(tail=tail):
+                registers[3] = tail
+                self.gsp_snapshot(ctypes.byref(self.mapping,FALCON),ctypes.byref(producer),
+                                  registers,entry,snapshot)
+                self.assertEqual(list(snapshot),[0x1234,0x5678,0x80,0,0x19,tail,2,
+                                                 event,0xa042000 if event else 0,0])
+                self.assertEqual(list(registers),[0,0,0,tail,2])
+                self.assertEqual(list(entry),[0x2900,0x20020005,0xa042000,0])
 
     def test_gsp_init_accepts_only_a_matching_reply(self):
         for sequence, status, expected in ((1, 0, 0x801), (1, 3, 0x802), (2, 0, 0x807)):

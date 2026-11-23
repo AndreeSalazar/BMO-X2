@@ -2730,9 +2730,9 @@
       "posicion": [12250, 3830],
       "que": "Enlaza MSGQ v2 y envia una solicitud fija GMCAPI GSP_INIT.",
       "entrada": "SEC2 701, BAR y dominio de la placa comprobados, RMARGS 615.78.08.",
-      "salida": "Respuesta correlacionada o diagnostico acotado antes del cierre PCIe.",
-      "aceptacion": "HOST prueba una respuesta correcta, el rechazo y la correlacion. QEMU comprueba la exclusion de la sonda.",
-      "falta": "Validar en METAL y completar el canal de comandos graficos."
+      "salida": "Respuesta correlacionada o captura de GSP, LOGINIT y AMD-Vi si falta la cola antes del cierre PCIe.",
+      "aceptacion": "HOST prueba la correlacion y la lectura del evento publicado sin consumirlo. QEMU comprueba la exclusion de la sonda y la exportacion a Ring 3.",
+      "falta": "METAL con ab2fff2 confirma 804 tras SEC2 701. Falta leer GSP_TRACE en la placa y completar el canal grafico."
     },
     {
       "id": "nvidia-sec2-domain-native",

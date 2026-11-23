@@ -199,6 +199,49 @@ nvidia_gsp_init_615:
     pop %rbx
     ret
 
+# Read-only timeout snapshot. Win64: RCX = GSP, RDX = LOGINIT,
+# R8 = event MMIO page, R9 = private event ring, fifth arg = output.
+.globl nvidia_gsp_snapshot_615
+nvidia_gsp_snapshot_615:
+    mov 40(%rsp), %r10
+    mov 0x40(%rcx), %eax
+    mov %eax, 0(%r10)
+    mov 0x44(%rcx), %eax
+    mov %eax, 4(%r10)
+    mov 0x1388(%rcx), %eax
+    mov %eax, 8(%r10)
+    mov GSP_RX_HEAD(%rcx), %eax
+    mov %eax, 12(%r10)
+    mov (%rdx), %eax
+    mov %eax, 16(%r10)
+    mov 0x18(%r8), %rax
+    mov %eax, 20(%r10)
+    mov 0x20(%r8), %edx
+    mov %edx, 24(%r10)
+    movl $0, 28(%r10)
+    movq $0, 32(%r10)
+    # Record the first published entry. This rehearsal leaves Head at zero.
+    cmpq $0, 0x10(%r8)
+    jne .Lgsp_snapshot_done
+    cmp $16, %rax
+    jb .Lgsp_snapshot_done
+    cmp $4096, %rax
+    jae .Lgsp_snapshot_done
+    test $15, %al
+    jnz .Lgsp_snapshot_done
+    lfence
+    mov 4(%r9), %eax
+    test $0xf0000000, %eax
+    jz .Lgsp_snapshot_done
+    and $0xffff0000, %eax       # Event type and flags, without PASID.
+    movzwl (%r9), %edx          # PCI requester.
+    or %edx, %eax
+    mov %eax, 28(%r10)
+    mov 8(%r9), %rax
+    mov %rax, 32(%r10)
+.Lgsp_snapshot_done:
+    ret
+
 .p2align 3
 .Lgsp_615_request:
     .long 0x4d435450, .Lgsp_615_request_end-.Lgsp_615_request

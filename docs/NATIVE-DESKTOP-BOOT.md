@@ -1308,6 +1308,17 @@ o de la geometria, `806` la espera de respuesta con TX tail, `807` un
 mensaje invalido y `808` un RPC pendiente de servicio. El canal grafico,
 el triangulo acelerado y el control de pantalla siguen pendientes.
 [Arranque GSP de OpenRM 615.78.08](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/arch/turing/kernel_gsp_tu102.c).
+
+METAL con `ab2fff2` mostro `701 / MAILBOX0 00000000` y luego `804`.
+En ese punto la cabecera de la cola seguia en cero y `GSP_INIT` aun no
+se habia enviado. Si vence la espera, el candidato toma una muestra de
+solo lectura antes del cierre de la ventana DMA y la publica en el
+escritorio y en serie como `GSP_TRACE`. Incluye los dos buzones del GSP,
+CPUCTL, RX head, los 32 bits bajos del productor LOGINIT, el tail y
+estado de AMD-Vi y el primer evento publicado con su IOVA. El campo
+`EVENTO` guarda tipo y banderas en los 16 bits altos y el solicitante
+PCI en los 16 bits bajos. `COLA` es el desplazamiento del productor en
+bytes. La muestra conserva el plazo de cuatro segundos.
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
 [Fusibles SEC2 en Nova](https://github.com/torvalds/linux/blob/master/drivers/gpu/nova-core/regs.rs).

@@ -152,6 +152,8 @@ def verify_gsp_reservation(memory, context, expected, case):
                 native_queue, = struct.unpack('<Q', memory(context+0x8b0,8,'physical-gsp-queue-base'))
                 if native_queue != dma_root+tree_pages*4096 or any(memory(context+0x9f8,8,'physical-gsp-init')):
                     raise ValueError('The native GSP queue address differs or GSP INIT ran on QEMU')
+                if any(memory(context+0x888,40,'physical-gsp-snapshot')):
+                    raise ValueError('The physical GSP snapshot ran on QEMU')
                 result['PhysicalGspInitExcluded']=True
             result['PhysicalUsbTranslationExcluded']=True
             result['PhysicalFalconResetExcluded']=True
@@ -439,6 +441,8 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
             raise ValueError('Missing Ring 3 SEC2 execution receipt or unexpected board execution')
         if gsp_manifest.get('physical_sec2_stage') and 'GSP_INIT=000 00000000' not in lines:
             raise ValueError('Missing Ring 3 GSP INIT receipt or unexpected board execution')
+        if 'GSP_TRACE='+'00000000 '*8+'0000000000000000' not in lines:
+            raise ValueError('Missing or unexpected physical GSP timeout snapshot')
         amdvi_proof['PhysicalFwsecStatusExportVerified']=True
     if full_hd_profile:
         pool,pages=struct.unpack('<QQ',memory(context_address+0x708,16,'native-ui-pool'))
