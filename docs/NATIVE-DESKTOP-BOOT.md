@@ -1158,6 +1158,13 @@ El recibo en la mitad alta del estado hizo fallar la comparacion de
 el codigo en la mitad baja. Si la restauracion queda sin confirmar,
 el codigo invalida la captura para operaciones de escritura.
 
+En METAL, el candidato corregido `run-rmlui-media-f8c75c2c67a6`
+mostro `0006 -> 0002` y parada confirmada tanto para NVMe `01:00.0`
+como para SATA `03:00.1`. El GPULOG previo a EBS del mismo perfil
+conserva la RTX identificada en `29:00.0` con Command `0003`. La
+captura del panel confirma la entrega de almacenamiento. La activacion
+de la traduccion se verifica aparte.
+
 La [rutina de traduccion](../kernel/drivers/bus/amdvi/translation.S)
 activa AMD-Vi con las tres bases ya cotejadas. Puede emitir una
 invalidacion global seguida de la invalidacion del solicitante y una
@@ -1173,6 +1180,16 @@ Las contrapruebas distinguen la falta de IOMMU y una traduccion que
 sigue en cache si se omite la invalidacion al revocar. En la placa
 aun queda integrar la propiedad de los solicitantes activos con esta
 rutina antes de conceder DMA al Falcon.
+
+La [sesion fisica de traduccion](../kernel/drivers/bus/amdvi/physical_translation.S)
+combina la publicacion reversible y la activacion. Usa el dominio
+preparado de `2B:00.3` durante un ensayo xHCI y conserva las bases
+originales hasta confirmar el cierre. Un fallo sin restauracion
+confirmada mantiene las reservas fijadas. El banco HOST ejecuta la
+rutina nativa de 1633 bytes contra registros simulados. Comprueba la
+confirmacion y cierre, el rechazo sin IASup, el plazo vencido y la
+retencion al producirse un evento de error. Su invocacion desde la
+propiedad real de xHCI y la primera orden DMA en METAL estan pendientes.
 [Inventario PCI en METAL](../Reports/dma-pci-census-metal-20261120.json).
 [Estado de los discos en METAL](../Reports/storage-state-metal-20261120.json).
 [Evidencia del candidato de cierre](../Reports/amdvi-storage-handoff-20261121.json).

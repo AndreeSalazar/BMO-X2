@@ -3135,6 +3135,21 @@
       "falta": "Conectar al traspaso fisico de xHCI y RTX y probar FWSEC con DMA acotado en METAL."
     },
     {
+      "id": "amdvi-physical-translation",
+      "titulo": "AMD-Vi / Sesion fisica de traduccion para xHCI",
+      "ruta": "kernel/drivers/bus/amdvi/physical_translation.S",
+      "estado": "host",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [12900, 4490],
+      "que": "Publica e inicia AMD-Vi con el dominio de xHCI; detiene las colas y devuelve las bases heredadas.",
+      "entrada": "Recibo privado, reloj calibrado, alias AMD-Vi y solicitantes comprobados y detenidos por el llamador.",
+      "salida": "Sesion activa, cierre confirmado o reservas retenidas por fallo de recuperacion.",
+      "aceptacion": "HOST ejecuta apertura y cierre nativos, rechazo sin IASup, plazo agotado y retencion por evento IOMMU.",
+      "falta": "Invocar tras adquirir xHCI en METAL y comprobar su primer evento por DMA traducido antes de conceder DMA a la RTX."
+    },
+    {
       "id": "storage-state-uefi",
       "titulo": "Almacenamiento / Recursos UEFI AHCI y NVMe",
       "ruta": "kernel/drivers/storage/handoff_uefi.inc",
