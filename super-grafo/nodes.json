@@ -2766,6 +2766,20 @@
       "falta": "Conceder el dominio fisico y cargar Falcon para obtener WPR2 activa."
     },
     {
+      "id": "nvidia-ga106-scanout",
+      "titulo": "GPU / NVIDIA / Superficie de ventana C67E",
+      "ruta": "userspace/drivers/GPU/NVIDIA/scanout.rs",
+      "estado": "host",
+      "anillo": "3",
+      "lenguaje": "Rust",
+      "posicion": [12400, 4100],
+      "que": "Codifica los metodos de imagen de una ventana de pantalla GA106 sin escalado.",
+      "entrada": "Geometria de la salida activa y superficie XRGB8888 en un contexto DMA de VRAM lineal.",
+      "salida": "Paquete de flip C67E con notificador acotado o rechazo por geometria, pitch, offset o rango.",
+      "aceptacion": "Vectores HOST HD y Full HD, segundo buffer con padding y rechazo de rangos invalidos.",
+      "falta": "Arrancar GSP, crear y vincular los canales de pantalla, esperar render y confirmar el primer flip en METAL."
+    },
+    {
       "id": "nvidia-fwsec-launch",
       "titulo": "GPU / NVIDIA / Ejecucion FWSEC-FRTS en Falcon",
       "ruta": "kernel/drivers/GPU/NVIDIA/fwsec_launch.S",

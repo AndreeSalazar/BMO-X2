@@ -1459,6 +1459,21 @@ primer cuadro nativo, el perfil NVIDIA necesita adjudicar el dominio
 DMA real, obtener respuesta del GSP y enviar trabajo a un canal grafico.
 [Informe del triangulo](../Reports/nvidia-triangle-host-20261120.json).
 
+La [codificacion de scanout para GA106](../userspace/drivers/GPU/NVIDIA/scanout.rs)
+prepara los metodos de imagen C67E para una ventana que el canal core ya
+vinculo a la salida. Los vectores HOST cubren 1280x720, 1920x1080 y un
+segundo buffer de VRAM con pitch distinto. El modo y la frecuencia aun se
+eligen fuera de este modulo. Para retirar GOP, la prueba en metal debe
+presentar una superficie producida por la GPU, esperar la confirmacion de
+NVIDIA en el canal de pantalla y comprobar el resultado en el monitor.
+Referencias [NVDisplay](https://github.com/NVIDIA/open-gpu-doc/blob/master/classes/display/README.txt)
+y [metodos de la ventana C67E](https://github.com/NVIDIA/open-gpu-doc/blob/master/classes/display/clc67e.h).
+
+```powershell
+rustc --edition 2024 --test userspace/drivers/GPU/NVIDIA/scanout.rs -o build/nvidia-scanout-tests.exe
+.\build\nvidia-scanout-tests.exe
+```
+
 ### Medir los tirones antes de cambiar el presentador
 
 1. Repetir cuatro casos con la misma resolucion, escala y perfil de
