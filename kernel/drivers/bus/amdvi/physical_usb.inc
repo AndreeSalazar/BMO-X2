@@ -4,6 +4,10 @@
 .set PHYS_USB_PDE, 0x15408
 .set PHYS_USB_IOMMU_VA, 0x10200000
 .set PHYS_USB_AMDVI, 0xfd500000
+# AMD BKDG 55072, sections 2.17.4.1 and D14F3 PCI configuration.
+.set PHYS_LPC_PCI, 0x8000a300
+.set PHYS_LPC_LEGACY, 0x04
+.set PHYS_LPC_LDRQ, 0x0c
 .Lphysical_usb_entry:
     push %rbx
     push %r12
@@ -180,8 +184,8 @@
     movq $0, 16(%r13)
     ret
 
-# All endpoints must leave BME clear. Only measured PCI-to-PCI bridges
-# may keep forwarding. The measured LPC bridge is parked after the scan.
+# All endpoints must leave BME clear. Measured PCI-to-PCI bridges may
+# keep forwarding. The measured LPC bridge has a read-only Command.BME.
 .Lphysical_usb_pci:
     mov $0xcf8, %dx
     in %dx, %eax
@@ -214,7 +218,7 @@
     call .Lphysical_usb_read_pci
     test $4, %al
     jz .Lphysical_usb_next
-    cmp $0x8000a300, %r8d
+    cmp $PHYS_LPC_PCI, %r8d
     je .Lphysical_usb_lpc
     lea 8(%r8), %eax
     call .Lphysical_usb_read_pci
@@ -229,19 +233,9 @@
     jne .Lphysical_usb_scan
     test %r11d, %r11d
     jz .Lphysical_usb_pci_pass
-    mov %r11w, AMDVI_PHYSICAL_LPC_COMMAND(%rbp)
-    mov %r11d, %ecx
-    and $~4, %ecx
-    call .Lphysical_lpc_write_command
-    cmp %cx, %ax
-    je .Lphysical_usb_lpc_parked
-    mov %r11d, %ecx
-    call .Lphysical_lpc_write_command
-    movq $0x503, AMDVI_PHYSICAL_LPC_STATUS(%rbp)
-    mov $0x8000a300, %r8d
-    jmp .Lphysical_usb_pci_blocked
-.Lphysical_usb_lpc_parked:
-    movq $0x501, AMDVI_PHYSICAL_LPC_STATUS(%rbp)
+    mov $PHYS_LPC_PCI, %r8d
+    call .Lphysical_lpc_park
+    jc .Lphysical_usb_pci_blocked
 .Lphysical_usb_pci_pass:
     pop %rax
     out %eax, %dx
@@ -258,18 +252,17 @@
     cmpl $1, AMDVI_BOARD_IVRS_MATCH(%rbp)
     jne .Lphysical_usb_pci_blocked
     incl AMDVI_PHYSICAL_LPC_STATUS(%rbp)
-    mov $0x8000a308, %eax
+    mov $(PHYS_LPC_PCI+0x08), %eax
     call .Lphysical_usb_read_pci
-    shr $8, %eax
-    cmp $0x060100, %eax
+    cmp $0x06010051, %eax
     jne .Lphysical_usb_pci_blocked
     incl AMDVI_PHYSICAL_LPC_STATUS(%rbp)
-    mov $0x8000a32c, %eax
+    mov $(PHYS_LPC_PCI+0x2c), %eax
     call .Lphysical_usb_read_pci
     cmp $0x7c521462, %eax
     jne .Lphysical_usb_pci_blocked
     movl $0, AMDVI_PHYSICAL_LPC_STATUS(%rbp)
-    mov $0x000f, %r11d
+    mov $1, %r11d
     jmp .Lphysical_usb_next
 .Lphysical_usb_pci_blocked:
     shr $8, %r8d
@@ -289,15 +282,76 @@
     sub $4, %dx
     ret
 
-# PCI Command is 16-bit. Keep Status and legacy decode registers intact.
-.Lphysical_lpc_write_command:
-    mov $0x8000a304, %eax
+# Keep the LPC requester denied by AMD-Vi. Stop legacy requests and check
+# the independent ROM copy engine without writing its registers.
+.Lphysical_lpc_park:
+    movl $0x504, AMDVI_PHYSICAL_LPC_STATUS(%rbp)
+    mov $(PHYS_LPC_PCI+0xb8), %eax
+    call .Lphysical_usb_read_pci
+    test $1, %al
+    jnz .Lphysical_lpc_refuse
+    movl $0x505, AMDVI_PHYSICAL_LPC_STATUS(%rbp)
+    mov $(PHYS_LPC_PCI+0x40), %eax
+    call .Lphysical_usb_read_pci
+    test $0x60, %al               # BIOS/EC semaphore in use or absent register.
+    jnz .Lphysical_lpc_refuse
+    and $PHYS_LPC_LEGACY, %al
+    mov %al, AMDVI_PHYSICAL_LPC_LEGACY(%rbp)
+    mov $(PHYS_LPC_PCI+0x78), %eax
+    call .Lphysical_usb_read_pci
+    cmp $-1, %eax
+    je .Lphysical_lpc_refuse
+    and $PHYS_LPC_LDRQ, %al
+    mov %al, AMDVI_PHYSICAL_LPC_LDRQ(%rbp)
+    movl $0x501, AMDVI_PHYSICAL_LPC_STATUS(%rbp)
+    xor %ecx, %ecx
+    call .Lphysical_lpc_legacy
+    jne .Lphysical_lpc_reject_write
+    xor %ecx, %ecx
+    call .Lphysical_lpc_ldrq
+    jne .Lphysical_lpc_reject_write
+    mov $(PHYS_LPC_PCI+0xb8), %eax
+    call .Lphysical_usb_read_pci
+    test $1, %al
+    jnz .Lphysical_lpc_reject_rom
+    clc
+    ret
+.Lphysical_lpc_reject_rom:
+    mov $0x504, %r10d
+    jmp .Lphysical_lpc_reject_restore
+.Lphysical_lpc_reject_write:
+    mov $0x503, %r10d
+.Lphysical_lpc_reject_restore:
+    call .Lphysical_lpc_restore_bits
+    jne .Lphysical_lpc_refuse
+    mov %r10d, AMDVI_PHYSICAL_LPC_STATUS(%rbp)
+.Lphysical_lpc_refuse:
+    stc
+    ret
+
+# Replace only the requested bits with CL, using byte-wide PCI accesses.
+.Lphysical_lpc_legacy:
+    mov $(PHYS_LPC_PCI+0x40), %eax
+    mov $PHYS_LPC_LEGACY, %r9b
+    jmp .Lphysical_lpc_update
+.Lphysical_lpc_ldrq:
+    mov $(PHYS_LPC_PCI+0x78), %eax
+    mov $PHYS_LPC_LDRQ, %r9b
+.Lphysical_lpc_update:
     out %eax, %dx
     add $4, %dx
-    mov %ecx, %eax
-    out %ax, %dx
-    in %dx, %ax
+    in %dx, %al
+    not %r9b
+    and %al, %r9b
+    or %cl, %r9b
+    cmp %r9b, %al
+    je .Lphysical_lpc_update_done
+    mov %r9b, %al
+    out %al, %dx
+    in %dx, %al
+.Lphysical_lpc_update_done:
     sub $4, %dx
+    cmp %r9b, %al
     ret
 
 # Restore only after AMD-Vi has completed rollback, or before it was enabled.
@@ -307,20 +361,24 @@
     mov $0xcf8, %dx
     in %dx, %eax
     push %rax
-    mov $0x8000a300, %eax
-    call .Lphysical_usb_read_pci
-    cmp $0x790e1022, %eax
-    jne .Lphysical_lpc_restore_failed
-    movzwl AMDVI_PHYSICAL_LPC_COMMAND(%rbp), %ecx
-    call .Lphysical_lpc_write_command
-    cmp %cx, %ax
-    jne .Lphysical_lpc_restore_failed
-    movq $0x502, AMDVI_PHYSICAL_LPC_STATUS(%rbp)
-    jmp .Lphysical_lpc_restore_cf8
-.Lphysical_lpc_restore_failed:
-    movq $0x503, AMDVI_PHYSICAL_LPC_STATUS(%rbp)
-.Lphysical_lpc_restore_cf8:
+    call .Lphysical_lpc_restore_bits
     pop %rax
     out %eax, %dx
 .Lphysical_lpc_restore_done:
+    ret
+.Lphysical_lpc_restore_bits:
+    mov $PHYS_LPC_PCI, %eax
+    call .Lphysical_usb_read_pci
+    cmp $0x790e1022, %eax
+    jne .Lphysical_lpc_restore_failed
+    movzbl AMDVI_PHYSICAL_LPC_LDRQ(%rbp), %ecx
+    call .Lphysical_lpc_ldrq
+    jne .Lphysical_lpc_restore_failed
+    movzbl AMDVI_PHYSICAL_LPC_LEGACY(%rbp), %ecx
+    call .Lphysical_lpc_legacy
+    jne .Lphysical_lpc_restore_failed
+    movl $0x502, AMDVI_PHYSICAL_LPC_STATUS(%rbp)
+    ret
+.Lphysical_lpc_restore_failed:
+    movl $0x506, AMDVI_PHYSICAL_LPC_STATUS(%rbp)
     ret

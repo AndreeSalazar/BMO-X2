@@ -3202,11 +3202,11 @@
       "lenguaje": "ASM x86-64",
       "ring0_platform_probe": true,
       "posicion": [13100, 4490],
-      "que": "Conecta la sesion AMD-Vi al reset, primer No-Op y parada del xHCI seleccionado.",
+      "que": "Conecta la sesion AMD-Vi al reset, primer No-Op y parada del xHCI seleccionado. Cierra y restaura los controles DMA legado y LDRQ del LPC medido.",
       "entrada": "Paradas SATA/NVMe confirmadas y PCI Command en vivo; USB reservado y xHC detenido.",
       "salida": "Primer evento traducido o recibo de rechazo con el solicitante pendiente.",
       "aceptacion": "QEMU verifica que no cambia la reserva, el alias ni el recibo de la placa fisica.",
-      "falta": "Controlar BME del puente ISA de la placa y verificar el No-Op en METAL antes de abrir el DMA de la RTX."
+      "falta": "Confirmar los controles LPC y el No-Op traducido en METAL antes de abrir el DMA de la RTX."
     },
     {
       "id": "storage-state-uefi",

@@ -100,7 +100,8 @@
 #define NVIDIA_PHYSICAL_FWSEC_ENTRY 5
 #define AMDVI_BOARD_IVRS_MATCH 0x9c8
 #define AMDVI_PHYSICAL_LPC_STATUS 0x9d0
-#define AMDVI_PHYSICAL_LPC_COMMAND 0x9d8
+#define AMDVI_PHYSICAL_LPC_LEGACY 0x9d8
+#define AMDVI_PHYSICAL_LPC_LDRQ 0x9d9
 #endif
 #ifdef BMO_STORAGE_STATE
 #include "../../storage/handoff_layout.inc"

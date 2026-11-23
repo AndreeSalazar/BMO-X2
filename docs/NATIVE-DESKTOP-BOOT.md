@@ -1256,22 +1256,32 @@ ISA) con Command `000F`. ULTRA-LinuX lo registra con SMBus `00:14.0`
 en el grupo IOMMU 12. El perfil verifica el checksum ACPI y exige que
 la firma, revision, longitud y todo el cuerpo de la IVRS coincidan con
 la medida en el equipo, incluida la cobertura de ambos por `00:00.2`,
-y vuelve a verificar la clase y el subsistema `1462:7C52` del LPC.
-Al terminar el censo, conserva el Command original y escribe solo el
-bit de Bus Master de LPC para pasar de `000F` a `000B`. La lectura de
-vuelta es obligatoria antes de abrir la traduccion AMD-Vi. La tabla
-mantiene los dos dispositivos FCH en el dominio de denegacion.
-Si la apertura se revierte o la ventana se cierra, se restaura el
-Command original. Si AMD-Vi queda en un estado incierto, el LPC sigue
-sin Bus Master. El recibo distingue `501` (retirado), `502` (restaurado)
-y `503` (lectura distinta o restauracion sin confirmar).
+y vuelve a verificar clase, revision `51` y subsistema `1462:7C52`.
+El arranque fisico con `10d4649` mostro `USB 215 LPC 503 FWSEC 000`
+y `00:14.3`: el intento de limpiar Bus Master de Command no se confirmo.
+AMD documenta ese bit como solo lectura para `1022:790E`. El candidato
+usa los controles LPC del mismo ID: detiene el DMA legado en `0x40[2]`,
+cierra las entradas LDRQ en `0x78[3:2]` y confirma ambos por lectura.
+Consulta el motor de copia ROM en `0xB8[0]` antes y despues del cambio,
+sin escribir ese registro. La tabla mantiene ambos FCH en el dominio
+de denegacion. Los bits LPC se restauran tras un cierre confirmado o
+una apertura revertida. Un estado AMD-Vi incierto mantiene los bits
+apagados.
+
+El recibo LPC distingue `501` (controles cerrados), `502` (restaurados),
+`503` (cierre sin confirmar, restauracion confirmada), `504` (copia ROM
+activa o registro no legible), `505` (control LPC no legible o semaforo
+ocupado) y `506` (restauracion sin confirmar). El BKDG describe una
+familia AMD anterior con ese ID. La respuesta de estos controles en la
+revision `51` requiere confirmacion en METAL.
 Los codigos `510` a `514` indican, en orden, un ID PCI, PCI Command,
-cuerpo IVRS, clase PCI o identificador de subsistema distinto.
+cuerpo IVRS, clase/revision PCI o identificador de subsistema distinto.
 Los solicitantes con BME sin una ruta admitida dejan su BDF en el
 recibo y bloquean la activacion.
 La tabla fisica usa DTE.I=0 y, por tanto, bloquea direccion ya
 traducida por los dispositivos.
 [Especificacion AMD IOMMU, tabla 7](https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/specifications/48882_IOMMU.pdf).
+[AMD BKDG 55072, seccion 2.17.4.1 y registros D14F3](https://www.amd.com/content/dam/amd/en/documents/archived-tech-docs/programmer-references/55072_AMD_Family_15h_Models_70h-7Fh_BKDG.pdf).
 [Inventario PCI en METAL](../Reports/dma-pci-census-metal-20261120.json).
 [Estado de los discos en METAL](../Reports/storage-state-metal-20261120.json).
 [Evidencia del candidato de cierre](../Reports/amdvi-storage-handoff-20261121.json).
