@@ -404,6 +404,14 @@ la parada o el dominio de los dispositivos activos. Los grupos de Linux
 quedan como referencia historica, sin conceder DMA en BMO-X2.
 [Cotejo de grupos PCI](../Reports/amdvi-linux-group-reference-20261122.json).
 
+El preflight registra `DMA_PCI_00A0`, `DMA_PCI_2500` y `DMA_PCI_2901`
+para SMBus, Ethernet y audio HDMI. Cada linea contiene el ID PCI
+(dispositivo en la mitad alta, fabricante en la mitad baja) y PCI
+Command. La mascara `0004` de Command indica Bus Master Enable.
+Una funcion ausente aparece con guiones; `DMA_PCI_0000` sirve de control
+con el puente anfitrion. Estas lecturas son previas a ExitBootServices:
+registran el estado heredado y complementan el censo posterior a USB.
+
 El ensayo `run-rmlui-media-4910a511a24c` verifica en QEMU el descriptor
 UEFI de la VGA, su longitud de 16 MiB cotejada con QMP, el estado
 `03`, teclado y raton USB simultaneos y el rechazo SBEF W+X. En HOST,

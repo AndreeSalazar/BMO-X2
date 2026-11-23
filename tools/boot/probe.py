@@ -701,6 +701,14 @@ for case in args.casos:
                         if pre != post:
                             raise ValueError(f'AMD-Vi QEMU register values changed across EBS: {pre} != {post}')
                     if nvidia_probe and case == 'normal':
+                        if gpu_preflight:
+                            fields = dict(re.findall(
+                                rb'(?m)^DMA_PCI_([0-9A-F]{4})=([0-9A-F-]{8} [0-9A-F-]{8})\r$', log))
+                            if (set(fields) != {b'0000', b'00A0', b'2500', b'2901'} or
+                                    not re.fullmatch(rb'29C08086 0000[0-9A-F]{4}', fields[b'0000']) or
+                                    any(fields[key] != b'-------- --------' for key in (b'00A0', b'2500', b'2901'))):
+                                raise ValueError(f'Unexpected preflight PCI peer inventory: {fields!r}')
+                            result['DmaPeerInventoryVerified'] = True
                         values = dict(line.split('=', 1) for line in log.decode('ascii').splitlines()
                                       if line.startswith('GPU_'))
                         expected = {

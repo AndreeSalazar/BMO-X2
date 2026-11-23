@@ -187,6 +187,9 @@ report_pci_advance:
 #endif
 #endif
 
+#ifdef BMO_GPU_PREFLIGHT
+    call report_dma_peers
+#endif
     mov 0x38(%rbp), %rcx
     lea 40(%rsp), %rdx
     lea report_path(%rip), %r8
@@ -222,6 +225,46 @@ report_done:
     pop %rsi
     ret
 
+#ifdef BMO_GPU_PREFLIGHT
+    # Report PCI ID and Command. Leave dashes for an absent function.
+report_dma_peers:
+    lea report_dma_addresses(%rip), %rsi
+    lea (BMO_BOOT_REPORT_AREA+report_dma_peer0-report_template)(%rbp), %rdi
+    mov $0xcf8, %dx
+    in %dx, %eax
+    mov %eax, %r10d
+    mov $4, %r11d
+.Ldma_peer_next:
+    lodsl
+    mov %eax, %r8d
+    out %eax, %dx
+    add $4, %dx
+    in %dx, %eax
+    cmp $0xffff, %ax
+    je .Ldma_peer_absent
+    call report_hex32
+    inc %rdi
+    mov $0xcf8, %dx              # report_hex32 clobbers DL.
+    lea 4(%r8), %eax
+    out %eax, %dx
+    add $4, %dx
+    xor %eax, %eax
+    in %dx, %ax
+    call report_hex32
+    jmp .Ldma_peer_advance
+.Ldma_peer_absent:
+    add $17, %rdi
+.Ldma_peer_advance:
+    mov $0xcf8, %dx
+    add $(report_dma_peer1-report_dma_peer0-17), %rdi
+    dec %r11d
+    jnz .Ldma_peer_next
+    mov %r10d, %eax
+    out %eax, %dx
+    ret
+report_dma_addresses:
+    .long 0x80000000, 0x8000a000, 0x80250000, 0x80290100
+#endif
 report_hex32:
     mov $8, %ecx
 report_hex_digit:
@@ -292,6 +335,15 @@ report_amdvi_dte_base_lo:
 report_amdvi_dte_zero_qwords:
     .ascii "00000000\r\n"
 #endif
+#endif
+#ifdef BMO_GPU_PREFLIGHT
+    .ascii "DMA_PCI_0000="
+report_dma_peer0:
+    .ascii "-------- --------\r\nDMA_PCI_00A0="
+report_dma_peer1:
+    .ascii "-------- --------\r\nDMA_PCI_2500="
+    .ascii "-------- --------\r\nDMA_PCI_2901="
+    .ascii "-------- --------\r\n"
 #endif
 report_end:
 #if defined(BMO_NVIDIA_PCI_PROBE) || defined(BMO_AMDVI_EFI_OFFSET)
