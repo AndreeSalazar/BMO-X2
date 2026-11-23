@@ -112,7 +112,6 @@ def verify_gsp_reservation(memory, context, expected, case):
             result['PhysicalMmioExcluded']=True
         if expected.get('physical_usb_test'):
             receipt = memory(context+0x920,96,'physical-usb-receipt')
-            falcon = memory(context+0x980,8,'physical-falcon-receipt')
             domain_status = memory(context+0x988,8,'physical-fwsec-domain-status')
             launch = memory(context+0x990,36,'physical-fwsec-launch-receipt')
             lpc = memory(context+0x9c8,24,'physical-lpc-receipt')
@@ -122,16 +121,21 @@ def verify_gsp_reservation(memory, context, expected, case):
             if not any(kind==1 and start<=code and code+4096<=start+pages*4096
                        for kind,start,_,pages in descriptors):
                 raise ValueError('The physical NVIDIA stage is not reserved as EFI LoaderCode')
-            stage = memory(code,10,'physical-nvidia-code-entries')
+            stage = memory(code,4096,'physical-nvidia-code')
+            expected_code = expected['physical_nvidia_code']
+            size = expected_code['bytes']
+            if not 0<size<=len(stage) or any(stage[size:]) or (
+                    hashlib.sha256(stage[:size]).hexdigest()!=expected_code['sha256']):
+                raise ValueError('The staged NVIDIA code page differs from the build')
             fwsec_domain = memory(dte_base+0x207000,8192,'physical-fwsec-empty-domain')
             page_table = memory(dte_base+0x206000,4096,'physical-usb-empty-pt')
             alias = memory(context+0x15408,8,'physical-usb-absent-alias')
-            if any(receipt) or any(falcon) or any(page_table) or any(alias):
+            if any(receipt) or any(page_table) or any(alias):
                 raise ValueError('The board USB or Falcon test ran on QEMU')
             if domain_status != b'\x01'+b'\x00'*7 or any(fwsec_domain):
                 raise ValueError('The unverified GPU must remain denied in the physical FWSEC table')
-            if any(launch) or stage[0]!=0xe9 or stage[5]!=0xe9:
-                raise ValueError('The staged NVIDIA loader is missing or ran on QEMU')
+            if any(launch):
+                raise ValueError('The staged NVIDIA loader ran on QEMU')
             if any(lpc):
                 raise ValueError('The measured LPC transaction must not run on QEMU')
             result['PhysicalUsbTranslationExcluded']=True

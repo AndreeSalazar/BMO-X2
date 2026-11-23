@@ -23,6 +23,7 @@ def check_context_stage(llvm, obj, name, budget=2048):
                if len(fields:=line.split())>=3 and fields[0] in (name+'_begin',name+'_end')}
     if not 0<positions[name+'_end']-positions[name+'_begin']<=budget:
         raise ValueError('Context code stage exceeds its reserved region: '+name)
+    return positions[name+'_begin'], positions[name+'_end']
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -310,12 +311,17 @@ def main():
             check_context_stage(llvm,native_probe,'gop_stage',gop_budget)
         if args.amdvi_guest_nvme:check_context_stage(llvm,native_probe,'nvme_guest',4096)
         if args.amdvi_physical_mmio_test:check_context_stage(llvm,native_probe,'amdvi_physical_mmio',4096)
-        if args.amdvi_physical_usb_test:check_context_stage(llvm,native_probe,'nvidia_physical',4096)
+        if args.amdvi_physical_usb_test:
+            falcon_start,falcon_end=check_context_stage(llvm,native_probe,'nvidia_physical',4096)
         relocations=subprocess.check_output([llvm/'llvm-objdump.exe','-r',native_probe],text=True)
         if 'RELOCATION RECORDS' in relocations:raise ValueError('AMD-Vi firmware inventory must be position independent')
         raw_probe=native_probe.with_suffix('.bin')
         command([llvm/'llvm-objcopy.exe','-O','binary','--only-section=.text',native_probe,raw_probe],'extract-amdvi-firmware')
         stage=raw_probe.read_bytes()
+        if args.amdvi_physical_usb_test:
+            falcon=stage[falcon_start:falcon_end]
+            manifest['physical_nvidia_code']={'bytes':len(falcon),'sha256':hashlib.sha256(falcon).hexdigest()}
+            manifest_path.write_text(json.dumps(manifest,indent=2)+'\n',encoding='ascii')
         if len(image)!=amdvi_offset or not 0<len(stage)<=amdvi_budget:raise ValueError('AMD-Vi EFI slot mismatch')
         image.extend(stage.ljust(amdvi_budget,b'\0'))
     if args.nvidia_gsp_prepare:
