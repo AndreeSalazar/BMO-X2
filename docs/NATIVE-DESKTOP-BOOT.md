@@ -385,6 +385,15 @@ El archivo termina antes de ExitBootServices. La vista del escritorio muestra
 lectura. El resultado esperado es `01 00040000`.
 [Registro METAL](../Reports/amdvi-preflight-metal-20261122.txt).
 
+Una foto del escritorio METAL del mismo dia confirma
+`AMDVI_DTE_POST=01 00040000`: Ring 0 leyo la reserva completa despues de
+ExitBootServices y verifico la retirada del alias temporal de CPU. En la
+misma captura, el registro de base de la tabla AMD-Vi seguia en cero.
+Queda pendiente verificar el dominio DMA de la RTX con el censo fisico,
+incluidas las funciones hermanas y los dispositivos que ya tienen DMA.
+La primera prueba NVIDIA debe comprobar la concesion y la revocacion
+del DMA acotado antes de avanzar a la respuesta del GSP y al dibujo 3D.
+
 El ensayo `run-rmlui-media-4910a511a24c` verifica en QEMU el descriptor
 UEFI de la VGA, su longitud de 16 MiB cotejada con QMP, el estado
 `03`, teclado y raton USB simultaneos y el rechazo SBEF W+X. En HOST,

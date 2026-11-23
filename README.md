@@ -165,8 +165,10 @@ el escritorio fisico. [Evidencia de tabla completa](Reports/amdvi-full-dte-defau
 El siguiente candidato fisico queda aislado en `EFI/BMO-X2/AMDVI-PREFLIGHT.EFI`
 y `BMO-X2/GPU-PF`; conserva intactos `NVIDIA.EFI` y los datos de GPU actuales.
 QEMU paso 3/3 para FAT32, rechazo W+X y reserva/lectura DTE post-EBS. Esta
-prueba todavia no habilita DMA, GSP ni dibujo 3D; el siguiente insumo es el
-`GPU-PF/GPULOG.TXT` y la linea `AMDVI_DTE_POST` capturados en el equipo real.
+prueba deja DMA de la RTX y GSP pendientes. El escritorio METAL del
+22-11-2026 mostro `AMDVI_DTE_POST=01 00040000`, que confirma la lectura
+de la reserva y la retirada del alias CPU despues de ExitBootServices.
+El siguiente paso es verificar el dominio DMA fisico de la RTX.
 [Evidencia QEMU del preflight](Reports/amdvi-metal-preflight-qemu-20261121.json) ·
 [Pasos para el ensayo METAL](docs/NATIVE-DESKTOP-BOOT.md#preflight-metal-aislado-sin-dma).
 
