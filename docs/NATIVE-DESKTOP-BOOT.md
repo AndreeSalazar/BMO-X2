@@ -376,6 +376,15 @@ aplicar dominios e invalidaciones tras detener los dispositivos que corresponda 
 y revocacion acotadas antes de mandar trabajo a la GPU.
 [Resultado QEMU registrado](../Reports/amdvi-metal-preflight-qemu-20261121.json).
 
+El arranque METAL del 22-11-2026 confirmo la reserva UEFI de 512 paginas a
+partir de `0xB7CE2000`, con las 262,144 palabras de 64 bits en cero. En esa
+captura la tabla de dispositivos de AMD-Vi era cero, la traduccion estaba
+desactivada y la RTX `29:00.0` tenia PCI Command `0003` (Bus Master apagado).
+El archivo termina antes de ExitBootServices. La vista del escritorio muestra
+`AMDVI_DTE_POST` con el codigo y el motivo, incluso si se omite o falla la
+lectura. El resultado esperado es `01 00040000`.
+[Registro METAL](../Reports/amdvi-preflight-metal-20261122.txt).
+
 El ensayo `run-rmlui-media-4910a511a24c` verifica en QEMU el descriptor
 UEFI de la VGA, su longitud de 16 MiB cotejada con QMP, el estado
 `03`, teclado y raton USB simultaneos y el rechazo SBEF W+X. En HOST,

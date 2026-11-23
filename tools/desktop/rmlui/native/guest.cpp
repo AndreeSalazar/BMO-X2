@@ -276,11 +276,22 @@ extern "C" void bmo_main() {
     const auto dte=doom_invoke(3,3,amdvi_diagnostic,7);
     const auto dte_status=unsigned(dte);
     const auto zero_qwords=unsigned(dte>>32);
-    if(dte_status==1) {
-        snprintf(amdvi_line,sizeof(amdvi_line),"AMDVI_DTE_POST=%02X %08X\n",dte_status,zero_qwords);
-        log(amdvi_line);
-        hardware_report+="<br/>AMD-Vi DTE / 2 MiB leidos / alias RO y NX revocado";
+    snprintf(amdvi_line,sizeof(amdvi_line),"AMDVI_DTE_POST=%02X %08X\n",dte_status,zero_qwords);
+    log(amdvi_line);
+    const char* dte_message;
+    switch(dte_status) {
+        case 0: dte_message="lectura no iniciada"; break;
+        case 1: dte_message="2 MiB leidos, alias revocado"; break;
+        case 2: dte_message="reserva UEFI no disponible"; break;
+        case 3: dte_message="rango fuera del descriptor EFI"; break;
+        case 4: dte_message="lectura distinta de cero"; break;
+        case 5: dte_message="revocacion del alias no verificada"; break;
+        default: dte_message="estado desconocido"; break;
     }
+    snprintf(amdvi_line,sizeof(amdvi_line),"AMDVI_DTE_POST=%02X %08X / %s",
+             dte_status,zero_qwords,dte_message);
+    hardware_report+="<br/>";
+    hardware_report+=amdvi_line;
 #endif
     amdvi_panel->SetInnerRML(hardware_report);
 #endif
