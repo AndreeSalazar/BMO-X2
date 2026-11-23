@@ -53,7 +53,7 @@
     add $4096, %rax
     mov %rax, 16(%r12)
     call .Lphysical_usb_map
-    jc .Lphysical_usb_skip
+    jc .Lphysical_usb_restore_lpc
     mov $PHYS_USB_IOMMU_VA, %ecx
     mov %r12, %rdx
     call .Lopen_physical_translation
@@ -63,6 +63,8 @@
     cmp $3, %eax
     je .Lphysical_usb_pin
     movq $0x210, AMDVI_PHYSICAL_USB_RESULT(%rbp) # Setup rejected or rolled back.
+.Lphysical_usb_restore_lpc:
+    call .Lphysical_lpc_restore
     jmp .Lphysical_usb_skip
 .Lphysical_usb_started:
     movq $0x211, AMDVI_PHYSICAL_USB_RESULT(%rbp)
@@ -116,6 +118,7 @@
     call .Lphysical_usb_unmap
     cmp $1, %eax
     jne .Lphysical_usb_pin
+    call .Lphysical_lpc_restore
     jmp .Lphysical_usb_pass
 .Lphysical_usb_pin:
     movq $2, AMDVI_PHYSICAL_USB_STATE(%rbp)
@@ -178,7 +181,7 @@
     ret
 
 # All endpoints must leave BME clear. Only measured PCI-to-PCI bridges
-# may keep forwarding; a legacy bridge can originate on behalf of a bus.
+# may keep forwarding. The measured LPC bridge is parked after the scan.
 .Lphysical_usb_pci:
     mov $0xcf8, %dx
     in %dx, %eax
@@ -200,6 +203,7 @@
     cmp $0x250410de, %eax
     jne .Lphysical_usb_pci_fail
     mov $0x80000000, %r8d
+    xor %r11d, %r11d
 .Lphysical_usb_scan:
     mov %r8d, %eax
     call .Lphysical_usb_read_pci
@@ -210,6 +214,8 @@
     call .Lphysical_usb_read_pci
     test $4, %al
     jz .Lphysical_usb_next
+    cmp $0x8000a300, %r8d
+    je .Lphysical_usb_lpc
     lea 8(%r8), %eax
     call .Lphysical_usb_read_pci
     shr $8, %eax
@@ -221,10 +227,44 @@
     add $0x100, %r8d
     cmp $0x81000000, %r8d
     jne .Lphysical_usb_scan
+    test %r11d, %r11d
+    jz .Lphysical_usb_pci_pass
+    mov %r11w, AMDVI_PHYSICAL_LPC_COMMAND(%rbp)
+    mov %r11d, %ecx
+    and $~4, %ecx
+    call .Lphysical_lpc_write_command
+    cmp %cx, %ax
+    je .Lphysical_usb_lpc_parked
+    mov %r11d, %ecx
+    call .Lphysical_lpc_write_command
+    movq $0x503, AMDVI_PHYSICAL_LPC_STATUS(%rbp)
+    mov $0x8000a300, %r8d
+    jmp .Lphysical_usb_pci_blocked
+.Lphysical_usb_lpc_parked:
+    movq $0x501, AMDVI_PHYSICAL_LPC_STATUS(%rbp)
+.Lphysical_usb_pci_pass:
     pop %rax
     out %eax, %dx
     clc
     ret
+.Lphysical_usb_lpc:
+    cmp $0x790e1022, %r9d
+    jne .Lphysical_usb_pci_blocked
+    cmp $0x000f, %ax
+    jne .Lphysical_usb_pci_blocked
+    cmpl $1, AMDVI_BOARD_IVRS_MATCH(%rbp)
+    jne .Lphysical_usb_pci_blocked
+    mov $0x8000a308, %eax
+    call .Lphysical_usb_read_pci
+    shr $8, %eax
+    cmp $0x060100, %eax
+    jne .Lphysical_usb_pci_blocked
+    mov $0x8000a32c, %eax
+    call .Lphysical_usb_read_pci
+    cmp $0x7c521462, %eax
+    jne .Lphysical_usb_pci_blocked
+    mov $0x000f, %r11d
+    jmp .Lphysical_usb_next
 .Lphysical_usb_pci_blocked:
     shr $8, %r8d
     movzwl %r8w, %eax
@@ -241,4 +281,40 @@
     add $4, %dx
     in %dx, %eax
     sub $4, %dx
+    ret
+
+# PCI Command is 16-bit. Keep Status and legacy decode registers intact.
+.Lphysical_lpc_write_command:
+    mov $0x8000a304, %eax
+    out %eax, %dx
+    add $4, %dx
+    mov %ecx, %eax
+    out %ax, %dx
+    in %dx, %ax
+    sub $4, %dx
+    ret
+
+# Restore only after AMD-Vi has completed rollback, or before it was enabled.
+.Lphysical_lpc_restore:
+    cmpq $0x501, AMDVI_PHYSICAL_LPC_STATUS(%rbp)
+    jne .Lphysical_lpc_restore_done
+    mov $0xcf8, %dx
+    in %dx, %eax
+    push %rax
+    mov $0x8000a300, %eax
+    call .Lphysical_usb_read_pci
+    cmp $0x790e1022, %eax
+    jne .Lphysical_lpc_restore_failed
+    movzwl AMDVI_PHYSICAL_LPC_COMMAND(%rbp), %ecx
+    call .Lphysical_lpc_write_command
+    cmp %cx, %ax
+    jne .Lphysical_lpc_restore_failed
+    movq $0x502, AMDVI_PHYSICAL_LPC_STATUS(%rbp)
+    jmp .Lphysical_lpc_restore_cf8
+.Lphysical_lpc_restore_failed:
+    movq $0x503, AMDVI_PHYSICAL_LPC_STATUS(%rbp)
+.Lphysical_lpc_restore_cf8:
+    pop %rax
+    out %eax, %dx
+.Lphysical_lpc_restore_done:
     ret

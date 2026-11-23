@@ -373,7 +373,8 @@ def main():
         raise ValueError('Missing board-specific MMIO exclusion evidence')
     if args.amdvi_physical_usb_test and not all(report['Cases'][0].get(key) for key in
           ('PhysicalUsbTranslationExcluded', 'PhysicalFalconResetExcluded',
-           'PhysicalFwsecDeniedWithoutFirmware', 'PhysicalFwsecLaunchExcluded')):
+           'PhysicalFwsecDeniedWithoutFirmware', 'PhysicalFwsecLaunchExcluded',
+           'PhysicalLpcCommandExcluded')):
         raise ValueError('Missing physical xHCI and Falcon exclusions or FWSEC denial evidence')
     if args.nvidia_gsp_prepare and not report['Cases'][0].get('GspQueuePermissionsVerified'):
         raise ValueError('Missing Ring 0 GSP message queue evidence')

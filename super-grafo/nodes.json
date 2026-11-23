@@ -2792,7 +2792,7 @@
       "entrada": "GA106 frio, BAR0 exclusivo y reloj calibrado para preparar Falcon. La carga exige ademas la IOVA FWSEC autorizada.",
       "salida": "Recibo privado de la fase, bytes transferidos, buzones y limites WPR2.",
       "aceptacion": "HOST ejecuta el codigo nativo con registros simulados y verifica la preparacion de Falcon, los plazos de seleccion y borrado, los 234 bloques y ambas rutas STARTCPU.",
-      "falta": "El ensayo fisico tiene una ruta de carga tras el No-Op xHCI traducido y retira Bus Master al salir. Falta superar la admision de la placa, verificar WPR2 en METAL y arrancar SEC2."
+      "falta": "El ensayo fisico trata el LPC identificado antes del No-Op xHCI y retira Bus Master de la RTX al salir. Falta validar la admision y WPR2 en METAL y arrancar SEC2."
     },
     {
       "id": "nvidia-gsp-ring0-radix3",
@@ -3177,6 +3177,21 @@
       "salida": "Sesion activa, cierre confirmado o reservas retenidas por fallo de recuperacion.",
       "aceptacion": "HOST ejecuta apertura y cierre nativos, rechazo sin IASup, plazo agotado y retencion por evento IOMMU.",
       "falta": "Verificar en la placa la propiedad del puente ISA y el primer evento fisico bajo traduccion."
+    },
+    {
+      "id": "amdvi-board-lpc-admission",
+      "titulo": "AMD-Vi / Retiro temporal de Bus Master en LPC",
+      "ruta": "kernel/drivers/bus/amdvi/board_ivrs.S",
+      "estado": "host",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [12750, 3700],
+      "que": "Valida la topologia IVRS exacta que habilita retirar Bus Master del LPC medido antes de abrir AMD-Vi.",
+      "entrada": "IVRS de la placa, censo de bus mastering, identidad en PCI y Command original de 00:14.3.",
+      "salida": "LPC apartado con lectura de vuelta o admision rechazada. Command original se restaura tras cierre confirmado.",
+      "aceptacion": "HOST compara la IVRS medida y rechaza cambios. QEMU debe excluir la escritura especifica del hardware.",
+      "falta": "Confirmar en METAL 000F a 000B y el primer No-Op traducido antes de FWSEC."
     },
     {
       "id": "amdvi-physical-usb",

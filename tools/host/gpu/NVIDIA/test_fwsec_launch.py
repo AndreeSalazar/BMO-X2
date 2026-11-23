@@ -35,9 +35,13 @@ class FwsecLaunch(unittest.TestCase):
         domain = directory / "domain.obj"
         subprocess.run([LLVM / "clang.exe", "--target=x86_64-pc-windows-msvc", "-c",
                         ROOT / "kernel/drivers/bus/amdvi/fwsec_domain.S", "-o", domain], check=True)
+        ivrs = directory / "ivrs.obj"
+        subprocess.run([LLVM / "clang.exe", "--target=x86_64-pc-windows-msvc", "-c",
+                        ROOT / "kernel/drivers/bus/amdvi/board_ivrs.S", "-o", ivrs], check=True)
         subprocess.run([LLVM / "lld-link.exe", "/dll", "/noentry", "/nodefaultlib",
                         "/export:nvidia_launch_ga106_fwsec", "/export:nvidia_prepare_ga106_falcon",
-                        "/export:amdvi_stage_fwsec_domain", f"/out:{dll}", obj, domain], check=True)
+                        "/export:amdvi_stage_fwsec_domain", "/export:amdvi_matches_board_ivrs",
+                        f"/out:{dll}", obj, domain, ivrs], check=True)
         cls.library = ctypes.WinDLL(str(dll))
         cls.addClassCleanup(FreeLibrary, cls.library._handle)
         cls.launch = cls.library.nvidia_launch_ga106_fwsec
@@ -49,6 +53,9 @@ class FwsecLaunch(unittest.TestCase):
         cls.domain = cls.library.amdvi_stage_fwsec_domain
         cls.domain.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint64]
         cls.domain.restype = ctypes.c_int
+        cls.ivrs_match = cls.library.amdvi_matches_board_ivrs
+        cls.ivrs_match.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+        cls.ivrs_match.restype = ctypes.c_int
 
     def setUp(self):
         self.bar = bytearray(0x200000)
@@ -141,6 +148,25 @@ class FwsecLaunch(unittest.TestCase):
                                  (base + 0x200000 | (3 << 61) | 0x403, 0, 0, 0))
                 self.assertFalse(any(memory[0x207000:]))
         self.assertEqual(self.domain(base + 1, 0, base), 0)
+
+    def test_board_ivrs_requires_an_exact_match(self):
+        from ..ivrs import inspect, windows_ivrs
+
+        self.assertEqual(self.ivrs_match(None, 208), 0)
+        self.assertEqual(self.ivrs_match(bytes(208), 208), 0)
+        try:
+            original = windows_ivrs()
+        except OSError as error:
+            self.skipTest(str(error))
+        report = inspect(original, [(0, 0xa0), (0, 0xa3)])
+        if report['table_sha256'] != 'd2b4e55ee37be93d6e764136059f140e847368118d447c345964ef21471202ec':
+            self.assertEqual(self.ivrs_match(original, len(original)), 0)
+            return
+        self.assertEqual(self.ivrs_match(original, len(original)), 1)
+        self.assertEqual(self.ivrs_match(original, len(original) - 1), 0)
+        altered = bytearray(original)
+        altered[-1] ^= 1
+        self.assertEqual(self.ivrs_match(bytes(altered), len(altered)), 0)
 
     def test_rejects_wrong_dma_window_and_active_wpr_before_writes(self):
         before = bytes(self.bar)

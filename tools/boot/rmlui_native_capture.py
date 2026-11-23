@@ -115,6 +115,7 @@ def verify_gsp_reservation(memory, context, expected, case):
             falcon = memory(context+0x980,8,'physical-falcon-receipt')
             domain_status = memory(context+0x988,8,'physical-fwsec-domain-status')
             launch = memory(context+0x990,36,'physical-fwsec-launch-receipt')
+            lpc = memory(context+0x9c8,24,'physical-lpc-receipt')
             code, = struct.unpack('<Q',memory(context+0x9c0,8,'physical-nvidia-code-base'))
             if not 0x100000<=code<=0xffff000 or code%4096:
                 raise ValueError('The physical NVIDIA code page is outside supervisor memory')
@@ -131,10 +132,13 @@ def verify_gsp_reservation(memory, context, expected, case):
                 raise ValueError('The unverified GPU must remain denied in the physical FWSEC table')
             if any(launch) or stage[0]!=0xe9 or stage[5]!=0xe9:
                 raise ValueError('The staged NVIDIA loader is missing or ran on QEMU')
+            if any(lpc):
+                raise ValueError('The measured LPC transaction must not run on QEMU')
             result['PhysicalUsbTranslationExcluded']=True
             result['PhysicalFalconResetExcluded']=True
             result['PhysicalFwsecDeniedWithoutFirmware']=True
             result['PhysicalFwsecLaunchExcluded']=True
+            result['PhysicalLpcCommandExcluded']=True
         if detached:
             first_iova = 0x08000000
             if radix != first_iova+used or dma_root != base+payload_pages*4096:

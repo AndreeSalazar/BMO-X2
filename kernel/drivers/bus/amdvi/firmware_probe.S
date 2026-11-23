@@ -276,6 +276,12 @@ find_ivrs:
     mov %ecx, %r13d
     call checksum
     jnz bad_ivrs
+#ifdef BMO_AMDVI_PHYSICAL_USB_TEST
+    mov %rsi, %rcx
+    mov %r13d, %edx
+    call .Lmatches_board_ivrs
+    mov %eax, AMDVI_BOARD_IVRS_MATCH(%rbp)
+#endif
     mov %r13d, %eax
     lea 9(%r14), %rdi
     call *%r15
@@ -568,6 +574,7 @@ amdvi_uefi_snapshot:
 #include "physical_mmio_boot.inc"
 #ifdef BMO_AMDVI_PHYSICAL_USB_TEST
 #include "../../GPU/NVIDIA/physical_falcon.inc"
+#include "board_ivrs.S"
 #endif
 #endif
 #ifdef BMO_AMDVI_GUEST_NVME

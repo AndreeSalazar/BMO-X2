@@ -1240,9 +1240,20 @@ El armado de esta tabla ocurre antes de abrir Bus Master.
 [Especificacion AMD-Vi, permisos de lectura y escritura](https://docs.amd.com/api/khub/documents/GD6kOXjzWsek8QUbn_qMvg/content).
 
 El inventario fisico anterior muestra `00:14.3` (`1022:790E`, puente
-ISA) con Command `000F`. El ensayo solo admite los puentes PCI a PCI
-AMD como funciones de reenvio con BME activo. Cualquier otro
-solicitante con BME deja su BDF en el recibo y bloquea la activacion.
+ISA) con Command `000F`. ULTRA-LinuX lo registra con SMBus `00:14.0`
+en el grupo IOMMU 12. El perfil exige una IVRS identica byte a byte a
+la medida en el equipo, incluida la cobertura de ambos por `00:00.2`,
+y vuelve a verificar la clase y el subsistema `1462:7C52` del LPC.
+Al terminar el censo, conserva el Command original y escribe solo el
+bit de Bus Master de LPC para pasar de `000F` a `000B`. La lectura de
+vuelta es obligatoria antes de abrir la traduccion AMD-Vi. La tabla
+mantiene los dos dispositivos FCH en el dominio de denegacion.
+Si la apertura se revierte o la ventana se cierra, se restaura el
+Command original. Si AMD-Vi queda en un estado incierto, el LPC sigue
+sin Bus Master. El recibo distingue `501` (retirado), `502` (restaurado)
+y `503` (lectura distinta o restauracion sin confirmar).
+Los solicitantes con BME sin una ruta admitida dejan su BDF en el
+recibo y bloquean la activacion.
 La tabla fisica usa DTE.I=0 y, por tanto, bloquea direccion ya
 traducida por los dispositivos.
 [Especificacion AMD IOMMU, tabla 7](https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/specifications/48882_IOMMU.pdf).
