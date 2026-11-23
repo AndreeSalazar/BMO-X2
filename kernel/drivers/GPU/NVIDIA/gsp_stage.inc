@@ -110,7 +110,10 @@ nvidia_gsp_release:
 
     .p2align 1
 .Lgsp_stage_path:
-#ifdef BMO_AMDVI_PHYSICAL_MMIO_TEST
+#if defined(BMO_PHYSICAL_FWSEC_TRIAL)
+    # GPU-FW/GSP.BIN
+    .short 92,66,77,79,45,88,50,92,71,80,85,45,70,87,92,71,83,80,46,66,73,78,0
+#elif defined(BMO_AMDVI_PHYSICAL_MMIO_TEST)
     # GPU-MM/GSP.BIN
     .short 92,66,77,79,45,88,50,92,71,80,85,45,77,77,92,71,83,80,46,66,73,78,0
 #else

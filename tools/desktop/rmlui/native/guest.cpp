@@ -285,8 +285,23 @@ extern "C" void bmo_main() {
     hardware_report+=amdvi_line;
 #endif
     const auto gsp=doom_invoke(3,3,amdvi_diagnostic,6);
-    const unsigned file_status=unsigned(gsp);
-    const unsigned dma_status=unsigned(gsp>>32);
+    const bool trial=(gsp>>63)!=0 && gsp!=UINT64_MAX;
+    if(trial) {
+        const unsigned usb_code=uint8_t(gsp>>8),lpc_code=uint8_t(gsp>>16),fwsec_code=uint8_t(gsp>>24);
+        const unsigned usb=usb_code?0x200|usb_code:0,lpc=lpc_code?0x500|lpc_code:0;
+        const unsigned fwsec=fwsec_code?0x400|fwsec_code:0;
+        snprintf(amdvi_line,sizeof(amdvi_line),"RTX_TRIAL=%03X %03X %03X\n",usb,lpc,fwsec);
+        log(amdvi_line);
+        const char* status=fwsec==0x401 ? "WPR2 confirmada" :
+            fwsec==0x404 ? "cierre PCIe sin confirmar" :
+            fwsec>=0x402 ? "FWSEC fallo" : "FWSEC pendiente";
+        snprintf(amdvi_line,sizeof(amdvi_line),"RTX / %s / USB %03X LPC %03X FWSEC %03X",
+                 status,usb,lpc,fwsec);
+        hardware_report+="<br/>";
+        hardware_report+=amdvi_line;
+    }
+    const unsigned file_status=trial?uint8_t(gsp):unsigned(gsp);
+    const unsigned dma_status=trial?unsigned(gsp>>32)&0x7fffffff:unsigned(gsp>>32);
     if(file_status>=1 && file_status<=5) {
         snprintf(amdvi_line,sizeof(amdvi_line),"GSP_PREP=%u %u\n",file_status,dma_status);
         log(amdvi_line);

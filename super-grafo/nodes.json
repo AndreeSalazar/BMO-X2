@@ -2792,7 +2792,7 @@
       "entrada": "GA106 frio, BAR0 exclusivo y reloj calibrado para preparar Falcon. La carga exige ademas la IOVA FWSEC autorizada.",
       "salida": "Recibo privado de la fase, bytes transferidos, buzones y limites WPR2.",
       "aceptacion": "HOST ejecuta el codigo nativo con registros simulados y verifica la preparacion de Falcon, los plazos de seleccion y borrado, los 234 bloques y ambas rutas STARTCPU.",
-      "falta": "El ensayo fisico trata el LPC identificado antes del No-Op xHCI y retira Bus Master de la RTX al salir. Falta validar la admision y WPR2 en METAL y arrancar SEC2."
+      "falta": "El candidato GPU-FW expone en Ring 3 los recibos tras tratar LPC y cargar FWSEC. Falta validar la admision y WPR2 en METAL y arrancar SEC2."
     },
     {
       "id": "nvidia-gsp-ring0-radix3",

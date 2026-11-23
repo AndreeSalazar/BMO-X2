@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][string]$Run,[ValidateSet('A:\')][string]$Volume='A:\',[switch]$ExperimentalUsb,[switch]$Check,[switch]$NvidiaProbe,[switch]$AmdviMmio)
+param([Parameter(Mandatory=$true)][string]$Run,[ValidateSet('A:\')][string]$Volume='A:\',[switch]$ExperimentalUsb,[switch]$Check,[switch]$NvidiaProbe,[switch]$AmdviMmio,[switch]$PhysicalFwsecTrial)
 $ErrorActionPreference='Stop'
 $root=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
 $runPath=(Get-Item -LiteralPath $Run).FullName
@@ -22,6 +22,14 @@ if ($proof.amdvi_coexist -or $proof.amdvi_guest_dma -or $proof.amdvi_storage -or
     throw 'Los ensayos AMD-Vi con solicitantes virtuales son exclusivos de QEMU.'
 }
 $normal=$proof.Cases | Where-Object { $_.Case -eq 'normal' } | Select-Object -First 1
+$fwsecRun=Test-Path -LiteralPath (Join-Path $runPath 'gpu-fwsec-trial.txt') -PathType Leaf
+if ($fwsecRun -ne [bool]$PhysicalFwsecTrial -or $fwsecRun -ne [bool]$proof.physical_fwsec_trial -or
+    ($fwsecRun -and (-not $proof.amdvi_physical_usb_test -or -not $normal.PhysicalLpcCommandExcluded -or
+        -not $normal.PhysicalUsbTranslationExcluded -or -not $normal.PhysicalFalconResetExcluded -or
+        -not $normal.PhysicalFwsecDeniedWithoutFirmware -or -not $normal.PhysicalFwsecLaunchExcluded -or
+        -not $normal.PhysicalFwsecStatusExportVerified -or $proof.nvidia_gsp_verified -or $proof.native_gpu_3d_verified))) {
+    throw 'El arranque FWSEC de la placa requiere -PhysicalFwsecTrial y todas las exclusiones QEMU.'
+}
 $mmioRun=Test-Path -LiteralPath (Join-Path $runPath 'gpu-mmio.txt') -PathType Leaf
 if ($mmioRun -ne [bool]$AmdviMmio -or $mmioRun -ne [bool]$proof.amdvi_physical_mmio_test -or
     ($mmioRun -and (-not $proof.amdvi_physical_prepare -or -not $normal.PhysicalMmioExcluded -or
@@ -123,8 +131,8 @@ if ($proof.Passed -ne $caseCount -or $proof.Total -ne $caseCount -or -not $proof
 }
 $drive=[IO.DriveInfo]::new($Volume)
 if (-not $drive.IsReady -or $drive.DriveFormat -ne 'FAT32') { throw 'A: debe ser un FAT32 existente y disponible.' }
-$dataFolder=if($mmioRun){'BMO-X2/GPU-MM'}elseif($gpuRun){'BMO-X2/GPU'}else{'BMO-X2/DESKTOP'}
-$bootFile=if($mmioRun){'EFI/BMO-X2/AMDVI-MMIO.EFI'}elseif($gpuRun){'EFI/BMO-X2/NVIDIA.EFI'}else{'EFI/BMO-X2/DESKTOP.EFI'}
+$dataFolder=if($fwsecRun){'BMO-X2/GPU-FW'}elseif($mmioRun){'BMO-X2/GPU-MM'}elseif($gpuRun){'BMO-X2/GPU'}else{'BMO-X2/DESKTOP'}
+$bootFile=if($fwsecRun){'EFI/BMO-X2/RTX-FWSEC.EFI'}elseif($mmioRun){'EFI/BMO-X2/AMDVI-MMIO.EFI'}elseif($gpuRun){'EFI/BMO-X2/NVIDIA.EFI'}else{'EFI/BMO-X2/DESKTOP.EFI'}
 $reportName=if($gpuRun){'GPULOG.TXT'}else{'BOOTLOG.TXT'}
 $names=@("$dataFolder/INICIO.X86","$dataFolder/DESKTOP.SBF")
 if ($gspStage) {
@@ -241,6 +249,7 @@ $record=[ordered]@{Schema=1;Evidence='HOST copy after QEMU FAT32 boot';Run=$proo
     NvidiaGspQueues=($gspStage -and [bool]$gspProof.queues);
     NvidiaGspLibos=($gspStage -and [bool]$gspProof.libos);
     PhysicalNvidiaGspResponseVerified=$false;
+    PhysicalFwsecTrial=$fwsecRun;
     BootFile=('\'+$bootFile.Replace('/','\'));ReportFile=('\'+$dataFolder.Replace('/','\')+'\'+$reportName);
     Note='USB HID fisico sigue pendiente; no cambia NVRAM ni archivos ajenos al candidato.'}
 $json=$record | ConvertTo-Json -Depth 8

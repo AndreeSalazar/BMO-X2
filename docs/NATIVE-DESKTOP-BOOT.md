@@ -1230,6 +1230,17 @@ en caso de cierre incierto. La siguiente etapa de SEC2 requiere verificar
 el resultado en la placa.
 [Mapa de registros PCIe Device Status](https://codebrowser.dev/linux/linux/include/uapi/linux/pci_regs.h.html#532).
 
+`--physical-fwsec-trial` genera el candidato separado
+`EFI/BMO-X2/RTX-FWSEC.EFI` y sus datos en `BMO-X2/GPU-FW`. El instalador
+exige `-PhysicalFwsecTrial -AmdviMmio -NvidiaProbe -ExperimentalUsb`, las
+exclusiones de hardware verificadas en QEMU y la lectura del recibo en
+Ring 3. Puede registrarse como `BMO-X2 (RTX FWSEC)` con la misma opcion
+en `register-desktop.ps1` junto con `-AmdviMmio -NvidiaProbe`. El candidato
+preexistente conserva sus rutas. La linea `RTX` del escritorio muestra
+los recibos USB, LPC y FWSEC. `FWSEC 401` acredita WPR2 con DMA PCIe
+cerrado. El escritorio sigue usando GOP y el GPULOG de FAT32 se escribe
+antes de EBS.
+
 La [tabla FWSEC de la RTX](../kernel/drivers/bus/amdvi/fwsec_domain.S)
 dedica dos paginas al dominio del solicitante `29:00.0`. Tras verificar
 el FWSEC preparado, solo expone sus quince paginas de lectura en

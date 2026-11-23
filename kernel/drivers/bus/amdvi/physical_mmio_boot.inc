@@ -12,6 +12,8 @@ amdvi_physical_mmio_begin:
     .long .Lphysical_usb_entry - . - 4
     .byte 0xe9
     .long .Lfwsec_domain - . - 4
+    .byte 0xe9
+    .long .Lphysical_rtx_report - . - 4
 .Lmmio_boot_entry:
 #endif
     cmp $4, %ebx
@@ -80,6 +82,21 @@ amdvi_physical_mmio_begin:
     ret
 #include "physical_mmio.S"
 #ifdef BMO_AMDVI_PHYSICAL_USB_TEST
+.Lphysical_rtx_report:
+    # Preserve stage and preparation. Other fields carry the low byte of
+    # USB, LPC and FWSEC. The top bit identifies the experimental receipt.
+    mov GSP_STAGE_STATUS(%rbp), %rax
+    bts $63, %rax
+    movzbl AMDVI_PHYSICAL_USB_RESULT(%rbp), %ecx
+    shl $8, %rcx
+    or %rcx, %rax
+    movzbl AMDVI_PHYSICAL_LPC_STATUS(%rbp), %ecx
+    shl $16, %rcx
+    or %rcx, %rax
+    movzbl NVIDIA_FWSEC_LAUNCH_STATUS(%rbp), %ecx
+    shl $24, %rcx
+    or %rcx, %rax
+    ret
 #include "physical_usb.inc"
 #include "fwsec_domain.S"
 #define BMO_PHYSICAL_MMIO_IN_STAGE

@@ -1,16 +1,17 @@
 # Register a validated desktop candidate as a separate UEFI entry.
 # Run in elevated Windows PowerShell 5.1. Never selects the next boot.
 [CmdletBinding()]
-param([switch]$NvidiaProbe,[switch]$StorageHandoff,[switch]$Check,[switch]$AmdviMmio)
+param([switch]$NvidiaProbe,[switch]$StorageHandoff,[switch]$Check,[switch]$AmdviMmio,[switch]$PhysicalFwsecTrial)
 $ErrorActionPreference='Stop'
 if (($StorageHandoff -or $AmdviMmio) -and -not $NvidiaProbe) { throw 'La variante requiere -NvidiaProbe.' }
+if ($PhysicalFwsecTrial -and (-not $AmdviMmio -or $StorageHandoff)) { throw 'FWSEC requiere -AmdviMmio y -NvidiaProbe.' }
 $storageProfile=[bool]($StorageHandoff -or $AmdviMmio)
 $root=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
-$dataFolder=if($AmdviMmio){'BMO-X2/GPU-MM'}elseif($NvidiaProbe){'BMO-X2/GPU'}else{'BMO-X2/DESKTOP'}
-$bootFile=if($AmdviMmio){'EFI/BMO-X2/AMDVI-MMIO.EFI'}elseif($NvidiaProbe){'EFI/BMO-X2/NVIDIA.EFI'}else{'EFI/BMO-X2/DESKTOP.EFI'}
-$receiptName=if($AmdviMmio){'firmware-amdvi-mmio.json'}elseif($StorageHandoff){'firmware-storage-handoff.json'}elseif($NvidiaProbe){'firmware-nvidia.json'}else{'firmware-desktop.json'}
+$dataFolder=if($PhysicalFwsecTrial){'BMO-X2/GPU-FW'}elseif($AmdviMmio){'BMO-X2/GPU-MM'}elseif($NvidiaProbe){'BMO-X2/GPU'}else{'BMO-X2/DESKTOP'}
+$bootFile=if($PhysicalFwsecTrial){'EFI/BMO-X2/RTX-FWSEC.EFI'}elseif($AmdviMmio){'EFI/BMO-X2/AMDVI-MMIO.EFI'}elseif($NvidiaProbe){'EFI/BMO-X2/NVIDIA.EFI'}else{'EFI/BMO-X2/DESKTOP.EFI'}
+$receiptName=if($PhysicalFwsecTrial){'firmware-rtx-fwsec.json'}elseif($AmdviMmio){'firmware-amdvi-mmio.json'}elseif($StorageHandoff){'firmware-storage-handoff.json'}elseif($NvidiaProbe){'firmware-nvidia.json'}else{'firmware-desktop.json'}
 $receipt=Join-Path $root "build/rmlui-native/$receiptName"
-$name=if($AmdviMmio){'BMO-X2 (AMD-Vi registros)'}elseif($StorageHandoff){'BMO-X2 (DMA SATA-NVMe)'}elseif($NvidiaProbe){'BMO-X2 (con NVIDIA)'}else{'BMO-X2 Desktop (RmlUi)'}
+$name=if($PhysicalFwsecTrial){'BMO-X2 (RTX FWSEC)'}elseif($AmdviMmio){'BMO-X2 (AMD-Vi registros)'}elseif($StorageHandoff){'BMO-X2 (DMA SATA-NVMe)'}elseif($NvidiaProbe){'BMO-X2 (con NVIDIA)'}else{'BMO-X2 Desktop (RmlUi)'}
 $path='\'+$bootFile.Replace('/','\')
 $manifest=Get-Content -LiteralPath (Join-Path 'A:\' "$dataFolder/DEPLOY.JSON") -Raw | ConvertFrom-Json
 if ([IO.DriveInfo]::new('A:\').DriveFormat -ne 'FAT32') {throw 'A: no es FAT32.'}
@@ -35,6 +36,11 @@ if($NvidiaProbe) {
         (-not $normal.PhysicalMmioExcluded -or -not $normal.PhysicalMmioReportVerified -or
          $proof.physical_dma_translation_enabled -or $proof.nvidia_dma_grant))) {
         throw 'Falta verificar el informe de registros AMD-Vi y su exclusion en QEMU.'
+    }
+    if ([bool]$PhysicalFwsecTrial -ne [bool]$proof.physical_fwsec_trial -or ($PhysicalFwsecTrial -and
+        (-not $manifest.PhysicalFwsecTrial -or -not $normal.PhysicalFwsecStatusExportVerified -or
+         -not $normal.PhysicalLpcCommandExcluded -or -not $normal.PhysicalFwsecLaunchExcluded))) {
+        throw 'Falta verificar el candidato FWSEC separado y su informe.'
     }
     if($storageProfile) { $files += "$dataFolder/GSP.BIN" }
     foreach($file in $files) {

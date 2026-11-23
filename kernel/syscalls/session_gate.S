@@ -380,7 +380,12 @@ amdvi_diagnostic:
     je .Lamdvi_gsp_status
 #else
     jne denied
+#ifdef BMO_AMDVI_PHYSICAL_USB_TEST
+    lea AMDVI_PHYSICAL_RTX_REPORT(%rbp), %rax
+    call *%rax
+#else
     mov GSP_STAGE_STATUS(%rbp), %rax
+#endif
     jmp finish
 #endif
 #else

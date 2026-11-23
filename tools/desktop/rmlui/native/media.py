@@ -62,6 +62,8 @@ def main():
                    help='Rehearse reversible MMIO base staging with translation disabled')
     p.add_argument('--amdvi-physical-usb-test', action='store_true',
                    help='Build the board-only translated xHCI trial for QEMU exclusion verification')
+    p.add_argument('--physical-fwsec-trial', action='store_true',
+                   help='Stage a separate FAT32 candidate for the measured RTX board')
     p.add_argument('--full-hd', action='store_true', help='Render the desktop at native 1920x1080 for GOP')
     args=p.parse_args()
     if args.usb_empty_ports and args.usb!='both':p.error('--usb-empty-ports requires --usb both')
@@ -121,6 +123,8 @@ def main():
         p.error('--amdvi-physical-mmio-test requires --amdvi-physical-prepare')
     if args.amdvi_physical_usb_test and (not args.amdvi_physical_mmio_test or args.amdvi_guest_dma):
         p.error('--amdvi-physical-usb-test requires the physical MMIO profile without guest DMA')
+    if args.physical_fwsec_trial and not args.amdvi_physical_usb_test:
+        p.error('--physical-fwsec-trial requires the guarded physical USB and NVIDIA profile')
     storage_handoff = args.storage_quiesce or args.storage_quiesce_metal
     abi,splash=args.abi_run.resolve(),args.splash_run.resolve()
     for path in (abi,splash):
@@ -159,6 +163,9 @@ def main():
         if args.amdvi_physical_usb_test:
             nvidia_reader_flags+=['-DBMO_AMDVI_PHYSICAL_USB_TEST']
             manifest['physical_usb_test']=True
+        if args.physical_fwsec_trial:
+            nvidia_reader_flags+=['-DBMO_PHYSICAL_FWSEC_TRIAL']
+            (run/'gpu-fwsec-trial.txt').write_text('board-fwsec-trial\n',encoding='ascii')
         manifest_path.write_text(json.dumps(manifest,indent=2)+'\n',encoding='ascii')
     (run/'gop-regions.txt').write_text('cpu-gop\n',encoding='ascii')
     if args.nvidia_probe:
@@ -234,6 +241,7 @@ def main():
         if args.full_hd and name in ('allocator','reader','loader'):flags+=['-DBMO_FULL_HD']
         if storage_handoff and name=='gate':flags+=['-DBMO_STORAGE_QUIESCE']
         if args.amdvi_physical_prepare and name=='gate':flags+=['-DBMO_AMDVI_PHYSICAL_PREPARE']
+        if args.physical_fwsec_trial and name=='gate':flags+=['-DBMO_AMDVI_PHYSICAL_USB_TEST']
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf','-DRMLUI_MEDIA','-DRMLUI_NATIVE',
             '-DRMLUI_GOP_REGIONS','-DDOOM_ENGINE','-DDESKTOP_DOOM',*flags,
             '-c',ROOT/source,'-o',run/(name+'.o')],'compile-media-'+name)
@@ -245,7 +253,8 @@ def main():
     packet,_=make_packet(reference,sbef,session_gate=gate,external=loader,engine=True,full_hd=args.full_hd)
     intro=(splash/'INICIO.X86').read_bytes();packet,_=prepend_intro(packet,intro)
     image=bridge_variant(native_ui=True,nvidia_probe=args.nvidia_probe,
-                         gpu_preflight=args.metal_amdvi_preflight, gpu_mmio=args.amdvi_physical_mmio_test)
+                         gpu_preflight=args.metal_amdvi_preflight, gpu_mmio=args.amdvi_physical_mmio_test,
+                         gpu_fwsec=args.physical_fwsec_trial)
     reader=(run/'reader.bin').read_bytes();allocator=(run/'allocator.bin').read_bytes()
     if len(image)!=0x3000 or len(reader)>reader_budget or len(allocator)>0xf0 or image[0x267:0x26c]!=bytes.fromhex('e894050000'):
         raise ValueError('Native EFI extension exceeds verified slots')
@@ -334,6 +343,7 @@ def main():
     command([shell,'-NoProfile','-ExecutionPolicy','Bypass','-File',scripts/'disk.ps1','-OutputRoot',run,'-Programa','INICIO.X86','-GPT'],'create-native-fat32')
     bad=bytearray(sbef);struct.pack_into('<I',bad,116,7);(run/'rejected.sbef').write_bytes(bad)
     prepare_flags = (['--nvidia-probe','--gpu-preflight'] if args.metal_amdvi_preflight else
+                     ['--nvidia-probe','--gpu-fwsec'] if args.physical_fwsec_trial else
                      ['--nvidia-probe','--gpu-mmio'] if args.amdvi_physical_mmio_test else
                      ['--nvidia-probe'] if args.nvidia_probe else [])
     media_cases = [('external-permissions',run/'rejected.sbef')]
@@ -376,6 +386,9 @@ def main():
            'PhysicalFwsecDeniedWithoutFirmware', 'PhysicalFwsecLaunchExcluded',
            'PhysicalLpcCommandExcluded')):
         raise ValueError('Missing physical xHCI and Falcon exclusions or FWSEC denial evidence')
+    if args.physical_fwsec_trial and not all(report['Cases'][i].get('PhysicalFwsecStatusExportVerified')
+                                            for i in (0,2)):
+        raise ValueError('Missing the Ring 3 physical FWSEC receipt in QEMU')
     if args.nvidia_gsp_prepare and not report['Cases'][0].get('GspQueuePermissionsVerified'):
         raise ValueError('Missing Ring 0 GSP message queue evidence')
     if args.nvidia_gsp_prepare and not report['Cases'][0].get('GspLibosVerified'):
@@ -439,6 +452,7 @@ def main():
     if args.amdvi_routed and report['Cases'][0].get('DeviceTablePages')!=512:
         raise ValueError('The routed QEMU domain does not cover all 65536 requester IDs')
     media_prefix = ('BMO-X2/GPU-PF' if args.metal_amdvi_preflight else
+                    'BMO-X2/GPU-FW' if args.physical_fwsec_trial else
                     'BMO-X2/GPU-MM' if args.amdvi_physical_mmio_test else
                     'BMO-X2/GPU' if args.nvidia_probe else 'BMO-X2/DESKTOP')
     fs=Fat32(run/'build/puente-normal.img')
@@ -450,13 +464,14 @@ def main():
     finally:fs.close()
     media=run/'media'
     boot_name = ('AMDVI-PREFLIGHT.EFI' if args.metal_amdvi_preflight else
+                 'RTX-FWSEC.EFI' if args.physical_fwsec_trial else
                  'AMDVI-MMIO.EFI' if args.amdvi_physical_mmio_test else
                  'NVIDIA.EFI' if args.nvidia_probe else 'DESKTOP.EFI')
     staged={f'EFI/BMO-X2/{boot_name}':image,f'{media_prefix}/INICIO.X86':packet,f'{media_prefix}/DESKTOP.SBF':sbef}
     if gsp is not None:
         staged[f'{media_prefix}/GSP.BIN'] = gsp
     storage_lab_only = (args.storage_quiesce or args.amdvi_nvme or args.amdvi_dte_reserve or
-                        args.amdvi_physical_usb_test or
+                        (args.amdvi_physical_usb_test and not args.physical_fwsec_trial) or
                         args.amdvi_routed) and not args.metal_amdvi_preflight
     if not storage_lab_only:
         for name,data in staged.items():
@@ -478,6 +493,7 @@ def main():
         amdvi_physical_prepare=args.amdvi_physical_prepare,
         amdvi_physical_mmio_test=args.amdvi_physical_mmio_test,
         amdvi_physical_usb_test=args.amdvi_physical_usb_test,
+        physical_fwsec_trial=args.physical_fwsec_trial,
         full_hd=args.full_hd,
         full_hd_native=args.full_hd,
         amdvi_coexist=args.amdvi_coexist,
@@ -499,6 +515,7 @@ def main():
         usb_empty_ports=args.usb_empty_ports,
         hardware_profile='amd149c-usb2-root-experimental' if args.usb=='both' and not args.usb_empty_ports else None,
         note=('QEMU-only lab; no installable media is emitted.' if storage_lab_only else
+              'First board FWSEC trial with GOP fallback; GPU execution is unverified.' if args.physical_fwsec_trial else
               'METAL preflight only: fresh PCI/AMD-Vi snapshots and DTE reservation/readback; translation and RTX DMA stay disabled, no GSP or native 3D.' if args.metal_amdvi_preflight else
               'Separate desktop candidate; no QEMU loader device, UEFI reads real FAT32 files.'),
         files={} if storage_lab_only else {name:hashlib.sha256(data).hexdigest() for name,data in staged.items()})

@@ -401,6 +401,10 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
             if marker not in serial.read_text(errors='replace').splitlines():
                 raise ValueError('Missing Ring 3 GSP status')
             amdvi_proof['GspStatusExportVerified']=True
+    if (run/'gpu-fwsec-trial.txt').is_file():
+        if 'RTX_TRIAL=000 000 000' not in serial.read_text(errors='replace').splitlines():
+            raise ValueError('Missing Ring 3 FWSEC trial status or unexpected board execution')
+        amdvi_proof['PhysicalFwsecStatusExportVerified']=True
     if full_hd_profile:
         pool,pages=struct.unpack('<QQ',memory(context_address+0x708,16,'native-ui-pool'))
         if (pool,pages)!=(0x04000000,4608):
