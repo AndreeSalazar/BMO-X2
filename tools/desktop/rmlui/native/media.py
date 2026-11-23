@@ -313,7 +313,8 @@ def main():
         obj=run/'nvidia-gsp-prepare.o'
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf','-x','assembler-with-cpp',
                  *nvidia_reader_flags,'-c',source,'-o',obj],'compile-nvidia-gsp-prepare')
-        check_context_stage(llvm,obj,'gsp_prepare',4096)
+        # At 0x1f000 the last 256 bytes belong to the inherited boot stack.
+        check_context_stage(llvm,obj,'gsp_prepare',4096 if args.amdvi_gsp_dma else 3840)
         relocations=subprocess.check_output([llvm/'llvm-objdump.exe','-r',obj],text=True)
         if 'RELOCATION RECORDS' in relocations:raise ValueError('NVIDIA stage must be position independent')
         binary=obj.with_suffix('.bin')
@@ -370,8 +371,9 @@ def main():
        not all(report['Cases'][i].get('PhysicalMmioReportVerified') for i in (0,2))):
         raise ValueError('Missing board-specific MMIO exclusion evidence')
     if args.amdvi_physical_usb_test and not all(report['Cases'][0].get(key) for key in
-          ('PhysicalUsbTranslationExcluded', 'PhysicalFalconResetExcluded')):
-        raise ValueError('Missing physical xHCI and Falcon exclusion evidence')
+          ('PhysicalUsbTranslationExcluded', 'PhysicalFalconResetExcluded',
+           'PhysicalFwsecDeniedWithoutFirmware')):
+        raise ValueError('Missing physical xHCI and Falcon exclusions or FWSEC denial evidence')
     if args.nvidia_gsp_prepare and not report['Cases'][0].get('GspQueuePermissionsVerified'):
         raise ValueError('Missing Ring 0 GSP message queue evidence')
     if args.nvidia_gsp_prepare and not report['Cases'][0].get('GspLibosVerified'):

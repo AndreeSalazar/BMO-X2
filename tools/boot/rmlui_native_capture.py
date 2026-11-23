@@ -65,7 +65,8 @@ def verify_gsp_reservation(memory, context, expected, case):
     memmap = memory(context+0x1000,map_length,'gsp-efi-map')
     descriptors = (struct.unpack_from('<I4xQQQ',memmap,offset)
                    for offset in range(0,len(memmap),stride))
-    if not any(kind==2 and start<=base and base+reserved<=start+pages*4096
+    allocation = reserved + (521*4096 if expected.get('physical_usb_test') else 0)
+    if not any(kind==2 and start<=base and base+allocation<=start+pages*4096
                for kind,start,_,pages in descriptors):
         raise ValueError('GSP data is not reserved in the final EFI map')
     for index in range(base>>21, ((base+reserved-1)>>21)+1):
@@ -94,7 +95,9 @@ def verify_gsp_reservation(memory, context, expected, case):
             rows=memory(table,0x200000,'physical-dte')
             rw=0x6000000000000403
             for rid, row in enumerate(struct.iter_unpack('<4Q',rows)):
-                target,domain=(dma_root,5) if rid==0x2900 else (usb_root,2) if rid==0x2b03 else (deny,0)
+                target,domain=(usb_root,2) if rid==0x2b03 else (deny,0)
+                if rid==0x2900 and not expected.get('physical_usb_test'):
+                    target,domain=dma_root,5
                 if row!=(target|rw,domain,0,0):
                     raise ValueError(f'Physical DTE differs for requester {rid:#06x}')
             result['PhysicalDteBuiltDetached']=True
@@ -110,12 +113,17 @@ def verify_gsp_reservation(memory, context, expected, case):
         if expected.get('physical_usb_test'):
             receipt = memory(context+0x920,96,'physical-usb-receipt')
             falcon = memory(context+0x980,8,'physical-falcon-receipt')
+            domain_status = memory(context+0x988,8,'physical-fwsec-domain-status')
+            fwsec_domain = memory(dte_base+0x207000,8192,'physical-fwsec-empty-domain')
             page_table = memory(dte_base+0x206000,4096,'physical-usb-empty-pt')
             alias = memory(context+0x15408,8,'physical-usb-absent-alias')
             if any(receipt) or any(falcon) or any(page_table) or any(alias):
                 raise ValueError('The board USB or Falcon test ran on QEMU')
+            if domain_status != b'\x01'+b'\x00'*7 or any(fwsec_domain):
+                raise ValueError('The unverified GPU must remain denied in the physical FWSEC table')
             result['PhysicalUsbTranslationExcluded']=True
             result['PhysicalFalconResetExcluded']=True
+            result['PhysicalFwsecDeniedWithoutFirmware']=True
         if detached:
             first_iova = 0x08000000
             if radix != first_iova+used or dma_root != base+payload_pages*4096:

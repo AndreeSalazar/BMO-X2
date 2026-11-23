@@ -32,9 +32,12 @@ class FwsecLaunch(unittest.TestCase):
         obj, dll = directory / "launch.obj", directory / "launch.dll"
         subprocess.run([LLVM / "clang.exe", "--target=x86_64-pc-windows-msvc",
                         "-c", source, "-o", obj], check=True)
+        domain = directory / "domain.obj"
+        subprocess.run([LLVM / "clang.exe", "--target=x86_64-pc-windows-msvc", "-c",
+                        ROOT / "kernel/drivers/bus/amdvi/fwsec_domain.S", "-o", domain], check=True)
         subprocess.run([LLVM / "lld-link.exe", "/dll", "/noentry", "/nodefaultlib",
                         "/export:nvidia_launch_ga106_fwsec", "/export:nvidia_prepare_ga106_falcon",
-                        f"/out:{dll}", obj], check=True)
+                        "/export:amdvi_stage_fwsec_domain", f"/out:{dll}", obj, domain], check=True)
         cls.library = ctypes.WinDLL(str(dll))
         cls.addClassCleanup(FreeLibrary, cls.library._handle)
         cls.launch = cls.library.nvidia_launch_ga106_fwsec
@@ -43,6 +46,9 @@ class FwsecLaunch(unittest.TestCase):
         cls.prepare = cls.library.nvidia_prepare_ga106_falcon
         cls.prepare.argtypes = [ctypes.c_void_p, ctypes.c_uint64]
         cls.prepare.restype = ctypes.c_int
+        cls.domain = cls.library.amdvi_stage_fwsec_domain
+        cls.domain.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint64]
+        cls.domain.restype = ctypes.c_int
 
     def setUp(self):
         self.bar = bytearray(0x200000)
@@ -88,6 +94,53 @@ class FwsecLaunch(unittest.TestCase):
         self.assertEqual(self.prepare(self.mapping, 1_000_000), 2)
         self.assertEqual(self.read(FALCON + 0x84), 0)
         self.assertEqual(self.read(DMA_COMMAND), 0)
+
+    def domain_memory(self):
+        kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+        alloc, free = kernel.VirtualAlloc, kernel.VirtualFree
+        alloc.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_uint32, ctypes.c_uint32]
+        alloc.restype = ctypes.c_void_p
+        free.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_uint32]
+        free.restype = ctypes.c_int
+        capacity = 0x209000
+        for candidate in range(0x02000000, 0x10000000 - capacity, 0x400000):
+            base = alloc(candidate, capacity, 0x3000, 4)
+            if base:
+                break
+        else:
+            self.fail("could not reserve the low identity-map test window")
+        self.addCleanup(lambda: free(base, 0, 0x8000))
+        memory = (ctypes.c_uint8 * capacity).from_address(base)
+        return base, memory
+
+    def test_domain_exposes_exactly_fifteen_read_only_pages(self):
+        base, memory = self.domain_memory()
+        payload = base - 0xf000
+        graphics = 0x2900 * 32
+        ctypes.memset(base + 0x207000, 0xff, 8192)
+        struct.pack_into("<Q", memory, graphics + 32, 0xabcdef)  # Audio untouched.
+        self.assertEqual(self.domain(base, payload, payload), 2)
+        read = 1 << 61
+        self.assertEqual(struct.unpack_from("<5Q", memory, graphics),
+                         (base + 0x207000 | read | 0x403, 5, 0, 0, 0xabcdef))
+        root = [0] * 512
+        leaf = [0] * 512
+        root[FWSEC_IOVA >> 21] = base + 0x208000 | read | 0x201
+        for index in range(15):
+            leaf[((FWSEC_IOVA >> 12) & 511) + index] = payload + index * 4096 | read | 1
+        self.assertEqual(struct.unpack_from("<1024Q", memory, 0x207000), tuple(root + leaf))
+
+    def test_domain_stays_denied_for_absent_or_out_of_range_fwsec(self):
+        base, memory = self.domain_memory()
+        graphics = 0x2900 * 32
+        for address in (0, base - 0xe000, base - 0xf001, base - 0x11000):
+            with self.subTest(address=address):
+                struct.pack_into("<4Q", memory, graphics, 0x100043, 5, 1, 1)
+                self.assertEqual(self.domain(base, address, base - 0x10000), 1)
+                self.assertEqual(struct.unpack_from("<4Q", memory, graphics),
+                                 (base + 0x200000 | (3 << 61) | 0x403, 0, 0, 0))
+                self.assertFalse(any(memory[0x207000:]))
+        self.assertEqual(self.domain(base + 1, 0, base), 0)
 
     def test_rejects_wrong_dma_window_and_active_wpr_before_writes(self):
         before = bytes(self.bar)

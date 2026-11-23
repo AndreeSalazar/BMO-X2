@@ -165,6 +165,18 @@ gsp_prepare_begin:
     jz .Lphysical_dte_discard
     mov 32(%rsp), %rax
     mov %rax, GSP_PHYSICAL_DTE_BASE(%rbp)
+#ifdef BMO_AMDVI_PHYSICAL_USB_TEST
+    mov %rax, %rcx
+    mov GSP_STAGE_BASE(%rbp), %r8
+    xor %edx, %edx
+    cmpl $GSP_POST_FWSEC_READY, GSP_POST_STATUS(%rbp)
+    jne .Lfwsec_domain_build
+    lea GSP_FWSEC_AREA_OFFSET(%r8), %rdx
+.Lfwsec_domain_build:
+    lea GSP_FWSEC_DOMAIN_ENTRY(%rbp), %rax
+    call *%rax
+    mov %eax, GSP_FWSEC_DOMAIN_STATUS(%rbp)
+#endif
 .Lphysical_dte_discard:
 #endif
     add $88, %rsp

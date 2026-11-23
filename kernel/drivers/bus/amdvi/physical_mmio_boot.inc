@@ -10,6 +10,8 @@ amdvi_physical_mmio_begin:
     .long .Lmmio_boot_entry - . - 4
     .byte 0xe9
     .long .Lphysical_usb_entry - . - 4
+    .byte 0xe9
+    .long .Lfwsec_domain - . - 4
 .Lmmio_boot_entry:
 #endif
     cmp $4, %ebx
@@ -76,6 +78,7 @@ amdvi_physical_mmio_begin:
 #include "physical_mmio.S"
 #ifdef BMO_AMDVI_PHYSICAL_USB_TEST
 #include "physical_usb.inc"
+#include "fwsec_domain.S"
 #include "../../GPU/NVIDIA/physical_falcon.inc"
 #define BMO_FALCON_PREPARE_ONLY
 #include "../../GPU/NVIDIA/fwsec_launch.S"

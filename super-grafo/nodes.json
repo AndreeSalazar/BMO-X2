@@ -3089,6 +3089,21 @@
       "falta": "El ensayo de 96 paginas QEMU no se puede usar en METAL: la IVRS fisica exige al menos 512 paginas para cubrir DeviceID ffff. Falta asignar esa tabla y detener/transferir todos los solicitantes antes de probar la RTX y el GSP."
     },
     {
+      "id": "amdvi-ga106-fwsec-domain",
+      "titulo": "AMD-Vi / Dominio de solo lectura para FWSEC",
+      "ruta": "kernel/drivers/bus/amdvi/fwsec_domain.S",
+      "estado": "host",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [12400, 3800],
+      "que": "Desconecta el arbol GSP amplio del solicitante RTX y prepara una ventana FWSEC de quince paginas de solo lectura.",
+      "entrada": "Reserva EFI validada, tabla DTE fisica y direccion de FWSEC preparado, o cero para denegar.",
+      "salida": "Dominio FWSEC o denegacion para 29:00.0 con el resto de los solicitantes intactos.",
+      "aceptacion": "HOST verifica todas las entradas de las dos tablas, denegacion sin firmware, rangos rechazados y audio intacto.",
+      "falta": "Validar el aislamiento en METAL y conectar la apertura y revocacion de Bus Master al cargador FWSEC."
+    },
+    {
       "id": "amdvi-physical-tables",
       "titulo": "AMD-Vi / Construccion de tablas fisicas",
       "ruta": "kernel/drivers/bus/amdvi/physical_tables.S",
@@ -4665,6 +4680,16 @@
     {
       "de": "nvidia-gsp-ring0-prepare",
       "a": "nvidia-fwsec-detached-dma",
+      "clase": "codigo"
+    },
+    {
+      "de": "amdvi-ga106-fwsec-domain",
+      "a": "nvidia-fwsec-detached-dma",
+      "clase": "codigo"
+    },
+    {
+      "de": "amdvi-ga106-fwsec-domain",
+      "a": "amdvi-physical-tables",
       "clase": "codigo"
     },
     {

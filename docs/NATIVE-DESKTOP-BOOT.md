@@ -1216,6 +1216,15 @@ recibo privado en `0x980` distingue `300` (rechazado), `301` (Falcon listo)
 y `302` (estado incierto). El firmware firmado y el DMA de la RTX siguen
 pendientes en esta ruta. QEMU comprueba que la rama fisica queda excluida.
 
+La [tabla FWSEC de la RTX](../kernel/drivers/bus/amdvi/fwsec_domain.S)
+dedica dos paginas al dominio del solicitante `29:00.0`. Tras verificar
+el FWSEC preparado, solo expone sus quince paginas de lectura en
+`0A107000` a `0A115FFF`. El audio de la RTX conserva el dominio de
+denegacion. El arbol que contiene GSP, colas y LIBOS queda separado.
+Si FWSEC no esta listo, la funcion grafica conserva un dominio sin paginas.
+El armado de esta tabla no abre Bus Master ni arranca el firmware.
+[Especificacion AMD-Vi, permisos de lectura y escritura](https://docs.amd.com/api/khub/documents/GD6kOXjzWsek8QUbn_qMvg/content).
+
 El inventario fisico anterior muestra `00:14.3` (`1022:790E`, puente
 ISA) con Command `000F`. El ensayo solo admite los puentes PCI a PCI
 AMD como funciones de reenvio con BME activo. Cualquier otro
