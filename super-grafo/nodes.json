@@ -3060,6 +3060,21 @@
       "falta": "El ensayo de 96 paginas QEMU no se puede usar en METAL: la IVRS fisica exige al menos 512 paginas para cubrir DeviceID ffff. Falta asignar esa tabla y detener/transferir todos los solicitantes antes de probar la RTX y el GSP."
     },
     {
+      "id": "amdvi-physical-tables",
+      "titulo": "AMD-Vi / Construccion de tablas fisicas",
+      "ruta": "kernel/drivers/bus/amdvi/physical_tables.S",
+      "estado": "host",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [12100, 4490],
+      "que": "Construye las DTE y las 14 paginas de xHCI en memoria privada.",
+      "entrada": "Reservas alineadas y raiz de RTX validada por el llamador.",
+      "salida": "Tabla completa y raiz xHCI separada, sin publicaciones MMIO.",
+      "aceptacion": "HOST: comprobar 65536 DTE, las dos hojas USB y rechazos sin escrituras.",
+      "falta": "Integrar reservas y validar la transicion fisica en Ring 0."
+    },
+    {
       "id": "storage-state-uefi",
       "titulo": "Almacenamiento / Recursos UEFI AHCI y NVMe",
       "ruta": "kernel/drivers/storage/handoff_uefi.inc",

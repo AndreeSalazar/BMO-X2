@@ -1078,6 +1078,14 @@ que cruza 2 MiB y los permisos y huecos de ambos dominios. El formato
 del laboratorio QEMU se conserva. Este modelo no se carga en METAL;
 Ring 0 todavia debe construir y validar sus tablas con las reservas
 reales y verificar el arranque del GSP.
+
+La sonda ASM `physical_tables.S` implementa la construccion en memoria
+privada para Ring 0. Recibe la raiz RTX ya validada por el llamador y
+crea la raiz xHCI sin tocar registros AMD-Vi ni PCI. HOST ejecuto el
+codigo nativo, inspecciono las 65,536 DTE y verifico las 14 paginas USB
+cruzando dos hojas. Cinco entradas invalidas rechazadas conservaron
+los buffers byte por byte. La sonda todavia no esta conectada al
+arranque fisico.
 [Inventario PCI en METAL](../Reports/dma-pci-census-metal-20261120.json).
 [Estado de los discos en METAL](../Reports/storage-state-metal-20261120.json).
 [Evidencia del candidato de cierre](../Reports/amdvi-storage-handoff-20261121.json).
