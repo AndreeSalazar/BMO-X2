@@ -1042,6 +1042,18 @@ conserva PCI Command. El inventario F2 posterior al inicio de HID
 permite contrastar la fila `03:00.0` con el GPULOG previo a EBS.
 El modulo opcional compilo en HOST, con 7,290 bytes de los 8,192
 reservados. La prueba fisica y el dominio DMA de la RTX siguen pendientes.
+
+El medio de prueba reutiliza el candidato SATA-NVMe
+`run-rmlui-media-362e700f8855` y cambia unicamente el bloque xHCI del
+EFI en el rango de archivo `0x4000..0x5fff`. El paquete SBEF, INICIO.X86,
+GSP.BIN y el resto del EFI conservan sus bytes. Para comprobar el
+resultado en METAL, abrir F2 y capturar todas sus paginas junto con
+el GPULOG. El xHCI `2B:00.3` debe conservar teclado y raton mientras
+se comprueba si `03:00.0` sigue en el inventario de Bus Master.
+El candidato `run-rmlui-media-2826d337da7d` paso los tres casos QEMU,
+incluida la entrada conjunta USB, y reemplazo el EFI de la entrada
+**BMO-X2 (DMA SATA-NVMe)**. QEMU no tiene el controlador AMD `1022:43BC`;
+la retirada fisica de su Bus Master se verifica en la placa.
 [Inventario PCI en METAL](../Reports/dma-pci-census-metal-20261120.json).
 [Estado de los discos en METAL](../Reports/storage-state-metal-20261120.json).
 [Evidencia del candidato de cierre](../Reports/amdvi-storage-handoff-20261121.json).
