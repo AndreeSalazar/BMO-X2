@@ -22,18 +22,19 @@
 # Uses the GA102 Falcon select/reset/scrub sequence from Nouveau.
 .globl nvidia_prepare_ga106_falcon
 nvidia_prepare_ga106_falcon:
+.Lprepare_ga106_falcon:
     test %rcx, %rcx
-    jz .Lreject
+    jz .Lfwsec_reject
     cmp $1000000, %rdx
-    jb .Lreject
+    jb .Lfwsec_reject
     cmp $100000000, %rdx
-    ja .Lreject
+    ja .Lfwsec_reject
     cmpl $0xb76000a1, (%rcx)
-    jne .Lreject
+    jne .Lfwsec_reject
     cmpl $0x10, 0x111388(%rcx)
-    jne .Lreject
+    jne .Lfwsec_reject
     cmpl $16, WPR2_HIGH(%rcx)
-    jae .Lreject
+    jae .Lfwsec_reject
     push %r13
     push %r15
     mov %rdx, %r11
@@ -135,54 +136,55 @@ nvidia_prepare_ga106_falcon:
     lea (%rax,%r10), %r15
     ret
 
+#ifndef BMO_FALCON_PREPARE_ONLY
 .globl nvidia_launch_ga106_fwsec
 nvidia_launch_ga106_fwsec:
     test %rcx, %rcx
-    jz .Lreject
+    jz .Lfwsec_reject
     test %r9, %r9
-    jz .Lreject
+    jz .Lfwsec_reject
     cmpl $0, (%r9)
-    jne .Lreject
+    jne .Lfwsec_reject
     cmp $1000000, %rdx
-    jb .Lreject
+    jb .Lfwsec_reject
     cmp $100000000, %rdx
-    ja .Lreject
+    ja .Lfwsec_reject
     cmp $0x0a107000, %r8
-    jne .Lreject
+    jne .Lfwsec_reject
     cmpl $0xb76000a1, (%rcx)          # PMC_BOOT_0, the measured GA106.
-    jne .Lreject
+    jne .Lfwsec_reject
     cmpl $0x10, 0x111388(%rcx)       # RISC-V must still be halted.
-    jne .Lreject
+    jne .Lfwsec_reject
     cmpl $16, WPR2_HIGH(%rcx)
-    jae .Lreject
+    jae .Lfwsec_reject
     lea GSP_FALCON(%rcx), %r10
     mov 0xf4(%r10), %eax
     call .Lvalid_read
-    jc .Lreject
+    jc .Lfwsec_reject
     and $0x80001000, %eax
     cmp $0x80000000, %eax           # Ready, with memory scrubbing complete.
-    jne .Lreject
+    jne .Lfwsec_reject
     mov 0x108(%r10), %eax
     call .Lvalid_read
-    jc .Lreject
+    jc .Lfwsec_reject
     mov %eax, %r11d
     and $0x1ff, %eax
     cmp $(FWSEC_IMEM_BYTES/256), %eax
-    jb .Lreject
+    jb .Lfwsec_reject
     and $0x3fe00, %r11d
     cmp $(FWSEC_DMEM_BYTES*2), %r11d
-    jb .Lreject
+    jb .Lfwsec_reject
     mov 0x1668(%r10), %eax
     call .Lvalid_read
-    jc .Lreject
+    jc .Lfwsec_reject
     test $0x10, %eax               # STARTCPU must target Falcon, not RISC-V.
-    jnz .Lreject
+    jnz .Lfwsec_reject
     mov 0x624(%r10), %eax
     call .Lvalid_read
-    jc .Lreject
+    jc .Lfwsec_reject
     mov 0x600(%r10), %eax
     call .Lvalid_read
-    jc .Lreject
+    jc .Lfwsec_reject
 
     push %rbx
     push %r12
@@ -291,10 +293,12 @@ nvidia_launch_ga106_fwsec:
     pop %r12
     pop %rbx
     ret
-.Lreject:
+#endif
+.Lfwsec_reject:
     xor %eax, %eax
     ret
 
+#ifndef BMO_FALCON_PREPARE_ONLY
 .Ltransfer:
     call .Lwait_dma_slot
     jc .Ltransfer_end
@@ -330,6 +334,7 @@ nvidia_launch_ga106_fwsec:
     stc
 .Lslot_end:
     ret
+#endif
 .Lvalid_read:
     cmp $-1, %eax
     je .Linvalid_read
@@ -351,6 +356,7 @@ nvidia_launch_ga106_fwsec:
     or %rdx, %rax
     cmp %r15, %rax
     ret
+#ifndef BMO_FALCON_PREPARE_ONLY
 .Lrecord_reply:
     mov 0x40(%r13), %eax
     mov %eax, 8(%r14)
@@ -363,3 +369,4 @@ nvidia_launch_ga106_fwsec:
     mov WPR2_HIGH(%r12), %eax
     mov %eax, 24(%r14)
     ret
+#endif

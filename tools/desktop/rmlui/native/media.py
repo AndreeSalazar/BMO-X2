@@ -369,8 +369,9 @@ def main():
     if args.amdvi_physical_mmio_test and (not report['Cases'][0].get('PhysicalMmioExcluded') or
        not all(report['Cases'][i].get('PhysicalMmioReportVerified') for i in (0,2))):
         raise ValueError('Missing board-specific MMIO exclusion evidence')
-    if args.amdvi_physical_usb_test and not report['Cases'][0].get('PhysicalUsbTranslationExcluded'):
-        raise ValueError('Missing physical xHCI translation exclusion evidence')
+    if args.amdvi_physical_usb_test and not all(report['Cases'][0].get(key) for key in
+          ('PhysicalUsbTranslationExcluded', 'PhysicalFalconResetExcluded')):
+        raise ValueError('Missing physical xHCI and Falcon exclusion evidence')
     if args.nvidia_gsp_prepare and not report['Cases'][0].get('GspQueuePermissionsVerified'):
         raise ValueError('Missing Ring 0 GSP message queue evidence')
     if args.nvidia_gsp_prepare and not report['Cases'][0].get('GspLibosVerified'):

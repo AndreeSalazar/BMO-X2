@@ -1208,6 +1208,14 @@ originales. La pagina adicional para el alias de CPU queda fuera de
 los dominios DMA. El perfil prueba la exclusion de la ruta fisica en
 QEMU y no emite medio FAT32 de despliegue.
 
+El mismo perfil ensaya la preparacion de Falcon despues de restaurar los
+registros de AMD-Vi y antes de arrancar USB. Relee en PCI el ID, subsistema,
+BAR0 y Command de `29:00.0`, con Bus Master apagado. El alias de CPU
+expone cuatro paginas de BAR0 al supervisor y las retira al volver. El
+recibo privado en `0x980` distingue `300` (rechazado), `301` (Falcon listo)
+y `302` (estado incierto). El firmware firmado y el DMA de la RTX siguen
+pendientes en esta ruta. QEMU comprueba que la rama fisica queda excluida.
+
 El inventario fisico anterior muestra `00:14.3` (`1022:790E`, puente
 ISA) con Command `000F`. El ensayo solo admite los puentes PCI a PCI
 AMD como funciones de reenvio con BME activo. Cualquier otro

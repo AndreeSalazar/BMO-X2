@@ -109,11 +109,13 @@ def verify_gsp_reservation(memory, context, expected, case):
             result['PhysicalMmioExcluded']=True
         if expected.get('physical_usb_test'):
             receipt = memory(context+0x920,96,'physical-usb-receipt')
+            falcon = memory(context+0x980,8,'physical-falcon-receipt')
             page_table = memory(dte_base+0x206000,4096,'physical-usb-empty-pt')
             alias = memory(context+0x15408,8,'physical-usb-absent-alias')
-            if any(receipt) or any(page_table) or any(alias):
-                raise ValueError('The board USB translation test ran on QEMU')
+            if any(receipt) or any(falcon) or any(page_table) or any(alias):
+                raise ValueError('The board USB or Falcon test ran on QEMU')
             result['PhysicalUsbTranslationExcluded']=True
+            result['PhysicalFalconResetExcluded']=True
         if detached:
             first_iova = 0x08000000
             if radix != first_iova+used or dma_root != base+payload_pages*4096:

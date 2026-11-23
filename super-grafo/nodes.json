@@ -2792,7 +2792,7 @@
       "entrada": "GA106 frio, BAR0 exclusivo y reloj calibrado para preparar Falcon. La carga exige ademas la IOVA FWSEC autorizada.",
       "salida": "Recibo privado de la fase, bytes transferidos, buzones y limites WPR2.",
       "aceptacion": "HOST ejecuta el codigo nativo con registros simulados y verifica la preparacion de Falcon, los plazos de seleccion y borrado, los 234 bloques y ambas rutas STARTCPU.",
-      "falta": "Invocar desde la adjudicacion DMA fisica, validar METAL y usar WPR2 para iniciar SEC2."
+      "falta": "El perfil experimental llama la preparacion antes de USB y mantiene Bus Master desactivado. Falta probarla en METAL, invocar el cargador bajo DMA fisico y usar WPR2 para iniciar SEC2."
     },
     {
       "id": "nvidia-gsp-ring0-radix3",
