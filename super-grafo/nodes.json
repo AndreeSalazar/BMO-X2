@@ -2702,7 +2702,37 @@
       "entrada": "Contenedor verificado, lectura de fusible SEC2 y reserva independiente de 15 paginas.",
       "salida": "Copia alineada sin permiso DMA y recibo SEC2 despues del cierre PCIe de FWSEC.",
       "aceptacion": "HOST coteja la rutina compilada con el preparador Python. QEMU verifica el origen y la reserva sin publicar.",
-      "falta": "Confirmar 601 o 602 en METAL antes de conceder DMA y ejecutar BOOTER_LOAD."
+      "falta": "METAL con 45176a9 confirma 601 y fusible 00000001. Falta validar el lanzamiento SEC2 en la placa."
+    },
+    {
+      "id": "nvidia-sec2-execute-native",
+      "titulo": "GPU / NVIDIA / Ejecucion firmada de SEC2",
+      "ruta": "kernel/drivers/GPU/NVIDIA/sec2_execute.inc",
+      "estado": "host",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [11850, 3830],
+      "que": "Carga el booter SEC2 firmado con DMA acotado y entrega la IOVA de WPR.",
+      "entrada": "FWSEC 401, firma SEC2 preparada, reset y dominio AMD-Vi confirmados.",
+      "salida": "Respuesta de MAILBOX0 y confirmacion de cierre PCIe.",
+      "aceptacion": "HOST verifica destino y origen DMA, BOOTVEC, los argumentos WPR y la respuesta simulada.",
+      "falta": "Validar la respuesta en METAL y confirmar GSP_INIT_DONE mediante la cola GSP."
+    },
+    {
+      "id": "nvidia-sec2-domain-native",
+      "titulo": "GPU / NVIDIA / Dominio AMD-Vi para SEC2",
+      "ruta": "kernel/drivers/GPU/NVIDIA/sec2_domain.inc",
+      "estado": "host",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [12050, 3830],
+      "que": "Cambia el dominio del solicitante RTX tras drenar FWSEC y antes de habilitar Bus Master de SEC2.",
+      "entrada": "Arbol GSP preparado, WPR en su pagina, imagen SEC2 y cola privada AMD-Vi.",
+      "salida": "Publicacion del dominio confirmada por la cola AMD-Vi o rechazo con Bus Master cerrado.",
+      "aceptacion": "QEMU exige que la ventana de la placa no se active al usar VGA estandar.",
+      "falta": "Confirmar la invalidacion activa en METAL y el cierre despues de SEC2."
     },
     {
       "id": "nvidia-gsp-wpr-host",

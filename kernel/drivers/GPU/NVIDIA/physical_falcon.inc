@@ -5,6 +5,8 @@
 .set FALCON_BOARD_RID, 0x80290000
 .set SEC2_FUSE_ALIAS_SLOT, 2
 .set SEC2_FUSE_ALIAS, FALCON_BOARD_VA + SEC2_FUSE_ALIAS_SLOT*4096
+.set SEC2_CPU_ALIAS, FALCON_BOARD_VA+0x3000
+.set SEC2_IOMMU_ALIAS, FALCON_BOARD_VA+0x5000
 # PMC, SCRATCH14, Falcon, RISC-V/BROM and WPR2. CPU alias only.
 # Use the same pages when installing, invalidating and retiring the alias.
 #define FALCON_CPU_PAGES 0, 1, 0x110, 0x111, 0x1fa
@@ -91,6 +93,14 @@ nvidia_physical_begin:
     .endr
     movabs $0x80000000fb824019, %rax  # Read-only supervisor CPU mapping.
     mov %rax, (SEC2_FUSE_ALIAS_SLOT*8)(%r10)
+    movabs $0x80000000fb84001b, %rax
+    mov %rax, 24(%r10)
+    add $4096, %rax
+    mov %rax, 32(%r10)
+    movabs $0x80000000fd50001b, %rax
+    mov %rax, 40(%r10)
+    add $8192, %rax
+    mov %rax, 56(%r10)
     lea 3(%r10), %rax
     mov %rax, FALCON_BOARD_PDE(%rbp)
     call .Lboard_flush
@@ -163,6 +173,52 @@ nvidia_physical_begin:
     lea 0x600(%rax), %ecx
 .Lboard_sec2_record:
     mov %ecx, (NVIDIA_SEC2_STAGE_RECEIPT+4)(%rbp)
+    test %eax, %eax
+    jz .Lboard_unmap
+    movl $0x706, (NVIDIA_SEC2_EXEC_RECEIPT+4)(%rbp)
+    mov $SEC2_CPU_ALIAS, %ecx
+    mov $(FALCON_BOARD_VA+0x110000), %edx
+    mov STORAGE_TSC_10MS(%rbp), %r8
+    call .Lprepare_sec2_engines
+    test %eax, %eax
+    jz .Lboard_unmap
+    movl $0x707, (NVIDIA_SEC2_EXEC_RECEIPT+4)(%rbp)
+    call .Lpublish_sec2_domain
+    test %eax, %eax
+    jz .Lboard_unmap
+    movl $0x704, (NVIDIA_SEC2_EXEC_RECEIPT+4)(%rbp)
+    mov %r12d, %ecx
+    or $4, %ecx
+    call .Lboard_command
+    cmp %cx, %ax
+    jne .Lboard_sec2_revoke
+    mov $SEC2_CPU_ALIAS, %ecx
+    mov STORAGE_TSC_10MS(%rbp), %rdx
+    lea NVIDIA_FWSEC_LAUNCH_RECEIPT(%rbp), %r8
+    call .Lexecute_sec2_booter
+    add $0x700, %eax
+    mov %eax, (NVIDIA_SEC2_EXEC_RECEIPT+4)(%rbp)
+    mov (NVIDIA_FWSEC_LAUNCH_RECEIPT+8)(%rbp), %eax
+    mov %eax, NVIDIA_SEC2_EXEC_RECEIPT(%rbp)
+.Lboard_sec2_revoke:
+    mov %r12d, %ecx
+    call .Lboard_command
+    cmp %r12w, %ax
+    jne .Lboard_sec2_pin
+    mov STORAGE_TSC_10MS(%rbp), %r10
+    imul $10, %r10, %r10
+    call .Lprep_deadline
+.Lboard_sec2_drain:
+    mov %r14d, %eax
+    call .Lboard_pci_read
+    cmp $-1, %eax
+    je .Lboard_sec2_pin
+    test $0x00200000, %eax
+    jz .Lboard_unmap
+    call .Lwithin_deadline
+    jb .Lboard_sec2_drain
+.Lboard_sec2_pin:
+    movl $0x705, (NVIDIA_SEC2_EXEC_RECEIPT+4)(%rbp)
 .Lboard_unmap:
     movq $0, FALCON_BOARD_PDE(%rbp)
     call .Lboard_flush
@@ -171,13 +227,20 @@ nvidia_physical_begin:
     movq $0, (\page*8)(%r10)
     .endr
     movq $0, (SEC2_FUSE_ALIAS_SLOT*8)(%r10)
+    movq $0, 24(%r10)
+    movq $0, 32(%r10)
+    movq $0, 40(%r10)
+    movq $0, 56(%r10)
 .Lboard_exit:
     mov $0xcf8, %dx
     mov %ebx, %eax
     out %eax, %dx
     xor %eax, %eax
     cmpq $0x404, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)
+    je .Lboard_unverified
+    cmpl $0x705, (NVIDIA_SEC2_EXEC_RECEIPT+4)(%rbp)
     jne .Lboard_return
+.Lboard_unverified:
     mov $3, %eax
     jmp .Lboard_return
 .Lboard_skip:
@@ -246,10 +309,16 @@ nvidia_physical_begin:
     invlpg (FALCON_BOARD_VA+\page*4096)
     .endr
     invlpg SEC2_FUSE_ALIAS
+    invlpg SEC2_CPU_ALIAS
+    invlpg (SEC2_CPU_ALIAS+4096)
+    invlpg SEC2_IOMMU_ALIAS
+    invlpg (SEC2_IOMMU_ALIAS+8192)
     ret
 #undef FALCON_CPU_PAGES
 
 #include "fwsec_launch.S"
 #include "sec2_prepare.S"
+#include "sec2_execute.inc"
+#include "sec2_domain.inc"
 .globl nvidia_physical_end
 nvidia_physical_end:

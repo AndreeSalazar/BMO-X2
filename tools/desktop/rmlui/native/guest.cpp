@@ -464,6 +464,10 @@ extern "C" void bmo_main() {
         const auto sec2_code=unsigned(sec2>>32);
         snprintf(amdvi_line,sizeof(amdvi_line),"SEC2_STAGE=%03X %08X\n",sec2_code,unsigned(sec2));
         log(amdvi_line);
+        const auto exec=doom_invoke(3,3,amdvi_diagnostic,10);
+        const auto exec_code=unsigned(exec>>32);
+        snprintf(amdvi_line,sizeof(amdvi_line),"SEC2_EXEC=%03X %08X\n",exec_code,unsigned(exec));
+        log(amdvi_line);
         const char* status=fwsec==0x401 ? "WPR2 confirmada" :
             fwsec==0x404 ? "cierre PCIe sin confirmar" :
             fwsec==0x405 ? "codigo Falcon ausente" :
@@ -502,6 +506,19 @@ extern "C" void bmo_main() {
                 sec2_code==0x604 ? "contenedor ausente" : "preparacion pendiente";
             snprintf(amdvi_line,sizeof(amdvi_line),"SEC2 / %s / %03X / FUSIBLE %08X",
                      sec2_status,sec2_code,unsigned(sec2));
+            hardware_report+="<br/>";
+            hardware_report+=amdvi_line;
+        }
+        if(exec_code) {
+            const char* result=exec_code==0x701 ? "booter aceptado" :
+                exec_code==0x702 ? "transferencia DMA fallida" :
+                exec_code==0x703 ? "booter sin confirmar" :
+                exec_code==0x704 ? "Bus Master sin confirmar" :
+                exec_code==0x705 ? "cierre PCIe sin confirmar" :
+                exec_code==0x706 ? "reset de SEC2 o GSP pendiente" :
+                exec_code==0x707 ? "dominio AMD-Vi sin confirmar" : "resultado desconocido";
+            snprintf(amdvi_line,sizeof(amdvi_line),"SEC2 RUN / %s / %03X / MAILBOX0 %08X",
+                     result,exec_code,unsigned(exec));
             hardware_report+="<br/>";
             hardware_report+=amdvi_line;
         }

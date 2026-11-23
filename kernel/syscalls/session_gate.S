@@ -376,7 +376,7 @@ amdvi_diagnostic:
 #ifdef BMO_NVIDIA_GSP_STATUS
     jbe .Lamdvi_snapshot
 #if defined(BMO_AMDVI_PHYSICAL_USB_TEST) && !defined(BMO_AMDVI_DTE_RESERVE)
-    cmp $9, %r10
+    cmp $10, %r10
     ja denied
     lea AMDVI_PHYSICAL_RTX_REPORT(%rbp), %rax
     call *%rax

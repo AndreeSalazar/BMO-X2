@@ -1278,11 +1278,27 @@ DMA del dispositivo. La linea SEC2 muestra `601` (firma 0 preparada),
 `602` (firma 1 preparada), `603` (lectura invalida o sin firma compatible)
 o `604` (origen ausente). QEMU coteja el origen y la reserva sin publicar.
 El banco HOST coteja la rutina nativa byte por byte con el preparador
-Python. Queda conectar la transferencia a SEC2 y confirmar sus buzones
-antes de lanzar GSP-RM.
+Python. El arranque fisico con `45176a9` confirmo `601` y fusible
+`00000001` despues de `FWSEC 401`.
+
+El candidato de ejecucion resetea GSP y SEC2 con Bus Master apagado.
+Selecciona RISC-V en GSP y entrega la direccion de LIBOS. Tras verificar
+el dominio anterior, publica para `29:00.0` el arbol GSP preparado y las
+15 paginas de booter de solo lectura. Exige confirmacion de AMD-Vi antes
+de abrir Bus Master. El booter firmado recibe la IOVA de WPR en
+MAILBOX0/1. El ensayo espera una respuesta acotada de SEC2 y vuelve a
+cerrar Bus Master, aun si el booter falla.
+
+`SEC2 RUN 701` confirma que SEC2 se detuvo con MAILBOX0 cero y que se
+cerro Bus Master. `702` indica error de transferencia; `703`, booter
+sin confirmar; `704` y `705`, fallos de apertura y cierre PCIe;
+`706`, reset o preparacion de motores sin confirmar; `707`, dominio
+AMD-Vi sin confirmar. Si el cierre PCIe falla, se fijan las reservas.
+Esta prueba no consume todavia la cola GSP para confirmar `GSP_INIT_DONE`.
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
 [Fusibles SEC2 en Nova](https://github.com/torvalds/linux/blob/master/drivers/gpu/nova-core/regs.rs).
+[Entrega de WPR al booter en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/tu102.c.html#189).
 [Mapa de registros PCIe Device Status](https://codebrowser.dev/linux/linux/include/uapi/linux/pci_regs.h.html#532).
 [Secuencia de preparacion y limpieza de Falcon GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/falcon/ga102.c.html#70).
 [Seleccion de Falcon y estado RISC-V en el controlador abierto de NVIDIA](https://raw.githubusercontent.com/NVIDIA/open-gpu-kernel-modules/main/src/nvidia/src/kernel/gpu/falcon/arch/ampere/kernel_falcon_ga102.c).

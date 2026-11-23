@@ -32,9 +32,7 @@ class FwsecLaunch(unittest.TestCase):
         cls.addClassCleanup(folder.cleanup)
         directory = Path(folder.name)
         source = ROOT / "kernel/drivers/GPU/NVIDIA/fwsec_launch.S"
-        obj, dll = directory / "launch.obj", directory / "launch.dll"
-        subprocess.run([LLVM / "clang.exe", "--target=x86_64-pc-windows-msvc",
-                        "-c", source, "-o", obj], check=True)
+        dll = directory / "launch.dll"
         domain = directory / "domain.obj"
         subprocess.run([LLVM / "clang.exe", "--target=x86_64-pc-windows-msvc", "-c",
                         ROOT / "kernel/drivers/bus/amdvi/fwsec_domain.S", "-o", domain], check=True)
@@ -44,10 +42,17 @@ class FwsecLaunch(unittest.TestCase):
         sec2 = directory / "sec2.obj"
         subprocess.run([LLVM / "clang.exe", "--target=x86_64-pc-windows-msvc", "-c",
                         ROOT / "kernel/drivers/GPU/NVIDIA/sec2_prepare.S", "-o", sec2], check=True)
+        sec2_source = directory / "sec2_exec.S"
+        sec2_object = directory / "sec2_exec.obj"
+        sec2_source.write_text('#include "fwsec_launch.S"\n#include "sec2_execute.inc"\n', encoding="ascii")
+        # Use the combined object so SEC2 exercises the production Falcon helpers.
+        subprocess.run([LLVM / "clang.exe", "--target=x86_64-pc-windows-msvc",
+                        "-I", source.parent, "-c", sec2_source, "-o", sec2_object], check=True)
         subprocess.run([LLVM / "lld-link.exe", "/dll", "/noentry", "/nodefaultlib",
                         "/export:nvidia_launch_ga106_fwsec", "/export:nvidia_prepare_ga106_falcon",
                         "/export:amdvi_stage_fwsec_domain", "/export:amdvi_matches_board_ivrs",
-                        "/export:nvidia_prepare_sec2_image", f"/out:{dll}", obj, domain, ivrs, sec2], check=True)
+                        "/export:nvidia_prepare_sec2_image", "/export:nvidia_execute_sec2_booter",
+                        f"/out:{dll}", sec2_object, domain, ivrs, sec2], check=True)
         cls.library = ctypes.WinDLL(str(dll))
         cls.addClassCleanup(FreeLibrary, cls.library._handle)
         cls.launch = cls.library.nvidia_launch_ga106_fwsec
@@ -65,6 +70,39 @@ class FwsecLaunch(unittest.TestCase):
         cls.prepare_sec2 = cls.library.nvidia_prepare_sec2_image
         cls.prepare_sec2.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_uint32]
         cls.prepare_sec2.restype = ctypes.c_int
+        cls.execute_sec2 = cls.library.nvidia_execute_sec2_booter
+        cls.execute_sec2.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_void_p]
+        cls.execute_sec2.restype = ctypes.c_int
+
+    def test_native_sec2_transfers_the_signed_image_and_hands_wpr_to_the_booter(self):
+        imem = 35584
+        dmem = 25088
+        self.write(FALCON + 0x100, 0x10)
+        with ThreadPoolExecutor(max_workers=1) as worker:
+            run = worker.submit(self.execute_sec2, ctypes.byref(self.mapping, FALCON),
+                                25_000_000, self.result)
+            for offset in range(0, imem + dmem, 256):
+                secure = offset < imem
+                command = 0x614 if secure else 0x600
+                while self.read(DMA_COMMAND) != command and not run.done():
+                    pass
+                self.assertFalse(run.done(), f"SEC2 DMA stopped at {offset}")
+                self.assertEqual(self.read(FALCON + 0x110),
+                                 (FWSEC_IOVA if secure else FWSEC_IOVA + 256 + imem) >> 8)
+                self.assertEqual(self.read(FALCON + 0x114), offset if secure else offset-imem)
+                self.assertEqual(self.read(FALCON + 0x11C), offset+256 if secure else offset-imem)
+                self.write(DMA_COMMAND, command | 2)
+            while self.read(FALCON + 0x100) != 2 and not run.done():
+                pass
+            self.assertFalse(run.done(), "SEC2 did not start")
+            self.assertEqual(self.read(FALCON + 0x40), 0x0a106000)
+            self.assertEqual(self.read(FALCON + 0x104), 0x100)
+            self.assertEqual(self.read(FALCON + 0x1210), 0x10)
+            self.assertEqual(self.read(FALCON + 0x1198), 3)
+            self.write(FALCON + 0x40, 0)
+            self.write(FALCON + 0x100, 0x10)
+            self.assertEqual(run.result(), 1)
+        self.assertEqual(list(self.result)[:4], [4, imem+dmem, 0, 0])
 
     def test_native_sec2_workspace_matches_host_encoder(self):
         image = bytes(booter(native_geometry=True))

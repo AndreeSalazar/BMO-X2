@@ -118,13 +118,14 @@ def verify_gsp_reservation(memory, context, expected, case):
             launch = memory(context+0x990,36,'physical-fwsec-launch-receipt')
             lpc = memory(context+0x9c8,24,'physical-lpc-receipt')
             code, = struct.unpack('<Q',memory(context+0x9c0,8,'physical-nvidia-code-base'))
-            if not 0x100000<=code<=0xffff000 or code%4096:
+            expected_code = expected['physical_nvidia_code']
+            stage_bytes = expected_code.get('pages',1)*4096
+            if not 0x100000<=code<=0x10000000-stage_bytes or code%4096:
                 raise ValueError('The physical NVIDIA code page is outside supervisor memory')
-            if not any(kind==1 and start<=code and code+4096<=start+pages*4096
+            if not any(kind==1 and start<=code and code+stage_bytes<=start+pages*4096
                        for kind,start,_,pages in descriptors):
                 raise ValueError('The physical NVIDIA stage is not reserved as EFI LoaderCode')
-            stage = memory(code,4096,'physical-nvidia-code')
-            expected_code = expected['physical_nvidia_code']
+            stage = memory(code,stage_bytes,'physical-nvidia-code')
             size = expected_code['bytes']
             if not 0<size<=len(stage) or any(stage[size:]) or (
                     hashlib.sha256(stage[:size]).hexdigest()!=expected_code['sha256']):
@@ -430,6 +431,8 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
             raise ValueError('Missing Ring 3 Falcon mode receipt or unexpected board execution')
         if gsp_manifest.get('physical_sec2_stage') and 'SEC2_STAGE=000 00000000' not in lines:
             raise ValueError('Missing Ring 3 SEC2 receipt or unexpected board execution')
+        if gsp_manifest['physical_nvidia_code'].get('pages') == 2 and 'SEC2_EXEC=000 00000000' not in lines:
+            raise ValueError('Missing Ring 3 SEC2 execution receipt or unexpected board execution')
         amdvi_proof['PhysicalFwsecStatusExportVerified']=True
     if full_hd_profile:
         pool,pages=struct.unpack('<QQ',memory(context_address+0x708,16,'native-ui-pool'))

@@ -318,7 +318,7 @@ def main():
         if args.amdvi_guest_nvme:check_context_stage(llvm,native_probe,'nvme_guest',4096)
         if args.amdvi_physical_mmio_test:check_context_stage(llvm,native_probe,'amdvi_physical_mmio',4096)
         if args.amdvi_physical_usb_test:
-            falcon_start,falcon_end=check_context_stage(llvm,native_probe,'nvidia_physical',4096)
+            falcon_start,falcon_end=check_context_stage(llvm,native_probe,'nvidia_physical',8192)
         relocations=subprocess.check_output([llvm/'llvm-objdump.exe','-r',native_probe],text=True)
         if 'RELOCATION RECORDS' in relocations:raise ValueError('AMD-Vi firmware inventory must be position independent')
         raw_probe=native_probe.with_suffix('.bin')
@@ -326,7 +326,7 @@ def main():
         stage=raw_probe.read_bytes()
         if args.amdvi_physical_usb_test:
             falcon=stage[falcon_start:falcon_end]
-            manifest['physical_nvidia_code']={'bytes':len(falcon),'sha256':hashlib.sha256(falcon).hexdigest()}
+            manifest['physical_nvidia_code']={'bytes':len(falcon),'pages':2,'sha256':hashlib.sha256(falcon).hexdigest()}
             manifest_path.write_text(json.dumps(manifest,indent=2)+'\n',encoding='ascii')
         if len(image)!=amdvi_offset or not 0<len(stage)<=amdvi_budget:raise ValueError('AMD-Vi EFI slot mismatch')
         image.extend(stage.ljust(amdvi_budget,b'\0'))

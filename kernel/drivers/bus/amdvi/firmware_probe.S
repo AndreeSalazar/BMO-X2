@@ -69,7 +69,7 @@ amdvi_firmware_probe:
     movq $0x0fffffff, NVIDIA_PHYSICAL_CODE_BASE(%rbp)
     mov $1, %ecx                   # AllocateMaxAddress in supervisor identity memory.
     mov $1, %edx                   # EfiLoaderCode.
-    mov $1, %r8d
+    mov $2, %r8d
     lea NVIDIA_PHYSICAL_CODE_BASE(%rbp), %r9
     call *0x28(%rax)
     test %rax, %rax
@@ -77,13 +77,13 @@ amdvi_firmware_probe:
     mov NVIDIA_PHYSICAL_CODE_BASE(%rbp), %rdi
     cmp $0x100000, %rdi
     jb .Lnvidia_stage_unavailable
-    cmp $0xffff000, %rdi
+    cmp $0xfffe000, %rdi
     ja .Lnvidia_stage_unavailable
     test $4095, %edi
     jnz .Lnvidia_stage_unavailable
     mov %rdi, %rsi
     xor %eax, %eax
-    mov $512, %ecx
+    mov $1024, %ecx
     cld
     rep stosq
     mov %rsi, %rdi
