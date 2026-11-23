@@ -1188,8 +1188,25 @@ originales hasta confirmar el cierre. Un fallo sin restauracion
 confirmada mantiene las reservas fijadas. El banco HOST ejecuta la
 rutina nativa de 1633 bytes contra registros simulados. Comprueba la
 confirmacion y cierre, el rechazo sin IASup, el plazo vencido y la
-retencion al producirse un evento de error. Su invocacion desde la
-propiedad real de xHCI y la primera orden DMA en METAL estan pendientes.
+retencion al producirse un evento de error.
+
+El perfil de laboratorio `--amdvi-physical-usb-test` conecta esa sesion
+al arranque del xHCI `2B:00.3`. La activa despues del reset y antes de
+publicar las colas USB. Para pasar exige las dos paradas de
+almacenamiento de ese arranque, comprueba PCI Command en vivo y
+confirma la primera orden No-Op sin eventos AMD-Vi. El cierre comprueba
+HCHalted y el retiro de Bus Master antes de devolver las bases
+originales. La pagina adicional para el alias de CPU queda fuera de
+los dominios DMA. El perfil prueba la exclusion de la ruta fisica en
+QEMU y no emite medio FAT32 de despliegue.
+
+El inventario fisico anterior muestra `00:14.3` (`1022:790E`, puente
+ISA) con Command `000F`. El ensayo solo admite los puentes PCI a PCI
+AMD como funciones de reenvio con BME activo. Cualquier otro
+solicitante con BME deja su BDF en el recibo y bloquea la activacion.
+La tabla fisica usa DTE.I=0 y, por tanto, bloquea direccion ya
+traducida por los dispositivos.
+[Especificacion AMD IOMMU, tabla 7](https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/specifications/48882_IOMMU.pdf).
 [Inventario PCI en METAL](../Reports/dma-pci-census-metal-20261120.json).
 [Estado de los discos en METAL](../Reports/storage-state-metal-20261120.json).
 [Evidencia del candidato de cierre](../Reports/amdvi-storage-handoff-20261121.json).

@@ -5,6 +5,13 @@
 .globl amdvi_physical_mmio_begin
 amdvi_physical_mmio_begin:
 .Lphysical_mmio_begin:
+#ifdef BMO_AMDVI_PHYSICAL_USB_TEST
+    .byte 0xe9
+    .long .Lmmio_boot_entry - . - 4
+    .byte 0xe9
+    .long .Lphysical_usb_entry - . - 4
+.Lmmio_boot_entry:
+#endif
     cmp $4, %ebx
     jne .Lmmio_boot_done
     mov $0xfd500000, %eax
@@ -62,5 +69,10 @@ amdvi_physical_mmio_begin:
 .Lmmio_boot_done:
     ret
 #include "physical_mmio.S"
+#ifdef BMO_AMDVI_PHYSICAL_USB_TEST
+#include "physical_usb.inc"
+#define BMO_PHYSICAL_MMIO_IN_STAGE
+#include "physical_translation.S"
+#endif
 .globl amdvi_physical_mmio_end
 amdvi_physical_mmio_end:

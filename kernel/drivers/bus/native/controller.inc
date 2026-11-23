@@ -1,5 +1,8 @@
 #include "layout.inc"
 #include "../xhci_dma_layout.inc"
+#ifdef BMO_AMDVI_PHYSICAL_USB_TEST
+#include "../amdvi/post_layout.inc"
+#endif
 .text
 # Controller state in GS: 740 runtime,748 doorbells,750 operational,758 DMA,
 # 760 command index,770 role mask (1 keyboard,2 mouse),778 root port,
@@ -97,6 +100,12 @@ native_banks_disjoint:
     movl $101, %gs:0x7ac
     call xhci_reset
     jne native_init_abort
+#ifdef BMO_AMDVI_PHYSICAL_USB_TEST
+    mov $1, %eax
+    call native_physical_dma
+    cmp $3, %eax
+    je native_init_abort
+#endif
     movl $102, %gs:0x7ac
     movl $2, 0x38(%r11)
     lea NATIVE_SCRATCH_BEGIN(%r8), %rax
@@ -152,6 +161,12 @@ native_scratch_ready:
     mov $0x5c00, %ecx
     call native_command
     jne native_init_abort
+#ifdef BMO_AMDVI_PHYSICAL_USB_TEST
+    mov $2, %eax
+    call native_physical_dma
+    cmp $3, %eax
+    je native_init_abort
+#endif
     movl $105, %gs:0x7ac
     movb $1, %gs:0x379
     call native_settle
@@ -180,6 +195,16 @@ native_roots_done:
     jne native_init_abort
     movb $1, %gs:0x3c8
     movl $199, %gs:0x7ac
+#ifdef BMO_AMDVI_PHYSICAL_USB_TEST
+    cmpw $0x212, AMDVI_PHYSICAL_USB_RESULT(%rbp)
+    jne native_report_dma_admission
+    movl $211, %gs:0x7ac
+    jmp native_init_return
+native_report_dma_admission:
+    cmpw $0x215, AMDVI_PHYSICAL_USB_RESULT(%rbp)
+    jne native_init_return
+    movl $215, %gs:0x7ac
+#endif
     jmp native_init_return
 native_init_abort:
     call xhci_live_stop
@@ -451,6 +476,10 @@ xhci_live_stop:
     pop %rax
     sub $4, %edx
     out %eax, %dx
+#ifdef BMO_AMDVI_PHYSICAL_USB_TEST
+    mov $3, %eax
+    call native_physical_dma
+#endif
     movq $0, 0x15400(%rbp)
     movq $0, 0x1e000(%rbp)
     movq $0, 0x1e008(%rbp)
@@ -461,6 +490,25 @@ xhci_live_stop:
     movb $0, %gs:0x7c4
 native_stop_return:
     ret
+
+#ifdef BMO_AMDVI_PHYSICAL_USB_TEST
+native_physical_dma:
+    push %rdi
+    push %rsi
+    push %r8
+    push %r9
+    push %r10
+    push %r11
+    lea AMDVI_PHYSICAL_USB_ENTRY(%rbp), %rdx
+    call *%rdx
+    pop %r11
+    pop %r10
+    pop %r9
+    pop %r8
+    pop %rsi
+    pop %rdi
+    ret
+#endif
 
 #include "events.inc"
 #include "enumerate.inc"

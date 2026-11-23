@@ -3,7 +3,7 @@
 # Session layout: physical_mmio.S receipt (72 B), TSC budget (8 B),
 # lifecycle (8 B: zero/new, 1/active, 2/pinned, 3/closed).
 # The caller has validated the EFI reservations and requester topology,
-# disabled remote translation (ATS), and stopped every DMA engine. xHCI
+# blocked remote translation with DTE.I=0, and stopped every DMA engine. xHCI
 # may start within the window with its private identity-mapped domain.
 # All register writes are to AMD-Vi.
 # NVIDIA PCI Bus Master stays closed throughout this xHCI-only trial.
@@ -17,6 +17,7 @@
 
 .globl amdvi_open_physical_translation
 amdvi_open_physical_translation:
+.Lopen_physical_translation:
     test %rdx, %rdx
     jz .Lphysical_window_reject
     cmpq $0, PHYSICAL_LIFECYCLE(%rdx)
@@ -62,6 +63,7 @@ amdvi_open_physical_translation:
 # transactions have cleared for the requesters allowed during the window.
 .globl amdvi_close_physical_translation
 amdvi_close_physical_translation:
+.Lclose_physical_translation:
     test %rdx, %rdx
     jz .Lphysical_window_reject
     cmpq $1, PHYSICAL_LIFECYCLE(%rdx)
@@ -122,5 +124,7 @@ amdvi_close_physical_translation:
     xor %eax, %eax
     ret
 
+#ifndef BMO_PHYSICAL_MMIO_IN_STAGE
 #include "physical_mmio.S"
+#endif
 #include "translation.S"

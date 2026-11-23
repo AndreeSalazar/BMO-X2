@@ -60,6 +60,8 @@ def main():
                    help='Build detached board DMA tables during the NVIDIA boot stage')
     p.add_argument('--amdvi-physical-mmio-test', action='store_true',
                    help='Rehearse reversible MMIO base staging with translation disabled')
+    p.add_argument('--amdvi-physical-usb-test', action='store_true',
+                   help='Build the board-only translated xHCI trial for QEMU exclusion verification')
     p.add_argument('--full-hd', action='store_true', help='Render the desktop at native 1920x1080 for GOP')
     args=p.parse_args()
     if args.usb_empty_ports and args.usb!='both':p.error('--usb-empty-ports requires --usb both')
@@ -117,6 +119,8 @@ def main():
         p.error('--amdvi-physical-prepare requires the board storage and secondary xHCI profile')
     if args.amdvi_physical_mmio_test and not args.amdvi_physical_prepare:
         p.error('--amdvi-physical-mmio-test requires --amdvi-physical-prepare')
+    if args.amdvi_physical_usb_test and (not args.amdvi_physical_mmio_test or args.amdvi_guest_dma):
+        p.error('--amdvi-physical-usb-test requires the physical MMIO profile without guest DMA')
     storage_handoff = args.storage_quiesce or args.storage_quiesce_metal
     abi,splash=args.abi_run.resolve(),args.splash_run.resolve()
     for path in (abi,splash):
@@ -152,6 +156,9 @@ def main():
             nvidia_reader_flags+=['-DBMO_AMDVI_PHYSICAL_MMIO_TEST']
             manifest['physical_mmio_test']=True
             (run/'gpu-mmio.txt').write_text('amdvi-register-restore\n', encoding='ascii')
+        if args.amdvi_physical_usb_test:
+            nvidia_reader_flags+=['-DBMO_AMDVI_PHYSICAL_USB_TEST']
+            manifest['physical_usb_test']=True
         manifest_path.write_text(json.dumps(manifest,indent=2)+'\n',encoding='ascii')
     (run/'gop-regions.txt').write_text('cpu-gop\n',encoding='ascii')
     if args.nvidia_probe:
@@ -203,6 +210,7 @@ def main():
     extra=reader_budget+usb_budget
     amdvi_offset=0x3000+extra
     amdvi_budget=8192 if args.full_hd or args.amdvi_guest_nvme or (args.amdvi_routed and args.amdvi_dte_reserve) else 4096
+    if args.amdvi_physical_usb_test:amdvi_budget+=4096
     gsp_offset=amdvi_offset+amdvi_budget
     units=[('allocator','kernel/boot/bridge/desktop_media_alloc.S'),('reader','kernel/boot/bridge/desktop_media_read.S'),
         ('gate','kernel/syscalls/session_gate.S'),('loader','kernel/loader/doom_engine_loader.S')]
@@ -252,6 +260,7 @@ def main():
         flags=['-DRMLUI_USB']+(['-DXHCI_NATIVE_DUAL'] if args.usb=='both' else ['-DXHCI_COMMAND_PROBE'])+(['-DXHCI_MOUSE_PROBE'] if args.usb=='mouse' else [])
         if args.full_hd:flags+=['-DBMO_FULL_HD']
         if args.xhci_secondary_quiesce:flags+=['-DBMO_XHCI_SECONDARY_QUIESCE']
+        if args.amdvi_physical_usb_test:flags+=['-DBMO_AMDVI_PHYSICAL_USB_TEST']
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf','-x','assembler-with-cpp',*flags,'-c',
             ROOT/'kernel/drivers/bus/xhci_inventory.inc','-o',run/'xhci.o'],'compile-native-xhci')
         command([llvm/'llvm-objcopy.exe','-O','binary','--only-section=.text',run/'xhci.o',run/'xhci.bin'],'extract-native-xhci')
@@ -271,6 +280,7 @@ def main():
         if args.storage_quiesce_metal:flags+=['-DBMO_STORAGE_QUIESCE_METAL']
         if args.amdvi_physical_prepare:flags+=['-DBMO_AMDVI_PHYSICAL_PREPARE']
         if args.amdvi_physical_mmio_test:flags+=['-DBMO_AMDVI_PHYSICAL_MMIO_TEST']
+        if args.amdvi_physical_usb_test:flags+=['-DBMO_AMDVI_PHYSICAL_USB_TEST']
         if args.full_hd:flags+=['-DBMO_FULL_HD','-DRMLUI_MEDIA','-DRMLUI_NATIVE','-DDESKTOP_DOOM']
         if args.amdvi_guest_dma:flags+=['-DBMO_AMDVI_GUEST_DMA']
         if args.amdvi_storage:flags+=['-DBMO_AMDVI_STORAGE']
@@ -359,6 +369,8 @@ def main():
     if args.amdvi_physical_mmio_test and (not report['Cases'][0].get('PhysicalMmioExcluded') or
        not all(report['Cases'][i].get('PhysicalMmioReportVerified') for i in (0,2))):
         raise ValueError('Missing board-specific MMIO exclusion evidence')
+    if args.amdvi_physical_usb_test and not report['Cases'][0].get('PhysicalUsbTranslationExcluded'):
+        raise ValueError('Missing physical xHCI translation exclusion evidence')
     if args.nvidia_gsp_prepare and not report['Cases'][0].get('GspQueuePermissionsVerified'):
         raise ValueError('Missing Ring 0 GSP message queue evidence')
     if args.nvidia_gsp_prepare and not report['Cases'][0].get('GspLibosVerified'):
@@ -439,6 +451,7 @@ def main():
     if gsp is not None:
         staged[f'{media_prefix}/GSP.BIN'] = gsp
     storage_lab_only = (args.storage_quiesce or args.amdvi_nvme or args.amdvi_dte_reserve or
+                        args.amdvi_physical_usb_test or
                         args.amdvi_routed) and not args.metal_amdvi_preflight
     if not storage_lab_only:
         for name,data in staged.items():
@@ -459,6 +472,7 @@ def main():
         xhci_secondary_quiesce=args.xhci_secondary_quiesce,
         amdvi_physical_prepare=args.amdvi_physical_prepare,
         amdvi_physical_mmio_test=args.amdvi_physical_mmio_test,
+        amdvi_physical_usb_test=args.amdvi_physical_usb_test,
         full_hd=args.full_hd,
         full_hd_native=args.full_hd,
         amdvi_coexist=args.amdvi_coexist,

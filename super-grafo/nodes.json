@@ -3147,7 +3147,22 @@
       "entrada": "Recibo privado, reloj calibrado, alias AMD-Vi y solicitantes comprobados y detenidos por el llamador.",
       "salida": "Sesion activa, cierre confirmado o reservas retenidas por fallo de recuperacion.",
       "aceptacion": "HOST ejecuta apertura y cierre nativos, rechazo sin IASup, plazo agotado y retencion por evento IOMMU.",
-      "falta": "Invocar tras adquirir xHCI en METAL y comprobar su primer evento por DMA traducido antes de conceder DMA a la RTX."
+      "falta": "Verificar en la placa la propiedad del puente ISA y el primer evento fisico bajo traduccion."
+    },
+    {
+      "id": "amdvi-physical-usb",
+      "titulo": "AMD-Vi / Primer comando xHCI traducido",
+      "ruta": "kernel/drivers/bus/amdvi/physical_usb.inc",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [13100, 4490],
+      "que": "Conecta la sesion AMD-Vi al reset, primer No-Op y parada del xHCI seleccionado.",
+      "entrada": "Paradas SATA/NVMe confirmadas y PCI Command en vivo; USB reservado y xHC detenido.",
+      "salida": "Primer evento traducido o recibo de rechazo con el solicitante pendiente.",
+      "aceptacion": "QEMU verifica que no cambia la reserva, el alias ni el recibo de la placa fisica.",
+      "falta": "Controlar BME del puente ISA de la placa y verificar el No-Op en METAL antes de abrir el DMA de la RTX."
     },
     {
       "id": "storage-state-uefi",
