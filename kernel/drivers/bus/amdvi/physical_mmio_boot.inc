@@ -46,6 +46,10 @@ amdvi_physical_mmio_begin:
 .Lmmio_boot_record:
     or $0x100, %eax
     mov %rax, GSP_PHYSICAL_MMIO_RESULT(%rbp)
+    cmp $0x103, %eax
+    jne .Lmmio_boot_pack
+    mov $5, %ebx                   # Do not authorize writes from a stale snapshot.
+.Lmmio_boot_pack:
     # The caller returns its snapshot status to Ring 3. Pack the
     # receipt above the low 32-bit snapshot code.
     shl $32, %rax

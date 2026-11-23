@@ -1149,6 +1149,15 @@ El candidato utiliza `EFI/BMO-X2/AMDVI-MMIO.EFI` y
 el escritorio por CPU/GOP y deja AMD-Vi sin traduccion. La ejecucion
 fisica de GSP sigue pendiente.
 
+En METAL, `run-rmlui-media-116091803606` mostro `Prueba AMD-Vi 101`.
+El GPULOG en `A:/BMO-X2/GPU-MM/GPULOG.TXT` identifica a la RTX
+`29:00.0` con PCI Command `0003` y GSP detenido. Las fotos de ese
+arranque muestran ambos discos en `0006 -> 0006` y xHCI `2B:00.3`.
+El recibo en la mitad alta del estado hizo fallar la comparacion de
+64 bits en el cierre de almacenamiento. El cierre vuelve a comprobar
+el codigo en la mitad baja. Si la restauracion queda sin confirmar,
+el codigo invalida la captura para operaciones de escritura.
+
 La [rutina de traduccion](../kernel/drivers/bus/amdvi/translation.S)
 activa AMD-Vi con las tres bases ya cotejadas. Puede emitir una
 invalidacion global seguida de la invalidacion del solicitante y una

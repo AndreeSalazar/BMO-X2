@@ -4,7 +4,7 @@
 #include "../GPU/NVIDIA/gsp_layout.inc"
 #endif
 storage_quiesce:
-    cmpq $4, AMDVI_POST_STATUS(%rbp)
+    cmpl $4, AMDVI_POST_STATUS(%rbp) # The high dword is the register-test receipt.
     jne .Lquiesce_done
 #ifdef BMO_STORAGE_QUIESCE_METAL
     mov $0xfd500000, %eax
