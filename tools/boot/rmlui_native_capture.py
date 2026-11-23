@@ -219,6 +219,11 @@ def verify_gsp_reservation(memory, context, expected, case):
                 start,end = entry['offset'],entry['offset']+entry['bytes']
                 if hashlib.sha256(chain[start:end]).hexdigest()!=entry['sha256'] or any(chain[end:(end+4095)&-4096]):
                     raise ValueError(f'Signed payload or padding differs: {role}')
+                if 'sec2' in entry:
+                    from host.gpu.NVIDIA.sec2_booter import sec2_booter_layout
+
+                    if sec2_booter_layout(chain[start:end]) != entry['sec2']:
+                        raise ValueError(f'SEC2 booter layout differs: {role}')
             used += len(chain)
             result.update(GspBootChainVerified=True,GspBootChainPages=boot_chain['pages'],
                           GspBootChainSHA256=boot_chain['sha256'])

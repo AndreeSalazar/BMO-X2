@@ -1254,8 +1254,18 @@ a la prueba FWSEC. La revision del codigo encontro que la lectura
 del resultado `SCRATCH14` (BAR0+`0x1438`) caia fuera del alias supervisor.
 La pagina BAR0+`0x1000` queda ahora incluida en el alias y se retira junto
 con las otras cuatro. Los permisos DMA del dispositivo siguen en su
-tabla separada. La siguiente etapa de SEC2 requiere un resultado
-confirmado en la placa.
+tabla separada. La prueba fisica de `2cf10f6` muestra
+`USB 212 LPC 501 FWSEC 401` con escritorio visible. Eso acredita WPR2
+y el cierre del Bus Master temporal de la RTX.
+
+Para SEC2, HOST desglosa `booter_load` y `booter_unload` de la release
+`615.78.08` comprobada por SHA-256. Cada entrada conserva los bytes
+originales y define los rangos IMEM y DMEM, BOOTVEC, destino SEC2 y
+ubicaciones de las firmas de produccion. QEMU coteja esos rangos con los
+binarios reubicados cuando el manifiesto los incluye. La siguiente
+prueba fisica debe cargar el booter firmado y confirmar su respuesta
+en los buzones antes de lanzar GSP-RM.
+[Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Mapa de registros PCIe Device Status](https://codebrowser.dev/linux/linux/include/uapi/linux/pci_regs.h.html#532).
 [Secuencia de preparacion y limpieza de Falcon GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/falcon/ga102.c.html#70).
 [Seleccion de Falcon y estado RISC-V en el controlador abierto de NVIDIA](https://raw.githubusercontent.com/NVIDIA/open-gpu-kernel-modules/main/src/nvidia/src/kernel/gpu/falcon/arch/ampere/kernel_falcon_ga102.c).

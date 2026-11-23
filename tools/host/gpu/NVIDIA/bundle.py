@@ -5,6 +5,7 @@ import json
 import zlib
 
 from .firmware import NATIVE_RELEASE, layout, read_native_files, read_verified, riscv_bootloader
+from .sec2_booter import sec2_booter_layout
 
 
 def boot_chain(directory, files):
@@ -16,6 +17,8 @@ def boot_chain(directory, files):
         payloads[role] = read_verified(directory, files[role])
     for role, payload in payloads.items():
         entries[role] = dict(offset=len(chain), bytes=len(payload), sha256=hashlib.sha256(payload).hexdigest())
+        if role != 'riscv':
+            entries[role]['sec2'] = sec2_booter_layout(payload)
         chain.extend(payload)
         chain.extend(bytes(-len(chain) % 4096))
     return bytes(chain), dict(entries=entries, monitor_offsets=offsets, pages=len(chain)//4096,

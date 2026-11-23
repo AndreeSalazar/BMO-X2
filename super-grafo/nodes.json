@@ -2686,8 +2686,8 @@
       "que": "Mapea el monitor RISC-V y los binarios de carga y descarga SEC2 en la hoja GSP.",
       "entrada": "Trailer de integridad comprobada en la reserva EfiLoaderData y arbol DMA independiente.",
       "salida": "33 paginas de codigo firmado con permiso DMA de solo lectura y su IOVA inicial.",
-      "aceptacion": "QEMU coteja los tres binarios y el relleno. EDU lee el monitor y recibe un fallo al escribir una pagina del monitor sin lectura previa.",
-      "falta": "Ejecutar FWSEC y SEC2 en GA106 tras comprobar la adjudicacion DMA fisica."
+      "aceptacion": "QEMU coteja los tres binarios y el relleno. HOST verifica los segmentos y firmas SEC2. METAL confirma FWSEC 401 y WPR2 en GA106 con 2cf10f6.",
+      "falta": "Ejecutar BOOTER_LOAD por SEC2 con su dominio DMA y verificar sus buzones antes de iniciar GSP."
     },
     {
       "id": "nvidia-gsp-wpr-host",
@@ -2825,9 +2825,9 @@
       ],
       "que": "Coteja el firmware, limita su geometria y entrega el archivo y opciones de compilacion al empaquetador opcional.",
       "entrada": "Firmware NVIDIA original de la release fijada y seleccion del perfil.",
-      "salida": "GSP.BIN, manifiesto y parametros del lector; un testigo alterado para el ensayo.",
+      "salida": "GSP.BIN, parametros del lector y manifiesto con geometria SEC2; un testigo alterado para el ensayo.",
       "aceptacion": "FAT32 conserva la huella original y el escritorio base excluye este empaquetador.",
-      "falta": "Integrar el resto de artefactos cuando el controlador pueda autenticar y arrancar el GSP."
+      "falta": "Entregar al cargador SEC2 los rangos validados y seleccionar la firma por el fusible antes de arrancar GSP."
     },
     {
       "id": "nvidia-gsp-firmware-host",
