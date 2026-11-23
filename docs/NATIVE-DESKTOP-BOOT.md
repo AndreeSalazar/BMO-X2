@@ -1024,9 +1024,13 @@ UEFI como **BMO-X2 (DMA SATA-NVMe)**. En el escritorio, F2 abre el
 inventario PCI y F3 pasa al panel de almacenamiento. Capturar las dos
 filas completas y `A:\BMO-X2\GPU\GPULOG.TXT`. QEMU verifica que
 este binario omite la parada fisica en una placa distinta.
-El perfil queda por verificar en la placa. Antes de activar AMD-Vi
-aun se debe transferir el segundo xHCI y comprobar los solicitantes
-restantes y el acceso a almacenamiento bajo traduccion.
+METAL confirmo la parada de NVMe `01:00.0` y SATA `03:00.1` el
+22-11-2026. El panel F3 mostro PCI Command `0006 -> 0002` en ambos
+controladores. El pie del escritorio mostro FWSEC preparado y la base
+de la tabla AMD-Vi en cero. Antes de activar AMD-Vi aun se debe
+transferir o detener el segundo xHCI y comprobar los solicitantes
+restantes. Las lecturas de disco bajo traduccion siguen por verificar.
+[Registro del arranque fisico](../Reports/amdvi-storage-handoff-metal-20261122.txt).
 [Inventario PCI en METAL](../Reports/dma-pci-census-metal-20261120.json).
 [Estado de los discos en METAL](../Reports/storage-state-metal-20261120.json).
 [Evidencia del candidato de cierre](../Reports/amdvi-storage-handoff-20261121.json).

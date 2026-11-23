@@ -37,7 +37,15 @@
     "all_shutdown_result_bytes_zero": true
   },
   "metal": {
-    "storage_shutdown_verified": false,
+    "date": "2026-11-22",
+    "evidence": "Owner photographs of the F3 panel and desktop footer, paired with the pre-EBS FAT32 log",
+    "bootlog": "amdvi-storage-handoff-metal-20261122.txt",
+    "storage_shutdown_verified": true,
+    "nvme_pci_command_before": "0006",
+    "nvme_pci_command_after": "0002",
+    "ahci_pci_command_before": "0006",
+    "ahci_pci_command_after": "0002",
+    "fwsec_prepared": true,
     "iommu_translation_verified": false,
     "gsp_execution_verified": false,
     "rtx_render_verified": false
