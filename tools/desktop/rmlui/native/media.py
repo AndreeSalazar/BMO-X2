@@ -131,6 +131,7 @@ def main():
     if args.storage_state:variant+='-storage-state'
     if args.full_hd:variant+='-full-hd'
     if args.rtx_lab_panel:variant+='-rtx-lab'
+    if args.amdvi_physical_mmio_test:variant+='-amdvi-mmio'
     app=OUT/(variant + ('-msvc' if args.msvc_panel else ''))
     hashes=json.loads((app/'artifacts.json').read_text())
     for name,digest in hashes.items():
@@ -150,6 +151,7 @@ def main():
         if args.amdvi_physical_mmio_test:
             nvidia_reader_flags+=['-DBMO_AMDVI_PHYSICAL_MMIO_TEST']
             manifest['physical_mmio_test']=True
+            (run/'gpu-mmio.txt').write_text('amdvi-register-restore\n', encoding='ascii')
         manifest_path.write_text(json.dumps(manifest,indent=2)+'\n',encoding='ascii')
     (run/'gop-regions.txt').write_text('cpu-gop\n',encoding='ascii')
     if args.nvidia_probe:
@@ -235,7 +237,7 @@ def main():
     packet,_=make_packet(reference,sbef,session_gate=gate,external=loader,engine=True,full_hd=args.full_hd)
     intro=(splash/'INICIO.X86').read_bytes();packet,_=prepend_intro(packet,intro)
     image=bridge_variant(native_ui=True,nvidia_probe=args.nvidia_probe,
-                         gpu_preflight=args.metal_amdvi_preflight)
+                         gpu_preflight=args.metal_amdvi_preflight, gpu_mmio=args.amdvi_physical_mmio_test)
     reader=(run/'reader.bin').read_bytes();allocator=(run/'allocator.bin').read_bytes()
     if len(image)!=0x3000 or len(reader)>reader_budget or len(allocator)>0xf0 or image[0x267:0x26c]!=bytes.fromhex('e894050000'):
         raise ValueError('Native EFI extension exceeds verified slots')
@@ -320,6 +322,7 @@ def main():
     command([shell,'-NoProfile','-ExecutionPolicy','Bypass','-File',scripts/'disk.ps1','-OutputRoot',run,'-Programa','INICIO.X86','-GPT'],'create-native-fat32')
     bad=bytearray(sbef);struct.pack_into('<I',bad,116,7);(run/'rejected.sbef').write_bytes(bad)
     prepare_flags = (['--nvidia-probe','--gpu-preflight'] if args.metal_amdvi_preflight else
+                     ['--nvidia-probe','--gpu-mmio'] if args.amdvi_physical_mmio_test else
                      ['--nvidia-probe'] if args.nvidia_probe else [])
     media_cases = [('external-permissions',run/'rejected.sbef')]
     if gsp is not None:
@@ -353,7 +356,8 @@ def main():
         raise ValueError('Missing Ring 0 detached DMA tree and Ring 3 status evidence')
     if args.amdvi_physical_prepare and not report['Cases'][0].get('PhysicalDteBuiltDetached'):
         raise ValueError('Missing physical DTE construction evidence')
-    if args.amdvi_physical_mmio_test and not report['Cases'][0].get('PhysicalMmioExcluded'):
+    if args.amdvi_physical_mmio_test and (not report['Cases'][0].get('PhysicalMmioExcluded') or
+       not all(report['Cases'][i].get('PhysicalMmioReportVerified') for i in (0,2))):
         raise ValueError('Missing board-specific MMIO exclusion evidence')
     if args.nvidia_gsp_prepare and not report['Cases'][0].get('GspQueuePermissionsVerified'):
         raise ValueError('Missing Ring 0 GSP message queue evidence')
@@ -418,6 +422,7 @@ def main():
     if args.amdvi_routed and report['Cases'][0].get('DeviceTablePages')!=512:
         raise ValueError('The routed QEMU domain does not cover all 65536 requester IDs')
     media_prefix = ('BMO-X2/GPU-PF' if args.metal_amdvi_preflight else
+                    'BMO-X2/GPU-MM' if args.amdvi_physical_mmio_test else
                     'BMO-X2/GPU' if args.nvidia_probe else 'BMO-X2/DESKTOP')
     fs=Fat32(run/'build/puente-normal.img')
     try:
@@ -428,6 +433,7 @@ def main():
     finally:fs.close()
     media=run/'media'
     boot_name = ('AMDVI-PREFLIGHT.EFI' if args.metal_amdvi_preflight else
+                 'AMDVI-MMIO.EFI' if args.amdvi_physical_mmio_test else
                  'NVIDIA.EFI' if args.nvidia_probe else 'DESKTOP.EFI')
     staged={f'EFI/BMO-X2/{boot_name}':image,f'{media_prefix}/INICIO.X86':packet,f'{media_prefix}/DESKTOP.SBF':sbef}
     if gsp is not None:

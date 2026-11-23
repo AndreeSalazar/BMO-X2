@@ -239,7 +239,8 @@ extern "C" void bmo_main() {
 #ifdef BMO_AMDVI_POST
     // Request the one-time supervisor snapshot before starting USB.
     constexpr unsigned amdvi_diagnostic=25;
-    const auto amdvi_status=doom_invoke(3,3,amdvi_diagnostic,0);
+    const auto amdvi_snapshot=doom_invoke(3,3,amdvi_diagnostic,0);
+    const auto amdvi_status=static_cast<unsigned long>(uint32_t(amdvi_snapshot));
     char amdvi_line[180];
     auto* amdvi_panel=doc->GetElementById("amdvi-post");
     check(amdvi_panel,"AMD-Vi report");
@@ -266,6 +267,23 @@ extern "C" void bmo_main() {
         snprintf(amdvi_line,sizeof(amdvi_line),"AMD-Vi Ring 0 / captura %02lX",amdvi_status);
     }
     Rml::String hardware_report=amdvi_line;
+#ifdef BMO_AMDVI_MMIO_REPORT
+    const auto mmio_result=static_cast<unsigned>(amdvi_snapshot>>32);
+    const char* mmio_message;
+    switch(mmio_result) {
+        case 0: mmio_message="omitida por requisitos de la placa o del firmware"; break;
+        case 0x100: mmio_message="rechazada antes de publicar"; break;
+        case 0x101: mmio_message="bases escritas y restauradas"; break;
+        case 0x102: mmio_message="lectura distinta, restauracion confirmada"; break;
+        default: mmio_message="restauracion sin confirmar"; break;
+    }
+    snprintf(amdvi_line,sizeof(amdvi_line),"AMDVI_MMIO_TEST=%03X\n",mmio_result);
+    log(amdvi_line);
+    snprintf(amdvi_line,sizeof(amdvi_line),"Prueba AMD-Vi %03X / %s",
+             mmio_result,mmio_message);
+    hardware_report+="<br/>";
+    hardware_report+=amdvi_line;
+#endif
     const auto gsp=doom_invoke(3,3,amdvi_diagnostic,6);
     const unsigned file_status=unsigned(gsp);
     const unsigned dma_status=unsigned(gsp>>32);

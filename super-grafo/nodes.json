@@ -3115,9 +3115,9 @@
       "posicion": [12500, 4490],
       "que": "Llama la transaccion reversible en el alias MMIO de la placa AMD medida.",
       "entrada": "Captura pos-EBS valida, bases preparadas por Ring 0 y FWSEC listo.",
-      "salida": "Resultado privado y retirada del alias temporal. No activa la traduccion.",
-      "aceptacion": "QEMU verifica exclusiones y paginas de cola vacias; METAL debe verificar confirmacion y restauracion.",
-      "falta": "Exportar el resultado y probar en METAL."
+      "salida": "Recibo de Ring 0 visible en el escritorio y retirada del alias temporal. No activa la traduccion.",
+      "aceptacion": "QEMU verifica la exclusion, las colas vacias y el recibo 000. METAL comprueba confirmacion y restauracion.",
+      "falta": "Confirmar el recibo 101 de escritura y restauracion en METAL."
     },
     {
       "id": "amdvi-translation",

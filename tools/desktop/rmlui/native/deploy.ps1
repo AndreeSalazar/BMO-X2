@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][string]$Run,[ValidateSet('A:\')][string]$Volume='A:\',[switch]$ExperimentalUsb,[switch]$Check,[switch]$NvidiaProbe)
+param([Parameter(Mandatory=$true)][string]$Run,[ValidateSet('A:\')][string]$Volume='A:\',[switch]$ExperimentalUsb,[switch]$Check,[switch]$NvidiaProbe,[switch]$AmdviMmio)
 $ErrorActionPreference='Stop'
 $root=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
 $runPath=(Get-Item -LiteralPath $Run).FullName
@@ -22,6 +22,12 @@ if ($proof.amdvi_coexist -or $proof.amdvi_guest_dma -or $proof.amdvi_storage -or
     throw 'Los ensayos AMD-Vi con solicitantes virtuales son exclusivos de QEMU.'
 }
 $normal=$proof.Cases | Where-Object { $_.Case -eq 'normal' } | Select-Object -First 1
+$mmioRun=Test-Path -LiteralPath (Join-Path $runPath 'gpu-mmio.txt') -PathType Leaf
+if ($mmioRun -ne [bool]$AmdviMmio -or $mmioRun -ne [bool]$proof.amdvi_physical_mmio_test -or
+    ($mmioRun -and (-not $proof.amdvi_physical_prepare -or -not $normal.PhysicalMmioExcluded -or
+        -not $normal.PhysicalMmioReportVerified -or $proof.physical_dma_translation_enabled -or $proof.nvidia_dma_grant))) {
+    throw 'La prueba aislada requiere -AmdviMmio y la exclusion verificada en QEMU.'
+}
 $gpuRun=Test-Path -LiteralPath (Join-Path $runPath 'nvidia-pci-probe.txt') -PathType Leaf
 if ($gpuRun -ne [bool]$NvidiaProbe -or $gpuRun -ne [bool]$proof.nvidia_pci_probe -or
     ($gpuRun -and -not $normal.NvidiaPciProbeVerified)) {
@@ -117,8 +123,8 @@ if ($proof.Passed -ne $caseCount -or $proof.Total -ne $caseCount -or -not $proof
 }
 $drive=[IO.DriveInfo]::new($Volume)
 if (-not $drive.IsReady -or $drive.DriveFormat -ne 'FAT32') { throw 'A: debe ser un FAT32 existente y disponible.' }
-$dataFolder=if($gpuRun){'BMO-X2/GPU'}else{'BMO-X2/DESKTOP'}
-$bootFile=if($gpuRun){'EFI/BMO-X2/NVIDIA.EFI'}else{'EFI/BMO-X2/DESKTOP.EFI'}
+$dataFolder=if($mmioRun){'BMO-X2/GPU-MM'}elseif($gpuRun){'BMO-X2/GPU'}else{'BMO-X2/DESKTOP'}
+$bootFile=if($mmioRun){'EFI/BMO-X2/AMDVI-MMIO.EFI'}elseif($gpuRun){'EFI/BMO-X2/NVIDIA.EFI'}else{'EFI/BMO-X2/DESKTOP.EFI'}
 $reportName=if($gpuRun){'GPULOG.TXT'}else{'BOOTLOG.TXT'}
 $names=@("$dataFolder/INICIO.X86","$dataFolder/DESKTOP.SBF")
 if ($gspStage) {

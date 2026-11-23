@@ -390,7 +390,12 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
             '<QII8Q', memory(context_address+0xb00,0x50,'amdvi-post'))
         expected = ('AMDVI_POST=01' if case == 'amdvi-missing' else
                     'AMDVI_POST=04 ' + ' '.join(f'{word:016X}' for word in (control,table,cmd,events,hw_status)))
-        if expected not in serial.read_text(errors='replace').splitlines():
+        lines = serial.read_text(errors='replace').splitlines()
+        if symbols.get('amdvi_mmio_report'):
+            if status >> 32 or 'AMDVI_MMIO_TEST=000' not in lines:
+                raise ValueError('Ring 3 must report the board-only register test as skipped in QEMU')
+            amdvi_proof['PhysicalMmioReportVerified'] = True
+        if expected not in lines:
             raise ValueError('Ring 3 AMD-Vi report differs from the Ring 0 snapshot')
         if case == 'amdvi-missing':
             if (base,status,control,table,cmd,events,hw_status,pte0,pte2) != (0,1,0,0,0,0,0,0,0):

@@ -78,7 +78,7 @@ intro_size = 0
 intro_rows = None
 external = None
 desktop_media = desktop_doom = native_media = native_ui = msvc_sections = False
-nvidia_probe = amdvi_probe = gpu_preflight = False
+nvidia_probe = amdvi_probe = gpu_preflight = gpu_mmio = False
 doom_engine = doom_external = desktop_fixture = toolchain_client = False
 if args.doom_fixture:
     from doom_fixture import make_packet, prepend_intro
@@ -93,6 +93,7 @@ if args.doom_fixture:
     native_media = profile == 'rmlui-desktop-media'
     nvidia_probe = native_media and (ROOT / 'nvidia-pci-probe.txt').is_file()
     gpu_preflight = native_media and (ROOT / 'gpu-preflight.txt').is_file()
+    gpu_mmio = native_media and (ROOT / 'gpu-mmio.txt').is_file()
     amdvi_probe = (ROOT / 'amdvi-efi-probe.txt').is_file()
     native_ui = profile in ('rmlui-native','rmlui-desktop','rmlui-desktop-media')
     msvc_sections = profile == 'msvc-sections'
@@ -665,6 +666,7 @@ for case in args.casos:
                 fs=Fat32(Path(str(prefix)+'-bootlog.img'))
                 try:
                     media_prefix = ('BMO-X2/GPU-PF' if gpu_preflight else
+                                    'BMO-X2/GPU-MM' if gpu_mmio else
                                     'BMO-X2/GPU' if nvidia_probe else 'BMO-X2/DESKTOP')
                     log_name = 'GPULOG.TXT' if nvidia_probe else 'BOOTLOG.TXT'
                     log=fs.file_bytes(f'{media_prefix}/{log_name}',4096)

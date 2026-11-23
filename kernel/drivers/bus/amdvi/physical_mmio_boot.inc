@@ -46,6 +46,10 @@ amdvi_physical_mmio_begin:
 .Lmmio_boot_record:
     or $0x100, %eax
     mov %rax, GSP_PHYSICAL_MMIO_RESULT(%rbp)
+    # The caller returns its snapshot status to Ring 3. Pack the
+    # receipt above the low 32-bit snapshot code.
+    shl $32, %rax
+    or %rax, %rbx
     andq $-3, 0x1e000(%rbp)
     andq $-3, 0x1e010(%rbp)
     invlpg (%rdi)

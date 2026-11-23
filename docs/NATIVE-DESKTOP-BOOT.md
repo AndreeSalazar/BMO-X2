@@ -1136,8 +1136,18 @@ y eventos. Ring 0 solo la intenta en `FD500000`, con DTE preparadas y
 FWSEC listo. Relee y restaura las bases antes de eliminar el alias
 temporal, con la traduccion apagada durante todo el ensayo. QEMU usa
 otra unidad y verifica que la transaccion se omite y las dos paginas
-permanecen vacias. El resultado queda en memoria de Ring 0; la ruta
-de activacion fisica y el arranque de GSP siguen sin probarse.
+permanecen vacias. El escritorio lee el recibo de Ring 0. El campo
+`Prueba AMD-Vi` muestra `101` si las bases se escribieron y restauraron,
+`100` si fueron rechazadas antes de publicar, `102` si hubo una diferencia
+y se confirmo la restauracion, `103` si la restauracion no se confirmo,
+o `000` si el perfil no encontro las condiciones de la placa.
+
+El candidato utiliza `EFI/BMO-X2/AMDVI-MMIO.EFI` y
+`BMO-X2/GPU-MM`. Se instala como **BMO-X2 (AMD-Vi registros)** mediante
+`deploy.ps1 -NvidiaProbe -ExperimentalUsb -AmdviMmio` y
+`register-desktop.ps1 -NvidiaProbe -AmdviMmio`. El arranque conserva
+el escritorio por CPU/GOP y deja AMD-Vi sin traduccion. La ejecucion
+fisica de GSP sigue pendiente.
 
 La [rutina de traduccion](../kernel/drivers/bus/amdvi/translation.S)
 activa AMD-Vi con las tres bases ya cotejadas. Puede emitir una

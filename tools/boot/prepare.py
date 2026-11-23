@@ -22,6 +22,7 @@ parser.add_argument('--native-case', choices=['external-permissions', 'amdvi-mis
                     help='Keep the native desktop case on a separate virtual disk')
 parser.add_argument('--nvidia-probe', action='store_true', help='Place the native UI candidate in BMO-X2/GPU')
 parser.add_argument('--gpu-preflight', action='store_true', help='Place a read-only NVIDIA/AMD-Vi preflight in BMO-X2/GPU-PF')
+parser.add_argument('--gpu-mmio', action='store_true', help='Place the AMD-Vi register test in BMO-X2/GPU-MM')
 parser.add_argument('--gsp-firmware', type=Path, help='Add the GSP container to the NVIDIA virtual disk')
 parser.add_argument('--ultra-j-action', type=Path, help='Add ACTION.UJB alongside the desktop SBEF')
 args = parser.parse_args()
@@ -34,6 +35,8 @@ if args.native_case and not args.native_ui:parser.error('--native-case requires 
 if args.nvidia_probe and not args.native_ui:parser.error('--nvidia-probe requires --native-ui')
 if args.gpu_preflight and (not args.native_ui or not args.nvidia_probe):
     parser.error('--gpu-preflight requires --native-ui and --nvidia-probe')
+if args.gpu_mmio and (not args.nvidia_probe or args.gpu_preflight):
+    parser.error('--gpu-mmio requires --nvidia-probe without --gpu-preflight')
 if args.gsp_firmware and not args.nvidia_probe:parser.error('--gsp-firmware requires --nvidia-probe')
 if args.ultra_j_action and not args.desktop:
     parser.error('--ultra-j-action requires --desktop')
@@ -133,7 +136,8 @@ with output.open('r+b') as disk:
         parent=bytearray(cluster_bytes)
         parent[:32]=entry(b'.          ',0x10,metal_cluster)
         parent[32:64]=entry(b'..         ',0x10,root_cluster)
-        name = b'GPU-PF     ' if args.gpu_preflight else b'GPU        ' if args.nvidia_probe else b'DESKTOP    '
+        name = (b'GPU-PF     ' if args.gpu_preflight else b'GPU-MM     ' if args.gpu_mmio else
+                b'GPU        ' if args.nvidia_probe else b'DESKTOP    ')
         parent[64:96]=entry(name,0x10,child)
         write(metal_offset,parent)
         old=directory;directory=bytearray(cluster_bytes)

@@ -41,6 +41,7 @@ def main():
     parser.add_argument('--usb',choices=['keyboard','mouse','both'])
     parser.add_argument('--amdvi-post',action='store_true')
     parser.add_argument('--amdvi-dte-report',action='store_true',help='Expose the QEMU-only post-EBS DTE read and alias-revocation proof')
+    parser.add_argument('--amdvi-mmio-report',action='store_true')
     parser.add_argument('--dma-census',action='store_true')
     parser.add_argument('--rtx-lab-panel',action='store_true')
     parser.add_argument('--storage-state',action='store_true')
@@ -52,6 +53,8 @@ def main():
         parser.error('--amdvi-post requires the desktop with USB both')
     if args.amdvi_dte_report and not args.amdvi_post:
         parser.error('--amdvi-dte-report requires --amdvi-post')
+    if args.amdvi_mmio_report and not args.amdvi_post:
+        parser.error('--amdvi-mmio-report requires --amdvi-post')
     if args.dma_census and not args.amdvi_post:
         parser.error('--dma-census requires --amdvi-post')
     if args.rtx_lab_panel and not args.dma_census:
@@ -70,6 +73,7 @@ def main():
     if args.storage_state:variant+='-storage-state'
     if args.full_hd:variant+='-full-hd'
     if args.rtx_lab_panel:variant+='-rtx-lab'
+    if args.amdvi_mmio_report:variant+='-amdvi-mmio'
     out=OUT/(variant + ('-msvc' if args.msvc_panel_cc else ''))
     out.mkdir(exist_ok=True)
     includes=generate_headers()
@@ -89,6 +93,7 @@ def main():
     if args.msvc_panel_cc:cppflags+=['-DBMO_MSVC_PANEL']
     if args.amdvi_post:cppflags+=['-DBMO_AMDVI_POST']
     if args.amdvi_dte_report:cppflags+=['-DBMO_AMDVI_DTE_REPORT']
+    if args.amdvi_mmio_report:cppflags+=['-DBMO_AMDVI_MMIO_REPORT']
     if args.dma_census:cppflags+=['-DBMO_DMA_CENSUS']
     if args.rtx_lab_panel:cppflags+=['-DBMO_RTX_LAB_PANEL']
     if args.storage_state:cppflags+=['-DBMO_STORAGE_STATE']
@@ -199,6 +204,7 @@ def main():
         manifest['msvc_panel_draws']=symbols['bmo_ui_msvc_draws']
     if args.usb:manifest.update(usb=args.usb,usb_reports=symbols['bmo_ui_usb_reports'])
     if args.amdvi_post:manifest['amdvi_post']=True
+    if args.amdvi_mmio_report:manifest['amdvi_mmio_report']=True
     if args.amdvi_dte_report:manifest['amdvi_dte_report']=True
     if args.dma_census:manifest['dma_census']=True
     if args.storage_state:manifest['storage_state']=True
