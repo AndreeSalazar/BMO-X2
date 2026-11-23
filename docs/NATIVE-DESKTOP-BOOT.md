@@ -1031,6 +1031,17 @@ de la tabla AMD-Vi en cero. Antes de activar AMD-Vi aun se debe
 transferir o detener el segundo xHCI y comprobar los solicitantes
 restantes. Las lecturas de disco bajo traduccion siguen por verificar.
 [Registro del arranque fisico](../Reports/amdvi-storage-handoff-metal-20261122.txt).
+
+El ensayo optativo `--xhci-secondary-quiesce` agrega una comprobacion
+al perfil de parada fisica. Solo considera el xHCI `1022:43BC` en
+`03:00.0`, que queda fuera de la seleccion HID. Antes de retirar Bus
+Master lee el estado del controlador y sus puertos mediante el alias
+MMIO temporal: exige controlador detenido, sin reinicio ni errores,
+puertos vacios y ninguna propiedad BIOS. Si alguna condicion falla,
+conserva PCI Command. El inventario F2 posterior al inicio de HID
+permite contrastar la fila `03:00.0` con el GPULOG previo a EBS.
+El modulo opcional compilo en HOST, con 7,290 bytes de los 8,192
+reservados. La prueba fisica y el dominio DMA de la RTX siguen pendientes.
 [Inventario PCI en METAL](../Reports/dma-pci-census-metal-20261120.json).
 [Estado de los discos en METAL](../Reports/storage-state-metal-20261120.json).
 [Evidencia del candidato de cierre](../Reports/amdvi-storage-handoff-20261121.json).

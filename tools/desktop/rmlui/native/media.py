@@ -53,6 +53,8 @@ def main():
     p.add_argument('--storage-state', action='store_true', help='Observe AHCI and NVMe state immediately after UEFI handoff')
     p.add_argument('--storage-quiesce', action='store_true', help='Stop emulated AHCI and NVMe after EBS (QEMU only)')
     p.add_argument('--storage-quiesce-metal', action='store_true', help='Test the measured AMD board storage handoff before DMA activation')
+    p.add_argument('--xhci-secondary-quiesce', action='store_true',
+                   help='Revoke bus mastering on the measured secondary xHCI only if halted and empty')
     p.add_argument('--full-hd', action='store_true', help='Render the desktop at native 1920x1080 for GOP')
     args=p.parse_args()
     if args.usb_empty_ports and args.usb!='both':p.error('--usb-empty-ports requires --usb both')
@@ -102,6 +104,8 @@ def main():
         p.error('--storage-quiesce uses the combined platform stage of --full-hd')
     if args.storage_quiesce_metal and not (args.full_hd and args.nvidia_fwsec_vbios and not args.storage_quiesce):
         p.error('--storage-quiesce-metal requires the measured NVIDIA FWSEC Full HD profile')
+    if args.xhci_secondary_quiesce and not args.storage_quiesce_metal:
+        p.error('--xhci-secondary-quiesce requires --storage-quiesce-metal')
     storage_handoff = args.storage_quiesce or args.storage_quiesce_metal
     abi,splash=args.abi_run.resolve(),args.splash_run.resolve()
     for path in (abi,splash):
@@ -223,6 +227,7 @@ def main():
     if args.usb:
         flags=['-DRMLUI_USB']+(['-DXHCI_NATIVE_DUAL'] if args.usb=='both' else ['-DXHCI_COMMAND_PROBE'])+(['-DXHCI_MOUSE_PROBE'] if args.usb=='mouse' else [])
         if args.full_hd:flags+=['-DBMO_FULL_HD']
+        if args.xhci_secondary_quiesce:flags+=['-DBMO_XHCI_SECONDARY_QUIESCE']
         command([llvm/'clang.exe','--target=x86_64-unknown-none-elf','-x','assembler-with-cpp',*flags,'-c',
             ROOT/'kernel/drivers/bus/xhci_inventory.inc','-o',run/'xhci.o'],'compile-native-xhci')
         command([llvm/'llvm-objcopy.exe','-O','binary','--only-section=.text',run/'xhci.o',run/'xhci.bin'],'extract-native-xhci')
@@ -411,6 +416,7 @@ def main():
         storage_state=args.storage_state,
         storage_quiesce=args.storage_quiesce,
         storage_quiesce_metal=args.storage_quiesce_metal,
+        xhci_secondary_quiesce=args.xhci_secondary_quiesce,
         full_hd=args.full_hd,
         full_hd_native=args.full_hd,
         amdvi_coexist=args.amdvi_coexist,

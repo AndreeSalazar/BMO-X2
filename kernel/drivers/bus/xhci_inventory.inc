@@ -42,6 +42,21 @@ inventory_next:
     push %r8
     push %r9
     call inventory_function
+#ifdef BMO_XHCI_SECONDARY_QUIESCE
+    # This controller is outside the native HID selection list.
+    cmp $0x80030008, %ecx
+    jne .Lxhci_primary_candidate
+    lea -8(%ecx), %eax
+    out %eax, %dx
+    add $4, %dx
+    in %dx, %eax
+    sub $4, %dx
+    cmp $0x43bc1022, %eax
+    jne inventory_continue
+    call xhci_read_caps
+    jmp inventory_continue
+.Lxhci_primary_candidate:
+#endif
 #if defined(XHCI_RESET_PROBE) || defined(XHCI_TRANSPORT_PROBE)
     call xhci_reset_candidate
     test %eax, %eax
@@ -227,7 +242,76 @@ caps_map:
     jmp xhci_unmap
 xhci_census:
     call xhci_count_ports
+#ifdef BMO_XHCI_SECONDARY_QUIESCE
+    cmpw $0x0300, %gs:0x360
+    jne xhci_unmap
+    # Score 1 means a valid port window with no connected device.
+    cmp $1, %eax
+    jne xhci_unmap
+    call xhci_secondary_revoke
+#endif
     jmp xhci_unmap
+#ifdef BMO_XHCI_SECONDARY_QUIESCE
+xhci_secondary_revoke:
+    # Read-only MMIO alias. Revoke BME only after both controller registers
+    # indicate a clean halt. Do not issue resets or change firmware ownership.
+    movzbl (%rdi), %ecx
+    cmp $0x20, %ecx
+    jb .Lsecondary_return
+    test $3, %ecx
+    jnz .Lsecondary_return
+    mov (%rdi,%rcx), %eax       # USBCMD
+    test $3, %eax               # Run/Stop or Host Controller Reset.
+    jnz .Lsecondary_return
+    mov 4(%rdi,%rcx), %eax     # USBSTS
+    and $0x1805, %eax           # Halted, system error, not ready, controller error.
+    cmp $1, %eax
+    jne .Lsecondary_return
+    # Reject firmware ownership and malformed extended capabilities.
+    mov 0x10(%rdi), %eax
+    shr $16, %eax
+    jz .Lsecondary_pci
+    mov $64, %r8d
+.Lsecondary_cap:
+    cmp $8, %eax
+    jb .Lsecondary_return
+    cmp $1022, %eax
+    ja .Lsecondary_return
+    mov (%rdi,%rax,4), %ecx
+    test %cl, %cl
+    jz .Lsecondary_return
+    cmp $0xff, %cl
+    je .Lsecondary_return
+    cmp $1, %cl
+    jne .Lsecondary_cap_next
+    test $0x10000, %ecx
+    jnz .Lsecondary_return
+.Lsecondary_cap_next:
+    movzbl %ch, %ecx
+    test %ecx, %ecx
+    jz .Lsecondary_pci
+    add %ecx, %eax
+    dec %r8d
+    jnz .Lsecondary_cap
+    ret
+.Lsecondary_pci:
+    mov $0xcf8, %dx
+    mov $0x80030004, %eax
+    out %eax, %dx
+    add $4, %dx
+    in %dx, %ax
+    mov %gs:0x36c, %cx
+    cmp %cx, %ax
+    jne .Lsecondary_return
+    and $6, %ecx
+    cmp $6, %ecx
+    jne .Lsecondary_return
+    and $0xfffb, %ax
+    out %ax, %dx
+    # The later PCI census reads Command independently after HID startup.
+.Lsecondary_return:
+    ret
+#endif
 # Return PORTSC.CCS count plus one, or zero for invalid geometry.
 xhci_count_ports:
     movzbl %al, %ecx
