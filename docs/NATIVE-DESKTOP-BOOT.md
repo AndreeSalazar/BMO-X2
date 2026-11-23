@@ -1062,6 +1062,22 @@ El candidato `run-rmlui-media-2826d337da7d` paso los tres casos QEMU,
 incluida la entrada conjunta USB, y reemplazo el EFI de la entrada
 **BMO-X2 (DMA SATA-NVMe)**. QEMU no tiene el controlador AMD `1022:43BC`;
 la retirada fisica de su Bus Master se verifica en la placa.
+
+En METAL, el GPULOG mostro `03:00.0` con PCI Command `0006` antes de
+ExitBootServices. La foto posterior de F2 contiene 12 de 12 funciones:
+`03:00.0` desaparece y `2B:00.3` sigue como xHCI activo con `0007`.
+La captura acredita el cambio de Bus Master, no traduccion DMA.
+
+`tools/host/gpu/NVIDIA/gsp_dma.py` genera una referencia HOST para la
+tabla fisica completa de 65,536 entradas. Solo instala raices con
+paginas accesibles para `29:00.0` (firmware de solo lectura y una
+pagina de respuesta) y `2B:00.3` (14 paginas de xHCI con identidad
+IOVA/fisica). El audio HDMI y los demas solicitantes apuntan a una
+raiz vacia. La comprobacion HOST recorrio todas las DTE, un rango USB
+que cruza 2 MiB y los permisos y huecos de ambos dominios. El formato
+del laboratorio QEMU se conserva. Este modelo no se carga en METAL;
+Ring 0 todavia debe construir y validar sus tablas con las reservas
+reales y verificar el arranque del GSP.
 [Inventario PCI en METAL](../Reports/dma-pci-census-metal-20261120.json).
 [Estado de los discos en METAL](../Reports/storage-state-metal-20261120.json).
 [Evidencia del candidato de cierre](../Reports/amdvi-storage-handoff-20261121.json).

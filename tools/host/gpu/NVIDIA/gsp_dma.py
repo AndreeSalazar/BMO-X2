@@ -13,6 +13,10 @@ DEVICE_TABLE_PAGES = 96
 DOMAIN = 5
 RID_GRAPHICS = 0x2900
 RID_AUDIO = 0x2901
+RID_BOARD_XHCI = 0x2B03
+BOARD_DEVICE_TABLE_PAGES = 512
+USB_DOMAIN = 2
+USB_DMA_PAGES = 14
 MODE2 = 2 << 9
 TABLE_LIMIT = 1 << 30
 
@@ -40,7 +44,22 @@ def aligned_payload(container, first_iova):
 
 def build_tables(device_table, roots, backing, first_iova, payload_pages):
     """Emit deny-by-default DTEs, read-only firmware and one writable reply page."""
+    return _build_tables(device_table, roots, backing, first_iova, payload_pages,
+                         DEVICE_TABLE_PAGES, usb_backing=None)
+
+
+def build_physical_tables(device_table, roots, backing, first_iova, payload_pages, usb_backing):
+    """Build a HOST reference for GA106 and the board xHCI, without programming hardware."""
+    if type(usb_backing) is not int or not PAGE <= usb_backing <= TABLE_LIMIT - USB_DMA_PAGES*PAGE:
+        raise ValueError('Reserva de xHCI fuera de la apertura AMD-Vi')
+    return _build_tables(device_table, roots, backing, first_iova, payload_pages,
+                         BOARD_DEVICE_TABLE_PAGES, usb_backing)
+
+
+def _build_tables(device_table, roots, backing, first_iova, payload_pages, table_pages, usb_backing):
     addresses = (device_table, roots, backing, first_iova)
+    if usb_backing is not None:
+        addresses += (usb_backing,)
     if any(type(addr) is not int or addr < PAGE or addr % PAGE for addr in addresses):
         raise ValueError('Bases DMA desalineadas o invalidas')
     if type(payload_pages) is not int or not 0 < payload_pages < TABLE_LIMIT//PAGE:
@@ -50,10 +69,19 @@ def build_tables(device_table, roots, backing, first_iova, payload_pages):
         raise ValueError('El rango no cabe en una tabla AMD-Vi de dos niveles')
     first_leaf = first_iova >> 21
     leaf_count = (reply_iova >> 21) - first_leaf + 1
-    device_bytes = DEVICE_TABLE_PAGES * PAGE
-    tree_bytes = (2+leaf_count) * PAGE
-    ranges = sorted(((device_table, device_bytes), (roots, tree_bytes),
-                     (backing, (payload_pages+1)*PAGE)))
+    device_bytes = table_pages * PAGE
+    tree_pages = 2 + leaf_count
+    usb_root_page = tree_pages
+    if usb_backing is not None:
+        usb_first_leaf = usb_backing >> 21
+        usb_end = usb_backing + USB_DMA_PAGES * PAGE
+        usb_leaves = ((usb_end - 1) >> 21) - usb_first_leaf + 1
+        tree_pages += 1 + usb_leaves
+    tree_bytes = tree_pages * PAGE
+    ranges = [(device_table, device_bytes), (roots, tree_bytes), (backing, (payload_pages+1)*PAGE)]
+    if usb_backing is not None:
+        ranges.append((usb_backing, USB_DMA_PAGES*PAGE))
+    ranges.sort()
     if (any(base+size > (1 << 52) for base,size in ranges) or
             any(base+size > following for (base,size),(following,_) in zip(ranges,ranges[1:]))):
         raise ValueError('Las reservas fisicas se solapan o exceden 52 bits')
@@ -77,4 +105,17 @@ def build_tables(device_table, roots, backing, first_iova, payload_pages):
         permission = READ_WRITE if destination else READ
         phys = backing+page*PAGE
         struct.pack_into('<Q', tree, (2+leaf)*PAGE+slot*8, phys | permission | 1)
+    if usb_backing is not None:
+        usb_root = roots + usb_root_page * PAGE
+        struct.pack_into('<4Q', devices, RID_BOARD_XHCI*32,
+                         usb_root | MODE2 | READ_WRITE | 3, USB_DOMAIN, 0, 0)
+        for leaf in range(usb_leaves):
+            leaf_page = usb_root_page + 1 + leaf
+            address = roots + leaf_page * PAGE
+            struct.pack_into('<Q', tree, usb_root_page*PAGE+(usb_first_leaf+leaf)*8,
+                             address | (1 << 9) | READ_WRITE | 1)
+        for address in range(usb_backing, usb_end, PAGE):
+            leaf_page = usb_root_page + 1 + (address >> 21) - usb_first_leaf
+            slot = (address >> 12) & (ENTRIES-1)
+            struct.pack_into('<Q', tree, leaf_page*PAGE+slot*8, address | READ_WRITE | 1)
     return bytes(devices), bytes(tree), reply_iova, denied
