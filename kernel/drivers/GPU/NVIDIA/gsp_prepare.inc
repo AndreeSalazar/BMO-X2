@@ -160,6 +160,13 @@ gsp_prepare_begin:
     mov 0x60(%rbp), %r9
     call .Lprepare_from_efi_map
     mov %eax, GSP_PHYSICAL_DTE_STATUS(%rbp)
+#ifdef BMO_AMDVI_PHYSICAL_MMIO_TEST
+    test %eax, %eax
+    jz .Lphysical_dte_discard
+    mov 32(%rsp), %rax
+    mov %rax, GSP_PHYSICAL_DTE_BASE(%rbp)
+.Lphysical_dte_discard:
+#endif
     add $88, %rsp
     pop %r11
     pop %r10

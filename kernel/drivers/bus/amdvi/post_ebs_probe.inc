@@ -259,6 +259,10 @@ amdvi_post_begin:
     jb .Lpost_read
     mov $4, %ebx
 .Lpost_revoke:
+#ifdef BMO_AMDVI_PHYSICAL_MMIO_TEST
+    lea AMDVI_PHYSICAL_MMIO_CODE(%rbp), %rax
+    call *%rax
+#endif
     movq $0, 0x15400(%rbp)
     movq $0, 0x1e000(%rbp)
     movq $0, 0x1e010(%rbp)

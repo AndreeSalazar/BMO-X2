@@ -58,6 +58,8 @@ def main():
                    help='Revoke bus mastering on the measured secondary xHCI only if halted and empty')
     p.add_argument('--amdvi-physical-prepare', action='store_true',
                    help='Build detached board DMA tables during the NVIDIA boot stage')
+    p.add_argument('--amdvi-physical-mmio-test', action='store_true',
+                   help='Rehearse reversible MMIO base staging with translation disabled')
     p.add_argument('--full-hd', action='store_true', help='Render the desktop at native 1920x1080 for GOP')
     args=p.parse_args()
     if args.usb_empty_ports and args.usb!='both':p.error('--usb-empty-ports requires --usb both')
@@ -113,6 +115,8 @@ def main():
         p.error('--xhci-secondary-quiesce requires --storage-quiesce-metal')
     if args.amdvi_physical_prepare and not (args.storage_quiesce_metal and args.xhci_secondary_quiesce):
         p.error('--amdvi-physical-prepare requires the board storage and secondary xHCI profile')
+    if args.amdvi_physical_mmio_test and not args.amdvi_physical_prepare:
+        p.error('--amdvi-physical-mmio-test requires --amdvi-physical-prepare')
     storage_handoff = args.storage_quiesce or args.storage_quiesce_metal
     abi,splash=args.abi_run.resolve(),args.splash_run.resolve()
     for path in (abi,splash):
@@ -143,6 +147,9 @@ def main():
         manifest_path=run/'nvidia-gsp-stage.json'
         manifest=json.loads(manifest_path.read_text())
         manifest['physical_tables']=True
+        if args.amdvi_physical_mmio_test:
+            nvidia_reader_flags+=['-DBMO_AMDVI_PHYSICAL_MMIO_TEST']
+            manifest['physical_mmio_test']=True
         manifest_path.write_text(json.dumps(manifest,indent=2)+'\n',encoding='ascii')
     (run/'gop-regions.txt').write_text('cpu-gop\n',encoding='ascii')
     if args.nvidia_probe:
@@ -261,6 +268,7 @@ def main():
         if storage_handoff:flags+=['-DBMO_STORAGE_QUIESCE']
         if args.storage_quiesce_metal:flags+=['-DBMO_STORAGE_QUIESCE_METAL']
         if args.amdvi_physical_prepare:flags+=['-DBMO_AMDVI_PHYSICAL_PREPARE']
+        if args.amdvi_physical_mmio_test:flags+=['-DBMO_AMDVI_PHYSICAL_MMIO_TEST']
         if args.full_hd:flags+=['-DBMO_FULL_HD','-DRMLUI_MEDIA','-DRMLUI_NATIVE','-DDESKTOP_DOOM']
         if args.amdvi_guest_dma:flags+=['-DBMO_AMDVI_GUEST_DMA']
         if args.amdvi_storage:flags+=['-DBMO_AMDVI_STORAGE']
@@ -280,6 +288,7 @@ def main():
             if args.amdvi_physical_prepare:gop_budget=1520
             check_context_stage(llvm,native_probe,'gop_stage',gop_budget)
         if args.amdvi_guest_nvme:check_context_stage(llvm,native_probe,'nvme_guest',4096)
+        if args.amdvi_physical_mmio_test:check_context_stage(llvm,native_probe,'amdvi_physical_mmio',4096)
         relocations=subprocess.check_output([llvm/'llvm-objdump.exe','-r',native_probe],text=True)
         if 'RELOCATION RECORDS' in relocations:raise ValueError('AMD-Vi firmware inventory must be position independent')
         raw_probe=native_probe.with_suffix('.bin')
@@ -344,6 +353,8 @@ def main():
         raise ValueError('Missing Ring 0 detached DMA tree and Ring 3 status evidence')
     if args.amdvi_physical_prepare and not report['Cases'][0].get('PhysicalDteBuiltDetached'):
         raise ValueError('Missing physical DTE construction evidence')
+    if args.amdvi_physical_mmio_test and not report['Cases'][0].get('PhysicalMmioExcluded'):
+        raise ValueError('Missing board-specific MMIO exclusion evidence')
     if args.nvidia_gsp_prepare and not report['Cases'][0].get('GspQueuePermissionsVerified'):
         raise ValueError('Missing Ring 0 GSP message queue evidence')
     if args.nvidia_gsp_prepare and not report['Cases'][0].get('GspLibosVerified'):
@@ -441,6 +452,7 @@ def main():
         storage_quiesce_metal=args.storage_quiesce_metal,
         xhci_secondary_quiesce=args.xhci_secondary_quiesce,
         amdvi_physical_prepare=args.amdvi_physical_prepare,
+        amdvi_physical_mmio_test=args.amdvi_physical_mmio_test,
         full_hd=args.full_hd,
         full_hd_native=args.full_hd,
         amdvi_coexist=args.amdvi_coexist,

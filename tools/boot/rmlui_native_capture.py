@@ -98,6 +98,15 @@ def verify_gsp_reservation(memory, context, expected, case):
                 if row!=(target|rw,domain,0,0):
                     raise ValueError(f'Physical DTE differs for requester {rid:#06x}')
             result['PhysicalDteBuiltDetached']=True
+        if expected.get('physical_mmio_test'):
+            dte_base, transaction = struct.unpack(
+                '<QQ',memory(context+0x910,16,'physical-mmio-result'))
+            if dte_base != base+reserved or transaction:
+                raise ValueError('Board MMIO test must be skipped on the virtual platform')
+            queues = memory(dte_base+0x204000,8192,'physical-mmio-empty-queues')
+            if any(queues):
+                raise ValueError('Reserved command or event queue was changed in QEMU')
+            result['PhysicalMmioExcluded']=True
         if detached:
             first_iova = 0x08000000
             if radix != first_iova+used or dma_root != base+payload_pages*4096:

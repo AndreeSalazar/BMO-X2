@@ -1119,6 +1119,15 @@ confirmar la restauracion, el llamador conserva las reservas. HOST
 comprobo esta rutina con registros simulados, incluida la negativa
 con punteros pendientes, estado activo o reservas solapadas.
 [Especificacion AMD IOMMU, secciones 2.3.1, 2.4 y 2.5](https://docs.amd.com/api/khub/documents/GD6kOXjzWsek8QUbn_qMvg/content).
+
+`--amdvi-physical-mmio-test` integra la transaccion en la captura
+pos-EBS y agrega dos paginas vacias a la reserva NVIDIA para comandos
+y eventos. Ring 0 solo la intenta en `FD500000`, con DTE preparadas y
+FWSEC listo. Relee y restaura las bases antes de eliminar el alias
+temporal, con la traduccion apagada durante todo el ensayo. QEMU usa
+otra unidad y verifica que la transaccion se omite y las dos paginas
+permanecen vacias. El resultado queda en memoria de Ring 0; la ruta
+de activacion y el arranque de GSP siguen sin probarse.
 [Inventario PCI en METAL](../Reports/dma-pci-census-metal-20261120.json).
 [Estado de los discos en METAL](../Reports/storage-state-metal-20261120.json).
 [Evidencia del candidato de cierre](../Reports/amdvi-storage-handoff-20261121.json).

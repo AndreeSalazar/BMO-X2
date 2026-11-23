@@ -38,6 +38,15 @@ amdvi_firmware_probe:
     rep movsb
     pop %rcx
 #endif
+#ifdef BMO_AMDVI_PHYSICAL_MMIO_TEST
+    push %rcx
+    lea .Lphysical_mmio_begin(%rip), %rsi
+    lea AMDVI_PHYSICAL_MMIO_CODE(%rbp), %rdi
+    mov $(amdvi_physical_mmio_end-amdvi_physical_mmio_begin), %ecx
+    cld
+    rep movsb
+    pop %rcx
+#endif
 #if defined(BMO_FULL_HD) || defined(BMO_AMDVI_GSP_DMA)
     push %rcx
     lea .Lgop_stage(%rip), %rsi
@@ -513,6 +522,9 @@ amdvi_uefi_snapshot:
 
 #ifdef BMO_AMDVI_POST
 #include "post_ebs_probe.inc"
+#endif
+#ifdef BMO_AMDVI_PHYSICAL_MMIO_TEST
+#include "physical_mmio_boot.inc"
 #endif
 #ifdef BMO_AMDVI_GUEST_NVME
 #include "../../storage/nvme_guest.inc"

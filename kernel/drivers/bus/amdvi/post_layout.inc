@@ -84,6 +84,9 @@
 #define DMA_CENSUS_ROWS 0xb90
 #define DMA_CENSUS_MAX 64
 #define DMA_CENSUS_SELECTOR 26
+#ifdef BMO_AMDVI_PHYSICAL_MMIO_TEST
+#define AMDVI_PHYSICAL_MMIO_CODE 0x12000
+#endif
 #ifdef BMO_STORAGE_STATE
 #include "../../storage/handoff_layout.inc"
 #endif

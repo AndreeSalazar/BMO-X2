@@ -8,6 +8,7 @@
 .text
 .globl amdvi_stage_physical_registers
 amdvi_stage_physical_registers:
+.Lstage_physical_registers:
     test %rcx, %rcx
     jz .Lreject
     test %rdx, %rdx
@@ -94,6 +95,7 @@ amdvi_stage_physical_registers:
 
 .globl amdvi_restore_physical_registers
 amdvi_restore_physical_registers:
+.Lrestore_physical_registers:
     test %rcx, %rcx
     jz .Lreject
     test %rdx, %rdx
