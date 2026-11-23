@@ -1294,7 +1294,20 @@ cerro Bus Master. `702` indica error de transferencia; `703`, booter
 sin confirmar; `704` y `705`, fallos de apertura y cierre PCIe;
 `706`, reset o preparacion de motores sin confirmar; `707`, dominio
 AMD-Vi sin confirmar. Si el cierre PCIe falla, se fijan las reservas.
-Esta prueba no consume todavia la cola GSP para confirmar `GSP_INIT_DONE`.
+METAL con `473d7f0` mostro `SEC2 RUN 701 / MAILBOX0 00000000`.
+El ensayo siguiente mantiene abierta la misma ventana DMA durante el
+intercambio `GSP_INIT` de OpenRM 615.78.08. Escribe FALCON_OS, comprueba
+el procesador, espera la cabecera MSGQ v2 del firmware y envia una sola
+solicitud GMCAPI para el perfil PCI de la placa. Despues retira Bus
+Master y verifica el drenaje por la ruta de cierre existente.
+
+`GSP_INIT 801` confirma la recepcion de una respuesta correlacionada con
+estado cero. `802` expone el error del firmware, `803` el estado del
+procesador, `804` la espera de la cola, `805` el rechazo del perfil PCI
+o de la geometria, `806` la espera de respuesta con TX tail, `807` un
+mensaje invalido y `808` un RPC pendiente de servicio. El canal grafico,
+el triangulo acelerado y el control de pantalla siguen pendientes.
+[Arranque GSP de OpenRM 615.78.08](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/arch/turing/kernel_gsp_tu102.c).
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
 [Fusibles SEC2 en Nova](https://github.com/torvalds/linux/blob/master/drivers/gpu/nova-core/regs.rs).

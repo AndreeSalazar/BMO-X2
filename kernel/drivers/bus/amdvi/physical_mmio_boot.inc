@@ -88,8 +88,13 @@ amdvi_physical_mmio_begin:
     ret
 .Lphysical_rtx_exec:
     cmp $10, %r10
-    jne .Lphysical_rtx_invalid
+    jne .Lphysical_rtx_gsp
     mov NVIDIA_SEC2_EXEC_RECEIPT(%rbp), %rax
+    ret
+.Lphysical_rtx_gsp:
+    cmp $11, %r10
+    jne .Lphysical_rtx_invalid
+    mov NVIDIA_GSP_INIT_RECEIPT(%rbp), %rax
     ret
 .Lphysical_rtx_invalid:
     mov $257, %eax               # Match the session gate denial receipt.

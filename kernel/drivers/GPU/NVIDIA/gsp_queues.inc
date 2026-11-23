@@ -3,6 +3,9 @@
 # The queue IOVA aperture is disjoint from the read-only firmware.
 nvidia_gsp_init_queues:
     lea GSP_QUEUE_AREA_OFFSET(%r9), %rdi
+#ifdef BMO_AMDVI_PHYSICAL_USB_TEST
+    mov %rdi, GSP_NATIVE_QUEUE_BASE(%rbp)
+#endif
     movl $0x20505347, (%rdi)             # "GSP ".
     movw $184, 4(%rdi)                  # GSP_ARGUMENTS_CACHED.
     movq $2, 8(%rdi)                    # Stack in DMEM.

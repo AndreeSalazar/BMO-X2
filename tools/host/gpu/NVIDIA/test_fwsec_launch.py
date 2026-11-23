@@ -44,7 +44,10 @@ class FwsecLaunch(unittest.TestCase):
                         ROOT / "kernel/drivers/GPU/NVIDIA/sec2_prepare.S", "-o", sec2], check=True)
         sec2_source = directory / "sec2_exec.S"
         sec2_object = directory / "sec2_exec.obj"
-        sec2_source.write_text('#include "fwsec_launch.S"\n#include "sec2_execute.inc"\n', encoding="ascii")
+        sec2_source.write_text(
+            '#include "fwsec_launch.S"\n#include "sec2_execute.inc"\n#include "gsp_init_615.inc"\n',
+            encoding="ascii",
+        )
         # Use the combined object so SEC2 exercises the production Falcon helpers.
         subprocess.run([LLVM / "clang.exe", "--target=x86_64-pc-windows-msvc",
                         "-I", source.parent, "-c", sec2_source, "-o", sec2_object], check=True)
@@ -52,6 +55,7 @@ class FwsecLaunch(unittest.TestCase):
                         "/export:nvidia_launch_ga106_fwsec", "/export:nvidia_prepare_ga106_falcon",
                         "/export:amdvi_stage_fwsec_domain", "/export:amdvi_matches_board_ivrs",
                         "/export:nvidia_prepare_sec2_image", "/export:nvidia_execute_sec2_booter",
+                        "/export:nvidia_gsp_init_615",
                         f"/out:{dll}", sec2_object, domain, ivrs, sec2], check=True)
         cls.library = ctypes.WinDLL(str(dll))
         cls.addClassCleanup(FreeLibrary, cls.library._handle)
@@ -73,6 +77,33 @@ class FwsecLaunch(unittest.TestCase):
         cls.execute_sec2 = cls.library.nvidia_execute_sec2_booter
         cls.execute_sec2.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_void_p]
         cls.execute_sec2.restype = ctypes.c_int
+        cls.gsp_init = cls.library.nvidia_gsp_init_615
+        cls.gsp_init.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint32]
+        cls.gsp_init.restype = ctypes.c_uint64
+
+    def test_gsp_init_accepts_only_a_matching_reply(self):
+        for sequence, status, expected in ((1, 0, 0x801), (1, 3, 0x802), (2, 0, 0x807)):
+            with self.subTest(sequence=sequence, status=status):
+                backing = ctypes.create_string_buffer(0x83000)
+                address = (ctypes.addressof(backing)+4095)&-4096
+                queue = (ctypes.c_ubyte*0x82000).from_address(address)
+                struct.pack_into('<5I',queue,0x42000,2,0x40000,4096,63,4096)
+                self.write(FALCON+0x1388,0x80)
+                self.write(FALCON+0xc00,0)
+                self.write(FALCON+0xc80,0)
+                with ThreadPoolExecutor(max_workers=1) as worker:
+                    run = worker.submit(self.gsp_init, ctypes.byref(self.mapping,FALCON),
+                                        address,25_000_000,0xa1)
+                    while self.read(FALCON+0xc00)!=1 and not run.done():
+                        pass
+                    self.assertFalse(run.done(),"GSP INIT was not submitted")
+                    self.assertEqual(struct.unpack_from('<I',queue,0x3018)[0],0x00010001)
+                    self.assertEqual(struct.unpack_from('<II',queue,0x3050),(3,0xa1))
+                    struct.pack_into('<8IQI',queue,0x43000,0x4d435450,72,0xc0000001,
+                                     0x2610de7e,48,0,0x01010001,8,sequence,status)
+                    self.write(FALCON+0xc80,1)
+                    self.assertEqual(run.result()>>32,expected)
+                    self.assertEqual(self.read(FALCON+0xc84),int(sequence==1))
 
     def test_native_sec2_transfers_the_signed_image_and_hands_wpr_to_the_booter(self):
         imem = 35584

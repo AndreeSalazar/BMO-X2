@@ -103,6 +103,7 @@
 #define AMDVI_PHYSICAL_LPC_LDRQ 0x9d9
 #define NVIDIA_SEC2_STAGE_RECEIPT 0x9e8
 #define NVIDIA_SEC2_EXEC_RECEIPT 0x9f0
+#define NVIDIA_GSP_INIT_RECEIPT 0x9f8
 #endif
 #ifdef BMO_STORAGE_STATE
 #include "../../storage/handoff_layout.inc"

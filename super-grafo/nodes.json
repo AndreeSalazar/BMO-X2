@@ -2717,7 +2717,22 @@
       "entrada": "FWSEC 401, firma SEC2 preparada, reset y dominio AMD-Vi confirmados.",
       "salida": "Respuesta de MAILBOX0 y confirmacion de cierre PCIe.",
       "aceptacion": "HOST verifica destino y origen DMA, BOOTVEC, los argumentos WPR y la respuesta simulada.",
-      "falta": "Validar la respuesta en METAL y confirmar GSP_INIT_DONE mediante la cola GSP."
+      "falta": "METAL con 473d7f0 confirma 701 y MAILBOX0 cero. Falta obtener la respuesta GMCAPI GSP_INIT."
+    },
+    {
+      "id": "nvidia-gsp-init-615-native",
+      "titulo": "GPU / NVIDIA / Inicio GSP 615",
+      "ruta": "kernel/drivers/GPU/NVIDIA/gsp_init_615.inc",
+      "estado": "host",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [12250, 3830],
+      "que": "Enlaza MSGQ v2 y envia una solicitud fija GMCAPI GSP_INIT.",
+      "entrada": "SEC2 701, BAR y dominio de la placa comprobados, RMARGS 615.78.08.",
+      "salida": "Respuesta correlacionada o diagnostico acotado antes del cierre PCIe.",
+      "aceptacion": "HOST prueba una respuesta correcta, el rechazo y la correlacion. QEMU comprueba la exclusion de la sonda.",
+      "falta": "Validar en METAL y completar el canal de comandos graficos."
     },
     {
       "id": "nvidia-sec2-domain-native",
@@ -4720,6 +4735,16 @@
     {
       "de": "nvidia-sec2-prepare-native",
       "a": "nvidia-gsp-boot-chain",
+      "clase": "codigo"
+    },
+    {
+      "de": "nvidia-gsp-init-615-native",
+      "a": "nvidia-sec2-execute-native",
+      "clase": "codigo"
+    },
+    {
+      "de": "nvidia-gsp-init-615-native",
+      "a": "nvidia-gsp-queues-native",
       "clase": "codigo"
     },
     {

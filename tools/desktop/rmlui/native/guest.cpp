@@ -468,6 +468,10 @@ extern "C" void bmo_main() {
         const auto exec_code=unsigned(exec>>32);
         snprintf(amdvi_line,sizeof(amdvi_line),"SEC2_EXEC=%03X %08X\n",exec_code,unsigned(exec));
         log(amdvi_line);
+        const auto init=doom_invoke(3,3,amdvi_diagnostic,11);
+        const auto init_code=unsigned(init>>32);
+        snprintf(amdvi_line,sizeof(amdvi_line),"GSP_INIT=%03X %08X\n",init_code,unsigned(init));
+        log(amdvi_line);
         const char* status=fwsec==0x401 ? "WPR2 confirmada" :
             fwsec==0x404 ? "cierre PCIe sin confirmar" :
             fwsec==0x405 ? "codigo Falcon ausente" :
@@ -519,6 +523,20 @@ extern "C" void bmo_main() {
                 exec_code==0x707 ? "dominio AMD-Vi sin confirmar" : "resultado desconocido";
             snprintf(amdvi_line,sizeof(amdvi_line),"SEC2 RUN / %s / %03X / MAILBOX0 %08X",
                      result,exec_code,unsigned(exec));
+            hardware_report+="<br/>";
+            hardware_report+=amdvi_line;
+        }
+        if(init_code) {
+            const char* result=init_code==0x801 ? "respuesta INIT correcta" :
+                init_code==0x802 ? "INIT rechazado por firmware" :
+                init_code==0x803 ? "procesador sin confirmar" :
+                init_code==0x804 ? "cola de estado sin publicar" :
+                init_code==0x805 ? "perfil PCI o cola no validos" :
+                init_code==0x806 ? "INIT sin respuesta (TX tail)" :
+                init_code==0x807 ? "respuesta INIT invalida" :
+                init_code==0x808 ? "RPC de firmware pendiente" : "resultado desconocido";
+            snprintf(amdvi_line,sizeof(amdvi_line),"GSP / %s / %03X / DATO %08X",
+                     result,init_code,unsigned(init));
             hardware_report+="<br/>";
             hardware_report+=amdvi_line;
         }

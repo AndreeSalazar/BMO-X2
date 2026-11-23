@@ -200,6 +200,42 @@ nvidia_physical_begin:
     mov %eax, (NVIDIA_SEC2_EXEC_RECEIPT+4)(%rbp)
     mov (NVIDIA_FWSEC_LAUNCH_RECEIPT+8)(%rbp), %eax
     mov %eax, NVIDIA_SEC2_EXEC_RECEIPT(%rbp)
+    cmpl $0x701, (NVIDIA_SEC2_EXEC_RECEIPT+4)(%rbp)
+    jne .Lboard_sec2_revoke
+    movl $0x805, (NVIDIA_GSP_INIT_RECEIPT+4)(%rbp)
+    mov $0x14, %eax
+    call .Lboard_pci_read
+    cmp $0xd000000c, %eax
+    jne .Lboard_sec2_revoke
+    mov $0x18, %eax
+    call .Lboard_pci_read
+    test %eax, %eax
+    jne .Lboard_sec2_revoke
+    mov $0x1c, %eax
+    call .Lboard_pci_read
+    cmp $0xe000000c, %eax
+    jne .Lboard_sec2_revoke
+    mov $0x20, %eax
+    call .Lboard_pci_read
+    test %eax, %eax
+    jne .Lboard_sec2_revoke
+    mov $8, %eax
+    call .Lboard_pci_read
+    movzbl %al, %r9d
+    shr $8, %eax
+    cmp $0x030000, %eax
+    jne .Lboard_sec2_revoke
+    mov GSP_NATIVE_QUEUE_BASE(%rbp), %rdx
+    cmp GSP_STAGE_BASE(%rbp), %rdx
+    jb .Lboard_sec2_revoke
+    mov GSP_PHYSICAL_DTE_BASE(%rbp), %rax
+    sub $0x82000, %rax
+    cmp %rax, %rdx
+    ja .Lboard_sec2_revoke
+    mov $(FALCON_BOARD_VA+0x110000), %ecx
+    mov STORAGE_TSC_10MS(%rbp), %r8
+    call .Lgsp_init_615
+    mov %rax, NVIDIA_GSP_INIT_RECEIPT(%rbp)
 .Lboard_sec2_revoke:
     mov %r12d, %ecx
     call .Lboard_command
@@ -320,5 +356,6 @@ nvidia_physical_begin:
 #include "sec2_prepare.S"
 #include "sec2_execute.inc"
 #include "sec2_domain.inc"
+#include "gsp_init_615.inc"
 .globl nvidia_physical_end
 nvidia_physical_end:

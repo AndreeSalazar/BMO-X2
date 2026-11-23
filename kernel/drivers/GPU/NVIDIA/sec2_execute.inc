@@ -29,6 +29,9 @@
     jne .Lsec2_engines_reject
     cmpl $0, 0x44(%r13)
     jne .Lsec2_engines_reject
+    movl $0, 0xc00(%r13)          # MSGQ v2: initialize CPU producer once.
+    cmpl $0, 0xc00(%r13)
+    jne .Lsec2_engines_reject
     mov %r12, %r13
     call .Lsec2_reset_engine
     jc .Lsec2_engines_reject

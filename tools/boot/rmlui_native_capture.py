@@ -107,8 +107,8 @@ def verify_gsp_reservation(memory, context, expected, case):
                 '<QQ',memory(context+0x910,16,'physical-mmio-result'))
             if dte_base != base+reserved or transaction:
                 raise ValueError('Board MMIO test must be skipped on the virtual platform')
-            queues = memory(dte_base+0x204000,8192,'physical-mmio-empty-queues')
-            if any(queues):
+            mmio_queues = memory(dte_base+0x204000,8192,'physical-mmio-empty-queues')
+            if any(mmio_queues):
                 raise ValueError('Reserved command or event queue was changed in QEMU')
             result['PhysicalMmioExcluded']=True
         if expected.get('physical_usb_test'):
@@ -149,6 +149,10 @@ def verify_gsp_reservation(memory, context, expected, case):
                         or hashlib.sha256(memory(source,entry['bytes'],'physical-sec2-container')).hexdigest()!=entry['sha256']):
                     raise ValueError('The SEC2 reservation or verified source differs on QEMU')
                 result['PhysicalSec2DetachedVerified']=True
+                native_queue, = struct.unpack('<Q', memory(context+0x8b0,8,'physical-gsp-queue-base'))
+                if native_queue != dma_root+tree_pages*4096 or any(memory(context+0x9f8,8,'physical-gsp-init')):
+                    raise ValueError('The native GSP queue address differs or GSP INIT ran on QEMU')
+                result['PhysicalGspInitExcluded']=True
             result['PhysicalUsbTranslationExcluded']=True
             result['PhysicalFalconResetExcluded']=True
             result['PhysicalFwsecDeniedWithoutFirmware']=True
@@ -433,6 +437,8 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
             raise ValueError('Missing Ring 3 SEC2 receipt or unexpected board execution')
         if gsp_manifest['physical_nvidia_code'].get('pages') == 2 and 'SEC2_EXEC=000 00000000' not in lines:
             raise ValueError('Missing Ring 3 SEC2 execution receipt or unexpected board execution')
+        if gsp_manifest.get('physical_sec2_stage') and 'GSP_INIT=000 00000000' not in lines:
+            raise ValueError('Missing Ring 3 GSP INIT receipt or unexpected board execution')
         amdvi_proof['PhysicalFwsecStatusExportVerified']=True
     if full_hd_profile:
         pool,pages=struct.unpack('<QQ',memory(context_address+0x708,16,'native-ui-pool'))
