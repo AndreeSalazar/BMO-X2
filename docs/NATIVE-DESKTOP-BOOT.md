@@ -412,6 +412,17 @@ Una funcion ausente aparece con guiones; `DMA_PCI_0000` sirve de control
 con el puente anfitrion. Estas lecturas son previas a ExitBootServices:
 registran el estado heredado y complementan el censo posterior a USB.
 
+El registro METAL del 22-11-2026 a las 20:39 confirmo las tres identidades
+del cotejo Linux y Bus Master apagado antes de ExitBootServices:
+SMBus `1022:790b` con Command `0403`, Ethernet `10ec:8168` con
+`0000` y audio HDMI `10de:228e` con `0000`. La RTX mantuvo
+`0003`. En cambio, los dos xHCI seguian con Bus Master habilitado
+(`0006` y `0007`). La foto del mismo arranque conserva el resultado
+`AMDVI_DTE_POST=01 00040000`. Queda verificar el estado de todos estos
+dispositivos despues de iniciar USB y transferir o detener cada motor
+activo antes de habilitar traduccion fisica.
+[Registro METAL del inventario ampliado](../Reports/amdvi-dma-peers-metal-20261122.txt).
+
 El ensayo `run-rmlui-media-4910a511a24c` verifica en QEMU el descriptor
 UEFI de la VGA, su longitud de 16 MiB cotejada con QMP, el estado
 `03`, teclado y raton USB simultaneos y el rechazo SBEF W+X. En HOST,
