@@ -18,7 +18,8 @@
 
 # RCX = exclusive GA106 BAR0 alias. RDX = calibrated TSC ticks per 10 ms.
 # Call before granting GPU bus mastering, with cold firmware and GOP retained.
-# Return 1 ready for FWSEC, 0 rejected before writes, 2 state uncertain.
+# Return 1 ready for FWSEC, 0 rejected before reset, 2 state uncertain.
+# For return 2, R8D gives the failed board receipt phase.
 # Uses the GA102 Falcon select/reset/scrub sequence from Nouveau.
 .globl nvidia_prepare_ga106_falcon
 nvidia_prepare_ga106_falcon:
@@ -31,7 +32,7 @@ nvidia_prepare_ga106_falcon:
     ja .Lfwsec_reject
     cmpl $0xb76000a1, (%rcx)
     jne .Lfwsec_reject
-    cmpl $0x10, 0x111388(%rcx)
+    call .Lriscv_halted
     jne .Lfwsec_reject
     cmpl $16, WPR2_HIGH(%rcx)
     jae .Lfwsec_reject
@@ -44,6 +45,7 @@ nvidia_prepare_ga106_falcon:
     jc .Lprep_reject
     test $1, %eax
     jnz .Lprep_reject
+    mov $0x410, %r8d
     mov 0x1668(%r13), %eax
     call .Lvalid_read
     jc .Lprep_reject
@@ -63,6 +65,24 @@ nvidia_prepare_ga106_falcon:
     jb .Lwait_falcon_select
     jmp .Lprep_uncertain
 .Lprep_reset:
+    # Sample reset-complete before the pulse. GA102 gives this condition
+    # a 150 us advisory deadline, separate from post-reset memory scrub.
+    mov $0x411, %r8d
+    imul $3, %r11, %rax
+    xor %edx, %edx
+    mov $200, %r10d
+    div %r10
+    mov %rax, %r10
+    call .Lprep_deadline
+.Lwait_falcon_before_reset:
+    mov 0xf4(%r13), %eax
+    call .Lvalid_read
+    jc .Lprep_uncertain
+    test %eax, %eax
+    js .Lprep_pulse
+    call .Lwithin_deadline
+    jb .Lwait_falcon_before_reset
+.Lprep_pulse:
     mov 0x48(%r13), %eax
     call .Lvalid_read
     jc .Lprep_uncertain
@@ -93,23 +113,30 @@ nvidia_prepare_ga106_falcon:
     jc .Lprep_uncertain
     and $-2, %eax
     mov %eax, 0x3c0(%r13)
-    mov 0x40(%r13), %eax         # Drain posted deassertion.
+    mov 0x40(%r13), %eax
     call .Lvalid_read
     jc .Lprep_uncertain
+    mov %eax, 0x40(%r13)         # GA102 mailbox read/write after deassertion.
+    mov 0x3c0(%r13), %eax
+    call .Lvalid_read
+    jc .Lprep_uncertain
+    test $1, %eax
+    jnz .Lprep_uncertain
+    mov $0x412, %r8d
     lea (%r11,%r11), %r10
     call .Lprep_deadline
 .Lwait_falcon_scrub:
     mov 0xf4(%r13), %eax
     call .Lvalid_read
     jc .Lprep_uncertain
-    and $0x80001000, %eax
-    cmp $0x80000000, %eax
-    je .Lprep_ready
+    test $0x1000, %eax
+    jz .Lprep_ready
     call .Lwithin_deadline
     jb .Lwait_falcon_scrub
     jmp .Lprep_uncertain
 .Lprep_ready:
-    cmpl $0x10, 0x111388(%rcx)
+    mov $0x413, %r8d
+    call .Lriscv_halted
     jne .Lprep_uncertain
     mov 0x1668(%r13), %eax
     call .Lvalid_read
@@ -136,6 +163,17 @@ nvidia_prepare_ga106_falcon:
     lea (%rax,%r10), %r15
     ret
 
+.Lriscv_halted:
+    mov 0x111388(%rcx), %eax
+    call .Lvalid_read
+    jc .Lriscv_invalid
+    and $0x90, %eax              # HALTED set and ACTIVE_STAT clear.
+    cmp $0x10, %eax
+    ret
+.Lriscv_invalid:
+    or $1, %eax                  # Clear ZF for callers using JNE.
+    ret
+
 .globl nvidia_launch_ga106_fwsec
 nvidia_launch_ga106_fwsec:
 .Llaunch_ga106_fwsec:
@@ -153,7 +191,7 @@ nvidia_launch_ga106_fwsec:
     jne .Lfwsec_reject
     cmpl $0xb76000a1, (%rcx)          # PMC_BOOT_0, the measured GA106.
     jne .Lfwsec_reject
-    cmpl $0x10, 0x111388(%rcx)       # RISC-V must still be halted.
+    call .Lriscv_halted
     jne .Lfwsec_reject
     cmpl $16, WPR2_HIGH(%rcx)
     jae .Lfwsec_reject
@@ -161,8 +199,7 @@ nvidia_launch_ga106_fwsec:
     mov 0xf4(%r10), %eax
     call .Lvalid_read
     jc .Lfwsec_reject
-    and $0x80001000, %eax
-    cmp $0x80000000, %eax           # Ready, with memory scrubbing complete.
+    test $0x1000, %eax              # Memory scrub must remain complete.
     jne .Lfwsec_reject
     mov 0x108(%r10), %eax
     call .Lvalid_read

@@ -467,6 +467,10 @@ extern "C" void bmo_main() {
             fwsec==0x40a ? "Falcon rechazado antes del reset" :
             fwsec==0x40b ? "Bus Master RTX sin confirmar" :
             fwsec==0x40c ? "reset Falcon sin confirmar" :
+            fwsec==0x410 ? "selector Falcon sin confirmar" :
+            fwsec==0x411 ? "pulso de reset Falcon sin confirmar" :
+            fwsec==0x412 ? "limpieza IMEM/DMEM sin confirmar" :
+            fwsec==0x413 ? "modo Falcon tras reset sin confirmar" :
             fwsec>=0x402 ? "FWSEC fallo" :
             fwsec==0x400 ? "FWSEC rechazado" : "FWSEC pendiente";
         snprintf(amdvi_line,sizeof(amdvi_line),"RTX / %s / USB %03X LPC %03X FWSEC %03X",

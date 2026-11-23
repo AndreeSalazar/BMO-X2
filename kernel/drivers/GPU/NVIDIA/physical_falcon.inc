@@ -95,7 +95,9 @@ nvidia_physical_begin:
     call .Lprepare_ga106_falcon
     cmp $1, %eax
     je .Lboard_fwsec
-    add $0x40a, %eax
+    test %eax, %eax
+    mov $0x40a, %eax
+    cmovne %r8d, %eax
     mov %rax, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)
     jmp .Lboard_unmap
 .Lboard_fwsec:

@@ -102,6 +102,16 @@ class FwsecLaunch(unittest.TestCase):
         self.assertEqual(self.read(FALCON + 0x84), 0)
         self.assertEqual(self.read(DMA_COMMAND), 0)
 
+    def test_reset_ready_is_advisory_and_launch_requires_completed_scrub(self):
+        self.write(0x111388, 0x110)  # Halted, inactive, unrelated bit set.
+        self.write(FALCON + 0xF4, 0)
+        self.assertEqual(self.prepare(self.mapping, 1_000_000), 1)
+        self.write(FALCON + 0xF4, 0x1000)
+        self.assertEqual(self.launch(self.mapping, 1_000_000, FWSEC_IOVA, self.result), 0)
+        self.assertEqual(list(self.result), [0] * 7)
+        self.write(FALCON + 0xF4, 0)
+        self.assertEqual(self.replay(FALCON + 0x100, 0x02FFEE00), 1)
+
     def domain_memory(self):
         kernel = ctypes.WinDLL("kernel32", use_last_error=True)
         alloc, free = kernel.VirtualAlloc, kernel.VirtualFree
