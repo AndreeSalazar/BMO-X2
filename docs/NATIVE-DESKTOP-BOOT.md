@@ -1019,6 +1019,11 @@ segundos y la espera de RDY considera tambien CAP.TO.
 
 F3 muestra la retirada de bus mastering tras confirmar la parada.
 Una parada incompleta retiene las reservas DMA y se informa en F3.
+El candidato `run-rmlui-media-362e700f8855` esta instalado en el menu
+UEFI como **BMO-X2 (DMA SATA-NVMe)**. En el escritorio, F2 abre el
+inventario PCI y F3 pasa al panel de almacenamiento. Capturar las dos
+filas completas y `A:\BMO-X2\GPU\GPULOG.TXT`. QEMU verifica que
+este binario omite la parada fisica en una placa distinta.
 El perfil queda por verificar en la placa. Antes de activar AMD-Vi
 aun se debe transferir el segundo xHCI y comprobar los solicitantes
 restantes y el acceso a almacenamiento bajo traduccion.

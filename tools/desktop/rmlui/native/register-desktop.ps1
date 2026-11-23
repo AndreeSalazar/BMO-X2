@@ -1,14 +1,15 @@
 # Register a validated desktop candidate as a separate UEFI entry.
 # Run in elevated Windows PowerShell 5.1. Never selects the next boot.
 [CmdletBinding()]
-param([switch]$NvidiaProbe,[switch]$Check)
+param([switch]$NvidiaProbe,[switch]$StorageHandoff,[switch]$Check)
 $ErrorActionPreference='Stop'
+if ($StorageHandoff -and -not $NvidiaProbe) { throw '-StorageHandoff requiere -NvidiaProbe.' }
 $root=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../..'))
 $dataFolder=if($NvidiaProbe){'BMO-X2/GPU'}else{'BMO-X2/DESKTOP'}
 $bootFile=if($NvidiaProbe){'EFI/BMO-X2/NVIDIA.EFI'}else{'EFI/BMO-X2/DESKTOP.EFI'}
-$receiptName=if($NvidiaProbe){'firmware-nvidia.json'}else{'firmware-desktop.json'}
+$receiptName=if($StorageHandoff){'firmware-storage-handoff.json'}elseif($NvidiaProbe){'firmware-nvidia.json'}else{'firmware-desktop.json'}
 $receipt=Join-Path $root "build/rmlui-native/$receiptName"
-$name=if($NvidiaProbe){'BMO-X2 (con NVIDIA)'}else{'BMO-X2 Desktop (RmlUi)'}
+$name=if($StorageHandoff){'BMO-X2 (DMA SATA-NVMe)'}elseif($NvidiaProbe){'BMO-X2 (con NVIDIA)'}else{'BMO-X2 Desktop (RmlUi)'}
 $path='\'+$bootFile.Replace('/','\')
 $manifest=Get-Content -LiteralPath (Join-Path 'A:\' "$dataFolder/DEPLOY.JSON") -Raw | ConvertFrom-Json
 if ([IO.DriveInfo]::new('A:\').DriveFormat -ne 'FAT32') {throw 'A: no es FAT32.'}
@@ -20,10 +21,16 @@ if($NvidiaProbe) {
     $runPath=Join-Path $root "build/CASM/$($manifest.Run)"
     $proof=Get-Content -LiteralPath (Join-Path $runPath 'media/manifest.json') -Raw | ConvertFrom-Json
     $normal=$proof.Cases | Where-Object { $_.Case -eq 'normal' } | Select-Object -First 1
-    if ($proof.run -ne $manifest.Run -or $proof.Passed -ne 2 -or $proof.Total -ne 2 -or
+    $caseCount=if($StorageHandoff){3}else{2}
+    if ($proof.run -ne $manifest.Run -or $proof.Passed -ne $caseCount -or $proof.Total -ne $caseCount -or
         -not $proof.nvidia_pci_probe -or -not $normal.NvidiaPciProbeVerified) {
         throw 'Falta la prueba QEMU del candidato NVIDIA.'
     }
+    if ($StorageHandoff -ne [bool]$proof.storage_quiesce_metal -or ($StorageHandoff -and
+        (-not $normal.StorageQuiesceSkippedVerified -or -not $normal.GspFwsecExcluded -or $proof.amdvi_guest_dma))) {
+        throw 'El candidato no acredita la entrega fisica de almacenamiento.'
+    }
+    if($StorageHandoff) { $files += "$dataFolder/GSP.BIN" }
     foreach($file in $files) {
         if ($manifest.Files.$file -ne $proof.files.$file) {throw "Huella distinta del ensayo QEMU: $file"}
     }
