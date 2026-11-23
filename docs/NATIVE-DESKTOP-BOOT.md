@@ -1109,6 +1109,16 @@ tablas se publica todavia en AMD-Vi.
 El candidato `run-rmlui-media-640292d69a5d` paso los tres casos QEMU.
 La tabla se construyo en Ring 0 durante el arranque normal, y el
 paquete de entrada con el saludo quedo en 4092 bytes.
+
+La sonda `physical_mmio.S` separa la publicacion de bases de la
+activacion. Exige el valor de Control observado en esta placa, estado
+inactivo y punteros de cola en cero. Escribe y relee las bases de DTE,
+comandos y eventos sin escribir Control. Conserva un recibo para devolver
+las bases anteriores si la unidad sigue inactiva. Si no se puede
+confirmar la restauracion, el llamador conserva las reservas. HOST
+comprobo esta rutina con registros simulados, incluida la negativa
+con punteros pendientes, estado activo o reservas solapadas.
+[Especificacion AMD IOMMU, secciones 2.3.1, 2.4 y 2.5](https://docs.amd.com/api/khub/documents/GD6kOXjzWsek8QUbn_qMvg/content).
 [Inventario PCI en METAL](../Reports/dma-pci-census-metal-20261120.json).
 [Estado de los discos en METAL](../Reports/storage-state-metal-20261120.json).
 [Evidencia del candidato de cierre](../Reports/amdvi-storage-handoff-20261121.json).

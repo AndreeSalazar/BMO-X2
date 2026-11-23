@@ -3075,6 +3075,21 @@
       "falta": "La variante amdvi-physical-prepare ya invoca esta sonda durante el arranque NVIDIA. Falta publicar y revocar las tablas en la placa."
     },
     {
+      "id": "amdvi-physical-mmio",
+      "titulo": "AMD-Vi / Publicacion reversible de bases",
+      "ruta": "kernel/drivers/bus/amdvi/physical_mmio.S",
+      "estado": "host",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [12300, 4490],
+      "que": "Programa y relee bases de DTE y colas con la unidad desactivada; restaura las anteriores con un recibo privado.",
+      "entrada": "Alias MMIO exclusivo, bases fisicas verificadas por el llamador y recibo vacio.",
+      "salida": "Bases publicadas o rechazo. Si falla la restauracion, el llamador retiene las reservas.",
+      "aceptacion": "HOST: confirmar lectura, restauracion y rechazos con registros simulados.",
+      "falta": "Integrar en el arranque y verificar activacion, invalidaciones y DMA con el hardware real."
+    },
+    {
       "id": "storage-state-uefi",
       "titulo": "Almacenamiento / Recursos UEFI AHCI y NVMe",
       "ruta": "kernel/drivers/storage/handoff_uefi.inc",
