@@ -1237,7 +1237,8 @@ exclusiones de hardware verificadas en QEMU y la lectura del recibo en
 Ring 3. Puede registrarse como `BMO-X2 (RTX FWSEC)` con la misma opcion
 en `register-desktop.ps1` junto con `-AmdviMmio -NvidiaProbe`. El candidato
 preexistente conserva sus rutas. La linea `RTX` del escritorio muestra
-los recibos USB, LPC y FWSEC. `FWSEC 401` acredita WPR2 con DMA PCIe
+los recibos USB, LPC y FWSEC despues de iniciar el transporte xHCI. Si
+la admision se rechaza, tambien muestra el BDF bloqueante. `FWSEC 401` acredita WPR2 con DMA PCIe
 cerrado. El escritorio sigue usando GOP y el GPULOG de FAT32 se escribe
 antes de EBS.
 
@@ -1252,7 +1253,8 @@ El armado de esta tabla ocurre antes de abrir Bus Master.
 
 El inventario fisico anterior muestra `00:14.3` (`1022:790E`, puente
 ISA) con Command `000F`. ULTRA-LinuX lo registra con SMBus `00:14.0`
-en el grupo IOMMU 12. El perfil exige una IVRS identica byte a byte a
+en el grupo IOMMU 12. El perfil verifica el checksum ACPI y exige que
+la firma, revision, longitud y todo el cuerpo de la IVRS coincidan con
 la medida en el equipo, incluida la cobertura de ambos por `00:00.2`,
 y vuelve a verificar la clase y el subsistema `1462:7C52` del LPC.
 Al terminar el censo, conserva el Command original y escribe solo el
@@ -1263,6 +1265,8 @@ Si la apertura se revierte o la ventana se cierra, se restaura el
 Command original. Si AMD-Vi queda en un estado incierto, el LPC sigue
 sin Bus Master. El recibo distingue `501` (retirado), `502` (restaurado)
 y `503` (lectura distinta o restauracion sin confirmar).
+Los codigos `510` a `514` indican, en orden, un ID PCI, PCI Command,
+cuerpo IVRS, clase PCI o identificador de subsistema distinto.
 Los solicitantes con BME sin una ruta admitida dejan su BDF en el
 recibo y bloquean la activacion.
 La tabla fisica usa DTE.I=0 y, por tanto, bloquea direccion ya

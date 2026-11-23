@@ -3190,7 +3190,7 @@
       "que": "Valida la topologia IVRS exacta que habilita retirar Bus Master del LPC medido antes de abrir AMD-Vi.",
       "entrada": "IVRS de la placa, censo de bus mastering, identidad en PCI y Command original de 00:14.3.",
       "salida": "LPC apartado con lectura de vuelta o admision rechazada. Command original se restaura tras cierre confirmado.",
-      "aceptacion": "HOST compara la IVRS medida y rechaza cambios. QEMU debe excluir la escritura especifica del hardware.",
+      "aceptacion": "HOST verifica el cuerpo de la IVRS medida y rechaza cambios de enrutamiento. QEMU excluye las escrituras fisicas y lee el recibo despues de iniciar USB.",
       "falta": "Confirmar en METAL 000F a 000B y el primer No-Op traducido antes de FWSEC."
     },
     {

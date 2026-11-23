@@ -1,6 +1,6 @@
-# Win64 ABI, RCX points to the firmware IVRS and EDX is the verified length.
-# Match the measured MSI/AMD table exactly. The FCH pair routes to FD500000
-# without a DMA alias or an IVMD exclusion. A firmware change needs review.
+# Win64 ABI, RCX points to IVRS after ACPI checksum verification.
+# Match signature, revision, size and every routing byte. The SDT OEM
+# identification fields do not participate in device routing.
 .text
 .globl amdvi_matches_board_ivrs
 amdvi_matches_board_ivrs:
@@ -10,13 +10,19 @@ amdvi_matches_board_ivrs:
     jz .Lboard_ivrs_return
     cmp $(.Lboard_ivrs_end-.Lboard_ivrs), %edx
     jne .Lboard_ivrs_return
-    lea .Lboard_ivrs(%rip), %r8
-    xor %r9d, %r9d
-.Lboard_ivrs_next:
-    mov (%r8,%r9), %r10
-    cmp %r10, (%rcx,%r9)
+    cmpl $0x53525649, (%rcx)
     jne .Lboard_ivrs_return
-    add $8, %r9d
+    cmp %edx, 4(%rcx)
+    jne .Lboard_ivrs_return
+    cmpb $2, 8(%rcx)
+    jne .Lboard_ivrs_return
+    lea .Lboard_ivrs(%rip), %r8
+    mov $36, %r9d
+.Lboard_ivrs_next:
+    mov (%r8,%r9), %r10d
+    cmp %r10d, (%rcx,%r9)
+    jne .Lboard_ivrs_return
+    add $4, %r9d
     cmp %edx, %r9d
     jb .Lboard_ivrs_next
     mov $1, %eax

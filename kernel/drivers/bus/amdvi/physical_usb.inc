@@ -248,21 +248,27 @@
     clc
     ret
 .Lphysical_usb_lpc:
+    movl $0x510, AMDVI_PHYSICAL_LPC_STATUS(%rbp)
     cmp $0x790e1022, %r9d
     jne .Lphysical_usb_pci_blocked
+    incl AMDVI_PHYSICAL_LPC_STATUS(%rbp)
     cmp $0x000f, %ax
     jne .Lphysical_usb_pci_blocked
+    incl AMDVI_PHYSICAL_LPC_STATUS(%rbp)
     cmpl $1, AMDVI_BOARD_IVRS_MATCH(%rbp)
     jne .Lphysical_usb_pci_blocked
+    incl AMDVI_PHYSICAL_LPC_STATUS(%rbp)
     mov $0x8000a308, %eax
     call .Lphysical_usb_read_pci
     shr $8, %eax
     cmp $0x060100, %eax
     jne .Lphysical_usb_pci_blocked
+    incl AMDVI_PHYSICAL_LPC_STATUS(%rbp)
     mov $0x8000a32c, %eax
     call .Lphysical_usb_read_pci
     cmp $0x7c521462, %eax
     jne .Lphysical_usb_pci_blocked
+    movl $0, AMDVI_PHYSICAL_LPC_STATUS(%rbp)
     mov $0x000f, %r11d
     jmp .Lphysical_usb_next
 .Lphysical_usb_pci_blocked:

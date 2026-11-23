@@ -149,7 +149,7 @@ class FwsecLaunch(unittest.TestCase):
                 self.assertFalse(any(memory[0x207000:]))
         self.assertEqual(self.domain(base + 1, 0, base), 0)
 
-    def test_board_ivrs_requires_an_exact_match(self):
+    def test_board_ivrs_requires_exact_routing(self):
         from ..ivrs import inspect, windows_ivrs
 
         self.assertEqual(self.ivrs_match(None, 208), 0)
@@ -164,6 +164,12 @@ class FwsecLaunch(unittest.TestCase):
             return
         self.assertEqual(self.ivrs_match(original, len(original)), 1)
         self.assertEqual(self.ivrs_match(original, len(original) - 1), 0)
+        relabeled = bytearray(original)
+        relabeled[10] ^= 1
+        relabeled[9] = (relabeled[9] - sum(relabeled)) & 0xff
+        self.assertEqual(self.ivrs_match(bytes(relabeled), len(relabeled)), 1)
+        relabeled[8] = 1
+        self.assertEqual(self.ivrs_match(bytes(relabeled), len(relabeled)), 0)
         altered = bytearray(original)
         altered[-1] ^= 1
         self.assertEqual(self.ivrs_match(bytes(altered), len(altered)), 0)

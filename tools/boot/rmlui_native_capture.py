@@ -402,7 +402,10 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
                 raise ValueError('Missing Ring 3 GSP status')
             amdvi_proof['GspStatusExportVerified']=True
     if (run/'gpu-fwsec-trial.txt').is_file():
-        if 'RTX_TRIAL=000 000 000' not in serial.read_text(errors='replace').splitlines():
+        lines=serial.read_text(errors='replace').splitlines()
+        transport='BMO UI USB TRANSPORT READY'
+        marker='RTX_TRIAL=000 000 000 0000'
+        if transport not in lines or marker not in lines or lines.index(marker)<lines.index(transport):
             raise ValueError('Missing Ring 3 FWSEC trial status or unexpected board execution')
         amdvi_proof['PhysicalFwsecStatusExportVerified']=True
     if full_hd_profile:

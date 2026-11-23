@@ -286,22 +286,8 @@ extern "C" void bmo_main() {
 #endif
     const auto gsp=doom_invoke(3,3,amdvi_diagnostic,6);
     const bool trial=(gsp>>63)!=0 && gsp!=UINT64_MAX;
-    if(trial) {
-        const unsigned usb_code=uint8_t(gsp>>8),lpc_code=uint8_t(gsp>>16),fwsec_code=uint8_t(gsp>>24);
-        const unsigned usb=usb_code?0x200|usb_code:0,lpc=lpc_code?0x500|lpc_code:0;
-        const unsigned fwsec=fwsec_code?0x400|fwsec_code:0;
-        snprintf(amdvi_line,sizeof(amdvi_line),"RTX_TRIAL=%03X %03X %03X\n",usb,lpc,fwsec);
-        log(amdvi_line);
-        const char* status=fwsec==0x401 ? "WPR2 confirmada" :
-            fwsec==0x404 ? "cierre PCIe sin confirmar" :
-            fwsec>=0x402 ? "FWSEC fallo" : "FWSEC pendiente";
-        snprintf(amdvi_line,sizeof(amdvi_line),"RTX / %s / USB %03X LPC %03X FWSEC %03X",
-                 status,usb,lpc,fwsec);
-        hardware_report+="<br/>";
-        hardware_report+=amdvi_line;
-    }
     const unsigned file_status=trial?uint8_t(gsp):unsigned(gsp);
-    const unsigned dma_status=trial?unsigned(gsp>>32)&0x7fffffff:unsigned(gsp>>32);
+    const unsigned dma_status=trial?uint8_t(gsp>>32):unsigned(gsp>>32);
     if(file_status>=1 && file_status<=5) {
         snprintf(amdvi_line,sizeof(amdvi_line),"GSP_PREP=%u %u\n",file_status,dma_status);
         log(amdvi_line);
@@ -461,6 +447,32 @@ extern "C" void bmo_main() {
     log("BMO UI USB TRANSPORT READY\n");
 #endif
     #endif
+#ifdef BMO_AMDVI_POST
+    if(trial) {
+        // USB start runs the translated No-Op and the FWSEC attempt synchronously.
+        const auto receipt=doom_invoke(3,3,amdvi_diagnostic,6);
+        const unsigned usb_code=uint8_t(receipt>>8),lpc_code=uint8_t(receipt>>16);
+        const unsigned fwsec_code=uint8_t(receipt>>24),bdf=uint16_t(receipt>>40);
+        const unsigned usb=usb_code?0x200|usb_code:0,lpc=lpc_code?0x500|lpc_code:0;
+        const unsigned fwsec=fwsec_code?0x400|(fwsec_code&0x7f):0;
+        snprintf(amdvi_line,sizeof(amdvi_line),"RTX_TRIAL=%03X %03X %03X %04X\n",usb,lpc,fwsec,bdf);
+        log(amdvi_line);
+        const char* status=fwsec==0x401 ? "WPR2 confirmada" :
+            fwsec==0x404 ? "cierre PCIe sin confirmar" :
+            fwsec>=0x402 ? "FWSEC fallo" :
+            fwsec==0x400 ? "FWSEC rechazado" : "FWSEC pendiente";
+        snprintf(amdvi_line,sizeof(amdvi_line),"RTX / %s / USB %03X LPC %03X FWSEC %03X",
+                 status,usb,lpc,fwsec);
+        hardware_report+="<br/>";
+        hardware_report+=amdvi_line;
+        if(usb==0x215) {
+            snprintf(amdvi_line,sizeof(amdvi_line),"BDF bloqueante %02X:%02X.%u",bdf>>8,(bdf>>3)&31,bdf&7);
+            hardware_report+="<br/>";
+            hardware_report+=amdvi_line;
+        }
+        amdvi_panel->SetInnerRML(hardware_report);
+    }
+#endif
 #ifdef BMO_DMA_CENSUS
     auto* dma_panel=doc->GetElementById("dma-census");
     check(dma_panel,"PCI DMA panel");

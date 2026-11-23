@@ -90,12 +90,20 @@ amdvi_physical_mmio_begin:
     movzbl AMDVI_PHYSICAL_USB_RESULT(%rbp), %ecx
     shl $8, %rcx
     or %rcx, %rax
+    movzwl (AMDVI_PHYSICAL_USB_RESULT+2)(%rbp), %ecx
+    shl $40, %rcx
+    or %rcx, %rax
     movzbl AMDVI_PHYSICAL_LPC_STATUS(%rbp), %ecx
     shl $16, %rcx
     or %rcx, %rax
-    movzbl NVIDIA_FWSEC_LAUNCH_STATUS(%rbp), %ecx
+    movzwl NVIDIA_FWSEC_LAUNCH_STATUS(%rbp), %ecx
+    test %ecx, %ecx
+    jz .Lphysical_rtx_report_done
+    and $0xff, %ecx
+    or $0x80, %ecx
     shl $24, %rcx
     or %rcx, %rax
+.Lphysical_rtx_report_done:
     ret
 #include "physical_usb.inc"
 #include "fwsec_domain.S"
