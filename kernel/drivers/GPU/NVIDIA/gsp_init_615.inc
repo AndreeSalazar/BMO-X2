@@ -203,6 +203,7 @@ nvidia_gsp_init_615:
 # R8 = event MMIO page, R9 = private event ring, fifth arg = output.
 .globl nvidia_gsp_snapshot_615
 nvidia_gsp_snapshot_615:
+.Lgsp_snapshot_615:
     mov 40(%rsp), %r10
     mov 0x40(%rcx), %eax
     mov %eax, 0(%r10)

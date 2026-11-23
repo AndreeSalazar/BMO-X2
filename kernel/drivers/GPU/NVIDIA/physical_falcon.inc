@@ -246,7 +246,7 @@ nvidia_physical_begin:
     add $0x205000, %r9          # Private 4-KiB AMD-Vi event ring.
     lea GSP_NATIVE_SNAPSHOT(%rbp), %rax
     mov %rax, 32(%rsp)          # Fifth Win64 argument.
-    call nvidia_gsp_snapshot_615
+    call .Lgsp_snapshot_615
 .Lboard_sec2_revoke:
     mov %r12d, %ecx
     call .Lboard_command
