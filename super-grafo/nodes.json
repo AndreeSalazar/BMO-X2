@@ -2766,6 +2766,21 @@
       "falta": "Conceder el dominio fisico y cargar Falcon para obtener WPR2 activa."
     },
     {
+      "id": "nvidia-fwsec-launch",
+      "titulo": "GPU / NVIDIA / Ejecucion FWSEC-FRTS en Falcon",
+      "ruta": "kernel/drivers/GPU/NVIDIA/fwsec_launch.S",
+      "estado": "host",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [12100, 3950],
+      "que": "Carga IMEM y DMEM por DMA, configura BROM, emite STARTCPU y comprueba la WPR2 medida.",
+      "entrada": "GA106 frio con Falcon reiniciado y seleccionado, BAR0 exclusivo, reloj calibrado e IOVA FWSEC autorizada.",
+      "salida": "Recibo privado de la fase, bytes transferidos, buzones y limites WPR2.",
+      "aceptacion": "HOST ejecuta el codigo nativo con registros simulados y verifica los 234 bloques, ambas rutas STARTCPU y los rechazos.",
+      "falta": "Invocar desde la adjudicacion DMA fisica, validar METAL y usar WPR2 para iniciar SEC2."
+    },
+    {
       "id": "nvidia-gsp-ring0-radix3",
       "titulo": "GPU / NVIDIA / Directorio Radix3 x86-64",
       "ruta": "kernel/drivers/GPU/NVIDIA/gsp_radix3.inc",
