@@ -96,7 +96,7 @@ class FwsecLaunch(unittest.TestCase):
     def test_prepare_reports_selector_or_scrub_timeout(self):
         self.write(FALCON + 0x1668, 0x10)
         self.assertEqual(self.prepare(self.mapping, 1_000_000), 2)
-        self.assertEqual(self.read(FALCON + 0x14), 0)
+        self.assertEqual(self.read(FALCON + 0x14), 0xFFFFFFFF)
         self.write(FALCON + 0xF4, 0x80001000)
         self.assertEqual(self.prepare(self.mapping, 1_000_000), 2)
         self.assertEqual(self.read(FALCON + 0x84), 0)
@@ -110,6 +110,24 @@ class FwsecLaunch(unittest.TestCase):
         self.assertEqual(self.launch(self.mapping, 1_000_000, FWSEC_IOVA, self.result), 0)
         self.assertEqual(list(self.result), [0] * 7)
         self.write(FALCON + 0xF4, 0)
+        self.assertEqual(self.replay(FALCON + 0x100, 0x02FFEE00), 1)
+
+    def test_selects_falcon_after_reset_even_if_riscv_halted_bit_clears(self):
+        bcr = FALCON + 0x1668
+        irq_ack = FALCON + 0x14
+        self.write(bcr, 0x110)
+        with ThreadPoolExecutor(max_workers=1) as worker:
+            run = worker.submit(self.prepare, self.mapping, 90_000_000)
+            while self.read(irq_ack) == 0 and not run.done():
+                pass
+            self.assertEqual(self.read(bcr), 0x110)
+            self.write(0x111388, 0)
+            while self.read(bcr) != 0 and not run.done():
+                pass
+            self.assertFalse(run.done(), "Falcon core selection was never requested")
+            self.assertEqual(self.read(FALCON + 0x3C0) & 1, 0)
+            self.write(bcr, 1)
+            self.assertEqual(run.result(), 1)
         self.assertEqual(self.replay(FALCON + 0x100, 0x02FFEE00), 1)
 
     def domain_memory(self):
@@ -195,10 +213,14 @@ class FwsecLaunch(unittest.TestCase):
         self.assertEqual(list(self.result), [0] * 7)
 
     def test_leaves_the_riscv_core_alone(self):
-        self.write(FALCON + 0x1668, 0x10)
-        before = bytes(self.bar)
-        self.assertEqual(self.launch(self.mapping, 25_000_000, FWSEC_IOVA, self.result), 0)
-        self.assertEqual(self.bar, before)
+        for offset, value in ((FALCON + 0x1668, 0x10), (0x111388, 0x90)):
+            with self.subTest(offset=offset):
+                original = self.read(offset)
+                self.write(offset, value)
+                before = bytes(self.bar)
+                self.assertEqual(self.launch(self.mapping, 25_000_000, FWSEC_IOVA, self.result), 0)
+                self.assertEqual(self.bar, before)
+                self.write(offset, original)
 
     def test_dma_failure_never_starts_falcon(self):
         for status in (0xBADF5620, 1):

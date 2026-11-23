@@ -470,7 +470,7 @@ extern "C" void bmo_main() {
             fwsec==0x410 ? "selector Falcon sin confirmar" :
             fwsec==0x411 ? "pulso de reset Falcon sin confirmar" :
             fwsec==0x412 ? "limpieza IMEM/DMEM sin confirmar" :
-            fwsec==0x413 ? "modo Falcon tras reset sin confirmar" :
+            fwsec==0x413 ? "RISC-V activo o sin lectura tras reset" :
             fwsec>=0x402 ? "FWSEC fallo" :
             fwsec==0x400 ? "FWSEC rechazado" : "FWSEC pendiente";
         snprintf(amdvi_line,sizeof(amdvi_line),"RTX / %s / USB %03X LPC %03X FWSEC %03X",
@@ -479,6 +479,15 @@ extern "C" void bmo_main() {
         hardware_report+=amdvi_line;
         if(usb==0x215) {
             snprintf(amdvi_line,sizeof(amdvi_line),"BDF bloqueante %02X:%02X.%u",bdf>>8,(bdf>>3)&31,bdf&7);
+            hardware_report+="<br/>";
+            hardware_report+=amdvi_line;
+        }
+        if(fwsec>=0x410 && fwsec<=0x413) {
+            const auto mode=doom_invoke(3,3,amdvi_diagnostic,8);
+            snprintf(amdvi_line,sizeof(amdvi_line),"Falcon CPUCTL %08X BCR %08X",
+                     unsigned(mode),unsigned(mode>>32));
+            log(amdvi_line);
+            log("\n");
             hardware_report+="<br/>";
             hardware_report+=amdvi_line;
         }

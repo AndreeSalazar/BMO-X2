@@ -99,6 +99,10 @@ nvidia_physical_begin:
     mov $0x40a, %eax
     cmovne %r8d, %eax
     mov %rax, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)
+    mov FALCON_BOARD_VA+0x111388, %eax
+    mov %eax, NVIDIA_FALCON_MODE_RECEIPT(%rbp)
+    mov FALCON_BOARD_VA+0x111668, %eax
+    mov %eax, (NVIDIA_FALCON_MODE_RECEIPT+4)(%rbp)
     jmp .Lboard_unmap
 .Lboard_fwsec:
     movl $0x40b, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)

@@ -379,7 +379,16 @@ amdvi_diagnostic:
 #ifdef BMO_AMDVI_DTE_RESERVE
     je .Lamdvi_gsp_status
 #else
+#ifdef BMO_AMDVI_PHYSICAL_USB_TEST
+    je .Lamdvi_rtx_status
+    cmp $8, %r10
     jne denied
+    mov NVIDIA_FALCON_MODE_RECEIPT(%rbp), %rax
+    jmp finish
+.Lamdvi_rtx_status:
+#else
+    jne denied
+#endif
 #ifdef BMO_AMDVI_PHYSICAL_USB_TEST
     lea AMDVI_PHYSICAL_RTX_REPORT(%rbp), %rax
     call *%rax

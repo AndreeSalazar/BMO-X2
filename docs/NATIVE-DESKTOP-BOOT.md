@@ -1235,15 +1235,24 @@ El arranque fisico con `fec88fa` mostro `USB 212 LPC 501 FWSEC 40C`.
 Confirmo la entrada al intento de reset con el dominio FWSEC ya validado.
 En GA102, la espera previa de hasta 150 us consulta la senal de reset
 completo. Tras el pulso, se verifica la salida del reset y se espera
-por separado que termine la limpieza de memoria. El cargador vuelve
-a exigir Falcon seleccionado, RISC-V detenido y limpieza completa.
+por separado que termine la limpieza de memoria. El arranque con
+`972c102` supero ambos pasos en METAL (`USB 212 LPC 501 FWSEC 413`).
+La seleccion de Falcon se comprueba despues del reset y la limpieza,
+porque el reset puede volver a seleccionar RISC-V. Si hay que cambiar
+el selector, se exige `VALID` por lectura. Se conserva la exigencia
+`HALTED` y `ACTIVE_STAT=0` antes del reset. Tras el reset y al cargar
+FWSEC se exige Falcon seleccionado y `ACTIVE_STAT=0` en una lectura
+valida. El estado `HALTED` pertenece al nucleo RISC-V.
 `410` indica fallo en la seleccion, `411` en el pulso de reset,
-`412` en la limpieza o `413` en la comprobacion de modo posterior.
+`412` en la limpieza o `413` en el estado RISC-V posterior. Para esos
+cuatro resultados, el escritorio recupera las lecturas CPUCTL y BCR
+tomadas con el alias supervisor antes de retirarlo.
 La captura de Falcon en `0x998` conserva la fase y los registros incluso
 en caso de cierre incierto. La siguiente etapa de SEC2 requiere verificar
 el resultado en la placa.
 [Mapa de registros PCIe Device Status](https://codebrowser.dev/linux/linux/include/uapi/linux/pci_regs.h.html#532).
 [Secuencia de preparacion y limpieza de Falcon GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/falcon/ga102.c.html#70).
+[Seleccion de Falcon y estado RISC-V en el controlador abierto de NVIDIA](https://raw.githubusercontent.com/NVIDIA/open-gpu-kernel-modules/main/src/nvidia/src/kernel/gpu/falcon/arch/ampere/kernel_falcon_ga102.c).
 
 `--physical-fwsec-trial` genera el candidato separado
 `EFI/BMO-X2/RTX-FWSEC.EFI` y sus datos en `BMO-X2/GPU-FW`. El instalador

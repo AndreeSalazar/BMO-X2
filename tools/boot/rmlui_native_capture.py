@@ -112,6 +112,7 @@ def verify_gsp_reservation(memory, context, expected, case):
             result['PhysicalMmioExcluded']=True
         if expected.get('physical_usb_test'):
             receipt = memory(context+0x920,96,'physical-usb-receipt')
+            falcon_mode = memory(context+0x980,8,'physical-falcon-mode-receipt')
             domain_status = memory(context+0x988,8,'physical-fwsec-domain-status')
             launch = memory(context+0x990,36,'physical-fwsec-launch-receipt')
             lpc = memory(context+0x9c8,24,'physical-lpc-receipt')
@@ -130,7 +131,7 @@ def verify_gsp_reservation(memory, context, expected, case):
             fwsec_domain = memory(dte_base+0x207000,8192,'physical-fwsec-empty-domain')
             page_table = memory(dte_base+0x206000,4096,'physical-usb-empty-pt')
             alias = memory(context+0x15408,8,'physical-usb-absent-alias')
-            if any(receipt) or any(page_table) or any(alias):
+            if any(receipt) or any(falcon_mode) or any(page_table) or any(alias):
                 raise ValueError('The board USB or Falcon test ran on QEMU')
             if domain_status != b'\x01'+b'\x00'*7 or any(fwsec_domain):
                 raise ValueError('The unverified GPU must remain denied in the physical FWSEC table')
