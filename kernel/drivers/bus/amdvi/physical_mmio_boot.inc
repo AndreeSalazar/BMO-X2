@@ -75,6 +75,16 @@ amdvi_physical_mmio_begin:
 #include "physical_mmio.S"
 #ifdef BMO_AMDVI_PHYSICAL_USB_TEST
 .Lphysical_rtx_report:
+    cmp $6, %r10
+    je .Lphysical_rtx_summary
+    cmp $8, %r10
+    jne .Lphysical_rtx_invalid
+    mov NVIDIA_FALCON_MODE_RECEIPT(%rbp), %rax
+    ret
+.Lphysical_rtx_invalid:
+    mov $257, %eax               # Match the session gate denial receipt.
+    ret
+.Lphysical_rtx_summary:
     # Preserve stage and preparation. Other fields carry the low byte of
     # USB, LPC and FWSEC. The top bit identifies the experimental receipt.
     mov GSP_STAGE_STATUS(%rbp), %rax

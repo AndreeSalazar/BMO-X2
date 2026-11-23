@@ -457,6 +457,9 @@ extern "C" void bmo_main() {
         const unsigned fwsec=fwsec_code?0x400|(fwsec_code&0x7f):0;
         snprintf(amdvi_line,sizeof(amdvi_line),"RTX_TRIAL=%03X %03X %03X %04X\n",usb,lpc,fwsec,bdf);
         log(amdvi_line);
+        const auto mode=doom_invoke(3,3,amdvi_diagnostic,8);
+        snprintf(amdvi_line,sizeof(amdvi_line),"RTX_MODE=%08X %08X\n",unsigned(mode),unsigned(mode>>32));
+        log(amdvi_line);
         const char* status=fwsec==0x401 ? "WPR2 confirmada" :
             fwsec==0x404 ? "cierre PCIe sin confirmar" :
             fwsec==0x405 ? "codigo Falcon ausente" :
@@ -483,11 +486,8 @@ extern "C" void bmo_main() {
             hardware_report+=amdvi_line;
         }
         if(fwsec>=0x410 && fwsec<=0x413) {
-            const auto mode=doom_invoke(3,3,amdvi_diagnostic,8);
             snprintf(amdvi_line,sizeof(amdvi_line),"Falcon CPUCTL %08X BCR %08X",
                      unsigned(mode),unsigned(mode>>32));
-            log(amdvi_line);
-            log("\n");
             hardware_report+="<br/>";
             hardware_report+=amdvi_line;
         }

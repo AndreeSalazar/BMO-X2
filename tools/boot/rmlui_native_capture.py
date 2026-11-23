@@ -412,6 +412,8 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
         marker='RTX_TRIAL=000 000 000 0000'
         if transport not in lines or marker not in lines or lines.index(marker)<lines.index(transport):
             raise ValueError('Missing Ring 3 FWSEC trial status or unexpected board execution')
+        if 'RTX_MODE=00000000 00000000' not in lines:
+            raise ValueError('Missing Ring 3 Falcon mode receipt or unexpected board execution')
         amdvi_proof['PhysicalFwsecStatusExportVerified']=True
     if full_hd_profile:
         pool,pages=struct.unpack('<QQ',memory(context_address+0x708,16,'native-ui-pool'))
