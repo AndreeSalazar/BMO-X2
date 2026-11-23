@@ -42,6 +42,7 @@ def main():
     parser.add_argument('--amdvi-post',action='store_true')
     parser.add_argument('--amdvi-dte-report',action='store_true',help='Expose the QEMU-only post-EBS DTE read and alias-revocation proof')
     parser.add_argument('--dma-census',action='store_true')
+    parser.add_argument('--rtx-lab-panel',action='store_true')
     parser.add_argument('--storage-state',action='store_true')
     parser.add_argument('--full-hd',action='store_true')
     args=parser.parse_args()
@@ -53,6 +54,8 @@ def main():
         parser.error('--amdvi-dte-report requires --amdvi-post')
     if args.dma_census and not args.amdvi_post:
         parser.error('--dma-census requires --amdvi-post')
+    if args.rtx_lab_panel and not args.dma_census:
+        parser.error('--rtx-lab-panel requires --dma-census')
     if args.storage_state and not args.dma_census:
         parser.error('--storage-state requires --dma-census')
     if args.full_hd and not args.storage_state:
@@ -66,6 +69,7 @@ def main():
     if args.dma_census:variant+='-dma-census'
     if args.storage_state:variant+='-storage-state'
     if args.full_hd:variant+='-full-hd'
+    if args.rtx_lab_panel:variant+='-rtx-lab'
     out=OUT/(variant + ('-msvc' if args.msvc_panel_cc else ''))
     out.mkdir(exist_ok=True)
     includes=generate_headers()
@@ -86,6 +90,7 @@ def main():
     if args.amdvi_post:cppflags+=['-DBMO_AMDVI_POST']
     if args.amdvi_dte_report:cppflags+=['-DBMO_AMDVI_DTE_REPORT']
     if args.dma_census:cppflags+=['-DBMO_DMA_CENSUS']
+    if args.rtx_lab_panel:cppflags+=['-DBMO_RTX_LAB_PANEL']
     if args.storage_state:cppflags+=['-DBMO_STORAGE_STATE']
     if args.full_hd:cppflags+=['-DBMO_FULL_HD']
     command([llvm/'clang++.exe',*cppflags,'-c',here/'guest.cpp','-o',out/'guest.o'],'compile-native-guest')
@@ -131,6 +136,11 @@ def main():
         text=text.replace('<div id="bottom">', '<div id="msvc-panel" style="display:none;">'
             '<h2>Hola ventana</h2><p class="description">C++ / MSVC</p>'
             '<div id="msvc-surface"></div></div><div id="bottom">')
+    if args.rtx_lab_panel:
+        text=text.replace('F2 PCI','F2 PCI / F4 RTX')
+        text=text.replace('<div id="bottom">','<div id="rtx-lab" style="display:none;position:absolute;'
+            'left:246px;right:36px;top:115px;height:515px;padding:24px;'
+            'background:#101c29;border:1px #658e98;z-index:10;"></div><div id="bottom">')
     style=assets/'style.rcss'
     if args.full_hd:
         # Resolve the existing design units at the output density before layout and font rasterization.
@@ -193,6 +203,7 @@ def main():
     if args.dma_census:manifest['dma_census']=True
     if args.storage_state:manifest['storage_state']=True
     if args.full_hd:manifest['full_hd']=True
+    if args.rtx_lab_panel:manifest['rtx_lab_panel']=True
     if args.usb=='both':
         manifest.update(usb_keyboard_reports=symbols['bmo_ui_usb_keyboard_reports'],
             usb_mouse_reports=symbols['bmo_ui_usb_mouse_reports'],mouse_edges=symbols['bmo_ui_mouse_edges'],

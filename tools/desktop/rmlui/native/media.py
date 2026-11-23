@@ -50,6 +50,7 @@ def main():
     p.add_argument('--amdvi-gsp-dma', action='store_true', help='QEMU only: grant and revoke the prepared firmware to EDU alongside USB, AHCI and NVMe')
     p.add_argument('--amdvi-routed', action='store_true', help='Exercise a high PCI requester ID behind a PCIe root port')
     p.add_argument('--dma-census', action='store_true', help='Capture PCI bus masters after USB startup')
+    p.add_argument('--rtx-lab-panel', action='store_true', help='Include the optional Ring 3 F4 status panel')
     p.add_argument('--storage-state', action='store_true', help='Observe AHCI and NVMe state immediately after UEFI handoff')
     p.add_argument('--storage-quiesce', action='store_true', help='Stop emulated AHCI and NVMe after EBS (QEMU only)')
     p.add_argument('--storage-quiesce-metal', action='store_true', help='Test the measured AMD board storage handoff before DMA activation')
@@ -87,6 +88,8 @@ def main():
     if args.dma_census and (not args.amdvi_post or args.amdvi_coexist):
         p.error('--dma-census requires --amdvi-post and its own context stage')
     if args.storage_state and not args.dma_census:p.error('--storage-state requires --dma-census')
+    if args.rtx_lab_panel and not (args.dma_census and args.nvidia_probe):
+        p.error('--rtx-lab-panel requires --dma-census and --nvidia-probe')
     if args.full_hd and (not args.storage_state or args.low_gop):
         p.error('--full-hd requires --storage-state and its own QEMU display mode')
     if args.metal_amdvi_preflight:
@@ -119,6 +122,7 @@ def main():
     if args.dma_census:variant+='-dma-census'
     if args.storage_state:variant+='-storage-state'
     if args.full_hd:variant+='-full-hd'
+    if args.rtx_lab_panel:variant+='-rtx-lab'
     app=OUT/(variant + ('-msvc' if args.msvc_panel else ''))
     hashes=json.loads((app/'artifacts.json').read_text())
     for name,digest in hashes.items():
@@ -312,6 +316,8 @@ def main():
     if args.nvidia_probe and (not report['Cases'][0].get('GpuBar0UefiBytes') or
                              not report['Cases'][0].get('GpuNvidiaMmioSkipped')):
         raise ValueError('Missing UEFI BAR0 bounds or device guard evidence')
+    if args.rtx_lab_panel and not report['Cases'][0].get('RtxLabPanelVerified'):
+        raise ValueError('Missing F4 status panel evidence')
     if args.nvidia_gsp_sample and not all(case.get('GpuGspSampleSkipped') for case in report['Cases']):
         raise ValueError('Missing GSP sampling exclusion evidence')
     if args.nvidia_gsp_sample and not all(case.get('GpuWprSampleSkipped') for case in report['Cases']):
@@ -413,6 +419,7 @@ def main():
         nvidia_gsp_prepare=args.nvidia_gsp_prepare,
         amdvi_post_probe=args.amdvi_post,
         dma_census=args.dma_census,
+        rtx_lab_panel=args.rtx_lab_panel,
         storage_state=args.storage_state,
         storage_quiesce=args.storage_quiesce,
         storage_quiesce_metal=args.storage_quiesce_metal,

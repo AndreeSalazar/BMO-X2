@@ -344,6 +344,14 @@ hasta verificar el inicio del GSP y un render escrito por la GPU.
 
 #### Preflight METAL aislado (sin DMA)
 
+El panel optativo de Ring 3 se agrega con `--rtx-lab-panel` en
+`guest.py` y `media.py`. F4 abre y cierra el estado de la prueba RTX.
+Muestra la captura AMD-Vi y la preparacion del firmware junto con los
+cuatro resultados pendientes: USB traducido, DMA limitado de la RTX,
+respuesta del GSP y primer triangulo. F2 conserva el inventario PCI.
+El panel se incluye solo en la variante de prueba y abrirlo no cambia
+el estado de los dispositivos.
+
 `--metal-amdvi-preflight` genera un candidato aparte para capturar el inventario
 NVIDIA/AMD-Vi y verificar que la reserva DTE de 2 MiB sobrevive a
 `ExitBootServices`. La sonda observa la traduccion AMD-Vi y el bit de bus

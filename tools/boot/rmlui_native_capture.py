@@ -745,6 +745,19 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
                     toggle_panel('OFF')
                     amdvi_proof.update(DmaCensusPanelVerified=True,DmaCensusScreenshot=shot.name,
                                        DmaCensusScreenshotSHA256=hashlib.sha256(shot.read_bytes()).hexdigest())
+                if symbols.get('rtx_lab_panel'):
+                    shot=Path(str(prefix)+'-rtx-lab.ppm')
+                    for status in ('ON','OFF'):
+                        _, previous=frame_counter()
+                        key('f4')
+                        def rtx_panel_presented():
+                            phase, frames=frame_counter()
+                            lines=serial.read_text(errors='replace').splitlines()
+                            return f'RTX_LAB={status}' in lines and phase==3 and frames>previous
+                        wait_input(rtx_panel_presented, 'F4 RTX panel did not switch to '+status, 75)
+                        if status=='ON':
+                            command('screendump',{'filename':str(shot)})
+                    amdvi_proof.update(RtxLabPanelVerified=True,RtxLabScreenshot=shot.name)
                 # Exercise the real application stop path, then require BM revoke
                 # and alias removal. Buffers stay pinned, never silently reused.
                 key('f12')

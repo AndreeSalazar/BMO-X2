@@ -98,6 +98,9 @@ static void read_storage_state(Rml::String& page) {
     if(!handoff_attempted)page+="<p>Lectura de registros. La traduccion DMA y los discos conservan su estado.</p>";
 }
 #endif
+#ifdef BMO_RTX_LAB_PANEL
+#include "rtx_lab.inc"
+#endif
 static unsigned read_dma_inventory(Rml::String* pages) {
     constexpr unsigned selector=26;
     constexpr unsigned per_page=16;
@@ -240,9 +243,15 @@ extern "C" void bmo_main() {
     char amdvi_line[180];
     auto* amdvi_panel=doc->GetElementById("amdvi-post");
     check(amdvi_panel,"AMD-Vi report");
+#ifdef BMO_RTX_LAB_PANEL
+    bool translation=false;
+#endif
     if(amdvi_status==4) {
         unsigned long words[5];
         for(unsigned i=0;i<5;++i)words[i]=doom_invoke(3,3,amdvi_diagnostic,i+1);
+#ifdef BMO_RTX_LAB_PANEL
+        translation=(words[0]&1)!=0;
+#endif
         snprintf(amdvi_line,sizeof(amdvi_line),
                  "AMDVI_POST=04 %016lX %016lX %016lX %016lX %016lX\n",
                  words[0],words[1],words[2],words[3],words[4]);
@@ -422,6 +431,12 @@ extern "C" void bmo_main() {
 #ifdef BMO_DMA_CENSUS
     auto* dma_panel=doc->GetElementById("dma-census");
     check(dma_panel,"PCI DMA panel");
+#ifdef BMO_RTX_LAB_PANEL
+    auto* rtx_panel=doc->GetElementById("rtx-lab");
+    check(rtx_panel,"RTX lab panel");
+    rtx_panel->SetInnerRML(rtx_lab_report(amdvi_status,translation,file_status,dma_status));
+    bool rtx_panel_open=false;
+#endif
 #ifdef BMO_STORAGE_STATE
     Rml::String dma_pages[5];
 #else
@@ -557,7 +572,28 @@ extern "C" void bmo_main() {
                 if(scan==0x58) {doom_invoke(3,3,19,0);bmo_usb_disconnect();mouse_input(0,0,0);transport_lost=true;dirty=true;continue;}
 #endif
 #ifdef BMO_DMA_CENSUS
+#ifdef BMO_RTX_LAB_PANEL
+                if(scan==0x3e) {
+                    rtx_panel_open=!rtx_panel_open;
+                    if(rtx_panel_open && dma_panel_open) {
+                        dma_panel->SetProperty("display","none");
+                        dma_panel_open=false;
+                        log("DMA_PANEL=OFF\n");
+                    }
+                    rtx_panel->SetProperty("display",rtx_panel_open?"block":"none");
+                    log(rtx_panel_open?"RTX_LAB=ON\n":"RTX_LAB=OFF\n");
+                    dirty=true;
+                    continue;
+                }
+#endif
                 if(scan==0x3c) {
+#ifdef BMO_RTX_LAB_PANEL
+                    if(rtx_panel_open) {
+                        rtx_panel->SetProperty("display","none");
+                        rtx_panel_open=false;
+                        log("RTX_LAB=OFF\n");
+                    }
+#endif
                     dma_panel_open=!dma_panel_open;
                     if(dma_panel_open)dma_panel->SetInnerRML(dma_pages[dma_page]);
                     dma_panel->SetProperty("display",dma_panel_open?"block":"none");
