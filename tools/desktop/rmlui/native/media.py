@@ -210,7 +210,7 @@ def main():
     extra=reader_budget+usb_budget
     amdvi_offset=0x3000+extra
     amdvi_budget=8192 if args.full_hd or args.amdvi_guest_nvme or (args.amdvi_routed and args.amdvi_dte_reserve) else 4096
-    if args.amdvi_physical_usb_test:amdvi_budget+=4096
+    if args.amdvi_physical_usb_test:amdvi_budget+=8192
     gsp_offset=amdvi_offset+amdvi_budget
     units=[('allocator','kernel/boot/bridge/desktop_media_alloc.S'),('reader','kernel/boot/bridge/desktop_media_read.S'),
         ('gate','kernel/syscalls/session_gate.S'),('loader','kernel/loader/doom_engine_loader.S')]
@@ -301,6 +301,7 @@ def main():
             check_context_stage(llvm,native_probe,'gop_stage',gop_budget)
         if args.amdvi_guest_nvme:check_context_stage(llvm,native_probe,'nvme_guest',4096)
         if args.amdvi_physical_mmio_test:check_context_stage(llvm,native_probe,'amdvi_physical_mmio',4096)
+        if args.amdvi_physical_usb_test:check_context_stage(llvm,native_probe,'nvidia_physical',4096)
         relocations=subprocess.check_output([llvm/'llvm-objdump.exe','-r',native_probe],text=True)
         if 'RELOCATION RECORDS' in relocations:raise ValueError('AMD-Vi firmware inventory must be position independent')
         raw_probe=native_probe.with_suffix('.bin')
@@ -372,7 +373,7 @@ def main():
         raise ValueError('Missing board-specific MMIO exclusion evidence')
     if args.amdvi_physical_usb_test and not all(report['Cases'][0].get(key) for key in
           ('PhysicalUsbTranslationExcluded', 'PhysicalFalconResetExcluded',
-           'PhysicalFwsecDeniedWithoutFirmware')):
+           'PhysicalFwsecDeniedWithoutFirmware', 'PhysicalFwsecLaunchExcluded')):
         raise ValueError('Missing physical xHCI and Falcon exclusions or FWSEC denial evidence')
     if args.nvidia_gsp_prepare and not report['Cases'][0].get('GspQueuePermissionsVerified'):
         raise ValueError('Missing Ring 0 GSP message queue evidence')

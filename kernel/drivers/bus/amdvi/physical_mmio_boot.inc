@@ -71,7 +71,10 @@ amdvi_physical_mmio_begin:
 #ifdef BMO_AMDVI_PHYSICAL_USB_TEST
     cmpq $0x101, GSP_PHYSICAL_MMIO_RESULT(%rbp)
     jne .Lmmio_boot_done
-    call .Lnvidia_board_falcon_reset
+    mov NVIDIA_PHYSICAL_CODE_BASE(%rbp), %rax
+    test %rax, %rax
+    jz .Lmmio_boot_done
+    call *%rax
 #endif
 .Lmmio_boot_done:
     ret
@@ -79,9 +82,6 @@ amdvi_physical_mmio_begin:
 #ifdef BMO_AMDVI_PHYSICAL_USB_TEST
 #include "physical_usb.inc"
 #include "fwsec_domain.S"
-#include "../../GPU/NVIDIA/physical_falcon.inc"
-#define BMO_FALCON_PREPARE_ONLY
-#include "../../GPU/NVIDIA/fwsec_launch.S"
 #define BMO_PHYSICAL_MMIO_IN_STAGE
 #include "physical_translation.S"
 #endif

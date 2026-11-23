@@ -63,8 +63,8 @@ def verify_gsp_reservation(memory, context, expected, case):
     if not (40<=stride<=256 and 0<map_length<=65536 and map_length%stride==0):
         raise ValueError('Invalid final EFI map')
     memmap = memory(context+0x1000,map_length,'gsp-efi-map')
-    descriptors = (struct.unpack_from('<I4xQQQ',memmap,offset)
-                   for offset in range(0,len(memmap),stride))
+    descriptors = [struct.unpack_from('<I4xQQQ',memmap,offset)
+                   for offset in range(0,len(memmap),stride)]
     allocation = reserved + (521*4096 if expected.get('physical_usb_test') else 0)
     if not any(kind==2 and start<=base and base+allocation<=start+pages*4096
                for kind,start,_,pages in descriptors):
@@ -114,6 +114,14 @@ def verify_gsp_reservation(memory, context, expected, case):
             receipt = memory(context+0x920,96,'physical-usb-receipt')
             falcon = memory(context+0x980,8,'physical-falcon-receipt')
             domain_status = memory(context+0x988,8,'physical-fwsec-domain-status')
+            launch = memory(context+0x990,36,'physical-fwsec-launch-receipt')
+            code, = struct.unpack('<Q',memory(context+0x9c0,8,'physical-nvidia-code-base'))
+            if not 0x100000<=code<=0xffff000 or code%4096:
+                raise ValueError('The physical NVIDIA code page is outside supervisor memory')
+            if not any(kind==1 and start<=code and code+4096<=start+pages*4096
+                       for kind,start,_,pages in descriptors):
+                raise ValueError('The physical NVIDIA stage is not reserved as EFI LoaderCode')
+            stage = memory(code,10,'physical-nvidia-code-entries')
             fwsec_domain = memory(dte_base+0x207000,8192,'physical-fwsec-empty-domain')
             page_table = memory(dte_base+0x206000,4096,'physical-usb-empty-pt')
             alias = memory(context+0x15408,8,'physical-usb-absent-alias')
@@ -121,9 +129,12 @@ def verify_gsp_reservation(memory, context, expected, case):
                 raise ValueError('The board USB or Falcon test ran on QEMU')
             if domain_status != b'\x01'+b'\x00'*7 or any(fwsec_domain):
                 raise ValueError('The unverified GPU must remain denied in the physical FWSEC table')
+            if any(launch) or stage[0]!=0xe9 or stage[5]!=0xe9:
+                raise ValueError('The staged NVIDIA loader is missing or ran on QEMU')
             result['PhysicalUsbTranslationExcluded']=True
             result['PhysicalFalconResetExcluded']=True
             result['PhysicalFwsecDeniedWithoutFirmware']=True
+            result['PhysicalFwsecLaunchExcluded']=True
         if detached:
             first_iova = 0x08000000
             if radix != first_iova+used or dma_root != base+payload_pages*4096:

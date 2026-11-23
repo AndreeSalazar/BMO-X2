@@ -1,55 +1,102 @@
-# Board-only post-EBS path. Translation is disabled and its bases restored.
-# No PCI Command writes. Map only the four pages that the Falcon routine can read.
-# Receipt: zero untouched, 0x300 refused, 0x301 ready, 0x302 uncertain.
+# GA106 board stage. Runs on the supervisor stack after ExitBootServices.
+# Reset runs with the IOMMU restored. Launch runs after translated xHCI No-Op.
 .set FALCON_BOARD_PDE, 0x15408
 .set FALCON_BOARD_VA, 0x10200000
-.Lnvidia_board_falcon_reset:
-    push %rdi
+.set FALCON_BOARD_RID, 0x80290000
+
+.globl nvidia_physical_begin
+nvidia_physical_begin:
+.Lnvidia_physical_begin:
+    .byte 0xe9
+    .long .Lboard_reset - . - 4
+    .byte 0xe9
+    .long .Lboard_launch - . - 4
+.Lboard_reset:
+    xor %eax, %eax
+    jmp .Lboard_enter
+.Lboard_launch:
+    mov $1, %eax
+.Lboard_enter:
+    push %rbx
+    push %r12
     push %r13
+    push %r14
+    push %r15
+    push %rdi
     mov %rsp, %r13
     and $-16, %rsp
     sub $48, %rsp
-    movq $0x300, NVIDIA_FALCON_RESET_RESULT(%rbp)
-    cmpq $0, FALCON_BOARD_PDE(%rbp)
-    jne .Lboard_falcon_return
+    mov %eax, %r14d
+    test %eax, %eax
+    jz .Lboard_enter_pci
+    cmpq $0, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)
+    jne .Lboard_skip
+    cmpq $0x301, NVIDIA_FALCON_RESET_RESULT(%rbp)
+    jne .Lboard_skip
+    cmpl $2, GSP_FWSEC_DOMAIN_STATUS(%rbp)
+    jne .Lboard_skip
+    cmpq $0x0a107000, GSP_POST_FWSEC(%rbp)
+    jne .Lboard_skip
+    cmpq $1, AMDVI_PHYSICAL_USB_STATE(%rbp)
+    jne .Lboard_skip
+    movq $0x400, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)
+.Lboard_enter_pci:
     mov $0xcf8, %dx
     in %dx, %eax
-    push %rax
-    mov $0x80290000, %eax
-    call .Lphysical_usb_read_pci
+    mov %eax, %ebx
+    test %r14d, %r14d
+    jnz .Lboard_identity
+    movq $0x300, NVIDIA_FALCON_RESET_RESULT(%rbp)
+.Lboard_identity:
+    xor %eax, %eax
+    call .Lboard_pci_read
     cmp $0x250410de, %eax
-    jne .Lboard_falcon_pci_fail
-    mov $0x80290004, %eax
-    call .Lphysical_usb_read_pci
+    jne .Lboard_exit
+    mov $4, %eax
+    call .Lboard_pci_read
+    movzwl %ax, %r12d
     and $6, %eax
-    cmp $2, %eax                  # Memory decode on, Bus Master off.
-    jne .Lboard_falcon_pci_fail
-    mov $0x80290010, %eax
-    call .Lphysical_usb_read_pci
+    cmp $2, %eax
+    jne .Lboard_exit
+    mov $0x10, %eax
+    call .Lboard_pci_read
     cmp $0xfb000000, %eax
-    jne .Lboard_falcon_pci_fail
-    mov $0x8029002c, %eax
-    call .Lphysical_usb_read_pci
+    jne .Lboard_exit
+    mov $0x2c, %eax
+    call .Lboard_pci_read
     cmp $0x397d1462, %eax
-    jne .Lboard_falcon_pci_fail
-    pop %rax
-    out %eax, %dx
-
+    jne .Lboard_exit
+    mov STORAGE_TSC_10MS(%rbp), %r15
+    cmp $1000000, %r15
+    jb .Lboard_exit
+    cmp $100000000, %r15
+    ja .Lboard_exit
+    test %r14d, %r14d
+    jz .Lboard_map
+    call .Lboard_pcie_status
+    jc .Lboard_exit
+    mov %r14d, %eax
+    call .Lboard_pci_read
+    test $0x00200000, %eax
+    jnz .Lboard_exit
+.Lboard_map:
+    cmpq $0, FALCON_BOARD_PDE(%rbp)
+    jne .Lboard_exit
     mov GSP_PHYSICAL_DTE_BASE(%rbp), %r10
     test $4095, %r10d
-    jnz .Lboard_falcon_return
+    jnz .Lboard_exit
     cmp $0x100000, %r10
-    jb .Lboard_falcon_return
-    cmp $(0x10000000-0x207000), %r10
-    ja .Lboard_falcon_return
-    add $0x206000, %r10           # Validated LoaderData page also used by xHCI later.
+    jb .Lboard_exit
+    cmp $(0x10000000-0x209000), %r10
+    ja .Lboard_exit
+    add $0x206000, %r10
     cld
     mov %r10, %rdi
     mov $512, %ecx
     xor %eax, %eax
     repe scasq
-    jne .Lboard_falcon_return
-    mov %r10, 32(%rsp)            # Outside the Win64 shadow space.
+    jne .Lboard_exit
+    mov %r10, 32(%rsp)
     movabs $0x80000000fb00001b, %rax
     mov %rax, 0(%r10)
     lea 0x110000(%rax), %rcx
@@ -60,31 +107,135 @@
     mov %rax, (0x1fa*8)(%r10)
     lea 3(%r10), %rax
     mov %rax, FALCON_BOARD_PDE(%rbp)
-    call .Lboard_falcon_flush
+    call .Lboard_flush
+    test %r14d, %r14d
+    jnz .Lboard_fwsec
     mov $FALCON_BOARD_VA, %ecx
-    mov STORAGE_TSC_10MS(%rbp), %rdx
+    mov %r15, %rdx
     call .Lprepare_ga106_falcon
     or $0x300, %eax
     mov %rax, NVIDIA_FALCON_RESET_RESULT(%rbp)
+    jmp .Lboard_unmap
+.Lboard_fwsec:
+    mov %r12d, %ecx
+    or $4, %ecx
+    call .Lboard_command
+    cmp %cx, %ax
+    jne .Lboard_revoke
+    mov $FALCON_BOARD_VA, %ecx
+    mov %r15, %rdx
+    mov $0x0a107000, %r8d
+    lea NVIDIA_FWSEC_LAUNCH_RECEIPT(%rbp), %r9
+    call .Llaunch_ga106_fwsec
+    or $0x400, %eax
+    mov %rax, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)
+.Lboard_revoke:
+    mov %r12d, %ecx
+    call .Lboard_command
+    cmp %r12w, %ax
+    jne .Lboard_pin
+    imul $10, %r15, %r15         # Bound PCIe drain to 100 ms.
+    lfence
+    rdtsc
+    shl $32, %rdx
+    or %rdx, %rax
+    add %rax, %r15
+.Lboard_drain:
+    mov %r14d, %eax
+    call .Lboard_pci_read
+    cmp $-1, %eax
+    je .Lboard_pin
+    test $0x00200000, %eax
+    jz .Lboard_unmap
+    call .Lwithin_deadline
+    jb .Lboard_drain
+.Lboard_pin:
+    movq $0x404, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)
+.Lboard_unmap:
     movq $0, FALCON_BOARD_PDE(%rbp)
-    call .Lboard_falcon_flush
+    call .Lboard_flush
     mov 32(%rsp), %r10
     movq $0, 0(%r10)
     movq $0, (0x110*8)(%r10)
     movq $0, (0x111*8)(%r10)
     movq $0, (0x1fa*8)(%r10)
-    jmp .Lboard_falcon_return
-.Lboard_falcon_pci_fail:
-    pop %rax
+.Lboard_exit:
+    mov $0xcf8, %dx
+    mov %ebx, %eax
     out %eax, %dx
-.Lboard_falcon_return:
+    xor %eax, %eax
+    cmpq $0x404, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)
+    jne .Lboard_return
+    mov $3, %eax
+    jmp .Lboard_return
+.Lboard_skip:
+    xor %eax, %eax
+.Lboard_return:
     mov %r13, %rsp
-    pop %r13
     pop %rdi
+    pop %r15
+    pop %r14
+    pop %r13
+    pop %r12
+    pop %rbx
     ret
-.Lboard_falcon_flush:
+
+# Locate PCIe Device Control/Status within the conventional capabilities.
+# A 48-entry budget rejects cycles, malformed pointers, and absent PCIe.
+.Lboard_pcie_status:
+    mov $4, %eax
+    call .Lboard_pci_read
+    test $0x00100000, %eax
+    jz .Lboard_pcie_bad
+    mov $0x34, %eax
+    call .Lboard_pci_read
+    mov $48, %r11d
+.Lboard_pcie_next:
+    movzbl %al, %r10d
+    cmp $0x40, %r10d
+    jb .Lboard_pcie_bad
+    cmp $0xf4, %r10d
+    ja .Lboard_pcie_bad
+    test $3, %r10d
+    jnz .Lboard_pcie_bad
+    mov %r10d, %eax
+    call .Lboard_pci_read
+    cmp $0x10, %al               # PCI Express capability ID.
+    je .Lboard_pcie_found
+    shr $8, %eax
+    dec %r11d
+    jnz .Lboard_pcie_next
+.Lboard_pcie_bad:
+    stc
+    ret
+.Lboard_pcie_found:
+    lea 8(%r10), %r14d
+    clc
+    ret
+
+.Lboard_command:
+    mov $(FALCON_BOARD_RID+4), %eax
+    mov $0xcf8, %dx
+    out %eax, %dx
+    add $4, %dx
+    mov %ecx, %eax
+    out %ax, %dx                 # Never write PCI Status.
+    in %dx, %ax
+    ret
+.Lboard_pci_read:
+    or $FALCON_BOARD_RID, %eax
+    mov $0xcf8, %dx
+    out %eax, %dx
+    add $4, %dx
+    in %dx, %eax
+    ret
+.Lboard_flush:
     invlpg FALCON_BOARD_VA
     invlpg (FALCON_BOARD_VA+0x110000)
     invlpg (FALCON_BOARD_VA+0x111000)
     invlpg (FALCON_BOARD_VA+0x1fa000)
     ret
+
+#include "fwsec_launch.S"
+.globl nvidia_physical_end
+nvidia_physical_end:

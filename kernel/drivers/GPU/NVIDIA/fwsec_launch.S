@@ -136,9 +136,9 @@ nvidia_prepare_ga106_falcon:
     lea (%rax,%r10), %r15
     ret
 
-#ifndef BMO_FALCON_PREPARE_ONLY
 .globl nvidia_launch_ga106_fwsec
 nvidia_launch_ga106_fwsec:
+.Llaunch_ga106_fwsec:
     test %rcx, %rcx
     jz .Lfwsec_reject
     test %r9, %r9
@@ -293,12 +293,10 @@ nvidia_launch_ga106_fwsec:
     pop %r12
     pop %rbx
     ret
-#endif
 .Lfwsec_reject:
     xor %eax, %eax
     ret
 
-#ifndef BMO_FALCON_PREPARE_ONLY
 .Ltransfer:
     call .Lwait_dma_slot
     jc .Ltransfer_end
@@ -334,7 +332,6 @@ nvidia_launch_ga106_fwsec:
     stc
 .Lslot_end:
     ret
-#endif
 .Lvalid_read:
     cmp $-1, %eax
     je .Linvalid_read
@@ -356,7 +353,6 @@ nvidia_launch_ga106_fwsec:
     or %rdx, %rax
     cmp %r15, %rax
     ret
-#ifndef BMO_FALCON_PREPARE_ONLY
 .Lrecord_reply:
     mov 0x40(%r13), %eax
     mov %eax, 8(%r14)
@@ -369,4 +365,3 @@ nvidia_launch_ga106_fwsec:
     mov WPR2_HIGH(%r12), %eax
     mov %eax, 24(%r14)
     ret
-#endif

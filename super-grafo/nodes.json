@@ -2792,7 +2792,7 @@
       "entrada": "GA106 frio, BAR0 exclusivo y reloj calibrado para preparar Falcon. La carga exige ademas la IOVA FWSEC autorizada.",
       "salida": "Recibo privado de la fase, bytes transferidos, buzones y limites WPR2.",
       "aceptacion": "HOST ejecuta el codigo nativo con registros simulados y verifica la preparacion de Falcon, los plazos de seleccion y borrado, los 234 bloques y ambas rutas STARTCPU.",
-      "falta": "El perfil experimental llama la preparacion antes de USB y mantiene Bus Master desactivado. Falta probarla en METAL, invocar el cargador bajo DMA fisico y usar WPR2 para iniciar SEC2."
+      "falta": "El ensayo fisico tiene una ruta de carga tras el No-Op xHCI traducido y retira Bus Master al salir. Falta superar la admision de la placa, verificar WPR2 en METAL y arrancar SEC2."
     },
     {
       "id": "nvidia-gsp-ring0-radix3",
@@ -3101,7 +3101,7 @@
       "entrada": "Reserva EFI validada, tabla DTE fisica y direccion de FWSEC preparado, o cero para denegar.",
       "salida": "Dominio FWSEC o denegacion para 29:00.0 con el resto de los solicitantes intactos.",
       "aceptacion": "HOST verifica todas las entradas de las dos tablas, denegacion sin firmware, rangos rechazados y audio intacto.",
-      "falta": "Validar el aislamiento en METAL y conectar la apertura y revocacion de Bus Master al cargador FWSEC."
+      "falta": "Verificar el aislamiento de las quince paginas durante la primera carga FWSEC en METAL."
     },
     {
       "id": "amdvi-physical-tables",

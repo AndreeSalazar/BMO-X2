@@ -86,6 +86,13 @@
     jnz .Lphysical_usb_check_failed
     call .Lphysical_usb_unmap
     movq $0x212, AMDVI_PHYSICAL_USB_RESULT(%rbp) # xHC No-Op matched, no IOMMU event.
+    mov NVIDIA_PHYSICAL_CODE_BASE(%rbp), %rax
+    test %rax, %rax
+    jz .Lphysical_usb_pass
+    add $NVIDIA_PHYSICAL_FWSEC_ENTRY, %rax
+    call *%rax
+    cmp $3, %eax
+    je .Lphysical_usb_pin
     jmp .Lphysical_usb_pass
 .Lphysical_usb_check_failed:
     call .Lphysical_usb_unmap

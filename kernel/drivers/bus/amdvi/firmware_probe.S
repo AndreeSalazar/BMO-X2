@@ -60,6 +60,47 @@ amdvi_firmware_probe:
     mov %r9, (%rsp)
     mov 0x60(%rcx), %rax
     mov %rax, 8(%rsp)
+#ifdef BMO_AMDVI_PHYSICAL_USB_TEST
+    push %rcx
+    push %rdx
+    push %r8
+    push %r9
+    sub $32, %rsp
+    movq $0x0fffffff, NVIDIA_PHYSICAL_CODE_BASE(%rbp)
+    mov $1, %ecx                   # AllocateMaxAddress in supervisor identity memory.
+    mov $1, %edx                   # EfiLoaderCode.
+    mov $1, %r8d
+    lea NVIDIA_PHYSICAL_CODE_BASE(%rbp), %r9
+    call *0x28(%rax)
+    test %rax, %rax
+    jnz .Lnvidia_stage_unavailable
+    mov NVIDIA_PHYSICAL_CODE_BASE(%rbp), %rdi
+    cmp $0x100000, %rdi
+    jb .Lnvidia_stage_unavailable
+    cmp $0xffff000, %rdi
+    ja .Lnvidia_stage_unavailable
+    test $4095, %edi
+    jnz .Lnvidia_stage_unavailable
+    mov %rdi, %rsi
+    xor %eax, %eax
+    mov $512, %ecx
+    cld
+    rep stosq
+    mov %rsi, %rdi
+    lea .Lnvidia_physical_begin(%rip), %rsi
+    mov $(nvidia_physical_end-nvidia_physical_begin), %ecx
+    rep movsb
+    jmp .Lnvidia_stage_done
+.Lnvidia_stage_unavailable:
+    movq $0, NVIDIA_PHYSICAL_CODE_BASE(%rbp)
+.Lnvidia_stage_done:
+    add $32, %rsp
+    pop %r9
+    pop %r8
+    pop %rdx
+    pop %rcx
+    mov 8(%rsp), %rax
+#endif
 #ifdef BMO_AMDVI_DTE_RESERVE
     # QEMU-only preparation: reserve and verify the complete 2 MiB DTE
     # array as EfiLoaderData. No AMD-Vi register or PCI command is touched.
@@ -525,6 +566,9 @@ amdvi_uefi_snapshot:
 #endif
 #ifdef BMO_AMDVI_PHYSICAL_MMIO_TEST
 #include "physical_mmio_boot.inc"
+#ifdef BMO_AMDVI_PHYSICAL_USB_TEST
+#include "../../GPU/NVIDIA/physical_falcon.inc"
+#endif
 #endif
 #ifdef BMO_AMDVI_GUEST_NVME
 #include "../../storage/nvme_guest.inc"
