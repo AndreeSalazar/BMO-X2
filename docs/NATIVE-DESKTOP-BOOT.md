@@ -1086,6 +1086,17 @@ codigo nativo, inspecciono las 65,536 DTE y verifico las 14 paginas USB
 cruzando dos hojas. Cinco entradas invalidas rechazadas conservaron
 los buffers byte por byte. La sonda todavia no esta conectada al
 arranque fisico.
+
+`amdvi_prepare_from_efi_map` conecta ese constructor con el formato del
+mapa EFI final. Antes de escribir valida por separado la DTE, el espacio
+de trabajo, los buffers xHCI y la reserva completa de RTX como
+`EfiLoaderData` bajo el mapa identidad de 256 MiB. La raiz RTX debe
+caber dentro de su reserva y esa reserva no se puede solapar con las
+otras tres. El llamador sigue siendo responsable de validar el arbol
+RTX y la propiedad de los controladores. HOST ejecuto la entrada nativa
+con memoria baja, un mapa valido y cinco mapas o reservas rechazados
+sin modificar la tabla. Falta llamar esta entrada desde el arranque
+fisico y comprobar la publicacion y revocacion de los dominios.
 [Inventario PCI en METAL](../Reports/dma-pci-census-metal-20261120.json).
 [Estado de los discos en METAL](../Reports/storage-state-metal-20261120.json).
 [Evidencia del candidato de cierre](../Reports/amdvi-storage-handoff-20261121.json).

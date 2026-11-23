@@ -3069,10 +3069,10 @@
       "ring0_platform_probe": true,
       "posicion": [12100, 4490],
       "que": "Construye las DTE y las 14 paginas de xHCI en memoria privada.",
-      "entrada": "Reservas alineadas y raiz de RTX validada por el llamador.",
+      "entrada": "Mapa EFI final, cuatro reservas LoaderData alineadas y raiz de RTX validada por el llamador.",
       "salida": "Tabla completa y raiz xHCI separada, sin publicaciones MMIO.",
       "aceptacion": "HOST: comprobar 65536 DTE, las dos hojas USB y rechazos sin escrituras.",
-      "falta": "Integrar reservas y validar la transicion fisica en Ring 0."
+      "falta": "Invocar desde el arranque y validar la transicion fisica en Ring 0."
     },
     {
       "id": "storage-state-uefi",
