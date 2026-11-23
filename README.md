@@ -137,15 +137,14 @@ El nuevo candidato de escritorio conecta RmlUi con DIRECTOR Rust:
 Ctrl+Super+1..4 cambia espacios, Super+Q cierra el panel y F1 lo reabre.
 Arranca desde archivos FAT32 reales en QEMU y dispone de un EFI separado
 para prueba fisica. El 16-11-2026 el propietario confirmo el escritorio
-en METAL AMD a 1920x1080 con fotografia y BOOTLOG. USB HID sigue pendiente;
-la llegada visual al escritorio no acredita teclado/raton USB.
+en METAL AMD a 1920x1080 con fotografia y BOOTLOG; despues confirmo que
+teclado y raton USB respondian en el escritorio.
 [Evidencia METAL](Reports/rmlui-desktop-metal-20261116.json).
 [Ruta de arranque, controles y limites](docs/NATIVE-DESKTOP-BOOT.md).
 
-GPU/NVIDIA tiene un candidato UEFI propio. Antes de entrar al escritorio,
-registra el inventario PCI y coteja la unidad AMD-Vi que describe el
-firmware. CPU y GOP presentan la interfaz mientras se prepara el dominio
-DMA para el arranque del GSP.
+GPU/NVIDIA tiene un candidato UEFI propio. CPU y GOP presentan la interfaz;
+la sonda registra PCI y AMD-Vi sin activar la traduccion, tocar Bus Master ni
+iniciar GSP. El estado de hoy es preflight, no aceleracion 3D.
 En el candidato de inventario PCI, F2 muestra los dispositivos con DMA
 habilitado despues de iniciar USB. Esa captura permite preparar sus
 mapeos antes de activar AMD-Vi en el equipo fisico.
@@ -162,6 +161,14 @@ invalida los solicitantes presentes y comprueba una transferencia traducida,
 su rechazo fuera de rango y la revocacion. Los tres casos QEMU pasaron.
 Esto valida el laboratorio virtual; no enciende DMA de la RTX ni acelera
 el escritorio fisico. [Evidencia de tabla completa](Reports/amdvi-full-dte-default-deny-qemu-20261121.json).
+
+El siguiente candidato fisico queda aislado en `EFI/BMO-X2/AMDVI-PREFLIGHT.EFI`
+y `BMO-X2/GPU-PF`; conserva intactos `NVIDIA.EFI` y los datos de GPU actuales.
+QEMU paso 3/3 para FAT32, rechazo W+X y reserva/lectura DTE post-EBS. Esta
+prueba todavia no habilita DMA, GSP ni dibujo 3D; el siguiente insumo es el
+`GPU-PF/GPULOG.TXT` y la linea `AMDVI_DTE_POST` capturados en el equipo real.
+[Evidencia QEMU del preflight](Reports/amdvi-metal-preflight-qemu-20261121.json) ·
+[Pasos para el ensayo METAL](docs/NATIVE-DESKTOP-BOOT.md#preflight-metal-aislado-sin-dma).
 
 El preflight HOST coteja los BDF del censo METAL con los alcances IVRS
 leidos ahora de ACPI. El censo guardado queda cubierto por una sola unidad

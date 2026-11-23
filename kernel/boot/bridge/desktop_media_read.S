@@ -1,5 +1,10 @@
 .text
 #define DESKTOP_READER_OFFSET 0x3000
+#ifdef BMO_EXTENDED_MEDIA_READER
+#define DESKTOP_XHCI_MEDIA_OFFSET 0x5000
+#else
+#define DESKTOP_XHCI_MEDIA_OFFSET 0x4000
+#endif
 #ifdef RMLUI_GOP_REGIONS
 #include "../../drivers/display/GOP/gop_layout.inc"
 #endif
@@ -181,7 +186,7 @@ staging_ready:
 #if !defined(RMLUI_MEDIA) || defined(RMLUI_USB)
     # Copy the xHCI stage to the page between the packet buffer and page tables.
     .byte 0x48, 0x8d, 0x35
-    .long 0x4000 - DESKTOP_READER_OFFSET - (. - desktop_media_read) - 4
+    .long DESKTOP_XHCI_MEDIA_OFFSET - DESKTOP_READER_OFFSET - (. - desktop_media_read) - 4
 #ifdef XHCI_NATIVE_DUAL
     mov 0x728(%rbp), %rdi
     mov $1024, %ecx
@@ -216,7 +221,10 @@ done:
     # UEFI accepts CHAR16 paths at aligned addresses.
     .p2align 1
 path:
-#if defined(BMO_NVIDIA_PCI_PROBE)
+#if defined(BMO_GPU_PREFLIGHT)
+    # \BMO-X2\GPU-PF\DESKTOP.SBF
+    .short 92,66,77,79,45,88,50,92,71,80,85,45,80,70,92,68,69,83,75,84,79,80,46,83,66,70,0
+#elif defined(BMO_NVIDIA_PCI_PROBE)
     # \BMO-X2\GPU\DESKTOP.SBF
     .short 92,66,77,79,45,88,50,92,71,80,85,92,68,69,83,75,84,79,80,46,83,66,70,0
 #elif defined(RMLUI_MEDIA)

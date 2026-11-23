@@ -2,6 +2,10 @@
 #ifdef BMO_NVIDIA_GSP_STAGE
 #define BMO_BOOT_REPORT_AREA 0xc00
 #define BMO_BOOT_REPORT_LIMIT 0x360
+#elif defined(BMO_NVIDIA_PCI_PROBE) && defined(BMO_AMDVI_DTE_RESERVE)
+#define BMO_BOOT_REPORT_AREA 0xc00
+// Keep this combined, read-only preflight report inside its reserved 0xc00-0x1000 window.
+#define BMO_BOOT_REPORT_LIMIT 0x400
 #else
 #define BMO_BOOT_REPORT_AREA 0x800
 #define BMO_BOOT_REPORT_LIMIT 0x300
@@ -301,7 +305,10 @@ report_end:
 #endif
     .p2align 1
 report_path:
-#if defined(BMO_NVIDIA_PCI_PROBE)
+#if defined(BMO_GPU_PREFLIGHT)
+    # \BMO-X2\GPU-PF\GPULOG.TXT
+    .short 92,66,77,79,45,88,50,92,71,80,85,45,80,70,92,71,80,85,76,79,71,46,84,88,84,0
+#elif defined(BMO_NVIDIA_PCI_PROBE)
     # \BMO-X2\GPU\GPULOG.TXT
     .short 92,66,77,79,45,88,50,92,71,80,85,92,71,80,85,76,79,71,46,84,88,84,0
 #elif defined(RMLUI_MEDIA)

@@ -38,6 +38,8 @@ def main():
     p.add_argument('--nvidia-fwsec-vbios', type=Path, help='Pin FWSEC preparation to the verified MSI GA106 VBIOS')
     p.add_argument('--amdvi-probe', action='store_true', help='Add read-only AMD-Vi firmware inventory')
     p.add_argument('--amdvi-dte-reserve', action='store_true', help='QEMU-only: reserve and verify the full zeroed 2 MiB AMD-Vi DTE table without enabling the IOMMU')
+    p.add_argument('--metal-amdvi-preflight', action='store_true',
+                   help='Build a separately named METAL preflight candidate; AMD-Vi translation, RTX DMA, GSP and 3D remain disabled')
     p.add_argument('--amdvi-post', action='store_true', help='Take a second AMD-Vi snapshot after ExitBootServices')
     p.add_argument('--amdvi-coexist', action='store_true', help='Exercise virtual EDU and USB DMA together in QEMU')
     p.add_argument('--amdvi-guest-dma', action='store_true', help='Let the guest program AMD-Vi in the virtual lab')
@@ -85,6 +87,17 @@ def main():
     if args.storage_state and not args.dma_census:p.error('--storage-state requires --dma-census')
     if args.full_hd and (not args.storage_state or args.low_gop):
         p.error('--full-hd requires --storage-state and its own QEMU display mode')
+    if args.metal_amdvi_preflight:
+        required = (args.nvidia_probe and args.amdvi_probe and args.amdvi_post and
+                    args.amdvi_dte_reserve and args.usb == 'both')
+        prohibited = (args.nvidia_gsp_sample or args.nvidia_gsp_stage or args.nvidia_gsp_prepare or
+                      args.amdvi_coexist or args.amdvi_guest_dma or args.amdvi_storage or
+                      args.amdvi_routed or args.amdvi_nvme or args.amdvi_guest_nvme or
+                      args.amdvi_guest_ahci or args.amdvi_gsp_dma or args.dma_census or
+                      args.storage_state or args.full_hd or args.storage_quiesce or
+                      args.storage_quiesce_metal or args.usb_empty_ports or args.msvc_panel or args.low_gop)
+        if not required or prohibited:
+            p.error('--metal-amdvi-preflight requires NVIDIA/AMD-Vi probes, post-EBS DTE reserve and USB both; it forbids DMA/GSP/census/storage/guest/quiesce modes')
     if args.storage_quiesce and not args.full_hd:
         p.error('--storage-quiesce uses the combined platform stage of --full-hd')
     if args.storage_quiesce_metal and not (args.full_hd and args.nvidia_fwsec_vbios and not args.storage_quiesce):
@@ -116,6 +129,8 @@ def main():
     (run/'gop-regions.txt').write_text('cpu-gop\n',encoding='ascii')
     if args.nvidia_probe:
         (run/'nvidia-pci-probe.txt').write_text('pci-read-only\n', encoding='ascii')
+    if args.metal_amdvi_preflight:
+        (run/'gpu-preflight.txt').write_text('read-only-gpu-preflight\n', encoding='ascii')
     if args.nvidia_gsp_sample:
         (run/'nvidia-gsp-sample.txt').write_text('ga106-gsp-wpr-read-only\n', encoding='ascii')
     if args.amdvi_probe:
@@ -154,7 +169,11 @@ def main():
     if args.usb:(run/'native-usb.txt').write_text(args.usb+'\n',encoding='ascii')
     if args.usb_empty_ports:(run/'native-usb-empty.txt').write_text('QEMU fault test\n',encoding='ascii')
     llvm=Path(os.environ['ProgramFiles'])/'LLVM/bin'
-    extra=12288 if args.usb=='both' else 8192 if args.usb else 4096
+    # The GPU + AMD-Vi read-only profile adds a second reader page. Keep the
+    # xHCI and AMD-Vi blobs page-aligned after that larger reader.
+    reader_budget=8192 if args.metal_amdvi_preflight else 4096
+    usb_budget=8192 if args.usb=='both' else 4096 if args.usb else 0
+    extra=reader_budget+usb_budget
     amdvi_offset=0x3000+extra
     amdvi_budget=8192 if args.full_hd or args.amdvi_guest_nvme or (args.amdvi_routed and args.amdvi_dte_reserve) else 4096
     gsp_offset=amdvi_offset+amdvi_budget
@@ -162,6 +181,7 @@ def main():
         ('gate','kernel/syscalls/session_gate.S'),('loader','kernel/loader/doom_engine_loader.S')]
     for name,source in units:
         flags=['-DRMLUI_USB','-DDESKTOP_MEDIA','-DXHCI_COMMAND_PROBE'] if args.usb else []
+        if args.metal_amdvi_preflight and name=='reader':flags+=['-DBMO_EXTENDED_MEDIA_READER','-DBMO_GPU_PREFLIGHT']
         if args.amdvi_gsp_dma:flags+=['-DBMO_AMDVI_GSP_DMA']
         if args.usb=='both':flags+=['-DXHCI_NATIVE_DUAL']
         if args.nvidia_probe and name == 'reader':flags+=['-DBMO_NVIDIA_PCI_PROBE']
@@ -188,9 +208,10 @@ def main():
     gate=(run/'gate.bin').read_bytes();loader=(run/'loader.bin').read_bytes()
     packet,_=make_packet(reference,sbef,session_gate=gate,external=loader,engine=True,full_hd=args.full_hd)
     intro=(splash/'INICIO.X86').read_bytes();packet,_=prepend_intro(packet,intro)
-    image=bridge_variant(native_ui=True,nvidia_probe=args.nvidia_probe)
+    image=bridge_variant(native_ui=True,nvidia_probe=args.nvidia_probe,
+                         gpu_preflight=args.metal_amdvi_preflight)
     reader=(run/'reader.bin').read_bytes();allocator=(run/'allocator.bin').read_bytes()
-    if len(image)!=0x3000 or len(reader)>4096 or len(allocator)>0xf0 or image[0x267:0x26c]!=bytes.fromhex('e894050000'):
+    if len(image)!=0x3000 or len(reader)>reader_budget or len(allocator)>0xf0 or image[0x267:0x26c]!=bytes.fromhex('e894050000'):
         raise ValueError('Native EFI extension exceeds verified slots')
     struct.pack_into('<i',image,0x268,0x3000-0x267-5)
     if args.amdvi_probe:extra+=amdvi_budget
@@ -198,7 +219,7 @@ def main():
     for offset,old in ((0x5c,0x2e00),(0x90,0x4000),(0x150,0x2e00),(0x158,0x2e00)):
         if struct.unpack_from('<I',image,offset)[0]!=old:raise ValueError('EFI PE header changed')
         struct.pack_into('<I',image,offset,old+extra)
-    image.extend(reader.ljust(4096,b'\0'))
+    image.extend(reader.ljust(reader_budget,b'\0'))
     if args.usb:
         flags=['-DRMLUI_USB']+(['-DXHCI_NATIVE_DUAL'] if args.usb=='both' else ['-DXHCI_COMMAND_PROBE'])+(['-DXHCI_MOUSE_PROBE'] if args.usb=='mouse' else [])
         if args.full_hd:flags+=['-DBMO_FULL_HD']
@@ -206,7 +227,7 @@ def main():
             ROOT/'kernel/drivers/bus/xhci_inventory.inc','-o',run/'xhci.o'],'compile-native-xhci')
         command([llvm/'llvm-objcopy.exe','-O','binary','--only-section=.text',run/'xhci.o',run/'xhci.bin'],'extract-native-xhci')
         stage=(run/'xhci.bin').read_bytes()
-        budget=8192 if args.usb=='both' else 4096
+        budget=usb_budget
         if not 0<len(stage)<=budget:raise ValueError('USB stage exceeds its explicit reserved code pages')
         image.extend(stage.ljust(budget,b'\0'))
     if args.amdvi_probe:
@@ -266,7 +287,8 @@ def main():
     scripts=ROOT/'tools/boot';shell=shutil.which('powershell.exe')
     command([shell,'-NoProfile','-ExecutionPolicy','Bypass','-File',scripts/'disk.ps1','-OutputRoot',run,'-Programa','INICIO.X86','-GPT'],'create-native-fat32')
     bad=bytearray(sbef);struct.pack_into('<I',bad,116,7);(run/'rejected.sbef').write_bytes(bad)
-    prepare_flags = ['--nvidia-probe'] if args.nvidia_probe else []
+    prepare_flags = (['--nvidia-probe','--gpu-preflight'] if args.metal_amdvi_preflight else
+                     ['--nvidia-probe'] if args.nvidia_probe else [])
     media_cases = [('external-permissions',run/'rejected.sbef')]
     if gsp is not None:
         media_cases.append(('amdvi-missing',run/'rmlui.sbef'))
@@ -357,7 +379,8 @@ def main():
         raise ValueError('Missing translated DMA or default-deny evidence')
     if args.amdvi_routed and report['Cases'][0].get('DeviceTablePages')!=512:
         raise ValueError('The routed QEMU domain does not cover all 65536 requester IDs')
-    media_prefix = 'BMO-X2/GPU' if args.nvidia_probe else 'BMO-X2/DESKTOP'
+    media_prefix = ('BMO-X2/GPU-PF' if args.metal_amdvi_preflight else
+                    'BMO-X2/GPU' if args.nvidia_probe else 'BMO-X2/DESKTOP')
     fs=Fat32(run/'build/puente-normal.img')
     try:
         if fs.file_bytes(f'{media_prefix}/DESKTOP.SBF')!=sbef or fs.file_bytes(f'{media_prefix}/INICIO.X86',4096)!=packet:
@@ -366,11 +389,13 @@ def main():
             raise ValueError('FAT32 GSP container differs')
     finally:fs.close()
     media=run/'media'
-    boot_name = 'NVIDIA.EFI' if args.nvidia_probe else 'DESKTOP.EFI'
+    boot_name = ('AMDVI-PREFLIGHT.EFI' if args.metal_amdvi_preflight else
+                 'NVIDIA.EFI' if args.nvidia_probe else 'DESKTOP.EFI')
     staged={f'EFI/BMO-X2/{boot_name}':image,f'{media_prefix}/INICIO.X86':packet,f'{media_prefix}/DESKTOP.SBF':sbef}
     if gsp is not None:
         staged[f'{media_prefix}/GSP.BIN'] = gsp
-    storage_lab_only = args.storage_quiesce or args.amdvi_nvme or args.amdvi_dte_reserve or args.amdvi_routed
+    storage_lab_only = (args.storage_quiesce or args.amdvi_nvme or args.amdvi_dte_reserve or
+                        args.amdvi_routed) and not args.metal_amdvi_preflight
     if not storage_lab_only:
         for name,data in staged.items():
             target=media/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(data)
@@ -397,10 +422,17 @@ def main():
         amdvi_guest_ahci=args.amdvi_guest_ahci,
         amdvi_gsp_dma=args.amdvi_gsp_dma,
         amdvi_dte_reserve=args.amdvi_dte_reserve,
-        qemu_only=bool(args.usb) or args.amdvi_dte_reserve,usb_profile=args.usb,
+        qemu_only=(bool(args.usb) or args.amdvi_dte_reserve) and not args.metal_amdvi_preflight,
+        metal_amdvi_preflight=args.metal_amdvi_preflight,
+        physical_dma_translation_enabled=False,
+        nvidia_dma_grant=False,
+        nvidia_gsp_verified=False,
+        native_gpu_3d_verified=False,
+        usb_profile=args.usb,
         usb_empty_ports=args.usb_empty_ports,
         hardware_profile='amd149c-usb2-root-experimental' if args.usb=='both' and not args.usb_empty_ports else None,
         note=('QEMU-only lab; no installable media is emitted.' if storage_lab_only else
+              'METAL preflight only: fresh PCI/AMD-Vi snapshots and DTE reservation/readback; translation and RTX DMA stay disabled, no GSP or native 3D.' if args.metal_amdvi_preflight else
               'Separate desktop candidate; no QEMU loader device, UEFI reads real FAT32 files.'),
         files={} if storage_lab_only else {name:hashlib.sha256(data).hexdigest() for name,data in staged.items()})
     (run/'qemu-results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='ascii')

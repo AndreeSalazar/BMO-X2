@@ -12,14 +12,18 @@ from scope import ROOT, workspace
 from wake import HD_PROFILE, SPLASH_PROFILE, assemble, check
 
 
-def bridge_variant(*, native_ui=False, nvidia_probe=False):
+def bridge_variant(*, native_ui=False, nvidia_probe=False, gpu_preflight=False):
     packet_path = r'\BMO-X2\INICIO.X86'
-    if nvidia_probe:
+    if gpu_preflight:
+        packet_path = r'\BMO-X2\GPU-PF\INICIO.X86'
+    elif nvidia_probe:
         packet_path = r'\BMO-X2\GPU\INICIO.X86'
     elif native_ui:
         packet_path = r'\BMO-X2\DESKTOP\INICIO.X86'
     missing_packet = 'RED [BMO-X2] no se pudo leer BMO-X2/INICIO.X86\r\n'
-    if nvidia_probe:
+    if gpu_preflight:
+        missing_packet = 'RED [BMO-X2] falta GPU-PF/INICIO.X86\r\n'
+    elif nvidia_probe:
         missing_packet = 'RED [BMO-X2] no se pudo leer BMO-X2/GPU/INICIO.X86\r\n'
     bridge = ROOT / 'kernel/boot/bridge'
     image = bytearray(assemble([bridge / name for name in

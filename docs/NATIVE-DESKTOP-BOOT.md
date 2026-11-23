@@ -342,6 +342,40 @@ concesion y revocacion de la RTX sin presentar el resultado como aceleracion
 hasta verificar el inicio del GSP y un render escrito por la GPU.
 [Reporte post-EBS](../Reports/amdvi-dte-post-ebs-qemu-20261121.json).
 
+#### Preflight METAL aislado (sin DMA)
+
+`--metal-amdvi-preflight` genera un candidato aparte para capturar el inventario
+NVIDIA/AMD-Vi y verificar que la reserva DTE de 2 MiB sobrevive a
+`ExitBootServices`. La sonda observa la traduccion AMD-Vi y el bit de bus
+master de la RTX sin modificarlos. No inicia GSP ni trabajo 3D. No incluye censo DMA ni
+sondas de almacenamiento en este primer arranque para respetar los slots
+verificados de Ring 0.
+
+La compilacion alarga el lector de 4 a 8 KiB y desplaza xHCI y la sonda AMD-Vi
+a sus propias paginas; el informe cabe en la ventana reservada `0xc00-0x1000`.
+El candidato usa `BMO-X2/GPU-PF` y `EFI/BMO-X2/AMDVI-PREFLIGHT.EFI`, por lo
+que no sustituye `NVIDIA.EFI`, `GPU/INICIO.X86`, `GPU/DESKTOP.SBF` ni el
+`GPU/GPULOG.TXT` que ya tienes.
+
+```powershell
+$py = Join-Path $env:USERPROFILE '.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe'
+& $py -B tools/desktop/rmlui/native/guest.py --desktop --usb both --amdvi-post --amdvi-dte-report
+& $py -B tools/desktop/rmlui/native/media.py build/CASM/run-20261117-215023-ba7dd515 build/CASM/run-20261112-044806-6da064f6 --usb both --nvidia-probe --amdvi-probe --amdvi-post --amdvi-dte-reserve --metal-amdvi-preflight
+```
+
+La ejecucion de QEMU del 21-11-2026 paso 3/3: arranque FAT32, rechazo de
+SBEF W+X y verificacion post-EBS de la tabla DTE. Eso solo valida el candidato
+virtual. Para el ensayo fisico copia los tres archivos de `media` conservando
+sus rutas y arranca `AMDVI-PREFLIGHT.EFI` desde el selector UEFI de archivo;
+no reemplaces entradas ni archivos existentes. El informe nuevo queda en
+`A:\BMO-X2\GPU-PF\GPULOG.TXT` y recoge el estado anterior a ExitBootServices.
+Fotografia tambien el pie del escritorio con `AMDVI_DTE_POST` para conservar
+el resultado posterior a ExitBootServices. Aun despues de ese ensayo la RTX no tendra DMA,
+GSP ni aceleracion 3D: se necesita cerrar primero el mapa fisico por requester,
+aplicar dominios e invalidaciones tras detener los dispositivos que corresponda y probar una concesion
+y revocacion acotadas antes de mandar trabajo a la GPU.
+[Resultado QEMU registrado](../Reports/amdvi-metal-preflight-qemu-20261121.json).
+
 El ensayo `run-rmlui-media-4910a511a24c` verifica en QEMU el descriptor
 UEFI de la VGA, su longitud de 16 MiB cotejada con QMP, el estado
 `03`, teclado y raton USB simultaneos y el rechazo SBEF W+X. En HOST,
