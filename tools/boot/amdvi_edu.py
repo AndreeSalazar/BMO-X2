@@ -42,8 +42,11 @@ def code(llvm, source, folder, flags=()):
 def run_case(run, case, qemu, llvm, shell, bridge, allocator):
     folder = run / ('run-' + case)
     folder.mkdir()
-    omit = case == 'omit-invalidation'
-    body = code(llvm, PROBE, folder, ('-DBMO_DMA_OMIT_INVALIDATION',) if omit else ())
+    flags = {
+        'omit-invalidation': ('-DBMO_DMA_OMIT_INVALIDATION',),
+        'full-invalidation': ('-DBMO_DMA_INVALIDATE_ALL',),
+    }.get(case, ())
+    body = code(llvm, PROBE, folder, flags)
     if not 0 < len(body) <= 4096 - 24:
         raise ValueError('La sonda no cabe en el paquete de arranque')
     packet = b'FAGRAW64' + struct.pack('<IIII', len(body), 0, sum(body), 0) + body
@@ -88,6 +91,7 @@ def run_case(run, case, qemu, llvm, shell, bridge, allocator):
                  if line.startswith('BMO AMDVI POST-EBS ')]
     expected = {
         'normal': (0x10, ['ENTER', 'GRANT', 'OUTSIDE', 'REVOKED', 'CLOSED', 'PASS']),
+        'full-invalidation': (0x10, ['ENTER', 'GRANT', 'OUTSIDE', 'REVOKED', 'CLOSED', 'PASS']),
         'missing-iommu': (0x22, ['ENTER', 'FAIL 2']),
         'omit-invalidation': (0x26, ['ENTER', 'GRANT', 'OUTSIDE', 'STALE', 'CLOSED', 'FAIL 6']),
     }[case]
@@ -120,7 +124,7 @@ def main():
         raise ValueError('El asignador excede el espacio del puente')
     bridge[0x400:0x400 + len(allocator)] = allocator
     cases = []
-    for case in ('normal', 'missing-iommu', 'omit-invalidation'):
+    for case in ('normal', 'full-invalidation', 'missing-iommu', 'omit-invalidation'):
         result = run_case(run, case, qemu, llvm, shell, bridge, allocator)
         cases.append(result)
         print(f'{case}: {", ".join(result["steps"])}', flush=True)
@@ -129,7 +133,8 @@ def main():
                   run=run.name, qemu=version, scratch_bytes=PAGE_COUNT * 4096,
                   authorized_page_bytes=4096, test_transfer_bytes=8,
                   guest_probe_executed=True, physical_dma_verified=False, gpu_gsp_booted=False,
-                  inputs={p.relative_to(ROOT).as_posix(): digest(p) for p in [*paths, EFI_ALLOCATOR, PROBE]},
+                  inputs={p.relative_to(ROOT).as_posix(): digest(p)
+                          for p in [*paths, EFI_ALLOCATOR, PROBE, PROBE.with_name('translation.S')]},
                   cases=cases)
     (run / 'amdvi-edu-results.json').write_text(json.dumps(report, indent=2) + '\n', encoding='ascii')
     print(f'Informe: {run / "amdvi-edu-results.json"}')

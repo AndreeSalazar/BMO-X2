@@ -3120,6 +3120,21 @@
       "falta": "Exportar el resultado y probar en METAL."
     },
     {
+      "id": "amdvi-translation",
+      "titulo": "AMD-Vi / Activacion y cierre de traduccion",
+      "ruta": "kernel/drivers/bus/amdvi/translation.S",
+      "estado": "qemu",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [12700, 4490],
+      "que": "Activa la tabla instalada, invalida las traducciones y exige confirmacion de AMD-Vi antes de conceder DMA.",
+      "entrada": "Unidad reservada, bases verificadas y solicitantes bajo propiedad del llamador.",
+      "salida": "Traduccion confirmada o rechazo. Si el cierre no se puede confirmar, las reservas siguen fijadas.",
+      "aceptacion": "QEMU en CPL0: transferencia EDU, denegacion fuera de rango, revocacion y cierre con invalidacion global y por solicitante.",
+      "falta": "Conectar al traspaso fisico de xHCI y RTX y probar FWSEC con DMA acotado en METAL."
+    },
+    {
       "id": "storage-state-uefi",
       "titulo": "Almacenamiento / Recursos UEFI AHCI y NVMe",
       "ruta": "kernel/drivers/storage/handoff_uefi.inc",

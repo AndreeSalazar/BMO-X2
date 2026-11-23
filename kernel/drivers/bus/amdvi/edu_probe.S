@@ -104,6 +104,10 @@ edu_probe:
     mov %r15d, %eax
     or $2, %eax
     call edu_command
+    mov $(EDU_PCI+4), %eax
+    call pci_read
+    test $4, %eax
+    jnz cleanup
     cmpl $0x010000ed, 0(%rbx)
     jne cleanup
     testl $1, 0x98(%rbx)
@@ -142,30 +146,20 @@ edu_probe:
     lea EVENTS(%r12), %rax
     or %rcx, %rax
     mov %rax, 0x10(%r14)
-    movq $0x1005, 0x18(%r14)
-    # Verify readback of the control, table and queues before EDU can DMA.
-    cmp %r12, 0x00(%r14)
-    jne cleanup
-    cmp %rax, 0x10(%r14)
-    jne cleanup
-    lea COMMANDS(%r12), %rax
-    or %rcx, %rax
-    cmp %rax, 0x08(%r14)
-    jne cleanup
-    mov 0x18(%r14), %eax
-    and $0x1005, %eax
-    cmp $0x1005, %eax
+    xor %edi, %edi
+    call .Ledu_translation
+    cmp $1, %eax
     jne cleanup
     lea .Lactive(%rip), %rsi
     call serial
-    movabs $(2 << 60 | 0x20), %rax
-    xor %edx, %edx
-    xor %ecx, %ecx
-    call publish
-    jc cleanup
     mov %r15d, %eax
     or $6, %eax
     call edu_command
+    mov $(EDU_PCI+4), %eax
+    call pci_read
+    and $6, %eax
+    cmp $6, %eax
+    jne cleanup
 
     mov $4, %r13d
     movabs $SAMPLE, %rax
@@ -215,7 +209,7 @@ edu_probe:
 #ifndef BMO_DMA_OMIT_INVALIDATION
     movabs $(3 << 60 | 1 << 32), %rax
     mov %r9, %rdx
-    mov $32, %ecx
+    mov 0x2008(%r14), %ecx
     call publish
     jc cleanup
 #endif
@@ -254,9 +248,13 @@ cleanup:
     call pci_read
     test $4, %eax
     jnz .Lmaster_failed
-    movq $0, 0x18(%r14)
-    testl $1, 0x18(%r14)
+    testq $1, 0x18(%r14)
+    jz .Ledu_closed
+    mov $1, %edi
+    call .Ledu_translation
+    cmp $1, %eax
     jnz .Lmaster_failed
+.Ledu_closed:
     lea .Lclosed(%rip), %rsi
     call serial
     jmp pci_fail
@@ -304,7 +302,48 @@ edu_command:
     out %ax, %dx
     ret
 
-# RAX/RDX are command qwords; RCX is initial byte tail (0 or 32).
+# EDI selects start (0) or stop (1). The shared routine preserves the
+# original Control flags, unlike forcing Control to zero at shutdown.
+.Ledu_translation:
+    mov %rsp, %rax
+    and $-16, %rsp
+    sub $112, %rsp
+    mov %rax, 104(%rsp)
+    mov %r9, 80(%rsp)
+    mov %r10, 88(%rsp)
+    mov %r11, 96(%rsp)
+    movq $0, 32(%rsp)
+    mov %r12, 40(%rsp)
+    movabs $(8 << 56), %rcx
+    lea COMMANDS(%r12), %rdx
+    lea (%rdx,%rcx), %rax
+    mov %rax, 48(%rsp)
+    lea EVENTS(%r12,%rcx), %rax
+    mov %rax, 56(%rsp)
+#ifdef BMO_DMA_INVALIDATE_ALL
+    movq $1, 72(%rsp)
+#else
+    movq $0, 72(%rsp)
+#endif
+    movabs $(2 << 60 | 0x20), %rax
+    mov %rax, 64(%rsp)
+    mov %r14, %rcx
+    mov $500000000, %r8d
+    lea 32(%rsp), %r9
+    test %edi, %edi
+    jnz .Ledu_translation_stop
+    call .Lstart_translation
+    jmp .Ledu_translation_return
+.Ledu_translation_stop:
+    call .Lstop_translation
+.Ledu_translation_return:
+    mov 80(%rsp), %r9
+    mov 88(%rsp), %r10
+    mov 96(%rsp), %r11
+    mov 104(%rsp), %rsp
+    ret
+
+# RAX/RDX are command qwords; RCX is the current byte tail.
 publish:
     mov %rax, COMMANDS(%r12,%rcx)
     mov %rdx, COMMANDS+8(%r12,%rcx)
@@ -425,3 +464,5 @@ serial_char:
 .Lpass:    .asciz "BMO DMA PASS\r\n"
 .Lfail:    .asciz "BMO DMA FAIL "
 .Lnewline: .asciz "\r\n"
+
+#include "translation.S"

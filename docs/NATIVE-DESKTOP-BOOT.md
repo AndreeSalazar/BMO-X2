@@ -1137,7 +1137,23 @@ FWSEC listo. Relee y restaura las bases antes de eliminar el alias
 temporal, con la traduccion apagada durante todo el ensayo. QEMU usa
 otra unidad y verifica que la transaccion se omite y las dos paginas
 permanecen vacias. El resultado queda en memoria de Ring 0; la ruta
-de activacion y el arranque de GSP siguen sin probarse.
+de activacion fisica y el arranque de GSP siguen sin probarse.
+
+La [rutina de traduccion](../kernel/drivers/bus/amdvi/translation.S)
+activa AMD-Vi con las tres bases ya cotejadas. Puede emitir una
+invalidacion global seguida de la invalidacion del solicitante y una
+orden COMPLETION_WAIT. El primer permiso de bus mastering queda a cargo
+del llamador despues de esa respuesta. Durante el cierre, la rutina
+repone Control y verifica que las dos colas se hayan detenido antes de
+reiniciar sus punteros.
+
+El [banco EDU](../tools/boot/amdvi_edu.py) ejecuta la rutina tras EBS.
+Comprueba la transferencia traducida, el rechazo fuera de rango, la
+revocacion y el cierre. La variante global comprueba tambien IASup.
+Las contrapruebas distinguen la falta de IOMMU y una traduccion que
+sigue en cache si se omite la invalidacion al revocar. En la placa
+aun queda integrar la propiedad de los solicitantes activos con esta
+rutina antes de conceder DMA al Falcon.
 [Inventario PCI en METAL](../Reports/dma-pci-census-metal-20261120.json).
 [Estado de los discos en METAL](../Reports/storage-state-metal-20261120.json).
 [Evidencia del candidato de cierre](../Reports/amdvi-storage-handoff-20261121.json).
