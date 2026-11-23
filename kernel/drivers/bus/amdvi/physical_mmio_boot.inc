@@ -78,8 +78,13 @@ amdvi_physical_mmio_begin:
     cmp $6, %r10
     je .Lphysical_rtx_summary
     cmp $8, %r10
-    jne .Lphysical_rtx_invalid
+    jne .Lphysical_rtx_sec2
     mov NVIDIA_FALCON_MODE_RECEIPT(%rbp), %rax
+    ret
+.Lphysical_rtx_sec2:
+    cmp $9, %r10
+    jne .Lphysical_rtx_invalid
+    mov NVIDIA_SEC2_STAGE_RECEIPT(%rbp), %rax
     ret
 .Lphysical_rtx_invalid:
     mov $257, %eax               # Match the session gate denial receipt.

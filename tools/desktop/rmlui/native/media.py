@@ -164,6 +164,12 @@ def main():
         if args.amdvi_physical_usb_test:
             nvidia_reader_flags+=['-DBMO_AMDVI_PHYSICAL_USB_TEST']
             manifest['physical_usb_test']=True
+            entries=manifest['boot_chain']['entries']
+            booter=entries['booter_load']
+            if (entries['riscv']['bytes']!=booter['offset'] or booter['bytes']!=61816 or
+                    booter['sha256']!='ad36e2044f76df6d0715031acb665c20cfcc70b0611748e41391b733a0d1db50'):
+                raise ValueError('The native SEC2 stage requires the verified GA10x 615.78.08 booter')
+            manifest['physical_sec2_stage']=True
         if args.physical_fwsec_trial:
             nvidia_reader_flags+=['-DBMO_PHYSICAL_FWSEC_TRIAL']
             (run/'gpu-fwsec-trial.txt').write_text('board-fwsec-trial\n',encoding='ascii')

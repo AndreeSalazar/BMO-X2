@@ -2690,6 +2690,21 @@
       "falta": "Ejecutar BOOTER_LOAD por SEC2 con su dominio DMA y verificar sus buzones antes de iniciar GSP."
     },
     {
+      "id": "nvidia-sec2-prepare-native",
+      "titulo": "GPU / NVIDIA / Preparacion nativa del booter SEC2",
+      "ruta": "kernel/drivers/GPU/NVIDIA/sec2_prepare.S",
+      "estado": "host",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [11650, 3830],
+      "que": "Copia el booter GA10x 615.78.08 e inserta la firma correspondiente al fusible SEC2.",
+      "entrada": "Contenedor verificado, lectura de fusible SEC2 y reserva independiente de 15 paginas.",
+      "salida": "Copia alineada sin permiso DMA y recibo SEC2 despues del cierre PCIe de FWSEC.",
+      "aceptacion": "HOST coteja la rutina compilada con el preparador Python. QEMU verifica el origen y la reserva sin publicar.",
+      "falta": "Confirmar 601 o 602 en METAL antes de conceder DMA y ejecutar BOOTER_LOAD."
+    },
+    {
       "id": "nvidia-gsp-wpr-host",
       "titulo": "HOST / Metadatos WPR V1",
       "ruta": "tools/host/gpu/NVIDIA/gsp_wpr.py",
@@ -4669,6 +4684,11 @@
     },
     {
       "de": "nvidia-gsp-ring0-prepare",
+      "a": "nvidia-gsp-boot-chain",
+      "clase": "codigo"
+    },
+    {
+      "de": "nvidia-sec2-prepare-native",
       "a": "nvidia-gsp-boot-chain",
       "clase": "codigo"
     },

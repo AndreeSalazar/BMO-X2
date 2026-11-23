@@ -460,6 +460,10 @@ extern "C" void bmo_main() {
         const auto mode=doom_invoke(3,3,amdvi_diagnostic,8);
         snprintf(amdvi_line,sizeof(amdvi_line),"RTX_MODE=%08X %08X\n",unsigned(mode),unsigned(mode>>32));
         log(amdvi_line);
+        const auto sec2=doom_invoke(3,3,amdvi_diagnostic,9);
+        const auto sec2_code=unsigned(sec2>>32);
+        snprintf(amdvi_line,sizeof(amdvi_line),"SEC2_STAGE=%03X %08X\n",sec2_code,unsigned(sec2));
+        log(amdvi_line);
         const char* status=fwsec==0x401 ? "WPR2 confirmada" :
             fwsec==0x404 ? "cierre PCIe sin confirmar" :
             fwsec==0x405 ? "codigo Falcon ausente" :
@@ -488,6 +492,16 @@ extern "C" void bmo_main() {
         if(fwsec>=0x410 && fwsec<=0x413) {
             snprintf(amdvi_line,sizeof(amdvi_line),"Falcon CPUCTL %08X BCR %08X",
                      unsigned(mode),unsigned(mode>>32));
+            hardware_report+="<br/>";
+            hardware_report+=amdvi_line;
+        }
+        if(fwsec==0x401) {
+            const char* sec2_status=sec2_code==0x601 ? "firma 0 preparada" :
+                sec2_code==0x602 ? "firma 1 preparada" :
+                sec2_code==0x603 ? "fusible sin firma aceptada" :
+                sec2_code==0x604 ? "contenedor ausente" : "preparacion pendiente";
+            snprintf(amdvi_line,sizeof(amdvi_line),"SEC2 / %s / %03X / FUSIBLE %08X",
+                     sec2_status,sec2_code,unsigned(sec2));
             hardware_report+="<br/>";
             hardware_report+=amdvi_line;
         }

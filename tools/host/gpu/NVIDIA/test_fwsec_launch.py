@@ -9,6 +9,9 @@ import subprocess
 import tempfile
 import unittest
 
+from .sec2_booter import prepare_sec2_booter
+from .test_sec2_booter import booter
+
 
 ROOT = Path(__file__).resolve().parents[4]
 LLVM = Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "LLVM/bin"
@@ -38,10 +41,13 @@ class FwsecLaunch(unittest.TestCase):
         ivrs = directory / "ivrs.obj"
         subprocess.run([LLVM / "clang.exe", "--target=x86_64-pc-windows-msvc", "-c",
                         ROOT / "kernel/drivers/bus/amdvi/board_ivrs.S", "-o", ivrs], check=True)
+        sec2 = directory / "sec2.obj"
+        subprocess.run([LLVM / "clang.exe", "--target=x86_64-pc-windows-msvc", "-c",
+                        ROOT / "kernel/drivers/GPU/NVIDIA/sec2_prepare.S", "-o", sec2], check=True)
         subprocess.run([LLVM / "lld-link.exe", "/dll", "/noentry", "/nodefaultlib",
                         "/export:nvidia_launch_ga106_fwsec", "/export:nvidia_prepare_ga106_falcon",
                         "/export:amdvi_stage_fwsec_domain", "/export:amdvi_matches_board_ivrs",
-                        f"/out:{dll}", obj, domain, ivrs], check=True)
+                        "/export:nvidia_prepare_sec2_image", f"/out:{dll}", obj, domain, ivrs, sec2], check=True)
         cls.library = ctypes.WinDLL(str(dll))
         cls.addClassCleanup(FreeLibrary, cls.library._handle)
         cls.launch = cls.library.nvidia_launch_ga106_fwsec
@@ -56,6 +62,27 @@ class FwsecLaunch(unittest.TestCase):
         cls.ivrs_match = cls.library.amdvi_matches_board_ivrs
         cls.ivrs_match.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
         cls.ivrs_match.restype = ctypes.c_int
+        cls.prepare_sec2 = cls.library.nvidia_prepare_sec2_image
+        cls.prepare_sec2.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_uint32]
+        cls.prepare_sec2.restype = ctypes.c_int
+
+    def test_native_sec2_workspace_matches_host_encoder(self):
+        image = bytes(booter(native_geometry=True))
+        pages = 15 * 4096
+        workspace = (ctypes.c_uint8 * (pages + 8192))()
+        address = (ctypes.addressof(workspace) + 4096) & -4096
+        ctypes.memset(address + pages, 0x5a, 4096)
+        for fuse in (0, 1, 0x10000):
+            with self.subTest(fuse=fuse):
+                expected, report = prepare_sec2_booter(image, fuse)
+                ctypes.memset(address, 0xa5, pages)
+                self.assertEqual(self.prepare_sec2(image, address, fuse), report['signature_index']+1)
+                self.assertEqual(ctypes.string_at(address, pages), expected)
+        self.assertEqual(ctypes.string_at(address + pages, 4096), bytes([0x5a])*4096)
+        for fuse in (2, 0xffffffff, 0xbadf5620):
+            with self.subTest(fuse=fuse):
+                self.assertEqual(self.prepare_sec2(image, address, fuse), 0)
+                self.assertEqual(ctypes.string_at(address, pages), expected)
 
     def setUp(self):
         self.bar = bytearray(0x200000)

@@ -65,7 +65,8 @@ def verify_gsp_reservation(memory, context, expected, case):
     memmap = memory(context+0x1000,map_length,'gsp-efi-map')
     descriptors = [struct.unpack_from('<I4xQQQ',memmap,offset)
                    for offset in range(0,len(memmap),stride)]
-    allocation = reserved + (521*4096 if expected.get('physical_usb_test') else 0)
+    board_pages = 536 if expected.get('physical_sec2_stage') else 521
+    allocation = reserved + (board_pages*4096 if expected.get('physical_usb_test') else 0)
     if not any(kind==2 and start<=base and base+allocation<=start+pages*4096
                for kind,start,_,pages in descriptors):
         raise ValueError('GSP data is not reserved in the final EFI map')
@@ -139,6 +140,14 @@ def verify_gsp_reservation(memory, context, expected, case):
                 raise ValueError('The staged NVIDIA loader ran on QEMU')
             if any(lpc):
                 raise ValueError('The measured LPC transaction must not run on QEMU')
+            if expected.get('physical_sec2_stage'):
+                source, receipt = struct.unpack('<2Q', memory(context+0x9e0,16,'physical-sec2-handoff'))
+                entry = boot_chain['entries']['booter_load']
+                workspace = memory(dte_base+0x209000,15*4096,'physical-sec2-unpublished')
+                if (not base<=source<=dte_base-entry['bytes'] or receipt or any(workspace)
+                        or hashlib.sha256(memory(source,entry['bytes'],'physical-sec2-container')).hexdigest()!=entry['sha256']):
+                    raise ValueError('The SEC2 reservation or verified source differs on QEMU')
+                result['PhysicalSec2DetachedVerified']=True
             result['PhysicalUsbTranslationExcluded']=True
             result['PhysicalFalconResetExcluded']=True
             result['PhysicalFwsecDeniedWithoutFirmware']=True
@@ -419,6 +428,8 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
             raise ValueError('Missing Ring 3 FWSEC trial status or unexpected board execution')
         if 'RTX_MODE=00000000 00000000' not in lines:
             raise ValueError('Missing Ring 3 Falcon mode receipt or unexpected board execution')
+        if gsp_manifest.get('physical_sec2_stage') and 'SEC2_STAGE=000 00000000' not in lines:
+            raise ValueError('Missing Ring 3 SEC2 receipt or unexpected board execution')
         amdvi_proof['PhysicalFwsecStatusExportVerified']=True
     if full_hd_profile:
         pool,pages=struct.unpack('<QQ',memory(context_address+0x708,16,'native-ui-pool'))

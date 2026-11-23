@@ -4,16 +4,20 @@ import unittest
 from .sec2_booter import prepare_sec2_booter, sec2_booter_layout
 
 
-def booter():
+def booter(*, native_geometry=False):
     image_offset = 888
-    image_bytes = 1536
+    imem_bytes, dmem_bytes = (35584, 25088) if native_geometry else (512, 768)
+    dmem_offset = 256 + imem_bytes
+    image_bytes = dmem_offset + dmem_bytes
     container = bytearray(image_offset + image_bytes)
     container[60:444] = bytes([0xa5])*384
     container[444:828] = bytes([0x5a])*384
-    struct.pack_into('<6I', container, 0, 0x10de, 1, 2560, 24, image_offset, image_bytes)
+    struct.pack_into('<6I', container, 0, 0x10de, 1, (len(container)+255)&-256,
+                     24, image_offset, image_bytes)
     struct.pack_into('<9I', container, 24, 60, 768, 828, 832, 836, 12, 848, 852, 36)
-    struct.pack_into('<6I', container, 828, 784, 0, 1, 1, 3, 2)
-    struct.pack_into('<9I', container, 852, 0, 256, 768, 768, 1, 256, 512, 256, 0)
+    struct.pack_into('<6I', container, 828, dmem_offset+16, 0, 1, 1, 3, 2)
+    struct.pack_into('<9I', container, 852, 0, 256, dmem_offset, dmem_bytes,
+                     1, 256, imem_bytes, 256, 0)
     return container
 
 

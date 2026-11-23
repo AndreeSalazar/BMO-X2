@@ -136,7 +136,7 @@ gsp_prepare_begin:
 #endif
 #endif
 #ifdef BMO_AMDVI_PHYSICAL_PREPARE
-    # In this profile the extra 516 pages are at the end of LoaderData.
+    # The detached physical tables and workspace are at the end of LoaderData.
     # The detached RTX tree is already built above. Leave AMD-Vi disabled.
     cmpq $14, 0xc0(%rbp)
     jne .Lphysical_dte_done
@@ -168,6 +168,9 @@ gsp_prepare_begin:
 #ifdef BMO_AMDVI_PHYSICAL_USB_TEST
     mov %rax, %rcx
     mov GSP_STAGE_BASE(%rbp), %r8
+    # The HOST-pinned boot chain places BOOTER_LOAD right after the monitor.
+    lea (GSP_BOOT_AREA_OFFSET+BMO_GSP_MONITOR_BYTES)(%r8), %rax
+    mov %rax, GSP_SEC2_SOURCE(%rbp)
     xor %edx, %edx
     cmpl $GSP_POST_FWSEC_READY, GSP_POST_STATUS(%rbp)
     jne .Lfwsec_domain_build

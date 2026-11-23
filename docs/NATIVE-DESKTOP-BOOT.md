@@ -1267,11 +1267,22 @@ binarios reubicados cuando el manifiesto los incluye. El preparador HOST
 fusible SEC2 y genera una copia DMA alineada. Con el valor cero elige
 la ultima firma; para una version positiva resta la version del fusible
 a la del booter y exige un indice valido. Conserva los offsets de ucode
-y solo sustituye la ranura de firma en DMEM. La siguiente
-prueba fisica debe cargar el booter firmado y confirmar su respuesta
-en los buzones antes de lanzar GSP-RM.
+y solo sustituye la ranura de firma en DMEM.
+
+El perfil fisico reserva 15 paginas adicionales (60 KiB) en LoaderData.
+Tras `FWSEC 401` y la confirmacion de cierre PCIe, Ring 0 lee el fusible
+SEC2 en BAR0+`0x824148` mediante una pagina supervisora de solo lectura.
+Copia el `booter_load` verificado, inserta la firma original correspondiente
+y borra el relleno final. El espacio de trabajo queda fuera de la tabla
+DMA del dispositivo. La linea SEC2 muestra `601` (firma 0 preparada),
+`602` (firma 1 preparada), `603` (lectura invalida o sin firma compatible)
+o `604` (origen ausente). QEMU coteja el origen y la reserva sin publicar.
+El banco HOST coteja la rutina nativa byte por byte con el preparador
+Python. Queda conectar la transferencia a SEC2 y confirmar sus buzones
+antes de lanzar GSP-RM.
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
+[Fusibles SEC2 en Nova](https://github.com/torvalds/linux/blob/master/drivers/gpu/nova-core/regs.rs).
 [Mapa de registros PCIe Device Status](https://codebrowser.dev/linux/linux/include/uapi/linux/pci_regs.h.html#532).
 [Secuencia de preparacion y limpieza de Falcon GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/falcon/ga102.c.html#70).
 [Seleccion de Falcon y estado RISC-V en el controlador abierto de NVIDIA](https://raw.githubusercontent.com/NVIDIA/open-gpu-kernel-modules/main/src/nvidia/src/kernel/gpu/falcon/arch/ampere/kernel_falcon_ga102.c).
