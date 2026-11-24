@@ -1340,6 +1340,16 @@ construye las hojas AMD-Vi abajo con las direcciones fisicas de la
 segunda reserva. Despues de UEFI, solo la RTX lee ese tramo via DMA.
 QEMU coteja ambos rangos LoaderData en el mapa final y verifica sus hojas.
 
+METAL con `f92c801` registro `GSPLOAD 5`, luego FWSEC `401` y
+SEC2 `707`. Las hojas de los ucodes desplazan la DTE 28 paginas
+respecto a WPR y FWSEC. La comprobacion de SEC2 deducia esas direcciones
+con una distancia fija a la DTE. Ahora toma la base FWSEC de su dominio
+estrecho ya publicado, exige que las 15 paginas sean consecutivas y de
+solo lectura en ambos arboles y coteja la pagina WPR inmediatamente
+anterior. La comprobacion mantiene Bus Master cerrado si rechaza el
+mapa. HOST prueba ambas disposiciones y rechaza permisos o paginas
+distintos.
+
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
 [Fusibles SEC2 en Nova](https://github.com/torvalds/linux/blob/master/drivers/gpu/nova-core/regs.rs).

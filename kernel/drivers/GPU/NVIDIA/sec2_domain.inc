@@ -30,23 +30,19 @@
     cmp %r9, %r10
     jae .Lsec2_domain_bad
     lea (((SEC2_WPR_IOVA>>12)&511)*8)(%r10), %r10
-    lea -0x10000(%r9), %rax
-    movabs $0x6000000000000001, %rdx
-    or %rdx, %rax
-    cmp %rax, (%r10)             # Only WPR is writable here.
-    jne .Lsec2_domain_bad
+    push %r8
+    push %r9
+    push %r10
+    mov GSP_STAGE_BASE(%rbp), %rcx
+    mov %r9, %rdx
+    mov %r10, %r8
+    call .Lsec2_check_fwsec_pages
+    pop %r10
+    pop %r9
+    pop %r8
+    test %eax, %eax
+    jz .Lsec2_domain_bad
     add $8, %r10
-    lea -0xf000(%r9), %rax
-    movabs $0x2000000000000001, %rdx
-    or %rdx, %rax
-    xor %ecx, %ecx
-.Lsec2_verify_leaves:
-    cmp %rax, (%r10,%rcx,8)
-    jne .Lsec2_domain_bad
-    add $4096, %rax
-    inc %ecx
-    cmp $15, %ecx
-    jb .Lsec2_verify_leaves
     mov $SEC2_IOMMU_ALIAS, %ecx
     movabs $0x0000220000001405, %rax
     cmp %rax, 0x18(%rcx)
@@ -68,6 +64,7 @@
     cmpq $48, 0x2008(%rcx)
     jne .Lsec2_domain_bad
     lea GSP_SEC2_WORKSPACE_OFFSET(%r9), %rax
+    movabs $0x2000000000000001, %rdx
     or %rdx, %rax
     mov $15, %edx
 .Lsec2_publish_leaves:
@@ -110,4 +107,46 @@
     ret
 .Lsec2_domain_ready:
     mov $1, %eax
+    ret
+
+# Win64: RCX = start of the low firmware reservation, RDX = DTE base,
+# R8 = checked broad WPR entry. Both roots must agree on the FWSEC pages.
+.globl nvidia_sec2_check_fwsec_pages
+nvidia_sec2_check_fwsec_pages:
+.Lsec2_check_fwsec_pages:
+    lea 0x208000(%rdx), %r9
+    movabs $0x2000000000000201, %rax
+    or %r9, %rax
+    cmp %rax, (0x207000+(SEC2_WPR_IOVA>>21)*8)(%rdx)
+    jne .Lsec2_pages_bad
+    lea ((((SEC2_WPR_IOVA+4096)>>12)&511)*8)(%r9), %r9
+    movabs $0x000ffffffffff000, %rax
+    and (%r9), %rax
+    sub $4096, %rax              # WPR immediately precedes the FWSEC image.
+    cmp %rcx, %rax
+    jb .Lsec2_pages_bad
+    lea -0x10000(%rdx), %r11
+    cmp %r11, %rax
+    ja .Lsec2_pages_bad
+    movabs $0x6000000000000001, %r11
+    or %rax, %r11
+    cmp %r11, (%r8)
+    jne .Lsec2_pages_bad
+    movabs $0x2000000000000001, %r11
+    lea 4096(%rax), %r10
+    or %r11, %r10
+    xor %ecx, %ecx
+.Lsec2_verify_leaves:
+    cmp %r10, (%r9,%rcx,8)
+    jne .Lsec2_pages_bad
+    cmp %r10, 8(%r8,%rcx,8)
+    jne .Lsec2_pages_bad
+    add $4096, %r10
+    inc %ecx
+    cmp $15, %ecx
+    jb .Lsec2_verify_leaves
+    mov $1, %eax
+    ret
+.Lsec2_pages_bad:
+    xor %eax, %eax
     ret

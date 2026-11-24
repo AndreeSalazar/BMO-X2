@@ -45,7 +45,12 @@ class FwsecLaunch(unittest.TestCase):
         sec2_source = directory / "sec2_exec.S"
         sec2_object = directory / "sec2_exec.obj"
         sec2_source.write_text(
-            '#include "fwsec_launch.S"\n#include "sec2_execute.inc"\n#include "gsp_init_615.inc"\n',
+            '#define BMO_AMDVI_PHYSICAL_PREPARE\n#define BMO_AMDVI_PHYSICAL_MMIO_TEST\n'
+            '#define BMO_AMDVI_PHYSICAL_USB_TEST\n#include "gsp_layout.inc"\n'
+            '#define BMO_STORAGE_QUIESCE\n#include "../../storage/handoff_layout.inc"\n'
+            '.set SEC2_IOMMU_ALIAS, 0x10205000\n'
+            '#include "fwsec_launch.S"\n#include "sec2_execute.inc"\n'
+            '#include "sec2_domain.inc"\n#include "gsp_init_615.inc"\n',
             encoding="ascii",
         )
         # Use the combined object so SEC2 exercises the production Falcon helpers.
@@ -56,6 +61,7 @@ class FwsecLaunch(unittest.TestCase):
                         "/export:amdvi_stage_fwsec_domain", "/export:amdvi_matches_board_ivrs",
                         "/export:nvidia_prepare_sec2_image", "/export:nvidia_execute_sec2_booter",
                         "/export:nvidia_gsp_init_615", "/export:nvidia_gsp_snapshot_615",
+                        "/export:nvidia_sec2_check_fwsec_pages",
                         f"/out:{dll}", sec2_object, domain, ivrs, sec2], check=True)
         cls.library = ctypes.WinDLL(str(dll))
         cls.addClassCleanup(FreeLibrary, cls.library._handle)
@@ -68,6 +74,9 @@ class FwsecLaunch(unittest.TestCase):
         cls.domain = cls.library.amdvi_stage_fwsec_domain
         cls.domain.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint64]
         cls.domain.restype = ctypes.c_int
+        cls.check_sec2_pages = cls.library.nvidia_sec2_check_fwsec_pages
+        cls.check_sec2_pages.argtypes = [ctypes.c_uint64, ctypes.c_uint64, ctypes.c_void_p]
+        cls.check_sec2_pages.restype = ctypes.c_int
         cls.ivrs_match = cls.library.amdvi_matches_board_ivrs
         cls.ivrs_match.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
         cls.ivrs_match.restype = ctypes.c_int
@@ -294,6 +303,27 @@ class FwsecLaunch(unittest.TestCase):
                                  (base + 0x200000 | (3 << 61) | 0x403, 0, 0, 0))
                 self.assertFalse(any(memory[0x207000:]))
         self.assertEqual(self.domain(base + 1, 0, base), 0)
+
+    def test_sec2_matches_fwsec_pages_even_with_tables_before_the_dte(self):
+        dte, memory = self.domain_memory()
+        stage = dte-0x40000
+        read = 1 << 61
+        write = 1 << 62
+        narrow = 0x208000+((FWSEC_IOVA>>12)&511)*8
+        for tail_pages in (0, 28):
+            with self.subTest(tail_pages=tail_pages):
+                payload = dte-0xf000-tail_pages*4096
+                self.assertEqual(self.domain(dte,payload,stage),2)
+                broad = (ctypes.c_uint64*16)(
+                    (payload-4096)|read|write|1,
+                    *((payload+page*4096)|read|1 for page in range(15)))
+                self.assertEqual(self.check_sec2_pages(stage,dte,broad),1)
+                self.assertEqual(self.check_sec2_pages(payload,dte,broad),0)
+                broad[15] ^= write
+                self.assertEqual(self.check_sec2_pages(stage,dte,broad),0)
+                broad[15] ^= write
+                struct.pack_into('<Q',memory,narrow+14*8,(payload+15*4096)|read|1)
+                self.assertEqual(self.check_sec2_pages(stage,dte,broad),0)
 
     def test_board_ivrs_requires_exact_routing(self):
         from ..ivrs import inspect, windows_ivrs
