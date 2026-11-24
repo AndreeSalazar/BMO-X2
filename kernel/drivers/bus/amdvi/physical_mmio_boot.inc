@@ -99,8 +99,20 @@ amdvi_physical_mmio_begin:
 .Lphysical_rtx_snapshot:
     lea -12(%r10), %rax
     cmp $4, %rax
-    ja .Lphysical_rtx_invalid
+    ja .Lphysical_rtx_trace
     mov GSP_NATIVE_SNAPSHOT(%rbp,%rax,8), %rax
+    ret
+.Lphysical_rtx_trace:
+    lea -17(%r10), %rax
+    cmp $(GSP_TRACE_BYTES/8), %rax
+    jae .Lphysical_rtx_invalid
+    cmpl $0x804, (NVIDIA_GSP_INIT_RECEIPT+4)(%rbp)
+    jne .Lphysical_rtx_trace_empty
+    mov GSP_PHYSICAL_DTE_BASE(%rbp), %rcx
+    mov GSP_TRACE_OFFSET(%rcx,%rax,8), %rax
+    ret
+.Lphysical_rtx_trace_empty:
+    xor %eax, %eax
     ret
 .Lphysical_rtx_invalid:
     mov $257, %eax               # Match the session gate denial receipt.

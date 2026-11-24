@@ -1350,6 +1350,15 @@ anterior. La comprobacion mantiene Bus Master cerrado si rechaza el
 mapa. HOST prueba ambas disposiciones y rechaza permisos o paginas
 distintos.
 
+METAL con `8c7e27a` llego a SEC2 `701` y GSP `804`. El productor de
+LOGINIT quedo en `49` y AMD-Vi publico una cola de `50` bytes hexadecimales.
+En `804`, Ring 0 copia los 64 KiB de LOGINIT y los eventos AMD-Vi publicados
+antes de cerrar DMA. Registra el productor de LOGINIT antes y despues de
+la copia para detectar si avanzo durante la lectura. La reserva de captura
+ocupa 68 KiB y queda fuera de los mapas DMA. El panel de Ring 3 permite
+abrir la captura con F4 y avanzar con F3 desde los eventos hasta LOGINIT.
+El recibo temprano de FAT32 se sigue escribiendo antes de esta captura.
+
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
 [Fusibles SEC2 en Nova](https://github.com/torvalds/linux/blob/master/drivers/gpu/nova-core/regs.rs).

@@ -2730,9 +2730,9 @@
       "posicion": [12250, 3830],
       "que": "Enlaza MSGQ v2 y envia una solicitud fija GMCAPI GSP_INIT.",
       "entrada": "SEC2 701, BAR y dominio de la placa comprobados, RMARGS 615.78.08.",
-      "salida": "Respuesta correlacionada o captura de GSP, LOGINIT y AMD-Vi si falta la cola antes del cierre PCIe.",
-      "aceptacion": "HOST prueba la correlacion y la lectura del evento publicado sin consumirlo. QEMU comprueba la exclusion de la sonda y la exportacion a Ring 3.",
-      "falta": "METAL con 0335e5f mostro 804, LOGINIT 49 y fallo DMA 20002900 en IOVA cero. Falta probar bindata completo en la placa y completar el canal grafico."
+      "salida": "Respuesta correlacionada o copia de LOGINIT y eventos AMD-Vi publicados antes del cierre PCIe. Ring 3 permite recorrer la captura con F4 y F3.",
+      "aceptacion": "HOST prueba la correlacion y coteja los bytes de LOGINIT y cinco eventos sin consumirlos. QEMU comprueba la exclusion de la sonda y la exportacion a Ring 3.",
+      "falta": "METAL con 8c7e27a paso SEC2 701 con bindata y mostro GSP 804, LOGINIT 49 y evento AMD-Vi 20002900 en IOVA cero. Falta interpretar el registro de arranque y completar el canal grafico."
     },
     {
       "id": "nvidia-sec2-domain-native",

@@ -22,7 +22,7 @@ nvidia_physical_begin:
     push %rdi
     mov %rsp, %r13
     and $-16, %rsp
-    sub $48, %rsp
+    sub $64, %rsp
     cmpq $0, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)
     jne .Lboard_skip
     movl $0x406, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)
@@ -76,7 +76,7 @@ nvidia_physical_begin:
     jnz .Lboard_exit
     cmp $0x100000, %r10
     jb .Lboard_exit
-    cmp $(0x10000000-GSP_SEC2_WORKSPACE_END), %r10
+    cmp $(0x10000000-GSP_TRACE_END), %r10
     ja .Lboard_exit
     add $0x206000, %r10
     cld
@@ -85,7 +85,7 @@ nvidia_physical_begin:
     xor %eax, %eax
     repe scasq
     jne .Lboard_exit
-    mov %r10, 40(%rsp)
+    mov %r10, 48(%rsp)
     movabs $0x80000000fb00001b, %rax
     .irp page,FALCON_CPU_PAGES
     lea (\page*4096)(%rax), %rcx
@@ -229,7 +229,7 @@ nvidia_physical_begin:
     cmp GSP_STAGE_BASE(%rbp), %rdx
     jb .Lboard_sec2_revoke
     mov GSP_PHYSICAL_DTE_BASE(%rbp), %rax
-    sub $0x84000, %rax          # Includes LIBOS arguments and the first log page.
+    sub $0x93000, %rax          # Includes LIBOS arguments and all 16 LOGINIT pages.
     cmp %rax, %rdx
     ja .Lboard_sec2_revoke
     mov $(FALCON_BOARD_VA+0x110000), %ecx
@@ -243,6 +243,8 @@ nvidia_physical_begin:
     add $0x83000, %rdx          # LOGINIT producer, after GspMem and LIBOS args.
     mov $(SEC2_IOMMU_ALIAS+8192), %r8d
     mov GSP_PHYSICAL_DTE_BASE(%rbp), %r9
+    lea GSP_TRACE_OFFSET(%r9), %rax
+    mov %rax, 40(%rsp)          # Sixth Win64 argument, private CPU-only trace.
     add $0x205000, %r9          # Private 4-KiB AMD-Vi event ring.
     lea GSP_NATIVE_SNAPSHOT(%rbp), %rax
     mov %rax, 32(%rsp)          # Fifth Win64 argument.
@@ -269,7 +271,7 @@ nvidia_physical_begin:
 .Lboard_unmap:
     movq $0, FALCON_BOARD_PDE(%rbp)
     call .Lboard_flush
-    mov 40(%rsp), %r10
+    mov 48(%rsp), %r10
     .irp page,FALCON_CPU_PAGES
     movq $0, (\page*8)(%r10)
     .endr

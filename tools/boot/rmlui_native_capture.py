@@ -79,7 +79,7 @@ def verify_gsp_reservation(memory, context, expected, case):
     memmap = memory(context+0x1000,map_length,'gsp-efi-map')
     descriptors = [struct.unpack_from('<I4xQQQ',memmap,offset)
                    for offset in range(0,len(memmap),stride)]
-    board_pages = 536 if expected.get('physical_sec2_stage') else 521
+    board_pages = 553 if expected.get('physical_sec2_stage') else 521
     allocation = reserved + (board_pages*4096 if expected.get('physical_usb_test') else 0)
     if not any(kind==2 and start<=base and base+allocation<=start+pages*4096
                for kind,start,_,pages in descriptors):
@@ -171,6 +171,8 @@ def verify_gsp_reservation(memory, context, expected, case):
                     raise ValueError('The native GSP queue address differs or GSP INIT ran on QEMU')
                 if any(memory(context+0x888,40,'physical-gsp-snapshot')):
                     raise ValueError('The physical GSP snapshot ran on QEMU')
+                if any(memory(dte_base+0x218000,17*4096,'physical-gsp-trace')):
+                    raise ValueError('The physical GSP trace was written on QEMU')
                 result['PhysicalGspInitExcluded']=True
             result['PhysicalUsbTranslationExcluded']=True
             result['PhysicalFalconResetExcluded']=True
@@ -488,6 +490,8 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
             raise ValueError('Missing Ring 3 GSP INIT receipt or unexpected board execution')
         if 'GSP_TRACE='+'00000000 '*8+'0000000000000000' not in lines:
             raise ValueError('Missing or unexpected physical GSP timeout snapshot')
+        if 'GSP_CAPTURE=00000000 00000000' not in lines:
+            raise ValueError('Missing or unexpected physical GSP trace metadata')
         amdvi_proof['PhysicalFwsecStatusExportVerified']=True
     if full_hd_profile:
         pool,pages=struct.unpack('<QQ',memory(context_address+0x708,16,'native-ui-pool'))

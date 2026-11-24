@@ -200,11 +200,15 @@ nvidia_gsp_init_615:
     ret
 
 # Read-only timeout snapshot. Win64: RCX = GSP, RDX = LOGINIT,
-# R8 = event MMIO page, R9 = private event ring, fifth arg = output.
+# R8 = event MMIO, R9 = private event ring, fifth arg = summary,
+# sixth arg = private 17-page trace (event page, then LOGINIT).
 .globl nvidia_gsp_snapshot_615
 nvidia_gsp_snapshot_615:
 .Lgsp_snapshot_615:
-    mov 40(%rsp), %r10
+    push %rsi
+    push %rdi
+    mov 56(%rsp), %r10
+    mov 64(%rsp), %r11
     mov 0x40(%rcx), %eax
     mov %eax, 0(%r10)
     mov 0x44(%rcx), %eax
@@ -215,13 +219,22 @@ nvidia_gsp_snapshot_615:
     mov %eax, 12(%r10)
     mov (%rdx), %eax
     mov %eax, 16(%r10)
+    mov %rdx, %rsi
+    lea 4096(%r11), %rdi
+    mov $8192, %ecx
+    cld
+    lfence
+    rep movsq
+    mov -65536(%rsi), %eax
+    mov %eax, 4092(%r11)         # Producer after copying, for comparison.
     mov 0x18(%r8), %rax
     mov %eax, 20(%r10)
     mov 0x20(%r8), %edx
     mov %edx, 24(%r10)
     movl $0, 28(%r10)
     movq $0, 32(%r10)
-    # Record the first published entry. This rehearsal leaves Head at zero.
+    movl $0, 4088(%r11)
+    # Copy all published entries without advancing Head.
     cmpq $0, 0x10(%r8)
     jne .Lgsp_snapshot_done
     cmp $16, %rax
@@ -231,16 +244,24 @@ nvidia_gsp_snapshot_615:
     test $15, %al
     jnz .Lgsp_snapshot_done
     lfence
-    mov 4(%r9), %eax
+    mov %eax, 4088(%r11)
+    mov %eax, %ecx
+    shr $3, %ecx
+    mov %r9, %rsi
+    mov %r11, %rdi
+    rep movsq
+    mov 4(%r11), %eax
     test $0xf0000000, %eax
     jz .Lgsp_snapshot_done
     and $0xffff0000, %eax       # Event type and flags, without PASID.
-    movzwl (%r9), %edx          # PCI requester.
+    movzwl (%r11), %edx         # PCI requester.
     or %edx, %eax
     mov %eax, 28(%r10)
-    mov 8(%r9), %rax
+    mov 8(%r11), %rax
     mov %rax, 32(%r10)
 .Lgsp_snapshot_done:
+    pop %rdi
+    pop %rsi
     ret
 
 .p2align 3

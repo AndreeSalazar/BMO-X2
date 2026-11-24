@@ -90,27 +90,34 @@ class FwsecLaunch(unittest.TestCase):
         cls.gsp_init.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint32]
         cls.gsp_init.restype = ctypes.c_uint64
         cls.gsp_snapshot = cls.library.nvidia_gsp_snapshot_615
-        cls.gsp_snapshot.argtypes = [ctypes.c_void_p]*5
+        cls.gsp_snapshot.argtypes = [ctypes.c_void_p]*6
         cls.gsp_snapshot.restype = None
 
-    def test_gsp_snapshot_reads_only_published_event(self):
+    def test_gsp_snapshot_copies_all_published_events_and_log(self):
         self.write(FALCON+0x40,0x1234)
         self.write(FALCON+0x44,0x5678)
         self.write(FALCON+0x1388,0x80)
         self.write(FALCON+0xc80,0)
-        producer = ctypes.c_uint64(0x19)
+        loginit = bytearray(bytes(range(256))*256)
+        struct.pack_into('<Q',loginit,0,0x49)
+        log_memory = (ctypes.c_uint8*len(loginit)).from_buffer(loginit)
         registers = (ctypes.c_uint64*5)(0,0,0,16,2)
-        entry = (ctypes.c_uint32*4)(0x2900,0x20020005,0xa042000,0)
+        entries = (ctypes.c_uint32*20)(
+            *(word for index in range(5) for word in (0x2900,0x20020005,0xa042000+index*4096,0)))
         snapshot = (ctypes.c_uint32*10)()
-        for tail, event in ((16,0x20022900),(0,0),(17,0),(4096,0)):
+        for tail, count in ((80,80),(0,0),(17,0),(4096,0)):
             with self.subTest(tail=tail):
+                trace = ctypes.create_string_buffer(17*4096)
                 registers[3] = tail
-                self.gsp_snapshot(ctypes.byref(self.mapping,FALCON),ctypes.byref(producer),
-                                  registers,entry,snapshot)
-                self.assertEqual(list(snapshot),[0x1234,0x5678,0x80,0,0x19,tail,2,
-                                                 event,0xa042000 if event else 0,0])
+                self.gsp_snapshot(ctypes.byref(self.mapping,FALCON),log_memory,
+                                  registers,entries,snapshot,trace)
+                self.assertEqual(list(snapshot),[0x1234,0x5678,0x80,0,0x49,tail,2,
+                                                 0x20022900 if count else 0,0xa042000 if count else 0,0])
                 self.assertEqual(list(registers),[0,0,0,tail,2])
-                self.assertEqual(list(entry),[0x2900,0x20020005,0xa042000,0])
+                self.assertEqual(trace.raw[:count],bytes(entries)[:count])
+                self.assertFalse(any(trace.raw[count:4088]))
+                self.assertEqual(struct.unpack_from('<II',trace,4088),(count,0x49))
+                self.assertEqual(trace.raw[4096:],loginit)
 
     def test_gsp_init_accepts_only_a_matching_reply(self):
         for sequence, status, expected in ((1, 0, 0x801), (1, 3, 0x802), (2, 0, 0x807)):

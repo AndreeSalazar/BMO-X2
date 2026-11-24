@@ -448,6 +448,11 @@ extern "C" void bmo_main() {
 #endif
     #endif
 #ifdef BMO_AMDVI_POST
+#ifdef BMO_DMA_CENSUS
+    bool gsp_trace_available=false;
+    unsigned gsp_event_count=0;
+    unsigned gsp_log_before=0,gsp_log_after=0;
+#endif
     if(trial) {
         // USB start runs the translated No-Op and the FWSEC attempt synchronously.
         const auto receipt=doom_invoke(3,3,amdvi_diagnostic,6);
@@ -483,6 +488,16 @@ extern "C" void bmo_main() {
                  unsigned(progress),unsigned(progress>>32),unsigned(event),unsigned(event>>32),
                  unsigned(iova>>32),unsigned(iova));
         log(amdvi_line);
+        const auto trace_meta=doom_invoke(3,3,amdvi_diagnostic,17+511);
+        snprintf(amdvi_line,sizeof(amdvi_line),"GSP_CAPTURE=%08X %08X\n",
+                 unsigned(trace_meta),unsigned(trace_meta>>32));
+        log(amdvi_line);
+#ifdef BMO_DMA_CENSUS
+        gsp_trace_available=init_code==0x804;
+        gsp_event_count=std::min(unsigned(trace_meta)/16,255u);
+        gsp_log_before=unsigned(progress);
+        gsp_log_after=unsigned(trace_meta>>32);
+#endif
         const char* status=fwsec==0x401 ? "WPR2 confirmada" :
             fwsec==0x404 ? "cierre PCIe sin confirmar" :
             fwsec==0x405 ? "codigo Falcon ausente" :
@@ -562,6 +577,9 @@ extern "C" void bmo_main() {
                      unsigned(progress>>32),unsigned(event),unsigned(event>>32),
                      unsigned(iova>>32),unsigned(iova));
             hardware_report+=amdvi_line;
+#ifdef BMO_DMA_CENSUS
+            hardware_report+="<br/>F4 ver eventos y LOGINIT";
+#endif
         }
         amdvi_panel->SetInnerRML(hardware_report);
     }
@@ -583,6 +601,48 @@ extern "C" void bmo_main() {
     const auto dma_page_count=read_dma_inventory(dma_pages);
     unsigned dma_page=0;
     bool dma_panel_open=false;
+#ifdef BMO_AMDVI_POST
+    bool gsp_trace_open=false;
+    unsigned gsp_trace_page=0;
+    constexpr unsigned rows_per_trace_page=12;
+    const unsigned event_pages=(gsp_event_count+rows_per_trace_page-1)/rows_per_trace_page;
+    constexpr unsigned log_rows=65536/16;
+    const unsigned trace_pages=event_pages+(log_rows+rows_per_trace_page-1)/rows_per_trace_page;
+    auto show_gsp_trace=[&]() {
+        char line[144];
+        snprintf(line,sizeof(line),"Captura GSP / %u de %u<br/>F4 cerrar / F3 siguiente / F2 volver a PCI",
+                 gsp_trace_page+1,trace_pages);
+        Rml::String report=line;
+        if(gsp_trace_page<event_pages) {
+            const unsigned first=gsp_trace_page*rows_per_trace_page;
+            const unsigned end=std::min(first+rows_per_trace_page,gsp_event_count);
+            report+="<br/>AMD-Vi / cuatro palabras por evento";
+            for(unsigned index=first;index<end;++index) {
+                const auto a=doom_invoke(3,3,amdvi_diagnostic,17+index*2);
+                const auto b=doom_invoke(3,3,amdvi_diagnostic,18+index*2);
+                snprintf(line,sizeof(line),"EV%03u %08X %08X %08X %08X",index,
+                         unsigned(a),unsigned(a>>32),unsigned(b),unsigned(b>>32));
+                report+="<br/>";
+                report+=line;
+            }
+        } else {
+            snprintf(line,sizeof(line),"<br/>LOGINIT / productor %08X a %08X",
+                     gsp_log_before,gsp_log_after);
+            report+=line;
+            const unsigned first=(gsp_trace_page-event_pages)*rows_per_trace_page;
+            const unsigned end=std::min(first+rows_per_trace_page,log_rows);
+            for(unsigned index=first;index<end;++index) {
+                const auto a=__builtin_bswap64(doom_invoke(3,3,amdvi_diagnostic,17+512+index*2));
+                const auto b=__builtin_bswap64(doom_invoke(3,3,amdvi_diagnostic,18+512+index*2));
+                snprintf(line,sizeof(line),"%04X %08X%08X %08X%08X",index*16,
+                         unsigned(a>>32),unsigned(a),unsigned(b>>32),unsigned(b));
+                report+="<br/>";
+                report+=line;
+            }
+        }
+        dma_panel->SetInnerRML(report);
+    };
+#endif
 #endif
     bool motion_pending=false;
     auto flush_motion=[&]() {
@@ -710,6 +770,29 @@ extern "C" void bmo_main() {
                 if(scan==0x58) {doom_invoke(3,3,19,0);bmo_usb_disconnect();mouse_input(0,0,0);transport_lost=true;dirty=true;continue;}
 #endif
 #ifdef BMO_DMA_CENSUS
+#ifdef BMO_AMDVI_POST
+                if(scan==0x3e && gsp_trace_available) {
+                    gsp_trace_open=!gsp_trace_open;
+                    dma_panel_open=gsp_trace_open;
+                    if(gsp_trace_open) {
+                        gsp_trace_page=0;
+                        show_gsp_trace();
+                    }
+                    dma_panel->SetProperty("display",gsp_trace_open?"block":"none");
+                    dirty=true;
+                    continue;
+                }
+                if(scan==0x3d && gsp_trace_open) {
+                    gsp_trace_page=(gsp_trace_page+1)%trace_pages;
+                    show_gsp_trace();
+                    dirty=true;
+                    continue;
+                }
+                if(scan==0x3c && gsp_trace_open) {
+                    gsp_trace_open=false;
+                    dma_panel_open=false;
+                }
+#endif
 #ifdef BMO_RTX_LAB_PANEL
                 if(scan==0x3e) {
                     rtx_panel_open=!rtx_panel_open;
