@@ -1,0 +1,26 @@
+{
+  "run": "run-casm-sbef-mlo2r_0q",
+  "evidence": "QEMU Linux, CASM Native x86-64 program running in user mode",
+  "source_sha256": "b8d8ae67200b9c1cc80b82471ca7ed679826e539aef53a8edb19c26b060ddbae",
+  "build_source_sha256": "34a703e91a44ccdcae2c67916060e745d4133e390525aa4cea2de959eab77952",
+  "compiler_sha256": "4131db7e05dcee684962b62a199ffe83383e600023b947ac08c363566e5493bc",
+  "verified_elf_sha256": "54ddf01db2099682c176f27b71dcb6b8f9455f1fd5090a97a05838961697236f",
+  "elf_bytes": 10592,
+  "passed": 29,
+  "total": 29,
+  "freestanding": {
+    "linux_services": false,
+    "text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
+    "data_sha256": "9573552dde044d026b4f9f1a9ff2e23fd468078a843cd1c1cfdc75965a326e3f",
+    "rx_bytes": 6183,
+    "initialized_data_bytes": 2400,
+    "rw_nx_virtual_bytes": 8454144,
+    "rw_nx_resident_pages_after_cases": 1,
+    "stack_bytes": 1048576
+  },
+  "qemu": "11.1.0",
+  "linux_kernel_sha256": "c07cee6c6d8bb023d90484cc22f59524222ab09f9eea06a4a46cebb863957c29",
+  "entry": "0x4000F0",
+  "expected_cases": "Reports/casm-sbef-validation-qemu.json",
+  "scope": "Audited module executed through SysV in a second diskless Linux guest. Ring 0 integration is pending."
+}

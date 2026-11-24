@@ -1,0 +1,8 @@
+// Append this entry to sbef_validate.casm for the freestanding module.
+// This initialized global follows sbef_input in Native's data layout.
+// The caller verifies the marker in the module and replaces it with a count.
+u64 sbef_input_bytes = 3622659101434006850;
+
+u64 casm_main() {
+    return validate_sbef(sbef_input_bytes);
+}

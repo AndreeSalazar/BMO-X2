@@ -82,13 +82,25 @@ y compara los recibos con HOST. El ejecutable del banco usa un adaptador
 de entrada y salida Linux. La fuente del validador mantiene esa E/S fuera
 de la rutina. [Evidencia diferencial](../Reports/casm-sbef-validation-qemu.json).
 
+Con `--freestanding`, la primera VM compila y el HOST audita y convierte
+el ELF. Una segunda VM llama al modulo con codigo RX y datos RW/NX. La
+entrada [CASM freestanding](../kernel/loader/sbef_validate_entry.casm)
+recibe los bytes de la envoltura en 296 celdas `u64` desde `0x10000018`.
+El llamador valida la marca inicial en `0x10000958` y escribe alli la
+cantidad real de celdas antes de cada llamada. El stub Native fija el
+retorno en RAX segun SysV y usa la pila del llamador. El banco reserva
+8 454 144 bytes virtuales de datos y mide una pagina residente con Linux
+al completar los 29 casos. El futuro llamador de Ring 0 debe proveer
+el mapa supervisor y manejar las trampas del modulo.
+[Evidencia freestanding](../Reports/casm-sbef-freestanding-qemu.json).
+
 En pruebas separadas, la sonda externa LLVM cierra y vuelve a abrir el
 escritorio en los mismos cinco marcos y verifica su borrado en cada salida.
 La sonda ABI embebida recupera dos marcos tras un fallo de usuario y los
 reutiliza con un segundo cliente. El cargador general tiene pendiente
 reunir ambas rutas de recuperacion bajo un mismo contrato de proceso.
 
-El validador solo reconoce sus perfiles fijos de una a tres regiones;
+La sonda LLVM de escritorio solo reconoce sus perfiles fijos de una a tres regiones;
 no admite aun las direcciones RVA ni las cuatro o mas regiones que puede
 emitir el nuevo perfil PE generico de HOST. Empaquetar un PE generico no
 significa que QEMU o el kernel ya puedan ejecutarlo.
