@@ -1223,7 +1223,7 @@
       "que": "Admite y mapea una imagen SBEF bajo el contrato del proceso.",
       "entrada": "Bytes del ejecutable, limites, perfil SBEF y estado de CPU.",
       "salida": "Imagen mapeada con entrada y permisos comprobados o motivo de rechazo.",
-      "aceptacion": "El lector HOST y el prototipo x86-64 ensamblado con LLVM comprueban admision, mapa y rechazo en perfiles fijos. QEMU verifica en CPL3 PTE/marcos/permisos reales, bytes inmutables, rechazo W+X y la region RW mutable; evidencia run-desktop-media-32f9f2682ded.",
+      "aceptacion": "QEMU coteja el mapa de HOST con PTE, marcos y permisos en CPL3 para SBEF v2 externo x86-64-v1. qemu64 rechaza W+X, requisito v3 y reservado no cero antes de copiar codigo. Evidencia Reports/host-external-sbef-isa-qemu.json.",
       "falta": "La sonda LLVM solo reconoce layouts fijos RX, RX/R y RX/R/RW de una a tres regiones; ampliar el cargador CASM a una-ocho regiones, RVA, mapa dinamico, pila y rollback por proceso. La evidencia es QEMU y excluye comparar bytes RW tras ejecutar; falta validar el cargador CASM general.",
       "pagina": true
     },

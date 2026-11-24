@@ -12,7 +12,7 @@ ISA_POLICY = {
     'LegacySBEF': 'Format v1 has flags=0 and means x86-64-v1.',
     'RuntimeDetection': 'Ring 0 checks CPUID, CR4.OSFXSR, and XCR0 where required before entry.',
     'DeclarationSemantics': 'The SBEF field declares the minimum ISA profile; HOST does not disassemble or prove that every instruction obeys the declaration.',
-    'ProbeStatus': 'The checker is wired into two LLVM assembly QEMU staging loaders; build/QEMU evidence is pending, and generic CASM enforcement remains pending.',
+    'ProbeStatus': 'QEMU qemu64 validates admission of an external SBEF v2 declaring v1 and rejection of v3 and nonzero reserved bits in the LLVM desktop staging loader. The full CPU matrix and generic CASM enforcement remain pending.',
     'ExtensionsOutsideLevels': 'Vendor-specific and unlisted extensions are not declared by this profile table.',
 }
 
@@ -51,7 +51,7 @@ CAPABILITY_CATALOG = [
         'State': 'partial',
         'Implementation': ['tools/host/sbef/isa.py', 'tools/host/sbef/format.py',
                            'kernel/arch/x86_64/cpu/isa_profile_check.inc'],
-        'Boundary': 'SBEF v2 declara x86-64-v1..v4 y el codigo del chequeo CPU/estado esta integrado en dos cargadores LLVM de staging; falta evidencia de build/QEMU y la integracion CASM del cargador general.',
+        'Boundary': 'SBEF v2 declara x86-64-v1..v4. La sonda externa de escritorio admite v1 y rechaza el requisito v3 en QEMU qemu64; el chequeo general CASM sigue pendiente.',
     },
     {
         'Id': 'relocation-pe-dir64',
@@ -230,7 +230,7 @@ ADMISSION_POLICY = [
         'Id': 'x86-64-baseline-in-sbef',
         'Name': 'Perfil ISA x86-64 congelado y declarado en SBEF',
         'State': 'partial',
-        'CurrentLimit': 'x86-64-v1 esta fijado como base; SBEF v2 codifica cuatro niveles y el codigo de dos cargadores LLVM de staging consulta CPUID/CR4/XCR0. Falta compilar y probar esas sondas; la comprobacion general CASM depende de cerrar primero la puerta 1. La declaracion SBEF no es una prueba por desensamblado.',
+        'CurrentLimit': 'x86-64-v1 esta fijado como base y SBEF v2 codifica cuatro niveles. La sonda externa LLVM admite v1 y rechaza el requisito v3 en QEMU qemu64. La matriz completa y la comprobacion general CASM siguen pendientes. La declaracion SBEF no es una prueba por desensamblado.',
         'ExitCriteria': [
             'Mantener publicada la tabla x86-64-v1..v4 y el esquema versionado de requisitos SBEF; el formato v1 heredado implica x86-64-v1.',
             'Al cerrar la puerta 1, integrar en CASM el mismo chequeo CPUID/CR4/XCR0 antes de mapear o ejecutar.',

@@ -10,15 +10,17 @@ import sys
 import uuid
 
 from doom_fixture import desktop_gate_budget, make_packet, prepend_intro
-from host.sbef.format import load_plan
+from host.diagnostics import Rejection
+from host.sbef.format import load_plan as make_load_plan
 from scope import ROOT, workspace
+from sbef_probe_cases import EXTERNAL_ISA_CASES
 from stage_bmo_x2 import bridge_variant
 from ultra_j_capture import BENCHMARK_ACTION
 from wake import SPLASH_PROFILE, check, sha
 
 
 def desktop_budget(image):
-    plan = load_plan(image)
+    plan = make_load_plan(image)
     layout = (
         ('0x40000000', 'RX', 8192),
         ('0x40003000', 'R', 4096),
@@ -45,6 +47,7 @@ def main():
     parser.add_argument('desktop_run', type=Path)
     parser.add_argument('--cpu', choices=('qemu64', 'Nehalem'), default='qemu64')
     parser.add_argument('--ram-mib', type=int, choices=(256, 1024), default=1024)
+    parser.add_argument('--sbef-isa', action='store_true', help='Check v2 ISA admission and rejections with qemu64')
     probes = parser.add_mutually_exclusive_group()
     probes.add_argument('--xhci-command', action='store_true', help='Run the QEMU-only xHCI command probe')
     probes.add_argument('--xhci-reset-probe', action='store_true', help='Test reset without arming USB DMA')
@@ -65,6 +68,8 @@ def main():
     parser.add_argument('--usb-full-speed', action='store_true', help='Use USB 1.x in the xHCI probe')
     parser.add_argument('--usb-mouse', action='store_true', help='Probe a USB boot mouse instead of a keyboard')
     args = parser.parse_args()
+    if args.sbef_isa and args.cpu != 'qemu64':
+        parser.error('--sbef-isa requiere qemu64')
     enum_probe = args.xhci_enum_probe
     if args.usb_root_port and not enum_probe:
         parser.error('--usb-root-port requiere --xhci-enum-probe')
@@ -104,6 +109,14 @@ def main():
         parser.error('--reports-desktop requiere el resultado local de -Reports')
     sbef = (args.reports_desktop or args.usb_desktop or args.ultra_j_view or args.sheet_desktop or desktop / 'desktop.sbef').read_bytes()
     budget, load_plan = desktop_budget(sbef)
+    if args.sbef_isa:
+        if load_plan['IsaProfile'] != 'x86-64-v1':
+            parser.error('--sbef-isa requiere un escritorio x86-64-v1')
+        sbef = bytearray(sbef)
+        struct.pack_into('<H', sbef, 4, 2)
+        struct.pack_into('<I', sbef, 24, 1)
+        sbef = bytes(sbef)
+        budget, load_plan = desktop_budget(sbef)
     action = args.ultra_j_action.read_bytes() if args.ultra_j_action else b''
     if args.ultra_j_benchmark and action != BENCHMARK_ACTION:
         parser.error('El banco ULTRA-J/Rust requiere la accion fija Window + Button')
@@ -213,11 +226,27 @@ def main():
         action_path = run / 'ACTION.UJB'
         action_path.write_bytes(action)
         action_args = ['--ultra-j-action', action_path]
-    for case, path in (('external-permissions', bad), ('normal', run / 'desktop.sbef')):
+    cases = {'normal': run / 'desktop.sbef', 'external-permissions': bad}
+    if args.sbef_isa:
+        for case, (offset, value, field) in EXTERNAL_ISA_CASES.items():
+            changed = bytearray(sbef)
+            struct.pack_into('<I', changed, offset, value)
+            try:
+                changed_plan = make_load_plan(changed)
+            except Rejection as error:
+                if (case, error.offset, error.field) != ('external-isa-reserved', offset, field):
+                    raise
+            else:
+                if case != 'external-isa-cpu' or changed_plan['IsaProfile'] != 'x86-64-v3':
+                    raise ValueError('La mutacion ISA no coincide con el contrato HOST')
+            path = run / f'{case}.sbef'
+            path.write_bytes(changed)
+            cases[case] = path
+    for case in (*list(cases)[1:], 'normal'):
         subprocess.run([sys.executable, '-B', scripts / 'prepare.py', '--workspace', run,
-                        '--bmo-x2-folder', '--desktop', path, *action_args], check=True, timeout=30)
+                        '--bmo-x2-folder', '--desktop', cases[case], *action_args], check=True, timeout=30)
         if case != 'normal':
-            (run / 'build/puente-normal.img').replace(run / 'build/puente-external-permissions.img')
+            (run / 'build/puente-normal.img').replace(run / f'build/puente-{case}.img')
     if args.xhci_command:
         (run / 'xhci-command.txt').write_text('QEMU\n', encoding='ascii')
     if args.xhci_reset_probe:
@@ -252,10 +281,10 @@ def main():
         (run / 'sheet-desktop.txt').write_text('QEMU\n', encoding='ascii')
     subprocess.run([sys.executable, '-B', scripts / 'probe.py', '--workspace', run, '--halt',
                     '--abi-probe', '--doom-fixture', '--ram-mib', str(args.ram_mib), '--cpu', args.cpu,
-                    '--casos', 'normal', 'external-permissions'],
+                    '--casos', *cases],
                    check=True, cwd=run, timeout=100)
 
-    media = run / ('qemu-only' if args.xhci_timer_fault or args.xhci_empty_ports or args.xhci_ep0_stall else
+    media = run / ('qemu-only' if args.sbef_isa or args.xhci_timer_fault or args.xhci_empty_ports or args.xhci_ep0_stall else
                    'diagnostic-media' if args.xhci_reset_probe or args.xhci_transport_probe else
                    'qemu-only' if args.xhci_command or args.reuse_session or args.ultra_j_view
                    or args.sheet_desktop else 'media')

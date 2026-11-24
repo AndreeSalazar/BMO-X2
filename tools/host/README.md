@@ -143,9 +143,11 @@ ejecute binarios de otra arquitectura.
 El destino de BMO-X2 es exclusivamente x86-64. La base fijada es
 `x86-64-v1`; cada SBEF v2 declara el minimo `v1`, `v2`, `v3` o `v4`. El
 codigo de las sondas LLVM compara ese requisito con CPUID y con el estado
-habilitado por el sistema (`CR4.OSFXSR` y `XCR0` cuando corresponda); falta
-compilarlo y validarlo en QEMU. La integracion productiva CASM se hara al
-cerrar la puerta 1. La declaracion no desensambla instrucciones:
+habilitado por el sistema (`CR4.OSFXSR` y `XCR0` cuando corresponda). La
+sonda externa `stage_desktop_media.py --sbef-isa` verifica en QEMU un
+SBEF v2 v1 y el rechazo de un requisito v3 con `qemu64`, junto con los
+rechazos W+X y de campo reservado. La matriz completa v1-v4 y la integracion
+productiva CASM siguen pendientes. La declaracion no desensambla instrucciones:
 cada productor debe usar opciones de compilacion coherentes y aportar
 fixtures. Extensiones de fabricante o fuera de estos niveles quedan sin
 declarar. La jerarquia v1-v4 sigue los niveles de microarquitectura del

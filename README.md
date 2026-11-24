@@ -8,6 +8,7 @@ cargarlos y Ring 3 aloja los servicios, el escritorio y ULTRA-J.
 *Eddi Salazar · Lima, Peru*
 
 [Herencia](#herencia-de-tres-proyectos) ·
+[HOST](#estado-de-host-y-toolchains) ·
 [Arquitectura](#identidad-nano-core-host-aislado-y-ring-3-abierto) ·
 [ULTRA-J](#ultra-j-control-desde-la-aplicacion) ·
 [Probar en QEMU](#probar-en-qemu)
@@ -30,19 +31,21 @@ se comprueba contra ellos. [Procedencia](heritage/README.md) ·
 
 ## Estado de HOST y toolchains
 
-HOST todavia no reemplaza a MSVC, LLVM, GCC ni `rustc`. El compilador y el
-enlazador producen un PE32+ o ELF64; HOST inspecciona ese resultado, aplica
-las reglas x86-64 y el ABI de BMO-X2, y empaqueta los casos admitidos como
-SBEF. SBEF transporta codigo nativo x86-64 y sus regiones/permisos; no es
-bytecode universal ni hace compatible por si solo el runtime de otro sistema.
+**Prioridad actual.** Ampliar HOST y el cargador SBEF externo. La CLI de
+HOST se implementa en Python. Los compiladores y enlazadores producen
+PE32+ o ELF64. HOST inspecciona el resultado y empaqueta los casos
+admitidos en SBEF, con codigo nativo x86-64, permisos y requisitos de
+ejecucion. El cargador aplica el contrato y Ring 3 ofrece los servicios
+del ABI. El escritorio original arranca por GOP y el ensayo RTX queda
+en pausa.
 
 | Productor y perfil | Estado comprobado | Limite actual |
 |---|---|---|
 | MSVC `cl.exe` + `link.exe`, PE32+ | Cliente C freestanding: PE -> HOST -> SBEF -> CPL3 en QEMU. | No es C++ general, Win32, DLL ni DirectX. El manifiesto ligado al hash no atesta el toolchain. |
 | LLVM Clang + LLD, ELF64 estatico | Cliente C freestanding: ELF -> HOST -> SBEF -> CPL3 en QEMU. | La prueba cubre el cliente ABI embebido. |
 | LLVM `clang-cl` + `lld-link`, PE32+ | Cliente C freestanding: PE -> HOST -> SBEF -> CPL3 en QEMU. | Perfil PE fijo de una region RX, sin imports. |
-| GCC, ELF64 estatico | Perfil ELF compartido y ruta concreta de DOOM en QEMU. | No cubre versiones, bibliotecas ni programas GCC arbitrarios. |
-| `rustc`, ELF64 estatico | Rust sostiene servicios/escritorio y comparte el perfil ELF si cumple sus reglas. | No acredita carga general de paquetes externos ni cualquier crate/runtime. |
+| GCC, ELF64 estatico | Cliente ABI en Ring 3 y ruta concreta de DOOM en QEMU. | El cliente ABI se reempaqueto desde el ELF archivado. |
+| `rustc`, ELF64 estatico | Cliente ABI en Ring 3 bajo QEMU. Rust sostiene servicios y escritorio. | Cada crate externo necesita cumplir el perfil y sus dependencias. |
 
 La prueba MSVC mas reciente empaqueto un PE de 1,536 bytes como SBEF de
 792 bytes y paso en QEMU 11.1.0: ejecucion CPL3, tres llamadas ABI,
@@ -55,6 +58,13 @@ ni de un cargador generico. [Informe QEMU](Reports/host-msvc-qemu.json) |
 `clang`, `gcc` o `rustc`. El selector coteja el formato y reporta el
 SHA-256 de entrada. Las cinco rutas tienen una prueba del cliente ABI en
 [QEMU](Reports/host-producers-qemu.json).
+
+```powershell
+python -B tools/sbef.py profiles
+python -B tools/sbef.py probe app.exe --producer msvc
+python -B tools/sbef.py pack app.elf app.sbef --producer clang --abi 1
+python -B tools/sbef.py plan app.sbef
+```
 
 ## Principio: compilador primero, destino explicito
 
@@ -136,6 +146,12 @@ La secuencia y sus criterios viven tambien en la salida estructurada de
 `python -B tools/sbef.py profiles`. Se puede preparar trabajo de puertas
 posteriores, pero no declarar soporte general hasta cerrar las anteriores.
 
+La sonda externa de escritorio ya confronta el mapa generado por HOST
+con las paginas de un SBEF v2 cargado desde FAT32 en QEMU. `qemu64` admite
+el perfil v1, rechaza el requisito v3 y detiene dos paquetes con campos
+invalidos antes de copiar codigo. El resultado corresponde a la sonda
+LLVM de tres regiones. [Evidencia de carga externa](Reports/host-external-sbef-isa-qemu.json).
+
 ## Escritorio, entrada y arranque
 
 El nuevo candidato de escritorio conecta RmlUi con DIRECTOR Rust:
@@ -147,9 +163,11 @@ teclado y raton USB respondian en el escritorio.
 [Evidencia METAL](Reports/rmlui-desktop-metal-20261116.json).
 [Ruta de arranque, controles y limites](docs/NATIVE-DESKTOP-BOOT.md).
 
-GPU/NVIDIA tiene un candidato UEFI propio. CPU y GOP presentan la interfaz;
-la sonda registra PCI y AMD-Vi sin activar la traduccion, tocar Bus Master ni
-iniciar GSP. El estado de hoy es preflight, no aceleracion 3D.
+**BMO-X2 (Original)** usa `DESKTOP.EFI`, RmlUi en Ring 3 y presentacion
+por GOP. El laboratorio **RTX FWSEC** conserva su candidato UEFI aislado.
+En metal llego a SEC2 `701` y quedo en GSP `804`, con la cola de estado
+sin publicar. La aceleracion 3D sigue pendiente. Los ensayos siguientes
+describen etapas del laboratorio que quedan como referencia.
 En el candidato de inventario PCI, F2 muestra los dispositivos con DMA
 habilitado despues de iniciar USB. Esa captura permite preparar sus
 mapeos antes de activar AMD-Vi en el equipo fisico.

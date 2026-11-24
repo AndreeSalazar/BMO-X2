@@ -20,11 +20,11 @@ from fault_capture import fault_evidence
 from memory_capture import memory_evidence
 from paging_capture import paging_evidence
 from user_fault_capture import user_fault_evidence
-from sbef_probe_cases import MUTATIONS, SBEF_OFFSET, mutated_packet
+from sbef_probe_cases import EXTERNAL_ISA_CASES, MUTATIONS, SBEF_OFFSET, mutated_packet
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--workspace',required=True,type=Path)
-parser.add_argument('--casos', nargs='+', choices=['normal','firma','suma','entrada','ausente','excesivo','salida','contexto','external-permissions','amdvi-missing', *MUTATIONS], default=['normal'])
+parser.add_argument('--casos', nargs='+', choices=['normal','firma','suma','entrada','ausente','excesivo','salida','contexto','external-permissions','amdvi-missing', *MUTATIONS, *EXTERNAL_ISA_CASES], default=['normal'])
 parser.add_argument('--qemu', default='C:/Program Files/qemu/qemu-system-x86_64.exe')
 parser.add_argument('--cpu', choices=['qemu64', 'Nehalem'], default='qemu64')
 parser.add_argument('--ram-mib', type=int, choices=[256,1024], default=256)
@@ -69,7 +69,8 @@ full_hd = storage_state and (ROOT / 'full-hd.txt').is_file()
 full_hd_native = full_hd and (ROOT / 'full-hd.txt').read_text(encoding='ascii').strip() == 'cpu-gop-native-1920x1080'
 desktop_cases = ['normal', 'external-permissions']
 if args.doom_fixture and (not args.abi_probe or args.casos not in
-                          (['normal'], desktop_cases, desktop_cases + (['amdvi-missing'] if amdvi_post else []))):
+                          (['normal'], desktop_cases, desktop_cases + list(EXTERNAL_ISA_CASES),
+                           desktop_cases + (['amdvi-missing'] if amdvi_post else []))):
     parser.error('DOOM requires the normal ABI probe case')
 if 'amdvi-missing' in args.casos and not amdvi_post:
     parser.error('The missing AMD-Vi case requires the post-EBS profile')
@@ -131,6 +132,8 @@ if args.doom_fixture:
     fixture_packet = expected
 if 'external-permissions' in args.casos and external is None:
     parser.error('El rechazo externo requiere el cargador externo')
+if EXTERNAL_ISA_CASES.keys() & set(args.casos) and not (desktop_media and external is not None):
+    parser.error('Los rechazos ISA requieren el cargador externo desktop-media')
 if args.splash:
     if args.casos != ['normal']:
         parser.error('The splash probe requires the normal case')
@@ -425,6 +428,8 @@ def run(case):
                 return verify_engine(command, memory, prefix, external_image, case, desktop=desktop_doom)
             if case == 'external-permissions':
                 return verify_external_rejection(command, memory, external_image)
+            if case in EXTERNAL_ISA_CASES:
+                return verify_external_rejection(command, memory, (ROOT / f'{case}.sbef').read_bytes(), case=case)
             if (ROOT / 'welcome.txt').is_file():
                 from welcome_capture import verify_welcome
                 return verify_welcome(command, memory, prefix, intro_rows, skip=args.welcome_skip)

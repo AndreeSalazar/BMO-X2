@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "run": "run-desktop-media-009b5280aa4d",
+  "evidence": "HOST and QEMU",
+  "qemu": "11.1.0",
+  "cpu": "qemu64",
+  "ram_mib": 1024,
+  "loader_sha256": "eddc64db20be82812e1f4783cb6947b7361aa0317ff7025e8ba5905d0532461f",
+  "input_sha256": "3451e560f43da458c81026da0be827692106d2efd46fbebbef7641a230b3e688",
+  "sbef_version": 2,
+  "baseline": "x86-64-v1",
+  "medium": "Virtual FAT32 read by UEFI",
+  "scope": "LLVM assembly desktop loader with three fixed regions; generic CASM loading and the full ISA matrix are pending.",
+  "Passed": 4,
+  "Total": 4,
+  "Cases": [
+    {
+      "Case": "normal",
+      "Passed": true,
+      "UserCpl": 3,
+      "SbefMappingPlanVerified": true,
+      "SbefMappedPagesVerified": 4,
+      "SbefZeroFillBytesVerified": 2246,
+      "SbefImmutableFileBytesVerified": 10042,
+      "UltraJActionBytesMapped": 0,
+      "SbefWritablePagesContentSkipped": 1,
+      "SheetDoubleClickVerified": true,
+      "SheetCloseVerified": true,
+      "IntroFramesObserved": [
+        1,
+        2
+      ],
+      "CpuL1": {
+        "Leaf": "0x4",
+        "Data": null,
+        "Instruction": null,
+        "Unified": null
+      },
+      "BootLogFat32Verified": true
+    },
+    {
+      "Case": "external-permissions",
+      "Passed": true,
+      "SbefAccepted": false,
+      "UserCodeCopied": false,
+      "UserAddressSpaceActivated": false,
+      "RejectedField": "permissions",
+      "RejectedOffset": 116
+    },
+    {
+      "Case": "external-isa-cpu",
+      "Passed": true,
+      "SbefAccepted": false,
+      "UserCodeCopied": false,
+      "UserAddressSpaceActivated": false,
+      "RejectedField": "isa_profile",
+      "RejectedOffset": 24
+    },
+    {
+      "Case": "external-isa-reserved",
+      "Passed": true,
+      "SbefAccepted": false,
+      "UserCodeCopied": false,
+      "UserAddressSpaceActivated": false,
+      "RejectedField": "reserved",
+      "RejectedOffset": 28
+    }
+  ]
+}

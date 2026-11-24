@@ -4,6 +4,10 @@ import struct
 
 SBEF_OFFSET = 24 + 1071
 MUTATIONS = {'sbef-abi': (6, 2, 1), 'sbef-permisos': (52, 7, 5)}
+EXTERNAL_ISA_CASES = {
+    'external-isa-cpu': (24, 3, 'isa_profile'),
+    'external-isa-reserved': (28, 1, 'reserved'),
+}
 
 
 def mutated_packet(packet, case):

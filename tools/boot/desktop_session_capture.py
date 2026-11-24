@@ -7,6 +7,7 @@ import sys
 import time
 
 from cpu_config import l1_cache_profile, register
+from sbef_probe_cases import EXTERNAL_ISA_CASES
 from splash_capture import compare_frame
 from ultra_j_capture import boot_reservations, read_benchmark, user_frames
 
@@ -51,7 +52,9 @@ def verify_bootlog_file(image, prefix):
     Path(str(prefix) + '-BOOTLOG.TXT').write_bytes(expected)
 
 
-def verify_external_rejection(command, memory, image):
+def verify_external_rejection(command, memory, image, *, case='external-permissions'):
+    count = struct.unpack_from('<H', image, 10)[0]
+    expected_offset, _, field = EXTERNAL_ISA_CASES.get(case, (52 + 32*(count-1), 7, 'permissions'))
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
         regs = command('human-monitor-command', {'command-line': 'info registers'})
@@ -62,17 +65,19 @@ def verify_external_rejection(command, memory, image):
                 assert register(regs, 'CR3') == register(regs, 'R13')
                 assert memory(context + 0x18000, 8192, 'rejected-text') == bytes(8192)
                 offset = struct.unpack('<I', memory(context + 0x1a350, 4, 'rejected-field'))[0]
-                count = struct.unpack_from('<H', image, 10)[0]
-                assert offset == 52 + 32*(count-1), 'El kernel no indico el campo de permisos'
+                assert offset == expected_offset, f'El kernel no indico el campo {field}'
+                if case in EXTERNAL_ISA_CASES:
+                    source, size = struct.unpack('<QQ', memory(context + 0xa8, 16, 'rejected-input'))
+                    assert size == len(image) and memory(source, size, 'rejected-image') == image
                 if count >= 2:
                     assert memory(context + 0x1c000, 4096, 'rejected-rodata') == bytes(4096)
                 if count == 3:
                     assert memory(context + 0x1d000, 4096, 'rejected-data') == bytes(4096)
-                return dict(Case='external-permissions', Passed=True, SbefAccepted=False,
+                return dict(Case=case, Passed=True, SbefAccepted=False,
                             UserCodeCopied=False, UserAddressSpaceActivated=False,
-                            RejectedField='permissions', RejectedOffset=offset)
+                            RejectedField=field, RejectedOffset=offset)
         time.sleep(0.04)
-    raise ValueError(f'El cargador externo no rechazo W+X: {regs[:420]}')
+    raise ValueError(f'El cargador externo no rechazo {case}: {regs[:420]}')
 
 
 def verify_external_mapping(memory, context_address, image, *, ultra_j_action=None):
