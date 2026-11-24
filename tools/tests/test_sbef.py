@@ -76,6 +76,31 @@ class Sbef(unittest.TestCase):
         self.assertEqual(sbef.pack_elf(with_metadata, abi=1), image)
         self.assertEqual(image[-3:], b'\x90AB')
 
+    def test_producer_selector_checks_format_before_publication(self):
+        with tempfile.TemporaryDirectory() as path:
+            source, output = Path(path)/'app.elf', Path(path)/'app.sbef'
+            source.write_bytes(self.elf)
+            cli = [sys.executable, '-B', sbef.__file__, '--json-errors']
+            expected = sbef.pack_elf(self.elf)
+            for producer in ('clang', 'gcc', 'rustc'):
+                with self.subTest(producer=producer):
+                    packed = json.loads(subprocess.check_output(
+                        [*cli, 'pack', str(source), str(output), '--producer', producer]))
+                    probed = json.loads(subprocess.check_output(
+                        [*cli, 'probe', str(source), '--producer', producer]))
+                    self.assertEqual(packed['ProducerProfile'], probed['ProducerProfile'])
+                    self.assertEqual(packed['ProducerProfile']['Selector'], producer)
+                    self.assertFalse(packed['ProducerProfile']['IdentityAttested'])
+                    self.assertEqual(output.read_bytes(), expected)
+            for producer in ('msvc', 'clang-cl'):
+                with self.subTest(producer=producer):
+                    rejected = subprocess.run(
+                        [*cli, 'pack', str(source), str(output), '--producer', producer], capture_output=True)
+                    self.assertEqual(rejected.returncode, 1)
+                    self.assertEqual(json.loads(rejected.stderr), dict(
+                        Code='HOST-PRODUCER-FORMAT', Field=f'{producer}/PE32+', Offset=0))
+                    self.assertEqual(output.read_bytes(), expected)
+
     def test_pack_enforces_file_and_mapped_budgets_before_publication(self):
         with tempfile.TemporaryDirectory() as path:
             source, output = Path(path)/'app.elf', Path(path)/'app.sbef'
@@ -204,6 +229,13 @@ class Sbef(unittest.TestCase):
         result = pack_pe(image, abi=1)
         self.assertEqual(result[64:], bytes.fromhex('0f0b'))
         self.assertEqual(sbef.inspect(result)['Regions'][0]['Permissions'], 'RX')
+        lld = bytearray(image)
+        lld[0x202:] = b'\xcc' * (len(lld) - 0x202)
+        self.assertEqual(pack_pe(lld, abi=1), result)
+        lld[-1] = 0
+        with self.assertRaises(Rejection) as error:
+            pack_pe(lld, abi=1)
+        self.assertEqual(error.exception.code, 'PE-SECTION-PADDING')
         for offset, value, code in (
             (table + 36, 0xe0000020, 'PE-PERMISSIONS'),
             (opt + 16, 0x10002, 'PE-ENTRY'),

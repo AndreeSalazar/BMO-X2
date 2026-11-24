@@ -8,7 +8,7 @@ import sys
 
 from ..importers.pe import pack_pe, probe_pe
 from ..importers.pe_bindings import SESSION_EXPORTS
-from ..sbef.format import inspect
+from ..sbef.format import LEGACY_FORMAT_VERSION, inspect
 
 
 def build_desktop_panel(root, out, cc, nm):
@@ -45,15 +45,16 @@ def build_desktop_panel(root, out, cc, nm):
     return binary
 
 
-def build_msvc(out, client, abi, completion, *, cc, linker, assembler, qemu):
+def build_win64_client(out, client, abi, completion, *, producer, cc, linker, assembler, qemu):
     obj = out / ('client-qemu.obj' if qemu else 'client.obj')
     flags = ['/DBMO_ABI_QEMU'] if qemu else []
-    subprocess.run([cc, '/nologo', '/std:c11', '/c', '/O2', '/GS-', '/Zl', *flags,
+    target = ['--target=x86_64-pc-windows-msvc'] if producer == 'clang-cl' else []
+    subprocess.run([cc, *target, '/nologo', '/std:c11', '/c', '/O2', '/GS-', '/Zl', *flags,
                     f'/Fo{obj}', str(client)], check=True, cwd=out)
     data = obj.read_bytes()
     if data[:2] != b'\x64\x86' or not all(name in data for name in (b'bmo_invoke', b'bmo_wait')):
         raise ValueError('ABI-TOOLCHAIN: objeto COFF o simbolos de llamada invalidos')
-    report = dict(Toolchain='msvc', Stage='COFF', Bytes=len(data),
+    report = dict(Toolchain=producer, Stage='COFF', Bytes=len(data),
                   SHA256=hashlib.sha256(data).hexdigest())
     if not linker:
         return report, None
@@ -87,7 +88,8 @@ def build_msvc(out, client, abi, completion, *, cc, linker, assembler, qemu):
         return report, None
 
     sbef = out / 'client-qemu.sbef'
-    payload = pack_pe(pe_bytes, abi=1)
+    # The frozen embedded ABI fixture still consumes the v1 wire format.
+    payload = pack_pe(pe_bytes, abi=1, format_version=LEGACY_FORMAT_VERSION)
     sbef.write_bytes(payload)
     report.update(Stage='SBEF', SBEF=inspect(payload), SBEFSHA256=hashlib.sha256(payload).hexdigest())
     return report, sbef

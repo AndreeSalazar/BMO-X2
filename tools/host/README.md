@@ -12,12 +12,17 @@ ligarla al hash del archivo, pero no atesta que ese toolchain produjo los bytes.
 
 ```powershell
 python -B tools/sbef.py profiles
+python -B tools/sbef.py probe app.exe --producer clang-cl
+python -B tools/sbef.py pack app.elf app.sbef --producer gcc --abi 1
 ```
 
 El comando imprime la matriz de productores, lectores, estado de admision,
 evidencia de ejecucion y pendientes. Los estados de admision y ejecucion son
 independientes: emitir un SBEF admitido no demuestra que el cargador de Ring 3
-pueda ejecutarlo. La matriz viva esta en `profiles.py`.
+pueda ejecutarlo. La matriz viva esta en `profiles.py`. El selector opcional
+`--producer` exige PE32+ para `msvc` y `clang-cl` y ELF64 para `clang`,
+`gcc` y `rustc`. El informe registra el perfil declarado y el SHA-256 de la
+entrada; `IdentityAttested` queda en `false`.
 
 | Capa | Responsabilidad | Limite |
 |---|---|---|
@@ -27,12 +32,11 @@ pueda ejecutarlo. La matriz viva esta en `profiles.py`.
 | Paquete SBEF | Emite y vuelve a leer el paquete antes de publicarlo. | El paquete no incorpora automaticamente CRT, Win32 ni otros runtimes. |
 | Ejecucion invitada | El cargador y los servicios de proceso viven en Ring 3; Ring 0 aplica el contrato y las capacidades. | La admision HOST no acredita el cargador externo generico. |
 
-MSVC PE32+ ya tiene intake y perfiles limitados. LLVM Clang/LLD ELF64 usa el
-lector estatico comun. `clang-cl`/`lld-link` puede pasar por el lector PE por
-formato, pero aun necesita su propio build registrado y comparacion de salida
-antes de declararse productor certificado. GCC y Rust tambien comparten el
-lector ELF; sus pruebas concretas no implican compatibilidad con todos sus
-programas o bibliotecas. BMO-X2 conserva destino x86-64; otras arquitecturas
+MSVC y `clang-cl`/`lld-link` pasan el cliente ABI Win64 en QEMU. Clang/LLD,
+GCC y Rust pasan el cliente ABI por la ruta ELF64. El fixture embebe SBEF v1
+en el supervisor de prueba CASM. La [evidencia por productor](../../Reports/host-producers-qemu.json)
+registra las huellas verificadas; la carga general de procesos externos
+sigue pendiente. BMO-X2 conserva destino x86-64; otras arquitecturas
 requieren un backend, ABI, contrato SBEF y NANO-CORE propios. Se podran
 reutilizar capas neutrales del HOST y la IR BMO cuando su semantica sea
 comun; este proyecto sigue limitado a x86-64.

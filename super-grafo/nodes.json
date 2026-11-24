@@ -1583,7 +1583,7 @@
       "entrada": "Perfiles de MSVC, LLVM/Clang, GCC y Rust; manifiesto opcional ligado al hash PE.",
       "salida": "Matriz y catalogo de capacidades consultables con `python -B tools/sbef.py profiles`, politica ISA y estado de procedencia.",
       "aceptacion": "profiles exporta CapabilityCatalog, politica ISA y niveles acumulativos. SBEF v2 escribe el ID ISA en offset 24; v1 heredado implica x86-64-v1; los IDs desconocidos se rechazan.",
-      "falta": "IR BMO y su serializacion binaria aun no estan implementadas; tampoco la admision de todos los compiladores. La etiqueta SBEF no verifica los opcodes. Falta compilar y validar en QEMU las sondas LLVM, ligar opciones de productor y fixtures a cada nivel, cerrar el chequeo general CASM tras la puerta 1, generar procedencia automaticamente, admitir objetos COFF, certificar clang-cl/lld-link y ejecutar SBEF externo en Ring 3."
+      "falta": "pack y probe validan el formato por productor y reportan SHA-256. El cliente ABI embebido tiene evidencia QEMU para cinco productores en Reports/host-producers-qemu.json. Falta integrar el cargador externo y el chequeo ISA general en CASM, ligar opciones de build a cada nivel y ampliar el soporte de objetos COFF, runtimes e IR BMO."
     },
     {
       "id": "sbef-host-pack",
@@ -1634,7 +1634,7 @@
       "entrada": "Ruta de un PE32+ x86-64 pasado al comando de intake de PowerShell.",
       "salida": "Informe con hash, tipo, secciones, directorios, imports, relocaciones y SBEF admitido o rechazo preciso.",
       "aceptacion": "PowerShell inspecciona PE EXE y DLL; una prueba real de MSVC aplica DIR64 y empaqueta cuatro regiones en 388 bytes. El intake con manifiesto emitio SBEF de 792 bytes que ejecuto el ABI en CPL3/QEMU; evidencia Reports/host-msvc-qemu.json; el manifiesto no certifica el compilador.",
-      "falta": "El cargador QEMU aun no acepta el SBEF RVA generico. Faltan imports e IAT, TLS, load config, unwind, exports, servicios de runtime, procesos externos, intake de objetos COFF y un fixture propio de clang-cl/lld-link."
+      "falta": "clang-cl/lld-link pasa el fixture PE fijo con SBEF v1 embebido. El cargador QEMU aun no acepta el SBEF RVA generico. Faltan imports e IAT generales, TLS, load config, unwind, exports, servicios de runtime, procesos externos e intake de objetos COFF."
     },
     {
       "id": "userspace-supervisor",

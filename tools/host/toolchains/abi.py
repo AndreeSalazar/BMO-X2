@@ -7,7 +7,7 @@ import subprocess
 import sys
 
 from ..importers.elf import pack_elf
-from .msvc import build_msvc, verify_msvc_sections
+from .msvc import build_win64_client, verify_msvc_sections
 from ..sbef.format import LEGACY_FORMAT_VERSION, inspect
 
 
@@ -18,30 +18,31 @@ CLIENT = ROOT/'tools/tests/abi_client.c'
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('toolchain', choices=['clang', 'gcc', 'msvc'])
+    parser.add_argument('toolchain', choices=['clang', 'gcc', 'msvc', 'clang-cl'])
     parser.add_argument('--cc')
     parser.add_argument('--ld', default='ld.lld')
     parser.add_argument('--objcopy', default='llvm-objcopy')
     parser.add_argument('--abi-run', type=Path, help='Execute the common client in the CASM ABI QEMU fixture')
     parser.add_argument('--language', choices=['c', 'cpp', 'rust'], default='c')
-    parser.add_argument('--pe-link', metavar='LINK_EXE', help='Link the MSVC COFF client and Rust Win64 portal into a PE inspection fixture')
+    parser.add_argument('--pe-link', metavar='LINK_EXE', help='Link the Win64 COFF client and Rust portal into a PE fixture')
     parser.add_argument('--coff-as', default='clang', help='Clang assembler for the Win64 entry and QEMU terminal')
     parser.add_argument('--msvc-sections', action='store_true', help='Test MSVC RX/R/RW and the native Rust clock in QEMU')
     parser.add_argument('--msvc-window', action='store_true', help='Present and capture the MSVC graphic fixture in QEMU')
     parser.add_argument('--msvc-sdk-lib', default='kernel32.lib', help='Windows x64 SDK import library for the clock fixture')
     parser.add_argument('--reuse', action='store_true', help='Run two distinct embedded SBEFs on the same pages')
     args = parser.parse_args()
-    if args.pe_link and args.toolchain != 'msvc':
-        parser.error('--pe-link requiere msvc')
+    win64 = args.toolchain in ('msvc', 'clang-cl')
+    if args.pe_link and not win64:
+        parser.error('--pe-link requiere msvc o clang-cl')
     if args.msvc_sections and not (args.toolchain == 'msvc' and args.pe_link and args.abi_run):
         parser.error('--msvc-sections requiere msvc, --pe-link y --abi-run')
     if args.msvc_window and not args.msvc_sections:
         parser.error('--msvc-window requiere --msvc-sections')
-    if args.toolchain == 'msvc' and args.abi_run and not args.pe_link:
-        parser.error('MSVC --abi-run requiere --pe-link')
-    if args.reuse and (not args.abi_run or args.toolchain == 'msvc'):
+    if win64 and args.abi_run and not args.pe_link:
+        parser.error('--abi-run con Win64 requiere --pe-link')
+    if args.reuse and (not args.abi_run or win64):
         parser.error('--reuse requiere --abi-run y un ensamblador ELF64')
-    if args.language != 'c' and (not args.abi_run or args.toolchain == 'msvc'):
+    if args.language != 'c' and (not args.abi_run or win64):
         parser.error('C++ y Rust requieren --abi-run y un ensamblador ELF64')
     out = ROOT/'build/SBEF/abi'/args.toolchain
     if args.language != 'c':
@@ -50,18 +51,19 @@ def main():
         out /= 'reuse'
     out.mkdir(parents=True, exist_ok=True)
     cc = args.cc or ('cl' if args.toolchain == 'msvc' else args.toolchain)
-    if args.toolchain == 'msvc':
+    if win64:
         if args.msvc_sections:
             verify_msvc_sections(ROOT, out/('window-qemu' if args.msvc_window else 'sections-qemu'), args.abi_run, cc=cc,
                                  linker=args.pe_link, assembler=args.coff_as, objcopy=args.objcopy,
                                  sdk_lib=args.msvc_sdk_lib, window=args.msvc_window)
             return
-        report, sbef = build_msvc(out, CLIENT, ABI, ROOT/'tools/doom/complete.S', cc=cc,
-                                  linker=args.pe_link, assembler=args.coff_as, qemu=bool(args.abi_run))
+        report, sbef = build_win64_client(out, CLIENT, ABI, ROOT/'tools/doom/complete.S',
+                                         producer=args.toolchain, cc=cc, linker=args.pe_link,
+                                         assembler=args.coff_as, qemu=bool(args.abi_run))
         print(json.dumps(report, indent=2), flush=True)
         if sbef is not None:
             subprocess.run([sys.executable, '-B', str(ROOT/'tools/boot/doom_qemu.py'),
-                            str(args.abi_run.resolve()), str(sbef), '--toolchain-client', 'msvc'],
+                            str(args.abi_run.resolve()), str(sbef), '--toolchain-client', args.toolchain],
                            check=True)
         return
 

@@ -81,7 +81,7 @@ LAYERS = [
         'Id': 'producer',
         'Name': 'Productor y procedencia',
         'Responsibility': 'Define evidencia del compilador, enlazador, versiones, opciones y huellas de entrada.',
-        'Status': 'El intake acepta un manifiesto manual ligado al hash; la generacion y verificacion automatica siguen pendientes.',
+        'Status': 'pack y probe comprueban el formato del perfil declarado y calculan su huella. El intake MSVC tambien acepta un manifiesto manual.',
         'Boundary': 'El lenguaje y el compilador no demuestran compatibilidad de runtime.',
     },
     {
@@ -124,6 +124,8 @@ LAYERS = [
 PROFILES = [
     {
         'Id': 'msvc-x86_64-pe32plus',
+        'Selector': 'msvc',
+        'Container': 'PE32+',
         'Producer': 'MSVC cl.exe + link.exe',
         'ObjectFormat': 'COFF x86-64',
         'ExecutableFormat': 'PE32+',
@@ -145,32 +147,39 @@ PROFILES = [
     },
     {
         'Id': 'llvm-clang-x86_64-elf64-static',
+        'Selector': 'clang',
+        'Container': 'ELF64',
         'Producer': 'LLVM Clang + LLD, x86_64-unknown-none-elf',
         'ObjectFormat': 'ELF64 x86-64',
         'ExecutableFormat': 'static ELF64 ET_EXEC',
         'Target': HOST_TARGET,
         'Admission': 'format-profile-implemented',
         'AdmissionEvidence': 'El lector ELF compartido admite layouts estaticos PT_LOAD acotados y emite SBEF; no infiere el productor a partir de ELF.',
-        'Execution': 'generic-external-load-not-established',
-        'ExecutionEvidence': 'Existen pruebas concretas de compilador y ABI; no demuestran ejecucion general de programas ELF empaquetados externamente.',
+        'Execution': 'fixture-specific',
+        'ExecutionEvidence': 'El cliente ABI compilado por Clang y enlazado por LLD ejecuto en CPL3 en el fixture QEMU con SBEF v1 embebido.',
         'SharedImplementation': ['tools/host/importers/elf.py', 'tools/host/sbef/format.py'],
         'KnownGaps': ['carga generica de procesos SBEF externos', 'servicios de runtime que requiere cada programa'],
     },
     {
         'Id': 'llvm-clang-cl-x86_64-pe32plus',
+        'Selector': 'clang-cl',
+        'Container': 'PE32+',
         'Producer': 'LLVM clang-cl + lld-link',
         'ObjectFormat': 'COFF x86-64',
         'ExecutableFormat': 'PE32+',
         'Target': HOST_TARGET,
-        'Admission': 'format-reader-shared-producer-profile-unverified',
-        'AdmissionEvidence': 'El lector PE compartido puede inspeccionar PE; este par productor/enlazador aun no esta certificado como perfil propio.',
-        'Execution': 'not-established',
-        'ExecutionEvidence': 'No hay una afirmacion de ejecucion QEMU especifica de este productor.',
-        'SharedImplementation': ['tools/host/importers/pe.py', 'tools/host/sbef/format.py'],
-        'KnownGaps': ['fixture de intake clang-cl/lld-link', 'registro de procedencia del productor', 'carga generica de procesos SBEF externos'],
+        'Admission': 'format-profile-implemented',
+        'AdmissionEvidence': 'Un cliente C compilado con clang-cl y enlazado con lld-link pasa el perfil PE fijo, incluido el relleno INT3 de .text.',
+        'Execution': 'fixture-specific',
+        'ExecutionEvidence': 'El cliente ABI prueba INVOKE, WAIT, rechazo de capacidad y limpieza tras fallo en CPL3/QEMU con SBEF v1 embebido.',
+        'SharedImplementation': ['tools/host/toolchains/abi.py', 'tools/host/toolchains/msvc.py',
+                                 'tools/host/importers/pe.py', 'tools/host/sbef/format.py'],
+        'KnownGaps': ['atestacion de procedencia', 'carga generica de procesos SBEF externos', 'servicios y runtimes adicionales'],
     },
     {
         'Id': 'gcc-x86_64-elf64-static',
+        'Selector': 'gcc',
+        'Container': 'ELF64',
         'Producer': 'GCC + ELF linker',
         'ObjectFormat': 'ELF64 x86-64',
         'ExecutableFormat': 'static ELF64 ET_EXEC',
@@ -178,12 +187,14 @@ PROFILES = [
         'Admission': 'producer-neutral-format-profile',
         'AdmissionEvidence': 'La salida GCC solo se admite si cumple el perfil ELF estatico compartido; el lector no infiere procedencia GCC.',
         'Execution': 'fixture-specific',
-        'ExecutionEvidence': 'Una ruta concreta GCC/DOOM no acredita programas o bibliotecas GCC arbitrarios.',
+        'ExecutionEvidence': 'HOST volvio a empaquetar el cliente GCC ELF archivado y lo ejecuto en CPL3/QEMU con SBEF v1 embebido.',
         'SharedImplementation': ['tools/host/importers/elf.py', 'tools/host/sbef/format.py'],
         'KnownGaps': ['matriz de productores GCC por version', 'servicios de runtime que requiere cada programa', 'carga generica de procesos SBEF externos'],
     },
     {
         'Id': 'rustc-x86_64-elf64-static',
+        'Selector': 'rustc',
+        'Container': 'ELF64',
         'Producer': 'rustc, freestanding x86-64 target',
         'ObjectFormat': 'ELF64 x86-64',
         'ExecutableFormat': 'static ELF64 ET_EXEC',
@@ -191,11 +202,14 @@ PROFILES = [
         'Admission': 'producer-neutral-format-profile',
         'AdmissionEvidence': 'Los artefactos Rust usan los contratos ELF/SBEF compartidos cuando cumplen el perfil estatico.',
         'Execution': 'fixture-specific',
-        'ExecutionEvidence': 'El escritorio y las pruebas ABI en Rust tienen evidencia acotada; no demuestran un cargador general de procesos externos.',
+        'ExecutionEvidence': 'El cliente ABI rustc x86_64-unknown-none ejecuto en CPL3 en el fixture QEMU con SBEF v1 embebido; el escritorio tiene evidencia separada.',
         'SharedImplementation': ['tools/host/importers/elf.py', 'tools/host/sbef/format.py'],
         'KnownGaps': ['carga generica de procesos SBEF externos', 'servicios de runtime que requiere cada programa'],
     },
 ]
+
+PRODUCER_PROFILES = {profile['Selector']: profile for profile in PROFILES}
+
 
 ADMISSION_POLICY = [
     {
@@ -288,7 +302,7 @@ def profile_report():
         'AdmissionAdvanceRule': ADMISSION_ADVANCE_RULE,
         'AdmissionPolicy': ADMISSION_POLICY,
         'CapabilityCatalog': CAPABILITY_CATALOG,
-        'ProducerIdentityRule': 'El intake MSVC acepta un manifiesto para PE32+ ligado al hash; la declaracion no prueba que esas herramientas hayan generado el archivo.',
+        'ProducerIdentityRule': 'pack y probe aceptan --producer, verifican el formato y registran el SHA-256 de entrada. La declaracion no atesta el compilador ni el enlazador.',
         'StatusLegend': {
             'partial': 'Reglas acotadas implementadas; no implica compatibilidad general.',
             'format-profile-implemented': 'El lector admite el formato bajo un perfil; no acredita todas las salidas del productor.',

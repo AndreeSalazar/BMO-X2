@@ -39,8 +39,8 @@ bytecode universal ni hace compatible por si solo el runtime de otro sistema.
 | Productor y perfil | Estado comprobado | Limite actual |
 |---|---|---|
 | MSVC `cl.exe` + `link.exe`, PE32+ | Cliente C freestanding: PE -> HOST -> SBEF -> CPL3 en QEMU. | No es C++ general, Win32, DLL ni DirectX. El manifiesto ligado al hash no atesta el toolchain. |
-| LLVM Clang + LLD, ELF64 estatico | Lector ELF64 y perfiles estaticos acotados. | No acredita todos los programas ni runtimes LLVM. |
-| LLVM `clang-cl` + `lld-link`, PE32+ | Puede usar el lector PE compartido. | Falta fixture y validacion propia del productor. |
+| LLVM Clang + LLD, ELF64 estatico | Cliente C freestanding: ELF -> HOST -> SBEF -> CPL3 en QEMU. | La prueba cubre el cliente ABI embebido. |
+| LLVM `clang-cl` + `lld-link`, PE32+ | Cliente C freestanding: PE -> HOST -> SBEF -> CPL3 en QEMU. | Perfil PE fijo de una region RX, sin imports. |
 | GCC, ELF64 estatico | Perfil ELF compartido y ruta concreta de DOOM en QEMU. | No cubre versiones, bibliotecas ni programas GCC arbitrarios. |
 | `rustc`, ELF64 estatico | Rust sostiene servicios/escritorio y comparte el perfil ELF si cumple sus reglas. | No acredita carga general de paquetes externos ni cualquier crate/runtime. |
 
@@ -50,6 +50,11 @@ rechazo de capacidad invalida, WAIT y recuperacion/limpieza tras fallo.
 Es una prueba de un cliente C freestanding, no una prueba de Windows completo
 ni de un cargador generico. [Informe QEMU](Reports/host-msvc-qemu.json) |
 [Matriz detallada y limites](tools/host/README.md).
+
+`tools/sbef.py pack` y `probe` aceptan `--producer msvc`, `clang-cl`,
+`clang`, `gcc` o `rustc`. El selector coteja el formato y reporta el
+SHA-256 de entrada. Las cinco rutas tienen una prueba del cliente ABI en
+[QEMU](Reports/host-producers-qemu.json).
 
 ## Principio: compilador primero, destino explicito
 

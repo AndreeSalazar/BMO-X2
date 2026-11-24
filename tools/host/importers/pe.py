@@ -281,7 +281,10 @@ def _admit(data, result, opt, table, flags):
             or raw % file_alignment or header_size % file_alignment
             or not table + SECTION.size <= header_size <= offset or offset + raw != len(data)):
         raise Rejection('PE-SECTION-LAYOUT', table + 8, 'VirtualSize/RVA/RawData', 0)
-    if any(data[offset + size:offset + raw]):
+    padding = data[offset + size:offset + raw]
+    # MSVC uses zero fill, while LLD uses INT3 fill for executable sections.
+    # Raw padding is outside VirtualSize and never enters the SBEF segment.
+    if any(padding) and padding != b'\xcc' * len(padding):
         raise Rejection('PE-SECTION-PADDING', offset + size, 'RawData', 0)
     if not rva <= result['EntryRVA'] < rva + size:
         raise Rejection('PE-ENTRY', opt + 16, 'AddressOfEntryPoint')

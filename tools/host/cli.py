@@ -1,5 +1,6 @@
 """Pack and inspect SBEF and diagnose input formats on the host."""
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import sys
@@ -8,7 +9,7 @@ import tempfile
 from .diagnostics import Rejection
 from .importers.elf import MAX_ELF, pack_elf
 from .importers.pe import pack_pe, probe_pe
-from .profiles import profile_report
+from .profiles import PRODUCER_PROFILES, profile_report
 from .sbef.format import (
     FORMAT_VERSION,
     LEGACY_FORMAT_VERSION,
@@ -60,6 +61,9 @@ def main():
                        default='x86-64-v1')
     probe.add_argument('--format-version', type=int,
                        choices=[LEGACY_FORMAT_VERSION, FORMAT_VERSION], default=FORMAT_VERSION)
+    for command in (pack, probe):
+        command.add_argument('--producer', choices=PRODUCER_PROFILES,
+                             help='Declare the producer profile and require its input format')
     args = parser.parse_args()
     try:
         result = run(args)
@@ -133,9 +137,21 @@ def run(args):
         data = file.read(MAX_ELF + 1)
     if len(data) > MAX_ELF:
         raise Rejection('IMPORT-SIZE', MAX_ELF, 'file')
-    if data.startswith(b'MZ'):
+    is_pe = data.startswith(b'MZ')
+    producer = getattr(args, 'producer', None)
+    declared = {}
+    if producer is not None:
+        profile = PRODUCER_PROFILES[producer]
+        signature = b'MZ' if profile['Container'] == 'PE32+' else b'\x7fELF'
+        if not data.startswith(signature):
+            raise Rejection('HOST-PRODUCER-FORMAT', 0, f'{producer}/{profile["Container"]}')
+        declared['ProducerProfile'] = dict(Id=profile['Id'], Selector=producer,
+                                           Container=profile['Container'], IdentityAttested=False,
+                                           InputSHA256=hashlib.sha256(data).hexdigest())
+    if is_pe:
         if args.action == 'probe':
             result = probe_pe(data)
+            result.update(declared)
             result['RequestedIsaProfile'] = args.isa_profile
             result['RequestedSBEFFormatVersion'] = args.format_version
             result['ProbeNote'] = 'PE probe inventories the source only; pack emits and validates the declared SBEF profile.'
@@ -147,7 +163,8 @@ def run(args):
                          format_version=args.format_version)
     report = inspect(image)
     if args.action == 'probe':
-        return dict(SourceFormat='ELF64', CanPack=True, SBEF=report)
+        return dict(SourceFormat='ELF64', CanPack=True, SBEF=report, **declared)
+    report.update(declared)
     if args.output.resolve() == args.input.resolve():
         raise Rejection('SBEF-OUTPUT-ALIAS', 0, 'output')
     for limit, actual, field, offset in (
