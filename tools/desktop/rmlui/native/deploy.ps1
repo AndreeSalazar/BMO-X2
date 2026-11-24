@@ -166,6 +166,9 @@ if ($gspStage) {
     if ($gspProof.fwsec -and (-not $gspProof.wpr_page -or -not $normal.GspFwsecExcluded)) {
         throw 'Falta verificar que el perfil FWSEC excluye la VGA estandar.'
     }
+    if ($gspProof.ucodes -and -not $normal.GspUcodesVerified) {
+        throw 'Falta verificar los ucodes GA10x y su mapa DMA de solo lectura.'
+    }
     $names+=$gspName
 }
 $names+=$bootFile

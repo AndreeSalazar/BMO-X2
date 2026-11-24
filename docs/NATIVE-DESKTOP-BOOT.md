@@ -1319,6 +1319,18 @@ estado de AMD-Vi y el primer evento publicado con su IOVA. El campo
 `EVENTO` guarda tipo y banderas en los 16 bits altos y el solicitante
 PCI en los 16 bits bajos. `COLA` es el desplazamiento del productor en
 bytes. La muestra conserva el plazo de cuatro segundos.
+
+METAL con `0335e5f` registro `LOGINIT 00000049` y un evento AMD-Vi
+`20002900` en IOVA cero. El candidato siguiente incorpora
+`ucodes_ga10x.bin` de NVIDIA 615.78.08, de 58215936 bytes. HOST coteja su
+SHA-256 con la extraccion del instalador oficial verificado y empaqueta
+el Radix3 con el contenedor. Ring 0 publica la direccion del Radix3 y
+la longitud exacta en `RMARGS.bindataArgs`. El arbol AMD-Vi da acceso de
+solo lectura a esas paginas en el dominio de la RTX y deja IOVA cero
+fuera del mapa. QEMU coteja los bytes, RMARGS, el Radix3 y el mapa.
+[Instalador NVIDIA 615.78.08](https://download.nvidia.com/XFree86/Linux-x86_64/615.78.08/).
+[Carga de bindata en OpenRM](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c).
+
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
 [Fusibles SEC2 en Nova](https://github.com/torvalds/linux/blob/master/drivers/gpu/nova-core/regs.rs).

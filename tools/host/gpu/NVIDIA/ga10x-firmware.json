@@ -15,6 +15,7 @@
     },
     "615.78.08": {
       "reference": "ULTRA-LinuX NVIDIA reference release",
+      "ucodes": [58215936, "eed53d76248582d71c629e8b6230aee48ce673c91d782301c94e98ac6a6db7aa"],
       "files": {
         "booter_load": [61816, "ad36e2044f76df6d0715031acb665c20cfcc70b0611748e41391b733a0d1db50"],
         "booter_unload": [42616, "8f68eb5bc034009f5b874aa0aa5da81ecc1fdad8e892c16afd862d78cf34fdc2"],

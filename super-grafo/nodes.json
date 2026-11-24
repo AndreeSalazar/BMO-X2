@@ -2732,7 +2732,7 @@
       "entrada": "SEC2 701, BAR y dominio de la placa comprobados, RMARGS 615.78.08.",
       "salida": "Respuesta correlacionada o captura de GSP, LOGINIT y AMD-Vi si falta la cola antes del cierre PCIe.",
       "aceptacion": "HOST prueba la correlacion y la lectura del evento publicado sin consumirlo. QEMU comprueba la exclusion de la sonda y la exportacion a Ring 3.",
-      "falta": "METAL con ab2fff2 confirma 804 tras SEC2 701. Falta leer GSP_TRACE en la placa y completar el canal grafico."
+      "falta": "METAL con 0335e5f mostro 804, LOGINIT 49 y fallo DMA 20002900 en IOVA cero. Falta probar bindata completo en la placa y completar el canal grafico."
     },
     {
       "id": "nvidia-sec2-domain-native",
@@ -2885,9 +2885,9 @@
       ],
       "que": "Coteja el firmware, limita su geometria y entrega el archivo y opciones de compilacion al empaquetador opcional.",
       "entrada": "Firmware NVIDIA original de la release fijada y seleccion del perfil.",
-      "salida": "GSP.BIN, parametros del lector y manifiesto con geometria SEC2; un testigo alterado para el ensayo.",
-      "aceptacion": "FAT32 conserva la huella original y el escritorio base excluye este empaquetador.",
-      "falta": "Leer el fusible SEC2 en METAL y conectar al cargador nativo la copia DMA y la seleccion de firma probadas en HOST."
+      "salida": "GSP.BIN, parametros del lector y manifiesto con SEC2 y ucodes GA10x; un testigo alterado para el ensayo.",
+      "aceptacion": "FAT32 conserva el contenedor. QEMU coteja RMARGS, los ucodes, el Radix3 y los permisos de solo lectura.",
+      "falta": "Verificar en METAL que el GSP publica la cola con los ucodes de la misma release."
     },
     {
       "id": "nvidia-gsp-firmware-host",

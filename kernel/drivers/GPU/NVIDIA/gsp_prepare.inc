@@ -127,6 +127,17 @@ gsp_prepare_begin:
 #ifdef BMO_NVIDIA_GSP_LIBOS
     call nvidia_gsp_init_libos
 #endif
+#ifdef BMO_GSP_UCODES_BYTES
+    # HOST sealed this Radix3 directory inside the CRC-checked container.
+    movl $(GSP_UCODES_IOVA+GSP_UCODES_PAGES*4096), (GSP_QUEUE_AREA_OFFSET+152)(%r9)
+    movl $BMO_GSP_UCODES_BYTES, (GSP_QUEUE_AREA_OFFSET+160)(%r9)
+    mov GSP_POST_DMA_ROOT(%rbp), %rdi
+    lea BMO_GSP_UCODES_OFFSET(%r9), %rsi
+    mov $GSP_UCODES_DMA_PAGES, %edx
+    mov $(GSP_UCODES_IOVA>>21), %ecx
+    lea GSP_UCODES_LEAF_OFFSET(%r9), %rax
+    call amdvi_install_read_only
+#endif
     movl $GSP_POST_READY, GSP_POST_STATUS(%rbp)
 #ifdef BMO_NVIDIA_GSP_BOOT_CHAIN
     call nvidia_gsp_map_boot_chain
@@ -188,7 +199,6 @@ gsp_prepare_begin:
 .Lphysical_dte_done:
 #endif
     ret
-
 #include "gsp_radix3.inc"
 #include "../../bus/amdvi/stage_read_only.inc"
 #ifdef BMO_NVIDIA_GSP_QUEUES

@@ -4,9 +4,11 @@
 # Caller validates alignment, backing reservation and tree geometry.
 # Only RAX, RCX, RDX, RSI, RDI and R8 are clobbered.
 amdvi_stage_read_only:
+    lea 4096(%rdi), %rax
+# RAX supplies a separate, prezeroed leaf reservation for a second aperture.
+amdvi_install_read_only:
     cld
     movabs $0x2000000000000201, %r8
-    lea 4096(%rdi), %rax
     push %rax
     lea (%rdi,%rcx,8), %rdi
     lea 511(%rdx), %ecx

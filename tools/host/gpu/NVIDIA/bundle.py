@@ -4,7 +4,10 @@ import hashlib
 import json
 import zlib
 
-from .firmware import NATIVE_RELEASE, layout, read_native_files, read_verified, riscv_bootloader
+from .firmware import NATIVE_RELEASE, PROFILES, layout, read_native_files, read_verified, riscv_bootloader
+from .gsp_args import GSPMEM_PAGES, PAGE
+from .gsp_libos import LIBOS_PAGES
+from .radix3 import encode as encode_radix3
 from .sec2_booter import sec2_booter_layout
 
 
@@ -23,6 +26,38 @@ def boot_chain(directory, files):
         chain.extend(bytes(-len(chain) % 4096))
     return bytes(chain), dict(entries=entries, monitor_offsets=offsets, pages=len(chain)//4096,
                               sha256=hashlib.sha256(chain).hexdigest())
+
+
+def append_ucodes(archive, metadata, flags, directory):
+    profile = json.loads(PROFILES.read_text(encoding='ascii'))['releases'][NATIVE_RELEASE]
+    size, digest = profile['ucodes']
+    ucodes = read_verified(directory, dict(name=f'ucodes-{NATIVE_RELEASE}.bin', bytes=size, sha256=digest))
+    fw_pages = metadata['layout']['fwimage_pages_4k']
+    payload_pages = fw_pages + 3 + (fw_pages+511)//512
+    base_pages = (payload_pages + 1 + (payload_pages+511)//512 + 1 + GSPMEM_PAGES +
+                  LIBOS_PAGES + 1 + metadata['boot_chain']['pages'] + 1 + metadata['fwsec']['pages'])
+    offset = max((len(archive)+PAGE-1)&-PAGE, base_pages*PAGE)
+    pages = (size+PAGE-1)//PAGE
+    iova = 0x0a200000
+    radix = iova+pages*PAGE
+    _, directory = encode_radix3(
+        [iova+index*PAGE for index in range(pages)],
+        [radix+index*PAGE for index in range(2+(pages+511)//512)])
+    flags.extend((f'-DBMO_GSP_UCODES_OFFSET={offset}', f'-DBMO_GSP_UCODES_BYTES={size}'))
+    metadata['ucodes'] = dict(offset=offset, bytes=size, sha256=digest, iova=iova)
+    return archive + bytes(offset-len(archive)) + ucodes + bytes(pages*PAGE-size) + directory
+
+
+def write_bundle(run, archive, metadata, flags):
+    crc = zlib.crc32(archive)
+    flags += [f'-DBMO_GSP_FILE_BYTES={len(archive)}', f'-DBMO_GSP_FILE_CRC={crc}']
+    metadata.update(bytes=len(archive), sha256=hashlib.sha256(archive).hexdigest(), crc32=crc)
+    (run/'GSP.BIN').write_bytes(archive)
+    corrupted = bytearray(archive)
+    corrupted[-1 if metadata.get('boot_chain') else len(archive)//2] ^= 1
+    (run/'corrupted-gsp.bin').write_bytes(corrupted)
+    (run/'nvidia-gsp-stage.json').write_text(json.dumps(metadata)+'\n',encoding='ascii')
+    return archive, flags
 
 
 def stage_firmware(run, directory, prepare, vbios=None):
@@ -63,17 +98,11 @@ def stage_firmware(run, directory, prepare, vbios=None):
             flags += ['-DBMO_NVIDIA_FWSEC'] + [f'-DBMO_FWSEC_{name.upper()}={value}' for name,value in values.items()]
             layout_fwsec.update(values, vbios_sha256=ROM_SHA256, sha256=hashlib.sha256(fwsec).hexdigest())
             archive += fwsec
-    crc = zlib.crc32(archive)
-    flags += [f'-DBMO_GSP_FILE_BYTES={len(archive)}', f'-DBMO_GSP_FILE_CRC={crc}']
-    (run/'GSP.BIN').write_bytes(archive)
-    corrupted = bytearray(archive)
-    corrupted[-1 if layout_boot else len(archive)//2] ^= 1
-    (run/'corrupted-gsp.bin').write_bytes(corrupted)
-    metadata = dict(release=NATIVE_RELEASE,bytes=len(archive),sha256=hashlib.sha256(archive).hexdigest(),
-                    crc32=crc,layout=sections,prepare=prepare,detached_dma=prepare,queues=prepare,libos=prepare)
+    metadata = dict(release=NATIVE_RELEASE,layout=sections,prepare=prepare,
+                    detached_dma=prepare,queues=prepare,libos=prepare)
     if layout_boot:
         metadata.update(firmware_file_sha256=files['gsp']['sha256'],boot_chain=layout_boot,wpr_page=True)
     if layout_fwsec:
         metadata['fwsec'] = layout_fwsec
-    (run/'nvidia-gsp-stage.json').write_text(json.dumps(metadata)+'\n',encoding='ascii')
-    return archive,flags
+        archive = append_ucodes(archive, metadata, flags, directory)
+    return write_bundle(run, archive, metadata, flags)

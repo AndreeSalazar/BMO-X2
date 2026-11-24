@@ -8,16 +8,17 @@ nvidia_gsp_init_queues:
 #endif
     movl $0x20505347, (%rdi)             # "GSP ".
     movw $184, 4(%rdi)                  # GSP_ARGUMENTS_CACHED.
-    movq $2, 8(%rdi)                    # Stack in DMEM.
-    movq $(GSP_QUEUE_IOVA+4096), 24(%rdi)
-    movq $4096, 32(%rdi)                # GspMem command queue offset.
-    movq $(4096+GSP_QUEUE_BYTES), 40(%rdi)
-    movl $24, 48(%rdi)
-    movl $4096, 52(%rdi)
+    # The cleared RMARGS page supplies the high bytes of these fields.
+    movb $2, 8(%rdi)                    # Stack in DMEM.
+    movl $(GSP_QUEUE_IOVA+4096), 24(%rdi)
+    movw $4096, 32(%rdi)                # GspMem command queue offset.
+    movl $(4096+GSP_QUEUE_BYTES), 40(%rdi)
+    movb $24, 48(%rdi)
+    movw $4096, 52(%rdi)
     movl $65536, 56(%rdi)
-    movl $4, 60(%rdi)
-    movl $12, 64(%rdi)
-    movl $GSP_SHARED_QUEUE_PAGES, 68(%rdi)
+    movb $4, 60(%rdi)
+    movb $12, 64(%rdi)
+    movb $GSP_SHARED_QUEUE_PAGES, 68(%rdi)
 
     add $4096, %rdi
     mov $(GSP_QUEUE_IOVA+4096), %eax
@@ -29,9 +30,9 @@ nvidia_gsp_init_queues:
     lea (GSP_QUEUE_AREA_OFFSET+8192)(%r9), %rdi
     movw $2, (%rdi)
     movl $GSP_QUEUE_BYTES, 4(%rdi)
-    movl $4096, 8(%rdi)
-    movl $(GSP_QUEUE_PAGE_COUNT-1), 12(%rdi)
-    movl $4096, 16(%rdi)
+    movw $4096, 8(%rdi)
+    movb $(GSP_QUEUE_PAGE_COUNT-1), 12(%rdi)
+    movw $4096, 16(%rdi)
 
     # The metadata pages are read-only. Both message queues can be
     # written by the GSP. The IOMMU leaf itself has no device mapping.

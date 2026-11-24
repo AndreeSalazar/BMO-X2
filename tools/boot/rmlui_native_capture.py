@@ -17,6 +17,7 @@ def verify_gsp_reservation(memory, context, expected, case):
     boot_chain = expected.get('boot_chain')
     wpr_page = expected.get('wpr_page',False)
     fwsec = expected.get('fwsec')
+    ucodes = expected.get('ucodes')
     radix, dma_root = struct.unpack('<QQ', memory(context+0x828,16,'gsp-dma-handoff')) if detached else (0,0)
     rmargs, = struct.unpack('<Q',memory(context+0x838,8,'gsp-rmargs')) if queues else (0,)
     libos_iova, = struct.unpack('<Q',memory(context+0x840,8,'gsp-libos')) if libos else (0,)
@@ -56,6 +57,14 @@ def verify_gsp_reservation(memory, context, expected, case):
         if fwsec:
             prepared_bytes += fwsec['pages']*4096
     reserved = max(reserved, prepared_bytes)
+    if ucodes:
+        ucodes_pages = (ucodes['bytes']+4095)//4096
+        ucodes_radix_pages = 2+(ucodes_pages+511)//512
+        ucodes_dma_pages = ucodes_pages+ucodes_radix_pages
+        ucodes_leaf_pages = (ucodes_dma_pages+511)//512
+        bindata_radix = ucodes['iova']+ucodes_pages*4096
+        leaf_offset = ucodes['offset']+ucodes_dma_pages*4096
+        reserved = leaf_offset+ucodes_leaf_pages*4096
     if (status!=5 or length!=expected['bytes'] or not 0x100000<=base<=0x10000000-reserved
             or base%4096):
         raise ValueError('Invalid GSP reservation in the handoff')
@@ -74,7 +83,7 @@ def verify_gsp_reservation(memory, context, expected, case):
         pde, = struct.unpack('<Q', memory(context+0x15000+index*8,8,'gsp-identity-pde'))
         if pde&0x85!=0x81 or pde&0x000fffffffe00000!=index<<21:
             raise ValueError('GSP reservation is outside supervisor identity memory')
-    image = memory(base,reserved,'gsp-resident')
+    image = memory(base,ucodes['offset'] if ucodes else reserved,'gsp-resident')
     if expected.get('prepare'):
         sections = expected['layout']['sections']
         size = sections['.fwimage']['bytes']
@@ -189,6 +198,10 @@ def verify_gsp_reservation(memory, context, expected, case):
                 page_table = base+used+queue_bytes+libos_bytes
                 write = 1<<62
                 struct.pack_into('<Q',tree,(queue_iova>>21)*8,page_table|read|write|0x201)
+            if ucodes:
+                for index in range(ucodes_leaf_pages):
+                    slot = (ucodes['iova']>>21)+index
+                    struct.pack_into('<Q',tree,slot*8,(base+leaf_offset+index*4096)|read|0x201)
             if image[directory_end:used]!=tree:
                 raise ValueError('Unexpected mapping or permission in the detached GSP DMA tree')
             result.update(GspDetachedDmaVerified=True,GspRadix3Pages=directory_pages,
@@ -196,6 +209,9 @@ def verify_gsp_reservation(memory, context, expected, case):
                           GspRadix3SHA256=hashlib.sha256(directory).hexdigest())
         if queues:
             args = encode(rmargs,[rmargs+4096*index for index in range(1,queue_pages)])
+            if ucodes:
+                args = bytearray(args)
+                struct.pack_into('<QQ',args,152,bindata_radix,ucodes['bytes'])
             if image[used:used+queue_bytes]!=args:
                 raise ValueError('Ring 0 RMARGS, GspMem or initial MSGQ bytes differ from HOST')
             table = bytearray(4096)
@@ -256,6 +272,24 @@ def verify_gsp_reservation(memory, context, expected, case):
             result['GspFwsecExcluded']=True
         if any(image[used:]):
             raise ValueError('GSP reservation lost its zero padding')
+        if ucodes:
+            from host.gpu.NVIDIA.radix3 import encode as encode_radix3
+
+            blob = memory(base+ucodes['offset'],ucodes_pages*4096,'gsp-ucodes')
+            if hashlib.sha256(memoryview(blob)[:ucodes['bytes']]).hexdigest()!=ucodes['sha256'] or any(blob[ucodes['bytes']:]):
+                raise ValueError('GA10x ucodes data or its padding differs from HOST')
+            _, expected_radix = encode_radix3(
+                [ucodes['iova']+index*4096 for index in range(ucodes_pages)],
+                [bindata_radix+index*4096 for index in range(ucodes_radix_pages)])
+            actual_radix = memory(base+ucodes['offset']+ucodes_pages*4096,len(expected_radix),'gsp-ucodes-radix')
+            if actual_radix!=expected_radix:
+                raise ValueError('GA10x ucodes Radix3 entries differ from HOST')
+            leaves = bytearray(ucodes_leaf_pages*4096)
+            for index in range(ucodes_dma_pages):
+                struct.pack_into('<Q',leaves,index*8,(base+ucodes['offset']+index*4096)|read|1)
+            if memory(base+leaf_offset,len(leaves),'gsp-ucodes-leaves')!=leaves:
+                raise ValueError('GA10x ucodes must have only read permissions')
+            result['GspUcodesVerified']=True
         return result
     if (prepared or firmware or signature or
             hashlib.sha256(image[:length]).hexdigest()!=expected['sha256'] or any(image[length:])):

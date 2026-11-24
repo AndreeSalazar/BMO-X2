@@ -25,6 +25,7 @@ parser.add_argument('--gpu-preflight', action='store_true', help='Place a read-o
 parser.add_argument('--gpu-mmio', action='store_true', help='Place the AMD-Vi register test in BMO-X2/GPU-MM')
 parser.add_argument('--gpu-fwsec', action='store_true', help='Place the board FWSEC trial in BMO-X2/GPU-FW')
 parser.add_argument('--gsp-firmware', type=Path, help='Add the GSP container to the NVIDIA virtual disk')
+parser.add_argument('--fat-cluster-sectors', type=int, choices=(1,4), default=1)
 parser.add_argument('--ultra-j-action', type=Path, help='Add ACTION.UJB alongside the desktop SBEF')
 args = parser.parse_args()
 if args.bmo_x2_folder and (args.profile != 'hello' or args.caso != 'normal'):
@@ -46,7 +47,7 @@ if args.ultra_j_action and not args.desktop:
 root = workspace(args.workspace)
 build = root / 'build'
 if args.profile=='flappy-preview' and args.caso!='normal':raise ValueError('Visual preview uses only the normal virtual image case')
-source = build / 'disco-fat32-gpt.img'
+source = build / ('disco-fat32-gpt-c4.img' if args.fat_cluster_sectors == 4 else 'disco-fat32-gpt.img')
 output = build / f'puente-{args.native_case or args.caso}.img'
 if not source.resolve().is_relative_to(build.resolve()) or not output.resolve().is_relative_to(build.resolve()):
     raise ValueError('Las imagenes deben estar dentro de build/')
@@ -203,8 +204,9 @@ with output.open('r+b') as disk:
         directory[slot:slot+32] = entry(b'ACTION  UJB', 0x20, action_cluster, len(action))
     if args.gsp_firmware:
         source_bin = args.gsp_firmware.resolve()
-        if not source_bin.is_relative_to(root.resolve()) or not 0 < source_bin.stat().st_size <= 32*1024*1024:
-            raise ValueError('GSP de prueba fuera del run o de su limite de 32 MiB')
+        limit = (128 if args.fat_cluster_sectors == 4 else 32)*1024*1024
+        if not source_bin.is_relative_to(root.resolve()) or not 0 < source_bin.stat().st_size <= limit:
+            raise ValueError('GSP de prueba fuera del run o del limite del perfil FAT32')
         firmware = source_bin.read_bytes()
         firmware_chain = allocate((len(firmware) + cluster_bytes - 1) // cluster_bytes)
         for index, cluster in enumerate(firmware_chain):

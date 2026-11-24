@@ -352,7 +352,9 @@ def main():
     efi=run/'build/Puente_Metal/EFI/BOOT/BOOTX64.EFI';efi.parent.mkdir(parents=True);efi.write_bytes(image)
     payload=run/'build/Puente_Metal/METAL/INICIO.X86';payload.parent.mkdir(parents=True);payload.write_bytes(packet)
     scripts=ROOT/'tools/boot';shell=shutil.which('powershell.exe')
-    command([shell,'-NoProfile','-ExecutionPolicy','Bypass','-File',scripts/'disk.ps1','-OutputRoot',run,'-Programa','INICIO.X86','-GPT'],'create-native-fat32')
+    cluster_sectors = '4' if gsp is not None and len(gsp)>32*1024*1024 else '1'
+    command([shell,'-NoProfile','-ExecutionPolicy','Bypass','-File',scripts/'disk.ps1','-OutputRoot',run,
+             '-Programa','INICIO.X86','-GPT','-SectoresPorCluster',cluster_sectors],'create-native-fat32')
     bad=bytearray(sbef);struct.pack_into('<I',bad,116,7);(run/'rejected.sbef').write_bytes(bad)
     prepare_flags = (['--nvidia-probe','--gpu-preflight'] if args.metal_amdvi_preflight else
                      ['--nvidia-probe','--gpu-fwsec'] if args.physical_fwsec_trial else
@@ -367,7 +369,9 @@ def main():
         if gsp is not None and case != 'amdvi-missing':
             gsp_flags = ['--gsp-firmware', run/('GSP.BIN' if case=='normal' else 'corrupted-gsp.bin')]
         case_flags = ['--native-case', case] if case != 'normal' else []
-        command([sys.executable,scripts/'prepare.py','--workspace',run,'--bmo-x2-folder','--desktop',appfile,'--native-ui',*prepare_flags,*gsp_flags,*case_flags],'prepare-ui-'+case)
+        command([sys.executable,scripts/'prepare.py','--workspace',run,'--bmo-x2-folder','--desktop',appfile,
+                 '--native-ui','--fat-cluster-sectors',cluster_sectors,*prepare_flags,*gsp_flags,*case_flags],
+                'prepare-ui-'+case)
     cases=['normal','external-permissions']+(['amdvi-missing'] if args.amdvi_post else [])
     command([sys.executable,scripts/'probe.py','--workspace',run,'--halt','--abi-probe','--doom-fixture',
         '--ram-mib','1024','--casos',*cases],'qemu-fat32-desktop',cwd=run)
@@ -411,6 +415,8 @@ def main():
         raise ValueError('Missing reserved WPR page exclusion on standard VGA')
     if args.nvidia_fwsec_vbios and not report['Cases'][0].get('GspFwsecExcluded'):
         raise ValueError('Missing FWSEC exclusion on standard VGA')
+    if gsp is not None and manifest.get('ucodes') and not report['Cases'][0].get('GspUcodesVerified'):
+        raise ValueError('Missing GA10x ucodes and read-only DMA evidence')
     if args.amdvi_probe and not all(case.get('AmdViMmioVerified') for case in report['Cases']):
         raise ValueError('Missing AMD-Vi MMIO evidence')
     if args.amdvi_post and not all(report['Cases'][i].get('AmdViPostVerified') for i in (0,2)):
