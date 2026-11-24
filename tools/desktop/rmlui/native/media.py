@@ -217,9 +217,9 @@ def main():
     if args.usb:(run/'native-usb.txt').write_text(args.usb+'\n',encoding='ascii')
     if args.usb_empty_ports:(run/'native-usb-empty.txt').write_text('QEMU fault test\n',encoding='ascii')
     llvm=Path(os.environ['ProgramFiles'])/'LLVM/bin'
-    # The GPU + AMD-Vi read-only profile adds a second reader page. Keep the
-    # xHCI and AMD-Vi blobs page-aligned after that larger reader.
-    reader_budget=8192 if args.metal_amdvi_preflight else 4096
+    # The preflight and split firmware readers use a second EFI page.
+    split_gsp = gsp is not None and bool(manifest.get('ucodes'))
+    reader_budget=8192 if args.metal_amdvi_preflight or split_gsp else 4096
     usb_budget=8192 if args.usb=='both' else 4096 if args.usb else 0
     extra=reader_budget+usb_budget
     amdvi_offset=0x3000+extra
@@ -230,7 +230,8 @@ def main():
         ('gate','kernel/syscalls/session_gate.S'),('loader','kernel/loader/doom_engine_loader.S')]
     for name,source in units:
         flags=['-DRMLUI_USB','-DDESKTOP_MEDIA','-DXHCI_COMMAND_PROBE'] if args.usb else []
-        if args.metal_amdvi_preflight and name=='reader':flags+=['-DBMO_EXTENDED_MEDIA_READER','-DBMO_GPU_PREFLIGHT']
+        if name=='reader' and reader_budget==8192:flags+=['-DBMO_EXTENDED_MEDIA_READER']
+        if args.metal_amdvi_preflight and name=='reader':flags+=['-DBMO_GPU_PREFLIGHT']
         if args.amdvi_gsp_dma:flags+=['-DBMO_AMDVI_GSP_DMA']
         if args.usb=='both':flags+=['-DXHCI_NATIVE_DUAL']
         if args.nvidia_probe and name == 'reader':flags+=['-DBMO_NVIDIA_PCI_PROBE']
@@ -415,8 +416,9 @@ def main():
         raise ValueError('Missing reserved WPR page exclusion on standard VGA')
     if args.nvidia_fwsec_vbios and not report['Cases'][0].get('GspFwsecExcluded'):
         raise ValueError('Missing FWSEC exclusion on standard VGA')
-    if gsp is not None and manifest.get('ucodes') and not report['Cases'][0].get('GspUcodesVerified'):
-        raise ValueError('Missing GA10x ucodes and read-only DMA evidence')
+    if split_gsp and not all(report['Cases'][0].get(field) for field in
+                             ('GspUcodesVerified','GspSplitAllocationVerified')):
+        raise ValueError('Missing GA10x ucodes, split allocation or read-only DMA evidence')
     if args.amdvi_probe and not all(case.get('AmdViMmioVerified') for case in report['Cases']):
         raise ValueError('Missing AMD-Vi MMIO evidence')
     if args.amdvi_post and not all(report['Cases'][i].get('AmdViPostVerified') for i in (0,2)):

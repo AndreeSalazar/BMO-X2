@@ -51,6 +51,11 @@ def append_ucodes(archive, metadata, flags, directory):
 def write_bundle(run, archive, metadata, flags):
     crc = zlib.crc32(archive)
     flags += [f'-DBMO_GSP_FILE_BYTES={len(archive)}', f'-DBMO_GSP_FILE_CRC={crc}']
+    if ucodes := metadata.get('ucodes'):
+        payload = memoryview(archive)
+        split = ucodes['offset']
+        flags += [f'-DBMO_GSP_LOW_CRC={zlib.crc32(payload[:split])}',
+                  f'-DBMO_GSP_HIGH_CRC={zlib.crc32(payload[split:])}']
     metadata.update(bytes=len(archive), sha256=hashlib.sha256(archive).hexdigest(), crc32=crc)
     (run/'GSP.BIN').write_bytes(archive)
     corrupted = bytearray(archive)

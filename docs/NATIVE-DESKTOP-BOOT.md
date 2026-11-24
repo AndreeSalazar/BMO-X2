@@ -1331,6 +1331,15 @@ fuera del mapa. QEMU coteja los bytes, RMARGS, el Radix3 y el mapa.
 [Instalador NVIDIA 615.78.08](https://download.nvidia.com/XFree86/Linux-x86_64/615.78.08/).
 [Carga de bindata en OpenRM](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c).
 
+METAL con `3c25cbe` obtuvo `GSPLOAD 2`: la reserva contigua de
+84,79 MiB bajo 256 MiB fallo antes de FWSEC. El lector siguiente conserva
+un solo `GSP.BIN` y comprueba CRC y longitud de cada tramo. Deja la
+imagen de arranque y las tablas DMA en 29,15 MiB de memoria baja, y pide
+55,64 MiB para ucodes y su Radix3 entre 256 MiB y 4 GiB. El supervisor
+construye las hojas AMD-Vi abajo con las direcciones fisicas de la
+segunda reserva. Despues de UEFI, solo la RTX lee ese tramo via DMA.
+QEMU coteja ambos rangos LoaderData en el mapa final y verifica sus hojas.
+
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
 [Fusibles SEC2 en Nova](https://github.com/torvalds/linux/blob/master/drivers/gpu/nova-core/regs.rs).

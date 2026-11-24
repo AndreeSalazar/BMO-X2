@@ -2886,8 +2886,8 @@
       "que": "Coteja el firmware, limita su geometria y entrega el archivo y opciones de compilacion al empaquetador opcional.",
       "entrada": "Firmware NVIDIA original de la release fijada y seleccion del perfil.",
       "salida": "GSP.BIN, parametros del lector y manifiesto con SEC2 y ucodes GA10x; un testigo alterado para el ensayo.",
-      "aceptacion": "FAT32 conserva el contenedor. QEMU coteja RMARGS, los ucodes, el Radix3 y los permisos de solo lectura.",
-      "falta": "Verificar en METAL que el GSP publica la cola con los ucodes de la misma release."
+      "aceptacion": "FAT32 conserva el contenedor. QEMU coteja las dos reservas EFI, RMARGS, los ucodes, el Radix3 y las hojas de solo lectura.",
+      "falta": "METAL con 3c25cbe rechazo la reserva unica bajo 256 MiB. Falta validar la reserva dividida y la respuesta de GSP en la placa."
     },
     {
       "id": "nvidia-gsp-firmware-host",

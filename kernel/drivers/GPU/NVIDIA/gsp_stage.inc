@@ -5,6 +5,15 @@
 # at 0x800 holds this handoff, away from storage and census rows.
 #include "gsp_layout.inc"
 
+#ifdef BMO_GSP_UCODES_BYTES
+#define GSP_READ_LOW_BYTES BMO_GSP_UCODES_OFFSET
+#define GSP_READ_LOW_LIMIT GSP_READ_LOW_BYTES
+#define GSP_READ_LOW_CRC BMO_GSP_LOW_CRC
+#else
+#define GSP_READ_LOW_BYTES BMO_GSP_FILE_BYTES
+#define GSP_READ_LOW_LIMIT (GSP_READ_LOW_BYTES+1)
+#define GSP_READ_LOW_CRC BMO_GSP_FILE_CRC
+#endif
 nvidia_gsp_stage:
     push %rbx
     sub $64, %rsp
@@ -37,31 +46,73 @@ nvidia_gsp_stage:
     jnz .Lgsp_stage_close
 
     mov $3, %ebx                   # Read failed or file length differs.
-    movq $(BMO_GSP_FILE_BYTES+1), 56(%rsp)
+    movq $GSP_READ_LOW_LIMIT, 56(%rsp)
     mov 40(%rsp), %rcx
     lea 56(%rsp), %rdx
     mov %rax, %r8
     call *0x20(%rcx)
     test %rax, %rax
     jnz .Lgsp_stage_close
-    cmpq $BMO_GSP_FILE_BYTES, 56(%rsp)
+    cmpq $GSP_READ_LOW_BYTES, 56(%rsp)
     jne .Lgsp_stage_close
 
     mov $4, %ebx                   # Integrity failure.
     mov GSP_STAGE_BASE(%rbp), %rcx
-    mov $BMO_GSP_FILE_BYTES, %edx
+    mov $GSP_READ_LOW_BYTES, %edx
     lea 32(%rsp), %r8
     call *0x158(%r14)              # CalculateCrc32.
     test %rax, %rax
     jnz .Lgsp_stage_close
-    cmpl $BMO_GSP_FILE_CRC, 32(%rsp)
+    cmpl $GSP_READ_LOW_CRC, 32(%rsp)
     jne .Lgsp_stage_close
     # Clear the padding before exposing the reserved range in the handoff.
     mov GSP_STAGE_BASE(%rbp), %rcx
-    add $BMO_GSP_FILE_BYTES, %rcx
-    mov $(GSP_STAGE_ALLOC_PAGES*4096-BMO_GSP_FILE_BYTES), %edx
+    add $GSP_READ_LOW_BYTES, %rcx
+    mov $(GSP_STAGE_ALLOC_PAGES*4096-GSP_READ_LOW_BYTES), %edx
     xor %r8d, %r8d
     call *0x168(%r14)              # SetMem.
+#ifdef BMO_GSP_UCODES_BYTES
+    # This payload is only read via AMD-Vi after EBS. Keep it outside the
+    # low identity map. The file cursor already points to the second slice.
+    mov $2, %ebx
+    mov $-1, %eax
+    mov %rax, 48(%rsp)
+    mov $1, %ecx
+    mov $2, %edx
+    mov $GSP_UCODES_ALLOC_PAGES, %r8d
+    lea 48(%rsp), %r9
+    call *0x28(%r14)
+    test %rax, %rax
+    jnz .Lgsp_stage_close
+    mov 48(%rsp), %rax
+    mov %rax, GSP_UCODES_BASE(%rbp)
+    cmp $0x10000000, %rax
+    jb .Lgsp_stage_close
+    test $4095, %eax
+    jnz .Lgsp_stage_close
+    lea (GSP_UCODES_ALLOC_PAGES*4096-1)(%rax), %rdx
+    shr $32, %rdx
+    jnz .Lgsp_stage_close
+    mov $3, %ebx
+    movq $(GSP_UCODES_DMA_PAGES*4096+1), 56(%rsp)
+    mov 40(%rsp), %rcx
+    lea 56(%rsp), %rdx
+    mov %rax, %r8
+    call *0x20(%rcx)
+    test %rax, %rax
+    jnz .Lgsp_stage_close
+    cmpq $(GSP_UCODES_DMA_PAGES*4096), 56(%rsp)
+    jne .Lgsp_stage_close
+    mov $4, %ebx
+    mov GSP_UCODES_BASE(%rbp), %rcx
+    mov $(GSP_UCODES_DMA_PAGES*4096), %edx
+    lea 32(%rsp), %r8
+    call *0x158(%r14)
+    test %rax, %rax
+    jnz .Lgsp_stage_close
+    cmpl $BMO_GSP_HIGH_CRC, 32(%rsp)
+    jne .Lgsp_stage_close
+#endif
     mov $5, %ebx
 .Lgsp_stage_close:
     mov 40(%rsp), %rcx
@@ -97,6 +148,15 @@ nvidia_gsp_stage:
 
 nvidia_gsp_release:
     sub $40, %rsp
+#ifdef BMO_GSP_UCODES_BYTES
+    xor %ecx, %ecx
+    xchg %rcx, GSP_UCODES_BASE(%rbp)
+    test %rcx, %rcx
+    jz .Lgsp_release_low
+    mov $GSP_UCODES_ALLOC_PAGES, %edx
+    call *0x30(%r14)
+.Lgsp_release_low:
+#endif
     mov GSP_STAGE_BASE(%rbp), %rcx
     test %rcx, %rcx
     jz .Lgsp_stage_released

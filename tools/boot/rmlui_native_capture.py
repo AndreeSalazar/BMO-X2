@@ -18,6 +18,7 @@ def verify_gsp_reservation(memory, context, expected, case):
     wpr_page = expected.get('wpr_page',False)
     fwsec = expected.get('fwsec')
     ucodes = expected.get('ucodes')
+    ucodes_base, = struct.unpack('<Q',memory(context+0x6e0,8,'gsp-ucodes-base')) if ucodes else (0,)
     radix, dma_root = struct.unpack('<QQ', memory(context+0x828,16,'gsp-dma-handoff')) if detached else (0,0)
     rmargs, = struct.unpack('<Q',memory(context+0x838,8,'gsp-rmargs')) if queues else (0,)
     libos_iova, = struct.unpack('<Q',memory(context+0x840,8,'gsp-libos')) if libos else (0,)
@@ -26,7 +27,7 @@ def verify_gsp_reservation(memory, context, expected, case):
     fuse, fwsec_iova = struct.unpack('<QQ',memory(context+0x8f8,16,'gsp-fwsec')) if fwsec else (0,0)
     if case == 'amdvi-missing':
         if status!=1 or any((base,length,prepared,firmware,signature,radix,dma_root,rmargs,libos_iova,
-                             boot_iova,wpr_iova,fuse,fwsec_iova)):
+                             boot_iova,wpr_iova,fuse,fwsec_iova,ucodes_base)):
             raise ValueError('Missing GSP file left a reservation')
         return {}
     reserved = (length+4096)//4096*4096
@@ -63,8 +64,12 @@ def verify_gsp_reservation(memory, context, expected, case):
         ucodes_dma_pages = ucodes_pages+ucodes_radix_pages
         ucodes_leaf_pages = (ucodes_dma_pages+511)//512
         bindata_radix = ucodes['iova']+ucodes_pages*4096
-        leaf_offset = ucodes['offset']+ucodes_dma_pages*4096
+        leaf_offset = prepared_bytes
         reserved = leaf_offset+ucodes_leaf_pages*4096
+        ucodes_allocation = (ucodes_dma_pages+1)*4096
+        if (ucodes['offset']!=prepared_bytes or ucodes_base%4096 or
+                not 0x10000000<=ucodes_base<=0x100000000-ucodes_allocation):
+            raise ValueError('GA10x ucodes are not in their separate high EFI reservation')
     if (status!=5 or length!=expected['bytes'] or not 0x100000<=base<=0x10000000-reserved
             or base%4096):
         raise ValueError('Invalid GSP reservation in the handoff')
@@ -79,6 +84,9 @@ def verify_gsp_reservation(memory, context, expected, case):
     if not any(kind==2 and start<=base and base+allocation<=start+pages*4096
                for kind,start,_,pages in descriptors):
         raise ValueError('GSP data is not reserved in the final EFI map')
+    if ucodes and not any(kind==2 and start<=ucodes_base and
+            ucodes_base+ucodes_allocation<=start+pages*4096 for kind,start,_,pages in descriptors):
+        raise ValueError('GA10x ucodes are outside their LoaderData range')
     for index in range(base>>21, ((base+reserved-1)>>21)+1):
         pde, = struct.unpack('<Q', memory(context+0x15000+index*8,8,'gsp-identity-pde'))
         if pde&0x85!=0x81 or pde&0x000fffffffe00000!=index<<21:
@@ -275,21 +283,24 @@ def verify_gsp_reservation(memory, context, expected, case):
         if ucodes:
             from host.gpu.NVIDIA.radix3 import encode as encode_radix3
 
-            blob = memory(base+ucodes['offset'],ucodes_pages*4096,'gsp-ucodes')
+            blob = memory(ucodes_base,ucodes_pages*4096,'gsp-ucodes')
             if hashlib.sha256(memoryview(blob)[:ucodes['bytes']]).hexdigest()!=ucodes['sha256'] or any(blob[ucodes['bytes']:]):
                 raise ValueError('GA10x ucodes data or its padding differs from HOST')
             _, expected_radix = encode_radix3(
                 [ucodes['iova']+index*4096 for index in range(ucodes_pages)],
                 [bindata_radix+index*4096 for index in range(ucodes_radix_pages)])
-            actual_radix = memory(base+ucodes['offset']+ucodes_pages*4096,len(expected_radix),'gsp-ucodes-radix')
+            actual_radix = memory(ucodes_base+ucodes_pages*4096,len(expected_radix),'gsp-ucodes-radix')
             if actual_radix!=expected_radix:
                 raise ValueError('GA10x ucodes Radix3 entries differ from HOST')
             leaves = bytearray(ucodes_leaf_pages*4096)
             for index in range(ucodes_dma_pages):
-                struct.pack_into('<Q',leaves,index*8,(base+ucodes['offset']+index*4096)|read|1)
+                struct.pack_into('<Q',leaves,index*8,(ucodes_base+index*4096)|read|1)
             if memory(base+leaf_offset,len(leaves),'gsp-ucodes-leaves')!=leaves:
                 raise ValueError('GA10x ucodes must have only read permissions')
             result['GspUcodesVerified']=True
+            result['GspSplitAllocationVerified']=True
+            result['GspLowReservationBytes']=allocation
+            result['GspHighReservationBytes']=ucodes_allocation
         return result
     if (prepared or firmware or signature or
             hashlib.sha256(image[:length]).hexdigest()!=expected['sha256'] or any(image[length:])):
