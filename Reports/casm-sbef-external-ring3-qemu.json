@@ -1,0 +1,120 @@
+{
+  "run": "run-sbef-ring0-66oc7yqb",
+  "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
+  "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
+  "probe_sha256": "29b319949d1d347636b1515d9fbcbfe2f1e0f4be59f6b4df9c3d93e5646ec3bf",
+  "probe_bytes": 3095,
+  "private_pages": 346,
+  "user_frame_budget": 64,
+  "scratch_bytes_scrubbed": 1417216,
+  "passed": 6,
+  "cases": [
+    {
+      "case": "exit",
+      "sha256": "5746b5f5cabeff5fa7b624e5931b7e3ca81dccc8cad83cfaffd3f3c70f8573ae",
+      "receipt": 0,
+      "user_pages": 10,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 00000000000011A2",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 000000000000000A",
+        "SBEF CPL3 EXIT 0000000053424546",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "fault",
+      "sha256": "d900a8a49ffd45589e5c20de48afea502694a87b208fa135c060ab90264b24a6",
+      "receipt": 0,
+      "user_pages": 10,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 00000000000011AD",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 000000000000000A",
+        "SBEF PF ERROR 0000000000000007",
+        "SBEF CPL3 PF 0000000040002000",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "permissions",
+      "sha256": "e336298b5971f0184cb34e72e3ada40eedb4b8be1436d32448ea9c6461511dcf",
+      "receipt": 25165876,
+      "user_pages": 0,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 00000000000011A2",
+        "SBEF RECEIPT 0000000001800034",
+        "SBEF REJECTED BEFORE USER MAP",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "cpu",
+      "sha256": "6700c4b4b808a8519925faee4995390475c1d88c7f748c2d48ddffc8addd67d6",
+      "receipt": 0,
+      "user_pages": 0,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 00000000000011A2",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF CPU UNSUPPORTED",
+        "SBEF REJECTED BEFORE USER MAP",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "page-budget",
+      "sha256": "194b003bf66a19d058fb9d6c544006ffe8795d709069e45749a8cfe6262a2dc7",
+      "receipt": 0,
+      "user_pages": 0,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 00000000000011A2",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER BUDGET",
+        "SBEF REJECTED BEFORE USER MAP",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "abi",
+      "sha256": "d1dca3f81c30637f29583e65ff10306c24a0d87df6f03c2a08b73cbecf4e22e3",
+      "receipt": 0,
+      "user_pages": 0,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 00000000000011A2",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF ABI UNSUPPORTED",
+        "SBEF REJECTED BEFORE USER MAP",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    }
+  ],
+  "total": 6,
+  "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+  "cpu": "qemu64",
+  "bridge_sha256": "7a5c70c208217fe0b283bb396851ebc90177e78ab74b6df242790a36c747b455",
+  "scope": "One isolated ABI 1 test process per virtual boot. General process management and production syscall integration are pending."
+}

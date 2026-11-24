@@ -154,9 +154,11 @@ LLVM de tres regiones. [Evidencia de carga externa](Reports/host-external-sbef-i
 
 El validador estructural escrito en CASM Native comprueba hasta ocho
 regiones y coincide con HOST en 29 casos. La sonda freestanding de QEMU
-lo invoca en Ring 0 despues de ExitBootServices, recupera las trampas de
-prueba y restaura y limpia su mapa temporal. Queda pendiente conectarlo
-a la ruta general de carga y entrada en Ring 3.
+lo invoca en Ring 0 despues de ExitBootServices. El perfil externo de
+QEMU lee un SBEF de ocho regiones desde FAT32, lo admite con CASM y entra
+en Ring 3. El cierre normal y el fallo de escritura convergen en el mismo
+borrado y restauracion de mapa. Quedan pendientes el planificador y los
+servicios de proceso del cargador de uso general.
 [Contrato y evidencia de admision](contracts/SBEF-LOADER.md).
 
 ## Escritorio, entrada y arranque

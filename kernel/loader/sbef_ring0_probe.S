@@ -4,7 +4,10 @@
 .set MODULE, 0x00400000
 .set DATA, 0x10000000
 .set PRIVATE_STACK, 0x20000000
+#ifndef BMO_EXTERNAL_SBEF
 .set IDT, DATA+0xa00
+.set IDT_LIMIT, 0xef
+#endif
 .set OLD_IDTR, DATA+0xb00
 .set NEW_IDTR, DATA+0xb10
 .set SAVED_RSP, DATA+0xb20
@@ -16,6 +19,11 @@
 .set GDT, DATA+0xc00
 .set TABLES, 8
 .set STACK_PHYS, 11
+#ifdef BMO_EXTERNAL_SBEF
+#include "sbef_external_qemu_layout.inc"
+#else
+.set POOL_PAGES, STACK_PHYS+256
+#endif
 
 .globl sbef_ring0_probe
 sbef_ring0_probe:
@@ -38,12 +46,12 @@ sbef_ring0_probe:
     jne .Lfail
     cmpl $1, 0x78(%rbp)
     jne .Lfail
-    cmpq $(STACK_PHYS+256), 0xc0(%rbp)
+    cmpq $POOL_PAGES, 0xc0(%rbp)
     jne .Lfail
     mov 0xb8(%rbp), %r12
     cmp $0x100000, %r12
     jb .Lfail
-    cmp $(0x10000000-(STACK_PHYS+256)*4096), %r12
+    cmp $(0x10000000-POOL_PAGES*4096), %r12
     ja .Lfail
     test $4095, %r12d
     jnz .Lfail
@@ -66,8 +74,6 @@ sbef_ring0_probe:
     mov %rax, (0x2000+8*(DATA>>21))(%r12)
     lea 0x5003(%r12), %rax
     mov %rax, (0x2000+8*(PRIVATE_STACK>>21))(%r12)
-    lea 0x7003(%r12), %rax
-    mov %rax, (0x2000+8*(STREAM>>21))(%r12)
     mov 8(%rbp), %rdx
     test $4095, %edx
     jnz .Lfail
@@ -100,6 +106,9 @@ sbef_ring0_probe:
     add $4096, %rax
     loop .Lstack_pages
     # Case input is RO/NX. CASM code and data are copied into owned pages.
+#ifndef BMO_EXTERNAL_SBEF
+    lea 0x7003(%r12), %rax
+    mov %rax, (0x2000+8*(STREAM>>21))(%r12)
     movabs $(0x8000000000000001+STREAM+0x3000), %rax
     lea (0x7000+3*8)(%r12), %rdi
     mov $((BMO_CASE_COUNT*304+4095)/4096), %ecx
@@ -107,6 +116,7 @@ sbef_ring0_probe:
     stosq
     add $4096, %rax
     loop .Lcase_pages
+#endif
     mov $STREAM, %esi
     lea (TABLES*4096)(%r12), %rdi
     mov $3072, %ecx
@@ -114,6 +124,9 @@ sbef_ring0_probe:
     movabs $0x32464542534f4d42, %rax
     cmp %rax, (10*4096+0x958)(%r12)
     jne .Lfail
+#ifdef BMO_EXTERNAL_SBEF
+    call .Lexternal_tables
+#endif
 
     # Restore the original map, IDTR and stack after the isolated trial.
     mov %cr3, %r13
@@ -136,7 +149,7 @@ sbef_ring0_probe:
     movw $0xff, NEW_GDTR
     movq $GDT, NEW_GDTR+2
     lgdt NEW_GDTR
-    movw $0xef, NEW_IDTR
+    movw $IDT_LIMIT, NEW_IDTR
     movq $IDT, NEW_IDTR+2
     mov $6, %edi
     lea .Lud(%rip), %rax
@@ -147,10 +160,16 @@ sbef_ring0_probe:
     mov $14, %edi
     lea .Lpf(%rip), %rax
     call .Lgate
+#ifdef BMO_EXTERNAL_SBEF
+    call .Lexternal_gates
+#endif
     lidt NEW_IDTR
     lea .Lstarted(%rip), %rsi
     call .Lprint
 
+#ifdef BMO_EXTERNAL_SBEF
+    jmp .Lexternal_admit
+#else
     # Deliberate trap from the audited module and a supervisor guard page.
     mov $1, %edi
     mov $BMO_TRAP_ENTRY, %eax
@@ -221,21 +240,44 @@ sbef_ring0_probe:
     add $304, %r15
     dec %ebx
     jnz .Lcase
+#endif
+.Lfinish:
+#ifdef BMO_EXTERNAL_SBEF
+    mov FAT_PHYSICAL, %r8
+    mov FAT_PAGES, %r9
+#endif
     lidt OLD_IDTR
     lgdt OLD_GDTR
     mov %r13, %cr3
     mov %r14, %rsp
     mov %r12, %rdi
     xor %eax, %eax
-    mov $((STACK_PHYS+256)*512), %ecx
+    mov $(POOL_PAGES*512), %ecx
     rep stosq
     mov %r12, %rdi
-    mov $((STACK_PHYS+256)*512), %ecx
+    mov $(POOL_PAGES*512), %ecx
     repe scasq
     jne .Lfail
     mov %cr3, %rax
     cmp %r13, %rax
     jne .Lfail
+#ifdef BMO_EXTERNAL_SBEF
+    mov %r8, %rdi
+    mov %r9, %rcx
+    shl $9, %rcx
+    xor %eax, %eax
+    rep stosq
+    mov %r8, %rdi
+    mov %r9, %rcx
+    shl $9, %rcx
+    repe scasq
+    jne .Lfail
+    lea .Lfat_scrubbed(%rip), %rsi
+    call .Lprint
+    mov %r9, %rax
+    shl $12, %rax
+    call .Lhex
+#endif
     lea .Lpassed(%rip), %rsi
     call .Lprint
     mov $0x10, %eax
@@ -263,12 +305,24 @@ sbef_ring0_probe:
     ret
 
 .Lud:
+#ifdef BMO_EXTERNAL_SBEF
+    testb $3, 8(%rsp)
+    jnz .Luser_abort
+#endif
     mov $6, %eax
     jmp .Ltrap
 .Lgp:
+#ifdef BMO_EXTERNAL_SBEF
+    testb $3, 16(%rsp)
+    jnz .Luser_abort
+#endif
     mov $13, %eax
     jmp .Ltrap
 .Lpf:
+#ifdef BMO_EXTERNAL_SBEF
+    testb $3, 16(%rsp)
+    jnz .Luser_pf
+#endif
     mov $14, %eax
 .Ltrap:
     cmpl $0, PHASE
@@ -334,3 +388,6 @@ sbef_ring0_probe:
 .Lreceipt: .asciz "SBEF RECEIPT "
 .Lpassed: .asciz "SBEF MAP RESTORED AND SCRUBBED\n"
 .Lfailed: .asciz "SBEF FAIL\n"
+#ifdef BMO_EXTERNAL_SBEF
+#include "sbef_external_qemu.inc"
+#endif

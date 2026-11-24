@@ -100,9 +100,20 @@ modulo solo puede acceder a la primera pagina de su ventana de datos en
 este perfil. Se verifican los 29 recibos y cuatro trampas (`#UD`, pagina
 de guarda, escritura sobre RX y ejecucion en NX). Al finalizar restaura el
 mapa y comprueba el borrado de las 267 paginas reservadas. El ensayo usa
-vectores preparados por HOST y deja pendiente la ruta que toma SBEF de
-usuario, mapea regiones y entra en Ring 3.
+vectores preparados por HOST.
 [Evidencia post-EBS](../Reports/casm-sbef-ring0-qemu.json).
+
+En el perfil `--external` de la misma sonda, UEFI lee un SBEF externo
+desde FAT32. Ring 0 le da al validador CASM una copia de la cabecera y
+la tabla, comprueba ABI 1 y el perfil ISA efectivo y rechaza antes de
+publicar si excede 64 paginas de regiones. La copia usa un alias supervisor
+RW/NX que se retira antes de entrar a CPL3. Se comprueban ocho regiones,
+una de dos paginas, copias a ambos lados del limite de pagina, BSS y pila.
+El fallo de escritura en R/NX y la salida por la puerta de prueba ejecutan
+la misma rutina de restauracion y borrado, incluida la reserva FAT32.
+Esta ruta usa una sesion aislada por arranque de QEMU y una puerta de prueba;
+queda pendiente integrarla con el gestor de procesos y el ABI de produccion.
+[Evidencia de carga y salida](../Reports/casm-sbef-external-ring3-qemu.json).
 
 En pruebas separadas, la sonda externa LLVM cierra y vuelve a abrir el
 escritorio en los mismos cinco marcos y verifica su borrado en cada salida.

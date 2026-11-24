@@ -1,0 +1,25 @@
+# Supervisor aliases exist only in the temporary QEMU map.
+.set FAT_SOURCE, 0x20200000
+.set USER_COPY, 0x20400000
+.set TABLE_MAP, 0x20600000
+.set USER_BASE, 0x40000000
+.set USER_STACK, 0x41001000
+.set IDT, DATA+4096
+.set IDT_LIMIT, 0x80f
+.set TSS, DATA+0xe00
+.set SAVED_POOL, DATA+0xb60
+.set SAVED_CR3, DATA+0xb68
+.set OLD_STACK, DATA+0xb70
+.set FAT_LENGTH, DATA+0xb78
+.set FAT_PHYSICAL, DATA+0xb80
+.set FAT_PAGES, DATA+0xb88
+.set SOURCE_PT, 267
+.set USER_PD, 268
+.set USER_PT, 269
+.set USER_STACK_PT, 277
+.set USER_FRAME, 278
+.set USER_MAX_PAGES, 64
+.set COPY_PT, 343
+.set TABLE_PT, 344
+.set IDT_PHYS, 345
+.set POOL_PAGES, 346

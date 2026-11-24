@@ -10,14 +10,20 @@ import sys
 import tempfile
 from pathlib import Path
 
-from casm_sbef_qemu import test_vectors, validate
+from casm_sbef_qemu import CHECKS, test_vectors, validate
+from host.diagnostics import Rejection
+from host.sbef.format import encode_header, inspect, load_plan
 from scope import ROOT, workspace
 from bridge_hex import assemble
+from fat32_read import Fat32
 
 
 PAGES = 267
+EXTERNAL_PAGES = 346
 ALLOCATOR = ROOT / 'kernel/boot/bridge/desktop_media_alloc.S'
+READER = ALLOCATOR.with_name('desktop_media_read.S')
 PROBE = ROOT / 'kernel/loader/sbef_ring0_probe.S'
+CLIENT = ROOT / 'tools/tests/sbef_external_client.S'
 ATTESTED = ROOT / 'Reports/casm-sbef-freestanding-qemu.json'
 
 
@@ -33,7 +39,7 @@ def assemble_stage(llvm, source, run, **defines):
     return raw.read_bytes()
 
 
-def stage(run, bridge, body):
+def stage(run, bridge, body, external=None):
     media = run / 'build/Puente_Metal'
     efi, entry = media / 'EFI/BOOT/BOOTX64.EFI', media / 'METAL/INICIO.X86'
     for path in (efi, entry):
@@ -46,7 +52,8 @@ def stage(run, bridge, body):
                         '-File', tools / 'disk.ps1', '-OutputRoot', run,
                         '-Programa', 'build/Puente_Metal/METAL/INICIO.X86', '-GPT'],
                        cwd=run, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=30)
-        subprocess.run([sys.executable, '-B', tools / 'prepare.py', '--workspace', run],
+        extra = ['--bmo-x2-folder', '--desktop', external] if external else []
+        subprocess.run([sys.executable, '-B', tools / 'prepare.py', '--workspace', run, *extra],
                        stdout=log, stderr=subprocess.STDOUT, check=True, timeout=30)
 
 
@@ -72,10 +79,115 @@ def run_qemu(qemu, run):
     return lines
 
 
+def external_bridge(bridge, reader):
+    site, extension = 0x267, 0x3000
+    if bridge[site:site+5] != bytes.fromhex('e894050000') or len(bridge) != extension or len(reader) > 4096:
+        raise ValueError('El lector FAT32 excede el presupuesto del puente')
+    struct.pack_into('<i', bridge, site+1, extension-site-5)
+    old_path = ('\\METAL\\INICIO.X86' + '\0').encode('utf-16le')
+    new_path = ('\\BMO-X2\\INICIO.X86' + '\0').encode('utf-16le')
+    if bridge[0x1840:0x1840+len(old_path)] != old_path or len(new_path) > 0x40:
+        raise ValueError('Cambio la ruta de entrada del puente')
+    bridge[0x1840:0x1840+len(new_path)] = new_path
+    for offset, old in ((0x5c, 0x2e00), (0x90, 0x4000), (0x150, 0x2e00), (0x158, 0x2e00)):
+        if struct.unpack_from('<I', bridge, offset)[0] != old:
+            raise ValueError('Cambio la cabecera PE del puente')
+        struct.pack_into('<I', bridge, offset, old + 0x2000)
+    return bridge + reader.ljust(8192, b'\0')
+
+
+def external_image(code):
+    base = 0x40000000
+    data = bytearray(code)
+    records = bytearray()
+    for index in range(8):
+        region = code if index == 0 else struct.pack('<I', index)
+        if index == 7:
+            region = region.ljust(4096, b'\0') + struct.pack('<I', 0x25121800)
+        offset = 288 if index == 0 else 288 + len(data)
+        records += struct.pack('<QIIIIQ', base + index * 8192, offset, len(region),
+                               8192 if index == 7 else 4096,
+                               5 if index == 0 else 4 + 2 * (index % 2 == 0), 0)
+        if index:
+            data += region
+    return bytearray(encode_header(1, 8, 288 + len(data), base) + records + data)
+
+
+def run_external(args, run, llvm, bridge, body, stream, module):
+    bridge = external_bridge(bridge, assemble_stage(llvm, READER, run))
+    normal = external_image(assemble_stage(llvm, CLIENT, run))
+    fault = external_image(assemble_stage(llvm, CLIENT, run, BMO_EXTERNAL_FAULT=1))
+    bad_permissions, cpu, budget, abi = (bytearray(normal) for _ in range(4))
+    struct.pack_into('<I', bad_permissions, 52, 7)
+    struct.pack_into('<I', cpu, 24, 3)
+    struct.pack_into('<I', budget, 32 + 7 * 32 + 16, 65 * 4096)
+    struct.pack_into('<H', abi, 6, 0)
+    results = []
+    for name, image, policy in (
+        ('exit', normal, 'SBEF CPL3 EXIT 0000000053424546'),
+        ('fault', fault, 'SBEF CPL3 PF 0000000040002000'),
+        ('permissions', bad_permissions, None),
+        ('cpu', cpu, 'SBEF CPU UNSUPPORTED'),
+        ('page-budget', budget, 'SBEF USER BUDGET'),
+        ('abi', abi, 'SBEF ABI UNSUPPORTED'),
+    ):
+        receipt = 0
+        pages = 0
+        try:
+            info = inspect(image)
+        except Rejection as error:
+            if name != 'permissions' or error.offset != 52:
+                raise
+            receipt = (1 + CHECKS.index((error.code, error.field))) * 2097152 + error.offset
+        else:
+            if name == 'permissions':
+                raise ValueError('HOST admitio la muestra W+X')
+            if name in ('exit', 'fault'):
+                plan = load_plan(image)
+                pages = 1 + sum(region['PageCount'] for region in plan['Regions'])
+                if info['AbiVersion'] != 1 or plan['RegionCount'] != 8 or pages != 10:
+                    raise ValueError('Cambio el contrato de la muestra externa')
+        folder = run / ('run-' + name)
+        folder.mkdir()
+        payload = folder / 'fixture.sbef'
+        payload.write_bytes(image)
+        (folder / 'stream.bin').write_bytes(stream)
+        stage(folder, bridge, body, payload)
+        volume = Fat32(folder / 'build/puente-normal.img')
+        try:
+            if volume.file_bytes('BMO-X2/DESKTOP.SBF') != image:
+                raise ValueError('El archivo SBEF de la imagen FAT32 difiere del fixture')
+        finally:
+            volume.close()
+        observed = run_qemu(args.qemu.resolve(), folder)
+        expected = ['SBEF CPL0 POST-EBS', f'SBEF FAT32 BYTES {len(image):016X}', f'SBEF RECEIPT {receipt:016X}']
+        if pages:
+            expected.append(f'SBEF USER PAGES {pages:016X}')
+        if name == 'fault':
+            expected.append('SBEF PF ERROR 0000000000000007')
+        if policy:
+            expected.append(policy)
+        if not pages:
+            expected.append('SBEF REJECTED BEFORE USER MAP')
+        staged_bytes = (len(image) + 4095) & -4096
+        expected.extend([f'SBEF FAT32 SCRUBBED {staged_bytes:016X}', 'SBEF MAP RESTORED AND SCRUBBED'])
+        if observed != expected:
+            raise ValueError(f'{name}: recibos inesperados {observed}. Ver {folder}')
+        results.append(dict(case=name, sha256=hashlib.sha256(image).hexdigest(), receipt=receipt,
+                            user_pages=pages, staging_bytes_scrubbed=staged_bytes, trace=observed, passed=True))
+        print(f'{name}: comprobado', flush=True)
+    report = dict(run=run.name, evidence='QEMU/OVMF, SBEF from virtual FAT32 and real CPL3',
+                  validator_text_sha256=module['text_sha256'], probe_sha256=hashlib.sha256(body).hexdigest(),
+                  probe_bytes=len(body), private_pages=EXTERNAL_PAGES, user_frame_budget=64,
+                  scratch_bytes_scrubbed=EXTERNAL_PAGES*4096, passed=len(results), cases=results)
+    (run / 'qemu-results.json').write_text(json.dumps(report, indent=2)+'\n', encoding='ascii')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('module_run', type=Path)
     parser.add_argument('--qemu', type=Path, default=Path('C:/Program Files/qemu/qemu-system-x86_64.exe'))
+    parser.add_argument('--external', action='store_true', help='Read the SBEF from FAT32 and test CPL3')
     args = parser.parse_args()
     module = json.loads((workspace(args.module_run) / 'validator.module.json').read_bytes())
     validate(module)
@@ -87,15 +199,17 @@ def main():
         raise ValueError('El modulo no cabe en el perfil supervisor')
     expected, cases = test_vectors()
     stream = text.ljust(8192, b'\0') + data.ljust(4096, b'\0')
-    stream += b''.join(struct.pack('<Q', len(payload)) + payload.ljust(296, b'\0')
-                       for _, _, payload in cases)
+    if not args.external:
+        stream += b''.join(struct.pack('<Q', len(payload)) + payload.ljust(296, b'\0')
+                           for _, _, payload in cases)
     run = Path(tempfile.mkdtemp(prefix='run-sbef-ring0-', dir=ROOT / 'build/CASM'))
     print(f'Run: {run}', flush=True)
-    (run / 'stream.bin').write_bytes(stream)
     llvm = Path(os.environ['ProgramFiles']) / 'LLVM/bin'
-    allocator = assemble_stage(llvm, ALLOCATOR, run, BMO_DMA_LAB_PAGES=PAGES)
+    allocator = assemble_stage(llvm, ALLOCATOR, run,
+                               BMO_DMA_LAB_PAGES=EXTERNAL_PAGES if args.external else PAGES)
+    mode = dict(BMO_EXTERNAL_SBEF=1) if args.external else {}
     body = assemble_stage(llvm, PROBE, run, BMO_CASE_COUNT=len(cases), BMO_MODULE_ENTRY=module['entry'],
-                          BMO_TRAP_ENTRY=module['trap_addresses']['bounds'])
+                          BMO_TRAP_ENTRY=module['trap_addresses']['bounds'], **mode)
     pieces = [ALLOCATOR.with_name(f'{part}.hex') for part in ('cabecera', 'entrada', 'datos', 'fuente')]
     bridge = bytearray(assemble(pieces))
     if not 0 < len(body) <= 4096 - 24 or not 0 < len(allocator) <= 0xf0:
@@ -103,6 +217,10 @@ def main():
     if bridge[0x400:0x404] != bytes.fromhex('4883ec28'):
         raise ValueError('Cambio el punto de entrada del asignador')
     bridge[0x400:0x400+len(allocator)] = allocator
+    if args.external:
+        run_external(args, run, llvm, bridge, body, stream, module)
+        return
+    (run / 'stream.bin').write_bytes(stream)
     stage(run, bridge, body)
     observed = run_qemu(args.qemu.resolve(), run)
     wanted = ['SBEF CPL0 POST-EBS', 'SBEF UD2 GUARD RX-WRITE NX-EXEC RECOVERED',

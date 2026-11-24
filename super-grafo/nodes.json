@@ -1223,8 +1223,8 @@
       "que": "Admite y mapea una imagen SBEF bajo el contrato del proceso.",
       "entrada": "Bytes del ejecutable, limites, perfil SBEF y estado de CPU.",
       "salida": "Imagen mapeada con entrada y permisos comprobados o motivo de rechazo.",
-      "aceptacion": "La sonda QEMU post-EBS ejecuta el validador CASM freestanding en CPL0. Coinciden 29 recibos con HOST, recupera cuatro trampas, restaura CR3 y verifica el borrado de 267 paginas. Evidencia Reports/casm-sbef-ring0-qemu.json.",
-      "falta": "Conectar la admision CASM a la ruta externa de procesos y sustituir los perfiles fijos LLVM por mapas de hasta ocho regiones, pila y rollback generales. La prueba de ISA efectiva sigue separada.",
+      "aceptacion": "La sonda QEMU carga un SBEF FAT32 de ocho regiones, invoca CASM post-EBS, verifica ISA y entra a CPL3. Salida y fallo borran las reservas. Cuatro rechazos mantienen las hojas de usuario vacias. Evidencia Reports/casm-sbef-external-ring3-qemu.json.",
+      "falta": "Integrar la sonda con el gestor de procesos, recursos dinamicos, el ABI de produccion y el arranque habitual. La sonda acredita una sesion aislada, con hasta 64 paginas de regiones.",
       "pagina": true
     },
     {
