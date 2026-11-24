@@ -80,6 +80,21 @@ def newc(files):
     return archive
 
 
+def test_vectors():
+    expected, cases = [], []
+    for index, (name, image) in enumerate(samples()):
+        receipt = 0
+        try:
+            inspect(image)
+        except Rejection as error:
+            receipt = (1 + CHECKS.index((error.code, error.field))) * 2097152 + error.offset
+        expected.append(dict(case=name, receipt=receipt))
+        cases.append((f'case{index:02}', 0o100644, struct.pack('<Q', len(image)) + image[:288]))
+    expected.append(dict(case='truncated-envelope', receipt=19 * 2097152))
+    cases.append((f'case{len(expected)-1:02}', 0o100644, struct.pack('<Q', 500)))
+    return expected, cases
+
+
 INIT = r"""
 static long sc(long n,long a,long b,long c,long d) {
     register long r10 __asm__("r10")=d;
@@ -198,17 +213,7 @@ def main():
     source = SOURCE.read_bytes() + b'\n' + entry
     files = [('casmc', 0o100755, args.casmc.read_bytes()), ('validator.casm', 0o100644, source)]
     audit(files[0][2])
-    expected, cases = [], []
-    for index, (name, image) in enumerate(samples()):
-        receipt = 0
-        try:
-            inspect(image)
-        except Rejection as error:
-            receipt = (1 + CHECKS.index((error.code, error.field))) * 2097152 + error.offset
-        expected.append(dict(case=name, receipt=receipt))
-        cases.append((f'case{index:02}', 0o100644, struct.pack('<Q', len(image)) + image[:288]))
-    expected.append(dict(case='truncated-envelope', receipt=19 * 2097152))
-    cases.append((f'case{len(expected)-1:02}', 0o100644, struct.pack('<Q', 500)))
+    expected, cases = test_vectors()
     init_src = run / 'init.c'
     init_src.write_text(INIT, encoding='ascii')
     print(f'Run: {run}', flush=True)

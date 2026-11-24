@@ -1,0 +1,24 @@
+{
+  "run": "run-sbef-ring0-bw2owwio",
+  "evidence": "QEMU/OVMF, CPL0 after ExitBootServices",
+  "module_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
+  "probe_sha256": "49b080f24c18fbdf311267807cb2fa94199ede0c0c86abfd465bcb169bb51ba1",
+  "probe_bytes": 1545,
+  "private_pages": 267,
+  "module_data_pages": 1,
+  "recovered_traps": [
+    "#UD",
+    "#PF guard",
+    "#PF RX write",
+    "#PF NX execute"
+  ],
+  "original_map_restored": true,
+  "scratch_bytes_scrubbed": 1093632,
+  "passed": 29,
+  "total": 29,
+  "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+  "cpu": "qemu64",
+  "bridge_sha256": "32956b41480e45b57dfc6838626c2ecfdfa9afe13b836bbc6b04b21e46309628",
+  "expected_cases": "Reports/casm-sbef-validation-qemu.json",
+  "scope": "QEMU-only supervisor invocation with a temporary page table. User-facing external loading is pending."
+}

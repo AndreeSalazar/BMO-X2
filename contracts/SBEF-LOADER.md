@@ -90,9 +90,19 @@ El llamador valida la marca inicial en `0x10000958` y escribe alli la
 cantidad real de celdas antes de cada llamada. El stub Native fija el
 retorno en RAX segun SysV y usa la pila del llamador. El banco reserva
 8 454 144 bytes virtuales de datos y mide una pagina residente con Linux
-al completar los 29 casos. El futuro llamador de Ring 0 debe proveer
-el mapa supervisor y manejar las trampas del modulo.
+al completar los 29 casos.
 [Evidencia freestanding](../Reports/casm-sbef-freestanding-qemu.json).
+
+La sonda `tools/boot/sbef_ring0_qemu.py` llama a ese mismo modulo
+auditado despues de ExitBootServices. El perfil QEMU usa dos paginas de
+codigo RX, una pagina de datos RW/NX y una pila de 1 MiB con guarda. El
+modulo solo puede acceder a la primera pagina de su ventana de datos en
+este perfil. Se verifican los 29 recibos y cuatro trampas (`#UD`, pagina
+de guarda, escritura sobre RX y ejecucion en NX). Al finalizar restaura el
+mapa y comprueba el borrado de las 267 paginas reservadas. El ensayo usa
+vectores preparados por HOST y deja pendiente la ruta que toma SBEF de
+usuario, mapea regiones y entra en Ring 3.
+[Evidencia post-EBS](../Reports/casm-sbef-ring0-qemu.json).
 
 En pruebas separadas, la sonda externa LLVM cierra y vuelve a abrir el
 escritorio en los mismos cinco marcos y verifica su borrado en cada salida.

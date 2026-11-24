@@ -1223,8 +1223,8 @@
       "que": "Admite y mapea una imagen SBEF bajo el contrato del proceso.",
       "entrada": "Bytes del ejecutable, limites, perfil SBEF y estado de CPU.",
       "salida": "Imagen mapeada con entrada y permisos comprobados o motivo de rechazo.",
-      "aceptacion": "QEMU coteja el mapa de HOST con PTE, marcos y permisos en CPL3 para SBEF v2 externo x86-64-v1. qemu64 rechaza W+X, requisito v3 y reservado no cero antes de copiar codigo. Evidencia Reports/host-external-sbef-isa-qemu.json.",
-      "falta": "El modulo CASM freestanding coincide con HOST en 29 casos en QEMU Linux. Falta invocarlo desde Ring 0 con memoria supervisor y manejo de trampas, y ampliar los perfiles fijos LLVM con mapas, pila y rollback generales por proceso.",
+      "aceptacion": "La sonda QEMU post-EBS ejecuta el validador CASM freestanding en CPL0. Coinciden 29 recibos con HOST, recupera cuatro trampas, restaura CR3 y verifica el borrado de 267 paginas. Evidencia Reports/casm-sbef-ring0-qemu.json.",
+      "falta": "Conectar la admision CASM a la ruta externa de procesos y sustituir los perfiles fijos LLVM por mapas de hasta ocho regiones, pila y rollback generales. La prueba de ISA efectiva sigue separada.",
       "pagina": true
     },
     {

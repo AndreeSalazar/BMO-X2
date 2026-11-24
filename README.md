@@ -153,9 +153,10 @@ invalidos antes de copiar codigo. El resultado corresponde a la sonda
 LLVM de tres regiones. [Evidencia de carga externa](Reports/host-external-sbef-isa-qemu.json).
 
 El validador estructural escrito en CASM Native comprueba hasta ocho
-regiones y coincide con HOST en 29 casos de QEMU. El modulo freestanding
-se probo en un invitado Linux y devuelve su recibo sin invocar servicios
-de Linux. Queda pendiente conectarlo al cargador de Ring 0.
+regiones y coincide con HOST en 29 casos. La sonda freestanding de QEMU
+lo invoca en Ring 0 despues de ExitBootServices, recupera las trampas de
+prueba y restaura y limpia su mapa temporal. Queda pendiente conectarlo
+a la ruta general de carga y entrada en Ring 3.
 [Contrato y evidencia de admision](contracts/SBEF-LOADER.md).
 
 ## Escritorio, entrada y arranque
