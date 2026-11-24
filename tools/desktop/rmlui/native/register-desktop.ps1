@@ -11,7 +11,7 @@ $dataFolder=if($PhysicalFwsecTrial){'BMO-X2/GPU-FW'}elseif($AmdviMmio){'BMO-X2/G
 $bootFile=if($PhysicalFwsecTrial){'EFI/BMO-X2/RTX-FWSEC.EFI'}elseif($AmdviMmio){'EFI/BMO-X2/AMDVI-MMIO.EFI'}elseif($NvidiaProbe){'EFI/BMO-X2/NVIDIA.EFI'}else{'EFI/BMO-X2/DESKTOP.EFI'}
 $receiptName=if($PhysicalFwsecTrial){'firmware-rtx-fwsec.json'}elseif($AmdviMmio){'firmware-amdvi-mmio.json'}elseif($StorageHandoff){'firmware-storage-handoff.json'}elseif($NvidiaProbe){'firmware-nvidia.json'}else{'firmware-desktop.json'}
 $receipt=Join-Path $root "build/rmlui-native/$receiptName"
-$name=if($PhysicalFwsecTrial){'BMO-X2 (RTX FWSEC)'}elseif($AmdviMmio){'BMO-X2 (AMD-Vi registros)'}elseif($StorageHandoff){'BMO-X2 (DMA SATA-NVMe)'}elseif($NvidiaProbe){'BMO-X2 (con NVIDIA)'}else{'BMO-X2 Desktop (RmlUi)'}
+$name=if($PhysicalFwsecTrial){'BMO-X2 (RTX FWSEC)'}elseif($AmdviMmio){'BMO-X2 (AMD-Vi registros)'}elseif($StorageHandoff){'BMO-X2 (DMA SATA-NVMe)'}elseif($NvidiaProbe){'BMO-X2 (con NVIDIA)'}else{'BMO-X2 (Original)'}
 $path='\'+$bootFile.Replace('/','\')
 $manifest=Get-Content -LiteralPath (Join-Path 'A:\' "$dataFolder/DEPLOY.JSON") -Raw | ConvertFrom-Json
 if ([IO.DriveInfo]::new('A:\').DriveFormat -ne 'FAT32') {throw 'A: no es FAT32.'}
@@ -69,10 +69,14 @@ function Get-FirmwareOrder([string]$Output) {
 $before=Invoke-Bcd @('/enum','firmware')
 $orderBefore=@(Get-FirmwareOrder (Invoke-Bcd @('/enum','{fwbootmgr}')))
 $blocks=$before -split '(?:\r?\n){2,}'
-$existing=@($blocks | Where-Object {$_ -match ('(?m)^description\s+'+[regex]::Escape($name)+'\s*$')})
+$names=@($name)
+if (-not $NvidiaProbe) { $names+='BMO-X2 Desktop (RmlUi)' }
+$description='(?m)^description[^\S\r\n]+('+(($names | ForEach-Object {[regex]::Escape($_)}) -join '|')+')[^\S\r\n]*\r?$'
+$existing=@($blocks | Where-Object {$_ -match $description})
 $created=$false
 if($existing.Count -gt 1){throw 'Mas de una entrada del candidato; revisar antes de registrar.'}
 if($existing.Count -eq 1) {
+    $name=[regex]::Match($existing[0],$description).Groups[1].Value
     $id=[regex]::Match($existing[0],'\{[0-9a-fA-F-]{36}\}').Value
     if(-not $id -or $existing[0] -notmatch '(?im)^device\s+partition=A:\\?\s*$' -or
         $existing[0] -notmatch ('(?im)^path\s+'+[regex]::Escape($path)+'\s*$')) {throw 'Entrada existente incompatible.'}

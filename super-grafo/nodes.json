@@ -2384,7 +2384,7 @@
       ],
       "que": "Registra el escritorio o el ensayo de inventario PCI NVIDIA como entradas UEFI independientes.",
       "entrada": "Volumen A: FAT32, recibo DEPLOY.JSON, hashes de los tres archivos activos y evidencia QEMU para el ensayo NVIDIA.",
-      "salida": "BMO-X2 Desktop (RmlUi) apunta a DESKTOP.EFI. BMO-X2 (con NVIDIA) apunta a NVIDIA.EFI.",
+      "salida": "BMO-X2 (Original) apunta a DESKTOP.EFI, igual que el nombre anterior BMO-X2 Desktop (RmlUi). BMO-X2 (con NVIDIA) apunta a NVIDIA.EFI.",
       "aceptacion": "Registro HOST verifica el dispositivo, la ruta y la presencia de la entrada. Al crearla, verifica que se agregue al final del orden anterior.",
       "falta": "METAL confirmo la entrada NVIDIA y MMIO del GA106. La siguiente prueba de arranque requiere un candidato con DMA nativo."
     },

@@ -36,7 +36,9 @@ su propia contabilidad de memoria.
 ## Prueba fisica preparada
 
 En esta maquina ya se registro una entrada separada del firmware llamada
-**BMO-X2 Desktop (RmlUi)**. Elegir ese nombre en el menu de arranque.
+**BMO-X2 (Original)**. Las instalaciones previas pueden conservar el nombre
+**BMO-X2 Desktop (RmlUi)**. Ambas entradas apuntan a `DESKTOP.EFI`, con
+RmlUi en Ring 3 y presentacion por GOP.
 Tras la confirmacion de METAL del propietario se retiro la entrada
 antigua **BMO-X2** del firmware. Sus cuatro archivos se archivaron con
 SHA256 en `build/archives/retired-bmo-x2` y se retiraron de A: por pedido

@@ -1526,7 +1526,7 @@ Registra el escritorio o el ensayo de inventario PCI NVIDIA como entradas UEFI i
 
 Estado: HOST. Anillo: host. Lenguaje: PowerShell.
 Entrada: Volumen A: FAT32, recibo DEPLOY.JSON, hashes de los tres archivos activos y evidencia QEMU para el ensayo NVIDIA.
-Salida: BMO-X2 Desktop (RmlUi) apunta a DESKTOP.EFI. BMO-X2 (con NVIDIA) apunta a NVIDIA.EFI.
+Salida: BMO-X2 (Original) apunta a DESKTOP.EFI, igual que el nombre anterior BMO-X2 Desktop (RmlUi). BMO-X2 (con NVIDIA) apunta a NVIDIA.EFI.
 Depende de: Candidato separado en FAT32 fisico (codigo).
 Aceptacion: Registro HOST verifica el dispositivo, la ruta y la presencia de la entrada. Al crearla, verifica que se agregue al final del orden anterior.
 Pendiente: METAL confirmo la entrada NVIDIA y MMIO del GA106. La siguiente prueba de arranque requiere un candidato con DMA nativo.
