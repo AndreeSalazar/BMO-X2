@@ -68,8 +68,25 @@ comparacion posterior a la ejecucion. La VM uso 1024 MiB. Es evidencia
 de la sonda y este perfil, no de arranque fisico ni del cargador CASM
 general.
 
-Esta comprobacion instrumenta la sonda LLVM; no sustituye el cargador
-CASM general.
+El [validador estructural CASM Native](../kernel/loader/sbef_validate.casm)
+lee una longitud medida y una copia acotada de la cabecera y la tabla de
+regiones. Comprueba el perfil SBEF predeterminado, con hasta ocho regiones,
+y devuelve un identificador de rechazo y su offset. El entorno que lo
+integre debe conservar inmutables la tabla y el contenido hasta terminar
+la copia. El validador inspecciona la declaracion de ISA. El chequeo
+efectivo de CPU y la asignacion corresponden al cargador.
+
+El banco `tools/boot/casm_sbef_qemu.py` compila la fuente con CASM Native
+dentro de un invitado Linux, verifica el ELF con el auditor independiente
+y compara los recibos con HOST. El ejecutable del banco usa un adaptador
+de entrada y salida Linux. La fuente del validador mantiene esa E/S fuera
+de la rutina. [Evidencia diferencial](../Reports/casm-sbef-validation-qemu.json).
+
+En pruebas separadas, la sonda externa LLVM cierra y vuelve a abrir el
+escritorio en los mismos cinco marcos y verifica su borrado en cada salida.
+La sonda ABI embebida recupera dos marcos tras un fallo de usuario y los
+reutiliza con un segundo cliente. El cargador general tiene pendiente
+reunir ambas rutas de recuperacion bajo un mismo contrato de proceso.
 
 El validador solo reconoce sus perfiles fijos de una a tres regiones;
 no admite aun las direcciones RVA ni las cuatro o mas regiones que puede

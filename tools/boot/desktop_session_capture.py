@@ -225,7 +225,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                         SbefWritablePagesContentSkipped=0)
     mapping_plan = None
     entries = None
-    count = None
+    region_count = None
     if intro and frames != {1, 2}:
         def through_intro():
             started()
@@ -258,11 +258,11 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         return 'CPL=0' in regs and 'HLT=1' in regs and code <= register(regs, 'RIP') < code + len(packet)-24
 
     def verify_mapping():
-        nonlocal mapping_plan, entries, count, map_evidence
+        nonlocal mapping_plan, entries, region_count, map_evidence
         if external_image is not None and mapping_plan is None:
             mapping_plan, entries, map_evidence = verify_external_mapping(
                 memory, address, external_image, ultra_j_action=ultra_j_action)
-            count = mapping_plan['RegionCount']
+            region_count = mapping_plan['RegionCount']
 
     def key(*keys):
         command('send-key', {'keys': [{'type': 'qcode', 'data': key} for key in keys],
@@ -836,7 +836,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
     assert memory(code, len(packet)-24, 'session-code') == packet[24:]
     if external_image is not None:
         assert external_image not in packet, 'SBEF externo embebido en el paquete'
-        if count == 3:
+        if region_count == 3:
             data_region = mapping_plan['Regions'][2]
             assert (data_region['FileBytes'], data_region['MemoryBytes']) == (4, 8)
             assert external_image[data_region['FileOffset']:data_region['FileEnd']] == struct.pack('<I', 0x424d4f32)
@@ -954,9 +954,11 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
         wait_until(lambda: logical(52, 99, 0xad92ff))
     command('screendump', {'filename': str(prefix)+'.png', 'format': 'png'})
     closed = {}
-    if external_image is not None and count == 3:
+    if external_image is not None and region_count == 3:
         descriptor = address + 0x1a000
         bridge_cr3 = struct.unpack('<Q', memory(descriptor + 0x318, 8, 'bridge-cr3'))[0]
+        user_cr3 = register(registers(), 'CR3')
+        assert user_cr3 != bridge_cr3
         reuse = desktop_media and (prefix.parent.parent / 'reuse-session.txt').is_file()
 
         def close_session():
@@ -991,7 +993,7 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
             wait_until(lambda: owner(2) and logical(52, 99, 0x5ad8ff)
                        and logical(320, 200, 0xe7efff) and sleeping())
             regs = registers()
-            assert register(regs, 'EFER') & 1 and register(regs, 'CR3') == base
+            assert register(regs, 'EFER') & 1 and register(regs, 'CR3') == user_cr3
             new_entries = struct.unpack('<QQQQQ', memory(address + 0x17000, 40, 'reused-pte'))
             assert tuple(entry & ~0x60 for entry in new_entries) == tuple(entry & ~0x60 for entry in entries)
             assert memory(address + 0x1d000, 8, 'reused-data') == struct.pack('<II', 0x52334441, 0x52334253)
@@ -1010,9 +1012,9 @@ def verify_session(command, memory, prefix, packet, intro, fixture, external_ima
                 WaitHalted=True, WaitTimeoutVerified=True, WaitInputVerified=True,
                 ExternalSbef=external_image is not None,
                 **map_evidence,
-                ReadOnlyNxRegionVerified=external_image is not None and count >= 2,
-                WritableNxRegionVerified=external_image is not None and count == 3,
-                UserDataAndBssVerified=external_image is not None and count == 3,
+                ReadOnlyNxRegionVerified=external_image is not None and region_count >= 2,
+                WritableNxRegionVerified=external_image is not None and region_count == 3,
+                UserDataAndBssVerified=external_image is not None and region_count == 3,
                 CabinaCommandsVerified=4 if external_image is not None else 0,
                 SettingsVerified=external_image is not None,
                 XhciInventoryVerified=desktop_media,

@@ -1,0 +1,101 @@
+// CASM Native structural admission for the default SBEF profile.
+// Input: little-endian measured file size, followed by up to 288 header bytes.
+// Receipt: zero on success; otherwise error ID * 2097152 + byte offset.
+u64 sbef_input[296];
+
+u64 read_le(u64 offset, u64 width) {
+    u64 value=0;
+    u64 index=0;
+    while(index<width) {
+        value=value|(sbef_input[offset+index]<<(index*8));
+        index=index+1;
+    }
+    return value;
+}
+
+u64 field(u64 offset, u64 width) {
+    return read_le(8+offset,width);
+}
+
+u64 reject(u64 code, u64 offset) {
+    return code*2097152+offset;
+}
+
+u64 validate_sbef(u64 input_bytes) {
+    u64 size=0;
+    u64 prefix=0;
+    u64 version=0;
+    u64 profile=0;
+    u64 count=0;
+    u64 cursor=0;
+    u64 entry=0;
+    u64 entry_valid=0;
+    u64 index=0;
+    u64 record=0;
+    u64 previous_end=1073741824;
+    u64 limit=1090519040;
+    u64 address=0;
+    u64 file_bytes=0;
+    u64 memory_bytes=0;
+    u64 mapped_bytes=0;
+    u64 permissions=0;
+
+    if(input_bytes<8) { return reject(19,0); }
+    size=read_le(0,8);
+    prefix=size;
+    if(prefix>288) { prefix=288; }
+    if(input_bytes!=prefix+8) { return reject(19,0); }
+    if(size<32) { return reject(1,size); }
+    if(size>1048576) { return reject(1,1048576); }
+    if(field(0,4)!=1178944083) { return reject(2,0); }
+    if(field(8,2)!=62) { return reject(3,8); }
+    if(field(28,4)!=0) { return reject(4,28); }
+    version=field(4,2);
+    profile=field(24,4);
+    if(version==1) {
+        if(profile!=0) { return reject(5,24); }
+    } else {
+        if(version!=2) { return reject(7,4); }
+        if(profile<1) { return reject(6,24); }
+        if(profile>4) { return reject(6,24); }
+    }
+    if(field(6,2)>1) { return reject(8,6); }
+    count=field(10,2);
+    if(count<1) { return reject(9,10); }
+    if(count>8) { return reject(9,10); }
+    cursor=32+count*32;
+    if(cursor>size) { return reject(9,10); }
+    if(field(12,4)!=size) { return reject(10,12); }
+    entry=field(16,8);
+
+    while(index<count) {
+        record=32+index*32;
+        if(field(record+24,8)!=0) { return reject(11,record+24); }
+        permissions=field(record+20,4);
+        if(permissions<4) { return reject(12,record+20); }
+        if(permissions>6) { return reject(12,record+20); }
+        memory_bytes=field(record+16,4);
+        file_bytes=field(record+12,4);
+        if(memory_bytes==0) { return reject(13,record+16); }
+        if(file_bytes>memory_bytes) { return reject(13,record+16); }
+        address=field(record,8);
+        if(address%4096!=0) { return reject(14,record); }
+        if(address<previous_end) { return reject(14,record); }
+        if(address>=limit) { return reject(14,record); }
+        mapped_bytes=((memory_bytes+4095)/4096)*4096;
+        if(mapped_bytes>limit-address) { return reject(14,record); }
+        if(field(record+8,4)!=cursor) { return reject(15,record+8); }
+        if(file_bytes>size-cursor) { return reject(16,record+12); }
+        if(permissions==5) {
+            if(entry>=address) {
+                if(entry-address<file_bytes) { entry_valid=1; }
+            }
+        }
+        previous_end=address+mapped_bytes;
+        cursor=cursor+file_bytes;
+        index=index+1;
+    }
+    if(cursor!=size) { return reject(17,cursor); }
+    if(entry_valid==0) { return reject(18,16); }
+    return 0;
+}

@@ -1,0 +1,147 @@
+{
+  "run": "run-casm-sbef-niavj3u1",
+  "evidence": "QEMU Linux, CASM Native x86-64 program running in user mode",
+  "source_sha256": "b8d8ae67200b9c1cc80b82471ca7ed679826e539aef53a8edb19c26b060ddbae",
+  "compiler_sha256": "4131db7e05dcee684962b62a199ffe83383e600023b947ac08c363566e5493bc",
+  "verified_elf_sha256": "6d84fe9ae8285ed8476e724ede0dc0241014c5b0838a3155d94e276ed9202f15",
+  "elf_bytes": 8216,
+  "passed": 29,
+  "total": 29,
+  "cases": [
+    {
+      "case": "v2-v1",
+      "receipt": 0
+    },
+    {
+      "case": "v1-legacy",
+      "receipt": 0
+    },
+    {
+      "case": "v2-v4-declared",
+      "receipt": 0
+    },
+    {
+      "case": "eight-regions",
+      "receipt": 0
+    },
+    {
+      "case": "short-header",
+      "receipt": 2097183
+    },
+    {
+      "case": "over-file-limit",
+      "receipt": 3145728
+    },
+    {
+      "case": "short-table",
+      "receipt": 18874378
+    },
+    {
+      "case": "legacy-flag",
+      "receipt": 10485784
+    },
+    {
+      "case": "trailing-byte",
+      "receipt": 35651681
+    },
+    {
+      "case": "signature",
+      "receipt": 4194304
+    },
+    {
+      "case": "version",
+      "receipt": 14680068
+    },
+    {
+      "case": "architecture",
+      "receipt": 6291464
+    },
+    {
+      "case": "reserved",
+      "receipt": 8388636
+    },
+    {
+      "case": "isa-id",
+      "receipt": 12582936
+    },
+    {
+      "case": "abi",
+      "receipt": 16777222
+    },
+    {
+      "case": "region-count",
+      "receipt": 18874378
+    },
+    {
+      "case": "file-length",
+      "receipt": 20971532
+    },
+    {
+      "case": "entry",
+      "receipt": 37748752
+    },
+    {
+      "case": "region-reserved",
+      "receipt": 23068760
+    },
+    {
+      "case": "write-execute",
+      "receipt": 25165908
+    },
+    {
+      "case": "zero-memory",
+      "receipt": 27263056
+    },
+    {
+      "case": "overlap",
+      "receipt": 29360192
+    },
+    {
+      "case": "unaligned",
+      "receipt": 29360192
+    },
+    {
+      "case": "high-address",
+      "receipt": 29360192
+    },
+    {
+      "case": "window-end",
+      "receipt": 29360192
+    },
+    {
+      "case": "window-overflow",
+      "receipt": 29360192
+    },
+    {
+      "case": "file-offset",
+      "receipt": 31457352
+    },
+    {
+      "case": "file-overrun",
+      "receipt": 33554508
+    },
+    {
+      "case": "truncated-envelope",
+      "receipt": 39845888
+    }
+  ],
+  "separate_lifecycle_probes": {
+    "normal_exit": {
+      "run": "run-desktop-media-6ee4c889fa4d",
+      "scope": "LLVM three-region external SBEF desktop staging",
+      "SessionsCompleted": 2,
+      "ReusedUserPages": 5,
+      "UserBytesScrubbed": 20480,
+      "SyscallGateDisabled": true,
+      "SecondSessionInputVerified": true
+    },
+    "user_fault": {
+      "run": "run-abi-clang-943dfbc55191",
+      "scope": "Embedded CASM ABI probe with two Clang clients",
+      "ClientsCompleted": 2,
+      "ReusedPages": 2,
+      "FaultVector": 14,
+      "ScrubbedBytes": 8192
+    }
+  }
+}
