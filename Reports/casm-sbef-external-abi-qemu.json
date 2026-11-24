@@ -1,0 +1,157 @@
+{
+  "run": "run-sbef-ring0-pcbb9srs",
+  "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
+  "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
+  "probe_sha256": "86d2bb8070a57505d4ade82fc75a7be40782a7b74cad2001946ccb8f001bee32",
+  "probe_bytes": 3825,
+  "private_pages": 346,
+  "user_frame_budget": 64,
+  "scratch_bytes_scrubbed": 1417216,
+  "passed": 7,
+  "cases": [
+    {
+      "case": "exit",
+      "sha256": "dbc111e1a7471348f8b479306302b15148a18fdbc30ed768e92b9e894a74ba90",
+      "receipt": 0,
+      "user_pages": 10,
+      "syscalls": 7,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000001298",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 000000000000000A",
+        "SBEF CPL3 EXIT 0000000053424546",
+        "SBEF SYSCALLS 0000000000000007",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "fault",
+      "sha256": "94833831ee308e7ba59b11666c9037bed80cfad220fc04111c3051e63288ef3f",
+      "receipt": 0,
+      "user_pages": 10,
+      "syscalls": 7,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 00000000000012A7",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 000000000000000A",
+        "SBEF PF ERROR 0000000000000007",
+        "SBEF CPL3 PF 0000000040002000",
+        "SBEF SYSCALLS 0000000000000007",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "bad-return-stack",
+      "sha256": "919d858694e8cd42b781aaeb515c62e7f8014b2a28080af22d3fdaf55a0756c1",
+      "receipt": 0,
+      "user_pages": 10,
+      "syscalls": 8,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 00000000000012A4",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 000000000000000A",
+        "SBEF ABI BAD RETURN 0000000000000000",
+        "SBEF SYSCALLS 0000000000000008",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "permissions",
+      "sha256": "f5eb6b5f32f6bcffe845cb11d51418b79401f41d65cfd9216d2f7102b69e5373",
+      "receipt": 25165876,
+      "user_pages": 0,
+      "syscalls": 0,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000001298",
+        "SBEF RECEIPT 0000000001800034",
+        "SBEF REJECTED BEFORE USER MAP",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "cpu",
+      "sha256": "0733a75ce9ba2b78d1aa568a6a9f4b6be7eb85437df140c86d2c282d10f8fb3d",
+      "receipt": 0,
+      "user_pages": 0,
+      "syscalls": 0,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000001298",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF CPU UNSUPPORTED",
+        "SBEF REJECTED BEFORE USER MAP",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "page-budget",
+      "sha256": "b9c2b409fe2518c4d47a66e91428f495a22c88ede721519abcdd9fcfe0b12cc4",
+      "receipt": 0,
+      "user_pages": 0,
+      "syscalls": 0,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000001298",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER BUDGET",
+        "SBEF REJECTED BEFORE USER MAP",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "abi",
+      "sha256": "4214d9dca0f9f2d1f69209789c11f671a87600ff89d5376971679c88380f9daa",
+      "receipt": 0,
+      "user_pages": 0,
+      "syscalls": 0,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000001298",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF ABI UNSUPPORTED",
+        "SBEF REJECTED BEFORE USER MAP",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    }
+  ],
+  "abi_profile": 1,
+  "qemu": "QEMU emulator version 11.1.0 (v11.1.0-12130-ge470268ff4)",
+  "cpu": "qemu64",
+  "verified_results": {
+    "echo": "64-bit value",
+    "bad_gate": -1,
+    "bad_capability": -2,
+    "bad_argument": -3,
+    "wait_not_ready": -4,
+    "bad_operation": -5
+  },
+  "scope": "Single process per QEMU boot. The candidate WAIT does not block. Session exit uses the test gate."
+}

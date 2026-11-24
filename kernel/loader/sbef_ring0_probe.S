@@ -243,6 +243,7 @@ sbef_ring0_probe:
 #endif
 .Lfinish:
 #ifdef BMO_EXTERNAL_SBEF
+    call .Lremove_abi1
     mov FAT_PHYSICAL, %r8
     mov FAT_PAGES, %r9
 #endif

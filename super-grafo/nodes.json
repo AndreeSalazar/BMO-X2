@@ -348,8 +348,8 @@
       "que": "Recibe operaciones de Ring 3 y comprueba el contrato antes de tocar recursos.",
       "entrada": "ABI versionado, registros, capability y buffers declarados.",
       "salida": "Respuesta definida y retorno seguro a Ring 3.",
-      "aceptacion": "Solicitud valida devuelve resultado; puntero/capacidad invalidos no comprometen al kernel.",
-      "falta": "Convencion de llamada, entradas/salidas, estados y primera operacion observable."
+      "aceptacion": "QEMU ejecuta INVOKE y WAIT por SYSCALL desde un SBEF externo FAT32, verifica respuestas y termina una sesion con pila de retorno invalida. Evidencia Reports/casm-sbef-external-abi-qemu.json.",
+      "falta": "La sonda es de un solo proceso. Quedan pendientes la espera real, las capacidades por proceso y el ABI de produccion."
     },
     {
       "id": "rust-runtime",
@@ -1669,7 +1669,7 @@
       "entrada": "Una region SBEF RX, contexto y CPU con SYSCALL.",
       "salida": "Echo, capacidad rechazada, estado WAIT y limpieza de usuario.",
       "aceptacion": "QEMU ejecuta CPL3 y rechaza ABI ajeno o W+X antes de copiar.",
-      "falta": "Cargar imagen externa y probar WAIT con senal y plazo."
+      "falta": "La sonda independiente del cargador externo ya comprueba el ABI candidato. WAIT con senal y plazo sigue pendiente."
     },
     {
       "id": "abi-toolchains",

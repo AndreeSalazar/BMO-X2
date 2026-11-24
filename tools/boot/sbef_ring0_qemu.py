@@ -117,19 +117,21 @@ def run_external(args, run, llvm, bridge, body, stream, module):
     bridge = external_bridge(bridge, assemble_stage(llvm, READER, run))
     normal = external_image(assemble_stage(llvm, CLIENT, run))
     fault = external_image(assemble_stage(llvm, CLIENT, run, BMO_EXTERNAL_FAULT=1))
+    bad_stack = external_image(assemble_stage(llvm, CLIENT, run, BMO_EXTERNAL_BAD_STACK=1))
     bad_permissions, cpu, budget, abi = (bytearray(normal) for _ in range(4))
     struct.pack_into('<I', bad_permissions, 52, 7)
     struct.pack_into('<I', cpu, 24, 3)
     struct.pack_into('<I', budget, 32 + 7 * 32 + 16, 65 * 4096)
     struct.pack_into('<H', abi, 6, 0)
     results = []
-    for name, image, policy in (
-        ('exit', normal, 'SBEF CPL3 EXIT 0000000053424546'),
-        ('fault', fault, 'SBEF CPL3 PF 0000000040002000'),
-        ('permissions', bad_permissions, None),
-        ('cpu', cpu, 'SBEF CPU UNSUPPORTED'),
-        ('page-budget', budget, 'SBEF USER BUDGET'),
-        ('abi', abi, 'SBEF ABI UNSUPPORTED'),
+    for name, image, policy, calls in (
+        ('exit', normal, 'SBEF CPL3 EXIT 0000000053424546', 7),
+        ('fault', fault, 'SBEF CPL3 PF 0000000040002000', 7),
+        ('bad-return-stack', bad_stack, 'SBEF ABI BAD RETURN 0000000000000000', 8),
+        ('permissions', bad_permissions, None, 0),
+        ('cpu', cpu, 'SBEF CPU UNSUPPORTED', 0),
+        ('page-budget', budget, 'SBEF USER BUDGET', 0),
+        ('abi', abi, 'SBEF ABI UNSUPPORTED', 0),
     ):
         receipt = 0
         pages = 0
@@ -142,7 +144,7 @@ def run_external(args, run, llvm, bridge, body, stream, module):
         else:
             if name == 'permissions':
                 raise ValueError('HOST admitio la muestra W+X')
-            if name in ('exit', 'fault'):
+            if calls:
                 plan = load_plan(image)
                 pages = 1 + sum(region['PageCount'] for region in plan['Regions'])
                 if info['AbiVersion'] != 1 or plan['RegionCount'] != 8 or pages != 10:
@@ -167,6 +169,9 @@ def run_external(args, run, llvm, bridge, body, stream, module):
             expected.append('SBEF PF ERROR 0000000000000007')
         if policy:
             expected.append(policy)
+        if calls:
+            expected.append(f'SBEF SYSCALLS {calls:016X}')
+            expected.append('SBEF ABI GATE RESTORED')
         if not pages:
             expected.append('SBEF REJECTED BEFORE USER MAP')
         staged_bytes = (len(image) + 4095) & -4096
@@ -174,7 +179,8 @@ def run_external(args, run, llvm, bridge, body, stream, module):
         if observed != expected:
             raise ValueError(f'{name}: recibos inesperados {observed}. Ver {folder}')
         results.append(dict(case=name, sha256=hashlib.sha256(image).hexdigest(), receipt=receipt,
-                            user_pages=pages, staging_bytes_scrubbed=staged_bytes, trace=observed, passed=True))
+                            user_pages=pages, syscalls=calls, staging_bytes_scrubbed=staged_bytes,
+                            trace=observed, passed=True))
         print(f'{name}: comprobado', flush=True)
     report = dict(run=run.name, evidence='QEMU/OVMF, SBEF from virtual FAT32 and real CPL3',
                   validator_text_sha256=module['text_sha256'], probe_sha256=hashlib.sha256(body).hexdigest(),

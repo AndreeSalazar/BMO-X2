@@ -111,8 +111,10 @@ RW/NX que se retira antes de entrar a CPL3. Se comprueban ocho regiones,
 una de dos paginas, copias a ambos lados del limite de pagina, BSS y pila.
 El fallo de escritura en R/NX y la salida por la puerta de prueba ejecutan
 la misma rutina de restauracion y borrado, incluida la reserva FAT32.
-Esta ruta usa una sesion aislada por arranque de QEMU y una puerta de prueba;
-queda pendiente integrarla con el gestor de procesos y el ABI de produccion.
+Esta ruta usa una sesion aislada por arranque de QEMU y una puerta de prueba
+para cerrar. El cliente ya usa SYSCALL para INVOKE y WAIT por el ABI 1
+candidato. Un retorno con pila invalida usa la misma limpieza. Queda
+pendiente la integracion con el gestor de procesos y la espera real.
 [Evidencia de carga y salida](../Reports/casm-sbef-external-ring3-qemu.json).
 
 En pruebas separadas, la sonda externa LLVM cierra y vuelve a abrir el

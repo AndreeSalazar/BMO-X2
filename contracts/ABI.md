@@ -38,6 +38,16 @@ el numero 1 y devuelve -4. Su semantica candidata compara la
 secuencia y espera un cambio o el plazo; falta implementar el
 bloqueo, la senal, el vencimiento y las carreras de ambos.
 
+El perfil QEMU con SBEF externo desde FAT32 usa el portal SysV y ejecuta
+INVOKE y WAIT mediante SYSCALL. La puerta toma una pila de supervisor,
+valida el RSP y la direccion de retorno e instala un marco IRETQ. El
+despacho comprueba ECHO, capacidad, operacion, numero de llamada y
+argumentos reservados. WAIT conserva el recibo -4 del candidato. La
+prueba fuerza RSP cero y el kernel termina la sesion sin usar esa pila.
+La limpieza restaura y relee EFER, STAR, LSTAR y FMASK. El cierre usa la
+puerta de prueba y el perfil sigue ejecutando un solo proceso.
+[Evidencia del ABI externo](../Reports/casm-sbef-external-abi-qemu.json).
+
 El perfil experimental `desktop-external` prueba otra puerta con
 `WAIT(entrada, 0, ticks)`. Acepta de 0 a 100 ticks relativos del
 PIT de aproximadamente 10 ms. Devuelve 0 cuando hay un byte en

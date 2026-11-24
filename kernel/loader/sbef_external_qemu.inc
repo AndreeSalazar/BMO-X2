@@ -7,11 +7,8 @@
 .Lexternal_tables:
     # The inherited firmware selector cannot share our user/TSS entries.
     mov %cs, %ax
-    cmp $0x80, %ax
-    jb .Lfirmware_selector_ok
-    cmp $0xa0, %ax
-    jb .Lfail
-.Lfirmware_selector_ok:
+    cmp $0x70, %ax
+    ja .Lfail
     mov 0xb0(%rbp), %rdx
     cmp $64, %rdx
     jb .Lfail
@@ -93,6 +90,10 @@
     ret
 
 .Lexternal_gates:
+    xor %edx, %edx
+    mov %cs, %dx
+    movabs $0x00cf92000000ffff, %rax
+    mov %rax, (GDT+8)(%rdx)      # SYSCALL uses kernel SS = CS + 8.
     movabs $0x00cff2000000ffff, %rax
     mov %rax, GDT+0x80
     movabs $0x00affa000000ffff, %rax
@@ -225,6 +226,7 @@
     call .Lprint
     lea 1(%rbx), %rax
     call .Lhex
+    call .Linstall_abi1
     pushq $0x83
     pushq $(USER_STACK+4096)
     pushq $2
@@ -264,10 +266,18 @@
     jmp .Luser_terminal
 .Luser_abort:
     lea .Labort_receipt(%rip), %rsi
+    jmp .Luser_terminal
+.Luser_bad_return:
+    mov ABI_RETURN_RSP, %rax
+    lea .Lbad_return_receipt(%rip), %rsi
 .Luser_terminal:
     push %rax
     call .Lprint
     pop %rax
+    call .Lhex
+    lea .Lcall_count(%rip), %rsi
+    call .Lprint
+    mov ABI_CALL_COUNT, %rax
     call .Lhex
     mov SAVED_POOL, %r12
     mov SAVED_CR3, %r13
@@ -299,6 +309,8 @@
 .Lfault_receipt: .asciz "SBEF CPL3 PF "
 .Lfault_error: .asciz "SBEF PF ERROR "
 .Labort_receipt: .asciz "SBEF CPL3 ABORT "
+.Lbad_return_receipt: .asciz "SBEF ABI BAD RETURN "
+.Lcall_count: .asciz "SBEF SYSCALLS "
 .Lbudget_receipt: .asciz "SBEF USER BUDGET\n"
 .Lcpu_receipt: .asciz "SBEF CPU UNSUPPORTED\n"
 .Labi_receipt: .asciz "SBEF ABI UNSUPPORTED\n"
@@ -306,3 +318,4 @@
 .Lfat_scrubbed: .asciz "SBEF FAT32 SCRUBBED "
 
 #include "../arch/x86_64/cpu/isa_profile_check.inc"
+#include "../syscalls/abi1_qemu_entry.inc"
