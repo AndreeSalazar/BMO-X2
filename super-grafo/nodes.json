@@ -349,7 +349,7 @@
       "entrada": "ABI versionado, registros, capability y buffers declarados.",
       "salida": "Respuesta definida y retorno seguro a Ring 3.",
       "aceptacion": "QEMU ejecuta INVOKE y WAIT por SYSCALL desde un SBEF externo FAT32, comprueba senal publicada y suspension hasta el plazo, y termina una sesion con pila de retorno invalida. Evidencia Reports/casm-sbef-external-wait-qemu.json.",
-      "falta": "La sonda es de un solo proceso. Quedan pendientes senales concurrentes, capacidades por proceso y el ABI de produccion."
+      "falta": "El perfil --peer prueba el despertar entre contextos CPL3 con CR3 independientes. Quedan pendientes la admision independiente, las capacidades por proceso y el ABI de produccion."
     },
     {
       "id": "rust-runtime",

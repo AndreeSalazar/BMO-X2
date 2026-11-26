@@ -2,6 +2,65 @@
 .text
 .globl sbef_external_client
 sbef_external_client:
+#ifdef BMO_EXTERNAL_PEER
+    movl $0x1234, -32(%rsp)
+    movl $0x5678, 0x40004004
+    mov $2, %edi
+    mov $1, %esi
+    xor %edx, %edx
+    xor %ecx, %ecx
+    xor %r8d, %r8d
+    call .Lbmo_invoke
+    cmp $-2, %rax
+    jne 2f
+    test %rdx, %rdx
+    jne 2f
+    mov $2, %esi
+    xor %ecx, %ecx
+    call .Lbmo_invoke
+    test %rax, %rax
+    jne 2f
+    lea 500000000(%rdx), %r13
+    xor %esi, %esi
+    mov %r13, %rdx
+    call .Lbmo_wait
+    test %rax, %rax
+    jne 2f
+    cmp $1, %rdx
+    jne 2f
+    cmpl $0x1234, -32(%rsp)
+    jne 2f
+    cmpl $0x5678, 0x40004004
+    jne 2f
+    mov $2, %esi
+    xor %edx, %edx
+    xor %ecx, %ecx
+    call .Lbmo_invoke
+    test %rax, %rax
+    jne 2f
+    cmp %r13, %rdx
+    jae 2f
+    mov $0x53424546, %eax
+    int $0x80
+2:
+    mov $0xbad, %eax
+    int $0x80
+    ud2
+
+    .org 0x400
+    cmpl $0, -32(%rsp)
+    jne 2b
+#ifdef BMO_EXTERNAL_PEER_FAULT
+    mov 0x40004004, %eax
+    jmp 2b
+#else
+    movl $0x90ab, -32(%rsp)
+    mov $3, %edi
+    mov $1, %esi
+    call .Lbmo_invoke
+    jmp 2b
+#endif
+#else
     # Verify every region and its first zero-filled dword.
     mov $0x40002000, %ecx
     mov $1, %edx
@@ -151,6 +210,7 @@ sbef_external_client:
     mov $0xbad, %eax
     int $0x80
     ud2
+#endif
 
 #define BMO_ABI_PORTAL_ONLY
 #include "../../userspace/runtime/abi/sysv/portal.S"

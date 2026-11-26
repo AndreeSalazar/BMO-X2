@@ -20,6 +20,7 @@ from fat32_read import Fat32
 
 PAGES = 267
 EXTERNAL_PAGES = 346
+PEER_PAGES = 353
 ALLOCATOR = ROOT / 'kernel/boot/bridge/desktop_media_alloc.S'
 READER = ALLOCATOR.with_name('desktop_media_read.S')
 PROBE = ROOT / 'kernel/loader/sbef_ring0_probe.S'
@@ -113,26 +114,36 @@ def external_image(code):
     return bytearray(encode_header(1, 8, 288 + len(data), base) + records + data)
 
 
-def run_external(args, run, llvm, bridge, body, stream, module):
+def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
     bridge = external_bridge(bridge, assemble_stage(llvm, READER, run))
-    normal = external_image(assemble_stage(llvm, CLIENT, run))
-    fault = external_image(assemble_stage(llvm, CLIENT, run, BMO_EXTERNAL_FAULT=1))
-    bad_stack = external_image(assemble_stage(llvm, CLIENT, run, BMO_EXTERNAL_BAD_STACK=1))
-    bad_permissions, cpu, budget, abi = (bytearray(normal) for _ in range(4))
-    struct.pack_into('<I', bad_permissions, 52, 7)
-    struct.pack_into('<I', cpu, 24, 3)
-    struct.pack_into('<I', budget, 32 + 7 * 32 + 16, 65 * 4096)
-    struct.pack_into('<H', abi, 6, 0)
+    if extension:
+        signal = external_image(assemble_stage(llvm, CLIENT, run, BMO_EXTERNAL_PEER=1))
+        isolated = external_image(assemble_stage(llvm, CLIENT, run, BMO_EXTERNAL_PEER=1,
+                                                 BMO_EXTERNAL_PEER_FAULT=1))
+        cases = (
+            ('peer-signal', signal, 'SBEF CPL3 EXIT 0000000053424546', 5),
+            ('peer-isolation', isolated, 'SBEF CPL3 PF 0000000040004004', 3),
+        )
+    else:
+        normal = external_image(assemble_stage(llvm, CLIENT, run))
+        fault = external_image(assemble_stage(llvm, CLIENT, run, BMO_EXTERNAL_FAULT=1))
+        bad_stack = external_image(assemble_stage(llvm, CLIENT, run, BMO_EXTERNAL_BAD_STACK=1))
+        bad_permissions, cpu, budget, abi = (bytearray(normal) for _ in range(4))
+        struct.pack_into('<I', bad_permissions, 52, 7)
+        struct.pack_into('<I', cpu, 24, 3)
+        struct.pack_into('<I', budget, 32 + 7 * 32 + 16, 65 * 4096)
+        struct.pack_into('<H', abi, 6, 0)
+        cases = (
+            ('exit', normal, 'SBEF CPL3 EXIT 0000000053424546', 14),
+            ('fault', fault, 'SBEF CPL3 PF 0000000040002000', 14),
+            ('bad-return-stack', bad_stack, 'SBEF ABI BAD RETURN 0000000000000000', 15),
+            ('permissions', bad_permissions, None, 0),
+            ('cpu', cpu, 'SBEF CPU UNSUPPORTED', 0),
+            ('page-budget', budget, 'SBEF USER BUDGET', 0),
+            ('abi', abi, 'SBEF ABI UNSUPPORTED', 0),
+        )
     results = []
-    for name, image, policy, calls in (
-        ('exit', normal, 'SBEF CPL3 EXIT 0000000053424546', 14),
-        ('fault', fault, 'SBEF CPL3 PF 0000000040002000', 14),
-        ('bad-return-stack', bad_stack, 'SBEF ABI BAD RETURN 0000000000000000', 15),
-        ('permissions', bad_permissions, None, 0),
-        ('cpu', cpu, 'SBEF CPU UNSUPPORTED', 0),
-        ('page-budget', budget, 'SBEF USER BUDGET', 0),
-        ('abi', abi, 'SBEF ABI UNSUPPORTED', 0),
-    ):
+    for name, image, policy, calls in cases:
         receipt = 0
         pages = 0
         try:
@@ -167,6 +178,8 @@ def run_external(args, run, llvm, bridge, body, stream, module):
             expected.append(f'SBEF USER PAGES {pages:016X}')
         if name == 'fault':
             expected.append('SBEF PF ERROR 0000000000000007')
+        if name == 'peer-isolation':
+            expected.append('SBEF PF ERROR 0000000000000004')
         if policy:
             expected.append(policy)
         wakes = 0
@@ -175,9 +188,14 @@ def run_external(args, run, llvm, bridge, body, stream, module):
             wake_prefix = 'SBEF WAIT WAKES '
             wake_line = next((line for line in observed if line.startswith(wake_prefix)), '')
             wakes = int(wake_line.removeprefix(wake_prefix) or '0', 16)
-            if not 1 <= wakes <= 2:
+            if extension and wakes:
+                raise ValueError(f'{name}: WAIT entro al bucle del PIT. Ver {folder}')
+            if not extension and not 1 <= wakes <= 2:
                 raise ValueError(f'{name}: WAIT debia despertar en uno o dos ticks. Ver {folder}')
             expected.append(f'{wake_prefix}{wakes:016X}')
+            if extension:
+                peer_state = 2 if name == 'peer-signal' else 1
+                expected.append(f'SBEF PEER STATE {peer_state:016X}')
             expected.append('SBEF ABI GATE RESTORED')
         if not pages:
             expected.append('SBEF REJECTED BEFORE USER MAP')
@@ -189,10 +207,13 @@ def run_external(args, run, llvm, bridge, body, stream, module):
                             user_pages=pages, syscalls=calls, wait_wakes=wakes, staging_bytes_scrubbed=staged_bytes,
                             trace=observed, passed=True))
         print(f'{name}: comprobado', flush=True)
+    private_pages = PEER_PAGES if extension else EXTERNAL_PAGES
     report = dict(run=run.name, evidence='QEMU/OVMF, SBEF from virtual FAT32 and real CPL3',
                   validator_text_sha256=module['text_sha256'], probe_sha256=hashlib.sha256(body).hexdigest(),
-                  probe_bytes=len(body), private_pages=EXTERNAL_PAGES, user_frame_budget=64,
-                  scratch_bytes_scrubbed=EXTERNAL_PAGES*4096, passed=len(results), cases=results)
+                  probe_bytes=len(body), private_pages=private_pages, user_frame_budget=64,
+                  scratch_bytes_scrubbed=private_pages*4096, passed=len(results), cases=results)
+    if extension:
+        report.update(peer_extension_bytes=len(extension), peer_extension_sha256=hashlib.sha256(extension).hexdigest())
     (run / 'qemu-results.json').write_text(json.dumps(report, indent=2)+'\n', encoding='ascii')
 
 
@@ -200,8 +221,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('module_run', type=Path)
     parser.add_argument('--qemu', type=Path, default=Path('C:/Program Files/qemu/qemu-system-x86_64.exe'))
-    parser.add_argument('--external', action='store_true', help='Read the SBEF from FAT32 and test CPL3')
+    profiles = parser.add_mutually_exclusive_group()
+    profiles.add_argument('--external', action='store_true', help='Read the SBEF from FAT32 and test CPL3')
+    profiles.add_argument('--peer', action='store_true', help='Test WAIT with a second isolated CPL3 context')
     args = parser.parse_args()
+    external = args.external or args.peer
     module = json.loads((workspace(args.module_run) / 'validator.module.json').read_bytes())
     validate(module)
     trusted = json.loads(ATTESTED.read_bytes())['freestanding']
@@ -212,17 +236,26 @@ def main():
         raise ValueError('El modulo no cabe en el perfil supervisor')
     expected, cases = test_vectors()
     stream = text.ljust(8192, b'\0') + data.ljust(4096, b'\0')
-    if not args.external:
+    if not external:
         stream += b''.join(struct.pack('<Q', len(payload)) + payload.ljust(296, b'\0')
                            for _, _, payload in cases)
     run = Path(tempfile.mkdtemp(prefix='run-sbef-ring0-', dir=ROOT / 'build/CASM'))
     print(f'Run: {run}', flush=True)
     llvm = Path(os.environ['ProgramFiles']) / 'LLVM/bin'
-    allocator = assemble_stage(llvm, ALLOCATOR, run,
-                               BMO_DMA_LAB_PAGES=EXTERNAL_PAGES if args.external else PAGES)
-    mode = dict(BMO_EXTERNAL_SBEF=1) if args.external else {}
+    private_pages = PEER_PAGES if args.peer else EXTERNAL_PAGES if args.external else PAGES
+    allocator = assemble_stage(llvm, ALLOCATOR, run, BMO_DMA_LAB_PAGES=private_pages)
+    mode = dict(BMO_EXTERNAL_SBEF=1) if external else {}
+    if args.peer:
+        mode['BMO_EXTERNAL_PEER'] = 1
     body = assemble_stage(llvm, PROBE, run, BMO_CASE_COUNT=len(cases), BMO_MODULE_ENTRY=module['entry'],
                           BMO_TRAP_ENTRY=module['trap_addresses']['bounds'], **mode)
+    extension = b''
+    if args.peer:
+        if not 4096 < len(body) <= 8192 or any(body[4072:4096]):
+            raise ValueError('La extension de procesos excede su pagina o invade la cabecera del puente')
+        extension = body[4096:]
+        body = body[:4072]
+        stream += extension.ljust(4096, b'\0')
     pieces = [ALLOCATOR.with_name(f'{part}.hex') for part in ('cabecera', 'entrada', 'datos', 'fuente')]
     bridge = bytearray(assemble(pieces))
     if not 0 < len(body) <= 4096 - 24 or not 0 < len(allocator) <= 0xf0:
@@ -230,8 +263,8 @@ def main():
     if bridge[0x400:0x404] != bytes.fromhex('4883ec28'):
         raise ValueError('Cambio el punto de entrada del asignador')
     bridge[0x400:0x400+len(allocator)] = allocator
-    if args.external:
-        run_external(args, run, llvm, bridge, body, stream, module)
+    if external:
+        run_external(args, run, llvm, bridge, body, stream, module, extension)
         return
     (run / 'stream.bin').write_bytes(stream)
     stage(run, bridge, body)

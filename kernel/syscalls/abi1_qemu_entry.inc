@@ -78,6 +78,10 @@
     jb .Luser_bad_return
     cmp $0x41000000, %rcx
     jae .Luser_bad_return
+#ifdef BMO_EXTERNAL_PEER
+    cmpb $1, PEER_STATE
+    je .Labi1_peer_dispatch
+#endif
     pushq $0x83
     pushq ABI_RETURN_RSP
     pushq $0x202

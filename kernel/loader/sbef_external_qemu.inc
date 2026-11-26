@@ -87,7 +87,11 @@
     loop .Luser_directories
     lea (USER_STACK_PT*4096+7)(%r12), %rax
     stosq
+#ifdef BMO_EXTERNAL_PEER
+    jmp .Labi1_peer_tables
+#else
     ret
+#endif
 
 .Lexternal_gates:
     xor %edx, %edx
@@ -150,6 +154,14 @@
     jnz .Lreject_unmapped
     cmpw $1, FAT_SOURCE+6
     jne .Labi_reject
+#ifdef BMO_EXTERNAL_PEER
+    cmpq $USER_BASE, FAT_SOURCE+32
+    jne .Labi_reject
+    cmpl $5, FAT_SOURCE+52
+    jne .Labi_reject
+    cmpl $0x400, FAT_SOURCE+44
+    jbe .Labi_reject
+#endif
     mov $1, %edi
     cmpw $1, FAT_SOURCE+4
     je .Lrequire_cpu
@@ -232,6 +244,7 @@
     pushq $0x202
     pushq $0x8b
     pushq FAT_SOURCE+16
+.Labi1_enter_user:
     xor %eax, %eax
     xor %ebx, %ebx
     xor %ecx, %ecx
@@ -283,6 +296,12 @@
     call .Lprint
     mov ABI_WAIT_WAKES, %rax
     call .Lhex
+#ifdef BMO_EXTERNAL_PEER
+    lea .Lpeer_state(%rip), %rsi
+    call .Lprint
+    movzbl PEER_STATE, %eax
+    call .Lhex
+#endif
     mov SAVED_POOL, %r12
     mov SAVED_CR3, %r13
     mov OLD_STACK, %r14
@@ -323,4 +342,9 @@
 .Lfat_scrubbed: .asciz "SBEF FAT32 SCRUBBED "
 
 #include "../arch/x86_64/cpu/isa_profile_check.inc"
+#ifdef BMO_EXTERNAL_PEER
+.Lpeer_state: .asciz "SBEF PEER STATE "
+#include "../syscalls/abi1_qemu_peer.inc"
+.org 4096
+#endif
 #include "../syscalls/abi1_qemu_entry.inc"

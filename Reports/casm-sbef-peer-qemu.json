@@ -1,0 +1,62 @@
+{
+  "run": "run-sbef-ring0-lyl3cr5v",
+  "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
+  "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
+  "probe_sha256": "eae6175ca0ca7de22b6b79fadff13aaac9016b18334b3efab0921c80e65f0569",
+  "probe_bytes": 4072,
+  "private_pages": 353,
+  "user_frame_budget": 64,
+  "scratch_bytes_scrubbed": 1445888,
+  "passed": 2,
+  "cases": [
+    {
+      "case": "peer-signal",
+      "sha256": "06246c748c871ce83e5c81494131565acd4f76008cc1f4790ed48c918433ab4e",
+      "receipt": 0,
+      "user_pages": 10,
+      "syscalls": 5,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 000000000000157F",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 000000000000000A",
+        "SBEF CPL3 EXIT 0000000053424546",
+        "SBEF SYSCALLS 0000000000000005",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF PEER STATE 0000000000000002",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "peer-isolation",
+      "sha256": "cc2a738f6f603a49bfd3589e20ed783d70470d736770fab908782f3c1d80a3db",
+      "receipt": 0,
+      "user_pages": 10,
+      "syscalls": 3,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 000000000000156F",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 000000000000000A",
+        "SBEF PF ERROR 0000000000000004",
+        "SBEF CPL3 PF 0000000040004004",
+        "SBEF SYSCALLS 0000000000000003",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF PEER STATE 0000000000000001",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    }
+  ],
+  "peer_extension_bytes": 887,
+  "peer_extension_sha256": "5d89c0692f9cbeabf7e9fa5679dd40f2a8ee4d6c442b5eb819b180c8a2f533d9"
+}

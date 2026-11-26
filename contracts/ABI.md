@@ -44,7 +44,7 @@ despacho comprueba ECHO, capacidad, operacion, numero de llamada y
 argumentos reservados. La prueba fuerza RSP cero y el kernel termina
 la sesion sin usar esa pila.
 La limpieza restaura y relee EFER, STAR, LSTAR y FMASK. El cierre usa la
-puerta de prueba y el perfil sigue ejecutando un solo proceso.
+puerta de prueba. El perfil `--external` ejecuta un solo proceso.
 [Evidencia del ABI externo](../Reports/casm-sbef-external-abi-qemu.json).
 
 La capacidad de prueba 2 del perfil externo publica una secuencia con
@@ -56,9 +56,23 @@ plazo vencido. Con secuencia igual, devuelve -6 al alcanzar el plazo
 absoluto y -3 si faltan mas de 1 000 000 000 ns. Mientras espera, ejecuta
 `STI`, `HLT` y `CLI` y vuelve a comprobar la condicion. La prueba mide
 los despertares y comprueba la expiracion y la senal ya publicada.
-El PIT y el PIC se configuran para esta VM desechable. Quedan pendientes
-la publicacion concurrente y una tabla de capacidades por proceso.
+El PIT y el PIC se configuran para esta VM desechable.
 [Evidencia de WAIT](../Reports/casm-sbef-external-wait-qemu.json).
+
+El perfil `--peer` prueba dos contextos CPL3 sobre una sola CPU virtual.
+Cada uno tiene su propio CR3 y su propia pila. Comparten la primera
+pagina RX del SBEF. El cliente usa la capacidad 2 para esperar y leer el
+reloj. Un segundo contexto, con la capacidad 3, publica la secuencia
+mediante INVOKE 1 y devuelve el control al cliente suspendido. La sonda
+verifica que el cliente recibe la secuencia antes del plazo sin esperar
+un tick, que conserva su pila y que un intento del emisor de leer la
+pagina privada del cliente causa un fallo de pagina. El cambio de
+contexto es cooperativo y el emisor termina al publicar. Quedan pendientes
+una tabla general de capacidades por proceso, el planificador y una
+segunda imagen con admision independiente.
+La reserva aumenta siete paginas de 4 KiB para las tablas, la pila de
+usuario y la extension de la sonda.
+[Evidencia del despertar entre contextos](../Reports/casm-sbef-peer-qemu.json).
 
 El perfil experimental `desktop-external` prueba otra puerta con
 `WAIT(entrada, 0, ticks)`. Acepta de 0 a 100 ticks relativos del

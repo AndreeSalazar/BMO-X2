@@ -90,6 +90,16 @@ sbef_ring0_probe:
     and $511, %ecx
     or $1, %rdx
     mov %rdx, 0x6000(%r12,%rcx,8)
+#ifdef BMO_EXTERNAL_PEER
+    cmp $511, %ecx
+    je .Lfail
+    lea (PEER_EXT*4096+1)(%r12), %rax
+    mov %rax, 0x6008(%r12,%rcx,8)
+    lea (PEER_EXT*4096)(%r12), %rdi
+    mov $(STREAM+0x3000), %esi
+    mov $512, %ecx
+    rep movsq
+#endif
     lea (TABLES*4096+1)(%r12), %rax
     mov %rax, 0x3000(%r12)
     add $4096, %rax

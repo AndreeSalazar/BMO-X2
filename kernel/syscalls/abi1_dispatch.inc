@@ -29,7 +29,11 @@
     je .Labi1_clock
     cmp $1, %rsi
     jne .Labi1_bad_op
+#ifdef BMO_EXTERNAL_PEER
+    jmp .Labi1_bad_cap
+#else
     incq ABI_EVENT_SEQ
+#endif
 .Labi1_sequence:
     mov ABI_EVENT_SEQ, %rdx
     jmp .Labi1_ok
@@ -46,6 +50,10 @@
     jbe .Labi1_timeout
     cmp $1000000000, %rax
     ja .Labi1_bad_args
+#ifdef BMO_EXTERNAL_PEER
+    cmpb $0, PEER_STATE
+    je .Labi1_run_peer
+#endif
 .Labi1_sleep:
     sti
     hlt
