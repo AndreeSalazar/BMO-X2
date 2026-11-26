@@ -34,6 +34,7 @@ SEH_OUTPUT = {
     'cpu-seh-handled': b'MSVC SEH: filtro y __except OK\r\n',
     'cpu-seh-declined': b'MSVC SEH: filtro CONTINUE_SEARCH OK\r\n',
     'cpu-seh-outer': b'MSVC SEH: filtro del marco superior OK\r\n',
+    'cpu-seh-finally': b'MSVC SEH: filtro, __finally, __except OK\r\n',
 }
 ALLOCATOR = ROOT / 'kernel/boot/bridge/desktop_media_alloc.S'
 READER = ALLOCATOR.with_name('desktop_media_read.S')

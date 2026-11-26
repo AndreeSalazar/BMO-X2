@@ -235,7 +235,7 @@ enlazado y valida su perfil, sus metadatos y sus dependencias.
 | Paso | Que tiene que pasar |
 |---|---|
 | **1. Completar unwind Win64** | El banco detecta epilogos `add`/`lea`, `pop`/`ret` y un salto indirecto RIP-relativo. El manejador recibe `CONTEXT_FULL` y un registro de excepcion. Falta extender ambas rutas a un despacho general. |
-| **2. Probar SEH y C++** | El banco ejecuta filtros `__try`/`__except` en dos marcos. Falta ejecutar `__finally` durante el desenrollado, inicializar la cookie `/GS` por proceso y probar `throw`/`catch` con destructores. |
+| **2. Probar SEH y C++** | El banco ejecuta filtros en dos marcos y un `__finally` durante el desenrollado. Faltan la cookie `/GS` por proceso y `throw`/`catch` con destructores. |
 | **3. Arrancar C++ con `/MT`** | Ejecutar un EXE por la entrada estandar de MSVC con argumentos, heap, stdout, `main` y cierre comprobados. Abrirlo, cerrarlo y volverlo a abrir en el mismo arranque. |
 | **4. Arrancar C++ con `/MD`** | Resolver las DLL y los API sets de la muestra, aplicar sus requisitos de IAT y `load_config` y completar su ejecucion con salida verificable. |
 | **5. Probar una aplicacion Win32** | Abrir archivos y responder a ventanas y eventos. GUI, COM y graficos se verifican con sus propios clientes y contratos. |
@@ -589,8 +589,16 @@ bloque `__except` queda sin ejecutar. En el caso con dos marcos, el
 filtro interno declina, el banco desenrolla su marco y el filtro externo
 recibe el contexto original del fallo. Se restaura la pila y el estado no
 volatil del marco que acepta. Solo se ejecuta el `__except` externo.
-Quedan pendientes la busqueda general, `__finally` y el desenrollado con
-destructores de C++.
+Una variante sustituye el filtro interno por un `__finally` compilado
+por MSVC. El banco primero selecciona el `__except` exterior. Luego
+llama al codigo de limpieza del marco interno con `EXCEPTION_UNWINDING`.
+Comprueba `AbnormalTermination()` y el orden exacto de filtro,
+`__finally` y `__except`. El objeto del despachador se compila con
+`/O1` para respetar el limite del lector FAT32. Este SBEF ocupa 16 466
+de los 16 512 bytes permitidos por el banco.
+
+La busqueda general y el desenrollado con destructores de C++ siguen
+pendientes. El banco de C++ puede usar su propio cliente SBEF.
 [Sintaxis de manejadores SEH de Microsoft](https://learn.microsoft.com/en-us/windows/win32/debug/exception-handler-syntax).
 [Evidencia en QEMU](../../Reports/host-msvc-crt-gs-native-qemu.json).
 [Formato de excepciones x64 de Microsoft](https://learn.microsoft.com/en-us/cpp/build/exception-handling-x64?view=msvc-170).

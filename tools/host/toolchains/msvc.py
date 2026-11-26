@@ -171,7 +171,8 @@ def build_external_crt(root, out, assembler, *, guarded=False, native_gs=False):
         sdk_headers = sdk.parent / 'Include' / ucrt.parents[2].name
         include_flags = [f'/I{cc.parents[3] / "include"}',
                          *(f'/I{sdk_headers / part}' for part in ('um', 'shared', 'ucrt'))]
-        subprocess.run([cc, '/nologo', '/c', '/GS-', '/Zl', '/O2', f'/Fo{dispatch}',
+        # Keep this guest within the external FAT32 probe's existing size cap.
+        subprocess.run([cc, '/nologo', '/c', '/GS-', '/Zl', '/O1', f'/Fo{dispatch}',
                         *include_flags, root / 'tools/tests/msvc_crt_gs_dispatch.cpp'], cwd=out, check=True)
         objects.append(dispatch)
         archiver = assembler.with_name('llvm-ar.exe')

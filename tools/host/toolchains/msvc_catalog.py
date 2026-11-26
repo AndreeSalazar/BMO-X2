@@ -74,6 +74,7 @@ CATALOG = {
         ('unwind-epilogue-suffix', 'Deteccion de epilogos con RET y JMP indirecto', 'qemu', 'El recorrido detecta cuatro secuencias sobre la pila viva. Coteja el llamador y conserva el contexto ante rechazo.', 'host-msvc-crt-gs-native-qemu'),
         ('gs-win-context', 'CONTEXT_FULL Win64 desde #UD', 'qemu', 'El banco entrega registros enteros, control y estado FXSAVE al handler GS junto a EXCEPTION_ILLEGAL_INSTRUCTION.', 'host-msvc-crt-gs-native-qemu'),
         ('seh-filter', 'Filtro SEH __try/__except de MSVC', 'qemu', 'El banco coteja el filtro inmediato y el filtro exterior despues de ContinueSearch. Solo ejecuta el __except seleccionado.', 'host-msvc-crt-gs-native-qemu'),
+        ('seh-finally', 'Limpieza SEH __finally de MSVC', 'qemu', 'Prueba AbnormalTermination y el orden filtro exterior, __finally interno y __except exterior.', 'host-msvc-crt-gs-native-qemu'),
         ('unwind-runtime', 'Desenrollado Win64 durante ejecucion', 'pending', 'La inspeccion de metadatos no ejecuta el desenrollador.'),
         ('seh', 'Structured Exception Handling', 'pending', 'Faltan despacho, busqueda y ejecucion de handlers compatibles.'),
         ('cpp-eh', 'Excepciones C++ /EHsc', 'pending', 'Faltan handlers C++ y destruccion de objetos durante unwind.'),

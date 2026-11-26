@@ -80,7 +80,7 @@ extern "C" __declspec(noinline) int bmo_crt_client_main() {
 #ifdef BMO_CRT_GS_NATIVE
     const auto mode = bmo_gs_test_mode;
     if ((mode == 0x424d4f08 || mode == 0x424d4f09) && bmo_gs_seh_client() != 1) return 1;
-    if (mode == 0x424d4f0a && bmo_gs_seh_outer() != 1) return 1;
+    if ((mode == 0x424d4f0a || mode == 0x424d4f0b) && bmo_gs_seh_outer() != 1) return 1;
     if (mode == 0x424d4f07 && bmo_test_gs_prologue() != 1) return 1;
     if (mode >= 0x424d4f02 && mode <= 0x424d4f06) {
         const auto original = __security_cookie;
@@ -140,6 +140,11 @@ extern "C" void bmo_main() {
         static constexpr unsigned char outer[] = "MSVC SEH: filtro del marco superior OK\r\n";
         message = outer;
         length = sizeof(outer) - 1;
+    }
+    if (bmo_gs_test_mode == 0x424d4f0b) {
+        static constexpr unsigned char cleanup[] = "MSVC SEH: filtro, __finally, __except OK\r\n";
+        message = cleanup;
+        length = sizeof(cleanup) - 1;
     }
 #endif
     unsigned int written = 0;
