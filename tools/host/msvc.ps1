@@ -161,14 +161,22 @@ if ($probe.PSObject.Properties.Name -contains 'Blockers') {
         Write-Output "Pendiente HOST: $($blocker.Code) / $($blocker.Field) / offset 0x$('{0:X}' -f $blocker.Offset)"
     }
 }
-if ($probe.PSObject.Properties.Name -contains 'Imports') {
-    foreach ($library in $probe.Imports) {
-        Write-Output "Dependencia: $($library.DLL) / $($library.Symbols.Count) simbolos"
+if ($probe.PSObject.Properties.Name -contains 'ImportCoverage' -and $probe.ImportCoverage.LibraryCount) {
+    foreach ($library in $probe.ImportCoverage.Libraries) {
+        $level = if ($library.Level) { "$($library.Level)/$($library.Group)" } else { 'sin clasificar' }
+        Write-Output "Dependencia: $($library.DLL) / $level / $($library.PendingSymbols.Count) simbolos pendientes"
     }
+    Write-Output "Coincidencias con fixture QEMU: $($probe.ImportCoverage.FixtureSymbolCount)"
     Write-Output "El informe JSON contiene el inventario completo de simbolos."
 }
 if ($probe.PSObject.Properties.Name -contains 'ImportInventoryError') {
     Write-Output "Inventario IAT incompleto: $($probe.ImportInventoryError.Code) / $($probe.ImportInventoryError.Field)"
+}
+if ($probe.PSObject.Properties.Name -contains 'UnwindInventory') {
+    $unwind = $probe.UnwindInventory
+    Write-Output "Unwind: $($unwind.FunctionCount) entradas / $($unwind.V1Handlers.Count) destinos de handler v1 / $($unwind.V1ChainedCount) encadenadas v1"
+} elseif ($probe.PSObject.Properties.Name -contains 'UnwindInventoryError') {
+    Write-Output "Inventario unwind incompleto: $($probe.UnwindInventoryError.Code) / $($probe.UnwindInventoryError.Field)"
 }
 if ($report.Package.Path) {
     Write-Output "SBEF creado: $($report.Package.Path)"

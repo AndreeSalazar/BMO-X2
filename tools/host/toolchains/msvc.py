@@ -3,13 +3,14 @@ import hashlib
 import json
 import os
 import re
+import secrets
 import shutil
 import struct
 import subprocess
 import sys
 from pathlib import Path
 
-from ..importers.pe import pack_pe, pack_pe_tls, pack_pe_with_dll, probe_pe
+from ..importers.pe import pack_pe, pack_pe_gs_fixture, pack_pe_tls, pack_pe_with_dll, probe_pe
 from ..diagnostics import Rejection
 from ..importers.pe_bindings import SESSION_EXPORTS, WIN64_CONSOLE_PROFILE
 from ..sbef.format import LEGACY_FORMAT_VERSION, inspect
@@ -111,6 +112,179 @@ def build_external_console(root, out, assembler):
                          pe_bytes=len(source), pe_sha256=hashlib.sha256(source).hexdigest(),
                          msvc_toolset=cc.parents[3].name, sdk=libraries[-1].parents[2].name,
                          rejected_import=rejected)
+
+
+def build_external_crt(root, out, assembler, *, guarded=False, native_gs=False):
+    """Link the BMO-X2 startup with selected functions from the real static UCRT."""
+    guarded = guarded or native_gs
+    cc = msvc_x64_compiler()
+    sdk = Path(os.environ['ProgramFiles(x86)']) / 'Windows Kits/10/Lib'
+    libraries = sorted(sdk.glob('*/ucrt/x64/libucrt.lib'))
+    if not libraries:
+        raise ValueError('La prueba CRT exige libucrt.lib x64 del Windows SDK')
+    ucrt = libraries[-1]
+    abi = root / 'userspace/runtime/abi/win64'
+    client, startup, entry, exe, link_map = (out / name for name in (
+        'crt-client.obj', 'crt-startup.obj', 'crt-entry.obj', 'crt.exe', 'crt.map'))
+    for source, obj in ((root / 'tools/tests/msvc_crt_client.cpp', client),
+                        (abi / 'crt_startup.cpp', startup)):
+        gs = ['/GS', '/DBMO_CRT_GS'] if guarded and obj == client else ['/GS-']
+        if native_gs and obj == client:
+            gs.append('/DBMO_CRT_GS_NATIVE')
+        subprocess.run([cc, '/nologo', '/c', '/MT', *gs, '/Zl', '/Od', f'/Fo{obj}', source],
+                       cwd=out, check=True)
+    subprocess.run([assembler, '--target=x86_64-pc-windows-msvc', '-c', abi / 'entry.S', '-o', entry],
+                   check=True)
+    objects = [entry, startup, client]
+    if guarded:
+        objdump = assembler.with_name('llvm-objdump.exe')
+        relocations = subprocess.check_output([objdump, '-r', client], text=True)
+        msvc_handler_required = '__GSHandlerCheck' in relocations
+        client_compiler = 'MSVC'
+        if msvc_handler_required and not native_gs:
+            # The fixed PE loader rejects exception handlers. Exercise the
+            # Win64 cookie ABI with a compiler that emits the epilogue alone.
+            protected = assembler.with_name('clang-cl.exe')
+            subprocess.run([protected, '/nologo', '/c', '/MT', '/GS', '/DBMO_CRT_GS',
+                            '/Zl', '/Od', f'/Fo{client}', root / 'tools/tests/msvc_crt_client.cpp'],
+                           cwd=out, check=True)
+            relocations = subprocess.check_output([objdump, '-r', client], text=True)
+            client_compiler = 'clang-cl'
+        if not re.search(r'IMAGE_REL_AMD64_REL32\s+__security_check_cookie\s*$', relocations, re.MULTILINE):
+            raise ValueError('El compilador no emitio la llamada de comprobacion /GS')
+        gs_obj = out / 'crt-gs.obj'
+        seed = secrets.randbits(47) | (1 << 47)
+        native_define = ['-DBMO_GS_NATIVE'] if native_gs else []
+        subprocess.run([assembler, '--target=x86_64-pc-windows-msvc', '-c', *native_define,
+                        f'-DBMO_GS_COOKIE={seed}', root / 'tools/tests/msvc_crt_gs.S', '-o', gs_obj],
+                       check=True)
+        objects.append(gs_obj)
+    for unit in ('portal', 'console_v1'):
+        obj = out / f'crt-{unit}.obj'
+        subprocess.run(['rustc', '--edition=2024', '--target=x86_64-pc-windows-msvc', '--crate-type=lib',
+                        '--emit=obj', '-Cpanic=abort', '-Copt-level=2', abi / f'{unit}.rs', '-o', obj], check=True)
+        objects.append(obj)
+    libcmt = cc.parents[3] / 'lib/x64/libcmt.lib'
+    runtime = [ucrt]
+    if native_gs:
+        dispatch = out / 'gs-dispatch.obj'
+        subprocess.run([cc, '/nologo', '/c', '/GS-', '/Zl', '/O2', f'/Fo{dispatch}',
+                        root / 'tools/tests/msvc_crt_gs_dispatch.cpp'], cwd=out, check=True)
+        objects.append(dispatch)
+        archiver = assembler.with_name('llvm-ar.exe')
+        members = subprocess.check_output([archiver, 't', libcmt], text=True).splitlines()
+        for name in ('gshandler.obj', 'amdsecgs.obj'):
+            matches = [member for member in members if Path(member).name.lower() == name]
+            if len(matches) != 1:
+                raise ValueError(f'libcmt.lib debe contener un miembro {name}')
+            target = out / name
+            target.write_bytes(subprocess.check_output([archiver, 'p', libcmt, matches[0]]))
+            runtime.append(target)
+    subprocess.run([cc.with_name('link.exe'), '/nologo', '/machine:x64', '/nodefaultlib', '/subsystem:console',
+                    '/entry:bmo_win64_start', '/base:0x3fe00000', '/align:2097152', '/fixed', '/Brepro',
+                    '/incremental:no', '/merge:.pdata=.rdata', '/merge:.CRT=.rdata',
+                    f'/map:{link_map}', f'/out:{exe}', *objects, *runtime],
+                   cwd=out, check=True)
+    expected = {'abs', 'llabs', 'strlen', 'strcmp', 'strncmp'}
+    if native_gs:
+        expected.update(('strspn', 'strcspn'))
+    map_text = link_map.read_text()
+    vendor_symbols = dict(re.findall(
+        r'^\s+[0-9a-fA-F]+:[0-9a-fA-F]+\s+(\w+)\s+[0-9a-fA-F]+[^\S\r\n]+(?:f +)?'
+        r'(libucrt:[^\s]+)\s*$', map_text, re.MULTILINE))
+    if expected - vendor_symbols.keys():
+        raise ValueError(f'Faltan funciones de libucrt.lib en el MAP: {sorted(expected - vendor_symbols.keys())}')
+    source = exe.read_bytes()
+    native_report = {}
+    if native_gs:
+        gs_symbols = {
+            name: (int(address, 16), origin)
+            for name, address, origin in re.findall(
+                r'^\s+[0-9a-fA-F]+:[0-9a-fA-F]+\s+(__GSHandlerCheck|__security_check_cookie)'
+                r'\s+([0-9a-fA-F]+)\s+f\s+(gshandler\.obj|amdsecgs\.obj)\s*$', map_text, re.MULTILINE)
+        }
+        if {name: member for name, (_, member) in gs_symbols.items()} != {
+            '__GSHandlerCheck': 'gshandler.obj',
+            '__security_check_cookie': 'amdsecgs.obj',
+        }:
+            raise ValueError('El MAP debe atribuir los dos helpers /GS a libcmt.lib')
+        info = probe_pe(source)
+        handler = gs_symbols['__GSHandlerCheck'][0] - info['ImageBase']
+        dispatch_symbol = re.search(
+            r'^\s+[0-9a-fA-F]+:[0-9a-fA-F]+\s+bmo_gs_image\s+([0-9a-fA-F]+)\s+',
+            map_text, re.MULTILINE)
+        if dispatch_symbol is None:
+            raise ValueError('Falta el descriptor del banco GS en el MAP')
+        fault_symbols = {name: int(address, 16) for name, address in re.findall(
+            r'^\s+[0-9a-fA-F]+:[0-9a-fA-F]+\s+bmo_test_gs_cpu_(fault|landing)\s+([0-9a-fA-F]+)\s+',
+            map_text, re.MULTILINE)}
+        code = next(section for section in info['Sections'] if section['Executable'])
+        code_start = info['ImageBase'] + code['RVA']
+        code_end = code_start + min(code['VirtualBytes'], code['FileBytes'])
+        if (fault_symbols.keys() != {'fault', 'landing'} or
+                not code_start <= fault_symbols['fault'] < fault_symbols['landing'] < code_end):
+            raise ValueError('El origen y destino #UD deben estar enlazados en .text')
+        fault_offset = code['FileOffset'] + fault_symbols['fault'] - code_start
+        if fault_symbols['landing'] - fault_symbols['fault'] != 4 or source[fault_offset:fault_offset+4] != b'\x0f\x0b' * 2:
+            raise ValueError('Cambio la instruccion #UD del banco')
+        descriptor = int(dispatch_symbol[1], 16) - info['ImageBase']
+        readonly = next(section for section in info['Sections'] if section['Name'] == '.rdata')
+        start = readonly['RVA']
+        end = start + min(readonly['VirtualBytes'], readonly['FileBytes'])
+        directory = info['Directories']['exceptions']
+        if not start <= descriptor <= end - 24 or descriptor % 8:
+            raise ValueError('El descriptor GS debe estar alineado en .rdata')
+        offset = readonly['FileOffset'] + descriptor - start
+        image = bytearray(source)
+        if struct.unpack_from('<Q4I', image, offset) != (0x424d4f4753444953, 0, 0, 0, 0):
+            raise ValueError('Cambio el descriptor GS de entrada')
+        struct.pack_into('<Q4I', image, offset, info['ImageBase'],
+                         directory['RVA'], directory['Bytes'], start, end)
+        source = bytes(image)
+        for action, code in ((lambda: pack_pe(source, abi=1), 'PE-UNWIND-INFO'),
+                             (lambda: pack_pe_gs_fixture(source, handler + 1), 'PE-UNWIND-GS-HANDLER')):
+            try:
+                action()
+            except Rejection as error:
+                if error.code != code:
+                    raise
+            else:
+                raise ValueError(f'HOST debia rechazar la prueba {code}')
+        payload = pack_pe_gs_fixture(source, handler)
+        exe.write_bytes(source)
+        native_report = dict(
+            libcmt_sha256=hashlib.sha256(libcmt.read_bytes()).hexdigest(),
+            gs_symbols={name: origin for name, (_, origin) in sorted(gs_symbols.items())},
+            unwind_inventory=info['UnwindInventory'],
+            fault_policy='QEMU one-shot delivery for a single registered #UD PC; abort otherwise',
+            dispatch_fixture=dict(exception_table_rva=directory['RVA'], exception_table_bytes=directory['Bytes'],
+                                  handler_rva=handler, trigger='synchronous call with live MSVC frame'),
+            cpu_exception=dict(vector=6, fault_pc=fault_symbols['fault'], landing_pc=fault_symbols['landing']),
+            default_rejection='PE-UNWIND-INFO', wrong_handler_rejection='PE-UNWIND-GS-HANDLER',
+        )
+    else:
+        payload = pack_pe(source, abi=1)
+    (out / 'crt.sbef').write_bytes(payload)
+    report = dict(
+        startup='bmo_crt_initialize / crt_client_main / bmo_crt_finalize',
+        build=(f'{client_compiler} /MT /GS /Zl; MSVC startup object; BMO-X2 entry; explicit static libucrt.lib'
+               if guarded else 'MSVC /MT /GS- /Zl; BMO-X2 entry; explicit static libucrt.lib'),
+        functions={name: vendor_symbols[name] for name in sorted(expected)},
+        pe_bytes=len(source), pe_sha256=hashlib.sha256(source).hexdigest(),
+        msvc_toolset=cc.parents[3].name, sdk=ucrt.parents[2].name,
+        libucrt_sha256=hashlib.sha256(ucrt.read_bytes()).hexdigest(),
+        **native_report,
+    )
+    if guarded:
+        match = re.search(r'^\s+[0-9a-fA-F]+:[0-9a-fA-F]+\s+bmo_gs_test_mode\s+([0-9a-fA-F]+)\s+',
+                          map_text, re.MULTILINE)
+        if match is None:
+            raise ValueError('El modo de prueba /GS no esta en el MAP')
+        report['stack_cookie'] = dict(test_mode_address=int(match[1], 16),
+                                      seed='48-bit build-time HOST test seed',
+                                      msvc_handler_required=msvc_handler_required,
+                                      fail_fast='CPL3 UD2 with marker 4753434B')
+    return payload, report
 
 
 def build_external_dll(root, out, assembler, *, lifecycle=False, reject_attach=False):

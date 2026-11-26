@@ -11,9 +11,34 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import sbef
 from host.diagnostics import Rejection
 from host.importers.pe import DIRECTORIES, pack_pe, probe_pe
+from host.importers.pe_unwind import inventory_unwind
+from host.toolchains.windows_catalog import import_coverage
 
 
 class Sbef(unittest.TestCase):
+    def test_unwind_inventory_reports_handlers_and_rejects_invalid_handler_rva(self):
+        data = bytearray(0x100)
+        sections = [
+            dict(RVA=0x1000, FileOffset=0, VirtualBytes=0x80, FileBytes=0x80, Executable=True),
+            dict(RVA=0x2000, FileOffset=0x80, VirtualBytes=0x80, FileBytes=0x80, Executable=False),
+        ]
+        directory = dict(RVA=0x2000, Bytes=36)
+        struct.pack_into('<9I', data, 0x80, 0x1000, 0x1010, 0x2030, 0x1010, 0x1020, 0x2040,
+                         0x1020, 0x1030, 0x2060)
+        struct.pack_into('<4BI', data, 0xb0, 0x19, 0, 0, 0, 0x1060)
+        struct.pack_into('<4BHH3I', data, 0xc0, 0x21, 0, 1, 0, 0, 0, 0x1000, 0x1010, 0x2030)
+        data[0xe0] = 2
+        report = inventory_unwind(data, sections, directory, 0x180)
+        self.assertEqual(report['Versions'], {1: 2, 2: 1})
+        self.assertEqual(report['V1ExceptionHandlerCount'], 1)
+        self.assertEqual(report['V1TerminationHandlerCount'], 1)
+        self.assertEqual(report['V1ChainedCount'], 1)
+        self.assertEqual(report['V1Handlers'], [dict(RVA=0x1060, FunctionCount=1)])
+        struct.pack_into('<I', data, 0xb4, 0x2070)
+        with self.assertRaises(Rejection) as rejected:
+            inventory_unwind(data, sections, directory, 0x180)
+        self.assertEqual(rejected.exception.code, 'PE-UNWIND-INVENTORY-RVA')
+
     def test_msvc_catalog_filters_and_points_to_existing_evidence(self):
         command = [sys.executable, '-B', sbef.__file__, 'profiles']
         general = json.loads(subprocess.check_output(command))
@@ -38,6 +63,32 @@ class Sbef(unittest.TestCase):
         invalid = subprocess.run([*command, '--producer', 'gcc', '--category', 'runtime'],
                                  capture_output=True, text=True)
         self.assertEqual(invalid.returncode, 2)
+
+    def test_windows_dependency_levels_and_exact_fixture_symbol_matching(self):
+        command = [sys.executable, '-B', sbef.__file__, 'profiles', '--producer', 'msvc']
+        catalog = json.loads(subprocess.check_output([*command, '--windows-level', 'todos']))
+        self.assertEqual([level['Level'] for level in catalog['WindowsImportCatalog']],
+                         ['base', 'intermedio', 'avanzado'])
+        names = [dll for level in catalog['WindowsImportCatalog']
+                 for group in level['Groups'] for dll in group['DLLs']]
+        self.assertEqual(len(names), len(set(names)))
+        markdown = subprocess.check_output(
+            [*command, '--windows-level', 'avanzado', '--format', 'markdown'], text=True)
+        self.assertIn('`d3d12.dll`', markdown)
+        self.assertNotIn('`kernel32.dll`', markdown)
+        coverage = import_coverage([
+            dict(DLL='Kernel32.DLL', Symbols=[dict(Name='WriteFile'), dict(Name='writefile'), dict(Ordinal=7)]),
+            dict(DLL='API-MS-Win-CRT-stdio-l1-1-0.dll', Symbols=[dict(Name='printf')]),
+            dict(DLL='custom.dll', Symbols=[dict(Name='WriteFile')]),
+        ])
+        self.assertEqual(coverage['SymbolCount'], 5)
+        self.assertEqual(coverage['FixtureSymbolCount'], 1)
+        self.assertEqual(coverage['PendingSymbolCount'], 4)
+        core, crt, unknown = coverage['Libraries']
+        self.assertEqual(core['FixtureSymbols'], [dict(Name='WriteFile', Target='bmo_session_write')])
+        self.assertEqual(core['PendingSymbols'], [dict(Name='writefile'), dict(Ordinal=7)])
+        self.assertEqual((crt['Level'], crt['Group']), ('base', 'crt'))
+        self.assertIsNone(unknown['Group'])
 
     def test_ui_profile_is_explicit_and_preserves_default_limit(self):
         from host.sbef.format import inspect
@@ -224,6 +275,8 @@ class Sbef(unittest.TestCase):
             self.assertEqual(inventory['Imports'], [
                 dict(DLL='KERNEL32.dll', Symbols=[dict(Name='Sleep'), dict(Ordinal=7)])
             ])
+            self.assertEqual(inventory['ImportCoverage']['PendingSymbolCount'], 2)
+            self.assertEqual(inventory['ImportCoverage']['Libraries'][0]['Group'], 'core')
             result = subprocess.run([*base, 'pack', str(source), str(output)], capture_output=True)
             self.assertEqual(result.returncode, 1)
             self.assertEqual(json.loads(result.stderr), expected)
@@ -233,6 +286,9 @@ class Sbef(unittest.TestCase):
             self.assertFalse(rejected['CanPack'])
             self.assertEqual(rejected['ImportInventoryError'], dict(
                 Code='PE-IMPORT-RVA', Offset=0x240, Field='ImportByName'))
+            source.write_bytes(image)
+            rejected_cli = json.loads(subprocess.check_output([*base, 'probe', str(source)]))
+            self.assertNotIn('ImportCoverage', rejected_cli)
 
     def test_fixed_pe_keeps_exact_payload_and_rejects_invalid_layout(self):
         image = bytearray(0x400)

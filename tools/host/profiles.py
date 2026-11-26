@@ -5,6 +5,7 @@ from .importers.pe_exports import DLL_LIFECYCLE_PROFILE, FIXED_DLL_PROFILE
 from .importers.pe_tls import TLS_PROFILE
 from .sbef.isa import PROFILES as ISA_PROFILES
 from .toolchains.msvc_catalog import STATES as MSVC_CAPABILITY_STATES, msvc_catalog
+from .toolchains.windows_catalog import windows_catalog
 
 HOST_TARGET = 'x86-64'
 ISA_POLICY = {
@@ -296,13 +297,16 @@ ADMISSION_ADVANCE_RULE = (
 )
 
 
-def profile_report(producer=None, category=None):
+def profile_report(producer=None, category=None, windows_level=None):
     """Return the current x86-64 HOST layer and producer matrix."""
     if producer is not None:
         result = dict(Schema=1, Target=HOST_TARGET, Profiles=[PRODUCER_PROFILES[producer]])
         if producer == 'msvc':
-            result.update(CapabilityStates=MSVC_CAPABILITY_STATES, CapabilityGroups=msvc_catalog(category),
+            result.update(CapabilityStates=MSVC_CAPABILITY_STATES,
+                          CapabilityGroups=[] if windows_level else msvc_catalog(category),
                           RuntimeImportProfiles=[WIN64_CONSOLE_PROFILE, FIXED_DLL_PROFILE, DLL_LIFECYCLE_PROFILE, TLS_PROFILE])
+            if category is None:
+                result['WindowsImportCatalog'] = windows_catalog(windows_level)
         return result
     return {
         'Schema': 1,

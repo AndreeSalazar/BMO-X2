@@ -161,11 +161,24 @@ informe original.
 python -B tools/sbef.py profiles --producer msvc
 python -B tools/sbef.py profiles --producer msvc --format markdown
 python -B tools/sbef.py profiles --producer msvc --category tls-exceptions --format markdown
+python -B tools/sbef.py profiles --producer msvc --windows-level todos --format markdown
+python -B tools/sbef.py profiles --producer msvc --windows-level avanzado
 ```
 
 El Markdown usa enlaces relativos a la raiz del repositorio.
 Para inspeccionar un EXE propio y obtener sus bloqueos del perfil
 base, usa `python -B tools/sbef.py probe app.exe --producer msvc`.
+
+`--windows-level` acepta `base`, `intermedio`, `avanzado` y `todos`.
+La lista incluye dependencias de proceso y CRT, escritorio y COM, red y
+criptografia, graficos 3D, audio, video y WinRT.
+`ImportCoverage` clasifica las importaciones PE normales y muestra los
+simbolos pendientes, incluidos ordinales y DLL sin clasificar. Los
+prefijos de API sets sirven para agrupar contratos. La resolucion de
+API sets, los imports diferidos y la carga dinamica quedan pendientes.
+`FixtureSymbols` registra coincidencias por nombre con los tres servicios
+de consola del fixture `win64-console-v1`. El resultado de admision del
+perfil base se lee en `CanPack` y `Blockers`.
 
 El destino de BMO-X2 es exclusivamente x86-64. La base fijada es
 `x86-64-v1`; cada SBEF v2 declara el minimo `v1`, `v2`, `v3` o `v4`. El
@@ -405,6 +418,98 @@ python -B tools/boot/sbef_ring0_qemu.py $validatorRun --msvc-dll-lifecycle
 ```
 
 [Evidencia del arranque Win64](../../Reports/host-msvc-dll-lifecycle-qemu.json).
+
+### Funciones de la UCRT estatica
+
+`--msvc-crt` compila un cliente C++ con MSVC `/MT` y entrada BMO-X2. El
+enlazador extrae `abs`, `llabs`, `strlen`, `strcmp` y `strncmp` de la
+`libucrt.lib` x64 del Windows SDK. El banco exige que el mapa de enlace
+atribuya las cinco funciones a la biblioteca y registra el hash del PE
+y de la biblioteca.
+
+```powershell
+python -B tools/boot/sbef_ring0_qemu.py $validatorRun --msvc-crt
+```
+
+El SBEF se carga desde FAT32 en QEMU. El constructor de C++ usa la UCRT,
+el cuerpo comprueba las funciones y el cierre comprueba el orden inverso
+de `atexit` y del destructor. El cliente escribe
+`MSVC CRT: inicio, main y cierre OK` y termina con codigo cero. El banco
+comprueba la limpieza de las paginas y la restauracion del mapa.
+[Evidencia QEMU](../../Reports/host-msvc-crt-qemu.json).
+
+El arranque usa `crt_startup.cpp` de BMO-X2. Siguen pendientes el arranque
+normal de Microsoft, las bibliotecas dinamicas de `/MD` y la CRT general.
+Con el SDK 10.0.26100.0, `strspn` y `strcspn` exigen
+`__security_cookie`, `__security_check_cookie` y `__GSHandlerCheck`.
+El banco de MSVC descrito abajo acredita sus llamadas normales en CPL3.
+
+### Comprobacion de cookie Win64
+
+```powershell
+python -B tools/boot/sbef_ring0_qemu.py $validatorRun --msvc-crt-gs
+python -B tools/sbef.py probe app.exe --producer msvc
+```
+
+El banco construye el cliente con `cl.exe /GS` y revisa las referencias
+COFF. Cuando el compilador requiere `__GSHandlerCheck`, recompila el
+cliente con `clang-cl /GS` para comprobar la llamada de epilogo
+`__security_check_cookie` con el ABI Win64. Conserva el arranque BMO-X2
+compilado por MSVC y las mismas funciones de `libucrt.lib`.
+La semilla de prueba se genera en HOST y queda embebida en la imagen.
+La inicializacion con entropia por proceso sigue pendiente.
+
+El control cambia un selector RW de la misma imagen. El cliente modifica
+la cookie de referencia despues de guardar su copia en la pila. QEMU
+comprueba el aborto en CPL3, stdout vacio y la limpieza del mapa. El caso
+normal comprueba la salida de consola y el codigo cero.
+[Evidencia QEMU](../../Reports/host-msvc-crt-gs-qemu.json).
+
+### MSVC /GS con libcmt y UCRT
+
+```powershell
+python -B tools/boot/sbef_ring0_qemu.py $validatorRun --msvc-crt-gs-native
+```
+
+Este banco usa `cl.exe /GS`. Enlaza `strspn` y `strcspn` desde
+`libucrt.lib` y extrae `gshandler.obj` y `amdsecgs.obj` de
+`libcmt.lib` para conservar el manejador y el verificador de Microsoft.
+La ruta de fallo llama a `__report_gsfailure` del banco, que aborta en
+CPL3. La semilla de prueba se incorpora durante el build.
+
+El empaquetador interno conserva `.pdata` y `UNWIND_INFO` en lectura
+sola. Comprueba que el manejador sea el RVA ejecutable de
+`__GSHandlerCheck` en el MAP y que las cadenas apunten a entradas
+anteriores ya comprobadas. Verifica el rechazo de un destino distinto y el
+rechazo de la misma imagen por `pack` normal.
+
+El banco llama a `__GSHandlerCheck` desde un marco vivo generado por MSVC.
+Captura el PC y RSP del llamador, busca su entrada en `.pdata` y usa
+`UNWIND_INFO` para localizar el manejador y sus datos. Solo admite el
+marco fijo de esta prueba, con `UWOP_ALLOC_SMALL` y posibles
+`UWOP_PUSH_NONVOL`. El caso valido verifica `ContinueSearch`. El
+control con cookie alterada exige un aborto dentro del manejador, con un
+recibo distinto al del epilogo.
+
+El mismo banco provoca un `#UD` real con `UD2` en Ring 3. HOST fija
+el PC de la instruccion y el del destino del mismo segmento RX. El
+supervisor coteja PC, selectores y rango de pila. Entrega RIP, RSP y
+vector 6 en registros Win64 y regresa a Ring 3 mediante `iretq`.
+El codigo de destino recupera el marco MSVC que llamo a la funcion
+hoja y ejecuta `__GSHandlerCheck`. Un segundo `#UD` en el mismo proceso
+termina el proceso sin entregar el manejador otra vez.
+
+Esta entrega usa un solo punto de instruccion registrado para el banco.
+El contexto Win64 completo, el recorrido general de marcos, SEH,
+excepciones C++ y la inicializacion de la cookie por proceso quedan
+pendientes.
+[Evidencia en QEMU](../../Reports/host-msvc-crt-gs-native-qemu.json).
+
+`UnwindInventory` registra el numero de funciones de `.pdata`, las
+versiones de `UNWIND_INFO`, los manejadores v1 por RVA y los registros
+encadenados v1. El informe no ejecuta operaciones de unwind ni despacha
+manejadores. Las versiones distintas de v1 se cuentan por su cabecera.
+[Formato x64 de Microsoft](https://learn.microsoft.com/en-us/cpp/build/exception-handling-x64?view=msvc-170).
 
 `--msvc-tls` construye un PE32+ freestanding con un `thread_local`
 inicializado por MSVC. El banco usa `/Zc:tlsGuards-` para este objeto

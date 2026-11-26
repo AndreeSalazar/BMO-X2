@@ -23,6 +23,9 @@
 .set ABI_TIME_NS, DATA+0xbc8
 .set ABI_EVENT_SEQ, DATA+0xbd0
 .set ABI_WAIT_WAKES, DATA+0xbd8
+#ifdef BMO_GS_FAULT_PC
+.set GS_UD_DELIVERED, DATA+0xbf0
+#endif
 .set SOURCE_PT, 267
 .set USER_PD, 268
 .set USER_PT, 269

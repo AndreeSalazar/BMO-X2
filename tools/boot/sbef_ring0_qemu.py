@@ -14,7 +14,7 @@ from casm_sbef_qemu import CHECKS, test_vectors, validate
 from host.diagnostics import Rejection
 from host.sbef.format import encode_header, inspect, load_plan
 from host.importers.pe_tls import TLS_BASES, TLS_STORAGE, TLS_VECTOR
-from host.toolchains.msvc import build_external_console, build_external_dll, build_external_tls
+from host.toolchains.msvc import build_external_console, build_external_crt, build_external_dll, build_external_tls
 from scope import ROOT, workspace
 from bridge_hex import assemble
 from fat32_read import Fat32
@@ -26,6 +26,8 @@ PEER_PAGES = 353
 CONSOLE_PAGES = 347
 TLS_PAGES = 348
 CONSOLE_OUTPUT = b'Hola mundo desde C++ / MSVC en BMO-X2\r\n'
+CRT_OUTPUT = b'MSVC CRT: inicio, main y cierre OK\r\n'
+GS_HANDLER_OUTPUT = b'MSVC CRT: __GSHandlerCheck OK\r\n'
 ALLOCATOR = ROOT / 'kernel/boot/bridge/desktop_media_alloc.S'
 READER = ALLOCATOR.with_name('desktop_media_read.S')
 PROBE = ROOT / 'kernel/loader/sbef_ring0_probe.S'
@@ -160,10 +162,11 @@ def msvc_rebase_cases(executable, run):
                        source_toolchain=fixture['Toolchain'])
 
 
-def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
+def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *, native_crt=None):
     bridge = external_bridge(bridge, assemble_stage(llvm, READER, run))
     rebase = None
     console = None
+    crt_report = None
     dll_report = None
     tls_report = None
     if args.msvc_tls:
@@ -202,6 +205,34 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
         image, console = build_external_console(ROOT, run, llvm / 'clang.exe')
         calls = 6 + (len(CONSOLE_OUTPUT) + 7) // 8
         cases = (('msvc-console', image, 'SBEF WIN64 EXIT 0000000000000000', calls),)
+    elif args.msvc_crt or args.msvc_crt_gs or args.msvc_crt_gs_native:
+        guarded = args.msvc_crt_gs or args.msvc_crt_gs_native
+        image, crt_report = native_crt or build_external_crt(ROOT, run, llvm / 'clang.exe', guarded=guarded)
+        calls = 1 + (len(CRT_OUTPUT) + 7) // 8
+        name = 'msvc-crt-gs-native' if args.msvc_crt_gs_native else 'msvc-crt-gs' if guarded else 'msvc-crt'
+        cases = ((name, image, 'SBEF WIN64 EXIT 0000000000000000', calls),)
+        if guarded:
+            address = crt_report['stack_cookie']['test_mode_address']
+            region = next(item for item in load_plan(image)['Regions']
+                          if item['Writable'] and item['VirtualStart'] <= address
+                          and address + 4 <= item['VirtualStart'] + item['FileBytes'])
+            offset = region['FileOffset'] + address - region['VirtualStart']
+            if struct.unpack_from('<I', image, offset) != (0x424d4f00,):
+                raise ValueError('Cambio el selector /GS del fixture')
+            controls = [('mismatch', 1, 'SBEF CPL3 ABORT 000000004753434B', 0)]
+            if args.msvc_crt_gs_native:
+                handler_calls = 1 + (len(GS_HANDLER_OUTPUT) + 7) // 8
+                controls.extend((
+                    ('handler', 2, 'SBEF WIN64 EXIT 0000000000000000', handler_calls),
+                    ('handler-mismatch', 3, 'SBEF CPL3 ABORT 0000000047534844', 0),
+                    ('cpu-exception', 4, 'SBEF WIN64 EXIT 0000000000000000', handler_calls),
+                    ('cpu-exception-mismatch', 5, 'SBEF CPL3 ABORT 0000000047534844', 0),
+                    ('cpu-exception-repeat', 6, 'SBEF CPL3 ABORT 0000000047534455', 0),
+                ))
+            for label, selector, terminal, count in controls:
+                control = bytearray(image)
+                struct.pack_into('<I', control, offset, 0x424d4f00 + selector)
+                cases += ((name + '-' + label, control, terminal, count),)
     elif args.msvc_rebase:
         cases, rebase = msvc_rebase_cases(args.msvc_rebase, run)
     elif extension:
@@ -230,6 +261,7 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
             ('page-budget', budget, 'SBEF USER BUDGET', 0),
             ('abi', abi, 'SBEF ABI UNSUPPORTED', 0),
         )
+    stdout_report = console or crt_report
     results = []
     for name, image, policy, calls in cases:
         receipt = 0
@@ -243,11 +275,12 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
         else:
             if name == 'permissions':
                 raise ValueError('HOST admitio la muestra W+X')
-            if calls or rebase or dll_report:
+            if calls or rebase or dll_report or crt_report:
                 plan = load_plan(image)
                 pages = (2 if tls_report else 1) + sum(region['PageCount'] for region in plan['Regions'])
                 expected_regions, expected_pages = (5, 7) if tls_report else (6, 7) if dll_report else (
-                    (4, 5) if rebase else (3, 5) if console else (8, 10))
+                    (4, 5) if rebase else (3, 4 if crt_report and not args.msvc_crt_gs_native else 5)
+                    if stdout_report else (8, 10))
                 if info['AbiVersion'] != 1 or plan['RegionCount'] != expected_regions or pages != expected_pages:
                     raise ValueError('Cambio el contrato de la muestra externa')
         folder = run / ('run-' + name)
@@ -262,10 +295,12 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
                 raise ValueError('El archivo SBEF de la imagen FAT32 difiere del fixture')
         finally:
             volume.close()
-        observed = run_qemu(args.qemu.resolve(), folder, console=console is not None)
+        observed = run_qemu(args.qemu.resolve(), folder, console=stdout_report is not None)
         expected = ['SBEF CPL0 POST-EBS', f'SBEF FAT32 BYTES {len(image):016X}', f'SBEF RECEIPT {receipt:016X}']
         if pages:
             expected.append(f'SBEF USER PAGES {pages:016X}')
+        if '-cpu-exception' in name:
+            expected.append('SBEF WIN64 #UD DELIVERED')
         if name in ('fault', 'msvc-dll-readonly'):
             expected.append('SBEF PF ERROR 0000000000000007')
         if name in ('peer-isolation', 'msvc-stale-pointer'):
@@ -285,12 +320,12 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
         wakes = 0
         if rebase:
             expected.extend(['SBEF SYSCALLS 0000000000000000', 'SBEF WAIT WAKES 0000000000000000'])
-        if calls or dll_report:
+        if calls or dll_report or crt_report:
             expected.append(f'SBEF SYSCALLS {calls:016X}')
             wake_prefix = 'SBEF WAIT WAKES '
             wake_line = next((line for line in observed if line.startswith(wake_prefix)), '')
             wakes = int(wake_line.removeprefix(wake_prefix) or '0', 16)
-            if (args.peer or dll_report or tls_report) and wakes:
+            if (args.peer or dll_report or tls_report or crt_report) and wakes:
                 raise ValueError(f'{name}: WAIT entro al bucle del PIT. Ver {folder}')
             if console and not 1 <= wakes <= 3:
                 raise ValueError(f'{name}: WAIT debia despertar en uno a tres ticks. Ver {folder}')
@@ -309,27 +344,45 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
         expected.extend([f'SBEF FAT32 SCRUBBED {staged_bytes:016X}', 'SBEF MAP RESTORED AND SCRUBBED'])
         if observed != expected:
             raise ValueError(f'{name}: recibos inesperados {observed}. Ver {folder}')
-        if console:
+        if stdout_report is not None:
             stdout = (folder / 'stdout.log').read_bytes()
-            if stdout != CONSOLE_OUTPUT:
+            if name.endswith(('-handler', '-cpu-exception')):
+                expected_stdout = GS_HANDLER_OUTPUT
+            else:
+                expected_stdout = (CRT_OUTPUT if crt_report else CONSOLE_OUTPUT) if calls else b''
+            if stdout != expected_stdout:
                 raise ValueError(f'{name}: stdout inesperado {stdout!r}. Ver {folder}')
-            console.update(stdout=stdout.decode('ascii'), stdout_bytes=len(stdout))
+            if name.endswith('-cpu-exception'):
+                crt_report['cpu_exception']['stdout'] = stdout.decode('ascii')
+            elif name.endswith(('-cpu-exception-mismatch', '-cpu-exception-repeat')):
+                control = name.rsplit('-', 1)[-1]
+                crt_report['cpu_exception'][control + '_stdout_bytes'] = len(stdout)
+            elif name.endswith('-handler'):
+                crt_report['dispatch_fixture']['stdout'] = stdout.decode('ascii')
+            elif name.endswith('-handler-mismatch'):
+                crt_report['dispatch_fixture']['mismatch_stdout_bytes'] = len(stdout)
+            elif calls:
+                stdout_report.update(stdout=stdout.decode('ascii'), stdout_bytes=len(stdout))
+            else:
+                crt_report['stack_cookie']['mismatch_stdout_bytes'] = len(stdout)
         results.append(dict(case=name, sha256=hashlib.sha256(image).hexdigest(), receipt=receipt,
                             user_pages=pages, syscalls=calls, wait_wakes=wakes, staging_bytes_scrubbed=staged_bytes,
                             trace=observed, passed=True))
         print(f'{name}: comprobado', flush=True)
     private_pages = TLS_PAGES if tls_report else PEER_PAGES if args.peer else (
-        CONSOLE_PAGES if console or dll_report else EXTERNAL_PAGES)
+        CONSOLE_PAGES if stdout_report or dll_report else EXTERNAL_PAGES)
     report = dict(run=run.name, evidence='QEMU/OVMF, SBEF from virtual FAT32 and real CPL3',
                   validator_text_sha256=module['text_sha256'], probe_sha256=hashlib.sha256(body).hexdigest(),
                   probe_bytes=len(body), private_pages=private_pages, user_frame_budget=64,
                   scratch_bytes_scrubbed=private_pages*4096, passed=len(results), cases=results)
     if args.peer:
         report.update(peer_extension_bytes=len(extension), peer_extension_sha256=hashlib.sha256(extension).hexdigest())
-    if console or dll_report or tls_report:
+    if stdout_report or dll_report or tls_report:
         report.update(extension_bytes=len(extension), extension_sha256=hashlib.sha256(extension).hexdigest())
     if console:
         report['msvc_console'] = console
+    if crt_report:
+        report['msvc_crt'] = crt_report
     if dll_report:
         report['msvc_dll'] = dll_report
     if tls_report:
@@ -348,11 +401,16 @@ def main():
     profiles.add_argument('--peer', action='store_true', help='Test WAIT with a second isolated CPL3 context')
     profiles.add_argument('--msvc-rebase', type=Path, metavar='EXE', help='Run the audited MSVC DIR64 fixture')
     profiles.add_argument('--msvc-console', action='store_true', help='Build and run the external Win64 console fixture')
+    profiles.add_argument('--msvc-crt', action='store_true', help='Test selected static UCRT functions in a Win64 process')
+    profiles.add_argument('--msvc-crt-gs', action='store_true', help='Test MSVC /GS success and fail-fast in CPL3')
+    profiles.add_argument('--msvc-crt-gs-native', action='store_true',
+                          help='Test MSVC /GS with Microsoft libcmt and static UCRT in the abort-only probe')
     profiles.add_argument('--msvc-dll', action='store_true', help='Build and run the external EXE and DLL fixture')
     profiles.add_argument('--msvc-dll-lifecycle', action='store_true', help='Test attach, detach and refused attach')
     profiles.add_argument('--msvc-tls', action='store_true', help='Test the static Win64 TLS template on two CPL3 threads')
     args = parser.parse_args()
-    win64 = args.msvc_console or args.msvc_dll or args.msvc_dll_lifecycle or args.msvc_tls
+    win64 = (args.msvc_console or args.msvc_crt or args.msvc_crt_gs or args.msvc_crt_gs_native or args.msvc_dll
+             or args.msvc_dll_lifecycle or args.msvc_tls)
     external = args.external or args.peer or win64 or args.msvc_rebase is not None
     module = json.loads((workspace(args.module_run) / 'validator.module.json').read_bytes())
     validate(module)
@@ -386,6 +444,11 @@ def main():
         mode['BMO_EXTERNAL_EXT'] = 1
     if args.msvc_rebase:
         mode['BMO_EXTERNAL_REBASE'] = 1
+    native_crt = None
+    if args.msvc_crt_gs_native:
+        native_crt = build_external_crt(ROOT, run, llvm / 'clang.exe', native_gs=True)
+        delivery = native_crt[1]['cpu_exception']
+        mode.update(BMO_GS_FAULT_PC=delivery['fault_pc'], BMO_GS_LANDING_PC=delivery['landing_pc'])
     body = assemble_stage(llvm, PROBE, run, BMO_CASE_COUNT=len(cases), BMO_MODULE_ENTRY=module['entry'],
                           BMO_TRAP_ENTRY=module['trap_addresses']['bounds'], **mode)
     extension = b''
@@ -403,7 +466,7 @@ def main():
         raise ValueError('Cambio el punto de entrada del asignador')
     bridge[0x400:0x400+len(allocator)] = allocator
     if external:
-        run_external(args, run, llvm, bridge, body, stream, module, extension)
+        run_external(args, run, llvm, bridge, body, stream, module, extension, native_crt=native_crt)
         return
     (run / 'stream.bin').write_bytes(stream)
     stage(run, bridge, body)

@@ -322,7 +322,11 @@ sbef_ring0_probe:
 .Lud:
 #ifdef BMO_EXTERNAL_SBEF
     testb $3, 8(%rsp)
+#ifdef BMO_GS_FAULT_PC
+    jnz .Lgs_user_ud
+#else
     jnz .Luser_abort
+#endif
 #endif
     mov $6, %eax
     jmp .Ltrap

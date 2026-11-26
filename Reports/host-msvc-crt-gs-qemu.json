@@ -1,0 +1,84 @@
+{
+  "run": "run-sbef-ring0-hcnpjlt6",
+  "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
+  "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
+  "probe_sha256": "48fb2fd28517f9604144fa22fee0417f71f696a086e8e3ad95d7fc8e1f11bca1",
+  "probe_bytes": 4072,
+  "private_pages": 347,
+  "user_frame_budget": 64,
+  "scratch_bytes_scrubbed": 1421312,
+  "passed": 2,
+  "cases": [
+    {
+      "case": "msvc-crt-gs",
+      "sha256": "911ab5f15d1bbd81415e4b57e3e0d90a87d86a2b5d6d4a373e60b1f2b00eec64",
+      "receipt": 0,
+      "user_pages": 4,
+      "syscalls": 6,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 4096,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000000CCD",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000004",
+        "SBEF WIN64 EXIT 0000000000000000",
+        "SBEF SYSCALLS 0000000000000006",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000001000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "msvc-crt-gs-mismatch",
+      "sha256": "ece564d35f13c27d6b696333c168474260652b6e51d45c3abfa9ff0559d19340",
+      "receipt": 0,
+      "user_pages": 4,
+      "syscalls": 0,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 4096,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000000CCD",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000004",
+        "SBEF CPL3 ABORT 000000004753434B",
+        "SBEF SYSCALLS 0000000000000000",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000001000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    }
+  ],
+  "extension_bytes": 1004,
+  "extension_sha256": "22523702dddf7ad74b8938e71bf0977fb8a562ab6f67da1250ef020079bae10d",
+  "msvc_crt": {
+    "startup": "bmo_crt_initialize / crt_client_main / bmo_crt_finalize",
+    "build": "clang-cl /MT /GS /Zl; MSVC startup object; BMO-X2 entry; explicit static libucrt.lib",
+    "functions": {
+      "abs": "libucrt:abs.obj",
+      "llabs": "libucrt:llabs.obj",
+      "strcmp": "libucrt:strcmp.obj",
+      "strlen": "libucrt:strlen.obj",
+      "strncmp": "libucrt:strncmp.obj"
+    },
+    "pe_bytes": 5120,
+    "pe_sha256": "198569f94d229842549bf0ab0d70e6d935a79ecc2eab3b55f39b30d64b07eb30",
+    "msvc_toolset": "14.44.35207",
+    "sdk": "10.0.26100.0",
+    "libucrt_sha256": "2b247d6a27c22c520c34134b8acf2da3366175a4690886927a51929f37725fdd",
+    "stack_cookie": {
+      "test_mode_address": 1077936128,
+      "seed": "48-bit build-time HOST test seed",
+      "msvc_handler_required": true,
+      "fail_fast": "CPL3 UD2 with marker 4753434B",
+      "mismatch_stdout_bytes": 0
+    },
+    "stdout": "MSVC CRT: inicio, main y cierre OK\r\n",
+    "stdout_bytes": 36
+  }
+}

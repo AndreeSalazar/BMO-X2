@@ -9,6 +9,7 @@ from .pe_bindings import bind_fixed_imports, bind_session_imports
 from .pe_exports import (DLL_ENTRY_EXPORT, DLL_LIFECYCLE_BASE, DLL_LIFECYCLE_PROFILE,
                          FIXED_DLL_PROFILE, code_exports)
 from .pe_tls import TLS_PROFILE, tls_regions
+from .pe_unwind import inventory_unwind
 
 
 COFF = struct.Struct('<HHIIIHH')
@@ -295,7 +296,7 @@ def _admit(data, result, opt, table, flags):
     return [(BASE, data[offset:offset + size], size, 5)]
 
 
-def _metadata(data, result, opt, text, readonly):
+def _metadata(data, result, opt, text, readonly, *, fixture_gs_handler=None):
     rva, offset, size = (readonly[k] for k in ('RVA', 'FileOffset', 'VirtualBytes'))
     end = rva + min(size, readonly['FileBytes'])
     debug = result['Directories'].get('debug')
@@ -317,15 +318,33 @@ def _metadata(data, result, opt, text, readonly):
         code_start = text['RVA']
         code_end = code_start + min(text['VirtualBytes'], text['FileBytes'])
         previous_end = code_start
+        handler_count = 0
+        prior_functions = set()
         for at in range(offset + start - rva, offset + start - rva + length, 12):
             begin, finish, unwind = struct.unpack_from('<III', data, at)
             if not previous_end <= begin < finish <= code_end or unwind % 4 or not rva <= unwind <= end - 4:
                 raise Rejection('PE-UNWIND-RANGE', at, 'RUNTIME_FUNCTION')
             info = offset + unwind - rva
             version_flags, prolog, slots, _ = struct.unpack_from('<BBBB', data, info)
-            if version_flags != 1 or prolog > finish - begin or unwind + 4 + ((slots + 1) & ~1) * 2 > end:
+            tail = unwind + 4 + ((slots + 1) & ~1) * 2
+            if (version_flags & 7) != 1 or prolog > finish - begin or tail > end:
                 raise Rejection('PE-UNWIND-INFO', info, 'UNWIND_INFO')
+            flags = version_flags >> 3
+            if flags == 4 and fixture_gs_handler is not None:
+                if tail + 12 > end or struct.unpack_from('<III', data, offset + tail - rva) not in prior_functions:
+                    raise Rejection('PE-UNWIND-GS-CHAIN', offset + tail - rva, 'ChainedRuntimeFunction')
+            elif flags:
+                if fixture_gs_handler is None or flags not in (1, 2, 3) or tail + 8 > end:
+                    raise Rejection('PE-UNWIND-INFO', info, 'UNWIND_INFO')
+                handler, = struct.unpack_from('<I', data, offset + tail - rva)
+                if handler != fixture_gs_handler or not code_start <= handler < code_end:
+                    raise Rejection('PE-UNWIND-GS-HANDLER', offset + tail - rva, 'ExceptionHandler')
+                handler_count += 1
+            if fixture_gs_handler is not None:
+                prior_functions.add((begin, finish, unwind))
             previous_end = finish
+        if fixture_gs_handler is not None and not handler_count:
+            raise Rejection('PE-UNWIND-GS-HANDLER', opt + 136, 'DataDirectory.exceptions')
 
 
 def _validate_generic_debug(data, result, opt, table, *, library=False):
@@ -345,7 +364,7 @@ def _validate_generic_debug(data, result, opt, table, *, library=False):
     _metadata(data, result, opt, None if library else entries[0], matches[0])
 
 
-def _admit_separate(data, result, opt, table, flags):
+def _admit_separate(data, result, opt, table, flags, *, fixture_gs_handler=None):
     alignment, file_alignment = struct.unpack_from('<II', data, opt + 32)
     image_size, header_size = struct.unpack_from('<II', data, opt + 56)
     if (not flags & 1 or result['Subsystem'] != 3 or alignment != SEPARATE_ALIGNMENT
@@ -384,7 +403,7 @@ def _admit_separate(data, result, opt, table, flags):
     text = sections[0]
     if not text['RVA'] <= result['EntryRVA'] < text['RVA'] + len(segments[0][1]):
         raise Rejection('PE-ENTRY', opt + 16, 'AddressOfEntryPoint')
-    _metadata(data, result, opt, text, sections[1])
+    _metadata(data, result, opt, text, sections[1], fixture_gs_handler=fixture_gs_handler)
     return segments
 
 
@@ -417,6 +436,12 @@ def probe_pe(data):
             result['Imports'] = inventory_imports(data, result['Sections'], imports, opt + 120)
         except Rejection as error:
             result['ImportInventoryError'] = error.report()
+    exceptions = result['Directories'].get('exceptions')
+    if exceptions:
+        try:
+            result['UnwindInventory'] = inventory_unwind(data, result['Sections'], exceptions, opt + 136)
+        except Rejection as error:
+            result['UnwindInventoryError'] = error.report()
     try:
         relocations = _base_relocations(data, result, opt)
         result['Relocations'] = dict(Count=len(relocations), Types=['DIR64'] if relocations else [],
@@ -453,6 +478,18 @@ def pack_pe(data, *, abi, bindings=None, isa_profile='x86-64-v1',
     else:
         entry = BASE + result['EntryRVA']
     return _encode_pe_segments(segments, abi, entry, isa_profile, format_version)
+
+
+def pack_pe_gs_fixture(data, handler_rva):
+    """Package the locally built /GS QEMU fixture in the abort-only fault profile."""
+    result, opt, table, flags = _inventory(data)
+    if result['Blockers']:
+        blocker = result['Blockers'][0]
+        raise Rejection(blocker['Code'], blocker['Offset'], blocker['Field'])
+    if result['ImageBase'] != BASE - SEPARATE_ALIGNMENT or 'exceptions' not in result['Directories']:
+        raise Rejection('PE-UNWIND-GS-FIXTURE', opt + 24, 'ImageBase/DataDirectory.exceptions')
+    segments = _admit_separate(data, result, opt, table, flags, fixture_gs_handler=handler_rva)
+    return _encode_pe_segments(segments, 1, result['ImageBase'] + result['EntryRVA'], 'x86-64-v1', FORMAT_VERSION)
 
 
 def _encode_pe_segments(segments, abi, entry, isa_profile, format_version):

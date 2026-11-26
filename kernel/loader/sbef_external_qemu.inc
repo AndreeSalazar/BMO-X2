@@ -362,6 +362,40 @@
 #ifdef BMO_EXTERNAL_EXT
 .org 4096
 #endif
+#ifdef BMO_GS_FAULT_PC
+// Explicit, one-shot #UD delivery in the locally built GS fixture.
+.Lgs_user_ud:
+    cmpq $BMO_GS_FAULT_PC, 0(%rsp)
+    jne .Luser_abort
+    cmpq $0x8b, 8(%rsp)
+    jne .Luser_abort
+    cmpq $0x83, 32(%rsp)
+    jne .Luser_abort
+    cmpq $(USER_STACK+8), 24(%rsp)
+    jb .Luser_abort
+    cmpq $(USER_STACK+4096-40), 24(%rsp)
+    ja .Luser_abort
+    testb $8, 24(%rsp)
+    jz .Luser_abort
+    testb $7, 24(%rsp)
+    jnz .Luser_abort
+    cmpb $0, GS_UD_DELIVERED
+    jne .Lgs_ud_repeat
+    movb $1, GS_UD_DELIVERED
+    push %rsi
+    lea .Lgs_ud_receipt(%rip), %rsi
+    call .Lprint
+    pop %rsi
+    mov 0(%rsp), %rcx
+    mov 24(%rsp), %rdx
+    mov $6, %r8d
+    movq $BMO_GS_LANDING_PC, 0(%rsp)
+    iretq
+.Lgs_ud_repeat:
+    mov $0x47534455, %eax
+    jmp .Luser_abort
+.Lgs_ud_receipt: .asciz "SBEF WIN64 #UD DELIVERED\n"
+#endif
 #ifdef BMO_EXTERNAL_REBASE
 #include "../syscalls/abi1_qemu_timer.inc"
 #else

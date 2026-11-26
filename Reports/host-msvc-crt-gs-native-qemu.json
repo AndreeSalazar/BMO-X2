@@ -1,0 +1,238 @@
+{
+  "run": "run-sbef-ring0-3ibadgz6",
+  "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
+  "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
+  "probe_sha256": "c3153e0fe7a2f45b508d7395d2e724bacd9a7aae6bab77747390376a204430a4",
+  "probe_bytes": 4072,
+  "private_pages": 347,
+  "user_frame_budget": 64,
+  "scratch_bytes_scrubbed": 1421312,
+  "passed": 7,
+  "cases": [
+    {
+      "case": "msvc-crt-gs-native",
+      "sha256": "d781c7f0448766bb396775cf1014ccfc71db7699df69d60bbb67b23bdb8d5a49",
+      "receipt": 0,
+      "user_pages": 5,
+      "syscalls": 6,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000001D22",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000005",
+        "SBEF WIN64 EXIT 0000000000000000",
+        "SBEF SYSCALLS 0000000000000006",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "msvc-crt-gs-native-mismatch",
+      "sha256": "1a231c7b876a112cf1f3c2f0bbf4fae8551caca4b87c800dec1ca9eff7d36aae",
+      "receipt": 0,
+      "user_pages": 5,
+      "syscalls": 0,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000001D22",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000005",
+        "SBEF CPL3 ABORT 000000004753434B",
+        "SBEF SYSCALLS 0000000000000000",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "msvc-crt-gs-native-handler",
+      "sha256": "b886fc5cb6aad59848f5e4cd6e85aac9111aa27a83f66ad632ae52873125bb07",
+      "receipt": 0,
+      "user_pages": 5,
+      "syscalls": 5,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000001D22",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000005",
+        "SBEF WIN64 EXIT 0000000000000000",
+        "SBEF SYSCALLS 0000000000000005",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "msvc-crt-gs-native-handler-mismatch",
+      "sha256": "4f793e70cf0dfc4c21fcf4b6b5cd15f4a23b9c96cd1416c6bbd60b6a37b3ca9c",
+      "receipt": 0,
+      "user_pages": 5,
+      "syscalls": 0,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000001D22",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000005",
+        "SBEF CPL3 ABORT 0000000047534844",
+        "SBEF SYSCALLS 0000000000000000",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "msvc-crt-gs-native-cpu-exception",
+      "sha256": "64bd4d888e963dba56bc25e070f1d802c203b4c0ebcb0c290ce9c17e17f4bbb1",
+      "receipt": 0,
+      "user_pages": 5,
+      "syscalls": 5,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000001D22",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000005",
+        "SBEF WIN64 #UD DELIVERED",
+        "SBEF WIN64 EXIT 0000000000000000",
+        "SBEF SYSCALLS 0000000000000005",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "msvc-crt-gs-native-cpu-exception-mismatch",
+      "sha256": "799a4be9291354a2bbb8aff1d81ad18d6c16415ef1aa3c6071669369bf03f6d9",
+      "receipt": 0,
+      "user_pages": 5,
+      "syscalls": 0,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000001D22",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000005",
+        "SBEF WIN64 #UD DELIVERED",
+        "SBEF CPL3 ABORT 0000000047534844",
+        "SBEF SYSCALLS 0000000000000000",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "msvc-crt-gs-native-cpu-exception-repeat",
+      "sha256": "0c264c3f56ba34f183a25c70548e941442495036a6825b2b4371cc225ae2bae4",
+      "receipt": 0,
+      "user_pages": 5,
+      "syscalls": 0,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000001D22",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000005",
+        "SBEF WIN64 #UD DELIVERED",
+        "SBEF CPL3 ABORT 0000000047534455",
+        "SBEF SYSCALLS 0000000000000000",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    }
+  ],
+  "extension_bytes": 1193,
+  "extension_sha256": "6798a4358475bd304a2003bc0e54e2a8689ecf49c1e11753807639af9cc5f943",
+  "msvc_crt": {
+    "startup": "bmo_crt_initialize / crt_client_main / bmo_crt_finalize",
+    "build": "MSVC /MT /GS /Zl; MSVC startup object; BMO-X2 entry; explicit static libucrt.lib",
+    "functions": {
+      "abs": "libucrt:abs.obj",
+      "llabs": "libucrt:llabs.obj",
+      "strcmp": "libucrt:strcmp.obj",
+      "strcspn": "libucrt:strcspn.obj",
+      "strlen": "libucrt:strlen.obj",
+      "strncmp": "libucrt:strncmp.obj",
+      "strspn": "libucrt:strspn.obj"
+    },
+    "pe_bytes": 9216,
+    "pe_sha256": "9f72ae61cbda6dfaf9076300e6acf047522eae4c24f61c11106f64aa08e42f75",
+    "msvc_toolset": "14.44.35207",
+    "sdk": "10.0.26100.0",
+    "libucrt_sha256": "2b247d6a27c22c520c34134b8acf2da3366175a4690886927a51929f37725fdd",
+    "libcmt_sha256": "8fe40dd342b90b35d62b8f5d55b4e92df7785c122976618365cfe3b014cc857a",
+    "gs_symbols": {
+      "__GSHandlerCheck": "gshandler.obj",
+      "__security_check_cookie": "amdsecgs.obj"
+    },
+    "unwind_inventory": {
+      "FunctionCount": 24,
+      "Versions": {
+        "1": 24
+      },
+      "V1ExceptionHandlerCount": 4,
+      "V1TerminationHandlerCount": 4,
+      "V1ChainedCount": 4,
+      "V1Handlers": [
+        {
+          "RVA": 2099852,
+          "FunctionCount": 4
+        }
+      ]
+    },
+    "fault_policy": "QEMU one-shot delivery for a single registered #UD PC; abort otherwise",
+    "dispatch_fixture": {
+      "exception_table_rva": 4194328,
+      "exception_table_bytes": 288,
+      "handler_rva": 2099852,
+      "trigger": "synchronous call with live MSVC frame",
+      "stdout": "MSVC CRT: __GSHandlerCheck OK\r\n",
+      "mismatch_stdout_bytes": 0
+    },
+    "cpu_exception": {
+      "vector": 6,
+      "fault_pc": 1073741853,
+      "landing_pc": 1073741857,
+      "stdout": "MSVC CRT: __GSHandlerCheck OK\r\n",
+      "mismatch_stdout_bytes": 0,
+      "repeat_stdout_bytes": 0
+    },
+    "default_rejection": "PE-UNWIND-INFO",
+    "wrong_handler_rejection": "PE-UNWIND-GS-HANDLER",
+    "stack_cookie": {
+      "test_mode_address": 1077936128,
+      "seed": "48-bit build-time HOST test seed",
+      "msvc_handler_required": true,
+      "fail_fast": "CPL3 UD2 with marker 4753434B",
+      "mismatch_stdout_bytes": 0
+    },
+    "stdout": "MSVC CRT: inicio, main y cierre OK\r\n",
+    "stdout_bytes": 36
+  }
+}
