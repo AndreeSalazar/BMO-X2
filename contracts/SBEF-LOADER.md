@@ -134,6 +134,13 @@ anterior y causa un fallo de lectura. La sonda LLVM de escritorio sigue
 limitada a sus perfiles fijos de una a tres regiones.
 [Evidencia de reubicacion](../Reports/host-msvc-rebase-qemu.json).
 
+El perfil `--msvc-dll` hace que el mismo cargador de prueba mapee seis
+regiones de un EXE y una DLL, mas la pila. El cliente llama dos veces a
+la exportacion resuelta por HOST y comprueba el estado del modulo. El
+control cambia su region RW a R y provoca un fallo de usuario. La salida
+y el fallo restauran la puerta y el mapa y borran la reserva completa.
+[Evidencia de la DLL](../Reports/host-msvc-dll-qemu.json).
+
 El perfil de escritorio lee `DESKTOP.SBF` desde FAT32 mediante UEFI y
 entrega sus bytes a este validador. El escritorio ya se observo en
 hardware. Quedan pendientes la integracion del cargador en CASM, los

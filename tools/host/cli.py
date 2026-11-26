@@ -8,7 +8,7 @@ import tempfile
 
 from .diagnostics import Rejection
 from .importers.elf import MAX_ELF, pack_elf
-from .importers.pe import pack_pe, probe_pe
+from .importers.pe import pack_pe, pack_pe_with_dll, probe_pe
 from .profiles import PRODUCER_PROFILES, profile_report
 from .sbef.format import (
     FORMAT_VERSION,
@@ -48,6 +48,7 @@ def main():
     pack.add_argument('--max-file-bytes', type=positive_bytes)
     pack.add_argument('--max-mapped-bytes', type=positive_bytes)
     pack.add_argument('--size-report', action='store_true', help='Show file and memory costs by region')
+    pack.add_argument('--with-dll', type=Path, help='Bind one fixed Win64 DLL to a PE32+ console image')
     commands.add_parser('inspect').add_argument('input', type=Path)
     plan = commands.add_parser('plan', help='Emit the validated per-process mapping plan')
     plan.add_argument('input', type=Path)
@@ -138,6 +139,7 @@ def run(args):
     if len(data) > MAX_ELF:
         raise Rejection('IMPORT-SIZE', MAX_ELF, 'file')
     is_pe = data.startswith(b'MZ')
+    dll_input = getattr(args, 'with_dll', None)
     producer = getattr(args, 'producer', None)
     declared = {}
     if producer is not None:
@@ -148,7 +150,19 @@ def run(args):
         declared['ProducerProfile'] = dict(Id=profile['Id'], Selector=producer,
                                            Container=profile['Container'], IdentityAttested=False,
                                            InputSHA256=hashlib.sha256(data).hexdigest())
-    if is_pe:
+    if dll_input:
+        if not is_pe:
+            raise Rejection('PE-DLL-PROFILE', 0, 'PE32+ EXE')
+        if args.output.resolve() == dll_input.resolve():
+            raise Rejection('SBEF-OUTPUT-ALIAS', 0, 'output')
+        with dll_input.open('rb') as file:
+            dll = file.read(MAX_ELF + 1)
+        if len(dll) > MAX_ELF:
+            raise Rejection('IMPORT-SIZE', MAX_ELF, 'DLL.file')
+        image, dependency = pack_pe_with_dll(data, dll, abi=args.abi, isa_profile=args.isa_profile,
+                                             format_version=args.format_version)
+        declared['LinkedModule'] = dict(dependency, SHA256=hashlib.sha256(dll).hexdigest(), Bytes=len(dll))
+    elif is_pe:
         if args.action == 'probe':
             result = probe_pe(data)
             result.update(declared)

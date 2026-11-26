@@ -13,7 +13,7 @@ from pathlib import Path
 from casm_sbef_qemu import CHECKS, test_vectors, validate
 from host.diagnostics import Rejection
 from host.sbef.format import encode_header, inspect, load_plan
-from host.toolchains.msvc import build_external_console
+from host.toolchains.msvc import build_external_console, build_external_dll
 from scope import ROOT, workspace
 from bridge_hex import assemble
 from fat32_read import Fat32
@@ -162,7 +162,21 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
     bridge = external_bridge(bridge, assemble_stage(llvm, READER, run))
     rebase = None
     console = None
-    if args.msvc_console:
+    dll_report = None
+    if args.msvc_dll:
+        image, dll_report = build_external_dll(ROOT, run, llvm / 'clang.exe')
+        base = int(dll_report['LinkedModule']['ImageBase'], 16)
+        writable = [region for region in load_plan(image)['Regions']
+                    if region['VirtualStart'] >= base and region['Writable']]
+        if len(writable) != 1:
+            raise ValueError('La DLL de prueba debe tener una region RW propia')
+        readonly = bytearray(image)
+        struct.pack_into('<I', readonly, writable[0]['RecordOffset'] + 20, 4)
+        cases = (
+            ('msvc-dll', image, 'SBEF WIN64 EXIT 0000000000000000', 1),
+            ('msvc-dll-readonly', readonly, f'SBEF CPL3 PF {writable[0]["VirtualStart"]:016X}', 0),
+        )
+    elif args.msvc_console:
         image, console = build_external_console(ROOT, run, llvm / 'clang.exe')
         calls = 6 + (len(CONSOLE_OUTPUT) + 7) // 8
         cases = (('msvc-console', image, 'SBEF WIN64 EXIT 0000000000000000', calls),)
@@ -207,10 +221,11 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
         else:
             if name == 'permissions':
                 raise ValueError('HOST admitio la muestra W+X')
-            if calls or rebase:
+            if calls or rebase or dll_report:
                 plan = load_plan(image)
                 pages = 1 + sum(region['PageCount'] for region in plan['Regions'])
-                expected_regions, expected_pages = (4, 5) if rebase else (3, 5) if console else (8, 10)
+                expected_regions, expected_pages = (6, 7) if dll_report else (
+                    (4, 5) if rebase else (3, 5) if console else (8, 10))
                 if info['AbiVersion'] != 1 or plan['RegionCount'] != expected_regions or pages != expected_pages:
                     raise ValueError('Cambio el contrato de la muestra externa')
         folder = run / ('run-' + name)
@@ -229,7 +244,7 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
         expected = ['SBEF CPL0 POST-EBS', f'SBEF FAT32 BYTES {len(image):016X}', f'SBEF RECEIPT {receipt:016X}']
         if pages:
             expected.append(f'SBEF USER PAGES {pages:016X}')
-        if name == 'fault':
+        if name in ('fault', 'msvc-dll-readonly'):
             expected.append('SBEF PF ERROR 0000000000000007')
         if name in ('peer-isolation', 'msvc-stale-pointer'):
             expected.append('SBEF PF ERROR 0000000000000004')
@@ -244,12 +259,12 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
         wakes = 0
         if rebase:
             expected.extend(['SBEF SYSCALLS 0000000000000000', 'SBEF WAIT WAKES 0000000000000000'])
-        if calls:
+        if calls or dll_report:
             expected.append(f'SBEF SYSCALLS {calls:016X}')
             wake_prefix = 'SBEF WAIT WAKES '
             wake_line = next((line for line in observed if line.startswith(wake_prefix)), '')
             wakes = int(wake_line.removeprefix(wake_prefix) or '0', 16)
-            if args.peer and wakes:
+            if (args.peer or dll_report) and wakes:
                 raise ValueError(f'{name}: WAIT entro al bucle del PIT. Ver {folder}')
             if console and not 1 <= wakes <= 3:
                 raise ValueError(f'{name}: WAIT debia despertar en uno a tres ticks. Ver {folder}')
@@ -275,16 +290,19 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
                             user_pages=pages, syscalls=calls, wait_wakes=wakes, staging_bytes_scrubbed=staged_bytes,
                             trace=observed, passed=True))
         print(f'{name}: comprobado', flush=True)
-    private_pages = PEER_PAGES if args.peer else CONSOLE_PAGES if console else EXTERNAL_PAGES
+    private_pages = PEER_PAGES if args.peer else CONSOLE_PAGES if console or dll_report else EXTERNAL_PAGES
     report = dict(run=run.name, evidence='QEMU/OVMF, SBEF from virtual FAT32 and real CPL3',
                   validator_text_sha256=module['text_sha256'], probe_sha256=hashlib.sha256(body).hexdigest(),
                   probe_bytes=len(body), private_pages=private_pages, user_frame_budget=64,
                   scratch_bytes_scrubbed=private_pages*4096, passed=len(results), cases=results)
     if args.peer:
         report.update(peer_extension_bytes=len(extension), peer_extension_sha256=hashlib.sha256(extension).hexdigest())
+    if console or dll_report:
+        report.update(extension_bytes=len(extension), extension_sha256=hashlib.sha256(extension).hexdigest())
     if console:
-        report.update(msvc_console=console, extension_bytes=len(extension),
-                      extension_sha256=hashlib.sha256(extension).hexdigest())
+        report['msvc_console'] = console
+    if dll_report:
+        report['msvc_dll'] = dll_report
     if rebase:
         report['msvc_rebase'] = rebase
     (run / 'qemu-results.json').write_text(json.dumps(report, indent=2)+'\n', encoding='ascii')
@@ -299,8 +317,10 @@ def main():
     profiles.add_argument('--peer', action='store_true', help='Test WAIT with a second isolated CPL3 context')
     profiles.add_argument('--msvc-rebase', type=Path, metavar='EXE', help='Run the audited MSVC DIR64 fixture')
     profiles.add_argument('--msvc-console', action='store_true', help='Build and run the external Win64 console fixture')
+    profiles.add_argument('--msvc-dll', action='store_true', help='Build and run the external EXE and DLL fixture')
     args = parser.parse_args()
-    external = args.external or args.peer or args.msvc_console or args.msvc_rebase is not None
+    win64 = args.msvc_console or args.msvc_dll
+    external = args.external or args.peer or win64 or args.msvc_rebase is not None
     module = json.loads((workspace(args.module_run) / 'validator.module.json').read_bytes())
     validate(module)
     trusted = json.loads(ATTESTED.read_bytes())['freestanding']
@@ -317,21 +337,21 @@ def main():
     run = Path(tempfile.mkdtemp(prefix='run-sbef-ring0-', dir=ROOT / 'build/CASM'))
     print(f'Run: {run}', flush=True)
     llvm = Path(os.environ['ProgramFiles']) / 'LLVM/bin'
-    private_pages = PEER_PAGES if args.peer else CONSOLE_PAGES if args.msvc_console else EXTERNAL_PAGES if external else PAGES
+    private_pages = PEER_PAGES if args.peer else CONSOLE_PAGES if win64 else EXTERNAL_PAGES if external else PAGES
     allocator = assemble_stage(llvm, ALLOCATOR, run, BMO_DMA_LAB_PAGES=private_pages)
     mode = dict(BMO_EXTERNAL_SBEF=1) if external else {}
     if args.peer:
         mode['BMO_EXTERNAL_PEER'] = 1
-    if args.msvc_console:
+    if win64:
         mode['BMO_EXTERNAL_WIN64'] = 1
-    if args.peer or args.msvc_console:
+    if args.peer or win64:
         mode['BMO_EXTERNAL_EXT'] = 1
     if args.msvc_rebase:
         mode['BMO_EXTERNAL_REBASE'] = 1
     body = assemble_stage(llvm, PROBE, run, BMO_CASE_COUNT=len(cases), BMO_MODULE_ENTRY=module['entry'],
                           BMO_TRAP_ENTRY=module['trap_addresses']['bounds'], **mode)
     extension = b''
-    if args.peer or args.msvc_console:
+    if args.peer or win64:
         if not 4096 < len(body) <= 8192 or any(body[4072:4096]):
             raise ValueError('La extension de procesos excede su pagina o invade la cabecera del puente')
         extension = body[4096:]

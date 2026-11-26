@@ -176,6 +176,12 @@ runtime Rust. El cliente lee el reloj, espera, escribe en stdout y sale
 por SYSCALL. El perfil tiene evidencia QEMU para este cliente.
 [Informe de la consola](Reports/host-msvc-console-qemu.json).
 
+El perfil `win64-fixed-dll-v1` toma un EXE y una DLL enlazados por separado
+y los empaqueta en el mismo SBEF. HOST resuelve la exportacion de la DLL y
+Ring 0 conserva permisos independientes para sus regiones. QEMU verifica
+dos llamadas, el estado de la DLL y la recuperacion de memoria al salir.
+[Informe EXE y DLL](Reports/host-msvc-dll-qemu.json).
+
 ## Escritorio, entrada y arranque
 
 El nuevo candidato de escritorio conecta RmlUi con DIRECTOR Rust:

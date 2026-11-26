@@ -5,7 +5,8 @@ from ..diagnostics import Rejection
 from ..sbef.format import (BASE, END, FORMAT_VERSION, HEADER, MACHINE, MAX_IMAGE,
                            PAGE, REGION, encode_header, inspect)
 from .pe_imports import inventory_imports
-from .pe_bindings import bind_session_imports
+from .pe_bindings import bind_fixed_imports, bind_session_imports
+from .pe_exports import FIXED_DLL_PROFILE, single_code_export
 
 
 COFF = struct.Struct('<HHIIIHH')
@@ -156,13 +157,13 @@ def _base_relocations(data, result, opt):
     return entries
 
 
-def _admit_relocated(data, result, opt, table, flags, relocations):
+def _admit_relocated(data, result, opt, table, flags, relocations, *, load_base=BASE, library=False):
     sections = result['Sections']
     image_size = result['ImageSize']
     section_alignment = result['SectionAlignment']
     file_alignment = result['FileAlignment']
     header_size = result['HeaderSize']
-    if result['ImageKind'] != 'EXE':
+    if result['ImageKind'] != ('DLL' if library else 'EXE'):
         raise Rejection('PE-IMAGE-KIND', opt - 18, 'Characteristics')
     if result['Subsystem'] != 3:
         raise Rejection('PE-SUBSYSTEM', opt + 68, 'Subsystem')
@@ -174,7 +175,7 @@ def _admit_relocated(data, result, opt, table, flags, relocations):
         raise Rejection('PE-FILE-ALIGNMENT', opt + 36, 'FileAlignment')
     if (image_size <= header_size or image_size % section_alignment
             or image_size > 16 * 1024 * 1024
-            or BASE + image_size > END):
+            or load_base + image_size > END):
         raise Rejection('PE-IMAGE-LAYOUT', opt + 56, 'SizeOfImage')
     if (header_size % file_alignment or header_size > len(data)
             or table + len(sections) * SECTION.size > header_size):
@@ -223,8 +224,8 @@ def _admit_relocated(data, result, opt, table, flags, relocations):
         if copy_size:
             buffer[:copy_size] = data[raw_offset:raw_offset + copy_size]
         buffers.append(buffer)
-        regions.append([BASE + rva, buffer, virtual_size, permissions, copy_size])
-    if not entry_executable:
+        regions.append([load_base + rva, buffer, virtual_size, permissions, copy_size])
+    if not library and not entry_executable:
         raise Rejection('PE-ENTRY', opt + 16, 'AddressOfEntryPoint')
     raw_ranges.sort()
     file_cursor = header_size
@@ -238,7 +239,7 @@ def _admit_relocated(data, result, opt, table, flags, relocations):
     if any(data[file_cursor:]):
         raise Rejection('PE-TRAILING-DATA', file_cursor, 'RawData')
 
-    delta = BASE - result['ImageBase']
+    delta = load_base - result['ImageBase']
     if delta and not relocations:
         raise Rejection('PE-RELOCATIONS-MISSING', opt + 24, 'ImageBase')
     if delta and flags & 1:
@@ -255,7 +256,7 @@ def _admit_relocated(data, result, opt, table, flags, relocations):
                    for section in sections):
             raise Rejection('PE-RELOCATION-VALUE', record, 'DIR64')
         relocated = value + delta
-        if not BASE <= relocated < BASE + image_size:
+        if not load_base <= relocated < load_base + image_size:
             raise Rejection('PE-RELOCATION-VALUE', record, 'DIR64')
         struct.pack_into('<Q', buffers[index], target_offset, relocated)
         regions[index][4] = max(regions[index][4], target_offset + 8)
@@ -325,7 +326,7 @@ def _metadata(data, result, opt, text, readonly):
             previous_end = finish
 
 
-def _validate_generic_debug(data, result, opt, table):
+def _validate_generic_debug(data, result, opt, table, *, library=False):
     debug = result['Directories'].get('debug')
     if not debug:
         return
@@ -337,9 +338,9 @@ def _validate_generic_debug(data, result, opt, table):
     entries = [section for section in result['Sections']
                if section['Executable'] and section['RVA'] <= result['EntryRVA']
                < section['RVA'] + min(_section_memory_size(section), section['FileBytes'])]
-    if len(matches) != 1 or len(entries) != 1 or matches[0]['Writable']:
+    if len(matches) != 1 or (not library and len(entries) != 1) or matches[0]['Writable']:
         raise Rejection('PE-DEBUG-PENDING', opt + 160, 'DataDirectory.debug')
-    _metadata(data, result, opt, entries[0], matches[0])
+    _metadata(data, result, opt, None if library else entries[0], matches[0])
 
 
 def _admit_separate(data, result, opt, table, flags):
@@ -438,24 +439,61 @@ def pack_pe(data, *, abi, bindings=None, isa_profile='x86-64-v1',
     if blockers:
         blocker = blockers[0]
         raise Rejection(blocker['Code'], blocker['Offset'], blocker['Field'])
-    segments, total = _regions(data, result, opt, table, flags)
+    segments, _ = _regions(data, result, opt, table, flags)
     if abi != 1:
         raise Rejection('PE-ABI', 0, 'abi_version')
     if bindings is not None:
         if len(segments) != 3:
             raise Rejection('PE-SESSION-PROFILE', opt + 24, 'ImageBase')
         bind_session_imports(data, result, opt, segments, bindings)
+    if result['ImageBase'] in (BASE - SECTION_ALIGNMENT, BASE - SEPARATE_ALIGNMENT):
+        entry = result['ImageBase'] + result['EntryRVA']
+    else:
+        entry = BASE + result['EntryRVA']
+    return _encode_pe_segments(segments, abi, entry, isa_profile, format_version)
+
+
+def _encode_pe_segments(segments, abi, entry, isa_profile, format_version):
     offset = HEADER.size + REGION.size * len(segments)
     table_bytes = bytearray()
     for address, payload, size, permissions in segments:
         table_bytes.extend(REGION.pack(address, offset, len(payload), size, permissions, 0))
         offset += len(payload)
-    if result['ImageBase'] in (BASE - SECTION_ALIGNMENT, BASE - SEPARATE_ALIGNMENT):
-        entry = result['ImageBase'] + result['EntryRVA']
-    else:
-        entry = BASE + result['EntryRVA']
-    image = encode_header(abi, len(segments), total, entry,
+    image = encode_header(abi, len(segments), offset, entry,
                           isa_profile=isa_profile, format_version=format_version)
     image += table_bytes + b''.join(payload for _, payload, _, _ in segments)
     inspect(image)
     return image
+
+
+def pack_pe_with_dll(data, dll, *, abi, isa_profile='x86-64-v1', format_version=FORMAT_VERSION):
+    """Bind one fixed, entryless Win64 DLL into the executable's address space."""
+    result, opt, table, flags = _inventory(data)
+    for blocker in result['Blockers']:
+        if blocker['Code'] not in ('PE-IMPORTS', 'PE-IAT'):
+            raise Rejection(blocker['Code'], blocker['Offset'], blocker['Field'])
+    if abi != FIXED_DLL_PROFILE['AbiVersion'] or format_version != FORMAT_VERSION:
+        raise Rejection('PE-DLL-PROFILE', 0, 'SBEF v2 ABI 1')
+    if result['ImageBase'] != BASE - SEPARATE_ALIGNMENT or 'base_relocations' in result['Directories']:
+        raise Rejection('PE-DLL-PROFILE', opt + 24, 'EXE.ImageBase')
+    executable = _admit_separate(data, result, opt, table, flags)
+
+    module, dll_opt, dll_table, dll_flags = _inventory(dll)
+    for directory in module['Directories']:
+        if directory not in ('exports', 'debug'):
+            index = next((index for index, (name, _) in DIRECTORIES.items() if name == directory), None)
+            if index is None:
+                index = int(directory.removeprefix('directory_'))
+            raise Rejection('PE-DLL-DIRECTORY', dll_opt + 112 + 8 * index, f'DLL.{directory}')
+    if (module['ImageKind'] != 'DLL' or module['EntryRVA'] or not dll_flags & 1
+            or not 0x40800000 <= module['ImageBase'] < END or len(module['Sections']) > 5):
+        raise Rejection('PE-DLL-PROFILE', dll_opt + 16, 'DLL.Characteristics/EntryPoint/ImageBase')
+    _validate_generic_debug(dll, module, dll_opt, dll_table, library=True)
+    segments = _admit_relocated(dll, module, dll_opt, dll_table, dll_flags, (),
+                                load_base=module['ImageBase'], library=True)
+    name, exports = single_code_export(module, segments, dll_opt)
+    bind_fixed_imports(data, result, opt, executable, name, exports, segments)
+    package = _encode_pe_segments(executable + segments, abi, result['ImageBase'] + result['EntryRVA'],
+                                  isa_profile, format_version)
+    return package, dict(Name=name, Profile=FIXED_DLL_PROFILE['Name'], ImageBase=f'0x{module["ImageBase"]:X}',
+                         Exports={symbol: f'0x{address:X}' for symbol, address in exports.items()})

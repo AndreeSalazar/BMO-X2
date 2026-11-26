@@ -1633,8 +1633,8 @@
       "que": "Inspecciona PE32+ independientemente del productor, aplica relocaciones DIR64 internas y admite perfiles SBEF fijos o freestanding limitados.",
       "entrada": "Ruta de un PE32+ x86-64 pasado al comando de intake de PowerShell.",
       "salida": "Informe con hash, tipo, secciones, directorios, imports, relocaciones y SBEF admitido o rechazo preciso.",
-      "aceptacion": "Un PE MSVC con DIR64 ejecuta su codigo en CPL3 desde FAT32. El perfil win64-console-v1 carga otro PE MSVC con tres imports enlazados a Rust y valida reloj, WAIT, stdout y cierre. Evidencia Reports/host-msvc-rebase-qemu.json y Reports/host-msvc-console-qemu.json.",
-      "falta": "Faltan imports e IAT generales, admision de DLL, TLS, load config, unwind, exports, servicios de CRT, integracion con procesos de produccion e intake general de objetos COFF."
+      "aceptacion": "QEMU prueba DIR64, la consola Win64 y una DLL fija enlazada por HOST. La DLL se llama dos veces en CPL3 y se recupera al cerrar o fallar. Evidencia Reports/host-msvc-dll-qemu.json.",
+      "falta": "Faltan imports e IAT generales, carga dinamica e inicializacion de DLL, TLS, load config, unwind, servicios de CRT, integracion con procesos de produccion e intake general de objetos COFF."
     },
     {
       "id": "userspace-supervisor",

@@ -9,21 +9,28 @@ import subprocess
 import sys
 from pathlib import Path
 
-from ..importers.pe import pack_pe, probe_pe
+from ..importers.pe import pack_pe, pack_pe_with_dll, probe_pe
 from ..diagnostics import Rejection
 from ..importers.pe_bindings import SESSION_EXPORTS, WIN64_CONSOLE_PROFILE
 from ..sbef.format import LEGACY_FORMAT_VERSION, inspect
 
 
-def build_external_console(root, out, assembler):
-    """Link the existing MSVC client against the external console import profile."""
+def msvc_x64_compiler():
     vs = Path(os.environ['ProgramFiles']) / 'Microsoft Visual Studio'
-    sdk = Path(os.environ['ProgramFiles(x86)']) / 'Windows Kits/10/Lib'
     compilers = sorted(vs.glob('*/*/VC/Tools/MSVC/*/bin/Hostx64/x64/cl.exe'))
     cc = Path(shutil.which('cl.exe') or (compilers[-1] if compilers else 'cl.exe'))
+    if not cc.is_file() or not cc.with_name('link.exe').is_file():
+        raise ValueError('La prueba exige MSVC x64')
+    return cc
+
+
+def build_external_console(root, out, assembler):
+    """Link the existing MSVC client against the external console import profile."""
+    cc = msvc_x64_compiler()
+    sdk = Path(os.environ['ProgramFiles(x86)']) / 'Windows Kits/10/Lib'
     libraries = sorted(sdk.glob('*/um/x64/kernel32.lib'))
-    if not cc.is_file() or not cc.with_name('link.exe').is_file() or not libraries:
-        raise ValueError('La consola exige MSVC x64 y kernel32.lib del Windows SDK')
+    if not libraries:
+        raise ValueError('La consola exige kernel32.lib del Windows SDK')
     abi = root / 'userspace/runtime/abi/win64'
     client, entry, pe = (out / name for name in ('console-client.obj', 'console-entry.obj', 'console.exe'))
     subprocess.run([cc, '/nologo', '/std:c++17', '/c', '/GS-', '/Zl', '/Od',
@@ -66,6 +73,44 @@ def build_external_console(root, out, assembler):
                          pe_bytes=len(source), pe_sha256=hashlib.sha256(source).hexdigest(),
                          msvc_toolset=cc.parents[3].name, sdk=libraries[-1].parents[2].name,
                          rejected_import=rejected)
+
+
+def build_external_dll(root, out, assembler):
+    """Build independently linked EXE and DLL inputs, then use the public HOST CLI."""
+    cc = msvc_x64_compiler()
+    linker = cc.with_name('link.exe')
+    module_obj, client_obj, dll, exe = (out / name for name in (
+        'module.obj', 'dll-client.obj', 'module.dll', 'dll-client.exe'))
+    for unit, obj in (('msvc_dll_module.cpp', module_obj), ('msvc_dll_client.cpp', client_obj)):
+        subprocess.run([cc, '/nologo', '/c', '/GS-', '/Zl', '/O2', f'/Fo{obj}', root / 'tools/tests' / unit],
+                       cwd=out, check=True)
+    import_lib = out / 'module.lib'
+    common_link = ['/nologo', '/machine:x64', '/nodefaultlib', '/subsystem:console',
+                   '/fixed', '/Brepro', '/incremental:no']
+    subprocess.run([linker, *common_link, '/dll', '/noentry', '/base:0x40800000',
+                    f'/out:{dll}', f'/implib:{import_lib}', module_obj], cwd=out, check=True)
+    abi = root / 'userspace/runtime/abi/win64'
+    entry, portal = out / 'dll-entry.obj', out / 'dll-portal.obj'
+    subprocess.run([assembler, '--target=x86_64-pc-windows-msvc', '-c', abi / 'entry.S', '-o', entry], check=True)
+    subprocess.run(['rustc', '--edition=2024', '--target=x86_64-pc-windows-msvc', '--crate-type=lib',
+                    '--emit=obj', '-Cpanic=abort', '-Copt-level=2', abi / 'portal.rs', '-o', portal], check=True)
+    subprocess.run([linker, *common_link, '/entry:bmo_win64_start', '/base:0x3fe00000', '/align:2097152',
+                    '/merge:.pdata=.rdata', f'/out:{exe}', entry, client_obj, portal, import_lib], cwd=out, check=True)
+
+    package = out / 'dll-client.sbef'
+    report = json.loads(subprocess.check_output([sys.executable, '-B', root / 'tools/sbef.py', 'pack', exe,
+                        package, '--abi', '1', '--producer', 'msvc', '--with-dll', dll]))
+    unknown_export = dll.read_bytes().replace(b'BmoStep\x00', b'BadStep\x00', 1)
+    try:
+        pack_pe_with_dll(exe.read_bytes(), unknown_export, abi=1)
+    except Rejection as error:
+        if error.code != 'PE-SESSION-IMPORT' or error.field.lower() != 'module.dll!bmostep':
+            raise
+        report['RejectedExport'] = error.report()
+    else:
+        raise ValueError('HOST admitio una DLL que no exporta BmoStep')
+    report['MsvcToolset'] = cc.parents[3].name
+    return package.read_bytes(), report
 
 
 def build_desktop_panel(root, out, cc, nm):

@@ -344,6 +344,23 @@ El perfil se elige al construir el banco y su catalogo contiene tres
 imports. Sigue pendiente una ruta de carga para DLL y CRT generales.
 [Evidencia del proceso de consola](../../Reports/host-msvc-console-qemu.json).
 
+`--msvc-dll` construye un EXE y una DLL freestanding con MSVC y usa el
+comando publico de HOST para enlazar el import `module.dll!BmoStep`.
+El EXE y la DLL ocupan seis regiones en el mismo SBEF. El banco verifica
+dos llamadas al modulo, un rechazo HOST por exportacion ausente y un
+fallo de pagina cuando el modulo intenta escribir en su region marcada R.
+
+```powershell
+$validatorRun = 'build/CASM/run-del-validador'
+python -B tools/boot/sbef_ring0_qemu.py $validatorRun --msvc-dll
+python -B tools/sbef.py pack dll-client.exe dll-client.sbef --abi 1 --producer msvc --with-dll module.dll
+```
+
+El segundo comando toma los dos PE que el primer comando deja en la
+carpeta del run. El perfil `win64-fixed-dll-v1` resuelve una exportacion
+directa de una DLL fija sin inicializador. La carga dinamica queda
+pendiente. [Evidencia EXE y DLL](../../Reports/host-msvc-dll-qemu.json).
+
 Con `--msvc-sections --msvc-window` el mismo cliente dibuja un panel y un
 triangulo por CPU. El modelo Rust de DIRECTOR compone el panel en una
 superficie de 320x200 y la presenta mediante GOP. Super+Q retira el panel

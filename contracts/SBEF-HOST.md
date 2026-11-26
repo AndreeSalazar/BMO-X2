@@ -72,6 +72,20 @@ la evidencia MSVC en [HOST](../tools/host/README.md).
 stderr codigo, campo y offset de archivo, con indice de region
 cuando corresponde. El archivo se escribe solo despues de admitirlo.
 
+### EXE con una DLL fija
+
+`pack --abi 1 --with-dll module.dll` selecciona `win64-fixed-dll-v1`.
+HOST admite un EXE de consola de tres regiones y una DLL de base fija
+con una exportacion directa por nombre. Ambos se enlazan por separado.
+HOST exige que la importacion del EXE corresponda al nombre de la DLL y
+que la exportacion apunte a bytes RX del modulo. Escribe la direccion en
+la IAT de solo lectura del EXE y conserva las regiones del modulo en el
+mismo SBEF v2. El informe incluye el hash y la exportacion de la DLL.
+El perfil exige una DLL sin punto de entrada ni dependencias y rechaza
+reenvios, TLS y directorios de ejecucion ajenos al perfil. Quedan
+pendientes carga dinamica, inicializacion y cierre de DLL, el CRT y el
+soporte de excepciones. [Pruebas HOST y QEMU](../Reports/host-msvc-dll-qemu.json).
+
 ### Perfil ISA
 
 El destino x86-64 de BMO-X2 tiene una base `x86-64-v1` y cuatro niveles
