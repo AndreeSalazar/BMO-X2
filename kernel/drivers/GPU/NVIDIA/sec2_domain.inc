@@ -63,6 +63,17 @@
     jne .Lsec2_domain_bad
     cmpq $48, 0x2008(%rcx)
     jne .Lsec2_domain_bad
+    # The last reservation page belongs to the monitor, after the CPU-only trace.
+    # Install its leaf before switching the RTX requester to the broader root.
+    push %r8
+    mov GSP_NATIVE_QUEUE_BASE(%rbp), %rcx
+    lea GSP_RM_STATE_OFFSET(%r9), %rdx
+    lea ((GSP_RM_STATE_IOVA-SEC2_WPR_IOVA)/4096*8-8)(%r10), %r8
+    call .Lgsp_install_state_monitor
+    pop %r8
+    test %eax, %eax
+    jz .Lsec2_domain_bad
+    mov $SEC2_IOMMU_ALIAS, %ecx
     lea GSP_SEC2_WORKSPACE_OFFSET(%r9), %rax
     movabs $0x2000000000000001, %rdx
     or %rdx, %rax
@@ -107,6 +118,26 @@
     ret
 .Lsec2_domain_ready:
     mov $1, %eax
+    ret
+
+# Win64: RCX = RMARGS, RDX = reserved zeroed page, R8 = detached leaf slot.
+.globl nvidia_gsp_install_state_monitor
+nvidia_gsp_install_state_monitor:
+.Lgsp_install_state_monitor:
+    xor %eax, %eax
+    cmpq $0, (%r8)
+    jne .Lgsp_rm_state_done
+    cmpq $0, 136(%rcx)
+    jne .Lgsp_rm_state_done
+    cmpq $0, 144(%rcx)
+    jne .Lgsp_rm_state_done
+    movabs $0x6000000000000001, %rax
+    or %rdx, %rax
+    mov %rax, (%r8)
+    movq $GSP_RM_STATE_IOVA, 136(%rcx)
+    movq $4096, 144(%rcx)
+    mov $1, %eax
+.Lgsp_rm_state_done:
     ret
 
 # Win64: RCX = start of the low firmware reservation, RDX = DTE base,

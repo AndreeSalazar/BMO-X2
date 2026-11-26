@@ -1383,6 +1383,18 @@ descriptor que genero el acceso. La prueba en metal de esta opcion
 requiere una salida serie capturada por un equipo receptor.
 [Validacion HOST del exportador](../Reports/nvidia-gsp-serial-capture-host.json).
 
+METAL con `eb6eac7` volvio a mostrar SEC2 `701`, GSP `804` y un
+evento AMD-Vi de `29:00.0` con IOVA cero. OpenRM 615.78.08 asigna una
+pagina de 4 KiB al monitor de estado de RM antes de preparar LIBOS y
+escribe su direccion y longitud en RMARGS. El ensayo RTX incorpora esa
+pagina tras la captura privada y la habilita solo en el dominio RTX al
+publicar el arbol de SEC2. El mapa conserva las IOVAs de FWSEC y SEC2.
+HOST comprueba la hoja y los campos RMARGS con el emisor ensamblado.
+QEMU comprueba que la pagina existe, empieza en cero y sigue sin mapa
+cuando la placa queda excluida. La causa del acceso a IOVA cero y el
+resultado en metal quedan pendientes.
+[Inicializacion de OpenRM 615.78.08](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c#L5692).
+
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
 [Fusibles SEC2 en Nova](https://github.com/torvalds/linux/blob/master/drivers/gpu/nova-core/regs.rs).

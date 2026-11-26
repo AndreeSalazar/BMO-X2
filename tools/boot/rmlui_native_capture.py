@@ -79,15 +79,19 @@ def verify_gsp_reservation(memory, context, expected, case):
     memmap = memory(context+0x1000,map_length,'gsp-efi-map')
     descriptors = [struct.unpack_from('<I4xQQQ',memmap,offset)
                    for offset in range(0,len(memmap),stride)]
-    board_pages = 553 if expected.get('physical_sec2_stage') else 521
-    allocation = reserved + (board_pages*4096 if expected.get('physical_usb_test') else 0)
+    physical_usb = expected.get('physical_usb_test')
+    board_pages = 554 if physical_usb else 0
+    allocation = reserved + board_pages*4096
     if not any(kind==2 and start<=base and base+allocation<=start+pages*4096
                for kind,start,_,pages in descriptors):
         raise ValueError('GSP data is not reserved in the final EFI map')
+    if physical_usb:
+        if any(memory(base+allocation-4096,4096,'gsp-rm-state-monitor')):
+            raise ValueError('GSP RM state monitor must start zeroed')
     if ucodes and not any(kind==2 and start<=ucodes_base and
             ucodes_base+ucodes_allocation<=start+pages*4096 for kind,start,_,pages in descriptors):
         raise ValueError('GA10x ucodes are outside their LoaderData range')
-    for index in range(base>>21, ((base+reserved-1)>>21)+1):
+    for index in range(base>>21, ((base+allocation-1)>>21)+1):
         pde, = struct.unpack('<Q', memory(context+0x15000+index*8,8,'gsp-identity-pde'))
         if pde&0x85!=0x81 or pde&0x000fffffffe00000!=index<<21:
             raise ValueError('GSP reservation is outside supervisor identity memory')
@@ -249,6 +253,8 @@ def verify_gsp_reservation(memory, context, expected, case):
                     struct.pack_into('<Q',table,(first+index)*8,(base+used+4096*(1+index))|read|1)
             if image[used:used+4096]!=table:
                 raise ValueError('Detached GSP queue permissions differ')
+            if physical_usb:
+                result['GspRmStateMonitorReservedUnmapped']=True
             used += 4096
             result.update(GspQueuePagesVerified=queue_pages,GspQueuePermissionsVerified=True,
                           GspQueueReadOnlyPages=2,GspQueueWritablePages=queue_pages-2,

@@ -76,7 +76,7 @@ nvidia_physical_begin:
     jnz .Lboard_exit
     cmp $0x100000, %r10
     jb .Lboard_exit
-    cmp $(0x10000000-GSP_TRACE_END), %r10
+    cmp $(0x10000000-GSP_PHYSICAL_WORKSPACE_END), %r10
     ja .Lboard_exit
     add $0x206000, %r10
     cld
@@ -183,6 +183,15 @@ nvidia_physical_begin:
     test %eax, %eax
     jz .Lboard_unmap
     movl $0x707, (NVIDIA_SEC2_EXEC_RECEIPT+4)(%rbp)
+    mov GSP_NATIVE_QUEUE_BASE(%rbp), %rdx
+    test $4095, %edx
+    jnz .Lboard_unmap
+    cmp GSP_STAGE_BASE(%rbp), %rdx
+    jb .Lboard_unmap
+    mov GSP_PHYSICAL_DTE_BASE(%rbp), %rax
+    sub $0x93000, %rax          # Includes LIBOS arguments and all 16 LOGINIT pages.
+    cmp %rax, %rdx
+    ja .Lboard_unmap
     call .Lpublish_sec2_domain
     test %eax, %eax
     jz .Lboard_unmap
@@ -226,12 +235,6 @@ nvidia_physical_begin:
     cmp $0x030000, %eax
     jne .Lboard_sec2_revoke
     mov GSP_NATIVE_QUEUE_BASE(%rbp), %rdx
-    cmp GSP_STAGE_BASE(%rbp), %rdx
-    jb .Lboard_sec2_revoke
-    mov GSP_PHYSICAL_DTE_BASE(%rbp), %rax
-    sub $0x93000, %rax          # Includes LIBOS arguments and all 16 LOGINIT pages.
-    cmp %rax, %rdx
-    ja .Lboard_sec2_revoke
     mov $(FALCON_BOARD_VA+0x110000), %ecx
     mov STORAGE_TSC_10MS(%rbp), %r8
     call .Lgsp_init_615

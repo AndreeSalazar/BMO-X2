@@ -61,6 +61,7 @@ class FwsecLaunch(unittest.TestCase):
                         "/export:amdvi_stage_fwsec_domain", "/export:amdvi_matches_board_ivrs",
                         "/export:nvidia_prepare_sec2_image", "/export:nvidia_execute_sec2_booter",
                         "/export:nvidia_gsp_init_615", "/export:nvidia_gsp_snapshot_615",
+                        "/export:nvidia_gsp_install_state_monitor",
                         "/export:nvidia_sec2_check_fwsec_pages",
                         f"/out:{dll}", sec2_object, domain, ivrs, sec2], check=True)
         cls.library = ctypes.WinDLL(str(dll))
@@ -92,6 +93,26 @@ class FwsecLaunch(unittest.TestCase):
         cls.gsp_snapshot = cls.library.nvidia_gsp_snapshot_615
         cls.gsp_snapshot.argtypes = [ctypes.c_void_p]*6
         cls.gsp_snapshot.restype = None
+
+    def test_gsp_state_monitor_installs_one_leaf_and_preserves_existing_mappings(self):
+        install = self.library.nvidia_gsp_install_state_monitor
+        install.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_void_p]
+        install.restype = ctypes.c_int
+        args = bytearray(4096)
+        leaf = (ctypes.c_uint64 * 512)()
+        monitor_page = 0x3456000
+        slot = ctypes.byref(leaf, 511 * 8)
+        leaf[510] = 0x1234
+        rmargs = (ctypes.c_ubyte * len(args)).from_buffer(args)
+        struct.pack_into('<Q', args, 144, 1)
+        self.assertEqual(install(rmargs, monitor_page, slot), 0)
+        self.assertEqual(leaf[511], 0)
+        struct.pack_into('<Q', args, 144, 0)
+        self.assertEqual(install(rmargs, monitor_page, slot), 1)
+        self.assertEqual(struct.unpack_from('<QQ', args, 136), (0x0A1FF000, 4096))
+        self.assertEqual(list(leaf)[-2:], [0x1234, 0x6000000000000001 | monitor_page])
+        self.assertEqual(install(rmargs, monitor_page + 4096, slot), 0)
+        self.assertEqual(leaf[511], 0x6000000000000001 | monitor_page)
 
     def test_gsp_snapshot_copies_all_published_events_and_log(self):
         self.write(FALCON+0x40,0x1234)

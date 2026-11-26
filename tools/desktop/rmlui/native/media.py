@@ -228,7 +228,7 @@ def main():
     extra=reader_budget+usb_budget
     amdvi_offset=0x3000+extra
     amdvi_budget=8192 if args.full_hd or args.amdvi_guest_nvme or (args.amdvi_routed and args.amdvi_dte_reserve) else 4096
-    if args.amdvi_physical_usb_test:amdvi_budget+=8192
+    if args.amdvi_physical_usb_test:amdvi_budget+=3*4096
     gsp_offset=amdvi_offset+amdvi_budget
     units=[('allocator','kernel/boot/bridge/desktop_media_alloc.S'),('reader','kernel/boot/bridge/desktop_media_read.S'),
         ('gate','kernel/syscalls/session_gate.S'),('loader','kernel/loader/doom_engine_loader.S')]
@@ -405,8 +405,8 @@ def main():
     if args.amdvi_physical_usb_test and not all(report['Cases'][0].get(key) for key in
           ('PhysicalUsbTranslationExcluded', 'PhysicalFalconResetExcluded',
            'PhysicalFwsecDeniedWithoutFirmware', 'PhysicalFwsecLaunchExcluded',
-           'PhysicalLpcCommandExcluded')):
-        raise ValueError('Missing physical xHCI and Falcon exclusions or FWSEC denial evidence')
+           'PhysicalLpcCommandExcluded', 'GspRmStateMonitorReservedUnmapped')):
+        raise ValueError('Missing board exclusions, FWSEC denial or GSP monitor reservation evidence')
     if args.physical_fwsec_trial and not all(report['Cases'][i].get('PhysicalFwsecStatusExportVerified')
                                             for i in (0,2)):
         raise ValueError('Missing the Ring 3 physical FWSEC receipt in QEMU')
