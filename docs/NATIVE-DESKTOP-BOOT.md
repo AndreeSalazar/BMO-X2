@@ -1484,6 +1484,17 @@ python -B -m tools.host.gpu.NVIDIA.gsp_init_compare openrm-dmesg.txt RTX-FWSEC.E
 
 La peticion exitosa de ULTRA-LinuX en esta tarjeta sigue pendiente.
 
+HOST compilo el parche de captura como `nvidia.ko` 615.78.08 contra
+el arbol `7.3.0-rc7-pc-g32c52ec87d62` en un snapshot del taller QEMU.
+`modinfo` confirmo la version y el vermagic. La copia de Windows
+conserva los tres marcadores y el SHA-256
+`4ea56a173bad6561c8108c21a9ccc52e69b863cc96927b0439b17396225eb34e`.
+El binario y el log de compilacion estan en
+`build/gpu/NVIDIA/openrm-capture-workshop/`. Objtool informo avisos
+`MITIGATION_RETHUNK`. La carga del modulo y la captura real requieren
+un arranque de diagnostico de ULTRA-LinuX en la RTX. No se instalo el
+modulo en el sistema de uso diario ni se cambio el perfil BMO-X2.
+
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
 [Fusibles SEC2 en Nova](https://github.com/torvalds/linux/blob/master/drivers/gpu/nova-core/regs.rs).
