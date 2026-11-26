@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "evidence": [
+    "HOST",
+    "QEMU"
+  ],
+  "source_commit": "138f823",
+  "media_run": "run-rmlui-media-95d45de7462f",
+  "qemu_cases": [
+    {
+      "Case": "normal",
+      "Passed": true
+    },
+    {
+      "Case": "external-permissions",
+      "Passed": true
+    },
+    {
+      "Case": "amdvi-missing",
+      "Passed": true
+    }
+  ],
+  "fat32_sha256": {
+    "BMO-X2/GPU-FW/DESKTOP.SBF": "cb65fcf2e1ff5c8ed00795546bb2761fa30949e2fc186fda072a2ae078a435a3",
+    "EFI/BMO-X2/RTX-FWSEC.EFI": "5a8442129fd1e5541d4163598410f4610870d6b50988d37fcdd06bfab521a7ba",
+    "BMO-X2/GPU-FW/GSP.BIN": "7bdcc9568a9984f5141242a2282d68f5f5632d17ae2364e178f1ee90db80df04",
+    "BMO-X2/GPU-FW/INICIO.X86": "46129bfea8d9a0ad051b15a83909f67d583faca9c14f77c81a89def8607b41e0"
+  },
+  "serial_export_marker_verified": true,
+  "retired_uefi_entries": [
+    "BMO-X2 (AMD-Vi Preflight)",
+    "BMO-X2 (DMA SATA-NVMe)",
+    "BMO-X2 (AMD-Vi registros)"
+  ],
+  "retained_uefi_entries": [
+    "BMO-X2 (Original)",
+    "BMO-X2 (RTX FWSEC)",
+    "ULTRA LinuX",
+    "ULTRA LinuX PC (Zen 3)"
+  ],
+  "ultra_efi_hashes_unchanged": true,
+  "physical_capture_verified": false,
+  "gsp_801_verified": false,
+  "accelerated_draw_verified": false
+}
