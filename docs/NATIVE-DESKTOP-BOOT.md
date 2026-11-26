@@ -1387,6 +1387,13 @@ metadatos y argumentos. Para traducir los offsets a mensajes hace falta
 la tabla de formatos de la version de firmware usada en la captura.
 La foto permite recuperar el final del registro tras volver a Windows.
 El perfil captura en RAM despues de ExitBootServices.
+
+METAL con el panel corregido en `c965680` mantuvo `802`. La primera
+pagina de LOGRM mostro el productor `855` antes y despues de la copia.
+El lector HOST recupero ocho candidatos LibOS v2 de la tarea RM.
+El ultimo tiene offset de metadatos `3D5F98` y argumento `1`.
+El offset `3ACE18` aparece tres veces seguidas. Falta la tabla de
+formatos GA10x 615.78.08 para asignar texto a estos registros.
 [Validacion HOST del exportador](../Reports/nvidia-gsp-serial-capture-host.json).
 
 METAL con `eb6eac7` volvio a mostrar SEC2 `701`, GSP `804` y un
