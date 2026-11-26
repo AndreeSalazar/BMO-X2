@@ -18,7 +18,8 @@ enum {
     BMO_BAD_CAP = -2,
     BMO_BAD_ARG = -3,
     BMO_NOT_READY = -4,
-    BMO_BAD_OP = -5
+    BMO_BAD_OP = -5,
+    BMO_TIMED_OUT = -6
 };
 
 #ifdef __cplusplus

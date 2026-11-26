@@ -20,8 +20,8 @@ a cero en errores. RCX y R11 quedan volatiles. El kernel cambia a
 una pila de confianza antes de guardar el marco y devuelve por
 IRETQ en este perfil. El cliente ELF recibe RSP alineado a 16 en
 la entrada. Su stub `_start` llama a `bmo_main` con la convencion
-de funciones del toolchain. La prueba restaura RFLAGS a 2; queda
-pendiente definir la politica de interrupciones del proceso real.
+de funciones del toolchain. El perfil externo devuelve RFLAGS con IF
+activo para el temporizador. La politica del proceso real queda pendiente.
 
 | Estado | Significado |
 |---:|---|
@@ -31,22 +31,34 @@ pendiente definir la politica de interrupciones del proceso real.
 | -3 | Argumentos invalidos |
 | -4 | Mecanismo pendiente |
 | -5 | Operacion desconocida |
+| -6 | Plazo vencido |
 
 El primer INVOKE usa la capacidad de prueba 1 y operacion ECHO 1.
-Devuelve el argumento 0 sin copiar memoria de usuario. WAIT reconoce
-el numero 1 y devuelve -4. Su semantica candidata compara la
-secuencia y espera un cambio o el plazo; falta implementar el
-bloqueo, la senal, el vencimiento y las carreras de ambos.
+Devuelve el argumento 0 sin copiar memoria de usuario. La sonda ABI
+embebida conserva el recibo -4 para WAIT.
 
 El perfil QEMU con SBEF externo desde FAT32 usa el portal SysV y ejecuta
 INVOKE y WAIT mediante SYSCALL. La puerta toma una pila de supervisor,
 valida el RSP y la direccion de retorno e instala un marco IRETQ. El
 despacho comprueba ECHO, capacidad, operacion, numero de llamada y
-argumentos reservados. WAIT conserva el recibo -4 del candidato. La
-prueba fuerza RSP cero y el kernel termina la sesion sin usar esa pila.
+argumentos reservados. La prueba fuerza RSP cero y el kernel termina
+la sesion sin usar esa pila.
 La limpieza restaura y relee EFER, STAR, LSTAR y FMASK. El cierre usa la
 puerta de prueba y el perfil sigue ejecutando un solo proceso.
 [Evidencia del ABI externo](../Reports/casm-sbef-external-abi-qemu.json).
+
+La capacidad de prueba 2 del perfil externo publica una secuencia con
+INVOKE 1 y lee el reloj monotono con INVOKE 2. Ambas operaciones exigen
+argumentos cero. El reloj empieza en cero al armar el PIT y avanza
+10 000 150 ns por interrupcion. WAIT comprueba la capacidad y devuelve
+la secuencia nueva con estado 0 si difiere de la observada, incluso con
+plazo vencido. Con secuencia igual, devuelve -6 al alcanzar el plazo
+absoluto y -3 si faltan mas de 1 000 000 000 ns. Mientras espera, ejecuta
+`STI`, `HLT` y `CLI` y vuelve a comprobar la condicion. La prueba mide
+los despertares y comprueba la expiracion y la senal ya publicada.
+El PIT y el PIC se configuran para esta VM desechable. Quedan pendientes
+la publicacion concurrente y una tabla de capacidades por proceso.
+[Evidencia de WAIT](../Reports/casm-sbef-external-wait-qemu.json).
 
 El perfil experimental `desktop-external` prueba otra puerta con
 `WAIT(entrada, 0, ticks)`. Acepta de 0 a 100 ticks relativos del

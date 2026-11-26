@@ -229,7 +229,7 @@
     call .Linstall_abi1
     pushq $0x83
     pushq $(USER_STACK+4096)
-    pushq $2
+    pushq $0x202
     pushq $0x8b
     pushq FAT_SOURCE+16
     xor %eax, %eax
@@ -279,6 +279,10 @@
     call .Lprint
     mov ABI_CALL_COUNT, %rax
     call .Lhex
+    lea .Lwait_wakes(%rip), %rsi
+    call .Lprint
+    mov ABI_WAIT_WAKES, %rax
+    call .Lhex
     mov SAVED_POOL, %r12
     mov SAVED_CR3, %r13
     mov OLD_STACK, %r14
@@ -311,6 +315,7 @@
 .Labort_receipt: .asciz "SBEF CPL3 ABORT "
 .Lbad_return_receipt: .asciz "SBEF ABI BAD RETURN "
 .Lcall_count: .asciz "SBEF SYSCALLS "
+.Lwait_wakes: .asciz "SBEF WAIT WAKES "
 .Lbudget_receipt: .asciz "SBEF USER BUDGET\n"
 .Lcpu_receipt: .asciz "SBEF CPU UNSUPPORTED\n"
 .Labi_receipt: .asciz "SBEF ABI UNSUPPORTED\n"

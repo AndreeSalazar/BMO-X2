@@ -1,0 +1,155 @@
+{
+  "run": "run-sbef-ring0-95f863vd",
+  "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
+  "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
+  "probe_sha256": "f8c9ddb650235bc269c77f82666189b72b4156e2e71511c7110c81dca82cfe0f",
+  "probe_bytes": 4041,
+  "private_pages": 346,
+  "user_frame_budget": 64,
+  "scratch_bytes_scrubbed": 1417216,
+  "passed": 7,
+  "cases": [
+    {
+      "case": "exit",
+      "sha256": "03d019e4e9703b3928a26aff931f13a297048cffa0c94197be55abca74020c60",
+      "receipt": 0,
+      "user_pages": 10,
+      "syscalls": 14,
+      "wait_wakes": 2,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000001377",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 000000000000000A",
+        "SBEF CPL3 EXIT 0000000053424546",
+        "SBEF SYSCALLS 000000000000000E",
+        "SBEF WAIT WAKES 0000000000000002",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "fault",
+      "sha256": "fbdbeae6fd13d58416d706a659f9287a445fd72284f7c7a77670147d8d3bbd4c",
+      "receipt": 0,
+      "user_pages": 10,
+      "syscalls": 14,
+      "wait_wakes": 2,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000001386",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 000000000000000A",
+        "SBEF PF ERROR 0000000000000007",
+        "SBEF CPL3 PF 0000000040002000",
+        "SBEF SYSCALLS 000000000000000E",
+        "SBEF WAIT WAKES 0000000000000002",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "bad-return-stack",
+      "sha256": "f7c7842815fd06aaad7e6733a9a9b4f9ea843311409d0b1f377c1c7e60e2719a",
+      "receipt": 0,
+      "user_pages": 10,
+      "syscalls": 15,
+      "wait_wakes": 2,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000001383",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 000000000000000A",
+        "SBEF ABI BAD RETURN 0000000000000000",
+        "SBEF SYSCALLS 000000000000000F",
+        "SBEF WAIT WAKES 0000000000000002",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "permissions",
+      "sha256": "27af45dddacfa84cea1ca4c960484edc39f2229fac046d5b4b423f87f84da6a2",
+      "receipt": 25165876,
+      "user_pages": 0,
+      "syscalls": 0,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000001377",
+        "SBEF RECEIPT 0000000001800034",
+        "SBEF REJECTED BEFORE USER MAP",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "cpu",
+      "sha256": "adbe067a192748660f529af0cebf48385b0d72377663d36e6b5351f216828b45",
+      "receipt": 0,
+      "user_pages": 0,
+      "syscalls": 0,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000001377",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF CPU UNSUPPORTED",
+        "SBEF REJECTED BEFORE USER MAP",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "page-budget",
+      "sha256": "63341bf893c96ba75be7da54f3c739997ae02ce2ff6a702a4e6cc7129a770853",
+      "receipt": 0,
+      "user_pages": 0,
+      "syscalls": 0,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000001377",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER BUDGET",
+        "SBEF REJECTED BEFORE USER MAP",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "abi",
+      "sha256": "c932880e787face4b992bb91013261d7789df762f4a31ec28440cb73431626b0",
+      "receipt": 0,
+      "user_pages": 0,
+      "syscalls": 0,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000001377",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF ABI UNSUPPORTED",
+        "SBEF REJECTED BEFORE USER MAP",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    }
+  ]
+}

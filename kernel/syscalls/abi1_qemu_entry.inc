@@ -23,6 +23,7 @@
 .endm
 
 .Linstall_abi1:
+    call .Labi1_timer_start
     save_msr ABI_SCE, ABI_OLD_EFER
     save_msr ABI_STAR, ABI_OLD_STAR
     save_msr ABI_LSTAR, ABI_OLD_LSTAR
@@ -52,6 +53,8 @@
 .Lremove_abi1:
     cmpb $1, ABI_INSTALLED
     jne .Labi1_removed
+    mov $0xff, %al
+    out %al, $0x21
     restore_msr ABI_SCE, ABI_OLD_EFER
     restore_msr ABI_STAR, ABI_OLD_STAR
     restore_msr ABI_LSTAR, ABI_OLD_LSTAR
@@ -77,12 +80,13 @@
     jae .Luser_bad_return
     pushq $0x83
     pushq ABI_RETURN_RSP
-    pushq $2
+    pushq $0x202
     pushq $0x8b
     push %rcx
     call .Labi1_dispatch
     iretq
 
 #include "abi1_dispatch.inc"
+#include "abi1_qemu_timer.inc"
 
 .Labi1_restored: .asciz "SBEF ABI GATE RESTORED\n"

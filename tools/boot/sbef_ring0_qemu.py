@@ -125,9 +125,9 @@ def run_external(args, run, llvm, bridge, body, stream, module):
     struct.pack_into('<H', abi, 6, 0)
     results = []
     for name, image, policy, calls in (
-        ('exit', normal, 'SBEF CPL3 EXIT 0000000053424546', 7),
-        ('fault', fault, 'SBEF CPL3 PF 0000000040002000', 7),
-        ('bad-return-stack', bad_stack, 'SBEF ABI BAD RETURN 0000000000000000', 8),
+        ('exit', normal, 'SBEF CPL3 EXIT 0000000053424546', 14),
+        ('fault', fault, 'SBEF CPL3 PF 0000000040002000', 14),
+        ('bad-return-stack', bad_stack, 'SBEF ABI BAD RETURN 0000000000000000', 15),
         ('permissions', bad_permissions, None, 0),
         ('cpu', cpu, 'SBEF CPU UNSUPPORTED', 0),
         ('page-budget', budget, 'SBEF USER BUDGET', 0),
@@ -169,8 +169,15 @@ def run_external(args, run, llvm, bridge, body, stream, module):
             expected.append('SBEF PF ERROR 0000000000000007')
         if policy:
             expected.append(policy)
+        wakes = 0
         if calls:
             expected.append(f'SBEF SYSCALLS {calls:016X}')
+            wake_prefix = 'SBEF WAIT WAKES '
+            wake_line = next((line for line in observed if line.startswith(wake_prefix)), '')
+            wakes = int(wake_line.removeprefix(wake_prefix) or '0', 16)
+            if not 1 <= wakes <= 2:
+                raise ValueError(f'{name}: WAIT debia despertar en uno o dos ticks. Ver {folder}')
+            expected.append(f'{wake_prefix}{wakes:016X}')
             expected.append('SBEF ABI GATE RESTORED')
         if not pages:
             expected.append('SBEF REJECTED BEFORE USER MAP')
@@ -179,7 +186,7 @@ def run_external(args, run, llvm, bridge, body, stream, module):
         if observed != expected:
             raise ValueError(f'{name}: recibos inesperados {observed}. Ver {folder}')
         results.append(dict(case=name, sha256=hashlib.sha256(image).hexdigest(), receipt=receipt,
-                            user_pages=pages, syscalls=calls, staging_bytes_scrubbed=staged_bytes,
+                            user_pages=pages, syscalls=calls, wait_wakes=wakes, staging_bytes_scrubbed=staged_bytes,
                             trace=observed, passed=True))
         print(f'{name}: comprobado', flush=True)
     report = dict(run=run.name, evidence='QEMU/OVMF, SBEF from virtual FAT32 and real CPL3',

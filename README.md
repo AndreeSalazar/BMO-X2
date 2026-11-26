@@ -158,8 +158,10 @@ lo invoca en Ring 0 despues de ExitBootServices. El perfil externo de
 QEMU lee un SBEF de ocho regiones desde FAT32, lo admite con CASM y entra
 en Ring 3. El cierre normal y el fallo de escritura convergen en el mismo
 borrado y restauracion de mapa. El cliente llama a INVOKE y WAIT mediante
-SYSCALL. La sonda recupera tambien una pila de retorno invalida. Quedan
-pendientes la espera real, el planificador y los servicios de proceso.
+SYSCALL. WAIT duerme hasta un plazo monotono y reconoce senales ya
+publicadas. La sonda recupera tambien una pila de retorno invalida.
+Quedan pendientes el despertar por senal concurrente, el planificador
+y los servicios de proceso.
 [Contrato y evidencia de admision](contracts/SBEF-LOADER.md).
 
 ## Escritorio, entrada y arranque

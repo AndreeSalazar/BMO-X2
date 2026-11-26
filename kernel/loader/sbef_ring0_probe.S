@@ -284,12 +284,14 @@ sbef_ring0_probe:
     mov $0x10, %eax
     jmp .Lexit
 
+#ifndef BMO_EXTERNAL_SBEF
 .Lguard_read:
     mov DATA+4096, %eax
     ret
 .Lwrite_text:
     movb $0xcc, MODULE
     ret
+#endif
 
 # The handler only recovers faults inside these explicitly scoped calls.
 .Lguarded:
@@ -385,7 +387,9 @@ sbef_ring0_probe:
     hlt
     jmp .Lhalt
 .Lstarted: .asciz "SBEF CPL0 POST-EBS\n"
+#ifndef BMO_EXTERNAL_SBEF
 .Ltraps: .asciz "SBEF UD2 GUARD RX-WRITE NX-EXEC RECOVERED\n"
+#endif
 .Lreceipt: .asciz "SBEF RECEIPT "
 .Lpassed: .asciz "SBEF MAP RESTORED AND SCRUBBED\n"
 .Lfailed: .asciz "SBEF FAIL\n"

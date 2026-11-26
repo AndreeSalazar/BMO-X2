@@ -49,10 +49,62 @@ sbef_external_client:
     xor %esi, %esi
     mov $37, %edx
     call .Lbmo_wait
-    cmp $-4, %rax
+    cmp $-2, %rax
     jne 2f
     test %rdx, %rdx
     jne 2f
+
+    # Signal sequence 1. A stale observer wins even with an expired deadline.
+    mov $2, %edi
+    mov $1, %esi
+    xor %ecx, %ecx
+    call .Lbmo_invoke
+    test %rax, %rax
+    jne 2f
+    cmp $1, %rdx
+    jne 2f
+    xor %esi, %esi
+    xor %edx, %edx
+    call .Lbmo_wait
+    test %rax, %rax
+    jne 2f
+    cmp $1, %rdx
+    jne 2f
+
+    mov $1, %esi
+    xor %edx, %edx
+    call .Lbmo_wait
+    cmp $-6, %rax
+    jne 2f
+    test %rdx, %rdx
+    jne 2f
+    mov $2, %esi
+    xor %ecx, %ecx
+    call .Lbmo_invoke
+    test %rax, %rax
+    jne 2f
+    lea 20000100(%rdx), %r13
+    lea 2000000000(%rdx), %rdx
+    mov $1, %esi
+    call .Lbmo_wait
+    cmp $-3, %rax
+    jne 2f
+    test %rdx, %rdx
+    jne 2f
+
+    mov %r13, %rdx
+    call .Lbmo_wait
+    cmp $-6, %rax
+    jne 2f
+    test %rdx, %rdx
+    jne 2f
+    mov $2, %esi
+    xor %ecx, %ecx
+    call .Lbmo_invoke
+    test %rax, %rax
+    jne 2f
+    cmp %r13, %rdx
+    jb 2f
 
     mov $2, %eax
     syscall
@@ -60,7 +112,9 @@ sbef_external_client:
     jne 2f
     test %rdx, %rdx
     jne 2f
+    mov $1, %edi
     mov $2, %esi
+    xor %edx, %edx
     xor %ecx, %ecx
     call .Lbmo_invoke
     cmp $-5, %rax
