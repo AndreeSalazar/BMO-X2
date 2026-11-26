@@ -149,6 +149,9 @@ def main():
     hashes=json.loads((app/'artifacts.json').read_text())
     for name,digest in hashes.items():
         if hashlib.sha256((app/name).read_bytes()).hexdigest()!=digest:raise ValueError('Stale desktop build: '+name)
+    sbef=(app/'rmlui.sbef').read_bytes()
+    if args.nvidia_trace_export and b'F5 captura completa / F3 anteriores / F6 serie' not in sbef:
+        raise ValueError('Rebuild the RTX desktop with guest.py --nvidia-trace-export before staging media')
     run=ROOT/'build/CASM'/('run-rmlui-media-'+uuid.uuid4().hex[:12]);run.mkdir()
     gsp = None
     nvidia_reader_flags = []
@@ -260,7 +263,7 @@ def main():
         if args.amdvi_post and name=='reader' and not (args.full_hd or args.amdvi_gsp_dma):
             check_context_stage(llvm,run/'reader.o','gop_stage',1536 if args.amdvi_storage else 2048)
         command([llvm/'llvm-objcopy.exe','-O','binary','--only-section=.text',run/(name+'.o'),run/(name+'.bin')],'extract-media-'+name)
-    sbef=(app/'rmlui.sbef').read_bytes();reference=(abi/'INICIO.X86').read_bytes()
+    reference=(abi/'INICIO.X86').read_bytes()
     gate=(run/'gate.bin').read_bytes();loader=(run/'loader.bin').read_bytes()
     packet,_=make_packet(reference,sbef,session_gate=gate,external=loader,engine=True,full_hd=args.full_hd)
     intro=(splash/'INICIO.X86').read_bytes();packet,_=prepend_intro(packet,intro)
