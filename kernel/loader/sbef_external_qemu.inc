@@ -374,7 +374,7 @@
     jne .Luser_abort
     cmpq $0x83, 32(%rsp)
     jne .Luser_abort
-    cmpq $(USER_STACK+768), 24(%rsp)
+    cmpq $(USER_STACK+1024), 24(%rsp)
     jb .Luser_abort
     cmpq $(USER_STACK+4096-40), 24(%rsp)
     ja .Luser_abort
@@ -385,6 +385,26 @@
     cmpb $0, GS_UD_DELIVERED
     jne .Lgs_ud_repeat
     movb $1, GS_UD_DELIVERED
+    // The checked user stack owns these 80 bytes below the faulting RSP.
+    // Save volatile GPRs before using any to construct the delivery frame.
+    push %rax
+    mov 32(%rsp), %rax
+    sub $80, %rax
+    mov %rcx, 8(%rax)
+    mov %rdx, 16(%rax)
+    mov %r8, 24(%rax)
+    mov %r9, 32(%rax)
+    mov %r10, 40(%rax)
+    mov %r11, 48(%rax)
+    pop %rdx
+    mov %rdx, 0(%rax)
+    mov 16(%rsp), %rdx
+    mov %rdx, 56(%rax)
+    mov 8(%rsp), %rdx
+    mov %rdx, 64(%rax)
+    mov 32(%rsp), %rdx
+    mov %rdx, 72(%rax)
+    cld
     push %rsi
     lea .Lgs_ud_receipt(%rip), %rsi
     cmpq $BMO_GS_PROLOGUE_FAULT_PC, 8(%rsp)
@@ -395,6 +415,9 @@
     pop %rsi
     mov 0(%rsp), %rcx
     mov 24(%rsp), %rdx
+    subq $80, 24(%rsp)
+    // Clear DF for the landing code while retaining it in the captured flags.
+    andq $-1025, 16(%rsp)
     mov $6, %r8d
     mov $USER_STACK, %r9d
     cmpq $BMO_GS_PROLOGUE_FAULT_PC, 0(%rsp)

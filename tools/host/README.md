@@ -234,7 +234,7 @@ enlazado y valida su perfil, sus metadatos y sus dependencias.
 
 | Paso | Que tiene que pasar |
 |---|---|
-| **1. Completar unwind Win64** | El recorrido del banco detecta epilogos `add`/`lea`, `pop`/`ret` y un salto indirecto RIP-relativo. Falta ampliar la captura del contexto para el despacho y cubrir mas formas de epilogo. |
+| **1. Completar unwind Win64** | El banco detecta epilogos `add`/`lea`, `pop`/`ret` y un salto indirecto RIP-relativo. El manejador recibe `CONTEXT_FULL` y un registro de excepcion. Falta extender ambas rutas a un despacho general. |
 | **2. Probar SEH y C++** | Inicializar la cookie `/GS` al crear el proceso. Probar un caso SEH y un `throw`/`catch` que ejecute los destructores de los marcos recorridos. |
 | **3. Arrancar C++ con `/MT`** | Ejecutar un EXE por la entrada estandar de MSVC con argumentos, heap, stdout, `main` y cierre comprobados. Abrirlo, cerrarlo y volverlo a abrir en el mismo arranque. |
 | **4. Arrancar C++ con `/MD`** | Resolver las DLL y los API sets de la muestra, aplicar sus requisitos de IAT y `load_config` y completar su ejecucion con salida verificable. |
@@ -524,8 +524,14 @@ recibo distinto al del epilogo.
 
 El mismo banco provoca un `#UD` real con `UD2` en Ring 3. HOST fija
 el PC de la instruccion y el del destino del mismo segmento RX. El
-supervisor coteja PC, selectores y rango de pila. Entrega RIP, RSP y
-vector 6 en registros Win64 y regresa a Ring 3 mediante `iretq`.
+supervisor coteja PC, selectores y rango de pila. Guarda los registros
+volatiles, los selectores y RFLAGS en un bloque de 80 bytes en la pila
+del cliente. Regresa mediante `iretq` con RIP, RSP y vector 6.
+La entrada en Ring 3 completa la captura con los registros no volatiles
+y `FXSAVE64`. Se usan `CONTEXT`, `EXCEPTION_RECORD` y
+`DISPATCHER_CONTEXT` del Windows SDK para la llamada a `__GSHandlerCheck`.
+El cliente comprueba los siete registros volatiles, CF, CS, SS, XMM0 y
+XMM6. Se registra `EXCEPTION_ILLEGAL_INSTRUCTION` con el RIP original.
 El codigo de destino recupera el marco MSVC que llamo a la funcion
 hoja y ejecuta `__GSHandlerCheck`. Un segundo `#UD` en el mismo proceso
 termina el proceso sin entregar el manejador otra vez.
@@ -565,9 +571,9 @@ de pila y una secuencia incompleta dejan intacto el contexto.
 La excepcion del CPU ocurre en el prologo.
 [Reglas de prologo y epilogo Win64](https://learn.microsoft.com/en-us/cpp/build/prolog-and-epilog?view=msvc-170).
 
-Quedan pendientes el contexto Win64 completo, la deteccion y simulacion
-general de epilogos, SEH, excepciones C++ y la inicializacion de la
-cookie por proceso.
+La captura cubre `CONTEXT_FULL` de este banco. Quedan pendientes el
+estado extendido XSAVE, el despacho SEH general, las excepciones C++
+y la inicializacion de la cookie por proceso.
 [Evidencia en QEMU](../../Reports/host-msvc-crt-gs-native-qemu.json).
 [Formato de excepciones x64 de Microsoft](https://learn.microsoft.com/en-us/cpp/build/exception-handling-x64?view=msvc-170).
 

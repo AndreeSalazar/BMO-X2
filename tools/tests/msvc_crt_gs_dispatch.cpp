@@ -1,4 +1,9 @@
 // One vendor handler and bounded virtual unwind using live Win64 stack frames.
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+#include <stddef.h>
+
 using Word = unsigned long long;
 using Rva = unsigned int;
 
@@ -47,6 +52,11 @@ struct ExpectedPrologue {
     Word caller_rbp;
 };
 
+struct TrapRegisters {
+    Word rax, rcx, rdx, r8, r9, r10, r11;
+    Word flags, cs, ss;
+};
+
 extern "C" {
 
 #pragma section(".rdata$BMO", read)
@@ -57,24 +67,10 @@ __declspec(allocate(".rdata$BMO")) extern const volatile FixtureImage bmo_gs_ima
 volatile unsigned int bmo_gs_dispatch_active;
 ExpectedUnwind bmo_gs_expected;
 ExpectedPrologue bmo_gs_prologue_expected;
+CONTEXT bmo_gs_win_context;
+EXCEPTION_RECORD bmo_gs_exception_record;
 
-struct DispatcherContext;
-using Handler = int (*)(void*, Word, void*, DispatcherContext*);
-struct DispatcherContext {
-    Word control_pc;
-    Word image_base;
-    const RuntimeFunction* entry;
-    Word establisher_frame;
-    Word target_ip;
-    void* context_record;
-    Handler language_handler;
-    const void* handler_data;
-    void* history_table;
-    unsigned int scope_index;
-    unsigned int reserved;
-};
-
-int __GSHandlerCheck(void*, Word, void*, DispatcherContext*);
+EXCEPTION_ROUTINE __GSHandlerCheck;
 void bmo_test_gs_epilogue_suffix();
 void bmo_test_gs_epilogue_add();
 void bmo_test_gs_epilogue_lea();
@@ -83,9 +79,12 @@ void bmo_test_gs_epilogue_invalid();
 }
 
 static_assert(sizeof(FixtureImage) == 24 && sizeof(RuntimeFunction) == 12);
-static_assert(sizeof(DispatcherContext) == 80);
+static_assert(sizeof(RuntimeFunction) == sizeof(RUNTIME_FUNCTION) &&
+              offsetof(RuntimeFunction, unwind) == offsetof(RUNTIME_FUNCTION, UnwindData));
 static_assert(sizeof(CpuContext) == 248 && sizeof(ExpectedUnwind) == 104);
 static_assert(sizeof(ExpectedPrologue) == 40);
+static_assert(sizeof(TrapRegisters) == 80 && offsetof(CONTEXT, FltSave) == 256);
+static_assert(alignof(CONTEXT) >= 16);
 
 static bool readonly_range(Rva start, Rva bytes) {
     return start >= bmo_gs_image.readonly_begin && start <= bmo_gs_image.readonly_end &&
@@ -109,7 +108,7 @@ static const RuntimeFunction* find_function(Word control_pc) {
     return nullptr;
 }
 
-extern "C" int bmo_gs_dispatch(Word control_pc, Word frame) {
+static int dispatch_gs(Word control_pc, Word frame, EXCEPTION_RECORD* exception, CONTEXT* captured) {
     const Word base = bmo_gs_image.base;
     const auto* found = find_function(control_pc);
     if (!found || !readonly_range(found->unwind, 4)) return 0;
@@ -133,13 +132,46 @@ extern "C" int bmo_gs_dispatch(Word control_pc, Word frame) {
     if (allocation < 8 || cookie_offset > allocation - 8 || (trailer[1] & 4) ||
         base + trailer[0] != reinterpret_cast<Word>(&__GSHandlerCheck)) return 0;
 
-    // The synchronous fixture supplies only the inputs used by this handler.
-    DispatcherContext context = {control_pc, base, found, frame, 0, nullptr,
-                                 &__GSHandlerCheck, trailer + 1, nullptr, 0, 0};
+    DISPATCHER_CONTEXT context = {
+        control_pc, base, reinterpret_cast<RUNTIME_FUNCTION*>(const_cast<RuntimeFunction*>(found)),
+        frame, 0, captured, &__GSHandlerCheck, const_cast<Rva*>(trailer + 1), nullptr, 0, 0
+    };
     bmo_gs_dispatch_active = 1;
-    const int result = __GSHandlerCheck(nullptr, frame, nullptr, &context);
+    const int result = __GSHandlerCheck(exception, reinterpret_cast<void*>(frame), captured, &context);
     bmo_gs_dispatch_active = 0;
     return result;
+}
+
+extern "C" int bmo_gs_dispatch(Word control_pc, Word frame) {
+    return dispatch_gs(control_pc, frame, nullptr, nullptr);
+}
+
+static void capture_win_context(const CpuContext& cpu, const TrapRegisters& trap) {
+    auto& win = bmo_gs_win_context;
+    win.ContextFlags = CONTEXT_FULL;
+    win.Rip = cpu.pc;
+    win.Rsp = cpu.rsp;
+    win.EFlags = static_cast<DWORD>(trap.flags);
+    win.SegCs = static_cast<WORD>(trap.cs);
+    win.SegSs = static_cast<WORD>(trap.ss);
+    win.Rax = trap.rax;
+    win.Rcx = trap.rcx;
+    win.Rdx = trap.rdx;
+    win.R8 = trap.r8;
+    win.R9 = trap.r9;
+    win.R10 = trap.r10;
+    win.R11 = trap.r11;
+    win.Rbx = cpu.nonvolatile[0];
+    win.Rbp = cpu.nonvolatile[1];
+    win.Rsi = cpu.nonvolatile[2];
+    win.Rdi = cpu.nonvolatile[3];
+    win.R12 = cpu.nonvolatile[4];
+    win.R13 = cpu.nonvolatile[5];
+    win.R14 = cpu.nonvolatile[6];
+    win.R15 = cpu.nonvolatile[7];
+    win.MxCsr = win.FltSave.MxCsr;
+    bmo_gs_exception_record.ExceptionCode = EXCEPTION_ILLEGAL_INSTRUCTION;
+    bmo_gs_exception_record.ExceptionAddress = reinterpret_cast<void*>(cpu.pc);
 }
 
 static bool stack_range(const CpuContext& context, Word address, Word bytes) {
@@ -363,10 +395,19 @@ static Epilogue unwind_epilogue(CpuContext& context, Word pc, const RuntimeFunct
     return Epilogue::restored;
 }
 
-extern "C" int bmo_gs_cpu_dispatch(CpuContext* context) {
+extern "C" int bmo_gs_cpu_dispatch(CpuContext* context, const TrapRegisters* trap) {
+    capture_win_context(*context, *trap);
+    const auto& win = bmo_gs_win_context;
+    if (win.Rax != 0x6000 || win.Rcx != 0x6001 || win.Rdx != 0x6002 ||
+        win.R8 != 0x6008 || win.R9 != 0x6009 || win.R10 != 0x6010 || win.R11 != 0x6011 ||
+        !(win.EFlags & 1) || win.SegCs != 0x8b || win.SegSs != 0x83 ||
+        win.Xmm0.Low != ~0ull || static_cast<Word>(win.Xmm0.High) != ~0ull ||
+        win.Xmm6.Low != context->xmm[0][0] ||
+        static_cast<Word>(win.Xmm6.High) != context->xmm[0][1]) return 0;
     // Undo the faulting leaf's call, then inspect its live protected parent.
     if (!pop_word(*context, context->pc) || !context->pc ||
-        bmo_gs_dispatch(context->pc - 1, context->rsp) != 1) return 0;
+        dispatch_gs(context->pc - 1, context->rsp, &bmo_gs_exception_record,
+                    &bmo_gs_win_context) != 1) return 0;
     if (!unwind_frame(*context, context->pc - 1) || context->pc != bmo_gs_expected.wrapper_pc ||
         context->rsp != bmo_gs_expected.wrapper_rsp || context->nonvolatile[0] != 0x12340003 ||
         context->nonvolatile[1] != bmo_gs_expected.wrapper_rbp ||
@@ -393,7 +434,8 @@ static bool matches_prologue_caller(const CpuContext& context) {
            context.nonvolatile[3] == bmo_gs_prologue_expected.caller_rdi;
 }
 
-extern "C" int bmo_gs_cpu_prologue(CpuContext* context) {
+extern "C" int bmo_gs_cpu_prologue(CpuContext* context, const TrapRegisters* trap) {
+    capture_win_context(*context, *trap);
     const auto* function = find_function(context->pc);
     if (!function || !readonly_range(function->unwind, 4)) return 0;
     const auto* info = reinterpret_cast<const unsigned char*>(bmo_gs_image.base + function->unwind);

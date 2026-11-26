@@ -72,6 +72,7 @@ CATALOG = {
         ('unwind-two-frames', 'Unwind de dos marcos Win64 desde #UD', 'qemu', 'Reconstruye dos marcos con una cadena v1 y reserva dinamica recuperada via RBP. Rechaza metadatos incorrectos.', 'host-msvc-crt-gs-native-qemu'),
         ('unwind-prologue', 'Unwind parcial antes de establecer RBP', 'qemu', 'El #UD ocurre despues de guardar registros y antes de reservar pila y establecer RBP. Coteja los registros y el retorno.', 'host-msvc-crt-gs-native-qemu'),
         ('unwind-epilogue-suffix', 'Deteccion de epilogos con RET y JMP indirecto', 'qemu', 'El recorrido detecta cuatro secuencias sobre la pila viva. Coteja el llamador y conserva el contexto ante rechazo.', 'host-msvc-crt-gs-native-qemu'),
+        ('gs-win-context', 'CONTEXT_FULL Win64 desde #UD', 'qemu', 'El banco entrega registros enteros, control y estado FXSAVE al handler GS junto a EXCEPTION_ILLEGAL_INSTRUCTION.', 'host-msvc-crt-gs-native-qemu'),
         ('unwind-runtime', 'Desenrollado Win64 durante ejecucion', 'pending', 'La inspeccion de metadatos no ejecuta el desenrollador.'),
         ('seh', 'Structured Exception Handling', 'pending', 'Faltan despacho, busqueda y ejecucion de handlers compatibles.'),
         ('cpp-eh', 'Excepciones C++ /EHsc', 'pending', 'Faltan handlers C++ y destruccion de objetos durante unwind.'),

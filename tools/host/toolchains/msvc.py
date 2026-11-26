@@ -168,8 +168,11 @@ def build_external_crt(root, out, assembler, *, guarded=False, native_gs=False):
     runtime = [ucrt]
     if native_gs:
         dispatch = out / 'gs-dispatch.obj'
+        sdk_headers = sdk.parent / 'Include' / ucrt.parents[2].name
+        include_flags = [f'/I{cc.parents[3] / "include"}',
+                         *(f'/I{sdk_headers / part}' for part in ('um', 'shared', 'ucrt'))]
         subprocess.run([cc, '/nologo', '/c', '/GS-', '/Zl', '/O2', f'/Fo{dispatch}',
-                        root / 'tools/tests/msvc_crt_gs_dispatch.cpp'], cwd=out, check=True)
+                        *include_flags, root / 'tools/tests/msvc_crt_gs_dispatch.cpp'], cwd=out, check=True)
         objects.append(dispatch)
         archiver = assembler.with_name('llvm-ar.exe')
         members = subprocess.check_output([archiver, 't', libcmt], text=True).splitlines()
@@ -216,17 +219,17 @@ def build_external_crt(root, out, assembler, *, guarded=False, native_gs=False):
         if dispatch_symbol is None:
             raise ValueError('Falta el descriptor del banco GS en el MAP')
         fault_symbols = {name: int(address, 16) for name, address in re.findall(
-            r'^\s+[0-9a-fA-F]+:[0-9a-fA-F]+\s+bmo_test_gs_((?:cpu|prologue)_(?:fault|landing))'
+            r'^\s+[0-9a-fA-F]+:[0-9a-fA-F]+\s+bmo_test_gs_(cpu_ud|cpu_landing|prologue_fault|prologue_landing)'
             r'\s+([0-9a-fA-F]+)\s+',
             map_text, re.MULTILINE)}
         code = next(section for section in info['Sections'] if section['Executable'])
         code_start = info['ImageBase'] + code['RVA']
         code_end = code_start + min(code['VirtualBytes'], code['FileBytes'])
-        if (fault_symbols.keys() != {'cpu_fault', 'cpu_landing', 'prologue_fault', 'prologue_landing'} or
+        if (fault_symbols.keys() != {'cpu_ud', 'cpu_landing', 'prologue_fault', 'prologue_landing'} or
                 not all(code_start <= addr < code_end for addr in fault_symbols.values()) or
                 len(set(fault_symbols.values())) != 4):
             raise ValueError('El origen y destino #UD deben estar enlazados en .text')
-        for name in ('cpu_fault', 'prologue_fault'):
+        for name in ('cpu_ud', 'prologue_fault'):
             fault_offset = code['FileOffset'] + fault_symbols[name] - code_start
             if fault_symbols[name] + 4 > code_end or source[fault_offset:fault_offset + 4] != b'\x0f\x0b' * 2:
                 raise ValueError(f'Cambio la instruccion #UD del banco {name}')
@@ -272,7 +275,7 @@ def build_external_crt(root, out, assembler, *, guarded=False, native_gs=False):
             fault_policy='QEMU one-shot delivery for either registered #UD PC; abort otherwise',
             dispatch_fixture=dict(exception_table_rva=directory['RVA'], exception_table_bytes=directory['Bytes'],
                                   handler_rva=handler, trigger='synchronous call with live MSVC frame'),
-            cpu_exception=dict(vector=6, fault_pc=fault_symbols['cpu_fault'], landing_pc=fault_symbols['cpu_landing'],
+            cpu_exception=dict(vector=6, fault_pc=fault_symbols['cpu_ud'], landing_pc=fault_symbols['cpu_landing'],
                                prologue_fault_pc=fault_symbols['prologue_fault'],
                                prologue_landing_pc=fault_symbols['prologue_landing'],
                                image_base=info['ImageBase'],

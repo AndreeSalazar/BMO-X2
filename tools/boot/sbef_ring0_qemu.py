@@ -390,6 +390,11 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             if name.endswith('-cpu-exception'):
                 crt_report['cpu_exception']['stdout'] = stdout.decode('ascii')
                 crt_report['cpu_exception']['unwound_frames'] = 2
+                crt_report['cpu_exception']['handler_context'] = {
+                    'flags': 'CONTEXT_FULL',
+                    'exception': 'EXCEPTION_ILLEGAL_INSTRUCTION',
+                    'verified': ['RAX', 'RCX', 'RDX', 'R8', 'R9', 'R10', 'R11', 'CF', 'CS', 'SS', 'XMM0', 'XMM6'],
+                }
                 crt_report['cpu_exception']['verified_registers'] = ['RBX', 'RBP', 'RSI', 'RDI', 'R12', 'RSP', 'RIP', 'XMM6']
                 crt_report['cpu_exception']['dynamic_stack_bytes'] = 64
                 crt_report['cpu_exception']['unwind_operations'] = [

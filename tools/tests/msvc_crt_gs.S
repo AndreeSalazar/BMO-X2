@@ -179,12 +179,23 @@ bmo_test_gs_dispatch:
 
 .globl bmo_test_gs_cpu_fault
 bmo_test_gs_cpu_fault:
+    mov $0x6000, %eax
+    mov $0x6001, %ecx
+    mov $0x6002, %edx
+    mov $0x6008, %r8d
+    mov $0x6009, %r9d
+    mov $0x6010, %r10d
+    mov $0x6011, %r11d
+    pcmpeqd %xmm0, %xmm0
+    stc
+.globl bmo_test_gs_cpu_ud
+bmo_test_gs_cpu_ud:
     ud2
     ud2
 
 .globl bmo_test_gs_cpu_landing
 bmo_test_gs_cpu_landing:
-    lea bmo_test_gs_cpu_fault(%rip), %rax
+    lea bmo_test_gs_cpu_ud(%rip), %rax
     cmp %rax, %rcx
     jne .Linvalid_delivery
     lea bmo_gs_cpu_dispatch(%rip), %rax
@@ -202,8 +213,10 @@ bmo_test_gs_prologue_landing:
 .Lcapture_context:
     cmp $6, %r8d
     jne .Ldelivery_failed
-    cmp %rsp, %rdx
+    lea 80(%rsp), %r11
+    cmp %r11, %rdx
     jne .Ldelivery_failed
+    fxsave64 bmo_gs_win_context+256(%rip)
     # Win64 shadow space followed by CpuContext in msvc_crt_gs_dispatch.cpp.
     sub $296, %rsp
     mov %rcx, 32(%rsp)
@@ -229,20 +242,24 @@ bmo_test_gs_prologue_landing:
     movdqu %xmm15, 264(%rsp)
     mov %r10, 280(%rsp)
     lea 32(%rsp), %rcx
+    lea 296(%rsp), %rdx
     call *%rax
     mov 280(%rsp), %r10
-    add $296, %rsp
+    add $376, %rsp
     jmp *%r10
 .Ldelivery_failed:
     xor %eax, %eax
+    add $80, %rsp
     jmp *%r10
 .Lprologue_failed:
     xor %eax, %eax
+    add $80, %rsp
     jmp .Lprologue_continue
 .Lcpu_return:
     ret
 .Linvalid_delivery:
     xor %eax, %eax
+    add $80, %rsp
     ret
 
 .globl __report_gsfailure
