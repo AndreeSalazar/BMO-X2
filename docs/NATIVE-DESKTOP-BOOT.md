@@ -1403,6 +1403,15 @@ los argumentos de cada registro para la revision. Una coincidencia
 identifica el mismo sitio de registro; su significado depende de la
 tabla de formatos del firmware.
 
+METAL con `8950fe9` guardo `GSP_LOGRM_CAPTURED` en `GSPRM.TXT`.
+El productor de OpenRM se mantuvo en `E5`. El lector recupero 34
+registros candidatos en sus ultimas 96 palabras. Ninguno comparte
+el par tarea/offset con los ocho registros de la ultima pagina del
+rechazo nativo. Son ventanas distintas y no localizan la primera
+divergencia. Las 282 palabras NVKV de las dos capturas exitosas de
+OpenRM son identicas y el mismo arranque inicializo `nvidia-drm` en
+`29:00.0`. El resultado nativo `802` sigue pendiente.
+
 ```powershell
 python -B -m tools.host.gpu.NVIDIA.gsp_capture Reports/nvidia-gsp-logrm-metal-20261126.txt --screen --openrm-logrm A:/BMO-X2/GSP-DIAG/GSPRM.TXT
 ```
