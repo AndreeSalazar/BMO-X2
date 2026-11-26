@@ -21,6 +21,7 @@ struct CpuContext {
     Word rsp;
     Word stack_begin;
     Word nonvolatile[8]; // RBX, RBP, RSI, RDI, R12-R15
+    Word xmm[10][2];     // XMM6-XMM15
 };
 
 struct ExpectedUnwind {
@@ -31,6 +32,8 @@ struct ExpectedUnwind {
     Word caller_rbx;
     Word caller_rsi;
     Word caller_rdi;
+    Word caller_r12;
+    Word caller_xmm6[2];
 };
 
 extern "C" {
@@ -64,7 +67,7 @@ int __GSHandlerCheck(void*, Word, void*, DispatcherContext*);
 
 static_assert(sizeof(FixtureImage) == 24 && sizeof(RuntimeFunction) == 12);
 static_assert(sizeof(DispatcherContext) == 80);
-static_assert(sizeof(CpuContext) == 88 && sizeof(ExpectedUnwind) == 56);
+static_assert(sizeof(CpuContext) == 248 && sizeof(ExpectedUnwind) == 80);
 
 static bool readonly_range(Rva start, Rva bytes) {
     return start >= bmo_gs_image.readonly_begin && start <= bmo_gs_image.readonly_end &&
@@ -121,12 +124,69 @@ extern "C" int bmo_gs_dispatch(Word control_pc, Word frame) {
     return result;
 }
 
-static bool pop_word(CpuContext& context, Word& value) {
+static bool stack_range(const CpuContext& context, Word address, Word bytes) {
     constexpr Word stack_bytes = 4096;
-    if ((context.rsp & 7) || context.rsp < context.stack_begin ||
-        context.rsp - context.stack_begin > stack_bytes - sizeof(Word)) return false;
+    return !(address & 7) && address >= context.stack_begin &&
+           address - context.stack_begin <= stack_bytes - bytes;
+}
+
+static bool pop_word(CpuContext& context, Word& value) {
+    if (!stack_range(context, context.rsp, sizeof(Word))) return false;
     value = *reinterpret_cast<const Word*>(context.rsp);
     context.rsp += sizeof(Word);
+    return true;
+}
+
+static bool restore_unwind_codes(CpuContext& context, const unsigned char* info, bool chained) {
+    constexpr int register_slot[16] = {-1, -1, -1, 0, -1, 1, 2, 3, -1, -1, -1, -1, 4, 5, 6, 7};
+    unsigned int previous_offset = info[1];
+    unsigned int saved = 0;
+    unsigned int xmm_saved = 0;
+    bool adjusted = false;
+    for (unsigned int slot = 0; slot < info[2]; ++slot) {
+        const unsigned int offset = info[4 + slot * 2];
+        const unsigned int code = info[5 + slot * 2];
+        if (!offset || offset > previous_offset) return false;
+        previous_offset = offset;
+        const unsigned int op = code & 15;
+        const unsigned int operand = code >> 4;
+        if (chained && op != 4) return false;
+        if (op == 2 && !adjusted) { // UWOP_ALLOC_SMALL
+            context.rsp += 8 * (operand + 1);
+            adjusted = true;
+        } else if (op == 1 && !adjusted && !operand) { // UWOP_ALLOC_LARGE, scaled form
+            if (++slot >= info[2]) return false;
+            const auto* size = info + 4 + slot * 2;
+            const unsigned int units = size[0] | (size[1] << 8);
+            if (units <= 16) return false;
+            context.rsp += 8 * units;
+            adjusted = true;
+        } else if (op == 0 && register_slot[operand] >= 0 && !(saved & (1u << operand))) {
+            if (!pop_word(context, context.nonvolatile[register_slot[operand]])) return false;
+            saved |= 1u << operand;
+            adjusted = true;
+        } else if ((op == 4 || op == 8) && !adjusted) { // UWOP_SAVE_NONVOL / UWOP_SAVE_XMM128
+            if (++slot >= info[2]) return false;
+            const auto* encoded = info + 4 + slot * 2;
+            const unsigned int units = encoded[0] | (encoded[1] << 8);
+            const Word address = context.rsp + units * (op == 4 ? 8ull : 16ull);
+            const auto* value = reinterpret_cast<const Word*>(address);
+            if (op == 4) {
+                if (register_slot[operand] < 0 || (saved & (1u << operand)) ||
+                    !stack_range(context, address, 8)) return false;
+                context.nonvolatile[register_slot[operand]] = value[0];
+                saved |= 1u << operand;
+            } else {
+                if (operand < 6 || (xmm_saved & (1u << operand)) ||
+                    !stack_range(context, address, 16)) return false;
+                context.xmm[operand - 6][0] = value[0];
+                context.xmm[operand - 6][1] = value[1];
+                xmm_saved |= 1u << operand;
+            }
+        } else {
+            return false;
+        }
+    }
     return true;
 }
 
@@ -134,37 +194,27 @@ static bool unwind_fixed_frame(CpuContext& context) {
     // The current PC is a return address from the callee, in the caller body.
     if (!context.pc) return false;
     const Word control_pc = context.pc - 1;
-    const auto* function = find_function(control_pc);
-    if (!function || !readonly_range(function->unwind, 4)) return false;
     const Word base = bmo_gs_image.base;
-    const auto* info = reinterpret_cast<const unsigned char*>(base + function->unwind);
-    const unsigned int slots = info[2];
-    if ((info[0] & 7) != 1 || (info[0] >> 3) > 3 || info[3] ||
-        control_pc - base - function->begin < info[1] ||
-        !readonly_range(function->unwind, 4 + ((slots + 1) & ~1u) * 2)) return false;
+    const auto* function = find_function(control_pc);
+    for (unsigned int depth = 0; depth < 8; ++depth) {
+        if (!function || !readonly_range(function->unwind, 4)) return false;
+        const auto* info = reinterpret_cast<const unsigned char*>(base + function->unwind);
+        const unsigned int flags = info[0] >> 3;
+        const bool chained = flags == 4;
+        const unsigned int tail = 4 + ((info[2] + 1) & ~1u) * 2;
+        if ((info[0] & 7) != 1 || flags > 4 || info[3] ||
+            (!depth && control_pc - base - function->begin < info[1]) ||
+            !readonly_range(function->unwind, tail + (chained ? sizeof(RuntimeFunction) : 0)) ||
+            !restore_unwind_codes(context, info, chained)) return false;
+        if (!chained) return pop_word(context, context.pc) && context.pc && find_function(context.pc - 1);
 
-    constexpr int register_slot[16] = {-1, -1, -1, 0, -1, 1, 2, 3, -1, -1, -1, -1, 4, 5, 6, 7};
-    unsigned int previous_offset = info[1];
-    unsigned int saved = 0;
-    bool allocated = false;
-    for (unsigned int slot = 0; slot < slots; ++slot) {
-        const unsigned int offset = info[4 + slot * 2];
-        const unsigned int code = info[5 + slot * 2];
-        if (!offset || offset > previous_offset) return false;
-        previous_offset = offset;
-        const unsigned int op = code & 15;
-        const unsigned int operand = code >> 4;
-        if (op == 2 && !allocated && !saved) { // UWOP_ALLOC_SMALL
-            context.rsp += 8 * (operand + 1);
-            allocated = true;
-        } else if (op == 0 && register_slot[operand] >= 0 && !(saved & (1u << operand))) {
-            if (!pop_word(context, context.nonvolatile[register_slot[operand]])) return false;
-            saved |= 1u << operand;
-        } else {
-            return false;
-        }
+        const auto* parent = reinterpret_cast<const RuntimeFunction*>(info + tail);
+        if (parent->begin >= function->begin) return false;
+        function = find_function(base + parent->begin);
+        if (!function || function->begin != parent->begin ||
+            function->end != parent->end || function->unwind != parent->unwind) return false;
     }
-    return pop_word(context, context.pc) && context.pc && find_function(context.pc - 1);
+    return false;
 }
 
 extern "C" int bmo_gs_cpu_dispatch(CpuContext* context) {
@@ -173,10 +223,15 @@ extern "C" int bmo_gs_cpu_dispatch(CpuContext* context) {
         bmo_gs_dispatch(context->pc - 1, context->rsp) != 1) return 0;
     if (!unwind_fixed_frame(*context) || context->pc != bmo_gs_expected.wrapper_pc ||
         context->rsp != bmo_gs_expected.wrapper_rsp || context->nonvolatile[0] != 0x12340003 ||
-        context->nonvolatile[2] != 0x12340006 || context->nonvolatile[3] != 0x12340007) return 0;
+        context->nonvolatile[2] != 0x12340006 || context->nonvolatile[3] != 0x12340007 ||
+        context->nonvolatile[4] != 0x1234000c || context->xmm[0][0] != ~0ull ||
+        context->xmm[0][1] != ~0ull) return 0;
     return unwind_fixed_frame(*context) && context->pc == bmo_gs_expected.caller_pc &&
            context->rsp == bmo_gs_expected.caller_rsp &&
            context->nonvolatile[0] == bmo_gs_expected.caller_rbx &&
            context->nonvolatile[2] == bmo_gs_expected.caller_rsi &&
-           context->nonvolatile[3] == bmo_gs_expected.caller_rdi;
+           context->nonvolatile[3] == bmo_gs_expected.caller_rdi &&
+           context->nonvolatile[4] == bmo_gs_expected.caller_r12 &&
+           context->xmm[0][0] == bmo_gs_expected.caller_xmm6[0] &&
+           context->xmm[0][1] == bmo_gs_expected.caller_xmm6[1];
 }

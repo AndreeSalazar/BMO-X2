@@ -237,18 +237,25 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                 struct.pack_into('<I', control, offset, 0x424d4f00 + selector)
                 cases += ((name + '-' + label, control, terminal, count),)
             if args.msvc_crt_gs_native:
-                address = crt_report['cpu_exception']['wrapper_unwind_address'] + 5
-                readonly = next(item for item in regions
-                                if not item['Writable'] and not item['Executable']
-                                and item['VirtualStart'] <= address < item['VirtualStart'] + item['FileBytes'])
-                at = readonly['FileOffset'] + address - readonly['VirtualStart']
-                unsupported = bytearray(image)
-                if unsupported[at] != 0x32:  # UWOP_ALLOC_SMALL, 32 bytes
-                    raise ValueError('Cambio el primer opcode unwind del llamador')
-                unsupported[at] = 0x3f
-                struct.pack_into('<I', unsupported, offset, 0x424d4f04)
-                cases += ((name + '-cpu-exception-unsupported-unwind', unsupported,
-                           'SBEF WIN64 EXIT 0000000000000001', 1),)
+                exception = crt_report['cpu_exception']
+                primary = exception['unwind_rvas']['call_client']
+                fragment = exception['unwind_rvas']['chained_fragment']
+                metadata_controls = (
+                    ('unsupported-unwind', primary + 5, b'\x68', b'\x6f'),  # SAVE_XMM128 -> unknown
+                    ('invalid-chain', fragment + 16, struct.pack('<I', primary), struct.pack('<I', primary + 4)),
+                )
+                for label, rva, before, after in metadata_controls:
+                    address = exception['image_base'] + rva
+                    readonly = next(item for item in regions if not item['Writable'] and not item['Executable']
+                                    and item['VirtualStart'] <= address
+                                    and address + len(before) <= item['VirtualStart'] + item['FileBytes'])
+                    at = readonly['FileOffset'] + address - readonly['VirtualStart']
+                    if image[at:at + len(before)] != before:
+                        raise ValueError(f'Cambio el metadato de control {label}')
+                    control = bytearray(image)
+                    control[at:at + len(before)] = after
+                    struct.pack_into('<I', control, offset, 0x424d4f04)
+                    cases += ((name + '-cpu-exception-' + label, control, 'SBEF WIN64 EXIT 0000000000000001', 1),)
     elif args.msvc_rebase:
         cases, rebase = msvc_rebase_cases(args.msvc_rebase, run)
     elif extension:
@@ -364,7 +371,7 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             stdout = (folder / 'stdout.log').read_bytes()
             if name.endswith('-cpu-exception'):
                 expected_stdout = GS_UNWIND_OUTPUT
-            elif name.endswith('-unsupported-unwind'):
+            elif name.endswith(('-unsupported-unwind', '-invalid-chain')):
                 expected_stdout = b''
             elif name.endswith('-handler'):
                 expected_stdout = GS_HANDLER_OUTPUT
@@ -375,9 +382,15 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             if name.endswith('-cpu-exception'):
                 crt_report['cpu_exception']['stdout'] = stdout.decode('ascii')
                 crt_report['cpu_exception']['unwound_frames'] = 2
-                crt_report['cpu_exception']['verified_registers'] = ['RBX', 'RSI', 'RDI', 'RSP', 'RIP']
+                crt_report['cpu_exception']['verified_registers'] = ['RBX', 'RSI', 'RDI', 'R12', 'RSP', 'RIP', 'XMM6']
+                crt_report['cpu_exception']['unwind_operations'] = [
+                    'UWOP_ALLOC_SMALL', 'UWOP_PUSH_NONVOL', 'UWOP_ALLOC_LARGE',
+                    'UWOP_SAVE_NONVOL', 'UWOP_SAVE_XMM128', 'UNW_FLAG_CHAININFO',
+                ]
             elif name.endswith('-unsupported-unwind'):
                 crt_report['cpu_exception']['unsupported_unwind_rejected'] = True
+            elif name.endswith('-invalid-chain'):
+                crt_report['cpu_exception']['invalid_chain_rejected'] = True
             elif name.endswith(('-cpu-exception-mismatch', '-cpu-exception-repeat')):
                 control = name.rsplit('-', 1)[-1]
                 crt_report['cpu_exception'][control + '_stdout_bytes'] = len(stdout)

@@ -371,7 +371,7 @@
     jne .Luser_abort
     cmpq $0x83, 32(%rsp)
     jne .Luser_abort
-    cmpq $(USER_STACK+512), 24(%rsp)
+    cmpq $(USER_STACK+768), 24(%rsp)
     jb .Luser_abort
     cmpq $(USER_STACK+4096-40), 24(%rsp)
     ja .Luser_abort

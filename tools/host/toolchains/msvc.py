@@ -252,17 +252,16 @@ def build_external_crt(root, out, assembler, *, guarded=False, native_gs=False):
                 raise ValueError(f'HOST debia rechazar la prueba {code}')
         payload = pack_pe_gs_fixture(source, handler)
         exe.write_bytes(source)
-        wrapper = re.search(
-            r'^\s+[0-9a-fA-F]+:[0-9a-fA-F]+\s+bmo_test_gs_call_client\s+([0-9a-fA-F]+)\s+',
-            map_text, re.MULTILINE)
-        if wrapper is None:
-            raise ValueError('Falta el llamador de la prueba unwind en el MAP')
-        wrapper_rva = int(wrapper[1], 16) - info['ImageBase']
+        frame_symbols = {name: int(address, 16) - info['ImageBase'] for name, address in re.findall(
+            r'^\s+[0-9a-fA-F]+:[0-9a-fA-F]+\s+bmo_test_gs_(call_client|chained_fragment)'
+            r'\s+([0-9a-fA-F]+)\s+', map_text, re.MULTILINE)}
+        if frame_symbols.keys() != {'call_client', 'chained_fragment'}:
+            raise ValueError('Faltan los marcos unwind del fixture en el MAP')
         table = readonly['FileOffset'] + directory['RVA'] - start
-        wrapper_records = [unwind for begin, _, unwind in struct.iter_unpack(
-            '<III', source[table:table + directory['Bytes']]) if begin == wrapper_rva]
-        if len(wrapper_records) != 1:
-            raise ValueError('El llamador de prueba debe tener una entrada en .pdata')
+        records = {begin: unwind for begin, _, unwind in struct.iter_unpack(
+            '<III', source[table:table + directory['Bytes']])}
+        if not all(rva in records for rva in frame_symbols.values()):
+            raise ValueError('Los marcos de prueba deben tener entrada en .pdata')
         native_report = dict(
             libcmt_sha256=hashlib.sha256(libcmt.read_bytes()).hexdigest(),
             gs_symbols={name: origin for name, (_, origin) in sorted(gs_symbols.items())},
@@ -271,7 +270,8 @@ def build_external_crt(root, out, assembler, *, guarded=False, native_gs=False):
             dispatch_fixture=dict(exception_table_rva=directory['RVA'], exception_table_bytes=directory['Bytes'],
                                   handler_rva=handler, trigger='synchronous call with live MSVC frame'),
             cpu_exception=dict(vector=6, fault_pc=fault_symbols['fault'], landing_pc=fault_symbols['landing'],
-                               wrapper_unwind_address=info['ImageBase'] + wrapper_records[0]),
+                               image_base=info['ImageBase'],
+                               unwind_rvas={name: records[rva] for name, rva in frame_symbols.items()}),
             default_rejection='PE-UNWIND-INFO', wrong_handler_rejection='PE-UNWIND-GS-HANDLER',
         )
     else:
