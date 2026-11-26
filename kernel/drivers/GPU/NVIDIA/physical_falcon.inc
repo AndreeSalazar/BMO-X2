@@ -239,8 +239,12 @@ nvidia_physical_begin:
     mov STORAGE_TSC_10MS(%rbp), %r8
     call .Lgsp_init_615
     mov %rax, NVIDIA_GSP_INIT_RECEIPT(%rbp)
-    cmpl $0x804, (NVIDIA_GSP_INIT_RECEIPT+4)(%rbp)
+    shr $32, %rax
+    cmp $0x804, %eax
+    je .Lboard_gsp_snapshot
+    cmp $0x806, %eax
     jne .Lboard_sec2_revoke
+.Lboard_gsp_snapshot:
     mov $(FALCON_BOARD_VA+0x110000), %ecx
     mov GSP_NATIVE_QUEUE_BASE(%rbp), %rdx
     add $0x83000, %rdx          # LOGINIT producer, after GspMem and LIBOS args.

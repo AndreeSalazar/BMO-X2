@@ -303,10 +303,14 @@ nvidia_gsp_snapshot_615:
     gsp_u32 0x10, 0x88000         # PCI configuration mirror offset in BAR0.
     gsp_u32 0x11, 4096
     gsp_u64 0x1001, 0
-    gsp_u64 0x1110, 3
     .long 0x30001100, 7
     .asciz "BMO-X2"
     .zero 1
+    .long 0x30001101, 10          # KERNEL_DRIVER_VERSION_STRING.
+    .asciz "615.78.08"
+    .zero 6
+    gsp_u32 0x1102, 39079891     # Official Linux reference changelist.
+    gsp_u32 0x1110, 3            # UNSTABLE_INTERFACE_SUPPORT is U32.
 .Lgsp_615_request_end:
 .purgem gsp_u32
 .purgem gsp_u64

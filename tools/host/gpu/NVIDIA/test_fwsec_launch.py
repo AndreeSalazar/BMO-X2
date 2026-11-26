@@ -158,13 +158,37 @@ class FwsecLaunch(unittest.TestCase):
                     while self.read(FALCON+0xc00)!=1 and not run.done():
                         pass
                     self.assertFalse(run.done(),"GSP INIT was not submitted")
-                    self.assertEqual(struct.unpack_from('<I',queue,0x3018)[0],0x00010001)
+                    frame = struct.unpack_from('<6I', queue, 0x3000)
+                    command, payload_size = struct.unpack_from('<2I', queue, 0x3018)
+                    self.assertEqual(command, 0x00010001)
+                    self.assertEqual(frame, (0x4d435450, 64+payload_size, 0xc0000001,
+                                             0x2610de7e, 40+payload_size, 0))
                     self.assertEqual(struct.unpack_from('<II',queue,0x3050),(3,0xa1))
+                    version = struct.pack('<II', 0x30001101, 10) + b'615.78.08'+bytes(7)
+                    identity = struct.pack('<4I', 0x1102, 39079891, 0x1110, 3)
+                    self.assertEqual(bytes(queue[0x3040+payload_size-40:0x3040+payload_size]),
+                                     version+identity)
                     struct.pack_into('<8IQI',queue,0x43000,0x4d435450,72,0xc0000001,
                                      0x2610de7e,48,0,0x01010001,8,sequence,status)
                     self.write(FALCON+0xc80,1)
                     self.assertEqual(run.result()>>32,expected)
                     self.assertEqual(self.read(FALCON+0xc84),int(sequence==1))
+
+    def test_gsp_consumed_command_without_reply_is_reported_as_timeout(self):
+        backing = ctypes.create_string_buffer(0x83000)
+        address = (ctypes.addressof(backing)+4095)&-4096
+        queue = (ctypes.c_ubyte*0x82000).from_address(address)
+        struct.pack_into('<5I', queue, 0x42000, 2, 0x40000, 4096, 63, 4096)
+        self.write(FALCON+0x1388, 0x80)
+        with ThreadPoolExecutor(max_workers=1) as worker:
+            run = worker.submit(self.gsp_init, ctypes.byref(self.mapping, FALCON),
+                                address, 1_000_000, 0xa1)
+            while self.read(FALCON+0xc00)!=1 and not run.done():
+                pass
+            self.assertFalse(run.done(), "GSP INIT was not submitted")
+            self.write(FALCON+0xc04, 1)
+            self.assertEqual(run.result(), (0x806<<32)|1)
+            self.assertEqual(self.read(FALCON+0xc84), 0)
 
     def test_native_sec2_transfers_the_signed_image_and_hands_wpr_to_the_booter(self):
         imem = 35584

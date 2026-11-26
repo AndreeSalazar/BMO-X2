@@ -495,8 +495,9 @@ extern "C" void bmo_main() {
         snprintf(amdvi_line,sizeof(amdvi_line),"GSP_CAPTURE=%08X %08X\n",
                  unsigned(trace_meta),unsigned(trace_meta>>32));
         log(amdvi_line);
+        const bool gsp_timeout=init_code==0x804 || init_code==0x806;
 #ifdef BMO_DMA_CENSUS
-        gsp_trace_available=init_code==0x804;
+        gsp_trace_available=gsp_timeout;
         gsp_event_count=std::min(unsigned(trace_meta)/16,255u);
         gsp_log_before=unsigned(progress);
         gsp_log_after=unsigned(trace_meta>>32);
@@ -569,7 +570,7 @@ extern "C" void bmo_main() {
             hardware_report+="<br/>";
             hardware_report+=amdvi_line;
         }
-        if(init_code==0x804) {
+        if(gsp_timeout) {
             snprintf(amdvi_line,sizeof(amdvi_line),
                      "<br/>GSP / CPU %08X / RX %08X / MB %08X %08X / LOGINIT %08X",
                      unsigned(core),unsigned(core>>32),unsigned(mailbox),unsigned(mailbox>>32),

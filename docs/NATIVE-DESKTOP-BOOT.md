@@ -1363,8 +1363,8 @@ El recibo temprano de FAT32 se sigue escribiendo antes de esta captura.
 
 La opcion `--nvidia-trace-export` agrega una salida serie al candidato
 aislado RTX FWSEC. Se agrega a `guest.py` y a la orden de `media.py` del
-perfil fisico. Solo aparece F5 al abrir con F4 una captura del estado
-`804`. F5 transmite las 17 paginas de la copia privada por el canal
+perfil fisico. F5 aparece al abrir con F4 una captura del estado
+`804` o `806`. F5 transmite las 17 paginas de la copia privada por el canal
 serie existente. El arranque y el camino de presentacion quedan fuera
 de esa transferencia. Ring 0 incluye los indices TX head y tail en las
 palabras libres de la pagina de eventos, sin consumir la cola AMD-Vi.
@@ -1394,6 +1394,14 @@ QEMU comprueba que la pagina existe, empieza en cero y sigue sin mapa
 cuando la placa queda excluida. La causa del acceso a IOVA cero y el
 resultado en metal quedan pendientes.
 [Inicializacion de OpenRM 615.78.08](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c#L5692).
+
+METAL con `d4ed94d` mostro `806 / DATO 00000001`. La cabecera MSGQ
+paso la validacion y el firmware avanzo el consumidor TX a uno. El
+ensayo siguiente envia la version de referencia y su changelist en NVKV,
+y codifica `UNSTABLE_INTERFACE_SUPPORT` con el mismo tipo U32 que OpenRM.
+Si la espera de respuesta termina en `806`, la captura existente tambien
+recoge los indices y LOGINIT antes de retirar Bus Master. El plazo y los
+requisitos de la respuesta correlacionada se conservan.
 
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
