@@ -70,6 +70,7 @@ class FwsecLaunch(unittest.TestCase):
                         "/export:nvidia_gsp_init_615", "/export:nvidia_gsp_snapshot_615",
                         "/export:nvidia_gsp_install_shared_surfaces",
                         "/export:nvidia_gsp_efi_time_to_ns", "/export:nvidia_gsp_seed_ptimer",
+                        "/export:nvidia_gsp_read_ptimer",
                         "/export:test_read_tsc",
                         "/export:nvidia_sec2_check_fwsec_pages",
                         f"/out:{dll}", sec2_object, domain, ivrs, sec2], check=True)
@@ -116,21 +117,28 @@ class FwsecLaunch(unittest.TestCase):
     def test_ptimer_respects_level_zero_permission(self):
         seed = self.library.nvidia_gsp_seed_ptimer
         seed.argtypes = [ctypes.c_void_p] + [ctypes.c_uint64] * 3
-        seed.restype = None
+        seed.restype = ctypes.c_uint64
+        read = self.library.nvidia_gsp_read_ptimer
+        read.argtypes = [ctypes.c_void_p]
+        read.restype = ctypes.c_uint64
         read_tsc = self.library.test_read_tsc
         read_tsc.restype = ctypes.c_uint64
         registers = ctypes.create_string_buffer(0xa000)
         epoch = 1_700_000_000_000_000_000
         for mask in (0, 0xbad00010, 0xffffffff):
             struct.pack_into("<I", registers, 0x9430, mask)
-            seed(registers, epoch, read_tsc(), 25_000_000)
+            self.assertEqual(seed(registers, epoch, read_tsc(), 25_000_000), (1 << 64) - 2)
             self.assertEqual(struct.unpack_from("<I", registers, 0x9400)[0], 0)
         struct.pack_into("<I", registers, 0x9430, 0x10)
-        seed(registers, epoch, read_tsc(), 25_000_000)
+        after_write = seed(registers, epoch, read_tsc(), 25_000_000)
         low = struct.unpack_from("<I", registers, 0x9400)[0]
         high = struct.unpack_from("<I", registers, 0x9410)[0]
         self.assertGreaterEqual(high << 32 | low, epoch)
         self.assertLess(high << 32 | low, epoch + 60_000_000_000)
+        self.assertEqual(after_write, high << 32 | low)
+        self.assertEqual(read(registers), after_write)
+        struct.pack_into("<I", registers, 0x9410, 0xffffffff)
+        self.assertEqual(read(registers), (1 << 64) - 1)
 
     def test_gsp_shared_surfaces_install_two_leaves_and_preserve_existing_mappings(self):
         install = self.library.nvidia_gsp_install_shared_surfaces

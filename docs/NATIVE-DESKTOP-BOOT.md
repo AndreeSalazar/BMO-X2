@@ -1430,6 +1430,16 @@ El ultimo timestamp fue `35210ABC0` (14.262 segundos), frente a
 sin reflejar la epoca de OpenRM. La captura no acredita que se
 escribiera PTIMER ni identifica por que su valor no llego a LOGRM.
 
+El perfil RTX publica dos lecturas de PTIMER en el escritorio. La
+primera confirma TIME_1/TIME_0 inmediatamente despues de la
+escritura. La segunda se toma despues de SEC2 701, justo antes de
+entrar en la rutina de INIT. Ambas son hexadecimales. El valor
+`FFFFFFFFFFFFFFFE` indica una medicion omitida y
+`FFFFFFFFFFFFFFFF` indica lectura MMIO invalida o inestable.
+La lectura usa alto-bajo-alto y reintentos acotados al cruzar el
+limite de la palabra baja. HOST verifica el valor y ambos casos
+de omision o rechazo; la lectura de la RTX requiere METAL.
+
 ```powershell
 python -B -m tools.host.gpu.NVIDIA.gsp_capture Reports/nvidia-gsp-logrm-metal-20261126.txt --screen --openrm-logrm A:/BMO-X2/GSP-DIAG/GSPRM.TXT
 ```

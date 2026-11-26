@@ -34,6 +34,33 @@ nvidia_gsp_seed_ptimer:
     shr $32, %rdx
     mov %edx, 0x9410(%rcx)
     mov %eax, 0x9400(%rcx)      # TIME_0 commits both halves.
-    mov 0x9410(%rcx), %eax      # Drain posted MMIO writes before SEC2.
+    jmp .Lgsp_read_ptimer      # Drain posted writes and confirm the value.
 .Lgsp_ptimer_done:
+    mov $-2, %rax             # No write was attempted.
+    ret
+
+# High-low-high read avoids combining halves across a rollover.
+# RAX = observed value, or -1 if MMIO is unavailable or unstable.
+.globl nvidia_gsp_read_ptimer
+nvidia_gsp_read_ptimer:
+.Lgsp_read_ptimer:
+    mov $3, %r8d
+.Lgsp_ptimer_retry:
+    mov 0x9410(%rcx), %eax
+    call .Lvalid_read
+    jc .Lgsp_ptimer_invalid
+    mov %eax, %r9d
+    mov 0x9400(%rcx), %eax
+    call .Lvalid_read
+    jc .Lgsp_ptimer_invalid
+    cmp 0x9410(%rcx), %r9d
+    je .Lgsp_ptimer_read_ok
+    dec %r8d
+    jnz .Lgsp_ptimer_retry
+.Lgsp_ptimer_invalid:
+    mov $-1, %rax
+    ret
+.Lgsp_ptimer_read_ok:
+    shl $32, %r9
+    or %r9, %rax
     ret

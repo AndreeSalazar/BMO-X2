@@ -2745,8 +2745,8 @@
       "posicion": [12050, 3950],
       "que": "Inicializa PTIMER de GA106 entre FWSEC y SEC2.",
       "entrada": "Hora UEFI, TSC calibrado, FWSEC 401 y permiso PTIMER de nivel 0.",
-      "salida": "Hora en nanosegundos publicada en PTIMER cuando la muestra es valida.",
-      "aceptacion": "HOST valida la fecha bisiesta y el permiso de escritura con BAR0 sintetico.",
+      "salida": "Hora publicada cuando la muestra es valida y lecturas de PTIMER tras escribir y antes de INIT.",
+      "aceptacion": "HOST valida la fecha bisiesta, el permiso de escritura y el valor leido con BAR0 sintetico.",
       "falta": "Verificar en METAL el reloj de LOGRM y la respuesta GSP_INIT."
     },
     {

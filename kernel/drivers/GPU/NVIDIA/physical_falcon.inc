@@ -163,6 +163,8 @@ nvidia_physical_begin:
     mov GSP_UEFI_TIME_TSC(%rbp), %r8
     mov STORAGE_TSC_10MS(%rbp), %r9
     call .Lgsp_seed_ptimer
+    mov %rax, GSP_PTIMER_AFTER_WRITE(%rbp)
+    movq $-2, GSP_PTIMER_BEFORE_INIT(%rbp)
     mov GSP_SEC2_SOURCE(%rbp), %rcx
     movl $0x604, (NVIDIA_SEC2_STAGE_RECEIPT+4)(%rbp)
     test %rcx, %rcx
@@ -246,6 +248,11 @@ nvidia_physical_begin:
     je .Lboard_sec2_revoke
     shl $32, %rax
     or %rax, %r9
+    mov %r9, 32(%rsp)
+    mov $FALCON_BOARD_VA, %ecx
+    call .Lgsp_read_ptimer
+    mov %rax, GSP_PTIMER_BEFORE_INIT(%rbp)
+    mov 32(%rsp), %r9
     mov GSP_NATIVE_QUEUE_BASE(%rbp), %rdx
     mov $(FALCON_BOARD_VA+0x110000), %ecx
     mov STORAGE_TSC_10MS(%rbp), %r8

@@ -103,6 +103,10 @@ amdvi_physical_mmio_begin:
     mov GSP_NATIVE_SNAPSHOT(%rbp,%rax,8), %rax
     ret
 .Lphysical_rtx_trace:
+    cmp $0x2300, %r10
+    je .Lphysical_rtx_ptimer_after
+    cmp $0x2301, %r10
+    je .Lphysical_rtx_ptimer_before
     lea -17(%r10), %rax
     cmp $(GSP_TRACE_BYTES/8), %rax
     jae .Lphysical_rtx_invalid
@@ -120,6 +124,12 @@ amdvi_physical_mmio_begin:
     ret
 .Lphysical_rtx_invalid:
     mov $257, %eax               # Match the session gate denial receipt.
+    ret
+.Lphysical_rtx_ptimer_after:
+    mov GSP_PTIMER_AFTER_WRITE(%rbp), %rax
+    ret
+.Lphysical_rtx_ptimer_before:
+    mov GSP_PTIMER_BEFORE_INIT(%rbp), %rax
     ret
 .Lphysical_rtx_summary:
     # Preserve stage and preparation. Other fields carry the low byte of

@@ -573,6 +573,18 @@ extern "C" void bmo_main() {
                      result,init_code,unsigned(init));
             hardware_report+="<br/>";
             hardware_report+=amdvi_line;
+#ifdef BMO_NVIDIA_TRACE_EXPORT
+            const auto after_write=doom_invoke(3,3,amdvi_diagnostic,0x2300);
+            const auto before_init=doom_invoke(3,3,amdvi_diagnostic,0x2301);
+            snprintf(amdvi_line,sizeof(amdvi_line),
+                     "PTIMER / tras escritura %08X%08X / antes INIT %08X%08X",
+                     unsigned(after_write>>32),unsigned(after_write),
+                     unsigned(before_init>>32),unsigned(before_init));
+            hardware_report+="<br/>";
+            hardware_report+=amdvi_line;
+            log(amdvi_line);
+            log("\n");
+#endif
         }
         if(gsp_capture) {
             snprintf(amdvi_line,sizeof(amdvi_line),

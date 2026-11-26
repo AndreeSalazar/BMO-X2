@@ -152,6 +152,8 @@ def main():
     sbef=(app/'rmlui.sbef').read_bytes()
     if args.nvidia_trace_export and b'F5 captura completa / F3 anteriores / F6 serie' not in sbef:
         raise ValueError('Rebuild the RTX desktop with guest.py --nvidia-trace-export before staging media')
+    if args.nvidia_trace_export and b'PTIMER / tras escritura' not in sbef:
+        raise ValueError('Rebuild the RTX desktop with PTIMER readback before staging media')
     run=ROOT/'build/CASM'/('run-rmlui-media-'+uuid.uuid4().hex[:12]);run.mkdir()
     gsp = None
     nvidia_reader_flags = []
