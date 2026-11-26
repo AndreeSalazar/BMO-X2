@@ -1423,6 +1423,13 @@ HOST verifica la conversion de EFI_TIME y el permiso PTIMER con
 registros sinteticos. Queda por medir la respuesta GSP en metal.
 [Preparacion de GSP-RM en OpenRM 615.78.08](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c#L5673).
 
+METAL con `68bf767` mostro el mismo productor `855` y los mismos
+ocho sitios de registro y argumentos que el rechazo anterior.
+El ultimo timestamp fue `35210ABC0` (14.262 segundos), frente a
+`39E4BD840` (15.541 segundos) del ensayo anterior. LOGRM sigue
+sin reflejar la epoca de OpenRM. La captura no acredita que se
+escribiera PTIMER ni identifica por que su valor no llego a LOGRM.
+
 ```powershell
 python -B -m tools.host.gpu.NVIDIA.gsp_capture Reports/nvidia-gsp-logrm-metal-20261126.txt --screen --openrm-logrm A:/BMO-X2/GSP-DIAG/GSPRM.TXT
 ```
