@@ -45,6 +45,8 @@
 #define GSP_SEC2_SOURCE 0x9e0
 #define GSP_NATIVE_SNAPSHOT 0x888 // Five qwords in the board-only handoff.
 #define GSP_NATIVE_QUEUE_BASE 0x8b0
+#define GSP_UEFI_TIME_NS 0x8b8
+#define GSP_UEFI_TIME_TSC 0x8c0
 #define GSP_FWSEC_DOMAIN_STATUS 0x988
 #define GSP_FWSEC_DOMAIN_ENTRY 0x1200a
 #else

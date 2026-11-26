@@ -2732,7 +2732,22 @@
       "entrada": "SEC2 701, BAR y dominio de la placa comprobados, RMARGS 615.78.08.",
       "salida": "Respuesta correlacionada o copia de LOGINIT, indices TX y eventos AMD-Vi antes del cierre PCIe. El perfil opcional exporta por serie desde el panel F4.",
       "aceptacion": "HOST prueba la correlacion, los 255 eventos y LOGINIT sin consumir la cola. El exportador opcional recupera 17 paginas en una ida y vuelta con CRC32. Evidencia Reports/nvidia-gsp-serial-capture-host.json.",
-      "falta": "METAL con 8c7e27a paso SEC2 701 con bindata y mostro GSP 804, LOGINIT 49 y evento AMD-Vi 20002900 en IOVA cero. Falta interpretar el registro de arranque y completar el canal grafico."
+      "falta": "METAL con 7fd4589 recibio GSP 802 / 40. Falta verificar INIT con PTIMER inicializado y completar el canal grafico."
+    },
+    {
+      "id": "nvidia-gsp-ptimer-native",
+      "titulo": "GPU / NVIDIA / Reloj PTIMER previo a GSP",
+      "ruta": "kernel/drivers/GPU/NVIDIA/gsp_ptimer.inc",
+      "estado": "host",
+      "anillo": "0",
+      "lenguaje": "ASM x86-64",
+      "ring0_platform_probe": true,
+      "posicion": [12050, 3950],
+      "que": "Inicializa PTIMER de GA106 entre FWSEC y SEC2.",
+      "entrada": "Hora UEFI, TSC calibrado, FWSEC 401 y permiso PTIMER de nivel 0.",
+      "salida": "Hora en nanosegundos publicada en PTIMER cuando la muestra es valida.",
+      "aceptacion": "HOST valida la fecha bisiesta y el permiso de escritura con BAR0 sintetico.",
+      "falta": "Verificar en METAL el reloj de LOGRM y la respuesta GSP_INIT."
     },
     {
       "id": "nvidia-sec2-domain-native",

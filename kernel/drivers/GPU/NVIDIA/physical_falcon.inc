@@ -9,7 +9,7 @@
 .set SEC2_IOMMU_ALIAS, FALCON_BOARD_VA+0x5000
 # PMC, SCRATCH14, Falcon, RISC-V/BROM and WPR2. CPU alias only.
 # Use the same pages when installing, invalidating and retiring the alias.
-#define FALCON_CPU_PAGES 0, 1, 0x110, 0x111, 0x1fa
+#define FALCON_CPU_PAGES 0, 1, 9, 0x110, 0x111, 0x1fa
 
 .globl nvidia_physical_begin
 nvidia_physical_begin:
@@ -158,6 +158,11 @@ nvidia_physical_begin:
 .Lboard_drained:
     cmpl $0x401, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)
     jne .Lboard_unmap
+    mov $FALCON_BOARD_VA, %ecx
+    mov GSP_UEFI_TIME_NS(%rbp), %rdx
+    mov GSP_UEFI_TIME_TSC(%rbp), %r8
+    mov STORAGE_TSC_10MS(%rbp), %r9
+    call .Lgsp_seed_ptimer
     mov GSP_SEC2_SOURCE(%rbp), %rcx
     movl $0x604, (NVIDIA_SEC2_STAGE_RECEIPT+4)(%rbp)
     test %rcx, %rcx
@@ -391,5 +396,6 @@ nvidia_physical_begin:
 #include "sec2_execute.inc"
 #include "sec2_domain.inc"
 #include "gsp_init_615.inc"
+#include "gsp_ptimer.inc"
 .globl nvidia_physical_end
 nvidia_physical_end:

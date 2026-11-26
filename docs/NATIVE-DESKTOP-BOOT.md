@@ -1412,6 +1412,17 @@ divergencia. Las 282 palabras NVKV de las dos capturas exitosas de
 OpenRM son identicas y el mismo arranque inicializo `nvidia-drm` en
 `29:00.0`. El resultado nativo `802` sigue pendiente.
 
+La secuencia OpenRM 615.78.08 programa PTIMER despues de GFW_BOOT y
+antes de arrancar GSP-RM. El perfil RTX toma GetTime antes de salir
+de UEFI y aproxima la hora actual con el TSC calibrado. Despues de
+FWSEC 401 y de drenar PCIe, comprueba el permiso PTIMER de nivel 0,
+escribe TIME_1 y confirma con TIME_0. La pagina MMIO es de CPU y se
+retira con los alias de Falcon. Una muestra ausente, invalida o de
+mas de 60 segundos deja que el arranque siga por la ruta anterior.
+HOST verifica la conversion de EFI_TIME y el permiso PTIMER con
+registros sinteticos. Queda por medir la respuesta GSP en metal.
+[Preparacion de GSP-RM en OpenRM 615.78.08](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c#L5673).
+
 ```powershell
 python -B -m tools.host.gpu.NVIDIA.gsp_capture Reports/nvidia-gsp-logrm-metal-20261126.txt --screen --openrm-logrm A:/BMO-X2/GSP-DIAG/GSPRM.TXT
 ```

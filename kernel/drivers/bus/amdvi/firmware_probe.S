@@ -5,6 +5,9 @@
 #if defined(BMO_FULL_HD) || defined(BMO_AMDVI_GSP_DMA)
 #include "../../display/GOP/gop_layout.inc"
 #endif
+#ifdef BMO_PHYSICAL_FWSEC_TRIAL
+#include "../../GPU/NVIDIA/gsp_layout.inc"
+#endif
 # Read-only AMD-Vi inventory while UEFI still owns the platform.
 # RCX = EFI_SYSTEM_TABLE, RDX = inventory fields, R8 = report_hex32.
 # R9 = MMIO snapshot fields.
@@ -60,6 +63,18 @@ amdvi_firmware_probe:
     mov %r9, (%rsp)
     mov 0x60(%rcx), %rax
     mov %rax, 8(%rsp)
+#ifdef BMO_PHYSICAL_FWSEC_TRIAL
+    push %rcx
+    push %rdx
+    push %r8
+    push %r9
+    call nvidia_gsp_read_uefi_time
+    pop %r9
+    pop %r8
+    pop %rdx
+    pop %rcx
+    mov 8(%rsp), %rax
+#endif
 #ifdef BMO_AMDVI_PHYSICAL_USB_TEST
     push %rcx
     push %rdx
@@ -450,6 +465,9 @@ finish:
 # Helpers use the volatile registers only and preserve the PCI selector.
 #ifdef BMO_STORAGE_QUIESCE_METAL
 #include "../../storage/calibrate_tsc.inc"
+#endif
+#ifdef BMO_PHYSICAL_FWSEC_TRIAL
+#include "../../GPU/NVIDIA/gsp_uefi_time.inc"
 #endif
 pci_read:
     mov %r9d, %eax

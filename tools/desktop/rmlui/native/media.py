@@ -305,6 +305,7 @@ def main():
         if args.amdvi_physical_prepare:flags+=['-DBMO_AMDVI_PHYSICAL_PREPARE']
         if args.amdvi_physical_mmio_test:flags+=['-DBMO_AMDVI_PHYSICAL_MMIO_TEST']
         if args.amdvi_physical_usb_test:flags+=['-DBMO_AMDVI_PHYSICAL_USB_TEST']
+        if args.physical_fwsec_trial:flags+=['-DBMO_PHYSICAL_FWSEC_TRIAL']
         if args.full_hd:flags+=['-DBMO_FULL_HD','-DRMLUI_MEDIA','-DRMLUI_NATIVE','-DDESKTOP_DOOM']
         if args.amdvi_guest_dma:flags+=['-DBMO_AMDVI_GUEST_DMA']
         if args.amdvi_storage:flags+=['-DBMO_AMDVI_STORAGE']

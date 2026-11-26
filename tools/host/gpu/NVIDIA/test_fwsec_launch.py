@@ -2,6 +2,7 @@
 
 from concurrent.futures import ThreadPoolExecutor
 import ctypes
+from datetime import datetime, timezone
 import os
 from pathlib import Path
 import struct
@@ -53,6 +54,12 @@ class FwsecLaunch(unittest.TestCase):
             '#include "sec2_domain.inc"\n#include "gsp_init_615.inc"\n',
             encoding="ascii",
         )
+        with sec2_source.open("a", encoding="ascii") as tool_source:
+            tool_source.write(
+                '#include "gsp_uefi_time.inc"\n#include "gsp_ptimer.inc"\n'
+                '.globl test_read_tsc\ntest_read_tsc:\n'
+                'lfence\nrdtsc\nshl $32, %rdx\nor %rdx, %rax\nret\n'
+            )
         # Use the combined object so SEC2 exercises the production Falcon helpers.
         subprocess.run([LLVM / "clang.exe", "--target=x86_64-pc-windows-msvc",
                         "-I", source.parent, "-c", sec2_source, "-o", sec2_object], check=True)
@@ -62,6 +69,8 @@ class FwsecLaunch(unittest.TestCase):
                         "/export:nvidia_prepare_sec2_image", "/export:nvidia_execute_sec2_booter",
                         "/export:nvidia_gsp_init_615", "/export:nvidia_gsp_snapshot_615",
                         "/export:nvidia_gsp_install_shared_surfaces",
+                        "/export:nvidia_gsp_efi_time_to_ns", "/export:nvidia_gsp_seed_ptimer",
+                        "/export:test_read_tsc",
                         "/export:nvidia_sec2_check_fwsec_pages",
                         f"/out:{dll}", sec2_object, domain, ivrs, sec2], check=True)
         cls.library = ctypes.WinDLL(str(dll))
@@ -93,6 +102,35 @@ class FwsecLaunch(unittest.TestCase):
         cls.gsp_snapshot = cls.library.nvidia_gsp_snapshot_615
         cls.gsp_snapshot.argtypes = [ctypes.c_void_p]*6
         cls.gsp_snapshot.restype = None
+
+    def test_uefi_time_converts_leap_day_and_timezone(self):
+        convert = self.library.nvidia_gsp_efi_time_to_ns
+        convert.argtypes = [ctypes.c_void_p]
+        convert.restype = ctypes.c_uint64
+        value = ctypes.create_string_buffer(struct.pack("<H6BIh2B", 2024, 2, 29, 12, 0, 0, 0, 17, 300, 0, 0))
+        expected = int(datetime(2024, 2, 29, 17, tzinfo=timezone.utc).timestamp())
+        self.assertEqual(convert(value), expected * 1_000_000_000 + 17)
+        value[0] = b'\xe9'  # 2025, where February 29 is invalid.
+        self.assertEqual(convert(value), 0)
+
+    def test_ptimer_respects_level_zero_permission(self):
+        seed = self.library.nvidia_gsp_seed_ptimer
+        seed.argtypes = [ctypes.c_void_p] + [ctypes.c_uint64] * 3
+        seed.restype = None
+        read_tsc = self.library.test_read_tsc
+        read_tsc.restype = ctypes.c_uint64
+        registers = ctypes.create_string_buffer(0xa000)
+        epoch = 1_700_000_000_000_000_000
+        for mask in (0, 0xbad00010, 0xffffffff):
+            struct.pack_into("<I", registers, 0x9430, mask)
+            seed(registers, epoch, read_tsc(), 25_000_000)
+            self.assertEqual(struct.unpack_from("<I", registers, 0x9400)[0], 0)
+        struct.pack_into("<I", registers, 0x9430, 0x10)
+        seed(registers, epoch, read_tsc(), 25_000_000)
+        low = struct.unpack_from("<I", registers, 0x9400)[0]
+        high = struct.unpack_from("<I", registers, 0x9410)[0]
+        self.assertGreaterEqual(high << 32 | low, epoch)
+        self.assertLess(high << 32 | low, epoch + 60_000_000_000)
 
     def test_gsp_shared_surfaces_install_two_leaves_and_preserve_existing_mappings(self):
         install = self.library.nvidia_gsp_install_shared_surfaces
