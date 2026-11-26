@@ -125,7 +125,7 @@ bmo_test_gs_prologue_fault:
     .seh_setframe %rbp, 32
     .seh_endprologue
     cmp $1, %eax
-    je bmo_test_gs_epilogue_lea
+    je bmo_test_gs_epilogue_jump
 .globl bmo_test_gs_epilogue_add
 bmo_test_gs_epilogue_add:
     add $40, %rsp
@@ -143,6 +143,30 @@ bmo_test_gs_epilogue_lea:
     pop %rbp
     pop %rdi
     pop %rsi
+    ret
+.globl bmo_test_gs_epilogue_jump
+bmo_test_gs_epilogue_jump:
+    lea 8(%rbp), %rsp
+    pop %rbx
+    pop %rbp
+    pop %rdi
+    pop %rsi
+    jmp *.Lepilogue_target(%rip)
+.globl bmo_test_gs_epilogue_invalid
+bmo_test_gs_epilogue_invalid:
+    pop %rsi
+    nop
+    ret
+.seh_endproc
+
+.section .rdata,"dr"
+.p2align 3
+.Lepilogue_target:
+    .quad .Lepilogue_return
+.text
+.seh_proc .Lepilogue_return
+.Lepilogue_return:
+    .seh_endprologue
     ret
 .seh_endproc
 

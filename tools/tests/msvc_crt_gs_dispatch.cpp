@@ -78,6 +78,8 @@ int __GSHandlerCheck(void*, Word, void*, DispatcherContext*);
 void bmo_test_gs_epilogue_suffix();
 void bmo_test_gs_epilogue_add();
 void bmo_test_gs_epilogue_lea();
+void bmo_test_gs_epilogue_jump();
+void bmo_test_gs_epilogue_invalid();
 }
 
 static_assert(sizeof(FixtureImage) == 24 && sizeof(RuntimeFunction) == 12);
@@ -222,6 +224,10 @@ static bool restore_unwind_codes(CpuContext& context, const unsigned char* info,
     return true;
 }
 
+enum class Epilogue { absent, invalid, restored };
+static Epilogue unwind_epilogue(CpuContext& context, Word pc, const RuntimeFunction& function,
+                                unsigned int frame_register);
+
 static bool unwind_frame(CpuContext& context, Word control_pc) {
     const Word base = bmo_gs_image.base;
     const auto* function = find_function(control_pc);
@@ -230,6 +236,11 @@ static bool unwind_frame(CpuContext& context, Word control_pc) {
     const unsigned int frame = initial[3];
     const unsigned int code_limit = static_cast<unsigned int>(control_pc - base - function->begin);
     const bool in_prologue = code_limit < initial[1];
+    if ((initial[0] & 7) != 1 || (initial[0] >> 3) > 4) return false;
+    if (!in_prologue) {
+        const auto result = unwind_epilogue(context, control_pc, *function, frame & 15);
+        if (result != Epilogue::absent) return result == Epilogue::restored;
+    }
     if (in_prologue && (initial[0] >> 3) == 4) return false;
     const unsigned int initial_bytes = 4 + ((initial[2] + 1) & ~1u) * 2;
     if (!readonly_range(function->unwind, initial_bytes)) return false;
@@ -278,14 +289,14 @@ static long long signed_displacement(const unsigned char* bytes, unsigned int si
            (value & (limit >> 1) ? static_cast<long long>(limit) : 0);
 }
 
-// Simulate the remaining instructions at a known epilogue boundary.
-static bool unwind_epilogue(CpuContext& context, Word pc) {
-    const auto* function = find_function(pc);
-    if (!function || !readonly_range(function->unwind, 4)) return false;
+// Recognize a suffix before reading saved registers or publishing changes.
+static Epilogue unwind_epilogue(CpuContext& context, Word pc, const RuntimeFunction& function,
+                                unsigned int frame_register) {
     const Word base = bmo_gs_image.base;
-    const auto* info = reinterpret_cast<const unsigned char*>(base + function->unwind);
-    const Word end = base + function->end;
+    const Word end = base + function.end;
     const auto* first = reinterpret_cast<const unsigned char*>(pc);
+    Word rsp = context.rsp;
+    bool valid_adjustment = true;
     if (end - pc >= 3 && (first[0] == 0x48 || first[0] == 0x49)) {
         const unsigned int modrm = first[2];
         unsigned int size = 0;
@@ -295,19 +306,20 @@ static bool unwind_epilogue(CpuContext& context, Word pc) {
         } else if (first[1] == 0x8d && (modrm & 0x38) == 0x20) {
             const unsigned int reg = (modrm & 7) + (first[0] == 0x49 ? 8 : 0);
             // This subset uses a ModRM base and disp8/disp32 without a SIB byte.
-            if (reg != (info[3] & 15) || register_slot[reg] < 0 || (modrm & 7) == 4) return false;
+            if (reg != frame_register || register_slot[reg] < 0 || (modrm & 7) == 4) return Epilogue::absent;
             if ((modrm >> 6) == 1) size = 1;
             if ((modrm >> 6) == 2) size = 4;
             stack_base = context.nonvolatile[register_slot[reg]];
         }
-        if (!size || end - pc < 3 + size ||
-            !stack_range(context, stack_base, sizeof(Word))) return false;
-        const Word adjusted = stack_base + signed_displacement(first + 3, size);
-        if (adjusted < context.rsp || !stack_range(context, adjusted, sizeof(Word))) return false;
-        context.rsp = adjusted;
+        if (!size || end - pc < 3 + size) return Epilogue::absent;
+        rsp = stack_base + signed_displacement(first + 3, size);
+        valid_adjustment = stack_range(context, stack_base, sizeof(Word)) && rsp >= context.rsp;
         pc += 3 + size;
     }
     unsigned int seen = 0;
+    unsigned int slots[8];
+    unsigned int count = 0;
+    bool terminal = false;
     while (pc < end) {
         unsigned int opcode = *reinterpret_cast<const unsigned char*>(pc++);
         unsigned int extended = 0;
@@ -316,15 +328,39 @@ static bool unwind_epilogue(CpuContext& context, Word pc) {
             opcode = *reinterpret_cast<const unsigned char*>(pc++);
         }
         if (opcode == 0xc3 && !extended) {
-            return pop_word(context, context.pc) && context.pc && find_function(context.pc - 1);
+            terminal = true;
+            break;
         }
-        if (opcode < 0x58 || opcode > 0x5f) return false;
+        if (opcode == 0xff && !extended && end - pc >= 5) {
+            const auto* branch = reinterpret_cast<const unsigned char*>(pc);
+            if (branch[0] != 0x25) return Epilogue::absent;
+            const Word pointer = pc + 5 + signed_displacement(branch + 1, 4);
+            if (pointer < base || pointer - base > 0xffffffffu || (pointer & 7) ||
+                !readonly_range(static_cast<Rva>(pointer - base), sizeof(Word))) return Epilogue::absent;
+            const Word target = *reinterpret_cast<const Word*>(pointer);
+            const auto* destination = find_function(target);
+            if (!destination || destination->begin == function.begin ||
+                target != base + destination->begin) return Epilogue::absent;
+            // A tail transfer leaves the original caller return slot in place.
+            terminal = true;
+            break;
+        }
+        if (opcode < 0x58 || opcode > 0x5f) return Epilogue::absent;
         const unsigned int reg = opcode - 0x58 + extended;
         const int slot = register_slot[reg];
-        if (slot < 0 || (seen & (1u << reg)) || !pop_word(context, context.nonvolatile[slot])) return false;
+        if (slot < 0 || (seen & (1u << reg)) || count == 8) return Epilogue::absent;
+        slots[count++] = static_cast<unsigned int>(slot);
         seen |= 1u << reg;
     }
-    return false;
+    if (!terminal) return Epilogue::absent;
+    if (!valid_adjustment || !stack_range(context, rsp, sizeof(Word) * (count + 1))) return Epilogue::invalid;
+    const auto* saved = reinterpret_cast<const Word*>(rsp);
+    const Word caller = saved[count];
+    if (!caller || !find_function(caller - 1)) return Epilogue::invalid;
+    for (unsigned int index = 0; index < count; ++index) context.nonvolatile[slots[index]] = saved[index];
+    context.rsp = rsp + sizeof(Word) * (count + 1);
+    context.pc = caller;
+    return Epilogue::restored;
 }
 
 extern "C" int bmo_gs_cpu_dispatch(CpuContext* context) {
@@ -374,21 +410,29 @@ extern "C" int bmo_gs_cpu_prologue(CpuContext* context) {
     const Word captured_rsi = context->nonvolatile[2];
     const Word captured_rdi = context->nonvolatile[3];
     const Word epilogues[] = {reinterpret_cast<Word>(&bmo_test_gs_epilogue_add),
-                              reinterpret_cast<Word>(&bmo_test_gs_epilogue_lea)};
+                              reinterpret_cast<Word>(&bmo_test_gs_epilogue_lea),
+                              reinterpret_cast<Word>(&bmo_test_gs_epilogue_jump)};
     for (const Word epilogue : epilogues) {
         // Project the live frame to the state after sub rsp,40 / lea rbp,[rsp+32].
         context->rsp = captured_rsp - 40;
         context->nonvolatile[1] = captured_rsp - 8;
         context->nonvolatile[2] = captured_rsi;
         context->nonvolatile[3] = captured_rdi;
-        if (!unwind_epilogue(*context, epilogue) || !matches_prologue_caller(*context)) return 0;
+        if (!unwind_frame(*context, epilogue) || !matches_prologue_caller(*context)) return 0;
     }
     context->rsp = context->stack_begin + 4096 - sizeof(Word);
-    if (unwind_epilogue(*context, epilogues[0])) return 0;
+    const Word outside = context->rsp;
+    const Word prior_pc = context->pc;
+    const Word prior_rsi = context->nonvolatile[2];
+    if (unwind_frame(*context, epilogues[0]) || context->rsp != outside ||
+        context->pc != prior_pc || context->nonvolatile[2] != prior_rsi) return 0;
+    const Word malformed = reinterpret_cast<Word>(&bmo_test_gs_epilogue_invalid);
+    if (unwind_epilogue(*context, malformed, *function, 5) != Epilogue::absent ||
+        context->rsp != outside || context->pc != prior_pc || context->nonvolatile[2] != prior_rsi) return 0;
     context->rsp = captured_rsp;
     context->rsp += 24;
     context->nonvolatile[3] = bmo_gs_prologue_expected.caller_rdi;
-    if (!unwind_epilogue(*context, reinterpret_cast<Word>(&bmo_test_gs_epilogue_suffix)) ||
+    if (!unwind_frame(*context, reinterpret_cast<Word>(&bmo_test_gs_epilogue_suffix)) ||
         !matches_prologue_caller(*context)) return 0;
     context->pc = bmo_gs_image.base + function->begin + relative_pc;
     context->rsp = captured_rsp;
