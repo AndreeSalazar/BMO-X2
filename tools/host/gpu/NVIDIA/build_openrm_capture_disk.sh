@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Build an independent UEFI diagnostic disk using the matching ULTRA-LinuX kernel.
 set -euo pipefail
-[[ $# == 4 ]] || { echo "Usage: $0 bzImage mounted-ultra-root instrumented-nvidia.ko new-image-directory" >&2; exit 2; }
+if [[ $# != 4 && ${5-} != --shared-esp ]] || [[ $# -gt 5 ]]; then
+    echo "Usage: $0 bzImage mounted-ultra-root instrumented-nvidia.ko new-image-directory [--shared-esp]" >&2
+    exit 2
+fi
 kernel=$(realpath "$1")
 reference=$(realpath "$2")
 module=$(realpath "$3")
@@ -34,6 +37,18 @@ for firmware in gsp_ga10x.bin ucodes_ga10x.bin; do
     install -Dm644 "$reference/${path#sistema/}" "$root/$path"
 done
 ln -s /sistema/usr/lib "$root/lib"
+capture_dir=
+partition_name=BMO-GSP-CAPTURE
+volume_id='BMO-X2 OpenRM 615 capture volume v1'
+label=GSPDIAG
+if [[ ${5-} == --shared-esp ]]; then
+    capture_dir=/BMO-X2/GSP-DIAG
+    partition_name=
+    volume_id=$(cat /proc/sys/kernel/random/uuid)
+    label=BMO
+fi
+printf "capture_dir='%s'\npartition_name='%s'\nvolume_id='%s'\n" \
+    "$capture_dir" "$partition_name" "$volume_id" > "$root/gsp-volume"
 cat > "$root/init" <<'INIT'
 #!/bin/sh
 export PATH=/bin
@@ -41,6 +56,8 @@ set -eu
 mount -t devtmpfs devtmpfs /dev
 mount -t proc proc /proc
 mount -t sysfs sysfs /sys
+. /gsp-volume
+destination=/capture$capture_dir
 show() {
     echo "$*"
     if [ -c /dev/tty0 ]; then echo "$*" >/dev/tty0 || :; fi
@@ -49,11 +66,14 @@ show "ULTRA-LinuX / Diagnostico GSP de BMO-X2"
 volume=
 for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
     for uevent in /sys/class/block/*/uevent; do
-        grep -qx 'PARTNAME=BMO-GSP-CAPTURE' "$uevent" || continue
+        grep -qx 'DEVTYPE=partition' "$uevent" || continue
+        if [ -n "$partition_name" ]; then
+            grep -Fxq "PARTNAME=$partition_name" "$uevent" || continue
+        fi
         name=${uevent%/uevent}
         device=/dev/${name##*/}
         mount -o ro,nodev,nosuid,noexec -t vfat "$device" /capture || continue
-        if grep -qx 'BMO-X2 OpenRM 615 capture volume v1' /capture/GSPDIAG.ID; then
+        if grep -Fxq "$volume_id" "$destination/GSPDIAG.ID"; then
             volume=$device
             umount /capture
             break 2
@@ -82,8 +102,9 @@ if [ -r "$pci/vendor" ] && [ "$(cat "$pci/vendor")" = 0x10de ] &&
     fi
 fi
 if [ -n "$volume" ] && mount -o nodev,nosuid,noexec -t vfat "$volume" /capture; then
-    if { printf 'BMO_GSP_CAPTURE_STATUS=%s\n' "$result"; dmesg; } > /capture/GSPINIT.TMP &&
-       mv /capture/GSPINIT.TMP /capture/GSPINIT.TXT && sync && umount /capture; then
+    if grep -Fxq "$volume_id" "$destination/GSPDIAG.ID" &&
+       { printf 'BMO_GSP_CAPTURE_STATUS=%s\n' "$result"; dmesg; } > "$destination/GSPINIT.TMP" &&
+       mv "$destination/GSPINIT.TMP" "$destination/GSPINIT.TXT" && sync && umount /capture; then
         show "$result / registro guardado en GSPINIT.TXT"
     else
         show "$result / no se pudo guardar el registro"
@@ -96,21 +117,19 @@ while :; do sleep 60; done
 INIT
 chmod 0755 "$root/init"
 mkdir -p "$work/esp/EFI/BOOT"
-cat > "$work/grub.cfg" <<'GRUB'
-search --no-floppy --label --set=root GSPDIAG
-linux /VMLINUX
-initrd /GSPINIT.GZ
-boot
-GRUB
-grub-mkstandalone -O x86_64-efi --modules='part_gpt fat search search_label linux' \
+printf 'search --no-floppy --file --set=root %s/GSPDIAG.ID\nlinux %s/VMLINUX\ninitrd %s/GSPINIT.GZ\nboot\n' \
+    "$capture_dir" "$capture_dir" "$capture_dir" > "$work/grub.cfg"
+grub-mkstandalone -O x86_64-efi --modules='part_gpt fat search search_fs_file linux' \
     -o "$work/esp/EFI/BOOT/BOOTX64.EFI" "boot/grub/grub.cfg=$work/grub.cfg"
-install -m644 "$kernel" "$work/esp/VMLINUX"
-(cd "$root"; find . -print0 | cpio --null -o -H newc --owner=0:0 --quiet | gzip -1) > "$work/esp/GSPINIT.GZ"
-printf 'BMO-X2 OpenRM 615 capture volume v1\n' > "$work/esp/GSPDIAG.ID"
+payload="$work/esp$capture_dir"
+mkdir -p "$payload"
+install -m644 "$kernel" "$payload/VMLINUX"
+(cd "$root"; find . -print0 | cpio --null -o -H newc --owner=0:0 --quiet | gzip -1) > "$payload/GSPINIT.GZ"
+printf '%s\n' "$volume_id" > "$payload/GSPDIAG.ID"
 image="$output/BMO-GSP-DIAG.img"
 truncate -s 256M "$image"
 printf 'label: gpt\nstart=2048,size=520192,type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B,name="BMO-GSP-CAPTURE"\n' |
     sfdisk --quiet "$image"
-mkfs.fat -F 32 --offset=2048 -n GSPDIAG "$image" 260096 >/dev/null
+mkfs.fat -F 32 --offset=2048 -n "$label" "$image" 260096 >/dev/null
 mcopy -s -i "$image@@1048576" "$work/esp/"* ::/
 (cd "$output"; sha256sum BMO-GSP-DIAG.img > SHA256SUMS)

@@ -1504,7 +1504,16 @@ guarda `GSPINIT.TXT` en la particion FAT32 marcada del propio medio.
 El fichero incluye el estado de la captura y el registro del kernel.
 En QEMU, el arranque UEFI con CPU `max` escribio `GSP_NO_GPU` en una
 copia FAT32. Falta verificar la inicializacion fisica y la emision
-de NVKV con la RTX. El medio se destina a un USB aparte.
+de NVKV con la RTX.
+
+El constructor admite `--shared-esp` para arrancar desde la particion
+FAT32 interna. La entrada **BMO-X2 (Diagnostico RTX GSP)** carga
+`\EFI\BMO-X2\GSP-DIAG.EFI`. GRUB carga el kernel y el initramfs desde
+`\BMO-X2\GSP-DIAG\`. El initramfs comprueba el identificador del
+medio antes de escribir en `\BMO-X2\GSP-DIAG\GSPINIT.TXT`.
+El arranque UEFI de esta variante en QEMU guardo `GSP_NO_GPU` en
+esa ruta. En metal, espera el mensaje de registro guardado antes de
+volver a Windows.
 
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
