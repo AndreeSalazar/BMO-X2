@@ -453,6 +453,7 @@ extern "C" void bmo_main() {
 #ifdef BMO_AMDVI_POST
 #ifdef BMO_DMA_CENSUS
     bool gsp_trace_available=false;
+    const char* gsp_trace_log="LOGINIT";
     unsigned gsp_event_count=0;
     unsigned gsp_log_before=0,gsp_log_after=0;
 #endif
@@ -495,9 +496,12 @@ extern "C" void bmo_main() {
         snprintf(amdvi_line,sizeof(amdvi_line),"GSP_CAPTURE=%08X %08X\n",
                  unsigned(trace_meta),unsigned(trace_meta>>32));
         log(amdvi_line);
-        const bool gsp_timeout=init_code==0x804 || init_code==0x806;
+        const bool gsp_rejected=init_code==0x802;
+        const bool gsp_capture=gsp_rejected || init_code==0x804 || init_code==0x806;
+        const char* gsp_log_name=gsp_rejected ? "LOGRM" : "LOGINIT";
 #ifdef BMO_DMA_CENSUS
-        gsp_trace_available=gsp_timeout;
+        gsp_trace_available=gsp_capture;
+        gsp_trace_log=gsp_log_name;
         gsp_event_count=std::min(unsigned(trace_meta)/16,255u);
         gsp_log_before=unsigned(progress);
         gsp_log_after=unsigned(trace_meta>>32);
@@ -570,11 +574,11 @@ extern "C" void bmo_main() {
             hardware_report+="<br/>";
             hardware_report+=amdvi_line;
         }
-        if(gsp_timeout) {
+        if(gsp_capture) {
             snprintf(amdvi_line,sizeof(amdvi_line),
-                     "<br/>GSP / CPU %08X / RX %08X / MB %08X %08X / LOGINIT %08X",
+                     "<br/>GSP / CPU %08X / RX %08X / MB %08X %08X / %s %08X",
                      unsigned(core),unsigned(core>>32),unsigned(mailbox),unsigned(mailbox>>32),
-                     unsigned(progress));
+                     gsp_log_name,unsigned(progress));
             hardware_report+=amdvi_line;
             snprintf(amdvi_line,sizeof(amdvi_line),
                      "<br/>AMD-Vi / COLA %08X / ESTADO %08X / EVENTO %08X / IOVA %08X%08X",
@@ -582,7 +586,7 @@ extern "C" void bmo_main() {
                      unsigned(iova>>32),unsigned(iova));
             hardware_report+=amdvi_line;
 #ifdef BMO_DMA_CENSUS
-            hardware_report+="<br/>F4 ver eventos y LOGINIT";
+            hardware_report+="<br/>F4 ver captura GSP";
 #endif
         }
         amdvi_panel->SetInnerRML(hardware_report);
@@ -633,8 +637,8 @@ extern "C" void bmo_main() {
                 report+=line;
             }
         } else {
-            snprintf(line,sizeof(line),"<br/>LOGINIT / productor %08X a %08X",
-                     gsp_log_before,gsp_log_after);
+            snprintf(line,sizeof(line),"<br/>%s / productor %08X a %08X",
+                     gsp_trace_log,gsp_log_before,gsp_log_after);
             report+=line;
             const unsigned first=(gsp_trace_page-event_pages)*rows_per_trace_page;
             const unsigned end=std::min(first+rows_per_trace_page,log_rows);

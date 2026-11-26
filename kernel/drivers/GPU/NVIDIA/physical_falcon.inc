@@ -189,7 +189,7 @@ nvidia_physical_begin:
     cmp GSP_STAGE_BASE(%rbp), %rdx
     jb .Lboard_unmap
     mov GSP_PHYSICAL_DTE_BASE(%rbp), %rax
-    sub $0x93000, %rax          # Includes LIBOS arguments and all 16 LOGINIT pages.
+    sub $GSP_LOG_END, %rax      # Bounds both 16-page logs in the firmware reservation.
     cmp %rax, %rdx
     ja .Lboard_unmap
     call .Lpublish_sec2_domain
@@ -240,14 +240,19 @@ nvidia_physical_begin:
     call .Lgsp_init_615
     mov %rax, NVIDIA_GSP_INIT_RECEIPT(%rbp)
     shr $32, %rax
+    mov GSP_NATIVE_QUEUE_BASE(%rbp), %rdx
+    cmp $0x802, %eax
+    jne .Lboard_gsp_timeout
+    add $GSP_LOGRM_OFFSET, %rdx
+    jmp .Lboard_gsp_snapshot
+.Lboard_gsp_timeout:
+    add $GSP_LOGINIT_OFFSET, %rdx
     cmp $0x804, %eax
     je .Lboard_gsp_snapshot
     cmp $0x806, %eax
     jne .Lboard_sec2_revoke
 .Lboard_gsp_snapshot:
     mov $(FALCON_BOARD_VA+0x110000), %ecx
-    mov GSP_NATIVE_QUEUE_BASE(%rbp), %rdx
-    add $0x83000, %rdx          # LOGINIT producer, after GspMem and LIBOS args.
     mov $(SEC2_IOMMU_ALIAS+8192), %r8d
     mov GSP_PHYSICAL_DTE_BASE(%rbp), %r9
     lea GSP_TRACE_OFFSET(%r9), %rax

@@ -1,4 +1,4 @@
-"""Decode the opt-in BMO-X2 GSP timeout snapshot exported over serial."""
+"""Decode the opt-in BMO-X2 GSP init failure snapshot exported over serial."""
 import argparse
 from collections import Counter
 import hashlib
@@ -53,6 +53,7 @@ def decode(trace, summary=None):
     if event_bytes > PAGE - 16 or event_bytes % 16:
         raise ValueError('Longitud de eventos AMD-Vi invalida')
     producer, log_iova = struct.unpack_from('<QQ', trace, PAGE)
+    log_key = 'logrm' if log_iova == 0x0A0A3000 else 'loginit'
     groups = Counter()
     for device, detail, low, high in struct.iter_unpack('<4I', trace[:event_bytes]):
         kind = detail >> 28
@@ -65,17 +66,17 @@ def decode(trace, summary=None):
                            event_type=kind, event='IO_PAGE_FAULT' if kind == 2 else None,
                            flags=f'0x{flags:03X}', context_raw=f'0x{context:04X}',
                            address=f'0x{address:016X}', count=count))
-    report = dict(schema=1, evidence='BMO-X2 GSP 804 snapshot', sha256=hashlib.sha256(trace).hexdigest(),
-                  tx_head=tx_head, tx_tail=tx_tail, event_bytes=event_bytes, events=events,
-                  loginit=dict(producer=f'0x{producer:016X}', producer_after_low=f'0x{producer_after:08X}',
-                               self_iova=f'0x{log_iova:016X}', sha256=hashlib.sha256(trace[PAGE:]).hexdigest()))
+    report = dict(schema=1, evidence='BMO-X2 GSP init failure snapshot', sha256=hashlib.sha256(trace).hexdigest(),
+                  tx_head=tx_head, tx_tail=tx_tail, event_bytes=event_bytes, events=events)
+    report[log_key] = dict(producer=f'0x{producer:016X}', producer_after_low=f'0x{producer_after:08X}',
+                           self_iova=f'0x{log_iova:016X}', sha256=hashlib.sha256(trace[PAGE:]).hexdigest())
     if summary is not None:
         mailbox0, mailbox1, cpu, rx, before, tail, status, first, address = summary
         report.update(mailboxes=[f'0x{mailbox0:08X}', f'0x{mailbox1:08X}'],
                       cpuctl=f'0x{cpu:08X}', rx_head=rx, amdvi_tail_bytes=tail,
                       amdvi_status=f'0x{status:08X}', first_event_summary=f'0x{first:08X}',
                       first_event_address=f'0x{address:016X}')
-        report['loginit'].update(producer_before_low=f'0x{before:08X}',
+        report[log_key].update(producer_before_low=f'0x{before:08X}',
                                  producer_changed_during_copy=(before != producer_after or
                                                                before != (producer & 0xffffffff)))
     return report

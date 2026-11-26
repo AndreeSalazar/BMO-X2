@@ -1364,7 +1364,7 @@ El recibo temprano de FAT32 se sigue escribiendo antes de esta captura.
 La opcion `--nvidia-trace-export` agrega una salida serie al candidato
 aislado RTX FWSEC. Se agrega a `guest.py` y a la orden de `media.py` del
 perfil fisico. F5 aparece al abrir con F4 una captura del estado
-`804` o `806`. F5 transmite las 17 paginas de la copia privada por el canal
+`802`, `804` o `806`. F5 transmite las 17 paginas de la copia privada por el canal
 serie existente. El arranque y el camino de presentacion quedan fuera
 de esa transferencia. Ring 0 incluye los indices TX head y tail en las
 palabras libres de la pagina de eventos, sin consumir la cola AMD-Vi.
@@ -1402,6 +1402,12 @@ y codifica `UNSTABLE_INTERFACE_SUPPORT` con el mismo tipo U32 que OpenRM.
 Si la espera de respuesta termina en `806`, la captura existente tambien
 recoge los indices y LOGINIT antes de retirar Bus Master. El plazo y los
 requisitos de la respuesta correlacionada se conservan.
+
+METAL con `c85c8e6` recibio `802 / 00000040`. El estado NVIDIA
+`NV_ERR_INVALID_STATE` confirma que se recibio una respuesta de INIT.
+Ahora este rechazo guarda LOGRM antes del cierre PCIe. El lector de
+Ring 3 permite leer la captura de `802`, `804` y `806`. Los plazos
+conservan LOGINIT. La captura no permite dar por aceptado el INIT.
 
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).

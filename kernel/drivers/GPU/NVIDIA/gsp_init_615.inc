@@ -199,9 +199,9 @@ nvidia_gsp_init_615:
     pop %rbx
     ret
 
-# Read-only timeout snapshot. Win64: RCX = GSP, RDX = LOGINIT,
+# Read-only init failure snapshot. Win64: RCX = GSP, RDX = selected log,
 # R8 = event MMIO, R9 = private event ring, fifth arg = summary,
-# sixth arg = private 17-page trace (event page, then LOGINIT).
+# sixth arg = private 17-page trace (event page, then 64-KiB log).
 .globl nvidia_gsp_snapshot_615
 nvidia_gsp_snapshot_615:
 .Lgsp_snapshot_615:

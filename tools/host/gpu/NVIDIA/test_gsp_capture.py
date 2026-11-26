@@ -3,6 +3,7 @@ import io
 import os
 from pathlib import Path
 import subprocess
+import struct
 import tempfile
 import unittest
 
@@ -56,6 +57,14 @@ class GspSerialCapture(unittest.TestCase):
         for broken in (self.serial.replace(b'GSPD=00000:', b'GSPD=00040:', 1), self.serial[:-50]):
             with self.assertRaises(ValueError):
                 read_serial(io.BytesIO(broken))
+
+    def test_rm_log_is_reported_under_its_own_name(self):
+        trace, summary = read_serial(io.BytesIO(self.serial))
+        trace = bytearray(trace)
+        struct.pack_into('<Q', trace, 4096+8, 0x0A0A3000)
+        report = decode(trace, summary)
+        self.assertEqual(report['logrm']['self_iova'], '0x000000000A0A3000')
+        self.assertNotIn('loginit', report)
 
     def test_corruption_is_rejected_even_with_valid_hex(self):
         broken = self.serial.replace(b'GSPD=00000:00', b'GSPD=00000:01', 1)
