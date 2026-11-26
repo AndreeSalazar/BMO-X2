@@ -207,27 +207,44 @@ fixtures. Extensiones de fabricante o fuera de estos niveles quedan sin
 declarar. La jerarquia v1-v4 sigue los niveles de microarquitectura del
 [x86-64 psABI](https://gitlab.com/x86-psABIs/x86-64-ABI/blob/master/x86-64-ABI/low-level-sys-info.tex).
 
-La maduracion MSVC va por cierres comprobables:
+## Estado de MSVC y C++
 
-Los pasos siguientes son el trabajo especifico de MSVC. Se pueden preparar
-en paralelo, pero el orden maestro de admision anterior gobierna cuando se
-puede declarar compatible un productor o runtime de forma general.
+**Objetivo actual**. Ejecutar en Ring 3 un programa de consola C++ con la
+entrada estandar de MSVC. Hoy el cliente C++ de prueba arranca con la
+entrada de BMO-X2, usa funciones de la UCRT de Microsoft y pasa los casos
+de `/GS` y unwind descritos abajo.
 
-1. **Intake y procedencia**: inventario PE32+, hash, directorios y blockers; un
-   manifiesto manual puede ligar productor, versiones, opciones y hash exacto.
-   El intake de objetos COFF `.obj` y su enlace son un trabajo separado, aun
-   pendiente.
-2. **PE freestanding**: admitir codigo sin CRT ni imports solo dentro del perfil
-   actual y conservar relocaciones que tengan regla definida.
-3. **Carga externa en Ring 3**: mapa general de regiones, entry, pila, permisos,
-   relocaciones y recuperacion antes de afirmar ejecucion de un SBEF externo.
-4. **Imports con contrato**: resolver simbolos contra un catalogo versionado de
-   servicios BMO-X2. `/MT` y `/MD` son perfiles distintos; un import ausente
-   sigue siendo rechazo explicito.
-5. **Runtime C/C++**: incorporar inicializacion, TLS, excepciones, RTTI y otras
-   funciones solo cuando exista implementacion y evidencia por servicio.
-6. **Win32 y graficos**: GUI, COM, DXGI y DirectX son capas posteriores en
-   Ring 3; no forman parte del primer perfil de consola.
+**C++ es la prueba principal.** Con `cl.exe` y `link.exe` podemos cubrir
+constructores, destructores, plantillas, TLS y excepciones en el mismo
+recorrido. Las sondas pequenas en C comprueban el ABI y ayudan a localizar
+fallos de carga. `clang-cl` y `lld-link` sirven como control independiente
+para el mismo formato PE32+ y el ABI Microsoft x64. HOST recibe el EXE
+enlazado y valida su perfil, sus metadatos y sus dependencias.
+
+| Tramo | Estado actual | Evidencia |
+|---|---|---|
+| PE32+ x86-64 | HOST inventaria directorios, imports, IAT, unwind y `load_config`. Empaqueta perfiles acotados y relocaciones DIR64 internas. | [Intake de un EXE /MD](../../Reports/msvc-standard-intake.json) y [DIR64 en QEMU](../../Reports/host-msvc-rebase-qemu.json) |
+| Carga SBEF en Ring 3 | QEMU carga clientes externos desde FAT32, comprueba permisos y limpia el mapa al salir o fallar. La reapertura de procesos independientes en el mismo arranque sigue pendiente. | [Consola MSVC](../../Reports/host-msvc-console-qemu.json) |
+| Runtime C++ acotado | Cliente `/MT` con entrada BMO-X2. Ejecuta constructores, cierre C++ y siete funciones de `libucrt.lib`. | [CRT y /GS en QEMU](../../Reports/host-msvc-crt-gs-native-qemu.json) |
+| DLL y TLS | DLL fija con attach y detach. Plantilla TLS estatica comprobada en dos hilos del banco. | [Ciclo de DLL](../../Reports/host-msvc-dll-lifecycle-qemu.json) y [TLS](../../Reports/host-msvc-tls-qemu.json) |
+| Excepciones Win64 | El banco QEMU entrega `#UD`, llama a `__GSHandlerCheck` y reconstruye dos marcos, incluida una pila dinamica y un prologo fijo interrumpido. | [11 casos en Ring 3](../../Reports/host-msvc-crt-gs-native-qemu.json) |
+| EXE Windows con arranque estandar | El EXE `/MD /EHsc` del banco sigue bloqueado por imports, IAT y `load_config`. Requiere 60 simbolos de 10 DLL. | [Diagnostico del EXE](../../Reports/msvc-standard-intake.json) |
+
+### Pruebas de cierre
+
+| Paso | Que tiene que pasar |
+|---|---|
+| **1. Completar unwind Win64** | Recuperar registros, RSP y RIP desde un epilogo en curso y desde un prologo interrumpido antes de establecer el puntero de marco. Ampliar la captura al contexto que requiere el despacho. |
+| **2. Probar SEH y C++** | Inicializar la cookie `/GS` al crear el proceso. Probar un caso SEH y un `throw`/`catch` que ejecute los destructores de los marcos recorridos. |
+| **3. Arrancar C++ con `/MT`** | Ejecutar un EXE por la entrada estandar de MSVC con argumentos, heap, stdout, `main` y cierre comprobados. Abrirlo, cerrarlo y volverlo a abrir en el mismo arranque. |
+| **4. Arrancar C++ con `/MD`** | Resolver las DLL y los API sets de la muestra, aplicar sus requisitos de IAT y `load_config` y completar su ejecucion con salida verificable. |
+| **5. Probar una aplicacion Win32** | Abrir archivos y responder a ventanas y eventos. GUI, COM y graficos se verifican con sus propios clientes y contratos. |
+
+La [regla de admision](#regla-de-admision-por-etapas) fija los requisitos
+para declarar compatibilidad general. El [catalogo de MSVC](#inventario-detallado-de-msvc)
+permite consultar cada capacidad y su evidencia.
+
+### Procedencia del ejecutable
 
 El manifiesto de intake es una declaracion del build, no una firma de MSVC.
 HOST comprueba que `OutputSHA256` coincide con el PE recibido y conserva la

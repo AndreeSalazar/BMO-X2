@@ -41,7 +41,7 @@ en pausa.
 
 | Productor y perfil | Estado comprobado | Limite actual |
 |---|---|---|
-| MSVC `cl.exe` + `link.exe`, PE32+ | QEMU acredita clientes freestanding, DIR64, consola, DLL fija y TLS estatico en perfiles concretos. | CRT, Win32 y graficos generales siguen pendientes. El manifiesto ligado al hash no atesta el toolchain. |
+| MSVC `cl.exe` + `link.exe`, PE32+ | QEMU acredita DIR64, consola, DLL fija, TLS estatico, funciones UCRT, `/GS` y desenrollado Win64 acotado. | Los EXE C++ con el arranque estandar de MSVC siguen pendientes. [Estado y pruebas de cierre](tools/host/README.md#estado-de-msvc-y-c). |
 | LLVM Clang + LLD, ELF64 estatico | Cliente C freestanding: ELF -> HOST -> SBEF -> CPL3 en QEMU. | La prueba cubre el cliente ABI embebido. |
 | LLVM `clang-cl` + `lld-link`, PE32+ | Cliente C freestanding: PE -> HOST -> SBEF -> CPL3 en QEMU. | Perfil PE fijo de una region RX, sin imports. |
 | GCC, ELF64 estatico | Cliente ABI en Ring 3 y ruta concreta de DOOM en QEMU. | El cliente ABI se reempaqueto desde el ELF archivado. |
