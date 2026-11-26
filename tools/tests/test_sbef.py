@@ -10,10 +10,35 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import sbef
 from host.diagnostics import Rejection
-from host.importers.pe import pack_pe, probe_pe
+from host.importers.pe import DIRECTORIES, pack_pe, probe_pe
 
 
 class Sbef(unittest.TestCase):
+    def test_msvc_catalog_filters_and_points_to_existing_evidence(self):
+        command = [sys.executable, '-B', sbef.__file__, 'profiles']
+        general = json.loads(subprocess.check_output(command))
+        self.assertEqual(len(general['Profiles']), 5)
+        self.assertIn('CapabilityCatalog', general)
+        msvc = [*command, '--producer', 'msvc']
+        report = json.loads(subprocess.check_output(msvc))
+        groups = {group['Id']: group['Capabilities'] for group in report['CapabilityGroups']}
+        self.assertEqual([item['Id'] for item in groups['directories']],
+                         [name for name, _ in DIRECTORIES.values()])
+        root = Path(sbef.__file__).resolve().parents[1]
+        for item in (item for group in groups.values() for item in group):
+            self.assertIn(item['State'], report['CapabilityStates'])
+            if item['State'] == 'qemu':
+                self.assertTrue((root / item['Evidence']).is_file(), item)
+        filtered = json.loads(subprocess.check_output([*msvc, '--category', 'tls-exceptions']))
+        self.assertEqual([group['Id'] for group in filtered['CapabilityGroups']], ['tls-exceptions'])
+        markdown = subprocess.check_output([*msvc, '--category', 'tls-exceptions', '--format', 'markdown'], text=True)
+        self.assertIn('## TLS, hilos y excepciones', markdown)
+        self.assertIn('[Evidencia](Reports/host-msvc-tls-qemu.json)', markdown)
+        self.assertNotIn('## Imports y DLL', markdown)
+        invalid = subprocess.run([*command, '--producer', 'gcc', '--category', 'runtime'],
+                                 capture_output=True, text=True)
+        self.assertEqual(invalid.returncode, 2)
+
     def test_ui_profile_is_explicit_and_preserves_default_limit(self):
         from host.sbef.format import inspect
         payload=1024*1024+1

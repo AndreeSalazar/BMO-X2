@@ -41,13 +41,13 @@ en pausa.
 
 | Productor y perfil | Estado comprobado | Limite actual |
 |---|---|---|
-| MSVC `cl.exe` + `link.exe`, PE32+ | Cliente C freestanding: PE -> HOST -> SBEF -> CPL3 en QEMU. | No es C++ general, Win32, DLL ni DirectX. El manifiesto ligado al hash no atesta el toolchain. |
+| MSVC `cl.exe` + `link.exe`, PE32+ | QEMU acredita clientes freestanding, DIR64, consola, DLL fija y TLS estatico en perfiles concretos. | CRT, Win32 y graficos generales siguen pendientes. El manifiesto ligado al hash no atesta el toolchain. |
 | LLVM Clang + LLD, ELF64 estatico | Cliente C freestanding: ELF -> HOST -> SBEF -> CPL3 en QEMU. | La prueba cubre el cliente ABI embebido. |
 | LLVM `clang-cl` + `lld-link`, PE32+ | Cliente C freestanding: PE -> HOST -> SBEF -> CPL3 en QEMU. | Perfil PE fijo de una region RX, sin imports. |
 | GCC, ELF64 estatico | Cliente ABI en Ring 3 y ruta concreta de DOOM en QEMU. | El cliente ABI se reempaqueto desde el ELF archivado. |
 | `rustc`, ELF64 estatico | Cliente ABI en Ring 3 bajo QEMU. Rust sostiene servicios y escritorio. | Cada crate externo necesita cumplir el perfil y sus dependencias. |
 
-La prueba MSVC mas reciente empaqueto un PE de 1,536 bytes como SBEF de
+La primera prueba integrada MSVC empaqueto un PE de 1,536 bytes como SBEF de
 792 bytes y paso en QEMU 11.1.0: ejecucion CPL3, tres llamadas ABI,
 rechazo de capacidad invalida, WAIT y recuperacion/limpieza tras fallo.
 Es una prueba de un cliente C freestanding, no una prueba de Windows completo
@@ -61,6 +61,7 @@ SHA-256 de entrada. Las cinco rutas tienen una prueba del cliente ABI en
 
 ```powershell
 python -B tools/sbef.py profiles
+python -B tools/sbef.py profiles --producer msvc --format markdown
 python -B tools/sbef.py probe app.exe --producer msvc
 python -B tools/sbef.py pack app.elf app.sbef --producer clang --abi 1
 python -B tools/sbef.py plan app.sbef

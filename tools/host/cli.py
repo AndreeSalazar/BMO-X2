@@ -10,6 +10,7 @@ from .diagnostics import Rejection
 from .importers.elf import MAX_ELF, pack_elf
 from .importers.pe import pack_pe, pack_pe_tls, pack_pe_with_dll, probe_pe
 from .profiles import PRODUCER_PROFILES, profile_report
+from .toolchains.msvc_catalog import CATALOG as MSVC_CATALOG
 from .sbef.format import (
     FORMAT_VERSION,
     LEGACY_FORMAT_VERSION,
@@ -35,7 +36,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--json-errors', action='store_true', help='Write structured rejection to stderr')
     commands = parser.add_subparsers(dest='action', required=True)
-    commands.add_parser('profiles', help='Lista capas HOST y perfiles productores x86-64')
+    profiles = commands.add_parser('profiles', help='Lista capas HOST y perfiles productores x86-64')
+    profiles.add_argument('--producer', choices=PRODUCER_PROFILES)
+    profiles.add_argument('--category', choices=MSVC_CATALOG, help='Filtra el catalogo detallado de MSVC')
+    profiles.add_argument('--format', choices=('json', 'markdown'), default='json')
     pack = commands.add_parser('pack')
     pack.add_argument('input', type=Path)
     pack.add_argument('output', type=Path)
@@ -69,6 +73,8 @@ def main():
         command.add_argument('--producer', choices=PRODUCER_PROFILES,
                              help='Declare the producer profile and require its input format')
     args = parser.parse_args()
+    if args.action == 'profiles' and (args.category or args.format == 'markdown') and args.producer != 'msvc':
+        profiles.error('--category y --format markdown requieren --producer msvc')
     try:
         result = run(args)
     except Rejection as error:
@@ -84,8 +90,24 @@ def main():
         else:
             print(f'RED [{error}]', file=sys.stderr)
         return 1
-    print(json.dumps(result, indent=2))
+    if args.action == 'profiles' and args.format == 'markdown':
+        print(markdown_catalog(result))
+    else:
+        print(json.dumps(result, indent=2))
     return 0
+
+
+def markdown_catalog(report):
+    lines = [f'# MSVC / {report["Target"]}', '',
+             *(f'- **{state.upper()}** {description}' for state, description in report['CapabilityStates'].items())]
+    for group in report['CapabilityGroups']:
+        lines.extend(('', f'## {group["Name"]}', ''))
+        for item in group['Capabilities']:
+            entry = f'- **{item["Name"]}** ({item["State"].upper()}). {item["Boundary"]}'
+            if 'Evidence' in item:
+                entry += f' [Evidencia]({item["Evidence"]})'
+            lines.append(entry)
+    return '\n'.join(lines)
 
 
 def inspect_file(path):
@@ -126,7 +148,7 @@ def compare_builds(baseline, candidate):
 
 def run(args):
     if args.action == 'profiles':
-        return profile_report()
+        return profile_report(getattr(args, 'producer', None), getattr(args, 'category', None))
     if args.action == 'inspect':
         return inspect_file(args.input)
     if args.action == 'plan':

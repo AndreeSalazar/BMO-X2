@@ -4,6 +4,7 @@ from .importers.pe_bindings import WIN64_CONSOLE_PROFILE
 from .importers.pe_exports import DLL_LIFECYCLE_PROFILE, FIXED_DLL_PROFILE
 from .importers.pe_tls import TLS_PROFILE
 from .sbef.isa import PROFILES as ISA_PROFILES
+from .toolchains.msvc_catalog import STATES as MSVC_CAPABILITY_STATES, msvc_catalog
 
 HOST_TARGET = 'x86-64'
 ISA_POLICY = {
@@ -68,7 +69,7 @@ CAPABILITY_CATALOG = [
         'Family': 'abi-runtime',
         'State': 'selected-services-only',
         'Implementation': ['tools/host/importers/pe_imports.py', 'tools/host/importers/pe_bindings.py'],
-        'Boundary': 'Catalogo acotado de servicios para fixtures; UCRT, VCRuntime, Win32 general y DLL siguen pendientes.',
+        'Boundary': 'Consola, DLL fija, ciclo de vida y TLS estatico tienen perfiles acotados; los runtimes y servicios Win32 generales siguen pendientes.',
     },
     {
         'Id': 'sbef-external-process',
@@ -136,7 +137,7 @@ PROFILES = [
         'Admission': 'partial',
         'AdmissionEvidence': 'Intake PE, perfiles freestanding acotados y empaquetado de relocacion DIR64 interna.',
         'Execution': 'fixture-specific',
-        'ExecutionEvidence': 'Las pruebas ABI y de servicios declarados tienen evidencia QEMU. El paquete generico de cuatro regiones aun no tiene evidencia de carga generica en QEMU.',
+        'ExecutionEvidence': 'QEMU acredita el ABI, un EXE reubicado de cuatro regiones, consola, DLL fija y TLS estatico mediante bancos concretos.',
         'Provenance': 'Manifiesto opcional del usuario; HOST valida que el hash PE coincida, pero no verifica la identidad del compilador ni del enlazador.',
         'SharedImplementation': [
             'tools/host/msvc.ps1',
@@ -146,7 +147,7 @@ PROFILES = [
             'tools/host/importers/pe_bindings.py',
             'tools/host/sbef/format.py',
         ],
-        'KnownGaps': ['generacion y atestacion independiente del manifiesto de build', 'importacion de objetos COFF y flujo de enlace propio', 'imports generales y carga de DLL', 'TLS', 'configuracion de carga y CFG', 'unwind y excepciones generales', 'servicios generales UCRT/VCRuntime/MSVCP y Win32'],
+        'KnownGaps': ['generacion y atestacion independiente del manifiesto de build', 'importacion de objetos COFF y flujo de enlace propio', 'imports generales y carga dinamica de DLL', 'TLS dinamico y callbacks', 'configuracion de carga y CFG', 'unwind y excepciones generales', 'servicios generales UCRT/VCRuntime/MSVCP y Win32'],
     },
     {
         'Id': 'llvm-clang-x86_64-elf64-static',
@@ -295,8 +296,14 @@ ADMISSION_ADVANCE_RULE = (
 )
 
 
-def profile_report():
+def profile_report(producer=None, category=None):
     """Return the current x86-64 HOST layer and producer matrix."""
+    if producer is not None:
+        result = dict(Schema=1, Target=HOST_TARGET, Profiles=[PRODUCER_PROFILES[producer]])
+        if producer == 'msvc':
+            result.update(CapabilityStates=MSVC_CAPABILITY_STATES, CapabilityGroups=msvc_catalog(category),
+                          RuntimeImportProfiles=[WIN64_CONSOLE_PROFILE, FIXED_DLL_PROFILE, DLL_LIFECYCLE_PROFILE, TLS_PROFILE])
+        return result
     return {
         'Schema': 1,
         'Target': HOST_TARGET,

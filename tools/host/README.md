@@ -130,7 +130,7 @@ completa solo porque existe un lector o un fixture.
 | ELF64 estatico | Perfil limitado | El formato aceptado no trae automaticamente su runtime. |
 | x86-64 ISA | Base `x86-64-v1` fijada; SBEF v2 declara v1-v4 | La declaracion no prueba el contenido del binario; la comprobacion general CASM sigue pendiente junto a la puerta 1. |
 | Relocacion PE DIR64 | Parcial | Solo se permiten destinos internos definidos por el perfil. |
-| Imports y runtime | Servicios seleccionados | UCRT, VCRuntime, Win32 general y DLL no estan completos. |
+| Imports y runtime | Consola, DLL fija, ciclo de vida y TLS estatico tienen bancos QEMU | Los runtimes y servicios Win32 generales siguen pendientes. |
 | Carga SBEF externa | Fixtures concretos en QEMU | El cargador generico de procesos Ring 3 sigue pendiente. |
 
 La matriz de maquina vive en `profiles.py` y se exporta como
@@ -139,6 +139,33 @@ variante futura para POWER u otra CPU pueden reutilizarse especificaciones,
 formatos neutrales, diagnosticos y evidencia; ISA, ABI, instrucciones,
 relocaciones y backend pertenecen al HOST de esa CPU. Este catalogo no afirma que BMO-X2 x86-64
 ejecute binarios de otra arquitectura.
+
+### Inventario detallado de MSVC
+
+El inventario enumera 69 capacidades en siete categorias. Cada
+entrada indica si HOST puede inspeccionarla o emitirla, si un banco
+QEMU la ejecuto o si queda pendiente. Los casos QEMU enlazan al
+informe original.
+
+| Selector | Contenido |
+|---|---|
+| `build` | Compilador, enlazador, COFF, bibliotecas, manifiesto y depuracion. |
+| `image` | PE32+, secciones, memoria, reubicaciones e ISA. |
+| `directories` | Los 16 directorios PE y los bloqueos del perfil base. |
+| `imports` | Consola, IAT, DLL fija y carga dinamica. |
+| `runtime` | ABI Win64, entrada, ciclo C++, CRT, STL y RTTI. |
+| `tls-exceptions` | TLS, excepciones, unwind, SEH y CFG. |
+| `system` | Servicios Win32, UI, COM y APIs graficas. |
+
+```powershell
+python -B tools/sbef.py profiles --producer msvc
+python -B tools/sbef.py profiles --producer msvc --format markdown
+python -B tools/sbef.py profiles --producer msvc --category tls-exceptions --format markdown
+```
+
+El Markdown usa enlaces relativos a la raiz del repositorio.
+Para inspeccionar un EXE propio y obtener sus bloqueos del perfil
+base, usa `python -B tools/sbef.py probe app.exe --producer msvc`.
 
 El destino de BMO-X2 es exclusivamente x86-64. La base fijada es
 `x86-64-v1`; cada SBEF v2 declara el minimo `v1`, `v2`, `v3` o `v4`. El
