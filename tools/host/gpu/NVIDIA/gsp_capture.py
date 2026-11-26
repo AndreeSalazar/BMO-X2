@@ -16,6 +16,71 @@ BEGIN = b'BMO_GSP_BEGIN=1 11000'
 END = re.compile(rb'BMO_GSP_END=1 11000 ([0-9A-F]{8})')
 ROW = re.compile(rb'GSPD=([0-9A-F]{5}):([0-9A-F]{128})')
 SUMMARY = re.compile(rb'GSP_TRACE=(' + rb'[0-9A-F]{8} ' * 8 + rb'[0-9A-F]{16})')
+SCREEN_HEADER = re.compile(r'(LOGRM|LOGINIT) / ultimas palabras / (\d+) de (\d+)')
+SCREEN_PUT = re.compile(r'Productor ([0-9A-F]{16}) / despues ([0-9A-F]{8})')
+SCREEN_ROW = re.compile(r'([0-9A-F]{8}) ([0-9A-F]{16})(?: ([0-9A-F]{16}))?')
+LOG_WORDS = 65536 // 8 - 1
+SCREEN_WORDS = 20
+
+
+def read_screen(text):
+    """Read one or more transcribed screen pages from a single snapshot."""
+    identity = None
+    pages = {}
+    page = None
+    for line in text.splitlines():
+        if match := SCREEN_HEADER.fullmatch(line.strip()):
+            log, number, count = match.groups()
+            page = int(number)
+            if page in pages or not 1 <= page <= int(count):
+                raise ValueError('Pagina GSP invalida o duplicada')
+            pages[page] = []
+            producer = None
+        elif page is not None and (match := SCREEN_PUT.fullmatch(line.strip())):
+            put, after = (int(value, 16) for value in match.groups())
+            observed = (log, put, after)
+            maximum = min(put, LOG_WORDS)
+            if identity not in (None, observed) or int(count) != (maximum + SCREEN_WORDS - 1) // SCREEN_WORDS:
+                raise ValueError('Las paginas no corresponden a la misma captura GSP')
+            identity = observed
+            producer = put
+        elif page is not None and (match := SCREEN_ROW.fullmatch(line.strip())):
+            if producer is None:
+                raise ValueError('Falta el productor de la pagina GSP')
+            cursor, first, second = match.groups()
+            end = producer - (page - 1) * SCREEN_WORDS
+            start = max(producer - min(producer, LOG_WORDS), end - SCREEN_WORDS)
+            words = pages[page]
+            row = [int(word, 16) for word in (first, second) if word is not None]
+            if int(cursor, 16) != (start + len(words)) & 0xffffffff or len(words) + len(row) > end - start:
+                raise ValueError('Fila GSP fuera de orden o de rango')
+            words.extend(row)
+    if identity is None or not pages or sorted(pages) != list(range(1, len(pages) + 1)):
+        raise ValueError('Se requieren paginas GSP consecutivas desde la primera')
+    log, put, after = identity
+    expected = min(put, LOG_WORDS)
+    for page, words in pages.items():
+        if len(words) != min(SCREEN_WORDS, expected - (page - 1) * SCREEN_WORDS):
+            raise ValueError('Pagina GSP incompleta')
+    return log, put, after, [word for page in sorted(pages, reverse=True) for word in pages[page]]
+
+
+def decode_packed_tail(log, put, after, words):
+    records = []
+    cursor = len(words)
+    # LibOS v2 stores arguments, then packed metadata, then a timestamp.
+    while cursor >= 2:
+        metadata, timestamp = words[cursor-2:cursor]
+        task, size = metadata >> 56, (metadata >> 48) & 0xff
+        if not 1 <= task <= 9 or not 2 <= size <= min(22, cursor):
+            break
+        records.append(dict(index=put-len(words)+cursor-size, task=task,
+                            metadata_offset=f'0x{metadata & ((1 << 48) - 1):012X}',
+                            timestamp=f'0x{timestamp:016X}',
+                            arguments=[f'0x{arg:016X}' for arg in words[cursor-size:cursor-2]]))
+        cursor -= size
+    return dict(log=log, producer=put, producer_matches_after=(put & 0xffffffff) == after,
+                words=words, candidate_records_newest_first=records, undecoded_prefix_words=cursor)
 
 
 def read_serial(stream):
@@ -86,15 +151,21 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('serial', type=Path)
     parser.add_argument('--raw', type=Path, help='Write the validated 17-page capture to a binary file')
+    parser.add_argument('--screen', action='store_true', help='Read the transcribed GSP tail panel')
     args = parser.parse_args()
+    if args.screen and args.raw:
+        parser.error('--screen no contiene las 17 paginas requeridas por --raw')
     if args.raw and args.raw.resolve() == args.serial.resolve():
         parser.error('El archivo bruto debe ser distinto del registro serie')
     try:
-        with args.serial.open('rb') as stream:
-            trace, summary = read_serial(stream)
-        report = decode(trace, summary)
-        if args.raw:
-            args.raw.write_bytes(trace)
+        if args.screen:
+            report = decode_packed_tail(*read_screen(args.serial.read_text(encoding='utf-8-sig')))
+        else:
+            with args.serial.open('rb') as stream:
+                trace, summary = read_serial(stream)
+            report = decode(trace, summary)
+            if args.raw:
+                args.raw.write_bytes(trace)
     except (OSError, ValueError) as error:
         parser.exit(1, f'GSP: {error}\n')
     print(json.dumps(report, indent=2))

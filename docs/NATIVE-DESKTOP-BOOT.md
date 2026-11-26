@@ -1361,17 +1361,17 @@ ocupa 68 KiB y queda fuera de los mapas DMA. El panel de Ring 3 permite
 abrir la captura con F4 y avanzar con F3 desde los eventos hasta LOGINIT.
 El recibo temprano de FAT32 se sigue escribiendo antes de esta captura.
 
-La opcion `--nvidia-trace-export` agrega una salida serie al candidato
-aislado RTX FWSEC. Se agrega a `guest.py` y a la orden de `media.py` del
-perfil fisico. F5 aparece al abrir con F4 una captura del estado
-`802`, `804` o `806`. F5 transmite las 17 paginas de la copia privada por el canal
-serie existente. El arranque y el camino de presentacion quedan fuera
-de esa transferencia. Ring 0 incluye los indices TX head y tail en las
-palabras libres de la pagina de eventos, sin consumir la cola AMD-Vi.
+La opcion `--nvidia-trace-export` agrega dos vistas de diagnostico al
+candidato aislado RTX FWSEC. Para `802`, `804` o `806`, F4 abre las
+ultimas 20 palabras del registro capturado. F3 muestra las anteriores
+y F5 alterna entre esta vista y la captura completa. F6 transmite las
+17 paginas por el canal serie. Ring 0 incluye los indices TX head y
+tail en la pagina de eventos sin consumir la cola AMD-Vi.
 
 ```powershell
 python -B tools/desktop/rmlui/native/guest.py --desktop --usb both --amdvi-post --dma-census --storage-state --full-hd --amdvi-mmio-report --nvidia-trace-export
 python -B tools/host/gpu/NVIDIA/gsp_capture.py serie.log --raw captura-gsp.bin
+python -B tools/host/gpu/NVIDIA/gsp_capture.py foto-transcrita.txt --screen
 ```
 
 El lector HOST rechaza filas fuera de orden, capturas incompletas y
@@ -1380,7 +1380,13 @@ direccion, y compara los productores de LOGINIT antes y despues de la
 copia. El archivo bruto conserva LOGINIT para cotejarlo con OpenRM
 615.78.08. Una direccion de fallo cero por si sola no identifica el
 descriptor que genero el acceso. La prueba en metal de esta opcion
-requiere una salida serie capturada por un equipo receptor.
+requiere una salida serie capturada por un equipo receptor. Con una
+foto, el lector coteja el productor, las posiciones y el numero de
+palabras. Identifica candidatos a registros LibOS v2 con su tarea,
+metadatos y argumentos. Para traducir los offsets a mensajes hace falta
+la tabla de formatos de la version de firmware usada en la captura.
+La foto permite recuperar el final del registro tras volver a Windows.
+El perfil captura en RAM despues de ExitBootServices.
 [Validacion HOST del exportador](../Reports/nvidia-gsp-serial-capture-host.json).
 
 METAL con `eb6eac7` volvio a mostrar SEC2 `701`, GSP `804` y un

@@ -612,17 +612,55 @@ extern "C" void bmo_main() {
 #ifdef BMO_AMDVI_POST
     bool gsp_trace_open=false;
     unsigned gsp_trace_page=0;
+#ifdef BMO_NVIDIA_TRACE_EXPORT
+    bool gsp_tail_open=false;
+    constexpr unsigned log_words=65536/8-1;
+    constexpr unsigned tail_words=20;
+    const auto log_producer=gsp_trace_available ? doom_invoke(3,3,amdvi_diagnostic,17+512) : 0;
+    const auto captured_words=std::min(log_producer,uint64_t(log_words));
+    const unsigned tail_pages=unsigned((captured_words+tail_words-1)/tail_words);
+#endif
     constexpr unsigned rows_per_trace_page=12;
     const unsigned event_pages=(gsp_event_count+rows_per_trace_page-1)/rows_per_trace_page;
     constexpr unsigned log_rows=65536/16;
     const unsigned trace_pages=event_pages+(log_rows+rows_per_trace_page-1)/rows_per_trace_page;
     auto show_gsp_trace=[&]() {
         char line[144];
+#ifdef BMO_NVIDIA_TRACE_EXPORT
+        if(gsp_tail_open) {
+            snprintf(line,sizeof(line),"%s / ultimas palabras / %u de %u<br/>"
+                     "F5 captura completa / F3 anteriores / F6 serie / F4 cerrar",
+                     gsp_trace_log,gsp_trace_page+1,std::max(1u,tail_pages));
+            Rml::String report=line;
+            snprintf(line,sizeof(line),"<br/>Productor %08X%08X / despues %08X",
+                     unsigned(log_producer>>32),unsigned(log_producer),gsp_log_after);
+            report+=line;
+            if(!tail_pages)report+="<br/>Registro vacio";
+            if(gsp_log_before!=gsp_log_after || unsigned(log_producer)!=gsp_log_after)
+                report+="<br/>El registro cambio durante la copia";
+            const auto end=log_producer-gsp_trace_page*tail_words;
+            const auto start=std::max(log_producer-captured_words,
+                                      end-std::min(end,uint64_t(tail_words)));
+            for(auto cursor=start;cursor<end;++cursor) {
+                const unsigned slot=1+unsigned(cursor%log_words);
+                const auto word=doom_invoke(3,3,amdvi_diagnostic,17+512+slot);
+                if((cursor-start)%2==0) {
+                    snprintf(line,sizeof(line),"<br/>%08X %08X%08X",
+                             unsigned(cursor),unsigned(word>>32),unsigned(word));
+                } else {
+                    snprintf(line,sizeof(line)," %08X%08X",unsigned(word>>32),unsigned(word));
+                }
+                report+=line;
+            }
+            dma_panel->SetInnerRML(report);
+            return;
+        }
+#endif
         snprintf(line,sizeof(line),"Captura GSP / %u de %u<br/>F4 cerrar / F3 siguiente / F2 volver a PCI",
                  gsp_trace_page+1,trace_pages);
         Rml::String report=line;
 #ifdef BMO_NVIDIA_TRACE_EXPORT
-        report+=" / F5 exportar por serie";
+        report+=" / F5 ultimas palabras / F6 serie";
 #endif
         if(gsp_trace_page<event_pages) {
             const unsigned first=gsp_trace_page*rows_per_trace_page;
@@ -784,6 +822,13 @@ extern "C" void bmo_main() {
 #ifdef BMO_AMDVI_POST
 #ifdef BMO_NVIDIA_TRACE_EXPORT
                 if(scan==0x3f && gsp_trace_open) {
+                    gsp_tail_open=!gsp_tail_open;
+                    gsp_trace_page=0;
+                    show_gsp_trace();
+                    dirty=true;
+                    continue;
+                }
+                if(scan==0x40 && gsp_trace_open) {
                     BmoNvidia::export_gsp_trace([](unsigned selector) {
                         return doom_invoke(3,3,amdvi_diagnostic,selector);
                     },[](const char* line) {log(line);});
@@ -795,6 +840,9 @@ extern "C" void bmo_main() {
                     dma_panel_open=gsp_trace_open;
                     if(gsp_trace_open) {
                         gsp_trace_page=0;
+#ifdef BMO_NVIDIA_TRACE_EXPORT
+                        gsp_tail_open=tail_pages!=0;
+#endif
                         show_gsp_trace();
                     }
                     dma_panel->SetProperty("display",gsp_trace_open?"block":"none");
@@ -802,7 +850,12 @@ extern "C" void bmo_main() {
                     continue;
                 }
                 if(scan==0x3d && gsp_trace_open) {
-                    gsp_trace_page=(gsp_trace_page+1)%trace_pages;
+#ifdef BMO_NVIDIA_TRACE_EXPORT
+                    const unsigned pages=gsp_tail_open ? std::max(1u,tail_pages) : trace_pages;
+#else
+                    const unsigned pages=trace_pages;
+#endif
+                    gsp_trace_page=(gsp_trace_page+1)%pages;
                     show_gsp_trace();
                     dirty=true;
                     continue;

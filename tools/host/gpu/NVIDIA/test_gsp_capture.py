@@ -7,7 +7,7 @@ import struct
 import tempfile
 import unittest
 
-from .gsp_capture import decode, read_serial
+from .gsp_capture import decode, decode_packed_tail, read_screen, read_serial
 
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -31,6 +31,28 @@ int main() {
     }, [](const char* text) { std::fputs(text, stdout); });
 }
 '''
+
+
+class GspScreenCapture(unittest.TestCase):
+    def test_decode_last_two_records(self):
+        screen = (
+            'LOGRM / ultimas palabras / 1 de 1\n'
+            'Productor 0000000000000005 / despues 00000005\n'
+            '00000000 0302000000001234 0000000000000099\n'
+            '00000002 0000000000000040 0303000000005678\n'
+            '00000004 0000000000000100\n'
+        )
+        report = decode_packed_tail(*read_screen(screen))
+        self.assertEqual(report['undecoded_prefix_words'], 0)
+        self.assertTrue(report['producer_matches_after'])
+        records = report['candidate_records_newest_first']
+        self.assertEqual([record['index'] for record in records], [2, 0])
+        self.assertEqual(records[0]['arguments'], ['0x0000000000000040'])
+        self.assertEqual(records[0]['metadata_offset'], '0x000000005678')
+        with self.assertRaises(ValueError):
+            read_screen(screen.replace('00000004 ', '00000005 '))
+        with self.assertRaises(ValueError):
+            read_screen(screen.rsplit('00000004 ', 1)[0])
 
 
 class GspSerialCapture(unittest.TestCase):
