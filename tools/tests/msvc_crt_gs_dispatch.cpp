@@ -69,6 +69,9 @@ ExpectedUnwind bmo_gs_expected;
 ExpectedPrologue bmo_gs_prologue_expected;
 CONTEXT bmo_gs_win_context;
 EXCEPTION_RECORD bmo_gs_exception_record;
+Word bmo_gs_seh_target;
+extern volatile unsigned int bmo_gs_test_mode;
+int bmo_test_gs_cpu_fault();
 
 EXCEPTION_ROUTINE __GSHandlerCheck;
 void bmo_test_gs_epilogue_suffix();
@@ -178,6 +181,82 @@ static bool stack_range(const CpuContext& context, Word address, Word bytes) {
     constexpr Word stack_bytes = 4096;
     return !(address & 7) && address >= context.stack_begin &&
            address - context.stack_begin <= stack_bytes - bytes;
+}
+
+static volatile unsigned int seh_filter_calls;
+static volatile unsigned int seh_except_calls;
+
+__declspec(noinline) static LONG fixture_filter(const EXCEPTION_POINTERS* pointers) {
+    if (pointers->ExceptionRecord->ExceptionCode != EXCEPTION_ILLEGAL_INSTRUCTION ||
+        reinterpret_cast<Word>(pointers->ExceptionRecord->ExceptionAddress) != pointers->ContextRecord->Rip ||
+        pointers->ContextRecord->Rax != 0x6000) return EXCEPTION_CONTINUE_SEARCH;
+    seh_filter_calls = seh_filter_calls + 1;
+    return bmo_gs_test_mode == 0x424d4f08 ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH;
+}
+
+extern "C" __declspec(noinline) int bmo_gs_seh_client() {
+    __try {
+        if (bmo_test_gs_cpu_fault() != 0) return 0;
+    } __except (fixture_filter(GetExceptionInformation())) {
+        seh_except_calls = seh_except_calls + 1;
+    }
+    return seh_filter_calls == 1 &&
+           seh_except_calls == (bmo_gs_test_mode == 0x424d4f08 ? 1u : 0u);
+}
+
+struct SehScope {
+    Rva begin;
+    Rva end;
+    Rva filter;
+    Rva target;
+};
+
+extern "C" EXCEPTION_DISPOSITION __C_specific_handler(EXCEPTION_RECORD* record, void* frame,
+                                                       CONTEXT* cpu, DISPATCHER_CONTEXT* dispatcher) {
+    const auto& dispatch = *dispatcher;
+    const Word base = dispatch.ImageBase;
+    const Word data = reinterpret_cast<Word>(dispatch.HandlerData);
+    if (!record || !cpu || record->ExceptionFlags || data < base || data - base > 0xffffffffu ||
+        !readonly_range(static_cast<Rva>(data - base), sizeof(Rva) + sizeof(SehScope))) {
+        return ExceptionContinueSearch;
+    }
+    const auto* count = reinterpret_cast<const Rva*>(data);
+    if (*count != 1) return ExceptionContinueSearch;
+    const auto& scope = *reinterpret_cast<const SehScope*>(count + 1);
+    const auto& fn = *dispatch.FunctionEntry;
+    const Word pc = dispatch.ControlPc - base;
+    const auto* filter_entry = find_function(base + scope.filter);
+    if (scope.begin < fn.BeginAddress || scope.end > fn.EndAddress || scope.begin >= scope.end ||
+        pc < scope.begin || pc >= scope.end || scope.target < fn.BeginAddress || scope.target >= fn.EndAddress ||
+        !filter_entry || scope.filter != filter_entry->begin) return ExceptionContinueSearch;
+
+    using Filter = LONG (*)(EXCEPTION_POINTERS*, void*);
+    const auto filter = reinterpret_cast<Filter>(base + scope.filter);
+    EXCEPTION_POINTERS pointers{record, cpu};
+    if (filter(&pointers, frame) == EXCEPTION_EXECUTE_HANDLER) bmo_gs_seh_target = base + scope.target;
+    return ExceptionContinueSearch;
+}
+
+static int dispatch_seh(const CpuContext& caller) {
+    const Word base = bmo_gs_image.base;
+    const auto* entry = find_function(caller.pc - 1);
+    if (!entry || base + entry->begin != reinterpret_cast<Word>(&bmo_gs_seh_client) ||
+        !stack_range(caller, caller.rsp, sizeof(Word)) || !readonly_range(entry->unwind, 4)) return 0;
+    const auto* info = reinterpret_cast<const unsigned char*>(base + entry->unwind);
+    const unsigned int tail = 4 + ((info[2] + 1) & ~1u) * 2;
+    if (info[0] != 0x09 || info[3] || !readonly_range(entry->unwind, tail + 4) ||
+        caller.pc - 1 - base - entry->begin < info[1]) return 0;
+    const auto* handler = reinterpret_cast<const Rva*>(info + tail);
+    if (base + *handler != reinterpret_cast<Word>(&__C_specific_handler)) return 0;
+    DISPATCHER_CONTEXT dispatch = {
+        caller.pc - 1, base, reinterpret_cast<RUNTIME_FUNCTION*>(const_cast<RuntimeFunction*>(entry)),
+        caller.rsp, 0, &bmo_gs_win_context, reinterpret_cast<PEXCEPTION_ROUTINE>(&__C_specific_handler),
+        const_cast<Rva*>(handler + 1), nullptr, 0, 0
+    };
+    bmo_gs_seh_target = 0;
+    __C_specific_handler(&bmo_gs_exception_record, reinterpret_cast<void*>(caller.rsp),
+                         &bmo_gs_win_context, &dispatch);
+    return bmo_gs_seh_target ? 2 : 0;
 }
 
 static bool pop_word(CpuContext& context, Word& value) {
@@ -405,8 +484,9 @@ extern "C" int bmo_gs_cpu_dispatch(CpuContext* context, const TrapRegisters* tra
         win.Xmm6.Low != context->xmm[0][0] ||
         static_cast<Word>(win.Xmm6.High) != context->xmm[0][1]) return 0;
     // Undo the faulting leaf's call, then inspect its live protected parent.
-    if (!pop_word(*context, context->pc) || !context->pc ||
-        dispatch_gs(context->pc - 1, context->rsp, &bmo_gs_exception_record,
+    if (!pop_word(*context, context->pc) || !context->pc) return 0;
+    if (bmo_gs_test_mode == 0x424d4f08 || bmo_gs_test_mode == 0x424d4f09) return dispatch_seh(*context);
+    if (dispatch_gs(context->pc - 1, context->rsp, &bmo_gs_exception_record,
                     &bmo_gs_win_context) != 1) return 0;
     if (!unwind_frame(*context, context->pc - 1) || context->pc != bmo_gs_expected.wrapper_pc ||
         context->rsp != bmo_gs_expected.wrapper_rsp || context->nonvolatile[0] != 0x12340003 ||

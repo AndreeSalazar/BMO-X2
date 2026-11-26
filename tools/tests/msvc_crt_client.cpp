@@ -13,6 +13,7 @@ int bmo_test_gs_dispatch();
 int bmo_test_gs_cpu_fault();
 int bmo_test_gs_call_client();
 int bmo_test_gs_prologue();
+int bmo_gs_seh_client();
 #endif
 int atexit(void (*)());
 void bmo_crt_initialize();
@@ -77,6 +78,7 @@ extern "C" __declspec(noinline) int bmo_crt_client_main() {
     }
 #ifdef BMO_CRT_GS_NATIVE
     const auto mode = bmo_gs_test_mode;
+    if ((mode == 0x424d4f08 || mode == 0x424d4f09) && bmo_gs_seh_client() != 1) return 1;
     if (mode == 0x424d4f07 && bmo_test_gs_prologue() != 1) return 1;
     if (mode >= 0x424d4f02 && mode <= 0x424d4f06) {
         const auto original = __security_cookie;
@@ -124,6 +126,13 @@ extern "C" void bmo_main() {
         static constexpr unsigned char prologue_message[] = "MSVC CRT: epilogos RET y JMP detectados\r\n";
         message = prologue_message;
         length = sizeof(prologue_message) - 1;
+    }
+    if (bmo_gs_test_mode == 0x424d4f08 || bmo_gs_test_mode == 0x424d4f09) {
+        static constexpr unsigned char handled[] = "MSVC SEH: filtro y __except OK\r\n";
+        static constexpr unsigned char declined[] = "MSVC SEH: filtro CONTINUE_SEARCH OK\r\n";
+        const bool accepted = bmo_gs_test_mode == 0x424d4f08;
+        message = accepted ? handled : declined;
+        length = accepted ? sizeof(handled) - 1 : sizeof(declined) - 1;
     }
 #endif
     unsigned int written = 0;

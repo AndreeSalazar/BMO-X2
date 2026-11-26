@@ -256,6 +256,11 @@ bmo_test_gs_prologue_landing:
     add $80, %rsp
     jmp .Lprologue_continue
 .Lcpu_return:
+    cmp $2, %eax
+    jne .Lcpu_return_normal
+    add $8, %rsp
+    jmp *bmo_gs_seh_target(%rip)
+.Lcpu_return_normal:
     ret
 .Linvalid_delivery:
     xor %eax, %eax

@@ -30,6 +30,10 @@ CRT_OUTPUT = b'MSVC CRT: inicio, main y cierre OK\r\n'
 GS_HANDLER_OUTPUT = b'MSVC CRT: __GSHandlerCheck OK\r\n'
 GS_UNWIND_OUTPUT = b'MSVC CRT: unwind de dos marcos OK\r\n'
 GS_PROLOGUE_OUTPUT = b'MSVC CRT: epilogos RET y JMP detectados\r\n'
+SEH_OUTPUT = {
+    'cpu-seh-handled': b'MSVC SEH: filtro y __except OK\r\n',
+    'cpu-seh-declined': b'MSVC SEH: filtro CONTINUE_SEARCH OK\r\n',
+}
 ALLOCATOR = ROOT / 'kernel/boot/bridge/desktop_media_alloc.S'
 READER = ALLOCATOR.with_name('desktop_media_read.S')
 PROBE = ROOT / 'kernel/loader/sbef_ring0_probe.S'
@@ -235,6 +239,10 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                     ('cpu-exception-repeat', 6, 'SBEF CPL3 ABORT 0000000047534455', 0),
                     ('cpu-prologue', 7, 'SBEF WIN64 EXIT 0000000000000000', prologue_calls),
                 ))
+                controls.extend(
+                    (label, selector, 'SBEF WIN64 EXIT 0000000000000000', 1 + (len(stdout) + 7) // 8)
+                    for selector, (label, stdout) in enumerate(SEH_OUTPUT.items(), 8)
+                )
             for label, selector, terminal, count in controls:
                 control = bytearray(image)
                 struct.pack_into('<I', control, offset, 0x424d4f00 + selector)
@@ -306,7 +314,7 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                 plan = load_plan(image)
                 pages = (2 if tls_report else 1) + sum(region['PageCount'] for region in plan['Regions'])
                 expected_regions, expected_pages = (5, 7) if tls_report else (6, 7) if dll_report else (
-                    (4, 5) if rebase else (3, 6) if args.msvc_crt_gs_native else (3, 4 if crt_report else 5)
+                    (4, 5) if rebase else (3, 7) if args.msvc_crt_gs_native else (3, 4 if crt_report else 5)
                     if stdout_report else (8, 10))
                 if info['AbiVersion'] != 1 or plan['RegionCount'] != expected_regions or pages != expected_pages:
                     raise ValueError('Cambio el contrato de la muestra externa')
@@ -326,7 +334,7 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
         expected = ['SBEF CPL0 POST-EBS', f'SBEF FAT32 BYTES {len(image):016X}', f'SBEF RECEIPT {receipt:016X}']
         if pages:
             expected.append(f'SBEF USER PAGES {pages:016X}')
-        if '-cpu-exception' in name:
+        if '-cpu-exception' in name or '-cpu-seh-' in name:
             expected.append('SBEF WIN64 #UD DELIVERED')
         if name.endswith('-cpu-prologue'):
             expected.append('SBEF WIN64 #UD PROLOGUE DELIVERED')
@@ -375,7 +383,10 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             raise ValueError(f'{name}: recibos inesperados {observed}. Ver {folder}')
         if stdout_report is not None:
             stdout = (folder / 'stdout.log').read_bytes()
-            if name.endswith('-cpu-exception'):
+            if '-cpu-seh-' in name:
+                label = name.removeprefix('msvc-crt-gs-native-')
+                expected_stdout = SEH_OUTPUT[label]
+            elif name.endswith('-cpu-exception'):
                 expected_stdout = GS_UNWIND_OUTPUT
             elif name.endswith('-cpu-prologue'):
                 expected_stdout = GS_PROLOGUE_OUTPUT
@@ -387,7 +398,9 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                 expected_stdout = (CRT_OUTPUT if crt_report else CONSOLE_OUTPUT) if calls else b''
             if stdout != expected_stdout:
                 raise ValueError(f'{name}: stdout inesperado {stdout!r}. Ver {folder}')
-            if name.endswith('-cpu-exception'):
+            if '-cpu-seh-' in name:
+                crt_report.setdefault('seh_fixture', {})[label] = stdout.decode('ascii')
+            elif name.endswith('-cpu-exception'):
                 crt_report['cpu_exception']['stdout'] = stdout.decode('ascii')
                 crt_report['cpu_exception']['unwound_frames'] = 2
                 crt_report['cpu_exception']['handler_context'] = {

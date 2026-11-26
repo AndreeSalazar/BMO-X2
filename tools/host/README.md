@@ -227,7 +227,7 @@ enlazado y valida su perfil, sus metadatos y sus dependencias.
 | Carga SBEF en Ring 3 | QEMU carga clientes externos desde FAT32, comprueba permisos y limpia el mapa al salir o fallar. La reapertura de procesos independientes en el mismo arranque sigue pendiente. | [Consola MSVC](../../Reports/host-msvc-console-qemu.json) |
 | Runtime C++ acotado | Cliente `/MT` con entrada BMO-X2. Ejecuta constructores, cierre C++ y siete funciones de `libucrt.lib`. | [CRT y /GS en QEMU](../../Reports/host-msvc-crt-gs-native-qemu.json) |
 | DLL y TLS | DLL fija con attach y detach. Plantilla TLS estatica comprobada en dos hilos del banco. | [Ciclo de DLL](../../Reports/host-msvc-dll-lifecycle-qemu.json) y [TLS](../../Reports/host-msvc-tls-qemu.json) |
-| Excepciones Win64 | El banco QEMU entrega `#UD`, llama a `__GSHandlerCheck` y reconstruye dos marcos, incluida una pila dinamica y un prologo fijo interrumpido. | [11 casos en Ring 3](../../Reports/host-msvc-crt-gs-native-qemu.json) |
+| Excepciones Win64 | El banco QEMU entrega `#UD`, reconstruye dos marcos y prueba un filtro SEH compilado por MSVC con entrada condicional en `__except`. | [13 casos en Ring 3](../../Reports/host-msvc-crt-gs-native-qemu.json) |
 | EXE Windows con arranque estandar | El EXE `/MD /EHsc` del banco sigue bloqueado por imports, IAT y `load_config`. Requiere 60 simbolos de 10 DLL. | [Diagnostico del EXE](../../Reports/msvc-standard-intake.json) |
 
 ### Pruebas de cierre
@@ -235,7 +235,7 @@ enlazado y valida su perfil, sus metadatos y sus dependencias.
 | Paso | Que tiene que pasar |
 |---|---|
 | **1. Completar unwind Win64** | El banco detecta epilogos `add`/`lea`, `pop`/`ret` y un salto indirecto RIP-relativo. El manejador recibe `CONTEXT_FULL` y un registro de excepcion. Falta extender ambas rutas a un despacho general. |
-| **2. Probar SEH y C++** | Inicializar la cookie `/GS` al crear el proceso. Probar un caso SEH y un `throw`/`catch` que ejecute los destructores de los marcos recorridos. |
+| **2. Probar SEH y C++** | El banco ejecuta un filtro real `__try`/`__except` en el llamador inmediato. Falta buscar en marcos superiores, inicializar la cookie `/GS` por proceso y probar `throw`/`catch` con destructores. |
 | **3. Arrancar C++ con `/MT`** | Ejecutar un EXE por la entrada estandar de MSVC con argumentos, heap, stdout, `main` y cierre comprobados. Abrirlo, cerrarlo y volverlo a abrir en el mismo arranque. |
 | **4. Arrancar C++ con `/MD`** | Resolver las DLL y los API sets de la muestra, aplicar sus requisitos de IAT y `load_config` y completar su ejecucion con salida verificable. |
 | **5. Probar una aplicacion Win32** | Abrir archivos y responder a ventanas y eventos. GUI, COM y graficos se verifican con sus propios clientes y contratos. |
@@ -509,8 +509,8 @@ La ruta de fallo llama a `__report_gsfailure` del banco, que aborta en
 CPL3. La semilla de prueba se incorpora durante el build.
 
 El empaquetador interno conserva `.pdata` y `UNWIND_INFO` en lectura
-sola. Comprueba que el manejador sea el RVA ejecutable de
-`__GSHandlerCheck` en el MAP y que las cadenas apunten a entradas
+sola. Comprueba los RVA ejecutables de `__GSHandlerCheck` y del
+manejador SEH del banco en el MAP. Las cadenas apuntan a entradas
 anteriores ya comprobadas. Verifica el rechazo de un destino distinto y el
 rechazo de la misma imagen por `pack` normal.
 
@@ -574,6 +574,21 @@ La excepcion del CPU ocurre en el prologo.
 La captura cubre `CONTEXT_FULL` de este banco. Quedan pendientes el
 estado extendido XSAVE, el despacho SEH general, las excepciones C++
 y la inicializacion de la cookie por proceso.
+
+### Filtro SEH compilado por MSVC
+
+El cliente llama a la funcion hoja que provoca `#UD` desde un bloque
+`__try`. El recorrido recupera el llamador inmediato. El
+`__C_specific_handler` de BMO-X2 para este banco lee la entrada de
+alcance emitida por MSVC, comprueba sus RVA e invoca el filtro
+compilado con `EXCEPTION_POINTERS`. El filtro coteja el codigo de
+excepcion, RIP y RAX. Si acepta, la entrada en Ring 3 ajusta RSP y
+transfiere el control al bloque `__except` de ese marco. Si devuelve
+`EXCEPTION_CONTINUE_SEARCH`, el control del banco confirma que el
+bloque `__except` queda sin ejecutar. Esta prueba termina en el
+llamador inmediato y deja pendiente la busqueda en marcos superiores,
+`__finally` y el desenrollado con destructores de C++.
+[Sintaxis de manejadores SEH de Microsoft](https://learn.microsoft.com/en-us/windows/win32/debug/exception-handler-syntax).
 [Evidencia en QEMU](../../Reports/host-msvc-crt-gs-native-qemu.json).
 [Formato de excepciones x64 de Microsoft](https://learn.microsoft.com/en-us/cpp/build/exception-handling-x64?view=msvc-170).
 

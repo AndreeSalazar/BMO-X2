@@ -213,6 +213,12 @@ def build_external_crt(root, out, assembler, *, guarded=False, native_gs=False):
             raise ValueError('El MAP debe atribuir los dos helpers /GS a libcmt.lib')
         info = probe_pe(source)
         handler = gs_symbols['__GSHandlerCheck'][0] - info['ImageBase']
+        seh_symbol = re.search(
+            r'^\s+[0-9a-fA-F]+:[0-9a-fA-F]+\s+__C_specific_handler\s+([0-9a-fA-F]+)\s+f\s+gs-dispatch\.obj',
+            map_text, re.MULTILINE)
+        if seh_symbol is None:
+            raise ValueError('Falta __C_specific_handler del banco en el MAP')
+        seh_handler = int(seh_symbol[1], 16) - info['ImageBase']
         dispatch_symbol = re.search(
             r'^\s+[0-9a-fA-F]+:[0-9a-fA-F]+\s+bmo_gs_image\s+([0-9a-fA-F]+)\s+',
             map_text, re.MULTILINE)
@@ -248,7 +254,8 @@ def build_external_crt(root, out, assembler, *, guarded=False, native_gs=False):
                          directory['RVA'], directory['Bytes'], start, end)
         source = bytes(image)
         for action, code in ((lambda: pack_pe(source, abi=1), 'PE-UNWIND-INFO'),
-                             (lambda: pack_pe_gs_fixture(source, handler + 1), 'PE-UNWIND-GS-HANDLER')):
+                             (lambda: pack_pe_gs_fixture(source, handler + 1, seh_handler_rva=seh_handler),
+                              'PE-UNWIND-GS-HANDLER')):
             try:
                 action()
             except Rejection as error:
@@ -256,7 +263,7 @@ def build_external_crt(root, out, assembler, *, guarded=False, native_gs=False):
                     raise
             else:
                 raise ValueError(f'HOST debia rechazar la prueba {code}')
-        payload = pack_pe_gs_fixture(source, handler)
+        payload = pack_pe_gs_fixture(source, handler, seh_handler_rva=seh_handler)
         exe.write_bytes(source)
         frame_symbols = {name: int(address, 16) - info['ImageBase'] for name, address in re.findall(
             r'^\s+[0-9a-fA-F]+:[0-9a-fA-F]+\s+bmo_test_gs_(call_client|chained_fragment)'
@@ -274,7 +281,8 @@ def build_external_crt(root, out, assembler, *, guarded=False, native_gs=False):
             unwind_inventory=info['UnwindInventory'],
             fault_policy='QEMU one-shot delivery for either registered #UD PC; abort otherwise',
             dispatch_fixture=dict(exception_table_rva=directory['RVA'], exception_table_bytes=directory['Bytes'],
-                                  handler_rva=handler, trigger='synchronous call with live MSVC frame'),
+                                  handler_rva=handler, seh_handler_rva=seh_handler,
+                                  trigger='synchronous call with live MSVC frame'),
             cpu_exception=dict(vector=6, fault_pc=fault_symbols['cpu_ud'], landing_pc=fault_symbols['cpu_landing'],
                                prologue_fault_pc=fault_symbols['prologue_fault'],
                                prologue_landing_pc=fault_symbols['prologue_landing'],
