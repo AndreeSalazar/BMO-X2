@@ -1453,6 +1453,37 @@ recuento y `BMO_GSP_INIT_WORD` contiene indice y valor. Una captura
 completa debe tener todos los indices. Las direcciones DMA se comparan
 por su funcion y alineacion porque dependen del arranque.
 
+### Comparacion con Nova r000 y OpenRM
+
+| Ensayo en la RTX 3060 | Resultado en metal |
+| --- | --- |
+| Monitor RM `d4ed94d` | De `804` a `806`. TX tail `1`. |
+| Version y tipo NVKV `c85c8e6` | Primera respuesta `802 / 40`. |
+| Captura LOGRM `2e48e99` | `802 / 40`, LOGRM `855`, diez eventos a IOVA cero. |
+| Pagina NotifyOp `9657294` | Mismo rechazo y eventos. |
+| Pausa de 250 ms `0bc81d2` | Mismo rechazo. Pausa retirada en `b63d84b`. |
+| PCIe Link Capabilities `52ed490` | Mismo rechazo, LOGRM `855` y cola AMD-Vi `A0`. |
+
+La propuesta Nova r000 confirma la codificacion tipo dominio, bus y
+dispositivo de los identificadores del INIT. Tambien incluye claves de
+registro que cambian el comportamiento de reset y atiende eventos GMC
+durante la espera. El ensayo BMO-X2 ya recibio la respuesta correlacionada
+`802`. La captura actual no contiene un evento GMC previo que justifique
+activar esa ruta ni confirma que una opcion de registro sea necesaria.
+[Serie Nova r000](https://lkml.iu.edu/2609.2/06241.html).
+
+El comparador HOST lee las palabras de una captura exitosa y extrae el
+mensaje de la imagen ensamblada, sin usar la tabla del codigo fuente.
+Distingue claves ausentes, valores distintos y campos PCI medidos al
+arrancar. Las IOVA de memoria compartida se marcan para cotejo por
+funcion, porque pueden diferir entre los dos kernels.
+
+```powershell
+python -B -m tools.host.gpu.NVIDIA.gsp_init_compare openrm-dmesg.txt RTX-FWSEC.EFI
+```
+
+La peticion exitosa de ULTRA-LinuX en esta tarjeta sigue pendiente.
+
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
 [Fusibles SEC2 en Nova](https://github.com/torvalds/linux/blob/master/drivers/gpu/nova-core/regs.rs).
