@@ -234,6 +234,13 @@ nvidia_physical_begin:
     shr $8, %eax
     cmp $0x030000, %eax
     jne .Lboard_sec2_revoke
+    # The validated PCIe capability's Link Capabilities follows Device Status.
+    lea 4(%r14), %eax
+    call .Lboard_pci_read
+    cmp $-1, %eax
+    je .Lboard_sec2_revoke
+    shl $32, %rax
+    or %rax, %r9
     mov GSP_NATIVE_QUEUE_BASE(%rbp), %rdx
     mov $(FALCON_BOARD_VA+0x110000), %ecx
     mov STORAGE_TSC_10MS(%rbp), %r8
@@ -345,6 +352,8 @@ nvidia_physical_begin:
     stc
     ret
 .Lboard_pcie_found:
+    cmp $0xf0, %r10d             # Link Capabilities must fit in PCI config space.
+    ja .Lboard_pcie_bad
     lea 8(%r10), %r14d
     clc
     ret

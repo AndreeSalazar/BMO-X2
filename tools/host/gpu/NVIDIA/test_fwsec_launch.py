@@ -88,7 +88,7 @@ class FwsecLaunch(unittest.TestCase):
         cls.execute_sec2.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_void_p]
         cls.execute_sec2.restype = ctypes.c_int
         cls.gsp_init = cls.library.nvidia_gsp_init_615
-        cls.gsp_init.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint32]
+        cls.gsp_init.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint64]
         cls.gsp_init.restype = ctypes.c_uint64
         cls.gsp_snapshot = cls.library.nvidia_gsp_snapshot_615
         cls.gsp_snapshot.argtypes = [ctypes.c_void_p]*6
@@ -161,7 +161,7 @@ class FwsecLaunch(unittest.TestCase):
                 self.write(FALCON+0xc80,0)
                 with ThreadPoolExecutor(max_workers=1) as worker:
                     run = worker.submit(self.gsp_init, ctypes.byref(self.mapping,FALCON),
-                                        address,25_000_000,0xa1)
+                                        address,25_000_000,(0x0043dc13<<32)|0xa1)
                     struct.pack_into('<I', queue, 0x42000, 2)
                     while self.read(FALCON+0xc00)!=1 and not run.done():
                         pass
@@ -172,6 +172,8 @@ class FwsecLaunch(unittest.TestCase):
                     self.assertEqual(frame, (0x4d435450, 64+payload_size, 0xc0000001,
                                              0x2610de7e, 40+payload_size, 0))
                     self.assertEqual(struct.unpack_from('<II',queue,0x3050),(3,0xa1))
+                    self.assertIn(struct.pack('<2I', 0x52, 0x0043dc13),
+                                  bytes(queue[0x3040:0x3040+payload_size]))
                     self.assertIn(struct.pack('<IIQ', 0x20001022, 1, 0x0A1FE000),
                                   bytes(queue[0x3040:0x3040+payload_size]))
                     version = struct.pack('<II', 0x30001101, 10) + b'615.78.08'+bytes(7)

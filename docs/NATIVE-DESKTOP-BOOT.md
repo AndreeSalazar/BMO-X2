@@ -1433,6 +1433,12 @@ HOST comprueba que la respuesta correlacionada con estado `0x40`
 conserva el rechazo `802`. El candidato de la RTX se conserva separado
 del arranque habitual hasta confirmar inicializacion y ejecucion grafica.
 
+El ensayo siguiente toma `PCIE_LINK_CAP` de la capacidad PCIe del
+dispositivo verificado antes de enviar INIT. Ring 0 comprueba que el
+registro cabe en el espacio PCI y rechaza una lectura ausente. HOST
+coteja la clave NVKV con el valor recibido por la rutina ensamblada.
+[Campos PCIe de OpenRM](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c#L4676).
+
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
 [Fusibles SEC2 en Nova](https://github.com/torvalds/linux/blob/master/drivers/gpu/nova-core/regs.rs).

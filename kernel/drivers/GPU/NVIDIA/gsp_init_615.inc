@@ -1,6 +1,7 @@
 # One GMCAPI_CMD_GSP_INIT on the 615 MSGQ v2 boot queues.
 # Win64 ABI RCX = GSP BAR0 alias, RDX = private RMARGS physical base,
-# R8 = ticks per 10 ms, R9 = measured PCI revision (8 bits).
+# R8 = ticks per 10 ms, R9 = PCIe Link Capabilities (high dword)
+# and measured PCI revision (low dword, 8 bits).
 # RAX = {GMCAPI status or observed dword, trial status in high dword}.
 # Caller retains the verified GSP domain and RTX Bus Master until return.
 .set GSP_TX_HEAD, 0xc00
@@ -58,6 +59,8 @@ nvidia_gsp_init_615:
     cld
     rep movsq
     mov %r9d, (GSP_615_TX_ENTRY+.Lgsp_615_revision-.Lgsp_615_request+4)(%r14)
+    shr $32, %r9
+    mov %r9d, (GSP_615_TX_ENTRY+.Lgsp_615_link_cap-.Lgsp_615_request+4)(%r14)
 
     # Match the status header initialized by firmware before linking it.
     mov $0x804, %r11d
@@ -303,6 +306,8 @@ nvidia_gsp_snapshot_615:
     gsp_u32 0x78, 4096
     gsp_u32 0x10, 0x88000         # PCI configuration mirror offset in BAR0.
     gsp_u32 0x11, 4096
+.Lgsp_615_link_cap:
+    gsp_u32 0x52, 0               # PCIE_LINK_CAP, sampled before publication.
     gsp_u64 0x1001, 0
     .long 0x30001100, 7
     .asciz "BMO-X2"
