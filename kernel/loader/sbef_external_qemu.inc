@@ -363,10 +363,13 @@
 .org 4096
 #endif
 #ifdef BMO_GS_FAULT_PC
-// Explicit, one-shot #UD delivery in the locally built GS fixture.
+// Explicit, one-shot #UD delivery at the two locally built GS fixture PCs.
 .Lgs_user_ud:
     cmpq $BMO_GS_FAULT_PC, 0(%rsp)
+    je .Lgs_ud_registered
+    cmpq $BMO_GS_PROLOGUE_FAULT_PC, 0(%rsp)
     jne .Luser_abort
+.Lgs_ud_registered:
     cmpq $0x8b, 8(%rsp)
     jne .Luser_abort
     cmpq $0x83, 32(%rsp)
@@ -384,18 +387,28 @@
     movb $1, GS_UD_DELIVERED
     push %rsi
     lea .Lgs_ud_receipt(%rip), %rsi
+    cmpq $BMO_GS_PROLOGUE_FAULT_PC, 8(%rsp)
+    jne .Lgs_ud_print
+    lea .Lgs_prologue_receipt(%rip), %rsi
+.Lgs_ud_print:
     call .Lprint
     pop %rsi
     mov 0(%rsp), %rcx
     mov 24(%rsp), %rdx
     mov $6, %r8d
     mov $USER_STACK, %r9d
+    cmpq $BMO_GS_PROLOGUE_FAULT_PC, 0(%rsp)
+    je .Lgs_deliver_prologue
     movq $BMO_GS_LANDING_PC, 0(%rsp)
+    iretq
+.Lgs_deliver_prologue:
+    movq $BMO_GS_PROLOGUE_LANDING_PC, 0(%rsp)
     iretq
 .Lgs_ud_repeat:
     mov $0x47534455, %eax
     jmp .Luser_abort
 .Lgs_ud_receipt: .asciz "SBEF WIN64 #UD DELIVERED\n"
+.Lgs_prologue_receipt: .asciz "SBEF WIN64 #UD PROLOGUE DELIVERED\n"
 #endif
 #ifdef BMO_EXTERNAL_REBASE
 #include "../syscalls/abi1_qemu_timer.inc"

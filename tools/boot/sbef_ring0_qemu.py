@@ -29,6 +29,7 @@ CONSOLE_OUTPUT = b'Hola mundo desde C++ / MSVC en BMO-X2\r\n'
 CRT_OUTPUT = b'MSVC CRT: inicio, main y cierre OK\r\n'
 GS_HANDLER_OUTPUT = b'MSVC CRT: __GSHandlerCheck OK\r\n'
 GS_UNWIND_OUTPUT = b'MSVC CRT: unwind de dos marcos OK\r\n'
+GS_PROLOGUE_OUTPUT = b'MSVC CRT: unwind de prologo OK\r\n'
 ALLOCATOR = ROOT / 'kernel/boot/bridge/desktop_media_alloc.S'
 READER = ALLOCATOR.with_name('desktop_media_read.S')
 PROBE = ROOT / 'kernel/loader/sbef_ring0_probe.S'
@@ -225,12 +226,14 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             if args.msvc_crt_gs_native:
                 handler_calls = 1 + (len(GS_HANDLER_OUTPUT) + 7) // 8
                 unwind_calls = 1 + (len(GS_UNWIND_OUTPUT) + 7) // 8
+                prologue_calls = 1 + (len(GS_PROLOGUE_OUTPUT) + 7) // 8
                 controls.extend((
                     ('handler', 2, 'SBEF WIN64 EXIT 0000000000000000', handler_calls),
                     ('handler-mismatch', 3, 'SBEF CPL3 ABORT 0000000047534844', 0),
                     ('cpu-exception', 4, 'SBEF WIN64 EXIT 0000000000000000', unwind_calls),
                     ('cpu-exception-mismatch', 5, 'SBEF CPL3 ABORT 0000000047534844', 0),
                     ('cpu-exception-repeat', 6, 'SBEF CPL3 ABORT 0000000047534455', 0),
+                    ('cpu-prologue', 7, 'SBEF WIN64 EXIT 0000000000000000', prologue_calls),
                 ))
             for label, selector, terminal, count in controls:
                 control = bytearray(image)
@@ -241,8 +244,9 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                 primary = exception['unwind_rvas']['call_client']
                 fragment = exception['unwind_rvas']['chained_fragment']
                 metadata_controls = (
-                    ('unsupported-unwind', primary + 5, b'\x68', b'\x6f'),  # SAVE_XMM128 -> unknown
+                    ('unsupported-unwind', primary + 5, b'\x03', b'\x0f'),  # SET_FPREG -> unknown
                     ('invalid-chain', fragment + 16, struct.pack('<I', primary), struct.pack('<I', primary + 4)),
+                    ('invalid-frame', fragment + 3, b'\x85', b'\x95'),  # inconsistent RBP offset
                 )
                 for label, rva, before, after in metadata_controls:
                     address = exception['image_base'] + rva
@@ -302,7 +306,7 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                 plan = load_plan(image)
                 pages = (2 if tls_report else 1) + sum(region['PageCount'] for region in plan['Regions'])
                 expected_regions, expected_pages = (5, 7) if tls_report else (6, 7) if dll_report else (
-                    (4, 5) if rebase else (3, 4 if crt_report and not args.msvc_crt_gs_native else 5)
+                    (4, 5) if rebase else (3, 6) if args.msvc_crt_gs_native else (3, 4 if crt_report else 5)
                     if stdout_report else (8, 10))
                 if info['AbiVersion'] != 1 or plan['RegionCount'] != expected_regions or pages != expected_pages:
                     raise ValueError('Cambio el contrato de la muestra externa')
@@ -324,6 +328,8 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             expected.append(f'SBEF USER PAGES {pages:016X}')
         if '-cpu-exception' in name:
             expected.append('SBEF WIN64 #UD DELIVERED')
+        if name.endswith('-cpu-prologue'):
+            expected.append('SBEF WIN64 #UD PROLOGUE DELIVERED')
         if name in ('fault', 'msvc-dll-readonly'):
             expected.append('SBEF PF ERROR 0000000000000007')
         if name in ('peer-isolation', 'msvc-stale-pointer'):
@@ -371,7 +377,9 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             stdout = (folder / 'stdout.log').read_bytes()
             if name.endswith('-cpu-exception'):
                 expected_stdout = GS_UNWIND_OUTPUT
-            elif name.endswith(('-unsupported-unwind', '-invalid-chain')):
+            elif name.endswith('-cpu-prologue'):
+                expected_stdout = GS_PROLOGUE_OUTPUT
+            elif name.endswith(('-unsupported-unwind', '-invalid-chain', '-invalid-frame')):
                 expected_stdout = b''
             elif name.endswith('-handler'):
                 expected_stdout = GS_HANDLER_OUTPUT
@@ -382,15 +390,20 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             if name.endswith('-cpu-exception'):
                 crt_report['cpu_exception']['stdout'] = stdout.decode('ascii')
                 crt_report['cpu_exception']['unwound_frames'] = 2
-                crt_report['cpu_exception']['verified_registers'] = ['RBX', 'RSI', 'RDI', 'R12', 'RSP', 'RIP', 'XMM6']
+                crt_report['cpu_exception']['verified_registers'] = ['RBX', 'RBP', 'RSI', 'RDI', 'R12', 'RSP', 'RIP', 'XMM6']
+                crt_report['cpu_exception']['dynamic_stack_bytes'] = 64
                 crt_report['cpu_exception']['unwind_operations'] = [
                     'UWOP_ALLOC_SMALL', 'UWOP_PUSH_NONVOL', 'UWOP_ALLOC_LARGE',
-                    'UWOP_SAVE_NONVOL', 'UWOP_SAVE_XMM128', 'UNW_FLAG_CHAININFO',
+                    'UWOP_SAVE_NONVOL', 'UWOP_SAVE_XMM128', 'UWOP_SET_FPREG', 'UNW_FLAG_CHAININFO',
                 ]
+            elif name.endswith('-cpu-prologue'):
+                crt_report['cpu_exception']['prologue_stdout'] = stdout.decode('ascii')
             elif name.endswith('-unsupported-unwind'):
                 crt_report['cpu_exception']['unsupported_unwind_rejected'] = True
             elif name.endswith('-invalid-chain'):
                 crt_report['cpu_exception']['invalid_chain_rejected'] = True
+            elif name.endswith('-invalid-frame'):
+                crt_report['cpu_exception']['invalid_frame_rejected'] = True
             elif name.endswith(('-cpu-exception-mismatch', '-cpu-exception-repeat')):
                 control = name.rsplit('-', 1)[-1]
                 crt_report['cpu_exception'][control + '_stdout_bytes'] = len(stdout)
@@ -485,7 +498,9 @@ def main():
     if args.msvc_crt_gs_native:
         native_crt = build_external_crt(ROOT, run, llvm / 'clang.exe', native_gs=True)
         delivery = native_crt[1]['cpu_exception']
-        mode.update(BMO_GS_FAULT_PC=delivery['fault_pc'], BMO_GS_LANDING_PC=delivery['landing_pc'])
+        mode.update(BMO_GS_FAULT_PC=delivery['fault_pc'], BMO_GS_LANDING_PC=delivery['landing_pc'],
+                    BMO_GS_PROLOGUE_FAULT_PC=delivery['prologue_fault_pc'],
+                    BMO_GS_PROLOGUE_LANDING_PC=delivery['prologue_landing_pc'])
     body = assemble_stage(llvm, PROBE, run, BMO_CASE_COUNT=len(cases), BMO_MODULE_ENTRY=module['entry'],
                           BMO_TRAP_ENTRY=module['trap_addresses']['bounds'], **mode)
     extension = b''

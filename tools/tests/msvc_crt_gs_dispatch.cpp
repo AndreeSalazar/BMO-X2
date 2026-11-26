@@ -34,6 +34,16 @@ struct ExpectedUnwind {
     Word caller_rdi;
     Word caller_r12;
     Word caller_xmm6[2];
+    Word caller_rbp;
+    Word wrapper_rbp;
+    Word fixed_rsp;
+};
+
+struct ExpectedPrologue {
+    Word caller_pc;
+    Word caller_rsp;
+    Word caller_rsi;
+    Word caller_rdi;
 };
 
 extern "C" {
@@ -45,6 +55,7 @@ __declspec(allocate(".rdata$BMO")) extern const volatile FixtureImage bmo_gs_ima
 
 volatile unsigned int bmo_gs_dispatch_active;
 ExpectedUnwind bmo_gs_expected;
+ExpectedPrologue bmo_gs_prologue_expected;
 
 struct DispatcherContext;
 using Handler = int (*)(void*, Word, void*, DispatcherContext*);
@@ -67,7 +78,8 @@ int __GSHandlerCheck(void*, Word, void*, DispatcherContext*);
 
 static_assert(sizeof(FixtureImage) == 24 && sizeof(RuntimeFunction) == 12);
 static_assert(sizeof(DispatcherContext) == 80);
-static_assert(sizeof(CpuContext) == 248 && sizeof(ExpectedUnwind) == 80);
+static_assert(sizeof(CpuContext) == 248 && sizeof(ExpectedUnwind) == 104);
+static_assert(sizeof(ExpectedPrologue) == 32);
 
 static bool readonly_range(Rva start, Rva bytes) {
     return start >= bmo_gs_image.readonly_begin && start <= bmo_gs_image.readonly_end &&
@@ -137,8 +149,10 @@ static bool pop_word(CpuContext& context, Word& value) {
     return true;
 }
 
-static bool restore_unwind_codes(CpuContext& context, const unsigned char* info, bool chained) {
-    constexpr int register_slot[16] = {-1, -1, -1, 0, -1, 1, 2, 3, -1, -1, -1, -1, 4, 5, 6, 7};
+static constexpr int register_slot[16] = {-1, -1, -1, 0, -1, 1, 2, 3, -1, -1, -1, -1, 4, 5, 6, 7};
+
+static bool restore_unwind_codes(CpuContext& context, const unsigned char* info, bool chained,
+                                 Word fixed_rsp, bool& used_frame_pointer, unsigned int code_limit) {
     unsigned int previous_offset = info[1];
     unsigned int saved = 0;
     unsigned int xmm_saved = 0;
@@ -151,13 +165,19 @@ static bool restore_unwind_codes(CpuContext& context, const unsigned char* info,
         const unsigned int op = code & 15;
         const unsigned int operand = code >> 4;
         if (chained && op != 4) return false;
-        if (op == 2 && !adjusted) { // UWOP_ALLOC_SMALL
+        if (op != 0 && op != 2 && op != 3 && op != 4 && op != 8 && !(op == 1 && !operand)) return false;
+        const bool has_operand = op == 1 || op == 4 || op == 8;
+        const auto* encoded = info + 6 + slot * 2;
+        if (has_operand && ++slot >= info[2]) return false;
+        if (offset > code_limit) continue;
+        if (op == 3 && !operand && info[3] && !adjusted && !used_frame_pointer) { // UWOP_SET_FPREG
+            context.rsp = fixed_rsp;
+            used_frame_pointer = true;
+        } else if (op == 2 && !adjusted) { // UWOP_ALLOC_SMALL
             context.rsp += 8 * (operand + 1);
             adjusted = true;
         } else if (op == 1 && !adjusted && !operand) { // UWOP_ALLOC_LARGE, scaled form
-            if (++slot >= info[2]) return false;
-            const auto* size = info + 4 + slot * 2;
-            const unsigned int units = size[0] | (size[1] << 8);
+            const unsigned int units = encoded[0] | (encoded[1] << 8);
             if (units <= 16) return false;
             context.rsp += 8 * units;
             adjusted = true;
@@ -166,10 +186,8 @@ static bool restore_unwind_codes(CpuContext& context, const unsigned char* info,
             saved |= 1u << operand;
             adjusted = true;
         } else if ((op == 4 || op == 8) && !adjusted) { // UWOP_SAVE_NONVOL / UWOP_SAVE_XMM128
-            if (++slot >= info[2]) return false;
-            const auto* encoded = info + 4 + slot * 2;
             const unsigned int units = encoded[0] | (encoded[1] << 8);
-            const Word address = context.rsp + units * (op == 4 ? 8ull : 16ull);
+            const Word address = fixed_rsp + units * (op == 4 ? 8ull : 16ull);
             const auto* value = reinterpret_cast<const Word*>(address);
             if (op == 4) {
                 if (register_slot[operand] < 0 || (saved & (1u << operand)) ||
@@ -190,23 +208,37 @@ static bool restore_unwind_codes(CpuContext& context, const unsigned char* info,
     return true;
 }
 
-static bool unwind_fixed_frame(CpuContext& context) {
-    // The current PC is a return address from the callee, in the caller body.
-    if (!context.pc) return false;
-    const Word control_pc = context.pc - 1;
+static bool unwind_frame(CpuContext& context, Word control_pc) {
     const Word base = bmo_gs_image.base;
     const auto* function = find_function(control_pc);
+    if (!function || !readonly_range(function->unwind, 4)) return false;
+    const auto* initial = reinterpret_cast<const unsigned char*>(base + function->unwind);
+    const unsigned int frame = initial[3];
+    const unsigned int code_limit = static_cast<unsigned int>(control_pc - base - function->begin);
+    if (code_limit < initial[1] && (frame || (initial[0] >> 3) == 4)) return false;
+    Word fixed_rsp = context.rsp;
+    bool used_frame_pointer = false;
+    if (frame) {
+        const int slot = register_slot[frame & 15];
+        const Word displacement = frame & 0xf0;
+        if (slot < 0 || context.nonvolatile[slot] < displacement) return false;
+        fixed_rsp = context.nonvolatile[slot] - displacement;
+        if (fixed_rsp < context.rsp || !stack_range(context, fixed_rsp, sizeof(Word))) return false;
+    }
     for (unsigned int depth = 0; depth < 8; ++depth) {
         if (!function || !readonly_range(function->unwind, 4)) return false;
         const auto* info = reinterpret_cast<const unsigned char*>(base + function->unwind);
         const unsigned int flags = info[0] >> 3;
         const bool chained = flags == 4;
         const unsigned int tail = 4 + ((info[2] + 1) & ~1u) * 2;
-        if ((info[0] & 7) != 1 || flags > 4 || info[3] ||
-            (!depth && control_pc - base - function->begin < info[1]) ||
+        if ((info[0] & 7) != 1 || flags > 4 || info[3] != frame ||
             !readonly_range(function->unwind, tail + (chained ? sizeof(RuntimeFunction) : 0)) ||
-            !restore_unwind_codes(context, info, chained)) return false;
-        if (!chained) return pop_word(context, context.pc) && context.pc && find_function(context.pc - 1);
+            !restore_unwind_codes(context, info, chained, fixed_rsp, used_frame_pointer,
+                                  depth ? info[1] : code_limit)) return false;
+        if (!chained) {
+            return used_frame_pointer == (frame != 0) && pop_word(context, context.pc) &&
+                   context.pc && find_function(context.pc - 1);
+        }
 
         const auto* parent = reinterpret_cast<const RuntimeFunction*>(info + tail);
         if (parent->begin >= function->begin) return false;
@@ -221,17 +253,33 @@ extern "C" int bmo_gs_cpu_dispatch(CpuContext* context) {
     // Undo the faulting leaf's call, then inspect its live protected parent.
     if (!pop_word(*context, context->pc) || !context->pc ||
         bmo_gs_dispatch(context->pc - 1, context->rsp) != 1) return 0;
-    if (!unwind_fixed_frame(*context) || context->pc != bmo_gs_expected.wrapper_pc ||
+    if (!unwind_frame(*context, context->pc - 1) || context->pc != bmo_gs_expected.wrapper_pc ||
         context->rsp != bmo_gs_expected.wrapper_rsp || context->nonvolatile[0] != 0x12340003 ||
+        context->nonvolatile[1] != bmo_gs_expected.wrapper_rbp ||
+        context->rsp + 64 != bmo_gs_expected.fixed_rsp ||
         context->nonvolatile[2] != 0x12340006 || context->nonvolatile[3] != 0x12340007 ||
         context->nonvolatile[4] != 0x1234000c || context->xmm[0][0] != ~0ull ||
         context->xmm[0][1] != ~0ull) return 0;
-    return unwind_fixed_frame(*context) && context->pc == bmo_gs_expected.caller_pc &&
+    return unwind_frame(*context, context->pc - 1) && context->pc == bmo_gs_expected.caller_pc &&
            context->rsp == bmo_gs_expected.caller_rsp &&
            context->nonvolatile[0] == bmo_gs_expected.caller_rbx &&
+           context->nonvolatile[1] == bmo_gs_expected.caller_rbp &&
            context->nonvolatile[2] == bmo_gs_expected.caller_rsi &&
            context->nonvolatile[3] == bmo_gs_expected.caller_rdi &&
            context->nonvolatile[4] == bmo_gs_expected.caller_r12 &&
            context->xmm[0][0] == bmo_gs_expected.caller_xmm6[0] &&
            context->xmm[0][1] == bmo_gs_expected.caller_xmm6[1];
+}
+
+extern "C" int bmo_gs_cpu_prologue(CpuContext* context) {
+    const auto* function = find_function(context->pc);
+    if (!function || !readonly_range(function->unwind, 4)) return 0;
+    const auto* info = reinterpret_cast<const unsigned char*>(bmo_gs_image.base + function->unwind);
+    const Word relative_pc = context->pc - bmo_gs_image.base - function->begin;
+    if (relative_pc >= info[1] || context->nonvolatile[2] != 0x43210006 ||
+        context->nonvolatile[3] != 0x43210007) return 0;
+    return unwind_frame(*context, context->pc) && context->pc == bmo_gs_prologue_expected.caller_pc &&
+           context->rsp == bmo_gs_prologue_expected.caller_rsp &&
+           context->nonvolatile[2] == bmo_gs_prologue_expected.caller_rsi &&
+           context->nonvolatile[3] == bmo_gs_prologue_expected.caller_rdi;
 }

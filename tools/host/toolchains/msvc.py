@@ -216,17 +216,20 @@ def build_external_crt(root, out, assembler, *, guarded=False, native_gs=False):
         if dispatch_symbol is None:
             raise ValueError('Falta el descriptor del banco GS en el MAP')
         fault_symbols = {name: int(address, 16) for name, address in re.findall(
-            r'^\s+[0-9a-fA-F]+:[0-9a-fA-F]+\s+bmo_test_gs_cpu_(fault|landing)\s+([0-9a-fA-F]+)\s+',
+            r'^\s+[0-9a-fA-F]+:[0-9a-fA-F]+\s+bmo_test_gs_((?:cpu|prologue)_(?:fault|landing))'
+            r'\s+([0-9a-fA-F]+)\s+',
             map_text, re.MULTILINE)}
         code = next(section for section in info['Sections'] if section['Executable'])
         code_start = info['ImageBase'] + code['RVA']
         code_end = code_start + min(code['VirtualBytes'], code['FileBytes'])
-        if (fault_symbols.keys() != {'fault', 'landing'} or
-                not code_start <= fault_symbols['fault'] < fault_symbols['landing'] < code_end):
+        if (fault_symbols.keys() != {'cpu_fault', 'cpu_landing', 'prologue_fault', 'prologue_landing'} or
+                not all(code_start <= addr < code_end for addr in fault_symbols.values()) or
+                len(set(fault_symbols.values())) != 4):
             raise ValueError('El origen y destino #UD deben estar enlazados en .text')
-        fault_offset = code['FileOffset'] + fault_symbols['fault'] - code_start
-        if fault_symbols['landing'] - fault_symbols['fault'] != 4 or source[fault_offset:fault_offset+4] != b'\x0f\x0b' * 2:
-            raise ValueError('Cambio la instruccion #UD del banco')
+        for name in ('cpu_fault', 'prologue_fault'):
+            fault_offset = code['FileOffset'] + fault_symbols[name] - code_start
+            if fault_symbols[name] + 4 > code_end or source[fault_offset:fault_offset + 4] != b'\x0f\x0b' * 2:
+                raise ValueError(f'Cambio la instruccion #UD del banco {name}')
         descriptor = int(dispatch_symbol[1], 16) - info['ImageBase']
         readonly = next(section for section in info['Sections'] if section['Name'] == '.rdata')
         start = readonly['RVA']
@@ -266,10 +269,12 @@ def build_external_crt(root, out, assembler, *, guarded=False, native_gs=False):
             libcmt_sha256=hashlib.sha256(libcmt.read_bytes()).hexdigest(),
             gs_symbols={name: origin for name, (_, origin) in sorted(gs_symbols.items())},
             unwind_inventory=info['UnwindInventory'],
-            fault_policy='QEMU one-shot delivery for a single registered #UD PC; abort otherwise',
+            fault_policy='QEMU one-shot delivery for either registered #UD PC; abort otherwise',
             dispatch_fixture=dict(exception_table_rva=directory['RVA'], exception_table_bytes=directory['Bytes'],
                                   handler_rva=handler, trigger='synchronous call with live MSVC frame'),
-            cpu_exception=dict(vector=6, fault_pc=fault_symbols['fault'], landing_pc=fault_symbols['landing'],
+            cpu_exception=dict(vector=6, fault_pc=fault_symbols['cpu_fault'], landing_pc=fault_symbols['cpu_landing'],
+                               prologue_fault_pc=fault_symbols['prologue_fault'],
+                               prologue_landing_pc=fault_symbols['prologue_landing'],
                                image_base=info['ImageBase'],
                                unwind_rvas={name: records[rva] for name, rva in frame_symbols.items()}),
             default_rejection='PE-UNWIND-INFO', wrong_handler_rejection='PE-UNWIND-GS-HANDLER',

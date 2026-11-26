@@ -522,16 +522,26 @@ en un fragmento encadenado y recupera RBX y XMM6 desde el marco
 principal. El recorrido coteja RIP, RSP, RBX, RSI, RDI, R12 y los 128
 bits de XMM6 con valores conocidos antes de la llamada.
 
+El llamador establece RBP a 128 bytes de la base fija con
+`UWOP_SET_FPREG` y reserva otros 64 bytes en el cuerpo de la funcion.
+El recorrido usa RBP para localizar el marco y compara RSP antes y
+despues de deshacerlo. Una cadena con desplazamiento de RBP distinto
+del registro principal se rechaza.
+
 Cada lectura de pila se limita a la pagina del cliente. Una cadena
 solo puede apuntar a una entrada anterior de `.pdata` y se sigue hasta
 ocho registros. Un opcode desconocido y una cadena que no coincide con
 la tabla producen codigo 1 y stdout vacio. La prueba positiva informa
 `MSVC CRT: unwind de dos marcos OK`.
 
-Esta entrega usa un solo punto de instruccion registrado para el banco.
-Quedan pendientes el contexto Win64 completo, las reglas de prologo y
-epilogo para un PC arbitrario, los marcos con puntero de pila dinamico,
-SEH, excepciones C++ y la inicializacion de la cookie por proceso.
+Un segundo punto de prueba provoca un `#UD` dentro de un prologo fijo.
+La reconstruccion usa el PC de la excepcion para deshacer los dos
+`push` ejecutados y omitir la reserva de pila que aun no se ejecuto.
+El caso comprueba RSI, RDI, RIP y RSP antes de continuar el prologo.
+
+Quedan pendientes el contexto Win64 completo, los prologos con puntero
+de marco parcial, la simulacion de epilogos, SEH, excepciones C++ y la
+inicializacion de la cookie por proceso.
 [Evidencia en QEMU](../../Reports/host-msvc-crt-gs-native-qemu.json).
 [Formato de excepciones x64 de Microsoft](https://learn.microsoft.com/en-us/cpp/build/exception-handling-x64?view=msvc-170).
 

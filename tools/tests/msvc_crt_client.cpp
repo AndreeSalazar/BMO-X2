@@ -12,6 +12,7 @@ unsigned long long strcspn(const char*, const char*);
 int bmo_test_gs_dispatch();
 int bmo_test_gs_cpu_fault();
 int bmo_test_gs_call_client();
+int bmo_test_gs_prologue();
 #endif
 int atexit(void (*)());
 void bmo_crt_initialize();
@@ -76,6 +77,7 @@ extern "C" __declspec(noinline) int bmo_crt_client_main() {
     }
 #ifdef BMO_CRT_GS_NATIVE
     const auto mode = bmo_gs_test_mode;
+    if (mode == 0x424d4f07 && bmo_test_gs_prologue() != 1) return 1;
     if (mode >= 0x424d4f02 && mode <= 0x424d4f06) {
         const auto original = __security_cookie;
         if (mode & 1) __security_cookie = original ^ 1;
@@ -117,6 +119,11 @@ extern "C" void bmo_main() {
         static constexpr unsigned char unwind_message[] = "MSVC CRT: unwind de dos marcos OK\r\n";
         message = unwind_message;
         length = sizeof(unwind_message) - 1;
+    }
+    if (bmo_gs_test_mode == 0x424d4f07) {
+        static constexpr unsigned char prologue_message[] = "MSVC CRT: unwind de prologo OK\r\n";
+        message = prologue_message;
+        length = sizeof(prologue_message) - 1;
     }
 #endif
     unsigned int written = 0;
