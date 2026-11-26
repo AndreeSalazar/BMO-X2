@@ -234,7 +234,7 @@ enlazado y valida su perfil, sus metadatos y sus dependencias.
 
 | Paso | Que tiene que pasar |
 |---|---|
-| **1. Completar unwind Win64** | Recuperar registros, RSP y RIP desde un epilogo en curso y desde un prologo interrumpido antes de establecer el puntero de marco. Ampliar la captura al contexto que requiere el despacho. |
+| **1. Completar unwind Win64** | Ya se recuperan registros, RSP y RIP antes de establecer RBP y se simula la cola `pop`/`ret`. Falta cubrir el ajuste inicial del epilogo, sus otras terminaciones y la captura de contexto que requiere el despacho. |
 | **2. Probar SEH y C++** | Inicializar la cookie `/GS` al crear el proceso. Probar un caso SEH y un `throw`/`catch` que ejecute los destructores de los marcos recorridos. |
 | **3. Arrancar C++ con `/MT`** | Ejecutar un EXE por la entrada estandar de MSVC con argumentos, heap, stdout, `main` y cierre comprobados. Abrirlo, cerrarlo y volverlo a abrir en el mismo arranque. |
 | **4. Arrancar C++ con `/MD`** | Resolver las DLL y los API sets de la muestra, aplicar sus requisitos de IAT y `load_config` y completar su ejecucion con salida verificable. |
@@ -551,14 +551,16 @@ ocho registros. Un opcode desconocido y una cadena que no coincide con
 la tabla producen codigo 1 y stdout vacio. La prueba positiva informa
 `MSVC CRT: unwind de dos marcos OK`.
 
-Un segundo punto de prueba provoca un `#UD` dentro de un prologo fijo.
-La reconstruccion usa el PC de la excepcion para deshacer los dos
-`push` ejecutados y omitir la reserva de pila que aun no se ejecuto.
-El caso comprueba RSI, RDI, RIP y RSP antes de continuar el prologo.
+Un segundo punto de prueba provoca un `#UD` dentro de un prologo, despues
+de guardar registros y antes de reservar la pila y establecer RBP. El
+recorrido aplica solo las operaciones que ya se ejecutaron. Comprueba
+RBP, RSI, RDI, RIP y RSP. Con la misma pila de prueba simula el estado
+del epilogo cuando queda `pop rsi; ret`, lee esas instrucciones y
+coteja RSI, RIP y RSP. La excepcion del CPU ocurre en el prologo.
 
-Quedan pendientes el contexto Win64 completo, los prologos con puntero
-de marco parcial, la simulacion de epilogos, SEH, excepciones C++ y la
-inicializacion de la cookie por proceso.
+Quedan pendientes el contexto Win64 completo, la deteccion y simulacion
+general de epilogos, SEH, excepciones C++ y la inicializacion de la
+cookie por proceso.
 [Evidencia en QEMU](../../Reports/host-msvc-crt-gs-native-qemu.json).
 [Formato de excepciones x64 de Microsoft](https://learn.microsoft.com/en-us/cpp/build/exception-handling-x64?view=msvc-170).
 

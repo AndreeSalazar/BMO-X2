@@ -103,10 +103,15 @@ bmo_test_gs_prologue:
     mov %rax, bmo_gs_prologue_expected+8(%rip)
     mov %rsi, bmo_gs_prologue_expected+16(%rip)
     mov %rdi, bmo_gs_prologue_expected+24(%rip)
+    mov %rbp, bmo_gs_prologue_expected+32(%rip)
     push %rsi
     .seh_pushreg %rsi
     push %rdi
     .seh_pushreg %rdi
+    push %rbp
+    .seh_pushreg %rbp
+    push %rbx
+    .seh_pushreg %rbx
     mov $0x43210006, %esi
     mov $0x43210007, %edi
 .globl bmo_test_gs_prologue_fault
@@ -116,9 +121,15 @@ bmo_test_gs_prologue_fault:
 .Lprologue_continue:
     sub $40, %rsp
     .seh_stackalloc 40
+    lea 32(%rsp), %rbp
+    .seh_setframe %rbp, 32
     .seh_endprologue
     add $40, %rsp
+    pop %rbx
+    pop %rbp
     pop %rdi
+.globl bmo_test_gs_epilogue_suffix
+bmo_test_gs_epilogue_suffix:
     pop %rsi
     ret
 .seh_endproc

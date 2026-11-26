@@ -29,7 +29,7 @@ CONSOLE_OUTPUT = b'Hola mundo desde C++ / MSVC en BMO-X2\r\n'
 CRT_OUTPUT = b'MSVC CRT: inicio, main y cierre OK\r\n'
 GS_HANDLER_OUTPUT = b'MSVC CRT: __GSHandlerCheck OK\r\n'
 GS_UNWIND_OUTPUT = b'MSVC CRT: unwind de dos marcos OK\r\n'
-GS_PROLOGUE_OUTPUT = b'MSVC CRT: unwind de prologo OK\r\n'
+GS_PROLOGUE_OUTPUT = b'MSVC CRT: prologo RBP y epilogo pop/ret OK\r\n'
 ALLOCATOR = ROOT / 'kernel/boot/bridge/desktop_media_alloc.S'
 READER = ALLOCATOR.with_name('desktop_media_read.S')
 PROBE = ROOT / 'kernel/loader/sbef_ring0_probe.S'
@@ -398,6 +398,8 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                 ]
             elif name.endswith('-cpu-prologue'):
                 crt_report['cpu_exception']['prologue_stdout'] = stdout.decode('ascii')
+                crt_report['cpu_exception']['prologue_before_frame_pointer'] = True
+                crt_report['cpu_exception']['epilogue_pop_ret_simulated'] = True
             elif name.endswith('-unsupported-unwind'):
                 crt_report['cpu_exception']['unsupported_unwind_rejected'] = True
             elif name.endswith('-invalid-chain'):

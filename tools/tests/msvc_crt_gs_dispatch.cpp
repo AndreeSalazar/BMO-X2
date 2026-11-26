@@ -44,6 +44,7 @@ struct ExpectedPrologue {
     Word caller_rsp;
     Word caller_rsi;
     Word caller_rdi;
+    Word caller_rbp;
 };
 
 extern "C" {
@@ -74,12 +75,13 @@ struct DispatcherContext {
 };
 
 int __GSHandlerCheck(void*, Word, void*, DispatcherContext*);
+void bmo_test_gs_epilogue_suffix();
 }
 
 static_assert(sizeof(FixtureImage) == 24 && sizeof(RuntimeFunction) == 12);
 static_assert(sizeof(DispatcherContext) == 80);
 static_assert(sizeof(CpuContext) == 248 && sizeof(ExpectedUnwind) == 104);
-static_assert(sizeof(ExpectedPrologue) == 32);
+static_assert(sizeof(ExpectedPrologue) == 40);
 
 static bool readonly_range(Rva start, Rva bytes) {
     return start >= bmo_gs_image.readonly_begin && start <= bmo_gs_image.readonly_end &&
@@ -151,6 +153,16 @@ static bool pop_word(CpuContext& context, Word& value) {
 
 static constexpr int register_slot[16] = {-1, -1, -1, 0, -1, 1, 2, 3, -1, -1, -1, -1, 4, 5, 6, 7};
 
+static bool frame_pointer_active(const unsigned char* info, unsigned int code_limit) {
+    for (unsigned int slot = 0; slot < info[2]; ++slot) {
+        const unsigned int code = info[5 + slot * 2];
+        const unsigned int op = code & 15;
+        if (code == 3) return info[4 + slot * 2] <= code_limit;
+        if (op == 1 || op == 4 || op == 8) ++slot;
+    }
+    return false;
+}
+
 static bool restore_unwind_codes(CpuContext& context, const unsigned char* info, bool chained,
                                  Word fixed_rsp, bool& used_frame_pointer, unsigned int code_limit) {
     unsigned int previous_offset = info[1];
@@ -215,14 +227,19 @@ static bool unwind_frame(CpuContext& context, Word control_pc) {
     const auto* initial = reinterpret_cast<const unsigned char*>(base + function->unwind);
     const unsigned int frame = initial[3];
     const unsigned int code_limit = static_cast<unsigned int>(control_pc - base - function->begin);
-    if (code_limit < initial[1] && (frame || (initial[0] >> 3) == 4)) return false;
+    const bool in_prologue = code_limit < initial[1];
+    if (in_prologue && (initial[0] >> 3) == 4) return false;
+    const unsigned int initial_bytes = 4 + ((initial[2] + 1) & ~1u) * 2;
+    if (!readonly_range(function->unwind, initial_bytes)) return false;
+    const bool frame_active = frame && (!in_prologue || frame_pointer_active(initial, code_limit));
     Word fixed_rsp = context.rsp;
     bool used_frame_pointer = false;
-    if (frame) {
-        const int slot = register_slot[frame & 15];
+    const int frame_slot = register_slot[frame & 15];
+    if (frame && frame_slot < 0) return false;
+    if (frame_active) {
         const Word displacement = frame & 0xf0;
-        if (slot < 0 || context.nonvolatile[slot] < displacement) return false;
-        fixed_rsp = context.nonvolatile[slot] - displacement;
+        if (context.nonvolatile[frame_slot] < displacement) return false;
+        fixed_rsp = context.nonvolatile[frame_slot] - displacement;
         if (fixed_rsp < context.rsp || !stack_range(context, fixed_rsp, sizeof(Word))) return false;
     }
     for (unsigned int depth = 0; depth < 8; ++depth) {
@@ -236,7 +253,7 @@ static bool unwind_frame(CpuContext& context, Word control_pc) {
             !restore_unwind_codes(context, info, chained, fixed_rsp, used_frame_pointer,
                                   depth ? info[1] : code_limit)) return false;
         if (!chained) {
-            return used_frame_pointer == (frame != 0) && pop_word(context, context.pc) &&
+            return used_frame_pointer == frame_active && pop_word(context, context.pc) &&
                    context.pc && find_function(context.pc - 1);
         }
 
@@ -245,6 +262,31 @@ static bool unwind_frame(CpuContext& context, Word control_pc) {
         function = find_function(base + parent->begin);
         if (!function || function->begin != parent->begin ||
             function->end != parent->end || function->unwind != parent->unwind) return false;
+    }
+    return false;
+}
+
+// Bounded simulation of the pop/ret suffix of a known Win64 epilogue.
+static bool unwind_epilogue_suffix(CpuContext& context, Word pc) {
+    const auto* function = find_function(pc);
+    if (!function) return false;
+    const Word end = bmo_gs_image.base + function->end;
+    unsigned int seen = 0;
+    while (pc < end) {
+        unsigned int opcode = *reinterpret_cast<const unsigned char*>(pc++);
+        unsigned int extended = 0;
+        if (opcode == 0x41 && pc < end) {
+            extended = 8;
+            opcode = *reinterpret_cast<const unsigned char*>(pc++);
+        }
+        if (opcode == 0xc3 && !extended) {
+            return pop_word(context, context.pc) && context.pc && find_function(context.pc - 1);
+        }
+        if (opcode < 0x58 || opcode > 0x5f) return false;
+        const unsigned int reg = opcode - 0x58 + extended;
+        const int slot = register_slot[reg];
+        if (slot < 0 || (seen & (1u << reg)) || !pop_word(context, context.nonvolatile[slot])) return false;
+        seen |= 1u << reg;
     }
     return false;
 }
@@ -276,10 +318,28 @@ extern "C" int bmo_gs_cpu_prologue(CpuContext* context) {
     if (!function || !readonly_range(function->unwind, 4)) return 0;
     const auto* info = reinterpret_cast<const unsigned char*>(bmo_gs_image.base + function->unwind);
     const Word relative_pc = context->pc - bmo_gs_image.base - function->begin;
-    if (relative_pc >= info[1] || context->nonvolatile[2] != 0x43210006 ||
+    if (relative_pc >= info[1] || (info[3] & 15) != 5 ||
+        !readonly_range(function->unwind, 4 + ((info[2] + 1) & ~1u) * 2) ||
+        frame_pointer_active(info, static_cast<unsigned int>(relative_pc)) ||
+        context->nonvolatile[2] != 0x43210006 ||
         context->nonvolatile[3] != 0x43210007) return 0;
+    // After three of the epilogue's four pops, the saved RSI and RIP
+    // are still on the live stack. RDI is already restored.
+    const Word captured_rsp = context->rsp;
+    const Word captured_rdi = context->nonvolatile[3];
+    context->rsp += 24;
+    context->nonvolatile[3] = bmo_gs_prologue_expected.caller_rdi;
+    if (!unwind_epilogue_suffix(*context, reinterpret_cast<Word>(&bmo_test_gs_epilogue_suffix)) ||
+        context->pc != bmo_gs_prologue_expected.caller_pc ||
+        context->rsp != bmo_gs_prologue_expected.caller_rsp ||
+        context->nonvolatile[2] != bmo_gs_prologue_expected.caller_rsi ||
+        context->nonvolatile[3] != bmo_gs_prologue_expected.caller_rdi) return 0;
+    context->pc = bmo_gs_image.base + function->begin + relative_pc;
+    context->rsp = captured_rsp;
+    context->nonvolatile[3] = captured_rdi;
     return unwind_frame(*context, context->pc) && context->pc == bmo_gs_prologue_expected.caller_pc &&
            context->rsp == bmo_gs_prologue_expected.caller_rsp &&
+           context->nonvolatile[1] == bmo_gs_prologue_expected.caller_rbp &&
            context->nonvolatile[2] == bmo_gs_prologue_expected.caller_rsi &&
            context->nonvolatile[3] == bmo_gs_prologue_expected.caller_rdi;
 }
