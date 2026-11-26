@@ -48,7 +48,14 @@
 .set PEER_PARENT_RSP, DATA+0xbe0
 .set PEER_STATE, DATA+0xbe8
 #elif defined(BMO_EXTERNAL_WIN64)
+#ifdef BMO_EXTERNAL_TLS
+.set TLS_STACK_FRAME, 347
+.set POOL_PAGES, 348
+.set TLS_OLD_GS, DATA+0xbf0
+.set TLS_STATE, DATA+0xbf8
+#else
 .set POOL_PAGES, 347
+#endif
 .set WIN64_OUTPUT_BYTES, DATA+0xbe0
 #else
 .set POOL_PAGES, 346

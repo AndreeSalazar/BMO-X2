@@ -1633,8 +1633,8 @@
       "que": "Inspecciona PE32+ independientemente del productor, aplica relocaciones DIR64 internas y admite perfiles SBEF fijos o freestanding limitados.",
       "entrada": "Ruta de un PE32+ x86-64 pasado al comando de intake de PowerShell.",
       "salida": "Informe con hash, tipo, secciones, directorios, imports, relocaciones y SBEF admitido o rechazo preciso.",
-      "aceptacion": "QEMU prueba DIR64, la consola Win64 y una DLL fija. El perfil de ciclo de vida comprueba attach, constructores C++, destructores en orden inverso, detach y rechazo de attach. Evidencia Reports/host-msvc-dll-lifecycle-qemu.json.",
-      "falta": "Faltan imports e IAT generales, carga dinamica de DLL, TLS, load config, unwind y excepciones en ejecucion, UCRT y VCRuntime, procesos de produccion e intake general de objetos COFF."
+      "aceptacion": "QEMU prueba DIR64, la consola, ciclo de vida de DLL y TLS estatico de MSVC en dos hilos. El control con TLS compartido sale con error. Evidencia Reports/host-msvc-tls-qemu.json.",
+      "falta": "Faltan imports e IAT generales, carga dinamica de DLL, TLS dinamico y callbacks, load config, unwind y excepciones en ejecucion, UCRT y VCRuntime, procesos de produccion e intake general de objetos COFF."
     },
     {
       "id": "userspace-supervisor",

@@ -379,6 +379,20 @@ python -B tools/boot/sbef_ring0_qemu.py $validatorRun --msvc-dll-lifecycle
 
 [Evidencia del arranque Win64](../../Reports/host-msvc-dll-lifecycle-qemu.json).
 
+`--msvc-tls` construye un PE32+ freestanding con un `thread_local`
+inicializado por MSVC. El banco usa `/Zc:tlsGuards-` para este objeto
+estatico sin inicializadores dinamicos. HOST empaqueta dos copias de
+la plantilla y rechaza un callback. QEMU verifica dos hilos, un control
+con el almacenamiento compartido y la restauracion de la base GS.
+[Opcion de MSVC](https://learn.microsoft.com/en-us/cpp/build/reference/zc-tlsguards?view=msvc-170).
+
+```powershell
+$validatorRun = 'build/CASM/run-del-validador'
+python -B tools/boot/sbef_ring0_qemu.py $validatorRun --msvc-tls
+```
+
+[Evidencia TLS](../../Reports/host-msvc-tls-qemu.json).
+
 Con `--msvc-sections --msvc-window` el mismo cliente dibuja un panel y un
 triangulo por CPU. El modelo Rust de DIRECTOR compone el panel en una
 superficie de 320x200 y la presenta mediante GOP. Super+Q retira el panel

@@ -94,6 +94,18 @@ la IAT. El arranque del EXE enlazado para este perfil llama DllMain por
 esa IAT. Ring 0 sigue mapeando las regiones SBEF con sus permisos.
 [Prueba de arranque y cierre](../Reports/host-msvc-dll-lifecycle-qemu.json).
 
+### TLS estatico Win64
+
+`pack --abi 1 --static-tls` valida un EXE fijo con directorio TLS y copia
+una plantilla de hasta 512 bytes, incluido el relleno, en dos regiones
+RW/NX de su SBEF. El indice de modulo debe ser cero y los callbacks quedan
+fuera del perfil. Cada region contiene el puntero que lee el codigo MSVC
+en `GS:0x58`, un vector de un elemento y su copia de la plantilla. Los
+bytes de relleno los pone a cero el cargador. El perfil se activa en la
+sonda QEMU y exige una pila y una base GS propias para cada hilo. El SBEF
+conserva su formato v2 y no define un TEB general.
+[Prueba y control de TLS](../Reports/host-msvc-tls-qemu.json).
+
 ### Perfil ISA
 
 El destino x86-64 de BMO-X2 tiene una base `x86-64-v1` y cuatro niveles

@@ -9,7 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from ..importers.pe import pack_pe, pack_pe_with_dll, probe_pe
+from ..importers.pe import pack_pe, pack_pe_tls, pack_pe_with_dll, probe_pe
 from ..diagnostics import Rejection
 from ..importers.pe_bindings import SESSION_EXPORTS, WIN64_CONSOLE_PROFILE
 from ..sbef.format import LEGACY_FORMAT_VERSION, inspect
@@ -22,6 +22,44 @@ def msvc_x64_compiler():
     if not cc.is_file() or not cc.with_name('link.exe').is_file():
         raise ValueError('La prueba exige MSVC x64')
     return cc
+
+
+def build_external_tls(root, out, assembler):
+    cc = msvc_x64_compiler()
+    abi = root / 'userspace/runtime/abi/win64'
+    client, directory, entry, portal, exe = (out / name for name in (
+        'tls-client.obj', 'tls-directory.obj', 'tls-entry.obj', 'tls-portal.obj', 'tls-client.exe'))
+    subprocess.run([cc, '/nologo', '/std:c++20', '/c', '/GS-', '/Zl', '/O2', '/Zc:tlsGuards-', f'/Fo{client}',
+                    root / 'tools/tests/msvc_tls_client.cpp'], cwd=out, check=True)
+    for source, obj in ((abi / 'entry.S', entry), (root / 'tools/tests/msvc_tls_directory.S', directory)):
+        subprocess.run([assembler, '--target=x86_64-pc-windows-msvc', '-c', source, '-o', obj], check=True)
+    subprocess.run(['rustc', '--edition=2024', '--target=x86_64-pc-windows-msvc', '--crate-type=lib',
+                    '--emit=obj', '-Cpanic=abort', '-Copt-level=2', abi / 'portal.rs', '-o', portal], check=True)
+    subprocess.run([cc.with_name('link.exe'), '/nologo', '/machine:x64', '/nodefaultlib', '/subsystem:console',
+                    '/fixed', '/Brepro', '/incremental:no', '/entry:bmo_win64_start', '/base:0x3fe00000',
+                    '/align:2097152', '/merge:.pdata=.rdata', '/include:_tls_used',
+                    f'/out:{exe}', entry, client, directory, portal], cwd=out, check=True)
+    package = out / 'tls-client.sbef'
+    report = json.loads(subprocess.check_output([sys.executable, '-B', root / 'tools/sbef.py', 'pack', exe,
+                        package, '--abi', '1', '--producer', 'msvc', '--static-tls']))
+    if (report['StaticTLS']['TemplateBytes'], report['StaticTLS']['ZeroFillBytes']) != (16, 8):
+        raise ValueError('El perfil de prueba espera 16 bytes de plantilla y 8 de relleno')
+    source = bytearray(exe.read_bytes())
+    info = probe_pe(source)
+    rva = info['Directories']['tls']['RVA']
+    section = next(item for item in info['Sections'] if item['RVA'] <= rva < item['RVA'] + item['FileBytes'])
+    offset = section['FileOffset'] + rva - section['RVA']
+    struct.pack_into('<Q', source, offset + 24, info['ImageBase'] + rva)
+    try:
+        pack_pe_tls(source, abi=1)
+    except Rejection as error:
+        if error.code != 'PE-TLS-CALLBACK':
+            raise
+        report['RejectedCallback'] = error.report()
+    else:
+        raise ValueError('HOST admitio un callback TLS fuera del perfil')
+    report['MsvcToolset'] = cc.parents[3].name
+    return package.read_bytes(), report
 
 
 def build_external_console(root, out, assembler):

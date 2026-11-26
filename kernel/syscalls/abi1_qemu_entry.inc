@@ -24,6 +24,9 @@
 
 .Linstall_abi1:
     call .Labi1_timer_start
+#ifdef BMO_EXTERNAL_TLS
+    call .Ltls_install
+#endif
     save_msr ABI_SCE, ABI_OLD_EFER
     save_msr ABI_STAR, ABI_OLD_STAR
     save_msr ABI_LSTAR, ABI_OLD_LSTAR
@@ -55,6 +58,9 @@
     jne .Labi1_removed
     mov $0xff, %al
     out %al, $0x21
+#ifdef BMO_EXTERNAL_TLS
+    call .Ltls_restore
+#endif
     restore_msr ABI_SCE, ABI_OLD_EFER
     restore_msr ABI_STAR, ABI_OLD_STAR
     restore_msr ABI_LSTAR, ABI_OLD_LSTAR
@@ -70,9 +76,19 @@
     mov %rsp, ABI_RETURN_RSP
     mov $(PRIVATE_STACK+0x100000), %esp
     incq ABI_CALL_COUNT
+#ifdef BMO_EXTERNAL_TLS
+    movzbl TLS_STATE, %r11d
+    shl $12, %r11d
+    add $USER_STACK, %r11d
+    cmp %r11, ABI_RETURN_RSP
+    jb .Luser_bad_return
+    add $4096, %r11d
+    cmp %r11, ABI_RETURN_RSP
+#else
     cmpq $USER_STACK, ABI_RETURN_RSP
     jb .Luser_bad_return
     cmpq $(USER_STACK+4096), ABI_RETURN_RSP
+#endif
     ja .Luser_bad_return
     cmp $USER_BASE, %rcx
     jb .Luser_bad_return
@@ -93,6 +109,9 @@
 #include "abi1_dispatch.inc"
 #ifdef BMO_EXTERNAL_WIN64
 #include "abi1_qemu_console.inc"
+#endif
+#ifdef BMO_EXTERNAL_TLS
+#include "abi1_qemu_tls.inc"
 #endif
 #include "abi1_qemu_timer.inc"
 

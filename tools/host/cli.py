@@ -8,7 +8,7 @@ import tempfile
 
 from .diagnostics import Rejection
 from .importers.elf import MAX_ELF, pack_elf
-from .importers.pe import pack_pe, pack_pe_with_dll, probe_pe
+from .importers.pe import pack_pe, pack_pe_tls, pack_pe_with_dll, probe_pe
 from .profiles import PRODUCER_PROFILES, profile_report
 from .sbef.format import (
     FORMAT_VERSION,
@@ -51,6 +51,7 @@ def main():
     dll_profiles = pack.add_mutually_exclusive_group()
     dll_profiles.add_argument('--with-dll', type=Path, help='Bind one fixed Win64 DLL to a PE32+ console image')
     dll_profiles.add_argument('--with-dll-lifecycle', type=Path, help='Bind a fixed Win64 DLL including its entry export')
+    dll_profiles.add_argument('--static-tls', action='store_true', help='Materialize the fixed Win64 TLS profile')
     commands.add_parser('inspect').add_argument('input', type=Path)
     plan = commands.add_parser('plan', help='Emit the validated per-process mapping plan')
     plan.add_argument('input', type=Path)
@@ -165,6 +166,10 @@ def run(args):
         image, dependency = pack_pe_with_dll(data, dll, abi=args.abi, isa_profile=args.isa_profile,
                                              format_version=args.format_version, lifecycle=lifecycle is not None)
         declared['LinkedModule'] = dict(dependency, SHA256=hashlib.sha256(dll).hexdigest(), Bytes=len(dll))
+    elif getattr(args, 'static_tls', False):
+        image, tls = pack_pe_tls(data, abi=args.abi, isa_profile=args.isa_profile,
+                                 format_version=args.format_version)
+        declared['StaticTLS'] = tls
     elif is_pe:
         if args.action == 'probe':
             result = probe_pe(data)

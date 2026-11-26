@@ -28,6 +28,13 @@
     jnz .Labi1_bad_args
     cmp $255, %rcx
     ja .Labi1_bad_args
+#ifdef BMO_EXTERNAL_TLS
+    test %rcx, %rcx
+    jnz .Ltls_final_exit
+    cmpb $0, TLS_STATE
+    je .Ltls_next_thread
+.Ltls_final_exit:
+#endif
 #ifdef BMO_EXTERNAL_DLL_LIFECYCLE
     # The fixture can reach exit only after the DLL clears its counter.
     cmpq $0, 0x40803000

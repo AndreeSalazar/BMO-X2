@@ -8,6 +8,7 @@ from .pe_imports import inventory_imports
 from .pe_bindings import bind_fixed_imports, bind_session_imports
 from .pe_exports import (DLL_ENTRY_EXPORT, DLL_LIFECYCLE_BASE, DLL_LIFECYCLE_PROFILE,
                          FIXED_DLL_PROFILE, code_exports)
+from .pe_tls import TLS_PROFILE, tls_regions
 
 
 COFF = struct.Struct('<HHIIIHH')
@@ -465,6 +466,20 @@ def _encode_pe_segments(segments, abi, entry, isa_profile, format_version):
     image += table_bytes + b''.join(payload for _, payload, _, _ in segments)
     inspect(image)
     return image
+
+
+def pack_pe_tls(data, *, abi, isa_profile='x86-64-v1', format_version=FORMAT_VERSION):
+    result, opt, table, flags = _inventory(data)
+    for blocker in result['Blockers']:
+        if blocker['Code'] != 'PE-TLS':
+            raise Rejection(blocker['Code'], blocker['Offset'], blocker['Field'])
+    if (abi != TLS_PROFILE['AbiVersion'] or format_version != FORMAT_VERSION
+            or result['ImageBase'] != BASE - SEPARATE_ALIGNMENT or 'base_relocations' in result['Directories']):
+        raise Rejection('PE-TLS-PROFILE', opt + 24, 'SBEF v2 ABI 1 / EXE.ImageBase')
+    executable = _admit_separate(data, result, opt, table, flags)
+    tls, report = tls_regions(result, executable, opt)
+    return _encode_pe_segments(executable + tls, abi, result['ImageBase'] + result['EntryRVA'],
+                               isa_profile, format_version), report
 
 
 def pack_pe_with_dll(data, dll, *, abi, isa_profile='x86-64-v1', format_version=FORMAT_VERSION, lifecycle=False):

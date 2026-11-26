@@ -13,7 +13,8 @@ from pathlib import Path
 from casm_sbef_qemu import CHECKS, test_vectors, validate
 from host.diagnostics import Rejection
 from host.sbef.format import encode_header, inspect, load_plan
-from host.toolchains.msvc import build_external_console, build_external_dll
+from host.importers.pe_tls import TLS_BASES, TLS_STORAGE, TLS_VECTOR
+from host.toolchains.msvc import build_external_console, build_external_dll, build_external_tls
 from scope import ROOT, workspace
 from bridge_hex import assemble
 from fat32_read import Fat32
@@ -23,6 +24,7 @@ PAGES = 267
 EXTERNAL_PAGES = 346
 PEER_PAGES = 353
 CONSOLE_PAGES = 347
+TLS_PAGES = 348
 CONSOLE_OUTPUT = b'Hola mundo desde C++ / MSVC en BMO-X2\r\n'
 ALLOCATOR = ROOT / 'kernel/boot/bridge/desktop_media_alloc.S'
 READER = ALLOCATOR.with_name('desktop_media_read.S')
@@ -163,7 +165,17 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
     rebase = None
     console = None
     dll_report = None
-    if args.msvc_dll or args.msvc_dll_lifecycle:
+    tls_report = None
+    if args.msvc_tls:
+        image, tls_report = build_external_tls(ROOT, run, llvm / 'clang.exe')
+        second = next(region for region in load_plan(image)['Regions'] if region['VirtualStart'] == TLS_BASES[1])
+        shared = bytearray(image)
+        struct.pack_into('<Q', shared, second['FileOffset'] + TLS_VECTOR, TLS_BASES[0] + TLS_STORAGE)
+        cases = (
+            ('msvc-tls', image, 'SBEF WIN64 EXIT 0000000000000000', 2),
+            ('msvc-tls-shared-control', shared, 'SBEF WIN64 EXIT 0000000000000001', 2),
+        )
+    elif args.msvc_dll or args.msvc_dll_lifecycle:
         lifecycle = args.msvc_dll_lifecycle
         image, dll_report = build_external_dll(ROOT, run, llvm / 'clang.exe', lifecycle=lifecycle)
         base = int(dll_report['LinkedModule']['ImageBase'], 16)
@@ -233,8 +245,8 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
                 raise ValueError('HOST admitio la muestra W+X')
             if calls or rebase or dll_report:
                 plan = load_plan(image)
-                pages = 1 + sum(region['PageCount'] for region in plan['Regions'])
-                expected_regions, expected_pages = (6, 7) if dll_report else (
+                pages = (2 if tls_report else 1) + sum(region['PageCount'] for region in plan['Regions'])
+                expected_regions, expected_pages = (5, 7) if tls_report else (6, 7) if dll_report else (
                     (4, 5) if rebase else (3, 5) if console else (8, 10))
                 if info['AbiVersion'] != 1 or plan['RegionCount'] != expected_regions or pages != expected_pages:
                     raise ValueError('Cambio el contrato de la muestra externa')
@@ -266,6 +278,8 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
             expected.append(counter)
         if args.msvc_dll_lifecycle and calls:
             expected.append('SBEF DLL COUNTER CLEARED')
+        if tls_report:
+            expected.append('SBEF TLS THREAD SWITCH')
         if policy:
             expected.append(policy)
         wakes = 0
@@ -276,7 +290,7 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
             wake_prefix = 'SBEF WAIT WAKES '
             wake_line = next((line for line in observed if line.startswith(wake_prefix)), '')
             wakes = int(wake_line.removeprefix(wake_prefix) or '0', 16)
-            if (args.peer or dll_report) and wakes:
+            if (args.peer or dll_report or tls_report) and wakes:
                 raise ValueError(f'{name}: WAIT entro al bucle del PIT. Ver {folder}')
             if console and not 1 <= wakes <= 3:
                 raise ValueError(f'{name}: WAIT debia despertar en uno a tres ticks. Ver {folder}')
@@ -286,6 +300,8 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
             if args.peer:
                 peer_state = 2 if name == 'peer-signal' else 1
                 expected.append(f'SBEF PEER STATE {peer_state:016X}')
+            if tls_report:
+                expected.append('SBEF TLS GS BASE RESTORED')
             expected.append('SBEF ABI GATE RESTORED')
         if not pages:
             expected.append('SBEF REJECTED BEFORE USER MAP')
@@ -302,19 +318,22 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
                             user_pages=pages, syscalls=calls, wait_wakes=wakes, staging_bytes_scrubbed=staged_bytes,
                             trace=observed, passed=True))
         print(f'{name}: comprobado', flush=True)
-    private_pages = PEER_PAGES if args.peer else CONSOLE_PAGES if console or dll_report else EXTERNAL_PAGES
+    private_pages = TLS_PAGES if tls_report else PEER_PAGES if args.peer else (
+        CONSOLE_PAGES if console or dll_report else EXTERNAL_PAGES)
     report = dict(run=run.name, evidence='QEMU/OVMF, SBEF from virtual FAT32 and real CPL3',
                   validator_text_sha256=module['text_sha256'], probe_sha256=hashlib.sha256(body).hexdigest(),
                   probe_bytes=len(body), private_pages=private_pages, user_frame_budget=64,
                   scratch_bytes_scrubbed=private_pages*4096, passed=len(results), cases=results)
     if args.peer:
         report.update(peer_extension_bytes=len(extension), peer_extension_sha256=hashlib.sha256(extension).hexdigest())
-    if console or dll_report:
+    if console or dll_report or tls_report:
         report.update(extension_bytes=len(extension), extension_sha256=hashlib.sha256(extension).hexdigest())
     if console:
         report['msvc_console'] = console
     if dll_report:
         report['msvc_dll'] = dll_report
+    if tls_report:
+        report['msvc_tls'] = tls_report
     if rebase:
         report['msvc_rebase'] = rebase
     (run / 'qemu-results.json').write_text(json.dumps(report, indent=2)+'\n', encoding='ascii')
@@ -331,8 +350,9 @@ def main():
     profiles.add_argument('--msvc-console', action='store_true', help='Build and run the external Win64 console fixture')
     profiles.add_argument('--msvc-dll', action='store_true', help='Build and run the external EXE and DLL fixture')
     profiles.add_argument('--msvc-dll-lifecycle', action='store_true', help='Test attach, detach and refused attach')
+    profiles.add_argument('--msvc-tls', action='store_true', help='Test the static Win64 TLS template on two CPL3 threads')
     args = parser.parse_args()
-    win64 = args.msvc_console or args.msvc_dll or args.msvc_dll_lifecycle
+    win64 = args.msvc_console or args.msvc_dll or args.msvc_dll_lifecycle or args.msvc_tls
     external = args.external or args.peer or win64 or args.msvc_rebase is not None
     module = json.loads((workspace(args.module_run) / 'validator.module.json').read_bytes())
     validate(module)
@@ -350,7 +370,8 @@ def main():
     run = Path(tempfile.mkdtemp(prefix='run-sbef-ring0-', dir=ROOT / 'build/CASM'))
     print(f'Run: {run}', flush=True)
     llvm = Path(os.environ['ProgramFiles']) / 'LLVM/bin'
-    private_pages = PEER_PAGES if args.peer else CONSOLE_PAGES if win64 else EXTERNAL_PAGES if external else PAGES
+    private_pages = TLS_PAGES if args.msvc_tls else PEER_PAGES if args.peer else (
+        CONSOLE_PAGES if win64 else EXTERNAL_PAGES if external else PAGES)
     allocator = assemble_stage(llvm, ALLOCATOR, run, BMO_DMA_LAB_PAGES=private_pages)
     mode = dict(BMO_EXTERNAL_SBEF=1) if external else {}
     if args.peer:
@@ -359,6 +380,8 @@ def main():
         mode['BMO_EXTERNAL_WIN64'] = 1
     if args.msvc_dll_lifecycle:
         mode['BMO_EXTERNAL_DLL_LIFECYCLE'] = 1
+    if args.msvc_tls:
+        mode['BMO_EXTERNAL_TLS'] = 1
     if args.peer or win64:
         mode['BMO_EXTERNAL_EXT'] = 1
     if args.msvc_rebase:

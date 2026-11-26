@@ -189,6 +189,12 @@ inverso antes de cerrar el modulo. QEMU tambien prueba el rechazo del
 inicio. Quedan pendientes UCRT y VCRuntime generales, TLS, excepciones
 y las APIs graficas. [Informe del ciclo de vida](Reports/host-msvc-dll-lifecycle-qemu.json).
 
+El perfil `win64-static-tls-v1` prepara dos copias de una plantilla TLS
+de MSVC y prueba `thread_local` en dos hilos secuenciales de Ring 3. Cada
+hilo usa su pila y su base GS. El control con una copia compartida detecta
+el cruce. Quedan pendientes TLS dinamico y su gestion en el planificador.
+[Informe de TLS](Reports/host-msvc-tls-qemu.json).
+
 ## Escritorio, entrada y arranque
 
 El nuevo candidato de escritorio conecta RmlUi con DIRECTOR Rust:

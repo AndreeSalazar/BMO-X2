@@ -141,6 +141,14 @@ control cambia su region RW a R y provoca un fallo de usuario. La salida
 y el fallo restauran la puerta y el mapa y borran la reserva completa.
 [Evidencia de la DLL](../Reports/host-msvc-dll-qemu.json).
 
+La sonda `--msvc-tls` mantiene un solo mapa de proceso y arranca dos
+hilos secuenciales con pilas distintas. Cambia la base GS antes de la
+entrada de cada hilo y la restaura al final. HOST prepara la plantilla
+de la prueba y dos regiones TLS. QEMU verifica que la segunda conserva
+sus valores iniciales despues de la escritura del primer hilo y que el
+control compartido sale con error. Queda pendiente el TLS del gestor de
+hilos. [Evidencia de TLS](../Reports/host-msvc-tls-qemu.json).
+
 El perfil de escritorio lee `DESKTOP.SBF` desde FAT32 mediante UEFI y
 entrega sus bytes a este validador. El escritorio ya se observo en
 hardware. Quedan pendientes la integracion del cargador en CASM, los

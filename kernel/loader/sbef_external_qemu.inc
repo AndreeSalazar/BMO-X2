@@ -230,13 +230,22 @@
     bts $63, %rax
     # TABLE_MAP entry 9 maps the stack PT only for this setup.
     mov %rax, (TABLE_MAP+9*4096+8)
+#ifdef BMO_EXTERNAL_TLS
+    lea (TLS_STACK_FRAME*4096+7)(%r12), %rax
+    bts $63, %rax
+    mov %rax, (TABLE_MAP+9*4096+16)
+#endif
     movq $0, (TABLE_MAP+8*(USER_COPY>>21))
     movq $0, (TABLE_MAP+8*(TABLE_MAP>>21))
     mov %cr3, %rax
     mov %rax, %cr3
     lea .Luser_pages(%rip), %rsi
     call .Lprint
+#ifdef BMO_EXTERNAL_TLS
+    lea 2(%rbx), %rax
+#else
     lea 1(%rbx), %rax
+#endif
     call .Lhex
 #ifdef BMO_EXTERNAL_REBASE
     call .Labi1_timer_start
