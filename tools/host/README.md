@@ -513,11 +513,20 @@ El codigo de destino recupera el marco MSVC que llamo a la funcion
 hoja y ejecuta `__GSHandlerCheck`. Un segundo `#UD` en el mismo proceso
 termina el proceso sin entregar el manejador otra vez.
 
+Cuando el manejador devuelve `ContinueSearch`, el banco recorre dos
+marcos vivos desde la captura de RIP, RSP y los registros no volatiles.
+Deshace `UWOP_ALLOC_SMALL` y `UWOP_PUSH_NONVOL` consultando `.pdata` y
+`UNWIND_INFO`. Coteja RIP, RSP, RBX, RSI y RDI en ambos marcos con
+valores registrados antes de la llamada. La prueba informa
+`MSVC CRT: unwind de dos marcos OK` cuando coincide. Un control con
+un opcode de unwind sustituido termina con codigo 1 y stdout vacio.
+
 Esta entrega usa un solo punto de instruccion registrado para el banco.
 El contexto Win64 completo, el recorrido general de marcos, SEH,
 excepciones C++ y la inicializacion de la cookie por proceso quedan
 pendientes.
 [Evidencia en QEMU](../../Reports/host-msvc-crt-gs-native-qemu.json).
+[Formato de excepciones x64 de Microsoft](https://learn.microsoft.com/en-us/cpp/build/exception-handling-x64?view=msvc-170).
 
 `UnwindInventory` registra el numero de funciones de `.pdata`, las
 versiones de `UNWIND_INFO`, los manejadores v1 por RVA y los registros

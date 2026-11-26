@@ -11,6 +11,7 @@ unsigned long long strspn(const char*, const char*);
 unsigned long long strcspn(const char*, const char*);
 int bmo_test_gs_dispatch();
 int bmo_test_gs_cpu_fault();
+int bmo_test_gs_call_client();
 #endif
 int atexit(void (*)());
 void bmo_crt_initialize();
@@ -53,7 +54,7 @@ static void on_exit() {
     if (phase == 2) phase = 3;
 }
 
-__declspec(noinline) static int crt_client_main() {
+extern "C" __declspec(noinline) int bmo_crt_client_main() {
     const char text[] = "123 BMO-X2";
 #ifdef BMO_CRT_GS_NATIVE
     if (crt_strspn(text, "0123456789") != 3 || crt_strcspn(text, " -") != 3 ||
@@ -93,7 +94,11 @@ __declspec(noinline) static int crt_client_main() {
 
 extern "C" void bmo_main() {
     bmo_crt_initialize();
-    const int status = crt_client_main();
+#ifdef BMO_CRT_GS_NATIVE
+    const int status = bmo_test_gs_call_client();
+#else
+    const int status = bmo_crt_client_main();
+#endif
     bmo_crt_finalize();
     if (status || phase != 4) {
         bmo_invoke(4, 2, 1, 0, 0);
@@ -103,10 +108,15 @@ extern "C" void bmo_main() {
     const unsigned char* message = crt_message;
     unsigned int length = sizeof(crt_message) - 1;
 #ifdef BMO_CRT_GS_NATIVE
-    if (bmo_gs_test_mode == 0x424d4f02 || bmo_gs_test_mode == 0x424d4f04) {
+    if (bmo_gs_test_mode == 0x424d4f02) {
         static constexpr unsigned char handler_message[] = "MSVC CRT: __GSHandlerCheck OK\r\n";
         message = handler_message;
         length = sizeof(handler_message) - 1;
+    }
+    if (bmo_gs_test_mode == 0x424d4f04) {
+        static constexpr unsigned char unwind_message[] = "MSVC CRT: unwind de dos marcos OK\r\n";
+        message = unwind_message;
+        length = sizeof(unwind_message) - 1;
     }
 #endif
     unsigned int written = 0;

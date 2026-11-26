@@ -371,7 +371,7 @@
     jne .Luser_abort
     cmpq $0x83, 32(%rsp)
     jne .Luser_abort
-    cmpq $(USER_STACK+8), 24(%rsp)
+    cmpq $(USER_STACK+512), 24(%rsp)
     jb .Luser_abort
     cmpq $(USER_STACK+4096-40), 24(%rsp)
     ja .Luser_abort
@@ -389,6 +389,7 @@
     mov 0(%rsp), %rcx
     mov 24(%rsp), %rdx
     mov $6, %r8d
+    mov $USER_STACK, %r9d
     movq $BMO_GS_LANDING_PC, 0(%rsp)
     iretq
 .Lgs_ud_repeat:

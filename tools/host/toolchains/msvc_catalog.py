@@ -69,6 +69,7 @@ CATALOG = {
         ('unwind-metadata', '.pdata y UNWIND_INFO', 'host', 'probe cuenta versiones, cadenas v1 y destinos de manejadores. El empaquetado fijo sigue limitado a metadatos v1 sin cadenas ni manejadores.'),
         ('gs-handler-call', 'Llamada a __GSHandlerCheck en Ring 3', 'qemu', 'El banco localiza el marco vivo de MSVC en .pdata e invoca al manejador. Comprueba ContinueSearch y el aborto con cookie alterada.', 'host-msvc-crt-gs-native-qemu'),
         ('gs-cpu-exception', 'Entrega de #UD desde el CPU a Ring 3', 'qemu', 'El banco entrega una sola excepcion desde un PC fijado por HOST. Prueba el manejador con cookie valida, cookie alterada y segundo #UD rechazado.', 'host-msvc-crt-gs-native-qemu'),
+        ('unwind-two-frames', 'Unwind de dos marcos Win64 desde #UD', 'qemu', 'Reconstruye dos marcos fijos y coteja RIP, RSP, RBX, RSI y RDI. Rechaza un opcode no admitido.', 'host-msvc-crt-gs-native-qemu'),
         ('unwind-runtime', 'Desenrollado Win64 durante ejecucion', 'pending', 'La inspeccion de metadatos no ejecuta el desenrollador.'),
         ('seh', 'Structured Exception Handling', 'pending', 'Faltan despacho, busqueda y ejecucion de handlers compatibles.'),
         ('cpp-eh', 'Excepciones C++ /EHsc', 'pending', 'Faltan handlers C++ y destruccion de objetos durante unwind.'),

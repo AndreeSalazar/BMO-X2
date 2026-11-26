@@ -252,6 +252,17 @@ def build_external_crt(root, out, assembler, *, guarded=False, native_gs=False):
                 raise ValueError(f'HOST debia rechazar la prueba {code}')
         payload = pack_pe_gs_fixture(source, handler)
         exe.write_bytes(source)
+        wrapper = re.search(
+            r'^\s+[0-9a-fA-F]+:[0-9a-fA-F]+\s+bmo_test_gs_call_client\s+([0-9a-fA-F]+)\s+',
+            map_text, re.MULTILINE)
+        if wrapper is None:
+            raise ValueError('Falta el llamador de la prueba unwind en el MAP')
+        wrapper_rva = int(wrapper[1], 16) - info['ImageBase']
+        table = readonly['FileOffset'] + directory['RVA'] - start
+        wrapper_records = [unwind for begin, _, unwind in struct.iter_unpack(
+            '<III', source[table:table + directory['Bytes']]) if begin == wrapper_rva]
+        if len(wrapper_records) != 1:
+            raise ValueError('El llamador de prueba debe tener una entrada en .pdata')
         native_report = dict(
             libcmt_sha256=hashlib.sha256(libcmt.read_bytes()).hexdigest(),
             gs_symbols={name: origin for name, (_, origin) in sorted(gs_symbols.items())},
@@ -259,14 +270,15 @@ def build_external_crt(root, out, assembler, *, guarded=False, native_gs=False):
             fault_policy='QEMU one-shot delivery for a single registered #UD PC; abort otherwise',
             dispatch_fixture=dict(exception_table_rva=directory['RVA'], exception_table_bytes=directory['Bytes'],
                                   handler_rva=handler, trigger='synchronous call with live MSVC frame'),
-            cpu_exception=dict(vector=6, fault_pc=fault_symbols['fault'], landing_pc=fault_symbols['landing']),
+            cpu_exception=dict(vector=6, fault_pc=fault_symbols['fault'], landing_pc=fault_symbols['landing'],
+                               wrapper_unwind_address=info['ImageBase'] + wrapper_records[0]),
             default_rejection='PE-UNWIND-INFO', wrong_handler_rejection='PE-UNWIND-GS-HANDLER',
         )
     else:
         payload = pack_pe(source, abi=1)
     (out / 'crt.sbef').write_bytes(payload)
     report = dict(
-        startup='bmo_crt_initialize / crt_client_main / bmo_crt_finalize',
+        startup='bmo_crt_initialize / bmo_crt_client_main / bmo_crt_finalize',
         build=(f'{client_compiler} /MT /GS /Zl; MSVC startup object; BMO-X2 entry; explicit static libucrt.lib'
                if guarded else 'MSVC /MT /GS- /Zl; BMO-X2 entry; explicit static libucrt.lib'),
         functions={name: vendor_symbols[name] for name in sorted(expected)},

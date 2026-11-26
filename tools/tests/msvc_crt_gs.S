@@ -10,6 +10,41 @@ __security_cookie:
 
 .text
 #ifdef BMO_GS_NATIVE
+.globl bmo_test_gs_call_client
+.seh_proc bmo_test_gs_call_client
+bmo_test_gs_call_client:
+    push %rbx
+    .seh_pushreg %rbx
+    push %rsi
+    .seh_pushreg %rsi
+    push %rdi
+    .seh_pushreg %rdi
+    sub $32, %rsp
+    .seh_stackalloc 32
+    .seh_endprologue
+    # Record independently observable call boundaries and saved registers.
+    lea .Lclient_return(%rip), %rax
+    mov %rax, bmo_gs_expected(%rip)
+    mov %rsp, bmo_gs_expected+8(%rip)
+    mov 56(%rsp), %rax
+    mov %rax, bmo_gs_expected+16(%rip)
+    lea 64(%rsp), %rax
+    mov %rax, bmo_gs_expected+24(%rip)
+    mov %rbx, bmo_gs_expected+32(%rip)
+    mov %rsi, bmo_gs_expected+40(%rip)
+    mov %rdi, bmo_gs_expected+48(%rip)
+    mov $0x12340003, %ebx
+    mov $0x12340006, %esi
+    mov $0x12340007, %edi
+    call bmo_crt_client_main
+.Lclient_return:
+    add $32, %rsp
+    pop %rdi
+    pop %rsi
+    pop %rbx
+    ret
+.seh_endproc
+
 .globl bmo_test_gs_dispatch
 bmo_test_gs_dispatch:
     mov (%rsp), %rcx
@@ -31,7 +66,23 @@ bmo_test_gs_cpu_landing:
     jne .Linvalid_delivery
     cmp %rsp, %rdx
     jne .Linvalid_delivery
-    jmp bmo_test_gs_dispatch
+    # Win64 shadow space followed by CpuContext in msvc_crt_gs_dispatch.cpp.
+    sub $120, %rsp
+    mov %rcx, 32(%rsp)
+    mov %rdx, 40(%rsp)
+    mov %r9, 48(%rsp)
+    mov %rbx, 56(%rsp)
+    mov %rbp, 64(%rsp)
+    mov %rsi, 72(%rsp)
+    mov %rdi, 80(%rsp)
+    mov %r12, 88(%rsp)
+    mov %r13, 96(%rsp)
+    mov %r14, 104(%rsp)
+    mov %r15, 112(%rsp)
+    lea 32(%rsp), %rcx
+    call bmo_gs_cpu_dispatch
+    add $120, %rsp
+    ret
 .Linvalid_delivery:
     xor %eax, %eax
     ret

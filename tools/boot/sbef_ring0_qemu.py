@@ -28,6 +28,7 @@ TLS_PAGES = 348
 CONSOLE_OUTPUT = b'Hola mundo desde C++ / MSVC en BMO-X2\r\n'
 CRT_OUTPUT = b'MSVC CRT: inicio, main y cierre OK\r\n'
 GS_HANDLER_OUTPUT = b'MSVC CRT: __GSHandlerCheck OK\r\n'
+GS_UNWIND_OUTPUT = b'MSVC CRT: unwind de dos marcos OK\r\n'
 ALLOCATOR = ROOT / 'kernel/boot/bridge/desktop_media_alloc.S'
 READER = ALLOCATOR.with_name('desktop_media_read.S')
 PROBE = ROOT / 'kernel/loader/sbef_ring0_probe.S'
@@ -213,7 +214,8 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
         cases = ((name, image, 'SBEF WIN64 EXIT 0000000000000000', calls),)
         if guarded:
             address = crt_report['stack_cookie']['test_mode_address']
-            region = next(item for item in load_plan(image)['Regions']
+            regions = load_plan(image)['Regions']
+            region = next(item for item in regions
                           if item['Writable'] and item['VirtualStart'] <= address
                           and address + 4 <= item['VirtualStart'] + item['FileBytes'])
             offset = region['FileOffset'] + address - region['VirtualStart']
@@ -222,10 +224,11 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             controls = [('mismatch', 1, 'SBEF CPL3 ABORT 000000004753434B', 0)]
             if args.msvc_crt_gs_native:
                 handler_calls = 1 + (len(GS_HANDLER_OUTPUT) + 7) // 8
+                unwind_calls = 1 + (len(GS_UNWIND_OUTPUT) + 7) // 8
                 controls.extend((
                     ('handler', 2, 'SBEF WIN64 EXIT 0000000000000000', handler_calls),
                     ('handler-mismatch', 3, 'SBEF CPL3 ABORT 0000000047534844', 0),
-                    ('cpu-exception', 4, 'SBEF WIN64 EXIT 0000000000000000', handler_calls),
+                    ('cpu-exception', 4, 'SBEF WIN64 EXIT 0000000000000000', unwind_calls),
                     ('cpu-exception-mismatch', 5, 'SBEF CPL3 ABORT 0000000047534844', 0),
                     ('cpu-exception-repeat', 6, 'SBEF CPL3 ABORT 0000000047534455', 0),
                 ))
@@ -233,6 +236,19 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                 control = bytearray(image)
                 struct.pack_into('<I', control, offset, 0x424d4f00 + selector)
                 cases += ((name + '-' + label, control, terminal, count),)
+            if args.msvc_crt_gs_native:
+                address = crt_report['cpu_exception']['wrapper_unwind_address'] + 5
+                readonly = next(item for item in regions
+                                if not item['Writable'] and not item['Executable']
+                                and item['VirtualStart'] <= address < item['VirtualStart'] + item['FileBytes'])
+                at = readonly['FileOffset'] + address - readonly['VirtualStart']
+                unsupported = bytearray(image)
+                if unsupported[at] != 0x32:  # UWOP_ALLOC_SMALL, 32 bytes
+                    raise ValueError('Cambio el primer opcode unwind del llamador')
+                unsupported[at] = 0x3f
+                struct.pack_into('<I', unsupported, offset, 0x424d4f04)
+                cases += ((name + '-cpu-exception-unsupported-unwind', unsupported,
+                           'SBEF WIN64 EXIT 0000000000000001', 1),)
     elif args.msvc_rebase:
         cases, rebase = msvc_rebase_cases(args.msvc_rebase, run)
     elif extension:
@@ -346,7 +362,11 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             raise ValueError(f'{name}: recibos inesperados {observed}. Ver {folder}')
         if stdout_report is not None:
             stdout = (folder / 'stdout.log').read_bytes()
-            if name.endswith(('-handler', '-cpu-exception')):
+            if name.endswith('-cpu-exception'):
+                expected_stdout = GS_UNWIND_OUTPUT
+            elif name.endswith('-unsupported-unwind'):
+                expected_stdout = b''
+            elif name.endswith('-handler'):
                 expected_stdout = GS_HANDLER_OUTPUT
             else:
                 expected_stdout = (CRT_OUTPUT if crt_report else CONSOLE_OUTPUT) if calls else b''
@@ -354,6 +374,10 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                 raise ValueError(f'{name}: stdout inesperado {stdout!r}. Ver {folder}')
             if name.endswith('-cpu-exception'):
                 crt_report['cpu_exception']['stdout'] = stdout.decode('ascii')
+                crt_report['cpu_exception']['unwound_frames'] = 2
+                crt_report['cpu_exception']['verified_registers'] = ['RBX', 'RSI', 'RDI', 'RSP', 'RIP']
+            elif name.endswith('-unsupported-unwind'):
+                crt_report['cpu_exception']['unsupported_unwind_rejected'] = True
             elif name.endswith(('-cpu-exception-mismatch', '-cpu-exception-repeat')):
                 control = name.rsplit('-', 1)[-1]
                 crt_report['cpu_exception'][control + '_stdout_bytes'] = len(stdout)

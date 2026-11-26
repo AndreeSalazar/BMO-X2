@@ -225,7 +225,7 @@ PRODUCER_WORK_PLAN = {
             ['Inventario del EXE /MD /EHsc', 'Reports/msvc-standard-intake.json'],
         ],
         'Milestones': [
-            ['Unwind Win64', 'Reconstruir dos marcos desde un contexto completo y probar en QEMU registros, RSP y direccion de retorno.'],
+            ['Unwind Win64 general', 'Ampliar la prueba de dos marcos a un contexto completo, mas operaciones Win64 y marcos encadenados.'],
             ['/GS y SEH', 'Inicializar la cookie por proceso, entregar una excepcion a su manejador y comprobar el cierre.'],
             ['CRT /MT', 'Arrancar por la entrada estandar MSVC y verificar argumentos, heap, main, destructores y salida.'],
             ['CRT /MD', 'Resolver DLL, API sets, IAT y load config del EXE /MD /EHsc y ejecutar sus imports requeridos.'],
