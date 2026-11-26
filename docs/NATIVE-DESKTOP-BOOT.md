@@ -1361,6 +1361,28 @@ ocupa 68 KiB y queda fuera de los mapas DMA. El panel de Ring 3 permite
 abrir la captura con F4 y avanzar con F3 desde los eventos hasta LOGINIT.
 El recibo temprano de FAT32 se sigue escribiendo antes de esta captura.
 
+La opcion `--nvidia-trace-export` agrega una salida serie al candidato
+aislado RTX FWSEC. Se agrega a `guest.py` y a la orden de `media.py` del
+perfil fisico. Solo aparece F5 al abrir con F4 una captura del estado
+`804`. F5 transmite las 17 paginas de la copia privada por el canal
+serie existente. El arranque y el camino de presentacion quedan fuera
+de esa transferencia. Ring 0 incluye los indices TX head y tail en las
+palabras libres de la pagina de eventos, sin consumir la cola AMD-Vi.
+
+```powershell
+python -B tools/desktop/rmlui/native/guest.py --desktop --usb both --amdvi-post --dma-census --storage-state --full-hd --amdvi-mmio-report --nvidia-trace-export
+python -B tools/host/gpu/NVIDIA/gsp_capture.py serie.log --raw captura-gsp.bin
+```
+
+El lector HOST rechaza filas fuera de orden, capturas incompletas y
+CRC32 invalido. Agrupa los eventos por solicitante, tipo, contexto y
+direccion, y compara los productores de LOGINIT antes y despues de la
+copia. El archivo bruto conserva LOGINIT para cotejarlo con OpenRM
+615.78.08. Una direccion de fallo cero por si sola no identifica el
+descriptor que genero el acceso. La prueba en metal de esta opcion
+requiere una salida serie capturada por un equipo receptor.
+[Validacion HOST del exportador](../Reports/nvidia-gsp-serial-capture-host.json).
+
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
 [Fusibles SEC2 en Nova](https://github.com/torvalds/linux/blob/master/drivers/gpu/nova-core/regs.rs).

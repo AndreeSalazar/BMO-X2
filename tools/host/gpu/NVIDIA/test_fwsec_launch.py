@@ -98,14 +98,16 @@ class FwsecLaunch(unittest.TestCase):
         self.write(FALCON+0x44,0x5678)
         self.write(FALCON+0x1388,0x80)
         self.write(FALCON+0xc80,0)
+        self.write(FALCON+0xc00,0x10)
+        self.write(FALCON+0xc04,0x0f)
         loginit = bytearray(bytes(range(256))*256)
         struct.pack_into('<Q',loginit,0,0x49)
         log_memory = (ctypes.c_uint8*len(loginit)).from_buffer(loginit)
         registers = (ctypes.c_uint64*5)(0,0,0,16,2)
-        entries = (ctypes.c_uint32*20)(
-            *(word for index in range(5) for word in (0x2900,0x20020005,0xa042000+index*4096,0)))
+        entries = (ctypes.c_uint32*1020)(
+            *(word for index in range(255) for word in (0x2900,0x20020005,0xa042000+index*4096,0)))
         snapshot = (ctypes.c_uint32*10)()
-        for tail, count in ((80,80),(0,0),(17,0),(4096,0)):
+        for tail, count in ((80,80),(4080,4080),(0,0),(17,0),(4096,0)):
             with self.subTest(tail=tail):
                 trace = ctypes.create_string_buffer(17*4096)
                 registers[3] = tail
@@ -115,8 +117,8 @@ class FwsecLaunch(unittest.TestCase):
                                                  0x20022900 if count else 0,0xa042000 if count else 0,0])
                 self.assertEqual(list(registers),[0,0,0,tail,2])
                 self.assertEqual(trace.raw[:count],bytes(entries)[:count])
-                self.assertFalse(any(trace.raw[count:4088]))
-                self.assertEqual(struct.unpack_from('<II',trace,4088),(count,0x49))
+                self.assertFalse(any(trace.raw[count:4080]))
+                self.assertEqual(struct.unpack_from('<4I',trace,4080),(0x10,0x0f,count,0x49))
                 self.assertEqual(trace.raw[4096:],loginit)
 
     def test_gsp_init_accepts_only_a_matching_reply(self):

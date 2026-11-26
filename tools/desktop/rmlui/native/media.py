@@ -66,6 +66,7 @@ def main():
     p.add_argument('--physical-fwsec-trial', action='store_true',
                    help='Stage a separate FAT32 candidate for the measured RTX board')
     p.add_argument('--full-hd', action='store_true', help='Render the desktop at native 1920x1080 for GOP')
+    p.add_argument('--nvidia-trace-export', action='store_true', help='Add serial export to the isolated RTX trial')
     args=p.parse_args()
     if args.usb_empty_ports and args.usb!='both':p.error('--usb-empty-ports requires --usb both')
     if args.nvidia_gsp_sample and (not args.nvidia_probe or not args.full_hd):
@@ -126,6 +127,8 @@ def main():
         p.error('--amdvi-physical-usb-test requires the physical MMIO profile without guest DMA')
     if args.physical_fwsec_trial and not args.amdvi_physical_usb_test:
         p.error('--physical-fwsec-trial requires the guarded physical USB and NVIDIA profile')
+    if args.nvidia_trace_export and not args.physical_fwsec_trial:
+        p.error('--nvidia-trace-export requires --physical-fwsec-trial')
     storage_handoff = args.storage_quiesce or args.storage_quiesce_metal
     abi,splash=args.abi_run.resolve(),args.splash_run.resolve()
     for path in (abi,splash):
@@ -141,6 +144,7 @@ def main():
     if args.full_hd:variant+='-full-hd'
     if args.rtx_lab_panel:variant+='-rtx-lab'
     if args.amdvi_physical_mmio_test:variant+='-amdvi-mmio'
+    if args.nvidia_trace_export:variant+='-nvidia-trace-export'
     app=OUT/(variant + ('-msvc' if args.msvc_panel else ''))
     hashes=json.loads((app/'artifacts.json').read_text())
     for name,digest in hashes.items():
@@ -514,6 +518,7 @@ def main():
         amdvi_physical_mmio_test=args.amdvi_physical_mmio_test,
         amdvi_physical_usb_test=args.amdvi_physical_usb_test,
         physical_fwsec_trial=args.physical_fwsec_trial,
+        nvidia_trace_export=args.nvidia_trace_export,
         full_hd=args.full_hd,
         full_hd_native=args.full_hd,
         amdvi_coexist=args.amdvi_coexist,

@@ -46,6 +46,7 @@ def main():
     parser.add_argument('--rtx-lab-panel',action='store_true')
     parser.add_argument('--storage-state',action='store_true')
     parser.add_argument('--full-hd',action='store_true')
+    parser.add_argument('--nvidia-trace-export',action='store_true')
     args=parser.parse_args()
     if args.usb and not args.desktop:parser.error('--usb requires --desktop')
     if args.msvc_panel_cc and not args.desktop:parser.error('--msvc-panel-cc requires --desktop')
@@ -63,6 +64,8 @@ def main():
         parser.error('--storage-state requires --dma-census')
     if args.full_hd and not args.storage_state:
         parser.error('--full-hd requires --storage-state')
+    if args.nvidia_trace_export and not (args.full_hd and args.amdvi_mmio_report):
+        parser.error('--nvidia-trace-export requires --full-hd and --amdvi-mmio-report')
     libc.main()
     here=Path(__file__).parent
     llvm=Path(os.environ['ProgramFiles'])/'LLVM/bin'
@@ -74,6 +77,7 @@ def main():
     if args.full_hd:variant+='-full-hd'
     if args.rtx_lab_panel:variant+='-rtx-lab'
     if args.amdvi_mmio_report:variant+='-amdvi-mmio'
+    if args.nvidia_trace_export:variant+='-nvidia-trace-export'
     out=OUT/(variant + ('-msvc' if args.msvc_panel_cc else ''))
     out.mkdir(exist_ok=True)
     includes=generate_headers()
@@ -98,6 +102,7 @@ def main():
     if args.rtx_lab_panel:cppflags+=['-DBMO_RTX_LAB_PANEL']
     if args.storage_state:cppflags+=['-DBMO_STORAGE_STATE']
     if args.full_hd:cppflags+=['-DBMO_FULL_HD']
+    if args.nvidia_trace_export:cppflags+=['-DBMO_NVIDIA_TRACE_EXPORT']
     command([llvm/'clang++.exe',*cppflags,'-c',here/'guest.cpp','-o',out/'guest.o'],'compile-native-guest')
     command([llvm/'clang++.exe',*cppflags,'-c',here/'new.cpp','-o',out/'new.o'],'compile-native-new')
     rust_extra=[]

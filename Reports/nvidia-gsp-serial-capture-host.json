@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "evidence": "HOST native test and RmlUi ELF/SBEF build",
+  "reference": "OpenRM 615.78.08, status-queue initialization before GSP_INIT",
+  "tests": {
+    "modules": [
+      "tools.host.gpu.NVIDIA.test_gsp_capture",
+      "tools.host.gpu.NVIDIA.test_fwsec_launch"
+    ],
+    "passed": 22,
+    "trace_bytes": 69632,
+    "event_page_bytes": 4096,
+    "loginit_bytes": 65536,
+    "maximum_events_tested": 255,
+    "validated": [
+      "Snapshot copies all published event entries without consuming the AMD-Vi queue",
+      "TX head and tail remain outside the event copy",
+      "The optional C++ serial writer and Python reader round-trip the complete trace",
+      "Missing, reordered and CRC-corrupted rows are rejected",
+      "CLI gating rejects the export outside the matching optional profile"
+    ]
+  },
+  "guest": {
+    "flags": "--desktop --usb both --amdvi-post --dma-census --storage-state --full-hd --amdvi-mmio-report --nvidia-trace-export",
+    "sbef_bytes": 1882454,
+    "sbef_sha256": "cb65fcf2e1ff5c8ed00795546bb2761fa30949e2fc186fda072a2ae078a435a3",
+    "previous_profile_sbef_bytes": 1881686,
+    "serial_marker_only_in_opt_in_sbef": true
+  },
+  "new_media_boot_verified": false,
+  "physical_capture_verified": false,
+  "gsp_801_verified": false
+}

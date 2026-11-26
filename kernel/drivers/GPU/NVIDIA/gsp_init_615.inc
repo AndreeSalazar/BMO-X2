@@ -217,6 +217,10 @@ nvidia_gsp_snapshot_615:
     mov %eax, 8(%r10)
     mov GSP_RX_HEAD(%rcx), %eax
     mov %eax, 12(%r10)
+    mov GSP_TX_HEAD(%rcx), %eax
+    mov %eax, 4080(%r11)
+    mov GSP_TX_TAIL(%rcx), %eax
+    mov %eax, 4084(%r11)
     mov (%rdx), %eax
     mov %eax, 16(%r10)
     mov %rdx, %rsi

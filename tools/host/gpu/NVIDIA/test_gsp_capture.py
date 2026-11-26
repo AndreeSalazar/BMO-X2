@@ -1,0 +1,64 @@
+"""Verify the serial export with the same C++ encoder as the optional guest."""
+import io
+import os
+from pathlib import Path
+import subprocess
+import tempfile
+import unittest
+
+from .gsp_capture import decode, read_serial
+
+
+ROOT = Path(__file__).resolve().parents[4]
+LLVM = Path(os.environ.get('ProgramFiles', 'C:/Program Files')) / 'LLVM/bin'
+SOURCE = r'''
+#include "userspace/drivers/GPU/NVIDIA/gsp_capture.hpp"
+#include <cstdio>
+
+int main() {
+    std::puts("GSP_TRACE=000000CB 00000000 000000A0 00000000 00000049 00000020 0000001A 20002900 0000000000000000");
+    BmoNvidia::export_gsp_trace([](unsigned selector) -> uint64_t {
+        switch (selector - BmoNvidia::trace_selector) {
+        case 0:
+        case 2: return 0x2000000500002900;
+        case 510: return 0x0000000000000001;
+        case 511: return 0x0000004900000020;
+        case 512: return 0x49;
+        case 513: return 0x0a083000;
+        default: return 0;
+        }
+    }, [](const char* text) { std::fputs(text, stdout); });
+}
+'''
+
+
+class GspSerialCapture(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        with tempfile.TemporaryDirectory(dir=ROOT / 'build') as work:
+            root = Path(work)
+            source, exe = root / 'capture.cpp', root / 'capture.exe'
+            source.write_text(SOURCE, encoding='ascii')
+            subprocess.run([LLVM / 'clang++.exe', '-std=c++17', '-I', ROOT, source, '-o', exe], check=True)
+            cls.serial = subprocess.check_output([exe])
+
+    def test_snapshot_event_and_progress(self):
+        report = decode(*read_serial(io.BytesIO(self.serial)))
+        self.assertEqual((report['tx_head'], report['tx_tail'], report['rx_head']), (1, 0, 0))
+        self.assertEqual(report['mailboxes'], ['0x000000CB', '0x00000000'])
+        self.assertEqual(report['events'], [dict(requester='29:00.0', event_type=2, event='IO_PAGE_FAULT',
+                                                flags='0x000', context_raw='0x0005',
+                                                address='0x0000000000000000', count=2)])
+        self.assertEqual(report['loginit']['self_iova'], '0x000000000A083000')
+        self.assertFalse(report['loginit']['producer_changed_during_copy'])
+
+    def test_missing_row_and_truncation_are_rejected(self):
+        for broken in (self.serial.replace(b'GSPD=00000:', b'GSPD=00040:', 1), self.serial[:-50]):
+            with self.assertRaises(ValueError):
+                read_serial(io.BytesIO(broken))
+
+    def test_corruption_is_rejected_even_with_valid_hex(self):
+        broken = self.serial.replace(b'GSPD=00000:00', b'GSPD=00000:01', 1)
+        self.assertNotEqual(broken, self.serial)
+        with self.assertRaisesRegex(ValueError, 'CRC32'):
+            read_serial(io.BytesIO(broken))

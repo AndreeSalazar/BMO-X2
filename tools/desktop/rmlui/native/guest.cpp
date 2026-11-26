@@ -4,6 +4,9 @@
 #include "guest_invoke.h"
 #include <cstdio>
 #include <cstdlib>
+#ifdef BMO_NVIDIA_TRACE_EXPORT
+#include "../../../../userspace/drivers/GPU/NVIDIA/gsp_capture.hpp"
+#endif
 extern "C" {
 void bmo_native_clock(uint64_t);
 [[noreturn]] void bmo_native_fail(const char*);
@@ -613,6 +616,9 @@ extern "C" void bmo_main() {
         snprintf(line,sizeof(line),"Captura GSP / %u de %u<br/>F4 cerrar / F3 siguiente / F2 volver a PCI",
                  gsp_trace_page+1,trace_pages);
         Rml::String report=line;
+#ifdef BMO_NVIDIA_TRACE_EXPORT
+        report+=" / F5 exportar por serie";
+#endif
         if(gsp_trace_page<event_pages) {
             const unsigned first=gsp_trace_page*rows_per_trace_page;
             const unsigned end=std::min(first+rows_per_trace_page,gsp_event_count);
@@ -771,6 +777,14 @@ extern "C" void bmo_main() {
 #endif
 #ifdef BMO_DMA_CENSUS
 #ifdef BMO_AMDVI_POST
+#ifdef BMO_NVIDIA_TRACE_EXPORT
+                if(scan==0x3f && gsp_trace_open) {
+                    BmoNvidia::export_gsp_trace([](unsigned selector) {
+                        return doom_invoke(3,3,amdvi_diagnostic,selector);
+                    },[](const char* line) {log(line);});
+                    continue;
+                }
+#endif
                 if(scan==0x3e && gsp_trace_available) {
                     gsp_trace_open=!gsp_trace_open;
                     dma_panel_open=gsp_trace_open;
