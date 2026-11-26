@@ -1439,6 +1439,20 @@ registro cabe en el espacio PCI y rechaza una lectura ausente. HOST
 coteja la clave NVKV con el valor recibido por la rutina ensamblada.
 [Campos PCIe de OpenRM](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c#L4676).
 
+METAL con `52ed490` repitio `802 / 00000040`, LOGRM `855` y
+cola AMD-Vi `A0`. Para comparar con un arranque exitoso, el
+[parche de referencia](../tools/host/gpu/NVIDIA/openrm-615-gsp-init-capture.patch)
+se aplica en un arbol de compilacion separado de OpenRM 615.78.08.
+Conserva el envio original y registra las palabras NVKV solo despues
+de que INIT y la decodificacion respondan correctamente para la MSI
+GA106 en `29:00.0`. La compilacion de referencia debe usar el
+kernel y la version de los modulos de la imagen ULTRA-LinuX.
+La captura local sale por el registro del kernel. Los marcadores
+`BMO_GSP_INIT_OK_BEGIN` y `BMO_GSP_INIT_OK_END` contienen el
+recuento y `BMO_GSP_INIT_WORD` contiene indice y valor. Una captura
+completa debe tener todos los indices. Las direcciones DMA se comparan
+por su funcion y alineacion porque dependen del arranque.
+
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
 [Fusibles SEC2 en Nova](https://github.com/torvalds/linux/blob/master/drivers/gpu/nova-core/regs.rs).

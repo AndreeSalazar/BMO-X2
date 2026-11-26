@@ -1,0 +1,27 @@
+--- a/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c
++++ b/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c
+@@ -5343,6 +5343,23 @@
+     pGpu->gspRmInitialized = NV_TRUE;
+     pKernelGsp->bGspRmUnloaded = NV_FALSE;
+-
++
++    // BMO-X2 reference capture for the MSI GA106 on this test board.
++    // Dump only after successful INIT and static-info decoding.
++    if (pGpu->idInfo.PCIDeviceID == 0x250410de &&
++        pGpu->idInfo.PCISubDeviceID == 0x397d1462 &&
++        pGpu->busInfo.nvDomainBusDeviceFunc == 0x2900)
++    {
++        NvU32 count = pKernelGsp->encodedSystemInfoCount;
++        NV_PRINTF(LEVEL_ERROR, "BMO_GSP_INIT_OK_BEGIN=%u\n", count);
++        for (NvU32 index = 0; index < count; ++index)
++        {
++            NvU64 word = pKernelGsp->pEncodedSystemInfo[index];
++            NV_PRINTF(LEVEL_ERROR, "BMO_GSP_INIT_WORD=%04x %08x%08x\n",
++                      index, (NvU32)(word >> 32), (NvU32)word);
++        }
++        NV_PRINTF(LEVEL_ERROR, "BMO_GSP_INIT_OK_END=%u\n", count);
++    }
++
+     if (kgspIsHeartbeatSupported(pGpu))
+     {
+         _kgspHeartbeatInit(pGpu, pKernelGsp);
