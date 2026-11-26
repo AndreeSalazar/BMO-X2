@@ -124,12 +124,24 @@ bmo_test_gs_prologue_fault:
     lea 32(%rsp), %rbp
     .seh_setframe %rbp, 32
     .seh_endprologue
+    cmp $1, %eax
+    je bmo_test_gs_epilogue_lea
+.globl bmo_test_gs_epilogue_add
+bmo_test_gs_epilogue_add:
     add $40, %rsp
     pop %rbx
     pop %rbp
     pop %rdi
 .globl bmo_test_gs_epilogue_suffix
 bmo_test_gs_epilogue_suffix:
+    pop %rsi
+    ret
+.globl bmo_test_gs_epilogue_lea
+bmo_test_gs_epilogue_lea:
+    lea 8(%rbp), %rsp
+    pop %rbx
+    pop %rbp
+    pop %rdi
     pop %rsi
     ret
 .seh_endproc

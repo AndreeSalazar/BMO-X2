@@ -234,7 +234,7 @@ enlazado y valida su perfil, sus metadatos y sus dependencias.
 
 | Paso | Que tiene que pasar |
 |---|---|
-| **1. Completar unwind Win64** | Ya se recuperan registros, RSP y RIP antes de establecer RBP y se simula la cola `pop`/`ret`. Falta cubrir el ajuste inicial del epilogo, sus otras terminaciones y la captura de contexto que requiere el despacho. |
+| **1. Completar unwind Win64** | El banco reconstruye el marco antes de establecer RBP y simula epilogos `add`/`lea` con `pop`/`ret`. Falta detectar epilogos en el recorrido general, cubrir salidas por salto y ampliar el contexto para el despacho. |
 | **2. Probar SEH y C++** | Inicializar la cookie `/GS` al crear el proceso. Probar un caso SEH y un `throw`/`catch` que ejecute los destructores de los marcos recorridos. |
 | **3. Arrancar C++ con `/MT`** | Ejecutar un EXE por la entrada estandar de MSVC con argumentos, heap, stdout, `main` y cierre comprobados. Abrirlo, cerrarlo y volverlo a abrir en el mismo arranque. |
 | **4. Arrancar C++ con `/MD`** | Resolver las DLL y los API sets de la muestra, aplicar sus requisitos de IAT y `load_config` y completar su ejecucion con salida verificable. |
@@ -554,9 +554,13 @@ la tabla producen codigo 1 y stdout vacio. La prueba positiva informa
 Un segundo punto de prueba provoca un `#UD` dentro de un prologo, despues
 de guardar registros y antes de reservar la pila y establecer RBP. El
 recorrido aplica solo las operaciones que ya se ejecutaron. Comprueba
-RBP, RSI, RDI, RIP y RSP. Con la misma pila de prueba simula el estado
-del epilogo cuando queda `pop rsi; ret`, lee esas instrucciones y
-coteja RSI, RIP y RSP. La excepcion del CPU ocurre en el prologo.
+RBP, RSI, RDI, RIP y RSP. Con la misma pila de prueba proyecta tres
+estados de salida y lee el codigo de cada uno. Comprueba
+`add rsp,40`, `lea rsp,[rbp+8]` y la cola `pop rsi; ret`.
+Las tres variantes reconstruyen el mismo llamador. El control con
+un ajuste fuera de la pagina de pila se rechaza. La excepcion del
+CPU ocurre en el prologo.
+[Reglas de prologo y epilogo Win64](https://learn.microsoft.com/en-us/cpp/build/prolog-and-epilog?view=msvc-170).
 
 Quedan pendientes el contexto Win64 completo, la deteccion y simulacion
 general de epilogos, SEH, excepciones C++ y la inicializacion de la

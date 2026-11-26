@@ -121,7 +121,7 @@ extern "C" void bmo_main() {
         length = sizeof(unwind_message) - 1;
     }
     if (bmo_gs_test_mode == 0x424d4f07) {
-        static constexpr unsigned char prologue_message[] = "MSVC CRT: prologo RBP y epilogo pop/ret OK\r\n";
+        static constexpr unsigned char prologue_message[] = "MSVC CRT: epilogos ADD, LEA y pop/ret OK\r\n";
         message = prologue_message;
         length = sizeof(prologue_message) - 1;
     }

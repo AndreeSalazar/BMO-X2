@@ -76,6 +76,8 @@ struct DispatcherContext {
 
 int __GSHandlerCheck(void*, Word, void*, DispatcherContext*);
 void bmo_test_gs_epilogue_suffix();
+void bmo_test_gs_epilogue_add();
+void bmo_test_gs_epilogue_lea();
 }
 
 static_assert(sizeof(FixtureImage) == 24 && sizeof(RuntimeFunction) == 12);
@@ -266,11 +268,45 @@ static bool unwind_frame(CpuContext& context, Word control_pc) {
     return false;
 }
 
-// Bounded simulation of the pop/ret suffix of a known Win64 epilogue.
-static bool unwind_epilogue_suffix(CpuContext& context, Word pc) {
+static long long signed_displacement(const unsigned char* bytes, unsigned int size) {
+    Word value = 0;
+    for (unsigned int index = 0; index < size; ++index) {
+        value |= static_cast<Word>(bytes[index]) << (index * 8);
+    }
+    const Word limit = 1ull << (size * 8);
+    return static_cast<long long>(value) -
+           (value & (limit >> 1) ? static_cast<long long>(limit) : 0);
+}
+
+// Simulate the remaining instructions at a known epilogue boundary.
+static bool unwind_epilogue(CpuContext& context, Word pc) {
     const auto* function = find_function(pc);
-    if (!function) return false;
-    const Word end = bmo_gs_image.base + function->end;
+    if (!function || !readonly_range(function->unwind, 4)) return false;
+    const Word base = bmo_gs_image.base;
+    const auto* info = reinterpret_cast<const unsigned char*>(base + function->unwind);
+    const Word end = base + function->end;
+    const auto* first = reinterpret_cast<const unsigned char*>(pc);
+    if (end - pc >= 3 && (first[0] == 0x48 || first[0] == 0x49)) {
+        const unsigned int modrm = first[2];
+        unsigned int size = 0;
+        Word stack_base = context.rsp;
+        if (first[0] == 0x48 && modrm == 0xc4 && (first[1] == 0x83 || first[1] == 0x81)) {
+            size = first[1] == 0x83 ? 1 : 4;
+        } else if (first[1] == 0x8d && (modrm & 0x38) == 0x20) {
+            const unsigned int reg = (modrm & 7) + (first[0] == 0x49 ? 8 : 0);
+            // This subset uses a ModRM base and disp8/disp32 without a SIB byte.
+            if (reg != (info[3] & 15) || register_slot[reg] < 0 || (modrm & 7) == 4) return false;
+            if ((modrm >> 6) == 1) size = 1;
+            if ((modrm >> 6) == 2) size = 4;
+            stack_base = context.nonvolatile[register_slot[reg]];
+        }
+        if (!size || end - pc < 3 + size ||
+            !stack_range(context, stack_base, sizeof(Word))) return false;
+        const Word adjusted = stack_base + signed_displacement(first + 3, size);
+        if (adjusted < context.rsp || !stack_range(context, adjusted, sizeof(Word))) return false;
+        context.rsp = adjusted;
+        pc += 3 + size;
+    }
     unsigned int seen = 0;
     while (pc < end) {
         unsigned int opcode = *reinterpret_cast<const unsigned char*>(pc++);
@@ -313,6 +349,14 @@ extern "C" int bmo_gs_cpu_dispatch(CpuContext* context) {
            context->xmm[0][1] == bmo_gs_expected.caller_xmm6[1];
 }
 
+static bool matches_prologue_caller(const CpuContext& context) {
+    return context.pc == bmo_gs_prologue_expected.caller_pc &&
+           context.rsp == bmo_gs_prologue_expected.caller_rsp &&
+           context.nonvolatile[1] == bmo_gs_prologue_expected.caller_rbp &&
+           context.nonvolatile[2] == bmo_gs_prologue_expected.caller_rsi &&
+           context.nonvolatile[3] == bmo_gs_prologue_expected.caller_rdi;
+}
+
 extern "C" int bmo_gs_cpu_prologue(CpuContext* context) {
     const auto* function = find_function(context->pc);
     if (!function || !readonly_range(function->unwind, 4)) return 0;
@@ -326,20 +370,30 @@ extern "C" int bmo_gs_cpu_prologue(CpuContext* context) {
     // After three of the epilogue's four pops, the saved RSI and RIP
     // are still on the live stack. RDI is already restored.
     const Word captured_rsp = context->rsp;
+    const Word captured_rbp = context->nonvolatile[1];
+    const Word captured_rsi = context->nonvolatile[2];
     const Word captured_rdi = context->nonvolatile[3];
+    const Word epilogues[] = {reinterpret_cast<Word>(&bmo_test_gs_epilogue_add),
+                              reinterpret_cast<Word>(&bmo_test_gs_epilogue_lea)};
+    for (const Word epilogue : epilogues) {
+        // Project the live frame to the state after sub rsp,40 / lea rbp,[rsp+32].
+        context->rsp = captured_rsp - 40;
+        context->nonvolatile[1] = captured_rsp - 8;
+        context->nonvolatile[2] = captured_rsi;
+        context->nonvolatile[3] = captured_rdi;
+        if (!unwind_epilogue(*context, epilogue) || !matches_prologue_caller(*context)) return 0;
+    }
+    context->rsp = context->stack_begin + 4096 - sizeof(Word);
+    if (unwind_epilogue(*context, epilogues[0])) return 0;
+    context->rsp = captured_rsp;
     context->rsp += 24;
     context->nonvolatile[3] = bmo_gs_prologue_expected.caller_rdi;
-    if (!unwind_epilogue_suffix(*context, reinterpret_cast<Word>(&bmo_test_gs_epilogue_suffix)) ||
-        context->pc != bmo_gs_prologue_expected.caller_pc ||
-        context->rsp != bmo_gs_prologue_expected.caller_rsp ||
-        context->nonvolatile[2] != bmo_gs_prologue_expected.caller_rsi ||
-        context->nonvolatile[3] != bmo_gs_prologue_expected.caller_rdi) return 0;
+    if (!unwind_epilogue(*context, reinterpret_cast<Word>(&bmo_test_gs_epilogue_suffix)) ||
+        !matches_prologue_caller(*context)) return 0;
     context->pc = bmo_gs_image.base + function->begin + relative_pc;
     context->rsp = captured_rsp;
+    context->nonvolatile[1] = captured_rbp;
+    context->nonvolatile[2] = captured_rsi;
     context->nonvolatile[3] = captured_rdi;
-    return unwind_frame(*context, context->pc) && context->pc == bmo_gs_prologue_expected.caller_pc &&
-           context->rsp == bmo_gs_prologue_expected.caller_rsp &&
-           context->nonvolatile[1] == bmo_gs_prologue_expected.caller_rbp &&
-           context->nonvolatile[2] == bmo_gs_prologue_expected.caller_rsi &&
-           context->nonvolatile[3] == bmo_gs_prologue_expected.caller_rdi;
+    return unwind_frame(*context, context->pc) && matches_prologue_caller(*context);
 }
