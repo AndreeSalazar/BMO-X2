@@ -83,8 +83,16 @@ la IAT de solo lectura del EXE y conserva las regiones del modulo en el
 mismo SBEF v2. El informe incluye el hash y la exportacion de la DLL.
 El perfil exige una DLL sin punto de entrada ni dependencias y rechaza
 reenvios, TLS y directorios de ejecucion ajenos al perfil. Quedan
-pendientes carga dinamica, inicializacion y cierre de DLL, el CRT y el
-soporte de excepciones. [Pruebas HOST y QEMU](../Reports/host-msvc-dll-qemu.json).
+pendientes la carga dinamica y los runtimes generales.
+[Pruebas HOST y QEMU](../Reports/host-msvc-dll-qemu.json).
+
+`--with-dll-lifecycle module.dll` selecciona `win64-fixed-dll-lifecycle-v1`.
+HOST exige dos exportaciones directas de una DLL con base `0x40800000` y comprueba que
+`BmoDllEntry` coincide con `AddressOfEntryPoint`. La otra exportacion
+debe tener una direccion RX distinta. Los dos imports se enlazan en
+la IAT. El arranque del EXE enlazado para este perfil llama DllMain por
+esa IAT. Ring 0 sigue mapeando las regiones SBEF con sus permisos.
+[Prueba de arranque y cierre](../Reports/host-msvc-dll-lifecycle-qemu.json).
 
 ### Perfil ISA
 

@@ -48,7 +48,9 @@ def main():
     pack.add_argument('--max-file-bytes', type=positive_bytes)
     pack.add_argument('--max-mapped-bytes', type=positive_bytes)
     pack.add_argument('--size-report', action='store_true', help='Show file and memory costs by region')
-    pack.add_argument('--with-dll', type=Path, help='Bind one fixed Win64 DLL to a PE32+ console image')
+    dll_profiles = pack.add_mutually_exclusive_group()
+    dll_profiles.add_argument('--with-dll', type=Path, help='Bind one fixed Win64 DLL to a PE32+ console image')
+    dll_profiles.add_argument('--with-dll-lifecycle', type=Path, help='Bind a fixed Win64 DLL including its entry export')
     commands.add_parser('inspect').add_argument('input', type=Path)
     plan = commands.add_parser('plan', help='Emit the validated per-process mapping plan')
     plan.add_argument('input', type=Path)
@@ -139,7 +141,8 @@ def run(args):
     if len(data) > MAX_ELF:
         raise Rejection('IMPORT-SIZE', MAX_ELF, 'file')
     is_pe = data.startswith(b'MZ')
-    dll_input = getattr(args, 'with_dll', None)
+    lifecycle = getattr(args, 'with_dll_lifecycle', None)
+    dll_input = lifecycle or getattr(args, 'with_dll', None)
     producer = getattr(args, 'producer', None)
     declared = {}
     if producer is not None:
@@ -160,7 +163,7 @@ def run(args):
         if len(dll) > MAX_ELF:
             raise Rejection('IMPORT-SIZE', MAX_ELF, 'DLL.file')
         image, dependency = pack_pe_with_dll(data, dll, abi=args.abi, isa_profile=args.isa_profile,
-                                             format_version=args.format_version)
+                                             format_version=args.format_version, lifecycle=lifecycle is not None)
         declared['LinkedModule'] = dict(dependency, SHA256=hashlib.sha256(dll).hexdigest(), Bytes=len(dll))
     elif is_pe:
         if args.action == 'probe':

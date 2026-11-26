@@ -163,8 +163,9 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
     rebase = None
     console = None
     dll_report = None
-    if args.msvc_dll:
-        image, dll_report = build_external_dll(ROOT, run, llvm / 'clang.exe')
+    if args.msvc_dll or args.msvc_dll_lifecycle:
+        lifecycle = args.msvc_dll_lifecycle
+        image, dll_report = build_external_dll(ROOT, run, llvm / 'clang.exe', lifecycle=lifecycle)
         base = int(dll_report['LinkedModule']['ImageBase'], 16)
         writable = [region for region in load_plan(image)['Regions']
                     if region['VirtualStart'] >= base and region['Writable']]
@@ -176,6 +177,15 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
             ('msvc-dll', image, 'SBEF WIN64 EXIT 0000000000000000', 1),
             ('msvc-dll-readonly', readonly, f'SBEF CPL3 PF {writable[0]["VirtualStart"]:016X}', 0),
         )
+        if lifecycle:
+            refused = run / 'refused-attach'
+            refused.mkdir()
+            rejected, attach_report = build_external_dll(ROOT, refused, llvm / 'clang.exe',
+                                                         lifecycle=True, reject_attach=True)
+            if writable[0]['VirtualStart'] != 0x40803000:
+                raise ValueError('Cambio la direccion del contador de la DLL')
+            cases += (('msvc-dll-refused', rejected, 'SBEF WIN64 EXIT 0000000000000002', 1),)
+            dll_report['RefusedAttachModule'] = attach_report['LinkedModule']
     elif args.msvc_console:
         image, console = build_external_console(ROOT, run, llvm / 'clang.exe')
         calls = 6 + (len(CONSOLE_OUTPUT) + 7) // 8
@@ -254,6 +264,8 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
             if not counter or int(counter.removeprefix(counter_prefix), 16) <= 1:
                 raise ValueError(f'MSVC no actualizo el dato desde CPL3. Ver {folder}')
             expected.append(counter)
+        if args.msvc_dll_lifecycle and calls:
+            expected.append('SBEF DLL COUNTER CLEARED')
         if policy:
             expected.append(policy)
         wakes = 0
@@ -318,8 +330,9 @@ def main():
     profiles.add_argument('--msvc-rebase', type=Path, metavar='EXE', help='Run the audited MSVC DIR64 fixture')
     profiles.add_argument('--msvc-console', action='store_true', help='Build and run the external Win64 console fixture')
     profiles.add_argument('--msvc-dll', action='store_true', help='Build and run the external EXE and DLL fixture')
+    profiles.add_argument('--msvc-dll-lifecycle', action='store_true', help='Test attach, detach and refused attach')
     args = parser.parse_args()
-    win64 = args.msvc_console or args.msvc_dll
+    win64 = args.msvc_console or args.msvc_dll or args.msvc_dll_lifecycle
     external = args.external or args.peer or win64 or args.msvc_rebase is not None
     module = json.loads((workspace(args.module_run) / 'validator.module.json').read_bytes())
     validate(module)
@@ -344,6 +357,8 @@ def main():
         mode['BMO_EXTERNAL_PEER'] = 1
     if win64:
         mode['BMO_EXTERNAL_WIN64'] = 1
+    if args.msvc_dll_lifecycle:
+        mode['BMO_EXTERNAL_DLL_LIFECYCLE'] = 1
     if args.peer or win64:
         mode['BMO_EXTERNAL_EXT'] = 1
     if args.msvc_rebase:

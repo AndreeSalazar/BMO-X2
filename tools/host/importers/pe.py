@@ -6,7 +6,8 @@ from ..sbef.format import (BASE, END, FORMAT_VERSION, HEADER, MACHINE, MAX_IMAGE
                            PAGE, REGION, encode_header, inspect)
 from .pe_imports import inventory_imports
 from .pe_bindings import bind_fixed_imports, bind_session_imports
-from .pe_exports import FIXED_DLL_PROFILE, single_code_export
+from .pe_exports import (DLL_ENTRY_EXPORT, DLL_LIFECYCLE_BASE, DLL_LIFECYCLE_PROFILE,
+                         FIXED_DLL_PROFILE, code_exports)
 
 
 COFF = struct.Struct('<HHIIIHH')
@@ -466,13 +467,14 @@ def _encode_pe_segments(segments, abi, entry, isa_profile, format_version):
     return image
 
 
-def pack_pe_with_dll(data, dll, *, abi, isa_profile='x86-64-v1', format_version=FORMAT_VERSION):
-    """Bind one fixed, entryless Win64 DLL into the executable's address space."""
+def pack_pe_with_dll(data, dll, *, abi, isa_profile='x86-64-v1', format_version=FORMAT_VERSION, lifecycle=False):
+    """Bind one fixed Win64 DLL into the executable's address space."""
+    profile = DLL_LIFECYCLE_PROFILE if lifecycle else FIXED_DLL_PROFILE
     result, opt, table, flags = _inventory(data)
     for blocker in result['Blockers']:
         if blocker['Code'] not in ('PE-IMPORTS', 'PE-IAT'):
             raise Rejection(blocker['Code'], blocker['Offset'], blocker['Field'])
-    if abi != FIXED_DLL_PROFILE['AbiVersion'] or format_version != FORMAT_VERSION:
+    if abi != profile['AbiVersion'] or format_version != FORMAT_VERSION:
         raise Rejection('PE-DLL-PROFILE', 0, 'SBEF v2 ABI 1')
     if result['ImageBase'] != BASE - SEPARATE_ALIGNMENT or 'base_relocations' in result['Directories']:
         raise Rejection('PE-DLL-PROFILE', opt + 24, 'EXE.ImageBase')
@@ -485,15 +487,21 @@ def pack_pe_with_dll(data, dll, *, abi, isa_profile='x86-64-v1', format_version=
             if index is None:
                 index = int(directory.removeprefix('directory_'))
             raise Rejection('PE-DLL-DIRECTORY', dll_opt + 112 + 8 * index, f'DLL.{directory}')
-    if (module['ImageKind'] != 'DLL' or module['EntryRVA'] or not dll_flags & 1
+    if (module['ImageKind'] != 'DLL' or bool(module['EntryRVA']) != lifecycle or not dll_flags & 1
             or not 0x40800000 <= module['ImageBase'] < END or len(module['Sections']) > 5):
         raise Rejection('PE-DLL-PROFILE', dll_opt + 16, 'DLL.Characteristics/EntryPoint/ImageBase')
+    if lifecycle and module['ImageBase'] != DLL_LIFECYCLE_BASE:
+        raise Rejection('PE-DLL-PROFILE', dll_opt + 24, 'DLL.ImageBase')
     _validate_generic_debug(dll, module, dll_opt, dll_table, library=True)
     segments = _admit_relocated(dll, module, dll_opt, dll_table, dll_flags, (),
                                 load_base=module['ImageBase'], library=True)
-    name, exports = single_code_export(module, segments, dll_opt)
+    name, exports = code_exports(module, segments, dll_opt, 2 if lifecycle else 1)
+    if lifecycle and exports.get(DLL_ENTRY_EXPORT) != module['ImageBase'] + module['EntryRVA']:
+        raise Rejection('PE-DLL-ENTRY', dll_opt + 16, 'DLL.AddressOfEntryPoint/BmoDllEntry')
+    if lifecycle and len(set(exports.values())) != 2:
+        raise Rejection('PE-DLL-ENTRY', dll_opt + 16, 'DLL.DuplicateExportAddress')
     bind_fixed_imports(data, result, opt, executable, name, exports, segments)
     package = _encode_pe_segments(executable + segments, abi, result['ImageBase'] + result['EntryRVA'],
                                   isa_profile, format_version)
-    return package, dict(Name=name, Profile=FIXED_DLL_PROFILE['Name'], ImageBase=f'0x{module["ImageBase"]:X}',
+    return package, dict(Name=name, Profile=profile['Name'], ImageBase=f'0x{module["ImageBase"]:X}',
                          Exports={symbol: f'0x{address:X}' for symbol, address in exports.items()})

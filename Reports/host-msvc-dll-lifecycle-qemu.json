@@ -1,0 +1,227 @@
+{
+  "run": "run-sbef-ring0-990dmudh",
+  "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
+  "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
+  "probe_sha256": "48fb2fd28517f9604144fa22fee0417f71f696a086e8e3ad95d7fc8e1f11bca1",
+  "probe_bytes": 4072,
+  "private_pages": 347,
+  "user_frame_budget": 64,
+  "scratch_bytes_scrubbed": 1421312,
+  "passed": 3,
+  "cases": [
+    {
+      "case": "msvc-dll",
+      "sha256": "107f25bc0dc967984aa0cf590411534d42260575d9e509487babb57b4db86097",
+      "receipt": 0,
+      "user_pages": 7,
+      "syscalls": 1,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 4096,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000000ADC",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000007",
+        "SBEF DLL COUNTER CLEARED",
+        "SBEF WIN64 EXIT 0000000000000000",
+        "SBEF SYSCALLS 0000000000000001",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000001000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "msvc-dll-readonly",
+      "sha256": "0ba9c55077845536111e2c782c9967782e3d1868bb5e002e008dd9a66effb8c1",
+      "receipt": 0,
+      "user_pages": 7,
+      "syscalls": 0,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 4096,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000000ADC",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000007",
+        "SBEF PF ERROR 0000000000000007",
+        "SBEF CPL3 PF 0000000040803000",
+        "SBEF SYSCALLS 0000000000000000",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000001000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "msvc-dll-refused",
+      "sha256": "a766b7706015ebd6928ada301fc1caad2e5a570d33d12b669de324ddade09161",
+      "receipt": 0,
+      "user_pages": 7,
+      "syscalls": 1,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 4096,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000000ACA",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000007",
+        "SBEF DLL COUNTER CLEARED",
+        "SBEF WIN64 EXIT 0000000000000002",
+        "SBEF SYSCALLS 0000000000000001",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000001000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    }
+  ],
+  "extension_bytes": 1057,
+  "extension_sha256": "02b17b931cf0db38aa6dd370785f061001632b11e1ab2888fb2ff802856629fd",
+  "msvc_dll": {
+    "FormatVersion": 2,
+    "AbiVersion": 1,
+    "Architecture": "x86-64",
+    "IsaProfile": "x86-64-v1",
+    "IsaProfileId": 1,
+    "IsaRequirements": {
+      "Name": "x86-64-v1",
+      "Features": [
+        "CMOV",
+        "CX8",
+        "FPU",
+        "FXSR",
+        "MMX",
+        "OSFXSR",
+        "SCE",
+        "SSE",
+        "SSE2"
+      ],
+      "MinimumBasicLeaf": "0x00000001",
+      "MinimumExtendedLeaf": "0x80000001",
+      "CPUID": [
+        {
+          "Leaf": "0x00000001",
+          "Subleaf": 0,
+          "Register": "EDX",
+          "Mask": "0x07808101",
+          "Features": [
+            "CMOV",
+            "CX8",
+            "FPU",
+            "FXSR",
+            "MMX",
+            "SSE",
+            "SSE2"
+          ]
+        },
+        {
+          "Leaf": "0x80000001",
+          "Subleaf": 0,
+          "Register": "EDX",
+          "Mask": "0x00000800",
+          "Features": [
+            "SCE"
+          ]
+        }
+      ],
+      "CR4Mask": "0x00000200",
+      "XCR0Mask": "0x00000000"
+    },
+    "Bytes": 2780,
+    "Entry": "0x40000000",
+    "Regions": [
+      {
+        "Address": "0x40000000",
+        "Offset": 224,
+        "FileBytes": 998,
+        "MemoryBytes": 998,
+        "MappedBytes": 4096,
+        "Permissions": "RX"
+      },
+      {
+        "Address": "0x40200000",
+        "Offset": 1222,
+        "FileBytes": 876,
+        "MemoryBytes": 876,
+        "MappedBytes": 4096,
+        "Permissions": "R"
+      },
+      {
+        "Address": "0x40400000",
+        "Offset": 2098,
+        "FileBytes": 196,
+        "MemoryBytes": 196,
+        "MappedBytes": 4096,
+        "Permissions": "RW"
+      },
+      {
+        "Address": "0x40801000",
+        "Offset": 2294,
+        "FileBytes": 118,
+        "MemoryBytes": 118,
+        "MappedBytes": 4096,
+        "Permissions": "RX"
+      },
+      {
+        "Address": "0x40802000",
+        "Offset": 2412,
+        "FileBytes": 368,
+        "MemoryBytes": 368,
+        "MappedBytes": 4096,
+        "Permissions": "R"
+      },
+      {
+        "Address": "0x40803000",
+        "Offset": 2780,
+        "FileBytes": 0,
+        "MemoryBytes": 8,
+        "MappedBytes": 4096,
+        "Permissions": "RW"
+      }
+    ],
+    "ProducerProfile": {
+      "Id": "msvc-x86_64-pe32plus",
+      "Selector": "msvc",
+      "Container": "PE32+",
+      "IdentityAttested": false,
+      "InputSHA256": "2c4da62e230a9e01222e1078f60a3ad866a1c0c49040dbc88f1a9dce4fc0bca4"
+    },
+    "LinkedModule": {
+      "Name": "module.dll",
+      "Profile": "win64-fixed-dll-lifecycle-v1",
+      "ImageBase": "0x40800000",
+      "Exports": {
+        "BmoDllEntry": "0x40801020",
+        "BmoStep": "0x40801000"
+      },
+      "SHA256": "9eda7d5342ae39fda3e8a38779fd4110923efe3eed0e92d45223561b3df6e889",
+      "Bytes": 2048
+    },
+    "RejectedEntry": {
+      "Code": "PE-DLL-ENTRY",
+      "Offset": 232,
+      "Field": "DLL.AddressOfEntryPoint/BmoDllEntry"
+    },
+    "RejectedExport": {
+      "Code": "PE-SESSION-IMPORT",
+      "Offset": 360,
+      "Field": "module.dll!BmoStep"
+    },
+    "MsvcToolset": "14.44.35207",
+    "RefusedAttachModule": {
+      "Name": "module.dll",
+      "Profile": "win64-fixed-dll-lifecycle-v1",
+      "ImageBase": "0x40800000",
+      "Exports": {
+        "BmoDllEntry": "0x40801020",
+        "BmoStep": "0x40801000"
+      },
+      "SHA256": "9aeffa651928366b7c2bdf3625987983bb646873d80d7bb409152842897cbf16",
+      "Bytes": 2048
+    }
+  }
+}

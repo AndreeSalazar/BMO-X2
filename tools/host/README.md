@@ -361,6 +361,24 @@ carpeta del run. El perfil `win64-fixed-dll-v1` resuelve una exportacion
 directa de una DLL fija sin inicializador. La carga dinamica queda
 pendiente. [Evidencia EXE y DLL](../../Reports/host-msvc-dll-qemu.json).
 
+`--msvc-dll-lifecycle` construye el EXE con el arranque Win64 de BMO-X2.
+HOST coteja `BmoDllEntry` con la entrada PE de la DLL. La secuencia es
+attach, constructores MSVC de `.CRT$XC*`, cliente, callbacks `atexit`
+en orden inverso, detach y salida por SYSCALL. El arranque guarda hasta
+16 callbacks en esta sesion de un solo hilo. La prueba comprueba dos
+constructores y dos destructores de C++ antes del detach. Si el attach
+devuelve cero, el cliente y sus constructores quedan sin ejecutar.
+La prueba usa `/Od` para el arranque y el cliente con las reglas de
+unwind admitidas por HOST. UCRT, VCRuntime, TLS, excepciones y carga
+dinamica siguen pendientes.
+
+```powershell
+$validatorRun = 'build/CASM/run-del-validador'
+python -B tools/boot/sbef_ring0_qemu.py $validatorRun --msvc-dll-lifecycle
+```
+
+[Evidencia del arranque Win64](../../Reports/host-msvc-dll-lifecycle-qemu.json).
+
 Con `--msvc-sections --msvc-window` el mismo cliente dibuja un panel y un
 triangulo por CPU. El modelo Rust de DIRECTOR compone el panel en una
 superficie de 320x200 y la presenta mediante GOP. Super+Q retira el panel

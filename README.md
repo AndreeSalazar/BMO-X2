@@ -182,6 +182,13 @@ Ring 0 conserva permisos independientes para sus regiones. QEMU verifica
 dos llamadas, el estado de la DLL y la recuperacion de memoria al salir.
 [Informe EXE y DLL](Reports/host-msvc-dll-qemu.json).
 
+El perfil `win64-fixed-dll-lifecycle-v1` prueba el inicio y cierre de la
+DLL y el arranque C++ sin CRT externo. El runtime llama a DllMain,
+ejecuta los constructores generados por MSVC y recorre `atexit` en orden
+inverso antes de cerrar el modulo. QEMU tambien prueba el rechazo del
+inicio. Quedan pendientes UCRT y VCRuntime generales, TLS, excepciones
+y las APIs graficas. [Informe del ciclo de vida](Reports/host-msvc-dll-lifecycle-qemu.json).
+
 ## Escritorio, entrada y arranque
 
 El nuevo candidato de escritorio conecta RmlUi con DIRECTOR Rust:

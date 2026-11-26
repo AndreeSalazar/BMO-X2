@@ -28,7 +28,17 @@
     jnz .Labi1_bad_args
     cmp $255, %rcx
     ja .Labi1_bad_args
+#ifdef BMO_EXTERNAL_DLL_LIFECYCLE
+    # The fixture can reach exit only after the DLL clears its counter.
+    cmpq $0, 0x40803000
+    jne .Lfail
+    lea .Labi1_dll_clear(%rip), %rsi
+    call .Lprint
+#endif
     mov %rcx, %rax
     lea .Labi1_console_receipt(%rip), %rsi
     jmp .Luser_terminal
 .Labi1_console_receipt: .asciz "SBEF WIN64 EXIT "
+#ifdef BMO_EXTERNAL_DLL_LIFECYCLE
+.Labi1_dll_clear: .asciz "SBEF DLL COUNTER CLEARED\n"
+#endif

@@ -75,34 +75,64 @@ def build_external_console(root, out, assembler):
                          rejected_import=rejected)
 
 
-def build_external_dll(root, out, assembler):
+def build_external_dll(root, out, assembler, *, lifecycle=False, reject_attach=False):
     """Build independently linked EXE and DLL inputs, then use the public HOST CLI."""
     cc = msvc_x64_compiler()
     linker = cc.with_name('link.exe')
     module_obj, client_obj, dll, exe = (out / name for name in (
         'module.obj', 'dll-client.obj', 'module.dll', 'dll-client.exe'))
+    defines = ['/DBMO_DLL_LIFECYCLE'] if lifecycle else []
     for unit, obj in (('msvc_dll_module.cpp', module_obj), ('msvc_dll_client.cpp', client_obj)):
-        subprocess.run([cc, '/nologo', '/c', '/GS-', '/Zl', '/O2', f'/Fo{obj}', root / 'tools/tests' / unit],
-                       cwd=out, check=True)
+        reject = ['/DBMO_DLL_REJECT_ATTACH'] if unit == 'msvc_dll_module.cpp' and reject_attach else []
+        optimize = '/Od' if lifecycle and obj == client_obj else '/O2'
+        subprocess.run([cc, '/nologo', '/c', '/GS-', '/Zl', optimize, *defines, *reject, f'/Fo{obj}',
+                        root / 'tools/tests' / unit], cwd=out, check=True)
     import_lib = out / 'module.lib'
     common_link = ['/nologo', '/machine:x64', '/nodefaultlib', '/subsystem:console',
                    '/fixed', '/Brepro', '/incremental:no']
-    subprocess.run([linker, *common_link, '/dll', '/noentry', '/base:0x40800000',
+    dll_entry = ['/entry:DllMain', '/export:BmoDllEntry=DllMain'] if lifecycle else ['/noentry']
+    subprocess.run([linker, *common_link, '/dll', *dll_entry, '/base:0x40800000',
                     f'/out:{dll}', f'/implib:{import_lib}', module_obj], cwd=out, check=True)
     abi = root / 'userspace/runtime/abi/win64'
     entry, portal = out / 'dll-entry.obj', out / 'dll-portal.obj'
     subprocess.run([assembler, '--target=x86_64-pc-windows-msvc', '-c', abi / 'entry.S', '-o', entry], check=True)
     subprocess.run(['rustc', '--edition=2024', '--target=x86_64-pc-windows-msvc', '--crate-type=lib',
                     '--emit=obj', '-Cpanic=abort', '-Copt-level=2', abi / 'portal.rs', '-o', portal], check=True)
+    startup = []
+    if lifecycle:
+        for unit in ('dll_lifecycle', 'crt_startup'):
+            runtime = out / f'{unit}.obj'
+            subprocess.run([cc, '/nologo', '/c', '/GS-', '/Zl', '/Od', f'/Fo{runtime}',
+                            abi / f'{unit}.cpp'], cwd=out, check=True)
+            startup.append(runtime)
+    startup_sections = ['/merge:.CRT=.rdata'] if lifecycle else []
     subprocess.run([linker, *common_link, '/entry:bmo_win64_start', '/base:0x3fe00000', '/align:2097152',
-                    '/merge:.pdata=.rdata', f'/out:{exe}', entry, client_obj, portal, import_lib], cwd=out, check=True)
+                    '/merge:.pdata=.rdata', *startup_sections, f'/out:{exe}', entry, client_obj, portal,
+                    *startup, import_lib],
+                   cwd=out, check=True)
 
     package = out / 'dll-client.sbef'
+    dll_option = '--with-dll-lifecycle' if lifecycle else '--with-dll'
     report = json.loads(subprocess.check_output([sys.executable, '-B', root / 'tools/sbef.py', 'pack', exe,
-                        package, '--abi', '1', '--producer', 'msvc', '--with-dll', dll]))
-    unknown_export = dll.read_bytes().replace(b'BmoStep\x00', b'BadStep\x00', 1)
+                        package, '--abi', '1', '--producer', 'msvc', dll_option, dll]))
+    dll_bytes = dll.read_bytes()
+    if lifecycle:
+        bad_entry = bytearray(dll_bytes)
+        pe_offset, = struct.unpack_from('<I', bad_entry, 0x3c)
+        module = report['LinkedModule']
+        step_rva = int(module['Exports']['BmoStep'], 16) - int(module['ImageBase'], 16)
+        struct.pack_into('<I', bad_entry, pe_offset + 40, step_rva)
+        try:
+            pack_pe_with_dll(exe.read_bytes(), bad_entry, abi=1, lifecycle=True)
+        except Rejection as error:
+            if error.code != 'PE-DLL-ENTRY':
+                raise
+            report['RejectedEntry'] = error.report()
+        else:
+            raise ValueError('HOST admitio una DLL con una entrada que no coincide con BmoDllEntry')
+    unknown_export = dll_bytes.replace(b'BmoStep\x00', b'BadStep\x00', 1)
     try:
-        pack_pe_with_dll(exe.read_bytes(), unknown_export, abi=1)
+        pack_pe_with_dll(exe.read_bytes(), unknown_export, abi=1, lifecycle=lifecycle)
     except Rejection as error:
         if error.code != 'PE-SESSION-IMPORT' or error.field.lower() != 'module.dll!bmostep':
             raise
