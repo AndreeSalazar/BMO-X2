@@ -1409,6 +1409,17 @@ Ahora este rechazo guarda LOGRM antes del cierre PCIe. El lector de
 Ring 3 permite leer la captura de `802`, `804` y `806`. Los plazos
 conservan LOGINIT. La captura no permite dar por aceptado el INIT.
 
+METAL con `2e48e99` conservo `802 / 00000040`, productor LOGRM
+`855` y diez eventos AMD-Vi de la RTX a IOVA cero. OpenRM reserva
+NotifyOpSharedSurface en el arranque normal y comunica su direccion en
+`NOTIFY_OP_SHARED_SURF_PHYS_ADDR`. El nuevo ensayo emite esa clave
+NVKV y reserva una pagina dedicada junto al monitor RM. HOST verifica
+la direccion que se envia y las dos hojas PCIe. QEMU verifica que ambas
+paginas empiezan en cero y siguen sin mapear en el equipo emulado.
+IOVA cero sigue fuera de los mapas. La causa del rechazo en metal
+queda pendiente de confirmar.
+[Reserva NotifyOp de OpenRM](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c#L4487).
+
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
 [Fusibles SEC2 en Nova](https://github.com/torvalds/linux/blob/master/drivers/gpu/nova-core/regs.rs).

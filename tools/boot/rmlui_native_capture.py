@@ -80,14 +80,14 @@ def verify_gsp_reservation(memory, context, expected, case):
     descriptors = [struct.unpack_from('<I4xQQQ',memmap,offset)
                    for offset in range(0,len(memmap),stride)]
     physical_usb = expected.get('physical_usb_test')
-    board_pages = 554 if physical_usb else 0
+    board_pages = 555 if physical_usb else 0
     allocation = reserved + board_pages*4096
     if not any(kind==2 and start<=base and base+allocation<=start+pages*4096
                for kind,start,_,pages in descriptors):
         raise ValueError('GSP data is not reserved in the final EFI map')
     if physical_usb:
-        if any(memory(base+allocation-4096,4096,'gsp-rm-state-monitor')):
-            raise ValueError('GSP RM state monitor must start zeroed')
+        if any(memory(base+allocation-8192,8192,'gsp-shared-surfaces')):
+            raise ValueError('GSP shared surfaces must start zeroed')
     if ucodes and not any(kind==2 and start<=ucodes_base and
             ucodes_base+ucodes_allocation<=start+pages*4096 for kind,start,_,pages in descriptors):
         raise ValueError('GA10x ucodes are outside their LoaderData range')
@@ -255,6 +255,7 @@ def verify_gsp_reservation(memory, context, expected, case):
                 raise ValueError('Detached GSP queue permissions differ')
             if physical_usb:
                 result['GspRmStateMonitorReservedUnmapped']=True
+                result['GspNotifyOpReservedUnmapped']=True
             used += 4096
             result.update(GspQueuePagesVerified=queue_pages,GspQueuePermissionsVerified=True,
                           GspQueueReadOnlyPages=2,GspQueueWritablePages=queue_pages-2,

@@ -295,6 +295,7 @@ nvidia_gsp_snapshot_615:
     gsp_u64 0x1012, 0xe0000000
     gsp_u64 0x1013, 0
     gsp_u64 0x1020, 0x2900
+    gsp_u64 0x1022, GSP_NOTIFY_OP_IOVA # NOTIFY_OP_SHARED_SURF_PHYS_ADDR.
     gsp_u64 0x1031, 0
     gsp_u64 0x1032, 0x7ffffffff000
     gsp_u32 0x70, 1               # HOST_ARCH_X86_64.

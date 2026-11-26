@@ -405,8 +405,9 @@ def main():
     if args.amdvi_physical_usb_test and not all(report['Cases'][0].get(key) for key in
           ('PhysicalUsbTranslationExcluded', 'PhysicalFalconResetExcluded',
            'PhysicalFwsecDeniedWithoutFirmware', 'PhysicalFwsecLaunchExcluded',
-           'PhysicalLpcCommandExcluded', 'GspRmStateMonitorReservedUnmapped')):
-        raise ValueError('Missing board exclusions, FWSEC denial or GSP monitor reservation evidence')
+           'PhysicalLpcCommandExcluded', 'GspRmStateMonitorReservedUnmapped',
+           'GspNotifyOpReservedUnmapped')):
+        raise ValueError('Missing board exclusions, FWSEC denial or GSP shared surface evidence')
     if args.physical_fwsec_trial and not all(report['Cases'][i].get('PhysicalFwsecStatusExportVerified')
                                             for i in (0,2)):
         raise ValueError('Missing the Ring 3 physical FWSEC receipt in QEMU')
