@@ -12,6 +12,7 @@
 .set GSP_615_RX_ENTRY, 0x43000
 .set GSP_615_NVDM_GMCAPI, 0x2610de7e
 .set GSP_615_INIT_REPLY, 0x01010001
+.set GSP_615_PRE_INIT_10MS, 25
 
 .globl nvidia_gsp_init_615
 nvidia_gsp_init_615:
@@ -83,6 +84,13 @@ nvidia_gsp_init_615:
     jne .Lgsp_615_receipt
     cmpl $4096, (GSP_615_RX_HEADER+16)(%r14)
     jne .Lgsp_615_receipt
+    # Board trial: isolate timing between a ready status queue and INIT.
+    # The four-second response deadline starts after publication as usual.
+    imul $GSP_615_PRE_INIT_10MS, %rbx, %r10
+    call .Lprep_deadline
+.Lgsp_615_pre_init:
+    call .Lwithin_deadline
+    jb .Lgsp_615_pre_init
     mov GSP_TX_HEAD(%r13), %eax
     or GSP_TX_TAIL(%r13), %eax
     jnz .Lgsp_615_receipt

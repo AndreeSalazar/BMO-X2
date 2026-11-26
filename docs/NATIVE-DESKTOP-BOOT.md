@@ -1420,6 +1420,13 @@ IOVA cero sigue fuera de los mapas. La causa del rechazo en metal
 queda pendiente de confirmar.
 [Reserva NotifyOp de OpenRM](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c#L4487).
 
+METAL con `9657294` repitio `802 / 00000040`, LOGRM `855` y
+diez eventos a IOVA cero. Para aislar el momento del envio, el
+siguiente ensayo espera 250 ms medidos con el TSC calibrado despues
+de validar la cabecera MSGQ y antes de publicar el unico GSP_INIT.
+El plazo de respuesta sigue empezando al publicarlo. El resultado
+en metal determina si ese intervalo influye en el rechazo.
+
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
 [Fusibles SEC2 en Nova](https://github.com/torvalds/linux/blob/master/drivers/gpu/nova-core/regs.rs).

@@ -7,6 +7,7 @@ from pathlib import Path
 import struct
 import subprocess
 import tempfile
+import time
 import unittest
 
 from .sec2_booter import prepare_sec2_booter
@@ -155,16 +156,20 @@ class FwsecLaunch(unittest.TestCase):
                 backing = ctypes.create_string_buffer(0x83000)
                 address = (ctypes.addressof(backing)+4095)&-4096
                 queue = (ctypes.c_ubyte*0x82000).from_address(address)
-                struct.pack_into('<5I',queue,0x42000,2,0x40000,4096,63,4096)
+                struct.pack_into('<4I',queue,0x42004,0x40000,4096,63,4096)
                 self.write(FALCON+0x1388,0x80)
                 self.write(FALCON+0xc00,0)
                 self.write(FALCON+0xc80,0)
                 with ThreadPoolExecutor(max_workers=1) as worker:
                     run = worker.submit(self.gsp_init, ctypes.byref(self.mapping,FALCON),
                                         address,25_000_000,0xa1)
+                    ready_at = time.monotonic()
+                    struct.pack_into('<I', queue, 0x42000, 2)
                     while self.read(FALCON+0xc00)!=1 and not run.done():
                         pass
                     self.assertFalse(run.done(),"GSP INIT was not submitted")
+                    # A host test may run on a CPU whose TSC is not 2.5 GHz.
+                    self.assertGreaterEqual(time.monotonic() - ready_at, 0.05)
                     frame = struct.unpack_from('<6I', queue, 0x3000)
                     command, payload_size = struct.unpack_from('<2I', queue, 0x3018)
                     self.assertEqual(command, 0x00010001)
