@@ -1,0 +1,77 @@
+{
+  "run": "run-sbef-ring0-dkrfqi4n",
+  "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
+  "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
+  "probe_sha256": "48fb2fd28517f9604144fa22fee0417f71f696a086e8e3ad95d7fc8e1f11bca1",
+  "probe_bytes": 4072,
+  "private_pages": 347,
+  "user_frame_budget": 64,
+  "scratch_bytes_scrubbed": 1421312,
+  "passed": 1,
+  "cases": [
+    {
+      "case": "msvc-console",
+      "sha256": "b6a43240b0f442269b09c10fddfcb8c108d70488c4a416b94cb67512e2457123",
+      "receipt": 0,
+      "user_pages": 5,
+      "syscalls": 11,
+      "wait_wakes": 3,
+      "staging_bytes_scrubbed": 4096,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000000AF7",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000005",
+        "SBEF WIN64 EXIT 0000000000000000",
+        "SBEF SYSCALLS 000000000000000B",
+        "SBEF WAIT WAKES 0000000000000003",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000001000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    }
+  ],
+  "msvc_console": {
+    "profile": {
+      "Name": "win64-console-v1",
+      "AbiVersion": 1,
+      "DLL": "KERNEL32.dll",
+      "Imports": {
+        "GetTickCount64": "bmo_session_tick_ms",
+        "GetStdHandle": "bmo_session_stdout",
+        "WriteFile": "bmo_session_write"
+      },
+      "Scope": "External QEMU console fixture"
+    },
+    "imports": [
+      {
+        "DLL": "KERNEL32.dll",
+        "Symbols": [
+          {
+            "Name": "GetStdHandle"
+          },
+          {
+            "Name": "WriteFile"
+          },
+          {
+            "Name": "GetTickCount64"
+          }
+        ]
+      }
+    ],
+    "pe_bytes": 4096,
+    "pe_sha256": "c80d076e3faeb923d95aecb0488ac529dad6880fcc15a21f222e00809d76e8e7",
+    "msvc_toolset": "14.44.35207",
+    "sdk": "10.0.26100.0",
+    "rejected_import": {
+      "Code": "PE-SESSION-IMPORT",
+      "Offset": 344,
+      "Field": "KERNEL32.dll!OtherFile"
+    },
+    "stdout": "Hola mundo desde C++ / MSVC en BMO-X2\r\n",
+    "stdout_bytes": 39
+  },
+  "extension_bytes": 1004,
+  "extension_sha256": "22523702dddf7ad74b8938e71bf0977fb8a562ab6f67da1250ef020079bae10d"
+}

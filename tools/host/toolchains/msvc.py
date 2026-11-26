@@ -1,14 +1,71 @@
 """Build the COFF client and its freestanding Win64 ABI fixture."""
 import hashlib
 import json
+import os
 import re
+import shutil
 import struct
 import subprocess
 import sys
+from pathlib import Path
 
 from ..importers.pe import pack_pe, probe_pe
-from ..importers.pe_bindings import SESSION_EXPORTS
+from ..diagnostics import Rejection
+from ..importers.pe_bindings import SESSION_EXPORTS, WIN64_CONSOLE_PROFILE
 from ..sbef.format import LEGACY_FORMAT_VERSION, inspect
+
+
+def build_external_console(root, out, assembler):
+    """Link the existing MSVC client against the external console import profile."""
+    vs = Path(os.environ['ProgramFiles']) / 'Microsoft Visual Studio'
+    sdk = Path(os.environ['ProgramFiles(x86)']) / 'Windows Kits/10/Lib'
+    compilers = sorted(vs.glob('*/*/VC/Tools/MSVC/*/bin/Hostx64/x64/cl.exe'))
+    cc = Path(shutil.which('cl.exe') or (compilers[-1] if compilers else 'cl.exe'))
+    libraries = sorted(sdk.glob('*/um/x64/kernel32.lib'))
+    if not cc.is_file() or not cc.with_name('link.exe').is_file() or not libraries:
+        raise ValueError('La consola exige MSVC x64 y kernel32.lib del Windows SDK')
+    abi = root / 'userspace/runtime/abi/win64'
+    client, entry, pe = (out / name for name in ('console-client.obj', 'console-entry.obj', 'console.exe'))
+    subprocess.run([cc, '/nologo', '/std:c++17', '/c', '/GS-', '/Zl', '/Od',
+                    '/DBMO_MSVC_EXTERNAL_CONSOLE', f'/Fo{client}', root / 'tools/tests/msvc_sections.cpp'],
+                   cwd=out, check=True)
+    subprocess.run([assembler, '--target=x86_64-pc-windows-msvc', '-c', abi / 'entry.S', '-o', entry], check=True)
+    objects = [entry, client]
+    for unit in ('portal', 'console_v1'):
+        obj = out / f'console-{unit}.obj'
+        subprocess.run(['rustc', '--edition=2024', '--target=x86_64-pc-windows-msvc', '--crate-type=lib',
+                        '--emit=obj', '-Cpanic=abort', '-Copt-level=2', abi / f'{unit}.rs', '-o', obj], check=True)
+        objects.append(obj)
+    link_map = out / 'console.map'
+    profile = WIN64_CONSOLE_PROFILE
+    exports = profile['Imports']
+    subprocess.run([cc.with_name('link.exe'), '/nologo', '/machine:x64', '/nodefaultlib', '/subsystem:console',
+                    '/entry:bmo_win64_start', '/base:0x3fe00000', '/align:2097152', '/fixed', '/Brepro',
+                    '/incremental:no', '/merge:.pdata=.rdata', *('/include:' + name for name in exports.values()),
+                    f'/map:{link_map}', f'/out:{pe}', *objects, libraries[-1]], cwd=out, check=True)
+    pattern = r'^\s+[0-9A-Fa-f]+:[0-9A-Fa-f]+\s+(' + '|'.join(exports.values()) + r')\s+([0-9A-Fa-f]+)\b'
+    symbols = {name: int(address, 16) for name, address in re.findall(pattern, link_map.read_text(), re.M)}
+    if symbols.keys() != set(exports.values()):
+        raise ValueError('Faltan simbolos de la consola MSVC')
+    bindings = {api: symbols[name] for api, name in exports.items()}
+    source = pe.read_bytes()
+    payload = pack_pe(source, abi=profile['AbiVersion'], bindings=bindings)
+    (out / 'console.sbef').write_bytes(payload)
+
+    # Change only the imported name and exercise the same binder before QEMU.
+    unknown = source.replace(b'WriteFile\x00', b'OtherFile\x00', 1)
+    try:
+        pack_pe(unknown, abi=profile['AbiVersion'], bindings=bindings)
+    except Rejection as error:
+        rejected = error.report()
+        if rejected['Code'] != 'PE-SESSION-IMPORT' or rejected['Field'] != 'KERNEL32.dll!OtherFile':
+            raise
+    else:
+        raise ValueError('HOST admitio una importacion fuera del catalogo')
+    return payload, dict(profile=profile, imports=probe_pe(source)['Imports'],
+                         pe_bytes=len(source), pe_sha256=hashlib.sha256(source).hexdigest(),
+                         msvc_toolset=cc.parents[3].name, sdk=libraries[-1].parents[2].name,
+                         rejected_import=rejected)
 
 
 def build_desktop_panel(root, out, cc, nm):

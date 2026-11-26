@@ -349,6 +349,8 @@
 #ifdef BMO_EXTERNAL_PEER
 .Lpeer_state: .asciz "SBEF PEER STATE "
 #include "../syscalls/abi1_qemu_peer.inc"
+#endif
+#ifdef BMO_EXTERNAL_EXT
 .org 4096
 #endif
 #ifdef BMO_EXTERNAL_REBASE

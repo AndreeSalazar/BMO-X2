@@ -170,6 +170,12 @@ puntero reubicado `DIR64` para actualizar datos. La prueba de control
 detecta un fallo al devolver el puntero a la direccion original.
 [Evidencia MSVC en QEMU](Reports/host-msvc-rebase-qemu.json).
 
+La consola `win64-console-v1` carga un SBEF externo de MSVC en su propio
+espacio de Ring 3. HOST resuelve tres imports de KERNEL32 usando el
+runtime Rust. El cliente lee el reloj, espera, escribe en stdout y sale
+por SYSCALL. El perfil tiene evidencia QEMU para este cliente.
+[Informe de la consola](Reports/host-msvc-console-qemu.json).
+
 ## Escritorio, entrada y arranque
 
 El nuevo candidato de escritorio conecta RmlUi con DIRECTOR Rust:

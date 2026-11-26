@@ -74,6 +74,28 @@ La reserva aumenta siete paginas de 4 KiB para las tablas, la pila de
 usuario y la extension de la sonda.
 [Evidencia del despertar entre contextos](../Reports/casm-sbef-peer-qemu.json).
 
+## Consola Win64 externa en QEMU
+
+El perfil de prueba `win64-console-v1` expone el reloj de la capacidad 2
+y las operaciones de consola de la capacidad 4. INVOKE 1 sobre 4 recibe
+de uno a ocho bytes en RDX, en orden little-endian, y la longitud en R10.
+Ring 0 escribe los bytes al canal de prueba de QEMU y devuelve su cantidad
+en RDX. Valida los argumentos antes de emitir y aplica una cuota de 4096
+bytes por sesion. INVOKE 2 sobre 4 cierra el proceso con un codigo de 0 a
+255 en RDX y ejecuta la limpieza habitual. R8 y R9 deben estar a cero en
+ambas operaciones. R10 debe estar a cero al cerrar.
+
+HOST resuelve `GetTickCount64`, `GetStdHandle` y `WriteFile` contra
+adaptadores Rust Win64 de Ring 3. El reloj se convierte a milisegundos y
+`WriteFile` admite stdout sincronico. Los punteros del cliente se usan en
+Ring 3. La puerta de Ring 0 recibe unicamente palabras y cantidades.
+La concesion de capacidades es fija para esta sonda. El perfil no forma
+parte de la cabecera SBEF y no cubre errores Win32 completos, DLL, CRT,
+archivos ni operaciones asincronas.
+[Evidencia de la consola externa](../Reports/host-msvc-console-qemu.json).
+
+## Sonda de entrada del escritorio
+
 El perfil experimental `desktop-external` prueba otra puerta con
 `WAIT(entrada, 0, ticks)`. Acepta de 0 a 100 ticks relativos del
 PIT de aproximadamente 10 ms. Devuelve 0 cuando hay un byte en

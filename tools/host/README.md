@@ -326,6 +326,24 @@ QEMU. La consola admite stdout sincronico por puerto serie.
 La prueba confirma el saludo, los bytes escritos, el avance despues de
 WAIT y el rechazo de W+X. [Evidencia](../../Reports/abi-msvc-hello-qemu.json).
 
+`tools/sbef.py profiles` publica el perfil `win64-console-v1` en
+`RuntimeImportProfiles`. En el banco `--msvc-console`, MSVC y Rust generan
+el PE32+, el mismo enlazador de imports publica una IAT de solo lectura y
+HOST emite un SBEF v2. QEMU lo carga desde FAT32 en un espacio de Ring 3
+propio. Se comprueban el reloj, el vencimiento de WAIT, la escritura de
+39 bytes, el rechazo de un descriptor invalido y el cierre por SYSCALL.
+HOST rechaza `KERNEL32.dll!OtherFile` antes de crear la imagen de QEMU.
+
+```powershell
+$validatorRun = 'build/CASM/run-del-validador'
+python -B tools/boot/sbef_ring0_qemu.py $validatorRun --msvc-console
+```
+
+El ensayo usa MSVC x64, Windows SDK, LLVM y el destino Rust Win64.
+El perfil se elige al construir el banco y su catalogo contiene tres
+imports. Sigue pendiente una ruta de carga para DLL y CRT generales.
+[Evidencia del proceso de consola](../../Reports/host-msvc-console-qemu.json).
+
 Con `--msvc-sections --msvc-window` el mismo cliente dibuja un panel y un
 triangulo por CPU. El modelo Rust de DIRECTOR compone el panel en una
 superficie de 320x200 y la presenta mediante GOP. Super+Q retira el panel

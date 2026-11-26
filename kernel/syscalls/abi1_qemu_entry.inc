@@ -91,6 +91,9 @@
     iretq
 
 #include "abi1_dispatch.inc"
+#ifdef BMO_EXTERNAL_WIN64
+#include "abi1_qemu_console.inc"
+#endif
 #include "abi1_qemu_timer.inc"
 
 .Labi1_restored: .asciz "SBEF ABI GATE RESTORED\n"

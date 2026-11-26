@@ -7,6 +7,13 @@
     jnz .Labi1_bad_args
     cmp $1, %rax
     ja .Labi1_bad_gate
+#ifdef BMO_EXTERNAL_WIN64
+    test %rax, %rax
+    jnz .Labi1_reserved
+    cmp $4, %rdi
+    je .Labi1_console
+.Labi1_reserved:
+#endif
     mov %r10, %r11
     or %r8, %r11
     jnz .Labi1_bad_args

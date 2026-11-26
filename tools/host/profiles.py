@@ -1,5 +1,6 @@
 """Registro machine-readable de productores, formatos y perfiles x86-64."""
 
+from .importers.pe_bindings import WIN64_CONSOLE_PROFILE
 from .sbef.isa import PROFILES as ISA_PROFILES
 
 HOST_TARGET = 'x86-64'
@@ -302,6 +303,7 @@ def profile_report():
         'AdmissionAdvanceRule': ADMISSION_ADVANCE_RULE,
         'AdmissionPolicy': ADMISSION_POLICY,
         'CapabilityCatalog': CAPABILITY_CATALOG,
+        'RuntimeImportProfiles': [WIN64_CONSOLE_PROFILE],
         'ProducerIdentityRule': 'pack y probe aceptan --producer, verifican el formato y registran el SHA-256 de entrada. La declaracion no atesta el compilador ni el enlazador.',
         'StatusLegend': {
             'partial': 'Reglas acotadas implementadas; no implica compatibilidad general.',

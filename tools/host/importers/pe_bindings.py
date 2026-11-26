@@ -11,6 +11,14 @@ SESSION_EXPORTS = {
     'WriteFile': 'bmo_session_write',
 }
 
+WIN64_CONSOLE_PROFILE = {
+    'Name': 'win64-console-v1',
+    'AbiVersion': 1,
+    'DLL': 'KERNEL32.dll',
+    'Imports': SESSION_EXPORTS,
+    'Scope': 'External QEMU console fixture',
+}
+
 
 def bind_session_imports(data, image, opt, segments, bindings):
     directory = image['Directories'].get('imports')
