@@ -1427,6 +1427,12 @@ de validar la cabecera MSGQ y antes de publicar el unico GSP_INIT.
 El plazo de respuesta sigue empezando al publicarlo. El resultado
 en metal determina si ese intervalo influye en el rechazo.
 
+METAL con `0bc81d2` repitio `802 / 00000040`, LOGRM `855` y
+los mismos diez eventos a IOVA cero. Se retira la pausa de 250 ms.
+HOST comprueba que la respuesta correlacionada con estado `0x40`
+conserva el rechazo `802`. El candidato de la RTX se conserva separado
+del arranque habitual hasta confirmar inicializacion y ejecucion grafica.
+
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
 [Fusibles SEC2 en Nova](https://github.com/torvalds/linux/blob/master/drivers/gpu/nova-core/regs.rs).

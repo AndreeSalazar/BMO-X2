@@ -7,7 +7,6 @@ from pathlib import Path
 import struct
 import subprocess
 import tempfile
-import time
 import unittest
 
 from .sec2_booter import prepare_sec2_booter
@@ -151,7 +150,7 @@ class FwsecLaunch(unittest.TestCase):
                 self.assertEqual(trace.raw[4096:],loginit)
 
     def test_gsp_init_accepts_only_a_matching_reply(self):
-        for sequence, status, expected in ((1, 0, 0x801), (1, 3, 0x802), (2, 0, 0x807)):
+        for sequence, status, expected in ((1, 0, 0x801), (1, 0x40, 0x802), (2, 0, 0x807)):
             with self.subTest(sequence=sequence, status=status):
                 backing = ctypes.create_string_buffer(0x83000)
                 address = (ctypes.addressof(backing)+4095)&-4096
@@ -163,13 +162,10 @@ class FwsecLaunch(unittest.TestCase):
                 with ThreadPoolExecutor(max_workers=1) as worker:
                     run = worker.submit(self.gsp_init, ctypes.byref(self.mapping,FALCON),
                                         address,25_000_000,0xa1)
-                    ready_at = time.monotonic()
                     struct.pack_into('<I', queue, 0x42000, 2)
                     while self.read(FALCON+0xc00)!=1 and not run.done():
                         pass
                     self.assertFalse(run.done(),"GSP INIT was not submitted")
-                    # A host test may run on a CPU whose TSC is not 2.5 GHz.
-                    self.assertGreaterEqual(time.monotonic() - ready_at, 0.05)
                     frame = struct.unpack_from('<6I', queue, 0x3000)
                     command, payload_size = struct.unpack_from('<2I', queue, 0x3018)
                     self.assertEqual(command, 0x00010001)
@@ -185,7 +181,10 @@ class FwsecLaunch(unittest.TestCase):
                     struct.pack_into('<8IQI',queue,0x43000,0x4d435450,72,0xc0000001,
                                      0x2610de7e,48,0,0x01010001,8,sequence,status)
                     self.write(FALCON+0xc80,1)
-                    self.assertEqual(run.result()>>32,expected)
+                    receipt = run.result()
+                    self.assertEqual(receipt>>32,expected)
+                    if expected == 0x802:
+                        self.assertEqual(receipt & 0xffffffff, status)
                     self.assertEqual(self.read(FALCON+0xc84),int(sequence==1))
 
     def test_gsp_consumed_command_without_reply_is_reported_as_timeout(self):
