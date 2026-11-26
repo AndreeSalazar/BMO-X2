@@ -26,6 +26,7 @@ READER = ALLOCATOR.with_name('desktop_media_read.S')
 PROBE = ROOT / 'kernel/loader/sbef_ring0_probe.S'
 CLIENT = ROOT / 'tools/tests/sbef_external_client.S'
 ATTESTED = ROOT / 'Reports/casm-sbef-freestanding-qemu.json'
+REBASE_FIXTURE = ROOT / 'Reports/msvc-rebase-intake.json'
 
 
 def assemble_stage(llvm, source, run, **defines):
@@ -114,9 +115,49 @@ def external_image(code):
     return bytearray(encode_header(1, 8, 288 + len(data), base) + records + data)
 
 
+def msvc_rebase_cases(executable, run):
+    fixture = json.loads(REBASE_FIXTURE.read_bytes())
+    source = executable.read_bytes()
+    source_sha256 = hashlib.sha256(source).hexdigest()
+    if source_sha256 != fixture['SourceSHA256']:
+        raise ValueError('El PE no coincide con la muestra MSVC auditada')
+    output = run / 'msvc-rebase.sbef'
+    verified_input = run / 'msvc-rebase.exe'
+    verified_input.write_bytes(source)
+    subprocess.run([sys.executable, '-B', ROOT / 'tools/sbef.py', 'pack', verified_input, output,
+                    '--producer', 'msvc', '--abi', '1'], check=True, stdout=subprocess.DEVNULL)
+    image = output.read_bytes()
+    source_pointer = int(fixture['RelocationCheck']['SourcePointer'], 16)
+    target_pointer = int(fixture['RelocationCheck']['SBEFPointer'], 16)
+    target_rva = int(fixture['RelocationCheck']['TargetRVA'], 16)
+    plan = load_plan(image)
+    if plan['RegionCount'] != 4 or plan['Entry'] != 0x40001000:
+        raise ValueError('El paquete MSVC ya no coincide con el perfil de cuatro regiones')
+    data = next(region for region in plan['Regions'] if region['Permissions'] == 'RW')
+    data_start = target_rva + 0x40000000 - data['VirtualStart']
+    if not 0 <= data_start <= data['FileBytes'] - 8:
+        raise ValueError('La relocacion no pertenece a los datos del ejecutable')
+    pointer_offset = data['FileOffset'] + data_start
+    if struct.unpack_from('<Q', image, pointer_offset)[0] != target_pointer:
+        raise ValueError('HOST no escribio el puntero reubicado previsto')
+    stale = bytearray(image)
+    struct.pack_into('<Q', stale, pointer_offset, source_pointer)
+    cases = (
+        ('msvc-dir64', image, None, 0),
+        ('msvc-stale-pointer', stale, f'SBEF CPL3 PF {source_pointer:016X}', 0),
+    )
+    return cases, dict(source_sha256=source_sha256, source_bytes=len(source),
+                       source_pointer=f'0x{source_pointer:X}', target_pointer=f'0x{target_pointer:X}',
+                       packaged_bytes=len(image), format_version=plan['FormatVersion'],
+                       source_toolchain=fixture['Toolchain'])
+
+
 def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
     bridge = external_bridge(bridge, assemble_stage(llvm, READER, run))
-    if extension:
+    rebase = None
+    if args.msvc_rebase:
+        cases, rebase = msvc_rebase_cases(args.msvc_rebase, run)
+    elif extension:
         signal = external_image(assemble_stage(llvm, CLIENT, run, BMO_EXTERNAL_PEER=1))
         isolated = external_image(assemble_stage(llvm, CLIENT, run, BMO_EXTERNAL_PEER=1,
                                                  BMO_EXTERNAL_PEER_FAULT=1))
@@ -155,10 +196,11 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
         else:
             if name == 'permissions':
                 raise ValueError('HOST admitio la muestra W+X')
-            if calls:
+            if calls or rebase:
                 plan = load_plan(image)
                 pages = 1 + sum(region['PageCount'] for region in plan['Regions'])
-                if info['AbiVersion'] != 1 or plan['RegionCount'] != 8 or pages != 10:
+                expected_regions, expected_pages = (4, 5) if rebase else (8, 10)
+                if info['AbiVersion'] != 1 or plan['RegionCount'] != expected_regions or pages != expected_pages:
                     raise ValueError('Cambio el contrato de la muestra externa')
         folder = run / ('run-' + name)
         folder.mkdir()
@@ -178,11 +220,19 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
             expected.append(f'SBEF USER PAGES {pages:016X}')
         if name == 'fault':
             expected.append('SBEF PF ERROR 0000000000000007')
-        if name == 'peer-isolation':
+        if name in ('peer-isolation', 'msvc-stale-pointer'):
             expected.append('SBEF PF ERROR 0000000000000004')
+        if name == 'msvc-dir64':
+            counter_prefix = 'SBEF CPL3 REBASE COUNTER '
+            counter = next((line for line in observed if line.startswith(counter_prefix)), '')
+            if not counter or int(counter.removeprefix(counter_prefix), 16) <= 1:
+                raise ValueError(f'MSVC no actualizo el dato desde CPL3. Ver {folder}')
+            expected.append(counter)
         if policy:
             expected.append(policy)
         wakes = 0
+        if rebase:
+            expected.extend(['SBEF SYSCALLS 0000000000000000', 'SBEF WAIT WAKES 0000000000000000'])
         if calls:
             expected.append(f'SBEF SYSCALLS {calls:016X}')
             wake_prefix = 'SBEF WAIT WAKES '
@@ -214,6 +264,8 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b''):
                   scratch_bytes_scrubbed=private_pages*4096, passed=len(results), cases=results)
     if extension:
         report.update(peer_extension_bytes=len(extension), peer_extension_sha256=hashlib.sha256(extension).hexdigest())
+    if rebase:
+        report['msvc_rebase'] = rebase
     (run / 'qemu-results.json').write_text(json.dumps(report, indent=2)+'\n', encoding='ascii')
 
 
@@ -224,8 +276,9 @@ def main():
     profiles = parser.add_mutually_exclusive_group()
     profiles.add_argument('--external', action='store_true', help='Read the SBEF from FAT32 and test CPL3')
     profiles.add_argument('--peer', action='store_true', help='Test WAIT with a second isolated CPL3 context')
+    profiles.add_argument('--msvc-rebase', type=Path, metavar='EXE', help='Run the audited MSVC DIR64 fixture')
     args = parser.parse_args()
-    external = args.external or args.peer
+    external = args.external or args.peer or args.msvc_rebase is not None
     module = json.loads((workspace(args.module_run) / 'validator.module.json').read_bytes())
     validate(module)
     trusted = json.loads(ATTESTED.read_bytes())['freestanding']
@@ -242,11 +295,13 @@ def main():
     run = Path(tempfile.mkdtemp(prefix='run-sbef-ring0-', dir=ROOT / 'build/CASM'))
     print(f'Run: {run}', flush=True)
     llvm = Path(os.environ['ProgramFiles']) / 'LLVM/bin'
-    private_pages = PEER_PAGES if args.peer else EXTERNAL_PAGES if args.external else PAGES
+    private_pages = PEER_PAGES if args.peer else EXTERNAL_PAGES if external else PAGES
     allocator = assemble_stage(llvm, ALLOCATOR, run, BMO_DMA_LAB_PAGES=private_pages)
     mode = dict(BMO_EXTERNAL_SBEF=1) if external else {}
     if args.peer:
         mode['BMO_EXTERNAL_PEER'] = 1
+    if args.msvc_rebase:
+        mode['BMO_EXTERNAL_REBASE'] = 1
     body = assemble_stage(llvm, PROBE, run, BMO_CASE_COUNT=len(cases), BMO_MODULE_ENTRY=module['entry'],
                           BMO_TRAP_ENTRY=module['trap_addresses']['bounds'], **mode)
     extension = b''

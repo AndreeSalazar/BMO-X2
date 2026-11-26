@@ -127,10 +127,12 @@ La sonda ABI embebida recupera dos marcos tras un fallo de usuario y los
 reutiliza con un segundo cliente. El cargador general tiene pendiente
 reunir ambas rutas de recuperacion bajo un mismo contrato de proceso.
 
-La sonda LLVM de escritorio solo reconoce sus perfiles fijos de una a tres regiones;
-no admite aun las direcciones RVA ni las cuatro o mas regiones que puede
-emitir el nuevo perfil PE generico de HOST. Empaquetar un PE generico no
-significa que QEMU o el kernel ya puedan ejecutarlo.
+La sonda CASM post-EBS admite en QEMU el SBEF v2 de cuatro regiones que
+HOST emite desde un PE MSVC con `DIR64`. El temporizador observa el
+contador modificado en CPL3. El caso de control conserva la direccion
+anterior y causa un fallo de lectura. La sonda LLVM de escritorio sigue
+limitada a sus perfiles fijos de una a tres regiones.
+[Evidencia de reubicacion](../Reports/host-msvc-rebase-qemu.json).
 
 El perfil de escritorio lee `DESKTOP.SBF` desde FAT32 mediante UEFI y
 entrega sus bytes a este validador. El escritorio ya se observo en

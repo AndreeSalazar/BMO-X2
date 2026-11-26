@@ -1,0 +1,65 @@
+{
+  "run": "run-sbef-ring0-5l0ksjyp",
+  "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
+  "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
+  "probe_sha256": "409e743c6a236e2ffb18f2c43bd54d211137263bbbe01610f166d1f760cc9cbd",
+  "probe_bytes": 3366,
+  "private_pages": 346,
+  "user_frame_budget": 64,
+  "scratch_bytes_scrubbed": 1417216,
+  "passed": 2,
+  "cases": [
+    {
+      "case": "msvc-dir64",
+      "sha256": "7bd898ae16dc29f17a62d3712ff8a1ae5dab664f34ad965f6086925f31c9bfd2",
+      "receipt": 0,
+      "user_pages": 5,
+      "syscalls": 0,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 4096,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000000184",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000005",
+        "SBEF CPL3 REBASE COUNTER 00000000002D0052",
+        "SBEF SYSCALLS 0000000000000000",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF FAT32 SCRUBBED 0000000000001000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "msvc-stale-pointer",
+      "sha256": "d51ff5248d4a29eeca7cfa37497e93414f2939abfdaf9681a5c14b6898c2717c",
+      "receipt": 0,
+      "user_pages": 5,
+      "syscalls": 0,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 4096,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000000184",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000005",
+        "SBEF PF ERROR 0000000000000004",
+        "SBEF CPL3 PF 0000000140003000",
+        "SBEF SYSCALLS 0000000000000000",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF FAT32 SCRUBBED 0000000000001000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    }
+  ],
+  "msvc_rebase": {
+    "source_sha256": "571d9bb80299ae866ec5b502290ab7658d3b1ae5a7d64d6941efc337bf071332",
+    "source_bytes": 3072,
+    "source_pointer": "0x140003000",
+    "target_pointer": "0x40003000",
+    "packaged_bytes": 388,
+    "format_version": 2,
+    "source_toolchain": "Visual Studio 2022 Developer PowerShell"
+  }
+}

@@ -238,7 +238,11 @@
     call .Lprint
     lea 1(%rbx), %rax
     call .Lhex
+#ifdef BMO_EXTERNAL_REBASE
+    call .Labi1_timer_start
+#else
     call .Linstall_abi1
+#endif
     pushq $0x83
     pushq $(USER_STACK+4096)
     pushq $0x202
@@ -347,4 +351,8 @@
 #include "../syscalls/abi1_qemu_peer.inc"
 .org 4096
 #endif
+#ifdef BMO_EXTERNAL_REBASE
+#include "../syscalls/abi1_qemu_timer.inc"
+#else
 #include "../syscalls/abi1_qemu_entry.inc"
+#endif

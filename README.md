@@ -164,6 +164,12 @@ cliente antes del plazo. La sonda recupera tambien una pila de retorno
 invalida. Quedan pendientes el planificador y los servicios de proceso.
 [Contrato y evidencia de admision](contracts/SBEF-LOADER.md).
 
+El mismo cargador de prueba ejecuta desde FAT32 el SBEF v2 que HOST
+empaqueto de un PE MSVC con cuatro regiones. En CPL3, el binario usa su
+puntero reubicado `DIR64` para actualizar datos. La prueba de control
+detecta un fallo al devolver el puntero a la direccion original.
+[Evidencia MSVC en QEMU](Reports/host-msvc-rebase-qemu.json).
+
 ## Escritorio, entrada y arranque
 
 El nuevo candidato de escritorio conecta RmlUi con DIRECTOR Rust:

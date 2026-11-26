@@ -1633,7 +1633,7 @@
       "que": "Inspecciona PE32+ independientemente del productor, aplica relocaciones DIR64 internas y admite perfiles SBEF fijos o freestanding limitados.",
       "entrada": "Ruta de un PE32+ x86-64 pasado al comando de intake de PowerShell.",
       "salida": "Informe con hash, tipo, secciones, directorios, imports, relocaciones y SBEF admitido o rechazo preciso.",
-      "aceptacion": "PowerShell inspecciona PE EXE y DLL; una prueba real de MSVC aplica DIR64 y empaqueta cuatro regiones en 388 bytes. El intake con manifiesto emitio SBEF de 792 bytes que ejecuto el ABI en CPL3/QEMU; evidencia Reports/host-msvc-qemu.json; el manifiesto no certifica el compilador.",
+      "aceptacion": "PowerShell inspecciona PE EXE y DLL. Un PE MSVC con DIR64 se empaqueta en 388 bytes y actualiza datos en CPL3 desde FAT32. El control con la direccion anterior falla en la lectura. Evidencia Reports/host-msvc-rebase-qemu.json.",
       "falta": "clang-cl/lld-link pasa el fixture PE fijo con SBEF v1 embebido. El cargador QEMU aun no acepta el SBEF RVA generico. Faltan imports e IAT generales, TLS, load config, unwind, exports, servicios de runtime, procesos externos e intake de objetos COFF."
     },
     {

@@ -404,12 +404,16 @@ directorios que necesiten semantica de ejecucion.
 La prueba real con Visual Studio 2022 compilo
 `tools/tests/msvc_rebase_probe.cpp` sin CRT ni DLL. HOST leyo una relocacion
 DIR64, rebajo cuatro regiones al espacio SBEF y produjo un archivo de 388
-bytes desde un PE de 3072 bytes. El paquete paso `inspect`; la evidencia
-esta en [msvc-rebase-intake.json](../../Reports/msvc-rebase-intake.json).
-Es una prueba de admision y conversion en HOST, no de ejecucion: el cargador
-externo de QEMU descrito en [SBEF-LOADER](../../contracts/SBEF-LOADER.md)
-solo admite los perfiles actuales de una a tres regiones con direcciones
-fijas. No se afirma que este SBEF generico arranque en QEMU ni en metal.
+bytes desde un PE de 3072 bytes. El paquete paso `inspect`.
+[Evidencia HOST](../../Reports/msvc-rebase-intake.json).
+
+La sonda CASM post-EBS de QEMU vuelve a empaquetar ese mismo PE con
+SBEF v2 y carga las cuatro regiones desde FAT32. El bucle original de
+MSVC lee el puntero reubicado y actualiza el contador en CPL3. El control
+con el puntero anterior falla al leer `0x140003000`. Ambos casos limpian
+las paginas y restauran el mapa. La sonda LLVM del escritorio sigue
+limitada a sus perfiles de direcciones fijas.
+[Evidencia QEMU](../../Reports/host-msvc-rebase-qemu.json).
 
 Para repetir el fixture desde Developer PowerShell x64 de Visual Studio:
 
@@ -423,11 +427,21 @@ $hash = (Get-FileHash "$out\rebase.exe" -Algorithm SHA256).Hash.ToLowerInvariant
 python -B tools\sbef.py inspect "build\msvc-intake\rebase-$hash.SBEF"
 ```
 
+Con el PE del informe HOST y un `validator.module.json` auditado en un
+run de `build/CASM`, ejecutar la sonda QEMU desde la raiz del repositorio.
+La prueba exige la huella exacta del PE archivado para observar el bucle
+original con direcciones conocidas.
+
+```powershell
+$validatorRun = 'build/CASM/run-del-validador'
+python -B tools/boot/sbef_ring0_qemu.py $validatorRun --msvc-rebase build/msvc-intake/rebase/rebase.exe
+```
+
 El ejecutable estandar `/MD /EHsc` sigue rechazado. Su informe actualizado
 conserva diez modulos y sesenta simbolos, e identifica imports de CRT/Win32,
 load config e IAT en [msvc-standard-intake.json](../../Reports/msvc-standard-intake.json).
-El siguiente tramo es definir el cargador generico de varias regiones en
-Ring 3 y un mapa versionado de servicios para imports. UCRT, VCRUNTIME,
+El siguiente tramo es llevar el cargador de varias regiones al gestor de
+procesos y definir un mapa versionado de servicios para imports. UCRT, VCRUNTIME,
 MSVCP y Win32 se habilitaran uno a uno con semantica y pruebas propias.
 Luego vendran TLS, unwind y procesos externos. Win32 GUI, DXGI y Direct3D
 siguen siendo trabajo posterior; el intake PE no implementa esas APIs.
