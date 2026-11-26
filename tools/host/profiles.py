@@ -138,7 +138,7 @@ PROFILES = [
         'Admission': 'partial',
         'AdmissionEvidence': 'Intake PE, perfiles freestanding acotados y empaquetado de relocacion DIR64 interna.',
         'Execution': 'fixture-specific',
-        'ExecutionEvidence': 'QEMU acredita el ABI, un EXE reubicado de cuatro regiones, consola, DLL fija y TLS estatico mediante bancos concretos.',
+        'ExecutionEvidence': 'QEMU acredita ABI, DIR64, consola, DLL fija, TLS estatico, funciones UCRT y entrega acotada de #UD en bancos concretos.',
         'Provenance': 'Manifiesto opcional del usuario; HOST valida que el hash PE coincida, pero no verifica la identidad del compilador ni del enlazador.',
         'SharedImplementation': [
             'tools/host/msvc.ps1',
@@ -215,6 +215,71 @@ PROFILES = [
 
 PRODUCER_PROFILES = {profile['Selector']: profile for profile in PROFILES}
 
+PRODUCER_WORK_PLAN = {
+    'msvc': {
+        'Work': 'Prioridad principal de aplicaciones Windows x86-64.',
+        'CallingConvention': 'Microsoft x64',
+        'Evidence': [
+            ['ABI de productor en CPL3', 'Reports/host-producers-qemu.json'],
+            ['CRT estatico, /GS y entrega acotada de #UD', 'Reports/host-msvc-crt-gs-native-qemu.json'],
+            ['Inventario del EXE /MD /EHsc', 'Reports/msvc-standard-intake.json'],
+        ],
+        'Milestones': [
+            ['Unwind Win64', 'Reconstruir dos marcos desde un contexto completo y probar en QEMU registros, RSP y direccion de retorno.'],
+            ['/GS y SEH', 'Inicializar la cookie por proceso, entregar una excepcion a su manejador y comprobar el cierre.'],
+            ['CRT /MT', 'Arrancar por la entrada estandar MSVC y verificar argumentos, heap, main, destructores y salida.'],
+            ['CRT /MD', 'Resolver DLL, API sets, IAT y load config del EXE /MD /EHsc y ejecutar sus imports requeridos.'],
+            ['C++ y escritorio', 'Acreditar throw/catch y TLS por hilo. Despues probar archivos, ventanas y presentacion por contratos separados.'],
+        ],
+    },
+    'clang-cl': {
+        'Work': 'Control independiente de PE32+, COFF y el ABI Microsoft x64.',
+        'CallingConvention': 'Microsoft x64',
+        'Evidence': [
+            ['Cliente clang-cl y lld-link en CPL3', 'Reports/host-producers-qemu.json'],
+            ['Epilogo /GS y retorno al supervisor', 'Reports/host-msvc-crt-gs-qemu.json'],
+        ],
+        'Milestones': [
+            ['Formato', 'Probar con lld-link los mismos permisos, relocaciones e imports declarados que con link.exe.'],
+            ['ABI', 'Comparar pila, registros y retorno con un mismo cliente Win64 compilado con cl.exe y clang-cl.'],
+            ['Runtime', 'Verificar los mismos contratos de CRT y unwind con ambos productores.'],
+        ],
+    },
+    'clang': {
+        'Work': 'Ruta ELF64 y control independiente de SysV x86-64.',
+        'CallingConvention': 'System V AMD64',
+        'Evidence': [['Cliente Clang y LLD en CPL3', 'Reports/host-producers-qemu.json']],
+        'Milestones': [
+            ['Carga externa', 'Ejecutar el cliente ELF64 v2 con mapas RX/R/RW por el cargador general.'],
+            ['ABI', 'Cotejar el mismo cliente SysV x86-64 con GCC y revisar errores y limpieza.'],
+            ['Conformidad', 'Registrar las versiones de Clang y LLD, opciones, mapas y huellas de cada caso.'],
+        ],
+    },
+    'gcc': {
+        'Work': 'Ruta ELF64 para C y aplicaciones portadas con adaptadores BMO-X2.',
+        'CallingConvention': 'System V AMD64',
+        'Evidence': [
+            ['Cliente GCC ELF archivado en CPL3', 'Reports/host-producers-qemu.json'],
+            ['Doom con GCC x86-64 ELF', 'userspace/apps/doom/README.md'],
+        ],
+        'Milestones': [
+            ['Procedencia', 'Reconstruir el cliente ABI y registrar GCC, enlazador, opciones y huellas en una sola corrida.'],
+            ['Carga externa', 'Abrir, cerrar y reabrir el SBEF GCC verificando aislamiento y limpieza.'],
+            ['Aplicacion', 'Usar Doom para comprobar archivo WAD, reloj, entrada y framebuffer por los contratos del cargador general.'],
+        ],
+    },
+    'rustc': {
+        'Work': 'Runtime principal de Ring 3 y ruta ELF64 para clientes freestanding.',
+        'CallingConvention': 'extern C / System V AMD64',
+        'Evidence': [['Cliente rustc x86_64-unknown-none en CPL3', 'Reports/host-producers-qemu.json']],
+        'Milestones': [
+            ['Carga externa', 'Abrir y cerrar dos SBEF Rust independientes con mapas y ciclos de vida propios.'],
+            ['ABI compartido', 'Verificar bordes extern C y ABI BMO-X2 con clientes C y Rust.'],
+            ['Runtime', 'Verificar asignacion, panic y servicios de escritorio por perfil de cliente.'],
+        ],
+    },
+}
+
 
 ADMISSION_POLICY = [
     {
@@ -222,7 +287,7 @@ ADMISSION_POLICY = [
         'Id': 'external-sbef-process-loader',
         'Name': 'Cargador general de procesos SBEF externos',
         'State': 'partial',
-        'CurrentLimit': 'La sonda QEMU acepta layouts fijos de una a tres regiones; falta integracion CASM, mapeo general y ciclo de vida por proceso.',
+        'CurrentLimit': 'La sonda QEMU prueba un SBEF externo de ocho regiones y limpieza al salir o fallar. Falta integracion CASM y reapertura de procesos SBEF independientes en el mismo arranque.',
         'ExitCriteria': [
             'Ring 0 CASM recibe el SBEF externo y vuelve a validar cabecera, ABI, arquitectura, regiones, rangos, entrada y W^X antes de mapear.',
             'Carga los layouts SBEF admitidos de una a ocho regiones, inicializa BSS y pila, y entra a CPL3 con permisos efectivos.',
@@ -301,6 +366,8 @@ def profile_report(producer=None, category=None, windows_level=None):
     """Return the current x86-64 HOST layer and producer matrix."""
     if producer is not None:
         result = dict(Schema=1, Target=HOST_TARGET, Profiles=[PRODUCER_PROFILES[producer]])
+        if not (category or windows_level):
+            result['ProducerWorkPlan'] = {producer: PRODUCER_WORK_PLAN[producer]}
         if producer == 'msvc':
             result.update(CapabilityStates=MSVC_CAPABILITY_STATES,
                           CapabilityGroups=[] if windows_level else msvc_catalog(category),
@@ -329,6 +396,7 @@ def profile_report(producer=None, category=None, windows_level=None):
         },
         'Layers': LAYERS,
         'Profiles': PROFILES,
+        'ProducerWorkPlan': PRODUCER_WORK_PLAN,
         'IsaProfiles': ISA_PROFILES,
         'OtherArchitectures': 'Fuera del alcance de BMO-X2; este proyecto sigue siendo exclusivo x86-64.',
     }

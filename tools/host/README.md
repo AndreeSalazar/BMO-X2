@@ -12,6 +12,8 @@ ligarla al hash del archivo, pero no atesta que ese toolchain produjo los bytes.
 
 ```powershell
 python -B tools/sbef.py profiles
+python -B tools/sbef.py profiles --format markdown
+python -B tools/sbef.py profiles --producer clang-cl --format markdown
 python -B tools/sbef.py probe app.exe --producer clang-cl
 python -B tools/sbef.py pack app.elf app.sbef --producer gcc --abi 1
 ```
@@ -23,6 +25,18 @@ pueda ejecutarlo. La matriz viva esta en `profiles.py`. El selector opcional
 `--producer` exige PE32+ para `msvc` y `clang-cl` y ELF64 para `clang`,
 `gcc` y `rustc`. El informe registra el perfil declarado y el SHA-256 de la
 entrada; `IdentityAttested` queda en `false`.
+
+`ProducerWorkPlan` lista la evidencia y las siguientes pruebas con criterio
+de cierre para MSVC, clang-cl, Clang, GCC y rustc. El Markdown detallado de
+MSVC conserva el catalogo de capacidades y las dependencias por nivel.
+La prioridad es MSVC. clang-cl sirve de control para el mismo ABI Win64.
+Clang, GCC y rustc comparten la ruta ELF64 y sus pruebas de carga.
+
+```powershell
+python -B tools/sbef.py profiles --producer msvc --format markdown
+python -B tools/sbef.py profiles --producer msvc --category tls-exceptions --format markdown
+python -B tools/sbef.py profiles --producer msvc --windows-level todos --format markdown
+```
 
 | Capa | Responsabilidad | Limite |
 |---|---|---|
@@ -639,6 +653,11 @@ python -B tools/boot/sbef_ring0_qemu.py $validatorRun --msvc-rebase build/msvc-i
 El ejecutable estandar `/MD /EHsc` sigue rechazado. Su informe actualizado
 conserva diez modulos y sesenta simbolos, e identifica imports de CRT/Win32,
 load config e IAT en [msvc-standard-intake.json](../../Reports/msvc-standard-intake.json).
+`probe` tambien detalla `LoadConfigInventory` cuando el PE declara ese
+directorio. Informa la VA y RVA de la cookie, si los ocho bytes caben en una
+seccion escribible sin ejecucion, los flags CFG reconocidos y los campos de
+tabla presentes. El inventario no inicializa la cookie ni aplica CFG.
+[Formato PE de Microsoft](https://learn.microsoft.com/en-us/windows/win32/debug/pe-format).
 El siguiente tramo es llevar el cargador de varias regiones al gestor de
 procesos y definir un mapa versionado de servicios para imports. UCRT, VCRUNTIME,
 MSVCP y Win32 se habilitaran uno a uno con semantica y pruebas propias.

@@ -355,6 +355,40 @@
         "DIR64"
       ],
       "TargetLoadBase": "0x40000000"
+    },
+    "UnwindInventory": {
+      "FunctionCount": 37,
+      "Versions": {
+        "1": 37
+      },
+      "V1ExceptionHandlerCount": 4,
+      "V1TerminationHandlerCount": 3,
+      "V1ChainedCount": 0,
+      "V1Handlers": [
+        {
+          "RVA": 8592,
+          "FunctionCount": 3
+        },
+        {
+          "RVA": 8598,
+          "FunctionCount": 2
+        }
+      ]
+    },
+    "LoadConfigInventory": {
+      "Size": 320,
+      "DirectoryBytes": 320,
+      "SecurityCookieVA": 5368729664,
+      "SecurityCookieRVA": 20544,
+      "SecurityCookieWritableNonExecutable": true,
+      "GuardFlags": 256,
+      "RecognizedGuardFlags": [
+        "CF_INSTRUMENTED"
+      ],
+      "GuardCFCheckFunctionPointerVA": 5368721968,
+      "GuardCFDispatchFunctionPointerVA": 5368721984,
+      "GuardCFFunctionTableVA": 0,
+      "GuardCFFunctionCount": 0
     }
   },
   "Package": {

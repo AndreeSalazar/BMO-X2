@@ -72,6 +72,7 @@ CATALOG = {
         ('unwind-runtime', 'Desenrollado Win64 durante ejecucion', 'pending', 'La inspeccion de metadatos no ejecuta el desenrollador.'),
         ('seh', 'Structured Exception Handling', 'pending', 'Faltan despacho, busqueda y ejecucion de handlers compatibles.'),
         ('cpp-eh', 'Excepciones C++ /EHsc', 'pending', 'Faltan handlers C++ y destruccion de objetos durante unwind.'),
+        ('load-config-inventory', 'Inventario PE32+ load_config', 'host', 'probe registra la cookie, el rango RW, los flags CFG y los campos de tabla presentes.'),
         ('cfg', 'Control Flow Guard y load config', 'pending', 'El empaquetado base bloquea el directorio load_config.'),
     )),
     'system': ('Servicios de sistema y graficos', (

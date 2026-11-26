@@ -5,6 +5,7 @@ from ..diagnostics import Rejection
 from ..sbef.format import (BASE, END, FORMAT_VERSION, HEADER, MACHINE, MAX_IMAGE,
                            PAGE, REGION, encode_header, inspect)
 from .pe_imports import inventory_imports
+from .pe_load_config import inventory_load_config
 from .pe_bindings import bind_fixed_imports, bind_session_imports
 from .pe_exports import (DLL_ENTRY_EXPORT, DLL_LIFECYCLE_BASE, DLL_LIFECYCLE_PROFILE,
                          FIXED_DLL_PROFILE, code_exports)
@@ -442,6 +443,13 @@ def probe_pe(data):
             result['UnwindInventory'] = inventory_unwind(data, result['Sections'], exceptions, opt + 136)
         except Rejection as error:
             result['UnwindInventoryError'] = error.report()
+    load_config = result['Directories'].get('load_config')
+    if load_config:
+        try:
+            result['LoadConfigInventory'] = inventory_load_config(
+                data, result['Sections'], load_config, result['ImageBase'], opt + 192)
+        except Rejection as error:
+            result['LoadConfigInventoryError'] = error.report()
     try:
         relocations = _base_relocations(data, result, opt)
         result['Relocations'] = dict(Count=len(relocations), Types=['DIR64'] if relocations else [],

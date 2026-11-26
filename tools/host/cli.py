@@ -77,9 +77,8 @@ def main():
         command.add_argument('--producer', choices=PRODUCER_PROFILES,
                              help='Declare the producer profile and require its input format')
     args = parser.parse_args()
-    if args.action == 'profiles' and args.producer != 'msvc':
-        if args.category or args.windows_level or args.format == 'markdown':
-            profiles.error('--category, --windows-level y --format markdown requieren --producer msvc')
+    if args.action == 'profiles' and args.producer != 'msvc' and (args.category or args.windows_level):
+        profiles.error('--category y --windows-level requieren --producer msvc')
     try:
         result = run(args)
     except Rejection as error:
@@ -103,11 +102,25 @@ def main():
 
 
 def markdown_catalog(report):
-    lines = [f'# MSVC / {report["Target"]}']
-    if report['CapabilityGroups']:
+    profiles = {profile['Selector']: profile for profile in report['Profiles']}
+    title = 'HOST' if len(profiles) > 1 else next(iter(profiles)).upper()
+    lines = [f'# {title} / {report["Target"]}']
+    for selector, work in report.get('ProducerWorkPlan', {}).items():
+        profile = profiles[selector]
+        lines.extend(('', f'## {selector}', '', work['Work'], '',
+                      f'- **Productor** {profile["Producer"]}',
+                      f'- **Objetos y ejecutable** {profile["ObjectFormat"]} / {profile["ExecutableFormat"]}',
+                      f'- **Convencion de llamadas** {work["CallingConvention"]}',
+                      f'- **Admision** {profile["AdmissionEvidence"]}',
+                      f'- **Ejecucion** {profile["ExecutionEvidence"]}'))
+        lines.extend(f'- [{label}]({path})' for label, path in work['Evidence'])
+        lines.extend(('', '### Siguientes pruebas', ''))
+        lines.extend(f'{order}. **{name}**. {criterion}'
+                     for order, (name, criterion) in enumerate(work['Milestones'], 1))
+    if report.get('CapabilityGroups'):
         lines.extend(('', *(f'- **{state.upper()}** {description}'
                             for state, description in report['CapabilityStates'].items())))
-    for group in report['CapabilityGroups']:
+    for group in report.get('CapabilityGroups', []):
         lines.extend(('', f'## {group["Name"]}', ''))
         for item in group['Capabilities']:
             entry = f'- **{item["Name"]}** ({item["State"].upper()}). {item["Boundary"]}'

@@ -11,11 +11,59 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import sbef
 from host.diagnostics import Rejection
 from host.importers.pe import DIRECTORIES, pack_pe, probe_pe
+from host.importers.pe_load_config import inventory_load_config
 from host.importers.pe_unwind import inventory_unwind
 from host.toolchains.windows_catalog import import_coverage
 
 
 class Sbef(unittest.TestCase):
+    def test_load_config_inventory_respects_structure_size_and_cookie_permissions(self):
+        data = bytearray(160)
+        base = 0x140000000
+        directory = dict(RVA=0x1000, Bytes=len(data))
+        sections = [
+            dict(RVA=0x1000, VirtualBytes=len(data), FileBytes=len(data), FileOffset=0,
+                 Writable=False, Executable=False),
+            dict(RVA=0x2000, VirtualBytes=16, FileBytes=0, FileOffset=0,
+                 Writable=True, Executable=False),
+        ]
+        struct.pack_into('<I', data, 0, 148)
+        struct.pack_into('<Q', data, 88, base + 0x2008)
+        struct.pack_into('<QI', data, 136, 3, 0x500)
+        report = inventory_load_config(data, sections, directory, base, 0x180)
+        self.assertEqual(report['SecurityCookieRVA'], 0x2008)
+        self.assertTrue(report['SecurityCookieWritableNonExecutable'])
+        self.assertEqual(report['GuardCFFunctionCount'], 3)
+        self.assertEqual(report['RecognizedGuardFlags'], ['CF_INSTRUMENTED', 'CF_FUNCTION_TABLE_PRESENT'])
+        struct.pack_into('<Q', data, 88, base + 0x2009)
+        self.assertFalse(inventory_load_config(data, sections, directory, base, 0x180)
+                         ['SecurityCookieWritableNonExecutable'])
+        struct.pack_into('<I', data, 0, 96)
+        self.assertIsNone(inventory_load_config(data, sections, directory, base, 0x180)['GuardFlags'])
+        struct.pack_into('<I', data, 0, len(data) + 1)
+        with self.assertRaises(Rejection) as rejected:
+            inventory_load_config(data, sections, directory, base, 0x180)
+        self.assertEqual(rejected.exception.code, 'PE-LOAD-CONFIG-INVENTORY-SIZE')
+
+    def test_producer_work_plan_has_evidence_and_filters_markdown(self):
+        command = [sys.executable, '-B', sbef.__file__, 'profiles']
+        report = json.loads(subprocess.check_output(command))
+        work = report['ProducerWorkPlan']
+        self.assertEqual(list(work), ['msvc', 'clang-cl', 'clang', 'gcc', 'rustc'])
+        self.assertEqual(set(work), {profile['Selector'] for profile in report['Profiles']})
+        root = Path(sbef.__file__).resolve().parents[1]
+        for producer in work.values():
+            self.assertTrue(producer['Milestones'])
+            for _, path in producer['Evidence']:
+                self.assertTrue((root / path).is_file(), path)
+        all_markdown = subprocess.check_output([*command, '--format', 'markdown'], text=True)
+        self.assertLess(all_markdown.index('## msvc'), all_markdown.index('## clang-cl'))
+        gcc = [*command, '--producer', 'gcc']
+        self.assertEqual(list(json.loads(subprocess.check_output(gcc))['ProducerWorkPlan']), ['gcc'])
+        gcc_markdown = subprocess.check_output([*gcc, '--format', 'markdown'], text=True)
+        self.assertIn('Doom con GCC', gcc_markdown)
+        self.assertNotIn('## msvc', gcc_markdown)
+
     def test_unwind_inventory_reports_handlers_and_rejects_invalid_handler_rva(self):
         data = bytearray(0x100)
         sections = [

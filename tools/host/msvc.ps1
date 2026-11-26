@@ -178,6 +178,16 @@ if ($probe.PSObject.Properties.Name -contains 'UnwindInventory') {
 } elseif ($probe.PSObject.Properties.Name -contains 'UnwindInventoryError') {
     Write-Output "Inventario unwind incompleto: $($probe.UnwindInventoryError.Code) / $($probe.UnwindInventoryError.Field)"
 }
+if ($probe.PSObject.Properties.Name -contains 'LoadConfigInventory') {
+    $config = $probe.LoadConfigInventory
+    $flags = if ($null -ne $config.GuardFlags) { '0x{0:X8}' -f $config.GuardFlags } else { 'ausente' }
+    $cookie = if ($null -ne $config.SecurityCookieVA -and $config.SecurityCookieVA -ne 0) {
+        '0x{0:X}' -f $config.SecurityCookieVA
+    } else { 'ausente' }
+    Write-Output "Load config: GuardFlags $flags / SecurityCookie $cookie / cookie RW sin ejecucion $($config.SecurityCookieWritableNonExecutable)"
+} elseif ($probe.PSObject.Properties.Name -contains 'LoadConfigInventoryError') {
+    Write-Output "Inventario load config incompleto: $($probe.LoadConfigInventoryError.Code) / $($probe.LoadConfigInventoryError.Field)"
+}
 if ($report.Package.Path) {
     Write-Output "SBEF creado: $($report.Package.Path)"
 } elseif ($Empaquetar) {
