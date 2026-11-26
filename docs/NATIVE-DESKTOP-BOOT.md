@@ -1527,8 +1527,13 @@ Mantiene la identidad y el tipo de host nativos,
 la revision y el enlace PCIe medidos al arrancar y la IOVA NotifyOp
 del dominio propio. Los recursos VF, el registro Linux y su cache
 ACPI requieren soporte del host para anunciar los valores capturados.
-El resultado de la RTX en este EFI y el primer dibujo siguen
-pendientes de verificacion en metal.
+METAL con `7fd4589` volvio a mostrar SEC2 `701`, GSP `802 / 00000040`,
+RX `1`, productor LOGRM `855` y primer evento AMD-Vi `20002900`
+con IOVA cero. Las 16 claves no resolvieron el rechazo. El productor
+LOGRM es un indice, no el mensaje del firmware. Para identificar la
+operacion que fallo hace falta decodificar el contenido bruto con
+los metadatos de la misma version del firmware. El GPULOG de FAT32
+se escribe antes de INIT. El primer dibujo sigue pendiente.
 
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
