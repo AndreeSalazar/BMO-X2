@@ -1,6 +1,6 @@
 --- a/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c
 +++ b/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c
-@@ -5343,6 +5343,23 @@
+@@ -5343,6 +5343,60 @@
      pGpu->gspRmInitialized = NV_TRUE;
      pKernelGsp->bGspRmUnloaded = NV_FALSE;
 -
@@ -20,6 +20,43 @@
 +                      index, (NvU32)(word >> 32), (NvU32)word);
 +        }
 +        NV_PRINTF(LEVEL_ERROR, "BMO_GSP_INIT_OK_END=%u\n", count);
++
++        // Snapshot the same LibOS RM ring BMO-X2 reads after rejection.
++        for (NvU32 idx = 0; idx < LOGIDX_SIZE; ++idx)
++        {
++            const RM_LIBOS_LOG_MEM *pLog = &pKernelGsp->rmLibosLogMem[idx];
++            if (pLog->id8 != _kgspGenerateInitArgId("LOGRM") ||
++                pLog->pTaskLogBuffer == NULL || pLog->pTaskLogDescriptor == NULL)
++                continue;
++
++            const NvU64 words = memdescGetSize(pLog->pTaskLogDescriptor) / sizeof(NvU64);
++            const volatile NvU64 *pWords = pLog->pTaskLogBuffer;
++            NvU64 snapshot[96];
++            NvU64 put = 0, start = 0, after = 0;
++            if (words <= 1)
++                break;
++            const NvU64 capacity = words - 1;
++
++            for (NvU32 attempt = 0; attempt < 3; ++attempt)
++            {
++                put = pWords[0];
++                start = put - NV_MIN(put, NV_MIN(capacity, NV_ARRAY_ELEMENTS(snapshot)));
++                portAtomicMemoryFenceFull();
++                for (NvU64 cursor = start; cursor < put; ++cursor)
++                    snapshot[cursor - start] = pWords[1 + cursor % capacity];
++                portAtomicMemoryFenceFull();
++                after = pWords[0];
++                if (put == after)
++                    break;
++            }
++
++            NV_PRINTF(LEVEL_ERROR, "BMO_GSP_LOGRM_BEGIN=%016llx %016llx\n", put, after);
++            for (NvU64 cursor = start; cursor < put; ++cursor)
++                NV_PRINTF(LEVEL_ERROR, "BMO_GSP_LOGRM_WORD=%016llx %016llx\n",
++                          cursor, snapshot[cursor - start]);
++            NV_PRINTF(LEVEL_ERROR, "BMO_GSP_LOGRM_END=%u\n", (NvU32)(put - start));
++            break;
++        }
 +    }
 +
      if (kgspIsHeartbeatSupported(pGpu))

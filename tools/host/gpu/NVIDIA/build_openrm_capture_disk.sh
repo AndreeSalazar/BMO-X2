@@ -19,6 +19,10 @@ for file in "$module" "$drivers"/nvidia{,-modeset,-drm}.ko; do
     [[ $(modinfo -F version "$file") == "$version" ]]
 done
 grep -aq BMO_GSP_INIT_OK_END "$module"
+capture_file=GSPINIT.TXT
+if grep -aq BMO_GSP_LOGRM_END "$module"; then
+    capture_file=GSPRM.TXT
+fi
 file -b /usr/bin/busybox | grep -q 'statically linked'
 mkdir "$output"
 work=$(mktemp -d)
@@ -47,8 +51,8 @@ if [[ ${5-} == --shared-esp ]]; then
     volume_id=$(cat /proc/sys/kernel/random/uuid)
     label=BMO
 fi
-printf "capture_dir='%s'\npartition_name='%s'\nvolume_id='%s'\n" \
-    "$capture_dir" "$partition_name" "$volume_id" > "$root/gsp-volume"
+printf "capture_dir='%s'\npartition_name='%s'\nvolume_id='%s'\ncapture_file='%s'\n" \
+    "$capture_dir" "$partition_name" "$volume_id" "$capture_file" > "$root/gsp-volume"
 cat > "$root/init" <<'INIT'
 #!/bin/sh
 export PATH=/bin
@@ -95,6 +99,12 @@ if [ -r "$pci/vendor" ] && [ "$(cat "$pci/vendor")" = 0x10de ] &&
         for attempt in 1 2 3 4 5; do
             if dmesg | grep -q BMO_GSP_INIT_OK_END=; then
                 result=GSP_INIT_CAPTURED
+                if [ "$capture_file" = GSPRM.TXT ]; then
+                    result=GSP_LOGRM_NOT_CAPTURED
+                    if dmesg | grep -q BMO_GSP_LOGRM_END=; then
+                        result=GSP_LOGRM_CAPTURED
+                    fi
+                fi
                 break
             fi
             sleep 1
@@ -103,9 +113,9 @@ if [ -r "$pci/vendor" ] && [ "$(cat "$pci/vendor")" = 0x10de ] &&
 fi
 if [ -n "$volume" ] && mount -o nodev,nosuid,noexec -t vfat "$volume" /capture; then
     if grep -Fxq "$volume_id" "$destination/GSPDIAG.ID" &&
-       { printf 'BMO_GSP_CAPTURE_STATUS=%s\n' "$result"; dmesg; } > "$destination/GSPINIT.TMP" &&
-       mv "$destination/GSPINIT.TMP" "$destination/GSPINIT.TXT" && sync && umount /capture; then
-        show "$result / registro guardado en GSPINIT.TXT"
+       { printf 'BMO_GSP_CAPTURE_STATUS=%s\n' "$result"; dmesg; } > "$destination/${capture_file%.TXT}.TMP" &&
+       mv "$destination/${capture_file%.TXT}.TMP" "$destination/$capture_file" && sync && umount /capture; then
+        show "$result / registro guardado en $capture_file"
     else
         show "$result / no se pudo guardar el registro"
     fi

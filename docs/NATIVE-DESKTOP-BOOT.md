@@ -1394,6 +1394,18 @@ El lector HOST recupero ocho candidatos LibOS v2 de la tarea RM.
 El ultimo tiene offset de metadatos `3D5F98` y argumento `1`.
 El offset `3ACE18` aparece tres veces seguidas. Falta la tabla de
 formatos GA10x 615.78.08 para asignar texto a estos registros.
+
+El parche de OpenRM captura hasta 96 palabras de LOGRM despues de que
+INIT y la interpretacion de la respuesta estatica terminan correctamente.
+El initramfs con este modulo guarda `GSPRM.TXT`. El comparador coteja
+secuencias de tarea y offset entre el rechazo y la referencia, y conserva
+los argumentos de cada registro para la revision. Una coincidencia
+identifica el mismo sitio de registro; su significado depende de la
+tabla de formatos del firmware.
+
+```powershell
+python -B -m tools.host.gpu.NVIDIA.gsp_capture Reports/nvidia-gsp-logrm-metal-20261126.txt --screen --openrm-logrm A:/BMO-X2/GSP-DIAG/GSPRM.TXT
+```
 [Validacion HOST del exportador](../Reports/nvidia-gsp-serial-capture-host.json).
 
 METAL con `eb6eac7` volvio a mostrar SEC2 `701`, GSP `804` y un

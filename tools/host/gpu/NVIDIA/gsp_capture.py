@@ -1,6 +1,7 @@
 """Decode the opt-in BMO-X2 GSP init failure snapshot exported over serial."""
 import argparse
 from collections import Counter
+from difflib import SequenceMatcher
 import hashlib
 import json
 from pathlib import Path
@@ -21,6 +22,52 @@ SCREEN_PUT = re.compile(r'Productor ([0-9A-F]{16}) / despues ([0-9A-F]{8})')
 SCREEN_ROW = re.compile(r'([0-9A-F]{8}) ([0-9A-F]{16})(?: ([0-9A-F]{16}))?')
 LOG_WORDS = 65536 // 8 - 1
 SCREEN_WORDS = 20
+OPENRM_ROW = re.compile(r'BMO_GSP_LOGRM_(BEGIN|WORD|END)=([^\r\n]+)')
+OPENRM_WORDS = 96
+
+
+def read_openrm_logrm(text):
+    snapshot = None
+    for kind, fields in OPENRM_ROW.findall(text):
+        values = fields.split()
+        if kind == 'BEGIN':
+            if len(values) != 2:
+                raise ValueError('Cabecera LOGRM de OpenRM invalida')
+            put, after = (int(value, 16) for value in values)
+            if not 0 <= put <= 0xffffffffffffffff or put != after:
+                raise ValueError('El productor LOGRM cambio durante la copia de OpenRM')
+            count = min(put, OPENRM_WORDS)
+            snapshot = []
+        elif kind == 'WORD' and snapshot is not None:
+            if len(values) != 2 or len(values[1]) != 16:
+                raise ValueError('Palabra LOGRM de OpenRM invalida')
+            cursor, word = (int(value, 16) for value in values)
+            if cursor != put - count + len(snapshot) or len(snapshot) >= count:
+                raise ValueError('Fila LOGRM de OpenRM fuera de orden')
+            snapshot.append(word)
+        elif kind == 'END' and snapshot is not None:
+            if len(snapshot) != count or values != [str(count)]:
+                raise ValueError('Captura LOGRM de OpenRM incompleta')
+            return 'LOGRM', put, after & 0xffffffff, snapshot
+    raise ValueError('Falta una captura LOGRM de OpenRM')
+
+
+def compare_logrm(native, reference):
+    if native['log'] != 'LOGRM' or not native['producer_matches_after']:
+        raise ValueError('Se requiere una captura LOGRM nativa con productor estable')
+    left = list(reversed(native['candidate_records_newest_first']))
+    right = list(reversed(reference['candidate_records_newest_first']))
+    if not left or not right:
+        raise ValueError('Cada captura debe contener registros candidatos LibOS v2')
+
+    def identifiers(records):
+        return [(record['task'], record['metadata_offset']) for record in records]
+
+    match = SequenceMatcher(None, identifiers(left), identifiers(right), autojunk=False).find_longest_match()
+    return dict(common_records=match.size,
+                common_offsets=[record['metadata_offset'] for record in left[match.a:match.a+match.size]],
+                native_after_match=left[match.a+match.size:],
+                openrm_after_match=right[match.b+match.size:])
 
 
 def read_screen(text):
@@ -152,14 +199,20 @@ def main():
     parser.add_argument('serial', type=Path)
     parser.add_argument('--raw', type=Path, help='Write the validated 17-page capture to a binary file')
     parser.add_argument('--screen', action='store_true', help='Read the transcribed GSP tail panel')
+    parser.add_argument('--openrm-logrm', type=Path, help='Compare the screen capture with an OpenRM LOGRM reference')
     args = parser.parse_args()
     if args.screen and args.raw:
         parser.error('--screen no contiene las 17 paginas requeridas por --raw')
+    if args.openrm_logrm and not args.screen:
+        parser.error('--openrm-logrm requiere --screen')
     if args.raw and args.raw.resolve() == args.serial.resolve():
         parser.error('El archivo bruto debe ser distinto del registro serie')
     try:
         if args.screen:
             report = decode_packed_tail(*read_screen(args.serial.read_text(encoding='utf-8-sig')))
+            if args.openrm_logrm:
+                reference = decode_packed_tail(*read_openrm_logrm(args.openrm_logrm.read_text(encoding='utf-8-sig')))
+                report['openrm_comparison'] = compare_logrm(report, reference)
         else:
             with args.serial.open('rb') as stream:
                 trace, summary = read_serial(stream)

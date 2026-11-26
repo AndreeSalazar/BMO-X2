@@ -7,7 +7,7 @@ import struct
 import tempfile
 import unittest
 
-from .gsp_capture import decode, decode_packed_tail, read_screen, read_serial
+from .gsp_capture import compare_logrm, decode, decode_packed_tail, read_openrm_logrm, read_screen, read_serial
 
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -34,6 +34,25 @@ int main() {
 
 
 class GspScreenCapture(unittest.TestCase):
+    def test_compare_openrm_ring_tail_with_native_rejection(self):
+        log = (
+            'BMO_GSP_LOGRM_BEGIN=0000000000000002 0000000000000002\n'
+            'BMO_GSP_LOGRM_WORD=0000000000000000 0302000000001234\n'
+            'BMO_GSP_LOGRM_WORD=0000000000000001 0000000000000099\n'
+            'BMO_GSP_LOGRM_END=2\n'
+        )
+        reference = decode_packed_tail(*read_openrm_logrm(log))
+        native = decode_packed_tail('LOGRM', 4, 4,
+                                    [0x0302000000001234, 0x88, 0x0302000000005678, 0x99])
+        compared = compare_logrm(native, reference)
+        self.assertEqual(compared['common_offsets'], ['0x000000001234'])
+        self.assertEqual(compared['native_after_match'][0]['metadata_offset'], '0x000000005678')
+        self.assertEqual(compared['openrm_after_match'], [])
+        with self.assertRaisesRegex(ValueError, 'cambio'):
+            read_openrm_logrm(log.replace(' 0000000000000002\n', ' 0000000000000003\n'))
+        with self.assertRaisesRegex(ValueError, 'fuera de orden'):
+            read_openrm_logrm(log.replace('WORD=0000000000000001', 'WORD=0000000000000002'))
+
     def test_decode_last_two_records(self):
         screen = (
             'LOGRM / ultimas palabras / 1 de 1\n'
