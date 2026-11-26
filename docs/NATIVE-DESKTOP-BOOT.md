@@ -1495,6 +1495,17 @@ El binario y el log de compilacion estan en
 un arranque de diagnostico de ULTRA-LinuX en la RTX. No se instalo el
 modulo en el sistema de uso diario ni se cambio el perfil BMO-X2.
 
+El [constructor del medio](../tools/host/gpu/NVIDIA/build_openrm_capture_disk.sh)
+genera `BMO-GSP-DIAG.img` en el mismo directorio de artefactos.
+Usa el kernel del perfil PC, firmware GA10x 615.78.08 y los modulos
+modeset y DRM del EROFS original. El initramfs de diagnostico solo
+carga NVIDIA para `29:00.0` con los identificadores de esta MSI y
+guarda `GSPINIT.TXT` en la particion FAT32 marcada del propio medio.
+El fichero incluye el estado de la captura y el registro del kernel.
+En QEMU, el arranque UEFI con CPU `max` escribio `GSP_NO_GPU` en una
+copia FAT32. Falta verificar la inicializacion fisica y la emision
+de NVKV con la RTX. El medio se destina a un USB aparte.
+
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
 [Fusibles SEC2 en Nova](https://github.com/torvalds/linux/blob/master/drivers/gpu/nova-core/regs.rs).

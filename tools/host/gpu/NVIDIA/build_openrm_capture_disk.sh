@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+# Build an independent UEFI diagnostic disk using the matching ULTRA-LinuX kernel.
+set -euo pipefail
+[[ $# == 4 ]] || { echo "Usage: $0 bzImage mounted-ultra-root instrumented-nvidia.ko new-image-directory" >&2; exit 2; }
+kernel=$(realpath "$1")
+reference=$(realpath "$2")
+module=$(realpath "$3")
+output=$(realpath -m "$4")
+release=7.3.0-rc7-pc-g32c52ec87d62
+version=615.78.08
+drivers="$reference/usr/lib/modules/$release/kernel/drivers/video"
+[[ -r $kernel && -r $module && -d $drivers && ! -e $output ]]
+[[ $(modinfo -F version "$module") == "$version" ]]
+for file in "$module" "$drivers"/nvidia{,-modeset,-drm}.ko; do
+    [[ $(modinfo -F vermagic "$file") == "$release "* ]]
+    [[ $(modinfo -F version "$file") == "$version" ]]
+done
+grep -aq BMO_GSP_INIT_OK_END "$module"
+file -b /usr/bin/busybox | grep -q 'statically linked'
+mkdir "$output"
+work=$(mktemp -d)
+trap 'rm -rf -- "$work"' EXIT
+root="$work/root"
+mkdir -p "$root"/{dev,proc,sys,capture,sistema/usr/lib/firmware}
+install -Dm755 /usr/bin/busybox "$root/bin/busybox"
+for app in sh mount umount sleep grep cat dmesg insmod sync mv poweroff; do
+    ln -s busybox "$root/bin/$app"
+done
+install -m644 "$module" "$root/nvidia.ko"
+install -m644 "$drivers"/nvidia{-modeset,-drm}.ko "$root/"
+# Only the firmware of this board family is needed by this initramfs.
+for firmware in gsp_ga10x.bin ucodes_ga10x.bin; do
+    path="sistema/usr/lib/firmware/nvidia/$version/$firmware"
+    install -Dm644 "$reference/${path#sistema/}" "$root/$path"
+done
+ln -s /sistema/usr/lib "$root/lib"
+cat > "$root/init" <<'INIT'
+#!/bin/sh
+export PATH=/bin
+set -eu
+mount -t devtmpfs devtmpfs /dev
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+show() {
+    echo "$*"
+    if [ -c /dev/tty0 ]; then echo "$*" >/dev/tty0 || :; fi
+}
+show "ULTRA-LinuX / Diagnostico GSP de BMO-X2"
+volume=
+for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+    for uevent in /sys/class/block/*/uevent; do
+        grep -qx 'PARTNAME=BMO-GSP-CAPTURE' "$uevent" || continue
+        name=${uevent%/uevent}
+        device=/dev/${name##*/}
+        mount -o ro,nodev,nosuid,noexec -t vfat "$device" /capture || continue
+        if grep -qx 'BMO-X2 OpenRM 615 capture volume v1' /capture/GSPDIAG.ID; then
+            volume=$device
+            umount /capture
+            break 2
+        fi
+        umount /capture
+    done
+    sleep 1
+done
+result=GSP_NO_GPU
+pci=/sys/bus/pci/devices/0000:29:00.0
+if [ -r "$pci/vendor" ] && [ "$(cat "$pci/vendor")" = 0x10de ] &&
+   [ "$(cat "$pci/device")" = 0x2504 ] &&
+   [ "$(cat "$pci/subsystem_vendor")" = 0x1462 ] &&
+   [ "$(cat "$pci/subsystem_device")" = 0x397d ]; then
+    result=GSP_MODULE_LOAD_FAILED
+    if insmod /nvidia.ko && insmod /nvidia-modeset.ko &&
+       insmod /nvidia-drm.ko modeset=1 fbdev=0; then
+        result=GSP_INIT_NOT_CAPTURED
+        for attempt in 1 2 3 4 5; do
+            if dmesg | grep -q BMO_GSP_INIT_OK_END=; then
+                result=GSP_INIT_CAPTURED
+                break
+            fi
+            sleep 1
+        done
+    fi
+fi
+if [ -n "$volume" ] && mount -o nodev,nosuid,noexec -t vfat "$volume" /capture; then
+    if { printf 'BMO_GSP_CAPTURE_STATUS=%s\n' "$result"; dmesg; } > /capture/GSPINIT.TMP &&
+       mv /capture/GSPINIT.TMP /capture/GSPINIT.TXT && sync && umount /capture; then
+        show "$result / registro guardado en GSPINIT.TXT"
+    else
+        show "$result / no se pudo guardar el registro"
+    fi
+else
+    show "$result / medio de captura no encontrado"
+fi
+show "Puedes apagar y volver a Windows."
+while :; do sleep 60; done
+INIT
+chmod 0755 "$root/init"
+mkdir -p "$work/esp/EFI/BOOT"
+cat > "$work/grub.cfg" <<'GRUB'
+search --no-floppy --label --set=root GSPDIAG
+linux /VMLINUX
+initrd /GSPINIT.GZ
+boot
+GRUB
+grub-mkstandalone -O x86_64-efi --modules='part_gpt fat search search_label linux' \
+    -o "$work/esp/EFI/BOOT/BOOTX64.EFI" "boot/grub/grub.cfg=$work/grub.cfg"
+install -m644 "$kernel" "$work/esp/VMLINUX"
+(cd "$root"; find . -print0 | cpio --null -o -H newc --owner=0:0 --quiet | gzip -1) > "$work/esp/GSPINIT.GZ"
+printf 'BMO-X2 OpenRM 615 capture volume v1\n' > "$work/esp/GSPDIAG.ID"
+image="$output/BMO-GSP-DIAG.img"
+truncate -s 256M "$image"
+printf 'label: gpt\nstart=2048,size=520192,type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B,name="BMO-GSP-CAPTURE"\n' |
+    sfdisk --quiet "$image"
+mkfs.fat -F 32 --offset=2048 -n GSPDIAG "$image" 260096 >/dev/null
+mcopy -s -i "$image@@1048576" "$work/esp/"* ::/
+(cd "$output"; sha256sum BMO-GSP-DIAG.img > SHA256SUMS)
