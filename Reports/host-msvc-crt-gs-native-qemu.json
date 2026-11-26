@@ -1,5 +1,5 @@
 {
-  "run": "run-sbef-ring0-lngkd8h4",
+  "run": "run-sbef-ring0-fxn6d_wc",
   "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
   "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
   "probe_sha256": "cd7d7112b69bad75e93eda4367ee997884b03c5a8bad663ed82972e5d5c19d46",
@@ -7,11 +7,11 @@
   "private_pages": 347,
   "user_frame_budget": 64,
   "scratch_bytes_scrubbed": 1421312,
-  "passed": 13,
+  "passed": 14,
   "cases": [
     {
       "case": "msvc-crt-gs-native",
-      "sha256": "7e278b03183598cc1794524a34b875a217c5ff6a07b2351a9dd3b3bdcad8263e",
+      "sha256": "8b0a8d8eeb61222ce60c3f77c47a12399f61acb284fb3c5f5849b9450a802b60",
       "receipt": 0,
       "user_pages": 7,
       "syscalls": 6,
@@ -19,7 +19,7 @@
       "staging_bytes_scrubbed": 16384,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 0000000000003C9A",
+        "SBEF FAT32 BYTES 0000000000003F5A",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000007",
         "SBEF WIN64 EXIT 0000000000000000",
@@ -33,7 +33,7 @@
     },
     {
       "case": "msvc-crt-gs-native-mismatch",
-      "sha256": "126b6d9e6788dbec4b26ddd1ebf85c56e8a7469290c7c38e49bd541f7cb1205a",
+      "sha256": "ddcc901ceea523f47a3fc5f11be47c6dc97857a480b7ba2a739bee4ee90045f7",
       "receipt": 0,
       "user_pages": 7,
       "syscalls": 0,
@@ -41,7 +41,7 @@
       "staging_bytes_scrubbed": 16384,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 0000000000003C9A",
+        "SBEF FAT32 BYTES 0000000000003F5A",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000007",
         "SBEF CPL3 ABORT 000000004753434B",
@@ -55,7 +55,7 @@
     },
     {
       "case": "msvc-crt-gs-native-handler",
-      "sha256": "73783b69249091ba9ee1a877ff7cc4c613fa9b3607b0da1e1d3420664bde82fa",
+      "sha256": "d6e5b1b63e3c6e76a9500775191d6ec64e807aaacd7235ad44eca7e6b159182d",
       "receipt": 0,
       "user_pages": 7,
       "syscalls": 5,
@@ -63,7 +63,7 @@
       "staging_bytes_scrubbed": 16384,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 0000000000003C9A",
+        "SBEF FAT32 BYTES 0000000000003F5A",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000007",
         "SBEF WIN64 EXIT 0000000000000000",
@@ -77,7 +77,7 @@
     },
     {
       "case": "msvc-crt-gs-native-handler-mismatch",
-      "sha256": "9194e0c3914fa022aaa7a5e6ace4e5e53bdeb555e3ad516fa0056f387d3b12d5",
+      "sha256": "58ec314ddc3e5c11fba1365358102140cc123c7621f98e7f9cd0579e3c0275ea",
       "receipt": 0,
       "user_pages": 7,
       "syscalls": 0,
@@ -85,7 +85,7 @@
       "staging_bytes_scrubbed": 16384,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 0000000000003C9A",
+        "SBEF FAT32 BYTES 0000000000003F5A",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000007",
         "SBEF CPL3 ABORT 0000000047534844",
@@ -99,7 +99,7 @@
     },
     {
       "case": "msvc-crt-gs-native-cpu-exception",
-      "sha256": "069dc50cdd2010c87af7c0b0f845ff3fc015522be1df281beda5d48492e98691",
+      "sha256": "3d64250e301e5daafd4a2d820c5acb040fbe5944c2c04a47b847256cb3aac8e7",
       "receipt": 0,
       "user_pages": 7,
       "syscalls": 6,
@@ -107,7 +107,7 @@
       "staging_bytes_scrubbed": 16384,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 0000000000003C9A",
+        "SBEF FAT32 BYTES 0000000000003F5A",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000007",
         "SBEF WIN64 #UD DELIVERED",
@@ -122,7 +122,7 @@
     },
     {
       "case": "msvc-crt-gs-native-cpu-exception-mismatch",
-      "sha256": "84408bf052cab31781eb6196fe9bb400696567f8f3c111941b07d463217c85a0",
+      "sha256": "3fd35668efd80933514b9d40c2e861cf318945cb786fd8165d2c3bc9104280ae",
       "receipt": 0,
       "user_pages": 7,
       "syscalls": 0,
@@ -130,7 +130,7 @@
       "staging_bytes_scrubbed": 16384,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 0000000000003C9A",
+        "SBEF FAT32 BYTES 0000000000003F5A",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000007",
         "SBEF WIN64 #UD DELIVERED",
@@ -145,7 +145,7 @@
     },
     {
       "case": "msvc-crt-gs-native-cpu-exception-repeat",
-      "sha256": "210dcdf7beeb5a70212b19106859093a08bb51799d7bb19e1f21b565acfd1250",
+      "sha256": "e0c59301f304fe22f244161594575cae75ee7e2804a3b8f896d2070333ab0ec2",
       "receipt": 0,
       "user_pages": 7,
       "syscalls": 0,
@@ -153,7 +153,7 @@
       "staging_bytes_scrubbed": 16384,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 0000000000003C9A",
+        "SBEF FAT32 BYTES 0000000000003F5A",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000007",
         "SBEF WIN64 #UD DELIVERED",
@@ -168,7 +168,7 @@
     },
     {
       "case": "msvc-crt-gs-native-cpu-prologue",
-      "sha256": "046f5a7666e6f12f257c91d89c56c497c26e57903b607c9099373eaa6b886f74",
+      "sha256": "cf5c3567e4bd5cfe17666703b58a58755392d70d51f205c602d7d93735a80954",
       "receipt": 0,
       "user_pages": 7,
       "syscalls": 7,
@@ -176,7 +176,7 @@
       "staging_bytes_scrubbed": 16384,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 0000000000003C9A",
+        "SBEF FAT32 BYTES 0000000000003F5A",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000007",
         "SBEF WIN64 #UD PROLOGUE DELIVERED",
@@ -191,7 +191,7 @@
     },
     {
       "case": "msvc-crt-gs-native-cpu-seh-handled",
-      "sha256": "720f8ed6e6f9cacdee1dfc5aad568fc66a7351c912ce22e835b99c177a57e0f9",
+      "sha256": "1d6c6629d0c3cb92d363b45021dc912c2a6950209babbdf8d72c312c0a8eaac9",
       "receipt": 0,
       "user_pages": 7,
       "syscalls": 5,
@@ -199,7 +199,7 @@
       "staging_bytes_scrubbed": 16384,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 0000000000003C9A",
+        "SBEF FAT32 BYTES 0000000000003F5A",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000007",
         "SBEF WIN64 #UD DELIVERED",
@@ -214,7 +214,7 @@
     },
     {
       "case": "msvc-crt-gs-native-cpu-seh-declined",
-      "sha256": "975d9f4908a091681844476cfa61a7e9525c96118d14220a139260ff23acfb8b",
+      "sha256": "6ba93317cde97d1d12ca50b8261f17affa74e8f10275893f2c9139f188389e6f",
       "receipt": 0,
       "user_pages": 7,
       "syscalls": 6,
@@ -222,7 +222,30 @@
       "staging_bytes_scrubbed": 16384,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 0000000000003C9A",
+        "SBEF FAT32 BYTES 0000000000003F5A",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000007",
+        "SBEF WIN64 #UD DELIVERED",
+        "SBEF WIN64 EXIT 0000000000000000",
+        "SBEF SYSCALLS 0000000000000006",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000004000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "msvc-crt-gs-native-cpu-seh-outer",
+      "sha256": "abe5582458600170173b18641e76bb057ae995795eced3361b5bbcccd9083692",
+      "receipt": 0,
+      "user_pages": 7,
+      "syscalls": 6,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 16384,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000003F5A",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000007",
         "SBEF WIN64 #UD DELIVERED",
@@ -237,7 +260,7 @@
     },
     {
       "case": "msvc-crt-gs-native-cpu-exception-unsupported-unwind",
-      "sha256": "1dd58430df4b92b1bf0dd743adc0360979b81e7b01b040290c493675e7d4a288",
+      "sha256": "685f4b59c1291aff73fcedf0ffee3d10278ee5042412356179ddc740c8f23e03",
       "receipt": 0,
       "user_pages": 7,
       "syscalls": 1,
@@ -245,7 +268,7 @@
       "staging_bytes_scrubbed": 16384,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 0000000000003C9A",
+        "SBEF FAT32 BYTES 0000000000003F5A",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000007",
         "SBEF WIN64 #UD DELIVERED",
@@ -260,7 +283,7 @@
     },
     {
       "case": "msvc-crt-gs-native-cpu-exception-invalid-chain",
-      "sha256": "ffb11784cec9620f78aac484c3279d367848232f76bcfe089bb8fe8fbcc6a08c",
+      "sha256": "eec9bb86c55eea7497f8f327f5b4a24cfacdfb3b75397d291a4eec03929c0f62",
       "receipt": 0,
       "user_pages": 7,
       "syscalls": 1,
@@ -268,7 +291,7 @@
       "staging_bytes_scrubbed": 16384,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 0000000000003C9A",
+        "SBEF FAT32 BYTES 0000000000003F5A",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000007",
         "SBEF WIN64 #UD DELIVERED",
@@ -283,7 +306,7 @@
     },
     {
       "case": "msvc-crt-gs-native-cpu-exception-invalid-frame",
-      "sha256": "e8d922f59757311648e6c06302a71ba38282f825e99a301a96d05fdc1a1adb8b",
+      "sha256": "ec2de5be40d70f0b9ff1e5c91ef6717135ed666af92b91cf8bb76bd7b8b610d3",
       "receipt": 0,
       "user_pages": 7,
       "syscalls": 1,
@@ -291,7 +314,7 @@
       "staging_bytes_scrubbed": 16384,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 0000000000003C9A",
+        "SBEF FAT32 BYTES 0000000000003F5A",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000007",
         "SBEF WIN64 #UD DELIVERED",
@@ -319,8 +342,8 @@
       "strncmp": "libucrt:strncmp.obj",
       "strspn": "libucrt:strspn.obj"
     },
-    "pe_bytes": 16896,
-    "pe_sha256": "cb0da54ecda6eeaeac0b5ae866f0a0ce71fdf631f07a14cbc89a7af0a9db3343",
+    "pe_bytes": 17920,
+    "pe_sha256": "db21b7f5709c725ee001e0ba5a6b9a64510377dbc5fc16f737a5648bb5d57c36",
     "msvc_toolset": "14.44.35207",
     "sdk": "10.0.26100.0",
     "libucrt_sha256": "2b247d6a27c22c520c34134b8acf2da3366175a4690886927a51929f37725fdd",
@@ -330,20 +353,20 @@
       "__security_check_cookie": "amdsecgs.obj"
     },
     "unwind_inventory": {
-      "FunctionCount": 42,
+      "FunctionCount": 44,
       "Versions": {
-        "1": 42
+        "1": 44
       },
-      "V1ExceptionHandlerCount": 5,
+      "V1ExceptionHandlerCount": 6,
       "V1TerminationHandlerCount": 4,
       "V1ChainedCount": 9,
       "V1Handlers": [
         {
-          "RVA": 2104608,
-          "FunctionCount": 1
+          "RVA": 2104880,
+          "FunctionCount": 2
         },
         {
-          "RVA": 2106564,
+          "RVA": 2107072,
           "FunctionCount": 4
         }
       ]
@@ -351,9 +374,9 @@
     "fault_policy": "QEMU one-shot delivery for either registered #UD PC; abort otherwise",
     "dispatch_fixture": {
       "exception_table_rva": 4194328,
-      "exception_table_bytes": 504,
-      "handler_rva": 2106564,
-      "seh_handler_rva": 2104608,
+      "exception_table_bytes": 528,
+      "handler_rva": 2107072,
+      "seh_handler_rva": 2104880,
       "trigger": "synchronous call with live MSVC frame",
       "stdout": "MSVC CRT: __GSHandlerCheck OK\r\n",
       "mismatch_stdout_bytes": 0
@@ -366,8 +389,8 @@
       "prologue_landing_pc": 1073742251,
       "image_base": 1071644672,
       "unwind_rvas": {
-        "call_client": 4196176,
-        "chained_fragment": 4196200
+        "call_client": 4196312,
+        "chained_fragment": 4196336
       },
       "stdout": "MSVC CRT: unwind de dos marcos OK\r\n",
       "unwound_frames": 2,
@@ -439,7 +462,8 @@
     "stdout_bytes": 36,
     "seh_fixture": {
       "cpu-seh-handled": "MSVC SEH: filtro y __except OK\r\n",
-      "cpu-seh-declined": "MSVC SEH: filtro CONTINUE_SEARCH OK\r\n"
+      "cpu-seh-declined": "MSVC SEH: filtro CONTINUE_SEARCH OK\r\n",
+      "cpu-seh-outer": "MSVC SEH: filtro del marco superior OK\r\n"
     }
   }
 }

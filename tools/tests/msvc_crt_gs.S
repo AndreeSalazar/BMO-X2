@@ -244,6 +244,30 @@ bmo_test_gs_prologue_landing:
     lea 32(%rsp), %rcx
     lea 296(%rsp), %rdx
     call *%rax
+    cmp $2, %eax
+    jne .Lreturn_delivery
+    # Restore the selected frame's nonvolatile state before entering __except.
+    mov 56(%rsp), %rbx
+    mov 64(%rsp), %rbp
+    mov 72(%rsp), %rsi
+    mov 80(%rsp), %rdi
+    mov 88(%rsp), %r12
+    mov 96(%rsp), %r13
+    mov 104(%rsp), %r14
+    mov 112(%rsp), %r15
+    movdqu 120(%rsp), %xmm6
+    movdqu 136(%rsp), %xmm7
+    movdqu 152(%rsp), %xmm8
+    movdqu 168(%rsp), %xmm9
+    movdqu 184(%rsp), %xmm10
+    movdqu 200(%rsp), %xmm11
+    movdqu 216(%rsp), %xmm12
+    movdqu 232(%rsp), %xmm13
+    movdqu 248(%rsp), %xmm14
+    movdqu 264(%rsp), %xmm15
+    mov 40(%rsp), %rsp
+    jmp *bmo_gs_seh_target(%rip)
+.Lreturn_delivery:
     mov 280(%rsp), %r10
     add $376, %rsp
     jmp *%r10
@@ -256,11 +280,6 @@ bmo_test_gs_prologue_landing:
     add $80, %rsp
     jmp .Lprologue_continue
 .Lcpu_return:
-    cmp $2, %eax
-    jne .Lcpu_return_normal
-    add $8, %rsp
-    jmp *bmo_gs_seh_target(%rip)
-.Lcpu_return_normal:
     ret
 .Linvalid_delivery:
     xor %eax, %eax

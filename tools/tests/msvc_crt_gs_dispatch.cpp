@@ -185,6 +185,8 @@ static bool stack_range(const CpuContext& context, Word address, Word bytes) {
 
 static volatile unsigned int seh_filter_calls;
 static volatile unsigned int seh_except_calls;
+static volatile unsigned int seh_outer_filter_calls;
+static volatile unsigned int seh_outer_except_calls;
 
 __declspec(noinline) static LONG fixture_filter(const EXCEPTION_POINTERS* pointers) {
     if (pointers->ExceptionRecord->ExceptionCode != EXCEPTION_ILLEGAL_INSTRUCTION ||
@@ -202,6 +204,24 @@ extern "C" __declspec(noinline) int bmo_gs_seh_client() {
     }
     return seh_filter_calls == 1 &&
            seh_except_calls == (bmo_gs_test_mode == 0x424d4f08 ? 1u : 0u);
+}
+
+__declspec(noinline) static LONG fixture_outer_filter(const EXCEPTION_POINTERS* pointers) {
+    if (seh_filter_calls != 1 || seh_except_calls || pointers->ExceptionRecord->ExceptionCode !=
+        EXCEPTION_ILLEGAL_INSTRUCTION || reinterpret_cast<Word>(pointers->ExceptionRecord->ExceptionAddress) !=
+        pointers->ContextRecord->Rip || pointers->ContextRecord->Rax != 0x6000) return EXCEPTION_CONTINUE_SEARCH;
+    seh_outer_filter_calls = seh_outer_filter_calls + 1;
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+
+extern "C" __declspec(noinline) int bmo_gs_seh_outer() {
+    __try {
+        bmo_gs_seh_client();
+    } __except (fixture_outer_filter(GetExceptionInformation())) {
+        seh_outer_except_calls = seh_outer_except_calls + 1;
+    }
+    return seh_filter_calls == 1 && seh_except_calls == 0 &&
+           seh_outer_filter_calls == 1 && seh_outer_except_calls == 1;
 }
 
 struct SehScope {
@@ -237,25 +257,36 @@ extern "C" EXCEPTION_DISPOSITION __C_specific_handler(EXCEPTION_RECORD* record, 
     return ExceptionContinueSearch;
 }
 
-static int dispatch_seh(const CpuContext& caller) {
+static bool unwind_frame(CpuContext& context, Word control_pc);
+
+static bool search_seh_frame(const CpuContext& caller, Word expected_function) {
     const Word base = bmo_gs_image.base;
     const auto* entry = find_function(caller.pc - 1);
-    if (!entry || base + entry->begin != reinterpret_cast<Word>(&bmo_gs_seh_client) ||
-        !stack_range(caller, caller.rsp, sizeof(Word)) || !readonly_range(entry->unwind, 4)) return 0;
+    if (!entry || base + entry->begin != expected_function ||
+        !stack_range(caller, caller.rsp, sizeof(Word)) || !readonly_range(entry->unwind, 4)) return false;
     const auto* info = reinterpret_cast<const unsigned char*>(base + entry->unwind);
     const unsigned int tail = 4 + ((info[2] + 1) & ~1u) * 2;
     if (info[0] != 0x09 || info[3] || !readonly_range(entry->unwind, tail + 4) ||
-        caller.pc - 1 - base - entry->begin < info[1]) return 0;
+        caller.pc - 1 - base - entry->begin < info[1]) return false;
     const auto* handler = reinterpret_cast<const Rva*>(info + tail);
-    if (base + *handler != reinterpret_cast<Word>(&__C_specific_handler)) return 0;
+    if (base + *handler != reinterpret_cast<Word>(&__C_specific_handler)) return false;
     DISPATCHER_CONTEXT dispatch = {
         caller.pc - 1, base, reinterpret_cast<RUNTIME_FUNCTION*>(const_cast<RuntimeFunction*>(entry)),
         caller.rsp, 0, &bmo_gs_win_context, reinterpret_cast<PEXCEPTION_ROUTINE>(&__C_specific_handler),
         const_cast<Rva*>(handler + 1), nullptr, 0, 0
     };
-    bmo_gs_seh_target = 0;
     __C_specific_handler(&bmo_gs_exception_record, reinterpret_cast<void*>(caller.rsp),
                          &bmo_gs_win_context, &dispatch);
+    return true;
+}
+
+static int dispatch_seh(CpuContext& caller) {
+    bmo_gs_seh_target = 0;
+    if (!search_seh_frame(caller, reinterpret_cast<Word>(&bmo_gs_seh_client))) return 0;
+    if (!bmo_gs_seh_target && bmo_gs_test_mode == 0x424d4f0a && seh_filter_calls == 1) {
+        if (!unwind_frame(caller, caller.pc - 1) ||
+            !search_seh_frame(caller, reinterpret_cast<Word>(&bmo_gs_seh_outer))) return 0;
+    }
     return bmo_gs_seh_target ? 2 : 0;
 }
 
@@ -485,7 +516,7 @@ extern "C" int bmo_gs_cpu_dispatch(CpuContext* context, const TrapRegisters* tra
         static_cast<Word>(win.Xmm6.High) != context->xmm[0][1]) return 0;
     // Undo the faulting leaf's call, then inspect its live protected parent.
     if (!pop_word(*context, context->pc) || !context->pc) return 0;
-    if (bmo_gs_test_mode == 0x424d4f08 || bmo_gs_test_mode == 0x424d4f09) return dispatch_seh(*context);
+    if (bmo_gs_test_mode >= 0x424d4f08 && bmo_gs_test_mode <= 0x424d4f0a) return dispatch_seh(*context);
     if (dispatch_gs(context->pc - 1, context->rsp, &bmo_gs_exception_record,
                     &bmo_gs_win_context) != 1) return 0;
     if (!unwind_frame(*context, context->pc - 1) || context->pc != bmo_gs_expected.wrapper_pc ||
