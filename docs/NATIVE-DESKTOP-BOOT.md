@@ -1440,6 +1440,13 @@ La lectura usa alto-bajo-alto y reintentos acotados al cruzar el
 limite de la palabra baja. HOST verifica el valor y ambos casos
 de omision o rechazo; la lectura de la RTX requiere METAL.
 
+METAL con `d6caafd` mostro `FFFFFFFFFFFFFFFE` tras escritura y
+`00000003186E3BE0` antes de INIT (13.295 segundos). Se omitio la
+escritura de PTIMER y la lectura anterior a INIT fue valida. El
+recibo de omision agrupa todas las guardas y no identifica cual
+se activo. SEC2 reporto `701` y GSP repitio `802 / 40`. LOGRM
+mantuvo el productor `855` y el mismo final de ocho registros.
+
 ```powershell
 python -B -m tools.host.gpu.NVIDIA.gsp_capture Reports/nvidia-gsp-logrm-metal-20261126.txt --screen --openrm-logrm A:/BMO-X2/GSP-DIAG/GSPRM.TXT
 ```
