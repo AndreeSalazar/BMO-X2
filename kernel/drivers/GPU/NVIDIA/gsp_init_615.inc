@@ -308,15 +308,37 @@ nvidia_gsp_snapshot_615:
     gsp_u32 0x11, 4096
 .Lgsp_615_link_cap:
     gsp_u32 0x52, 0               # PCIE_LINK_CAP, sampled before publication.
-    gsp_u64 0x1001, 0
+    # OpenRM 615.78.08 completed INIT on this board with these NVKV keys.
+    # Report only capabilities backed by the native host. In particular,
+    # Linux's VF resources, ACPI cache and registry are private to that host.
+    gsp_u32 0x20, 0               # PCIE_ATOMICS_CPL_DEV_CAP_MASK.
+    gsp_u32 0x31, 0               # CHIPSET_L1SS_ENABLE.
+    gsp_u32 0x41, 0               # VIRTUAL_CONFIG_BITS.
+    gsp_u32 0x50, 0               # PCIE_POWER_CONTROL_VALUE.
+    gsp_u32 0x51, 0               # PF0_DEVICE_CONTROL2_REG policy.
+    gsp_u32 0x60, 0               # GRID_BUILD_CSP.
+    gsp_u32 0x80, 0               # VF_TOTAL_VFS exposed by this host.
+    gsp_u32 0x81, 0               # VF_FIRST_VF_OFFSET.
+    gsp_u64 0x1000, 0             # No host PCIe services advertised.
+    gsp_u64 0x1001, 0             # No host platform services advertised.
+    gsp_u64 0x1002, 0             # No host display or power callbacks.
+    gsp_u64 0x1003, 0             # No host VF services advertised.
+    gsp_u64 0x1030, 0             # PCIE_ATOMICS_OP_MASK.
+    gsp_u64 0x1040, 0             # SYS_TIMER_OFFSET_NS.
+    gsp_u64 0x1050, 0             # VF_FIRST_BAR0_ADDRESS.
+    gsp_u64 0x1051, 0             # VF_FIRST_BAR1_ADDRESS.
+    gsp_u64 0x1052, 0             # VF_FIRST_BAR2_ADDRESS.
     .long 0x30001100, 7
     .asciz "BMO-X2"
     .zero 1
     .long 0x30001101, 10          # KERNEL_DRIVER_VERSION_STRING.
     .asciz "615.78.08"
     .zero 6
-    gsp_u32 0x1102, 39079891     # Official Linux reference changelist.
+    gsp_u32 0x1102, 0            # No NVIDIA internal build changelist.
     gsp_u32 0x1110, 3            # UNSTABLE_INTERFACE_SUPPORT is U32.
 .Lgsp_615_request_end:
+    .if (.Lgsp_615_request_end-.Lgsp_615_request) > 4096
+    .error "GSP_INIT must fit one MSGQ slot"
+    .endif
 .purgem gsp_u32
 .purgem gsp_u64

@@ -1515,6 +1515,21 @@ El arranque UEFI de esta variante en QEMU guardo `GSP_NO_GPU` en
 esa ruta. En metal, espera el mensaje de registro guardado antes de
 volver a Windows.
 
+La captura fisica del 26 de noviembre de 2026 guardo 282 palabras
+NVKV tras completar INIT en `29:00.0`. OpenRM 615.78.08 inicializo
+tambien `nvidia-drm`. El comparador midio 56 claves en esa captura
+y 22 en el EFI nativo anterior.
+
+El siguiente EFI agrega 16 claves de capacidades PCIe, plataforma,
+virtualizacion y temporizador con valores compatibles con los
+servicios de Ring 0, para un total de 38, y declara un changelist cero.
+Mantiene la identidad y el tipo de host nativos,
+la revision y el enlace PCIe medidos al arrancar y la IOVA NotifyOp
+del dominio propio. Los recursos VF, el registro Linux y su cache
+ACPI requieren soporte del host para anunciar los valores capturados.
+El resultado de la RTX en este EFI y el primer dibujo siguen
+pendientes de verificacion en metal.
+
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
 [Fusibles SEC2 en Nova](https://github.com/torvalds/linux/blob/master/drivers/gpu/nova-core/regs.rs).

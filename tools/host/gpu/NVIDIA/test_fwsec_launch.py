@@ -177,7 +177,7 @@ class FwsecLaunch(unittest.TestCase):
                     self.assertIn(struct.pack('<IIQ', 0x20001022, 1, 0x0A1FE000),
                                   bytes(queue[0x3040:0x3040+payload_size]))
                     version = struct.pack('<II', 0x30001101, 10) + b'615.78.08'+bytes(7)
-                    identity = struct.pack('<4I', 0x1102, 39079891, 0x1110, 3)
+                    identity = struct.pack('<4I', 0x1102, 0, 0x1110, 3)
                     self.assertEqual(bytes(queue[0x3040+payload_size-40:0x3040+payload_size]),
                                      version+identity)
                     struct.pack_into('<8IQI',queue,0x43000,0x4d435450,72,0xc0000001,
