@@ -1551,7 +1551,8 @@ funcion, porque pueden diferir entre los dos kernels.
 python -B -m tools.host.gpu.NVIDIA.gsp_init_compare openrm-dmesg.txt RTX-FWSEC.EFI
 ```
 
-La peticion exitosa de ULTRA-LinuX en esta tarjeta sigue pendiente.
+La peticion exitosa de ULTRA-LinuX en esta tarjeta se registro el
+26 de noviembre y se documenta abajo.
 
 HOST compilo el parche de captura como `nvidia.ko` 615.78.08 contra
 el arbol `7.3.0-rc7-pc-g32c52ec87d62` en un snapshot del taller QEMU.
@@ -1603,6 +1604,48 @@ LOGRM es un indice, no el mensaje del firmware. Para identificar la
 operacion que fallo hace falta decodificar el contenido bruto con
 los metadatos de la misma version del firmware. El GPULOG de FAT32
 se escribe antes de INIT. El primer dibujo sigue pendiente.
+
+#### Punto de partida para retomar RTX
+
+La referencia fisica usa la MSI RTX 3060 `10DE:2504` en `29:00.0` y
+OpenRM 615.78.08. `GSPINIT.TXT` registra INIT completado con 282
+palabras NVKV y despues `nvidia-drm` para esa misma funcion.
+En BMO-X2, SEC2 `701` y RX `1` acreditan el booter y la recepcion
+de una respuesta correlacionada. El codigo BMO-X2 `802` conserva
+el estado NVIDIA `0x40`, `NV_ERR_INVALID_STATE`. El estado es
+generico y la captura disponible no identifica el estado interno
+que falto. [Estado NVIDIA 615.78.08](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/common/sdk/nvidia/inc/nvstatuscodes.h).
+
+Se comparo de nuevo la captura con el `RTX-FWSEC.EFI` de la ESP.
+La plantilla del EFI tiene 38 claves frente a las 56 de OpenRM.
+Hay 18 ausentes, 9 con valores distintos, 2 rellenadas al arrancar
+y una direccion DMA que requiere cotejo por funcion. Los BAR GPU
+de `0x1010` a `0x1012` coinciden. LogRM contiene 8 registros
+candidatos nativos en la pagina transcrita y ninguna coincidencia
+con la ventana de 96 palabras de OpenRM. Esas ventanas son
+parciales. El paquete 615.78.08 inspeccionado incluye el firmware
+GA10x. Su ELF no anuncia secciones `.logging_metadata` ni
+`.logging` en la tabla exterior.
+
+El primer contraste de plataforma reproducible es el puente PCIe
+`00:03.1` hacia el bus `29`. OpenRM anuncia `PCIE_FLAGS=0x402`
+(`FLR_SUPPORTED` y `UPSTREAM_ADDRESS_VALID`). BMO-X2 ya muestrea
+`PCIE_LINK_CAP` y anuncia cero en ese otro campo. La siguiente
+prueba de una sola variable podria medir la capacidad FLR y la
+identidad del puerto aguas arriba y anunciar solamente lo que el
+host respalde. Esto no identifica el origen de `0x40`. Las
+reservas VRAM, datos ACPI y politicas VF se conservan como
+diferencias del host hasta tener sus servicios correspondientes.
+[Definiciones GMCAPI 615.78.08](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/interface/gmcapi/gmcapi_system_info.h).
+
+En Linux, Nouveau separa la reserva DMA para firmware, la espera
+de confirmacion GSP y el alta posterior de interrupciones. El
+perfil 615 de OpenRM comprueba el estado de INIT y decodifica
+la informacion estatica antes de marcar RM listo. BMO-X2
+conserva esas etapas y solo debe avanzar a recursos de VRAM,
+dibujo y presentacion al confirmar INIT.
+[Secuencia de Nouveau](https://github.com/torvalds/linux/blob/master/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/rm/r535/gsp.c).
+[INIT de OpenRM](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c#L5314).
 
 [Formato y preparacion de booter GA102 en Nouveau](https://codebrowser.dev/linux/linux/drivers/gpu/drm/nouveau/nvkm/subdev/gsp/ga102.c.html#42).
 [Seleccion de firma de booter en Nova](https://raw.githubusercontent.com/torvalds/linux/master/drivers/gpu/nova-core/firmware/booter.rs).
