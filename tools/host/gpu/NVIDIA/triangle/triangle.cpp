@@ -1,6 +1,7 @@
 #include <vulkan/vulkan.h>
 
 #include <array>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
@@ -317,12 +318,16 @@ int main(int argc, char** argv)
         app.make_target();
         app.make_pipeline(argv[1], argv[2]);
         std::filesystem::create_directories(argv[3]);
+        const auto start = std::chrono::steady_clock::now();
         for (uint32_t frame = 0; frame < frames; ++frame) {
             std::array<char, 16> name{};
             std::snprintf(name.data(), name.size(), "%02u.rgba", frame);
             app.draw(float(frame) * (6.283185307f / frames), std::filesystem::path(argv[3]) / name.data());
         }
         std::printf("Frames=%u Width=%u Height=%u\n", frames, width, height);
+        const double ms = std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - start).count();
+        std::printf("MeanSubmitReadbackWriteMs=%.3f\n", ms / frames);
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {
         std::fprintf(stderr, "%s\n", error.what());

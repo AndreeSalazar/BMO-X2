@@ -27,22 +27,25 @@ no integra todavia todo el compositor con el presentador ULTRA-J.
 
 ## VERRANO y la GPU
 
-`userspace/services/graphics/verrano/` es la ruta propuesta para el
-contrato grafico de Ring 3 inspirado en `DrawBackend` de BMO-X. Una
+[VERRANO](../graphics/verrano/lib.rs) aloja el verificador de lotes
+de Ring 3 inspirado en `DrawBackend` de BMO-X. Una
 aplicacion puede entregar un cuadro ya dibujado o enviar un lote de
 dibujo. DIRECTOR decide que superficie recibe foco y ocupa la pantalla.
 El backend grafico procesa el lote y la salida de pantalla presenta el
 resultado. Los controladores de cada fabricante viven con el dispositivo.
 
-HOST puede admitir un subconjunto validado de SPIR-V cuando exista
-un backend que cumpla sus capacidades. SPIR-V describe el programa del
-shader. El backend del dispositivo genera su codigo de maquina. La API
-de VERRANO puede seguir corta con recursos reutilizables y lotes, y la
-presentacion puede reutilizar buffers cuando el dispositivo lo permita.
+HOST valida, reduce y vuelve a validar el subconjunto SPIR-V del
+triangulo antes de entregarlo a Vulkan en el banco Windows. Admite las
+etapas de vertice y fragmento del perfil acotado. El controlador del
+dispositivo genera el codigo de maquina de los shaders.
 [Registro SPIR-V de Khronos](https://registry.khronos.org/SPIR-V/).
 
-La ruta es de diseno. La primera medida deberia cotejar el mismo cuadro
-en CPU y GPU, contando copias, envios y tiempo de extremo a extremo.
+El verificador Rust recibe el titular autenticado y la tabla de
+buffers del servicio. Comprueba cada rango y el presupuesto de
+vertices antes de entregar el lote completo. Las pruebas HOST usan un
+backend de prueba. Queda conectar el verificador a la tabla real del
+servicio y a un backend nativo, incluida la recuperacion del dispositivo.
+[Prueba del triangulo y comparacion CPU/GPU](../../../Reports/verrano-triangle-host.json).
 
 La estructura .ujh, la apariencia .ujc y el comportamiento .uj son
 entradas diferentes. Cambiar el tema no debe introducir politica de

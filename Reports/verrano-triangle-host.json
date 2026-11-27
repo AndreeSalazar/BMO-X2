@@ -1,0 +1,39 @@
+{
+  "date": "2026-11-27",
+  "scope": "Windows HOST. Triangulo Vulkan fuera de pantalla, usando el controlador NVIDIA instalado.",
+  "run": "tools/host/gpu/NVIDIA/triangle/run.ps1",
+  "device": "NVIDIA GeForce RTX 3060, 10de:2504",
+  "driver": "610.74",
+  "vulkan_sdk": "1.4.350.0",
+  "spirv_profile": {
+    "name": "verrano-triangle-v1",
+    "vertex_input_bytes": 2804,
+    "vertex_output_bytes": 2356,
+    "fragment_input_bytes": 564,
+    "fragment_output_bytes": 432,
+    "valid_shader_outside_profile": "El fragmento con textura paso spirv-val y se rechazo con VERRANO-OP: OpTypeImage. No se emitio un SPIR-V preparado."
+  },
+  "render": {
+    "width": 480,
+    "height": 360,
+    "distinct_frames": 48,
+    "rgba8_sequence_sha256": "ca5f50159c57ff65020ccef53ae87c69fcd2615ef5bd00615aa20ef651fa413a",
+    "baseline": "Secuencia identica al banco original en Reports/nvidia-triangle-host-20261120.json.",
+    "cpu_reference_frame_zero": {
+      "compared_pixels": 172118,
+      "edge_pixels_skipped": 682,
+      "max_rgba8_channel_error": 1,
+      "python_raster_ms": 89.144
+    },
+    "image_to_staging_copies_per_frame": 1,
+    "mean_submit_wait_readback_write_ms": 5.315,
+    "timing_scope": "El tiempo Vulkan incluye sincronizacion y escritura del archivo. La referencia Python solo mide el raster del cuadro cero. Son medidas de recorridos diferentes."
+  },
+  "batch_judge": {
+    "source": "userspace/services/graphics/verrano/lib.rs",
+    "host_tests_passed": 3,
+    "no_std_x86_64_unknown_none_build": "passed",
+    "backend": "Las pruebas llaman a un backend de prueba y comprueban que un lote invalido nunca lo invoca."
+  },
+  "pending": "Integrar el juez con recursos y backend nativos, ejecutar en QEMU y verificar envio, recuperacion y presentacion en METAL."
+}

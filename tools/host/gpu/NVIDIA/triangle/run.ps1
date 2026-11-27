@@ -13,10 +13,20 @@ New-Item -Path $Build -ItemType Directory -Force | Out-Null
 
 $Vertex = Join-Path $Build 'triangle.vert.spv'
 $Fragment = Join-Path $Build 'triangle.frag.spv'
-& $GLSLC --target-env=vulkan1.3 (Join-Path $PSScriptRoot 'triangle.vert') -o $Vertex
+$RawVertex = Join-Path $Build 'triangle.vert.raw.spv'
+$RawFragment = Join-Path $Build 'triangle.frag.raw.spv'
+& $GLSLC --target-env=vulkan1.3 (Join-Path $PSScriptRoot 'triangle.vert') -o $RawVertex
 if ($LASTEXITCODE) { throw "glslc vertex: $LASTEXITCODE" }
-& $GLSLC --target-env=vulkan1.3 (Join-Path $PSScriptRoot 'triangle.frag') -o $Fragment
+& $GLSLC --target-env=vulkan1.3 (Join-Path $PSScriptRoot 'triangle.frag') -o $RawFragment
 if ($LASTEXITCODE) { throw "glslc fragment: $LASTEXITCODE" }
+
+$Profile = Join-Path $PSScriptRoot '../../spirv_profile.py'
+$VertexReport = & $Python -B $Profile --sdk $Sdk vertex $RawVertex $Vertex
+if ($LASTEXITCODE) { throw "VERRANO vertex: $LASTEXITCODE" }
+$FragmentReport = & $Python -B $Profile --sdk $Sdk fragment $RawFragment $Fragment
+if ($LASTEXITCODE) { throw "VERRANO fragment: $LASTEXITCODE" }
+@(($VertexReport | ConvertFrom-Json), ($FragmentReport | ConvertFrom-Json)) |
+    ConvertTo-Json | Set-Content -Path (Join-Path $Build 'spirv-profile.json') -Encoding utf8
 
 $Include = Join-Path $Sdk 'Include'
 $Lib = Join-Path $Sdk 'Lib'

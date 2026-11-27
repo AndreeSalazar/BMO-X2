@@ -1877,6 +1877,20 @@
       "pagina": true
     },
     {
+      "id": "verrano-batch",
+      "titulo": "VERRANO / Admision de lotes de dibujo",
+      "ruta": "userspace/services/graphics/verrano/lib.rs",
+      "estado": "host",
+      "anillo": "3",
+      "lenguaje": "Rust",
+      "posicion": [1640, 2200],
+      "que": "Verifica lotes de dibujo antes de llamar al backend.",
+      "entrada": "Titular autenticado, tabla de buffers, lotes y limites del servicio.",
+      "salida": "Envio completo o rechazo con indice del dibujo cuando corresponde.",
+      "aceptacion": "HOST prueba un triangulo y el rechazo de rangos, desbordamientos, buffers ajenos y exceso de vertices.",
+      "falta": "Integrar la tabla de recursos y el backend nativo. Verificar en QEMU y en metal."
+    },
+    {
       "id": "desktop-keyboard",
       "titulo": "Teclado y atajos del escritorio",
       "ruta": "userspace/services/desktop/src/keyboard.rs",
