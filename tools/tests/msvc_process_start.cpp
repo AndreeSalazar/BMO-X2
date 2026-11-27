@@ -15,6 +15,11 @@ __declspec(dllimport) int QueryPerformanceFrequency(long long*);
 __declspec(dllimport) int IsProcessorFeaturePresent(unsigned long);
 __declspec(dllimport) int IsDebuggerPresent(void);
 __declspec(dllimport) unsigned long GetModuleFileNameW(void*, wchar_t*, unsigned long);
+__declspec(dllimport) void* GetModuleHandleW(const wchar_t*);
+__declspec(dllimport) int GetModuleHandleExW(unsigned long, const wchar_t*, void**);
+__declspec(dllimport) void* GetProcAddress(void*, const char*);
+__declspec(dllimport) void* LoadLibraryExW(const wchar_t*, void*, unsigned long);
+__declspec(dllimport) int FreeLibrary(void*);
 __declspec(dllimport) unsigned long GetLastError(void);
 __declspec(dllimport) void SetLastError(unsigned long);
 __declspec(dllimport) void ExitProcess(unsigned long);
@@ -63,6 +68,46 @@ struct LargeReadOnly {
 
 static const LargeReadOnly large_readonly = {0x42, {}, 0x6d};
 static volatile unsigned char large_private[8192];
+
+static void check_module_registry(void) {
+    const auto main_image = GetModuleHandleW(nullptr);
+    const auto kernel32 = GetModuleHandleW(L"KeRNeL32.DlL");
+    constexpr auto kernel_path = LR"(X:\BMO-X2\System32\kernel32.dll)";
+    if (!main_image || !kernel32 || main_image == kernel32 ||
+        GetModuleHandleW(L"minigzip demo.exe") != main_image ||
+        GetModuleHandleW(L"kernel32") != kernel32 || GetModuleHandleW(kernel_path) != kernel32 ||
+        GetModuleHandleW(L"missing.dll") || GetLastError() != 126) ExitProcess(173);
+    wchar_t filename[64];
+    if (!GetModuleFileNameW(kernel32, filename, 64)) ExitProcess(174);
+    for (unsigned i = 0; ; ++i) {
+        if (filename[i] != kernel_path[i]) ExitProcess(175);
+        if (!kernel_path[i]) break;
+    }
+    auto* code_page = GetProcAddress(kernel32, "GetACP");
+    if (code_page != reinterpret_cast<void*>(&GetACP) ||
+        reinterpret_cast<unsigned (*)()>(code_page)() != 65001) ExitProcess(176);
+    auto* clock = GetProcAddress(kernel32, "GetTickCount64");
+    if (!clock || reinterpret_cast<bmo_word (*)()>(clock)() < 10 ||
+        GetProcAddress(kernel32, "getacp") || GetLastError() != 127 ||
+        GetProcAddress(kernel32, reinterpret_cast<const char*>(1)) || GetLastError() != 127 ||
+        GetProcAddress(main_image, "GetACP") || GetLastError() != 127 ||
+        GetProcAddress(nullptr, "GetACP") || GetLastError() != 6) ExitProcess(177);
+
+    void* result;
+    if (!GetModuleHandleExW(6, reinterpret_cast<const wchar_t*>(clock), &result) || result != kernel32 ||
+        FreeLibrary(kernel32) || GetLastError() != 6 ||
+        GetModuleHandleExW(3, L"kernel32", &result) || result || GetLastError() != 87 ||
+        GetModuleHandleExW(4, reinterpret_cast<const wchar_t*>(1), &result) || result ||
+        GetLastError() != 126) ExitProcess(178);
+    if (!GetModuleHandleExW(0, L"KERNEL32", &result) || result != kernel32 ||
+        LoadLibraryExW(L"kernel32.dll", nullptr, 0x800) != kernel32 ||
+        !FreeLibrary(kernel32) || !FreeLibrary(kernel32) || FreeLibrary(kernel32) ||
+        GetLastError() != 6 || LoadLibraryExW(L"x.dll", nullptr, 0) || GetLastError() != 126 ||
+        LoadLibraryExW(L"kernel32.dll", nullptr, 2) || GetLastError() != 87) ExitProcess(179);
+    if (!GetModuleHandleExW(1, L"kernel32", &result) || result != kernel32 ||
+        !FreeLibrary(kernel32) || !FreeLibrary(kernel32) ||
+        GetProcAddress(kernel32, "GetTickCount64") != clock) ExitProcess(180);
+}
 
 static void check_image_path(void) {
     constexpr wchar_t expected[] = LR"(X:\BMO-X2\minigzip demo.exe)";
@@ -355,6 +400,7 @@ extern "C" void bmo_main(void) {
     check_environment();
     check_text_encoding();
     check_platform();
+    check_module_registry();
     check_image_path();
     check_std_handles();
     for (auto& word : slist) word = ~bmo_word{0};

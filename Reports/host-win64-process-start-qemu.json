@@ -1,5 +1,5 @@
 {
-  "run": "run-sbef-ring0-rwm80zs_",
+  "run": "run-sbef-ring0-yztydvzh",
   "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
   "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
   "probe_sha256": "4c801bc0180fca9daa4d4a914bdf9fa167e607297b1b673761d39920f6d24092",
@@ -11,85 +11,85 @@
   "cases": [
     {
       "case": "msvc-process-start",
-      "sha256": "48070d73ef8a94c96b3630d9be855f8864b01ecea2cb33b408679234209f971a",
+      "sha256": "6c2c85d6a3042198b1c344c19a10a89a571ffa36d769eb57fb52fcd194326219",
       "receipt": 0,
-      "user_pages": 68,
-      "syscalls": 13,
+      "user_pages": 69,
+      "syscalls": 14,
       "wait_wakes": 2,
-      "staging_bytes_scrubbed": 253952,
+      "staging_bytes_scrubbed": 258048,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000003D38B",
+        "SBEF FAT32 BYTES 000000000003E688",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000044",
+        "SBEF USER PAGES 0000000000000045",
         "SBEF WIN64 EXIT 0000000000000000",
-        "SBEF SYSCALLS 000000000000000D",
+        "SBEF SYSCALLS 000000000000000E",
         "SBEF WAIT WAKES 0000000000000002",
         "SBEF ABI GATE RESTORED",
-        "SBEF FAT32 SCRUBBED 000000000003E000",
+        "SBEF FAT32 SCRUBBED 000000000003F000",
         "SBEF MAP RESTORED AND SCRUBBED"
       ],
       "passed": true
     },
     {
       "case": "clang-cl-process-start",
-      "sha256": "de6bdf4aa713e3e0c62252214af1e10643dba282349e7bbe6bcd80f259dba160",
+      "sha256": "14230e961e4d491eb2b99203f07300622cab6d6b743ca77e24c1bd13c7b1b491",
       "receipt": 0,
-      "user_pages": 68,
-      "syscalls": 13,
+      "user_pages": 69,
+      "syscalls": 14,
       "wait_wakes": 2,
-      "staging_bytes_scrubbed": 253952,
+      "staging_bytes_scrubbed": 258048,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000003D383",
+        "SBEF FAT32 BYTES 000000000003E699",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000044",
+        "SBEF USER PAGES 0000000000000045",
         "SBEF WIN64 EXIT 00000000DEADBEEF",
-        "SBEF SYSCALLS 000000000000000D",
+        "SBEF SYSCALLS 000000000000000E",
         "SBEF WAIT WAKES 0000000000000002",
         "SBEF ABI GATE RESTORED",
-        "SBEF FAT32 SCRUBBED 000000000003E000",
+        "SBEF FAT32 SCRUBBED 000000000003F000",
         "SBEF MAP RESTORED AND SCRUBBED"
       ],
       "passed": true
     },
     {
       "case": "msvc-process-terminate",
-      "sha256": "f2a4c44c4288e96e58a71b3b62517d9544180d51ee982705e71797d33e0c1741",
+      "sha256": "c8d7d8998b02c2fefa4c4bb528507353aebfe5d5acb6e1c08358e9da42063f87",
       "receipt": 0,
-      "user_pages": 68,
-      "syscalls": 12,
+      "user_pages": 69,
+      "syscalls": 13,
       "wait_wakes": 2,
-      "staging_bytes_scrubbed": 253952,
+      "staging_bytes_scrubbed": 258048,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000003D397",
+        "SBEF FAT32 BYTES 000000000003E694",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000044",
+        "SBEF USER PAGES 0000000000000045",
         "SBEF WIN64 EXIT 000000008000002A",
-        "SBEF SYSCALLS 000000000000000C",
+        "SBEF SYSCALLS 000000000000000D",
         "SBEF WAIT WAKES 0000000000000002",
         "SBEF ABI GATE RESTORED",
-        "SBEF FAT32 SCRUBBED 000000000003E000",
+        "SBEF FAT32 SCRUBBED 000000000003F000",
         "SBEF MAP RESTORED AND SCRUBBED"
       ],
       "passed": true
     },
     {
       "case": "msvc-process-page-budget",
-      "sha256": "e3e36eb8e84844a8497c8c17e22125b65a9c38a6e98b059ec5ec17b1511c0356",
+      "sha256": "a9b54e489bf496cb9930a63d0a5934589c9bcd9040624644ca77af62acd30506",
       "receipt": 0,
       "user_pages": 0,
       "syscalls": 0,
       "wait_wakes": 0,
-      "staging_bytes_scrubbed": 253952,
+      "staging_bytes_scrubbed": 258048,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000003D38B",
+        "SBEF FAT32 BYTES 000000000003E688",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER BUDGET",
         "SBEF REJECTED BEFORE USER MAP",
-        "SBEF FAT32 SCRUBBED 000000000003E000",
+        "SBEF FAT32 SCRUBBED 000000000003F000",
         "SBEF MAP RESTORED AND SCRUBBED"
       ],
       "passed": true
@@ -144,7 +144,12 @@
           "QueryPerformanceFrequency": "bmo_query_performance_frequency",
           "IsProcessorFeaturePresent": "bmo_is_processor_feature_present",
           "IsDebuggerPresent": "bmo_is_debugger_present",
-          "GetModuleFileNameW": "bmo_get_module_file_name_w"
+          "GetModuleFileNameW": "bmo_get_module_file_name_w",
+          "GetModuleHandleW": "bmo_get_module_handle_w",
+          "GetModuleHandleExW": "bmo_get_module_handle_ex_w",
+          "GetProcAddress": "bmo_get_proc_address",
+          "LoadLibraryExW": "bmo_load_library_ex_w",
+          "FreeLibrary": "bmo_free_library"
         },
         "Scope": "Single-threaded QEMU startup with UTF-16, UTF-8 ACP, DWORD exit and dynamic TLS/FLS"
       },
@@ -193,6 +198,21 @@
             },
             {
               "Name": "GetModuleFileNameW"
+            },
+            {
+              "Name": "GetModuleHandleW"
+            },
+            {
+              "Name": "GetModuleHandleExW"
+            },
+            {
+              "Name": "GetProcAddress"
+            },
+            {
+              "Name": "LoadLibraryExW"
+            },
+            {
+              "Name": "FreeLibrary"
             },
             {
               "Name": "GetLastError"
@@ -278,14 +298,14 @@
           ]
         }
       ],
-      "pe_bytes": 251904,
-      "pe_sha256": "f160e408cbbe4d1d4caa7c0dd90f9f151b59d5503324b07ba5963f841967c325",
+      "pe_bytes": 257024,
+      "pe_sha256": "f336eab087552a50d137fbd8f85a011eacdfe014b24bd95f17e8c3474765fb99",
       "producer": "msvc",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
       "rejected_import": {
         "Code": "PE-SESSION-IMPORT",
-        "Offset": 344,
+        "Offset": 352,
         "Field": "KERNEL32.dll!OtherFile"
       },
       "argv": [
@@ -298,12 +318,15 @@
       ],
       "command_line": "\"minigzip demo.exe\" -c \"\" \"datos \u00f1\ud83d\ude00.bin\" a\\\"b \"C:\\dir con espacio\\\\\"",
       "image_path": "X:\\BMO-X2\\minigzip demo.exe",
+      "kernel32_path": "X:\\BMO-X2\\System32\\kernel32.dll",
       "ansi_code_page": 65001,
       "exit_code": 0,
-      "command_line_va": 1076074042,
+      "command_line_va": 1076075996,
       "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
-      "command_line_a_va": 1076073968,
+      "command_line_a_va": 1076075923,
       "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
+      "resident_export_count": 47,
+      "resident_exports_sha256": "c83441e85d79cc22868c2963437ba46fe01eaed202b92f68899b9e37a4787318",
       "stdout": "Win64 startup, last error, TLS and SList OK\r\nFLS OK\r\n",
       "stdout_bytes": 53,
       "oversized_exit_rejected": true,
@@ -322,7 +345,9 @@
       "processor_features_verified": true,
       "main_image_path_verified": true,
       "standard_handle_slots_verified": true,
-      "sbef_bytes": 250763,
+      "runtime_module_lookup_verified": true,
+      "dynamic_export_call_verified": true,
+      "sbef_bytes": 255624,
       "sbef_limit_bytes": 262144
     },
     "clang-cl-process-start": {
@@ -371,7 +396,12 @@
           "QueryPerformanceFrequency": "bmo_query_performance_frequency",
           "IsProcessorFeaturePresent": "bmo_is_processor_feature_present",
           "IsDebuggerPresent": "bmo_is_debugger_present",
-          "GetModuleFileNameW": "bmo_get_module_file_name_w"
+          "GetModuleFileNameW": "bmo_get_module_file_name_w",
+          "GetModuleHandleW": "bmo_get_module_handle_w",
+          "GetModuleHandleExW": "bmo_get_module_handle_ex_w",
+          "GetProcAddress": "bmo_get_proc_address",
+          "LoadLibraryExW": "bmo_load_library_ex_w",
+          "FreeLibrary": "bmo_free_library"
         },
         "Scope": "Single-threaded QEMU startup with UTF-16, UTF-8 ACP, DWORD exit and dynamic TLS/FLS"
       },
@@ -476,7 +506,22 @@
               "Name": "QueryPerformanceFrequency"
             },
             {
+              "Name": "GetModuleHandleW"
+            },
+            {
               "Name": "GetModuleFileNameW"
+            },
+            {
+              "Name": "GetProcAddress"
+            },
+            {
+              "Name": "GetModuleHandleExW"
+            },
+            {
+              "Name": "FreeLibrary"
+            },
+            {
+              "Name": "LoadLibraryExW"
             },
             {
               "Name": "GetStdHandle"
@@ -505,14 +550,14 @@
           ]
         }
       ],
-      "pe_bytes": 252416,
-      "pe_sha256": "6edbfff00f5e8dddcf604531e47dd951934d3ebb50390f9f09e99e8ccdc61f8d",
+      "pe_bytes": 257024,
+      "pe_sha256": "d72170c0a1bfc8b10366d17ae200dd3ab3454d594333115778934363e3dde759",
       "producer": "clang-cl",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
       "rejected_import": {
         "Code": "PE-SESSION-IMPORT",
-        "Offset": 344,
+        "Offset": 352,
         "Field": "KERNEL32.dll!OtherFile"
       },
       "argv": [
@@ -525,12 +570,15 @@
       ],
       "command_line": "\"minigzip demo.exe\" -c \"\" \"datos \u00f1\ud83d\ude00.bin\" a\\\"b \"C:\\dir con espacio\\\\\"",
       "image_path": "X:\\BMO-X2\\minigzip demo.exe",
+      "kernel32_path": "X:\\BMO-X2\\System32\\kernel32.dll",
       "ansi_code_page": 65001,
       "exit_code": 3735928559,
-      "command_line_va": 1076074052,
+      "command_line_va": 1076076012,
       "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
-      "command_line_a_va": 1076073978,
+      "command_line_a_va": 1076075939,
       "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
+      "resident_export_count": 47,
+      "resident_exports_sha256": "4368cebde6200952723adc316a8d1df6c1f6117c765259388ca1b69ff0a85821",
       "stdout": "Win64 startup, last error, TLS and SList OK\r\nFLS OK\r\n",
       "stdout_bytes": 53,
       "oversized_exit_rejected": true,
@@ -549,7 +597,9 @@
       "processor_features_verified": true,
       "main_image_path_verified": true,
       "standard_handle_slots_verified": true,
-      "sbef_bytes": 250755,
+      "runtime_module_lookup_verified": true,
+      "dynamic_export_call_verified": true,
+      "sbef_bytes": 255641,
       "sbef_limit_bytes": 262144
     },
     "msvc-process-terminate": {
@@ -598,7 +648,12 @@
           "QueryPerformanceFrequency": "bmo_query_performance_frequency",
           "IsProcessorFeaturePresent": "bmo_is_processor_feature_present",
           "IsDebuggerPresent": "bmo_is_debugger_present",
-          "GetModuleFileNameW": "bmo_get_module_file_name_w"
+          "GetModuleFileNameW": "bmo_get_module_file_name_w",
+          "GetModuleHandleW": "bmo_get_module_handle_w",
+          "GetModuleHandleExW": "bmo_get_module_handle_ex_w",
+          "GetProcAddress": "bmo_get_proc_address",
+          "LoadLibraryExW": "bmo_load_library_ex_w",
+          "FreeLibrary": "bmo_free_library"
         },
         "Scope": "Single-threaded QEMU startup with UTF-16, UTF-8 ACP, DWORD exit and dynamic TLS/FLS"
       },
@@ -647,6 +702,21 @@
             },
             {
               "Name": "GetModuleFileNameW"
+            },
+            {
+              "Name": "GetModuleHandleW"
+            },
+            {
+              "Name": "GetModuleHandleExW"
+            },
+            {
+              "Name": "GetProcAddress"
+            },
+            {
+              "Name": "LoadLibraryExW"
+            },
+            {
+              "Name": "FreeLibrary"
             },
             {
               "Name": "GetLastError"
@@ -732,14 +802,14 @@
           ]
         }
       ],
-      "pe_bytes": 251904,
-      "pe_sha256": "5217cd798924bd31757a56e00e56b76e466ac04a27cc9535cc2946671ecc3e55",
+      "pe_bytes": 257024,
+      "pe_sha256": "440b0fed74637f1aaf0fa1b970c688347a30051fed9f7cd8f24c84bc261d683d",
       "producer": "msvc",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
       "rejected_import": {
         "Code": "PE-SESSION-IMPORT",
-        "Offset": 344,
+        "Offset": 352,
         "Field": "KERNEL32.dll!OtherFile"
       },
       "argv": [
@@ -752,12 +822,15 @@
       ],
       "command_line": "\"minigzip demo.exe\" -c \"\" \"datos \u00f1\ud83d\ude00.bin\" a\\\"b \"C:\\dir con espacio\\\\\"",
       "image_path": "X:\\BMO-X2\\minigzip demo.exe",
+      "kernel32_path": "X:\\BMO-X2\\System32\\kernel32.dll",
       "ansi_code_page": 65001,
       "exit_code": 2147483690,
-      "command_line_va": 1076074042,
+      "command_line_va": 1076075996,
       "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
-      "command_line_a_va": 1076073968,
+      "command_line_a_va": 1076075923,
       "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
+      "resident_export_count": 47,
+      "resident_exports_sha256": "c83441e85d79cc22868c2963437ba46fe01eaed202b92f68899b9e37a4787318",
       "stdout": "Win64 startup, last error, TLS and SList OK\r\n",
       "stdout_bytes": 45,
       "oversized_exit_rejected": true,
@@ -776,7 +849,9 @@
       "processor_features_verified": true,
       "main_image_path_verified": true,
       "standard_handle_slots_verified": true,
-      "sbef_bytes": 250775,
+      "runtime_module_lookup_verified": true,
+      "dynamic_export_call_verified": true,
+      "sbef_bytes": 255636,
       "sbef_limit_bytes": 262144
     }
   },
@@ -797,8 +872,8 @@
       "size_of_image": 241664,
       "guard_flags": 256,
       "imports": {
-        "available_in_fixture": 57,
-        "missing": 23,
+        "available_in_fixture": 62,
+        "missing": 18,
         "ordinal": 0
       },
       "groups": {
@@ -878,15 +953,14 @@
         },
         "Cargador de modulos": {
           "fixture": [
-            "GetModuleFileNameW"
-          ],
-          "pending": [
             "GetModuleHandleW",
             "FreeLibrary",
             "GetProcAddress",
             "LoadLibraryExW",
-            "GetModuleHandleExW"
-          ]
+            "GetModuleHandleExW",
+            "GetModuleFileNameW"
+          ],
+          "pending": []
         },
         "Excepciones y contexto": {
           "fixture": [],
@@ -946,8 +1020,8 @@
       "size_of_image": 258048,
       "guard_flags": 256,
       "imports": {
-        "available_in_fixture": 57,
-        "missing": 23,
+        "available_in_fixture": 62,
+        "missing": 18,
         "ordinal": 0
       },
       "groups": {
@@ -1027,15 +1101,14 @@
         },
         "Cargador de modulos": {
           "fixture": [
-            "GetModuleFileNameW"
-          ],
-          "pending": [
             "FreeLibrary",
+            "GetModuleFileNameW",
             "GetModuleHandleExW",
             "GetModuleHandleW",
             "GetProcAddress",
             "LoadLibraryExW"
-          ]
+          ],
+          "pending": []
         },
         "Excepciones y contexto": {
           "fixture": [],

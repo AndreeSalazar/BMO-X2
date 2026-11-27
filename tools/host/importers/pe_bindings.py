@@ -110,6 +110,11 @@ WIN64_PROCESS_PROFILE = {
         'IsProcessorFeaturePresent': 'bmo_is_processor_feature_present',
         'IsDebuggerPresent': 'bmo_is_debugger_present',
         'GetModuleFileNameW': 'bmo_get_module_file_name_w',
+        'GetModuleHandleW': 'bmo_get_module_handle_w',
+        'GetModuleHandleExW': 'bmo_get_module_handle_ex_w',
+        'GetProcAddress': 'bmo_get_proc_address',
+        'LoadLibraryExW': 'bmo_load_library_ex_w',
+        'FreeLibrary': 'bmo_free_library',
     },
     'Scope': 'Single-threaded QEMU startup with UTF-16, UTF-8 ACP, DWORD exit and dynamic TLS/FLS',
 }

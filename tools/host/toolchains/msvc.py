@@ -17,6 +17,7 @@ from ..importers.pe_bindings import (
     SESSION_EXPORTS, WIN64_CONSOLE_PROFILE, WIN64_FILE_PROFILE, WIN64_HEAP_PROFILE,
     WIN64_PROCESS_PROFILE, WIN64_SCRATCH_FILE_PROFILE,
 )
+from ..importers.pe_imports import inventory_imports
 from ..sbef.format import LEGACY_FORMAT_VERSION, inspect, load_plan
 
 
@@ -91,6 +92,7 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
     env = None
     argv_data = None
     command_strings = {}
+    module_exports = {}
     if package_file:
         seed = 19 if use_clang else 7
         contents = bytes((29 * index + seed) & 255 for index in range(1027))
@@ -132,17 +134,20 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
             env[f'BMO_WIN64_CMDLINE{suffix}'] = str(command_path.resolve())
             command_strings[f'BMO_WIN64_COMMAND_LINE{suffix}'] = (command_bytes, 1 if suffix else 2)
         image_path = r'X:\BMO-X2\minigzip demo.exe'
-        image_path_file = out / 'image-path-utf-16-le.bin'
-        image_path_file.write_bytes((image_path + '\0').encode('utf-16-le'))
-        env['BMO_WIN64_IMAGE_PATH'] = str(image_path_file.resolve())
+        kernel32_path = r'X:\BMO-X2\System32\kernel32.dll'
+        for key, path in (('IMAGE_PATH', image_path), ('KERNEL32_PATH', kernel32_path)):
+            path_file = out / f'{key.lower()}-utf-16-le.bin'
+            path_file.write_bytes((path + '\0').encode('utf-16-le'))
+            env[f'BMO_WIN64_{key}'] = str(path_file.resolve())
         units.extend(('process_start', 'last_error', 'thread_slots', 'fiber_slots', 'critical_section',
-                      'environment', 'text_encoding', 'platform', 'process_handles'))
+                      'environment', 'text_encoding', 'platform', 'process_handles', 'module_registry'))
         profile = WIN64_PROCESS_PROFILE
+        module_exports = {**profile['Imports'], 'GetTickCount64': SESSION_EXPORTS['GetTickCount64']}
         compile_flags = ['/O1', f'/DBMO_WIN64_EXIT_CODE=0x{process_exit:08x}UL']
         if terminate_process:
             compile_flags.append('/DBMO_WIN64_TERMINATE')
         client_source = root / 'tools/tests/msvc_process_start.cpp'
-        file_report.update(argv=argv, command_line=command, image_path=image_path,
+        file_report.update(argv=argv, command_line=command, image_path=image_path, kernel32_path=kernel32_path,
                            ansi_code_page=65001, exit_code=process_exit)
     if gzip_source is not None:
         gzip_source = gzip_source.resolve(strict=True)
@@ -167,6 +172,17 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
                     *compile_flags, f'/Fo{client}', client_source],
                    cwd=out, check=True)
     subprocess.run([assembler, '--target=x86_64-pc-windows-msvc', '-c', abi / 'entry.S', '-o', entry], check=True)
+    if module_exports:
+        table = out / 'module-exports.S'
+        records = ['.section .rdata,"dr"', '.p2align 3', '.globl bmo_win64_exports',
+                   '.globl bmo_win64_exports_end', 'bmo_win64_exports:']
+        records.extend(f'.quad .Lexport_{index}, {target}' for index, target in enumerate(module_exports.values()))
+        records.append('bmo_win64_exports_end:')
+        records.extend(f'.Lexport_{index}: .asciz "{name}"' for index, name in enumerate(module_exports))
+        table.write_text('\n'.join(records) + '\n', encoding='ascii')
+        table_object = out / 'module-exports.obj'
+        subprocess.run([assembler, '--target=x86_64-pc-windows-msvc', '-c', table, '-o', table_object], check=True)
+        objects.append(table_object)
     for unit in units:
         obj = out / f'console-{unit}.obj'
         scratch = gzip_source is not None and unit == 'package_file'
@@ -176,7 +192,7 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
         subprocess.run(['rustc', '--edition=2024', '--target=x86_64-pc-windows-msvc', '--crate-type=lib',
                         '--emit=obj', '-Cpanic=abort', '-Copt-level=s' if scratch else '-Copt-level=2',
                         *rust_flags, abi / f'{unit}.rs', '-o', obj],
-                       check=True, env=env if unit in ('package_file', 'process_start') else None)
+                       check=True, env=env if unit in ('package_file', 'process_start', 'module_registry') else None)
         objects.append(obj)
     link_map = out / 'console.map'
     exports = profile['Imports']
@@ -191,6 +207,9 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
                     '/incremental:no', '/merge:.pdata=.rdata', *('/include:' + name for name in exports.values()),
                     f'/map:{link_map}', f'/out:{pe}', *objects, libraries[-1]], cwd=out, check=True)
     names = set(exports.values()) | command_strings.keys()
+    if module_exports:
+        names.update(module_exports.values())
+        names.update(('bmo_win64_exports', 'bmo_win64_exports_end'))
     pattern = r'^\s+[0-9A-Fa-f]+:[0-9A-Fa-f]+\s+(' + '|'.join(sorted(names)) + r')\s+([0-9A-Fa-f]+)\b'
     symbols = {name: int(address, 16) for name, address in re.findall(pattern, link_map.read_text(), re.M)}
     if symbols.keys() != names:
@@ -217,10 +236,35 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
             key = 'command_line_a' if symbol.endswith('_A') else 'command_line'
             file_report[f'{key}_va'] = address
             file_report[f'{key}_sha256'] = hashlib.sha256(command_bytes).hexdigest()
+        if module_exports:
+            begin = readonly['VirtualStart']
+            first = symbols['bmo_win64_exports'] - begin
+            end = symbols['bmo_win64_exports_end'] - begin
+            if first < 0 or first % 8 or end > len(readonly_bytes) or end - first != 16 * len(module_exports):
+                raise ValueError('El registro de exportaciones debe quedar alineado en solo lectura')
+            code = next(region for region in load_plan(payload)['Regions'] if region['Permissions'] == 'RX')
+            for index, (name, symbol) in enumerate(module_exports.items()):
+                name_address, target = struct.unpack_from('<QQ', readonly_bytes, first + 16 * index)
+                name_offset = name_address - begin
+                expected = name.encode('ascii') + b'\0'
+                if (name_offset < end or readonly_bytes[name_offset:name_offset + len(expected)] != expected
+                        or target != symbols[symbol]
+                        or not code['VirtualStart'] <= target < code['VirtualStart'] + code['FileBytes']):
+                    raise ValueError(f'Exportacion Win64 fuera de su region validada: {name}')
+            file_report.update(resident_export_count=len(module_exports),
+                               resident_exports_sha256=hashlib.sha256(readonly_bytes[first:end]).hexdigest())
     (out / 'console.sbef').write_bytes(payload)
 
     # Change only the imported name and exercise the same binder before QEMU.
-    unknown = source.replace(b'WriteFile\x00', b'OtherFile\x00', 1)
+    inventory = probe_pe(source)
+    directory = inventory['Directories']['imports']
+    optional_header = struct.unpack_from('<I', source, 60)[0] + 24
+    imported = inventory_imports(source, inventory['Sections'], directory, optional_header + 120, include_slots=True)
+    name_rva = next(item['LookupValue'] + 2 for item in imported[0]['Symbols'] if item.get('Name') == 'WriteFile')
+    section = next(item for item in inventory['Sections']
+                   if item['RVA'] <= name_rva < item['RVA'] + item['FileBytes'])
+    offset = section['FileOffset'] + name_rva - section['RVA']
+    unknown = source[:offset] + b'OtherFile' + source[offset + len('OtherFile'):]
     try:
         pack_pe(unknown, abi=profile['AbiVersion'], bindings=bindings)
     except Rejection as error:
@@ -229,7 +273,7 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
             raise
     else:
         raise ValueError('HOST admitio una importacion fuera del catalogo')
-    return payload, dict(profile={**profile, 'Imports': exports}, imports=probe_pe(source)['Imports'],
+    return payload, dict(profile={**profile, 'Imports': exports}, imports=inventory['Imports'],
                          pe_bytes=len(source), pe_sha256=hashlib.sha256(source).hexdigest(),
                          producer='clang-cl' if use_clang else 'msvc',
                          msvc_toolset=cc.parents[3].name, sdk=libraries[-1].parents[2].name,

@@ -9,9 +9,7 @@ const STARTUP_INFO_BYTES: usize = 104;
 const SESSION_PROCESS_ID: u32 = 4;
 const CURRENT_PROCESS: usize = usize::MAX;
 const ERROR_INVALID_HANDLE: u32 = 6;
-const IMAGE_PATH: &[u8] = include_bytes!(env!("BMO_WIN64_IMAGE_PATH"));
 const _: () = assert!(COMMAND_BYTES >= 2 && COMMAND_BYTES % 2 == 0);
-const _: () = assert!(IMAGE_PATH.len() >= 2 && IMAGE_PATH.len() % 2 == 0);
 
 #[repr(align(2))]
 pub struct CommandLine([u8; COMMAND_BYTES]);
@@ -42,41 +40,6 @@ pub extern "win64" fn bmo_get_command_line_w() -> *const u16 {
 #[unsafe(no_mangle)]
 pub extern "win64" fn bmo_get_command_line_a() -> *const u8 {
     BMO_WIN64_COMMAND_LINE_A.as_ptr()
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "win64" fn bmo_get_module_file_name_w(
-    module: usize, filename: *mut u16, capacity: u32,
-) -> u32 {
-    // The process fixture exposes its main image, selected by a null module handle.
-    if module != 0 {
-        unsafe { bmo_set_last_error(126) };
-        return 0;
-    }
-    if capacity == 0 {
-        unsafe { bmo_set_last_error(122) };
-        return 0;
-    }
-    if filename.is_null() {
-        unsafe { bmo_set_last_error(87) };
-        return 0;
-    }
-    let units = (IMAGE_PATH.len() / 2 - 1) as u32;
-    let copied = units.min(capacity - 1);
-    for index in 0..copied as usize {
-        unsafe {
-            // Keep this copy independent of the CRT that calls it during startup.
-            let bytes = IMAGE_PATH.as_ptr().add(index * 2);
-            let unit = u16::from_le_bytes([bytes.read_volatile(), bytes.add(1).read_volatile()]);
-            filename.add(index).write_unaligned(unit);
-        }
-    }
-    unsafe { filename.add(copied as usize).write_unaligned(0) };
-    if copied != units {
-        unsafe { bmo_set_last_error(122) };
-        return capacity;
-    }
-    copied
 }
 
 #[unsafe(no_mangle)]

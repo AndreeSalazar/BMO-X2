@@ -380,7 +380,7 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
         cases, cli = (minigzip_file_case(args, run, llvm) if args.input_file
                       else minigzip_cases(run, llvm, args.msvc_minigzip))
     elif args.msvc_process:
-        base_calls = 6 + (len(PROCESS_OUTPUT) + 7) // 8
+        base_calls = 7 + (len(PROCESS_OUTPUT) + 7) // 8
         cases = []
         console = {}
         for producer, code, terminate in (('msvc', 0, False), ('clang-cl', 0xdeadbeef, False),
@@ -810,6 +810,7 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                                          utf8_utf16_conversion_verified=True,
                                          performance_counter_verified=True, processor_features_verified=True,
                                          main_image_path_verified=True, standard_handle_slots_verified=True,
+                                         runtime_module_lookup_verified=True, dynamic_export_call_verified=True,
                                          sbef_bytes=len(image), sbef_limit_bytes=QEMU_SBEF_LIMIT)
             elif cli is not None:
                 scenario.update(stdout_bytes=len(stdout), stdout_sha256=hashlib.sha256(stdout).hexdigest())
