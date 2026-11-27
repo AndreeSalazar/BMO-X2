@@ -10,6 +10,7 @@ class Rejection(ValueError):
         self.region = region
         self.actual = actual
         self.limit = limit
+        self.admission = None
 
     def report(self):
         result = dict(Code=self.code, Offset=self.offset, Field=self.field)

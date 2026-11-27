@@ -13,10 +13,35 @@ from host.diagnostics import Rejection
 from host.importers.pe import DIRECTORIES, pack_pe, probe_pe
 from host.importers.pe_load_config import inventory_load_config
 from host.importers.pe_unwind import inventory_unwind
+from host.pe_admission import explain_pe
 from host.toolchains.windows_catalog import import_coverage
 
 
 class Sbef(unittest.TestCase):
+    def test_pe_admission_explains_scoped_imports_iat_and_security(self):
+        inventory = dict(
+            CanPack=False,
+            Blockers=[dict(Code=code, Offset=16, Field=field) for code, field in (
+                ('PE-IMPORTS', 'imports'), ('PE-LOAD-CONFIG', 'load_config'), ('PE-IAT', 'iat'))],
+            Imports=[
+                dict(DLL='kernel32.DLL', Symbols=[dict(Name='GetCommandLineW'), dict(Name='ExitProcess'),
+                                                  dict(Name='HeapSize'), dict(Ordinal=8)]),
+                dict(DLL='example.dll', Symbols=[dict(Name='GetCommandLineW')]),
+            ],
+            Directories=dict(iat=dict(RVA=4096, Bytes=48)),
+            LoadConfigInventory=dict(SecurityCookieVA=4096, GuardFlags=0x100, GuardCFDispatchFunctionPointerVA=4104),
+        )
+        report = explain_pe(inventory)
+        self.assertEqual(report['Status'], 'blocked')
+        self.assertEqual(report['Imports']['Counts'], dict(available_in_fixture=2, missing=2, ordinal=1))
+        process = next(group for group in report['Imports']['Groups'] if group['Name'] == 'Arranque y entorno')
+        self.assertEqual(process['Imports'][0]['Fixtures'], [
+            dict(Profile='win64-process-start-v1', Target='bmo_get_command_line_w')
+        ])
+        self.assertIn('cookie de seguridad', report['Blockers'][1]['Required'])
+        self.assertIn('CFG', report['Blockers'][1]['Required'])
+        self.assertEqual(report['Blockers'][2]['Observed'], dict(RVA=4096, Bytes=48))
+
     def test_load_config_inventory_respects_structure_size_and_cookie_permissions(self):
         data = bytearray(160)
         base = 0x140000000
@@ -328,6 +353,14 @@ class Sbef(unittest.TestCase):
             result = subprocess.run([*base, 'pack', str(source), str(output)], capture_output=True)
             self.assertEqual(result.returncode, 1)
             self.assertEqual(json.loads(result.stderr), expected)
+            explained = subprocess.run([*base, 'pack', str(source), str(output), '--explain'], capture_output=True)
+            self.assertEqual(explained.returncode, 1)
+            details = json.loads(explained.stderr)
+            self.assertEqual(details.pop('Admission'), inventory['Admission'])
+            self.assertEqual(details, expected)
+            markdown = subprocess.check_output([*base, 'probe', str(source), '--format', 'markdown'], text=True)
+            self.assertIn('KERNEL32.dll!Sleep', markdown)
+            self.assertIn('Ordinal pendiente', markdown)
             self.assertFalse(output.exists())
             struct.pack_into('<Q', image, 0x240, 0x1200)
             rejected = probe_pe(image)
@@ -337,6 +370,8 @@ class Sbef(unittest.TestCase):
             source.write_bytes(image)
             rejected_cli = json.loads(subprocess.check_output([*base, 'probe', str(source)]))
             self.assertNotIn('ImportCoverage', rejected_cli)
+            self.assertEqual(rejected_cli['Admission']['Imports']['Status'], 'invalid')
+            self.assertEqual(rejected_cli['Admission']['Imports']['Error']['Code'], 'PE-IMPORT-RVA')
 
     def test_fixed_pe_keeps_exact_payload_and_rejects_invalid_layout(self):
         image = bytearray(0x400)

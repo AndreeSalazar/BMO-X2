@@ -9,6 +9,7 @@ import tempfile
 from .diagnostics import Rejection
 from .importers.elf import MAX_ELF, pack_elf
 from .importers.pe import pack_pe, pack_pe_tls, pack_pe_with_dll, probe_pe
+from .pe_admission import explain_pe, markdown_admission
 from .profiles import PRODUCER_PROFILES, profile_report
 from .toolchains.msvc_catalog import CATALOG as MSVC_CATALOG
 from .toolchains.windows_catalog import LEVELS as WINDOWS_LEVELS, import_coverage
@@ -56,6 +57,7 @@ def main():
     pack.add_argument('--max-file-bytes', type=positive_bytes)
     pack.add_argument('--max-mapped-bytes', type=positive_bytes)
     pack.add_argument('--size-report', action='store_true', help='Show file and memory costs by region')
+    pack.add_argument('--explain', action='store_true', help='Explain default PE admission on rejection')
     dll_profiles = pack.add_mutually_exclusive_group()
     dll_profiles.add_argument('--with-dll', type=Path, help='Bind one fixed Win64 DLL to a PE32+ console image')
     dll_profiles.add_argument('--with-dll-lifecycle', type=Path, help='Bind a fixed Win64 DLL including its entry export')
@@ -69,6 +71,7 @@ def main():
     compare.add_argument('candidate', type=Path)
     probe = commands.add_parser('probe')
     probe.add_argument('input', type=Path)
+    probe.add_argument('--format', choices=('json', 'markdown'), default='json')
     probe.add_argument('--isa-profile', choices=[profile['Name'] for profile in PROFILES],
                        default='x86-64-v1')
     probe.add_argument('--format-version', type=int,
@@ -82,11 +85,17 @@ def main():
     try:
         result = run(args)
     except Rejection as error:
+        admission = error.admission
         if args.json_errors:
-            print(json.dumps(error.report()), file=sys.stderr)
+            report = error.report()
+            if admission is not None:
+                report['Admission'] = admission
+            print(json.dumps(report), file=sys.stderr)
         else:
             detail = f' ({error.actual} > {error.limit} bytes)' if error.limit is not None else ''
             print(f'RED [{error.code}] {error.field} at 0x{error.offset:X}{detail}', file=sys.stderr)
+            if admission is not None:
+                print(markdown_admission(admission), file=sys.stderr)
         return 1
     except OSError as error:
         if args.json_errors:
@@ -96,6 +105,8 @@ def main():
         return 1
     if args.action == 'profiles' and args.format == 'markdown':
         print(markdown_catalog(result))
+    elif args.action == 'probe' and args.format == 'markdown' and 'Admission' in result:
+        print(markdown_admission(result['Admission']))
     else:
         print(json.dumps(result, indent=2))
     return 0
@@ -225,13 +236,26 @@ def run(args):
             result = probe_pe(data)
             if 'ImportInventoryError' not in result:
                 result['ImportCoverage'] = import_coverage(result.get('Imports', []))
+            result['Admission'] = explain_pe(result)
             result.update(declared)
             result['RequestedIsaProfile'] = args.isa_profile
             result['RequestedSBEFFormatVersion'] = args.format_version
             result['ProbeNote'] = 'PE probe inventories the source only; pack emits and validates the declared SBEF profile.'
             return result
-        image = pack_pe(data, abi=args.abi, isa_profile=args.isa_profile,
-                        format_version=args.format_version)
+        try:
+            image = pack_pe(data, abi=args.abi, isa_profile=args.isa_profile,
+                            format_version=args.format_version)
+        except Rejection as error:
+            if getattr(args, 'explain', False):
+                try:
+                    inventory = probe_pe(data)
+                except Rejection:
+                    inventory = dict(CanPack=False, Blockers=[error.report()])
+                if not any(blocker['Code'] == error.code for blocker in inventory['Blockers']):
+                    inventory['Blockers'].append(error.report())
+                    inventory['CanPack'] = False
+                error.admission = explain_pe(inventory)
+            raise
     else:
         image = pack_elf(data, abi=getattr(args, 'abi', 0), isa_profile=args.isa_profile,
                          format_version=args.format_version)

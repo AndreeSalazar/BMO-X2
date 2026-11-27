@@ -194,6 +194,20 @@ API sets, los imports diferidos y la carga dinamica quedan pendientes.
 de consola del fixture `win64-console-v1`. El resultado de admision del
 perfil base se lee en `CanPack` y `Blockers`.
 
+`Admission` explica los bloqueos y sus requisitos, muestra los datos
+observados en IAT y `load_config` y agrupa los simbolos pendientes por
+servicio. Tambien identifica los destinos que ya existen en perfiles de
+prueba acotados. Una coincidencia de nombre en un banco aporta evidencia
+para ese perfil. El PE examinado sigue necesitando su propio enlace.
+
+```powershell
+python -B tools/sbef.py probe app.exe --producer msvc --format markdown
+python -B tools/sbef.py --json-errors pack app.exe app.sbef --abi 1 --producer msvc --explain
+```
+
+El segundo comando adjunta `Admission` al rechazo del empaquetador PE
+base y conserva su codigo, desplazamiento y salida de error.
+
 ### Banco de aplicaciones Windows x64
 
 `tools/tests/windows_apps.py` ejecuta binarios locales en Windows y comprueba

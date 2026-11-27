@@ -64,9 +64,13 @@ WIN64_PROCESS_PROFILE = {
     'Scope': 'External QEMU startup fixture with a packaged UTF-16 command line and DWORD exit',
 }
 
+WIN64_SESSION_PROFILES = (
+    WIN64_CONSOLE_PROFILE, WIN64_HEAP_PROFILE, WIN64_FILE_PROFILE,
+    WIN64_SCRATCH_FILE_PROFILE, WIN64_PROCESS_PROFILE,
+)
 
 def bind_session_imports(data, image, opt, segments, bindings):
-    allowed = WIN64_FILE_PROFILE['Imports'].keys() | WIN64_PROCESS_PROFILE['Imports'].keys()
+    allowed = {symbol for profile in WIN64_SESSION_PROFILES for symbol in profile['Imports']}
     if not bindings.keys() <= allowed:
         unknown = min(bindings.keys() - allowed)
         raise Rejection('PE-SESSION-TARGET', opt + 16, f'KERNEL32.dll!{unknown}')
