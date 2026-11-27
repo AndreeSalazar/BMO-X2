@@ -11,7 +11,7 @@ from tempfile import TemporaryDirectory
 
 TARGET = 'vulkan1.3'
 MAX_BYTES = 16 * 1024
-STAGES = {'vertex': 'Vertex', 'fragment': 'Fragment'}
+STAGES = {'vertex': 'Vertex', 'fragment': 'Fragment', 'textured-fragment': 'Fragment'}
 OPERATIONS = frozenset("""
     OpAccessChain OpCapability OpCompositeConstruct OpCompositeExtract
     OpConstant OpConstantComposite OpDecorate OpDot OpEntryPoint OpExecutionMode
@@ -21,7 +21,8 @@ OPERATIONS = frozenset("""
     OpTypeInt OpTypePointer OpTypeStruct OpTypeVector OpTypeVoid OpVariable
     OpVectorShuffle OpVectorTimesScalar
 """.split())
-INSTRUCTION = re.compile(r'^\s*(?:%\d+\s*=\s*)?(Op\w+)\b(.*)$')
+TEXTURE_OPERATIONS = {'OpTypeImage', 'OpTypeSampledImage', 'OpImageSampleImplicitLod'}
+INSTRUCTION = re.compile(r'^\s*(?:(%\d+)\s*=\s*)?(Op\w+)\b(.*)$')
 
 
 def run_tool(sdk, name, *arguments):
@@ -38,10 +39,14 @@ def validate(sdk, module, stage):
     assembly = run_tool(sdk, 'spirv-dis', '--no-color', '--raw-id', module)
     instructions = [match.groups() for line in assembly.splitlines()
                     if (match := INSTRUCTION.match(line))]
+    textured = stage == 'textured-fragment'
+    allowed = OPERATIONS | TEXTURE_OPERATIONS if textured else OPERATIONS
     entries = []
-    for op, raw in instructions:
+    bindings = []
+    samplers = []
+    for result, op, raw in instructions:
         operands = raw.split()
-        if op not in OPERATIONS:
+        if op not in allowed:
             raise ValueError(f'VERRANO-OP: {op}')
         if op == 'OpCapability' and operands != ['Shader']:
             raise ValueError(f'VERRANO-CAPABILITY: {raw.strip()}')
@@ -51,12 +56,31 @@ def validate(sdk, module, stage):
             raise ValueError(f'VERRANO-EXT-SET: {raw.strip()}')
         if op == 'OpExtInst' and operands[2] not in {'Sin', 'Cos', 'Normalize', 'Cross'}:
             raise ValueError(f'VERRANO-EXT-OP: {operands[2]}')
-        if op == 'OpVariable' and operands[1] not in {'Input', 'Output', 'Function', 'PushConstant'}:
-            raise ValueError(f'VERRANO-STORAGE: {operands[1]}')
+        if op == 'OpVariable':
+            storage = operands[1]
+            if textured and storage == 'UniformConstant':
+                samplers.append(result)
+            elif storage not in {'Input', 'Output', 'Function', 'PushConstant'}:
+                raise ValueError(f'VERRANO-STORAGE: {storage}')
+        if op == 'OpDecorate' and operands[1] in {'Binding', 'DescriptorSet'}:
+            bindings.append(tuple(operands))
+        if op == 'OpTypeImage' and operands[1:] != ['2D', '0', '0', '0', '1', 'Unknown']:
+            raise ValueError('VERRANO-TEXTURE: expected a sampled 2D image')
+        if op == 'OpImageSampleImplicitLod' and len(operands) != 3:
+            raise ValueError('VERRANO-TEXTURE: optional sample operands are outside this profile')
         if op == 'OpEntryPoint':
             entries.append((operands[0], operands[2]))
     if entries != [(STAGES[stage], '"main"')]:
         raise ValueError(f'VERRANO-ENTRY: expected one {stage} entry named main')
+    if textured:
+        if len(samplers) != 1 or set(bindings) != {
+            (samplers[0], 'Binding', '0'), (samplers[0], 'DescriptorSet', '0'),
+        }:
+            raise ValueError('VERRANO-TEXTURE: expected exactly set 0 binding 0')
+        if sum(op == 'OpImageSampleImplicitLod' for _, op, _ in instructions) != 1:
+            raise ValueError('VERRANO-TEXTURE: expected exactly one sample')
+    elif bindings:
+        raise ValueError('VERRANO-TEXTURE: this stage accepts no descriptor bindings')
 
 
 def prepare(sdk, source, stage, output):
@@ -76,7 +100,7 @@ def prepare(sdk, source, stage, output):
         validate(sdk, prepared, stage)
         contents = prepared.read_bytes()
         prepared.replace(output)
-    return dict(profile='verrano-triangle-v1', stage=stage,
+    return dict(profile='verrano-texture-v1' if stage == 'textured-fragment' else 'verrano-triangle-v1', stage=stage,
                 input_bytes=len(original), output_bytes=len(contents),
                 sha256=hashlib.sha256(contents).hexdigest())
 

@@ -11,6 +11,10 @@ from PIL import Image, ImageChops
 
 WIDTH, HEIGHT = 480, 360
 FRAME_COUNT = 48
+TILES = (
+    {(255, 74, 55), (68, 223, 127), (37, 110, 255), (237, 212, 64)},
+    {(169, 67, 244), (33, 202, 219), (250, 143, 51), (241, 234, 247)},
+)
 
 
 def compare_cpu_frame_zero(raw):
@@ -56,17 +60,19 @@ def compare_cpu_frame_zero(raw):
                 python_raster_ms=round(cpu_ms, 3))
 
 
-def export(directory):
+def export(directory, *, textured=False):
     frames = []
     hashes = []
     areas = []
+    paired_mask = b''
+    tile_counts = [set(), set()]
     for index in range(FRAME_COUNT):
         raw = (directory/'frames'/f'{index:02d}.rgba').read_bytes()
         if len(raw) != WIDTH*HEIGHT*4:
             raise ValueError(f'Frame {index}: incorrect RGBA8 length')
         if raw[:4] != bytes((8, 9, 18, 255)) or set(raw[3::4]) != {255}:
             raise ValueError(f'Frame {index}: incorrect clear color or alpha')
-        if index == 0:
+        if index == 0 and not textured:
             cpu_reference = compare_cpu_frame_zero(raw)
         hashes.append(hashlib.sha256(raw).hexdigest())
         frame = Image.frombytes('RGBA', (WIDTH, HEIGHT), raw).convert('RGB')
@@ -74,10 +80,23 @@ def export(directory):
         changed_rgb = ImageChops.difference(frame, clear).split()
         changed = ImageChops.lighter(ImageChops.lighter(*changed_rgb[:2]), changed_rgb[2])
         areas.append(WIDTH*HEIGHT-changed.histogram()[0])
+        if textured:
+            slot = index % 2
+            colors = frame.getcolors(5)
+            seen = {color for _, color in colors} - {(8, 9, 18)} if colors else set()
+            if not seen or not seen <= TILES[slot]:
+                raise ValueError(f'Frame {index}: colors outside selected texture {slot}')
+            tile_counts[slot].update(seen)
+            mask = changed.point([0] + [255] * 255).tobytes()
+            if slot and mask != paired_mask:
+                raise ValueError(f'Frame {index}: swapping a texture changed geometry')
+            paired_mask = mask
         frames.append(frame)
 
     if len(set(hashes)) != FRAME_COUNT or min(areas) <= 0 or max(areas) < 2*min(areas):
         raise ValueError('Expected a rotating triangle with changing projected area')
+    if textured and tuple(tile_counts) != TILES:
+        raise ValueError('Expected to observe all texels from both textures')
     png = directory/'triangulo-rtx3060.png'
     gif = directory/'triangulo-rtx3060.gif'
     frames[0].save(png)
@@ -86,19 +105,26 @@ def export(directory):
         if preview.n_frames != FRAME_COUNT:
             raise ValueError('Incorrect GIF frame count')
 
-    return {
+    report = {
         'width': WIDTH,
         'height': HEIGHT,
         'unique_rgba8_frames': len(set(hashes)),
         'colored_pixels_per_frame': {'min': min(areas), 'max': max(areas)},
-        'cpu_reference_frame_zero': cpu_reference,
         'rgba8_sequence_sha256': hashlib.sha256(''.join(hashes).encode('ascii')).hexdigest(),
         'gif_sha256': hashlib.sha256(gif.read_bytes()).hexdigest(),
         'png_sha256': hashlib.sha256(png.read_bytes()).hexdigest(),
     }
+    if textured:
+        report['texture_switches'] = dict(matched_geometry_pairs=FRAME_COUNT // 2,
+                                          observed_texels_per_slot=list(map(len, tile_counts)))
+    else:
+        report['cpu_reference_frame_zero'] = cpu_reference
+    return report
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('directory', type=Path)
-    print(json.dumps(export(parser.parse_args().directory), indent=2))
+    parser.add_argument('--textured', action='store_true')
+    args = parser.parse_args()
+    print(json.dumps(export(args.directory, textured=args.textured), indent=2))

@@ -47,6 +47,25 @@ backend de prueba. Queda conectar el verificador a la tabla real del
 servicio y a un backend nativo, incluida la recuperacion del dispositivo.
 [Prueba del triangulo y comparacion CPU/GPU](../../../Reports/verrano-triangle-host.json).
 
+### BSF estatico y cuadros dinamicos
+
+El banco `run.ps1 -Textured` usa el lector y escritor `BSF1` del
+BMO-X original. `-BmoRoot` indica ese arbol. Por defecto usa el
+directorio hermano `BMO`. El adaptador conserva los dos shaders SPIR-V
+validados, comprueba los hashes del contenedor y coteja los archivos
+recuperados con la salida de HOST. El perfil fija un sampler 2D en
+set 0, binding 0. La tabla de interfaces de BSF1 describe buffers.
+El contrato de textura se comprueba en el SPIR-V y en el perfil Vulkan.
+
+Vulkan crea la tuberia una vez y carga dos texturas de 2 por 2 en
+memoria local del dispositivo en un envio inicial. El comando de cada
+cuadro se arma con el angulo y un descriptor ya preparado. La RTX
+muestrea la textura y dibuja. La CPU lee el cuadro en este banco para
+comprobar el resultado despues. El BSF probado lleva SPIR-V portable.
+El controlador Vulkan genera el codigo de la GPU al crear la tuberia.
+Queda integrar este recorrido con el servicio VERRANO de BMO-X2.
+[Evidencia del BSF y las texturas](../../../Reports/verrano-texture-bsf-host.json).
+
 La estructura .ujh, la apariencia .ujc y el comportamiento .uj son
 entradas diferentes. Cambiar el tema no debe introducir politica de
 ventanas en el parser de estilos ni logica CSS dentro de Ring 0.

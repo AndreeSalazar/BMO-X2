@@ -1,0 +1,32 @@
+{
+  "date": "2026-11-27",
+  "environment": "Windows HOST, GeForce RTX 3060, NVIDIA 610.74, Vulkan SDK 1.4.350.0",
+  "run": "tools/host/gpu/NVIDIA/triangle/run.ps1 -Textured",
+  "bsf": {
+    "format": "BSF1",
+    "bmo_revision": "6076bdefefc67877419ca53633c6e40cb45fc92d",
+    "bytes": 3416,
+    "sha256": "063dc4c6167d22e8779d6230b018d4eef2b53c0e139adc5a2f7ebde57621c49e",
+    "modules": ["vs", "ps"],
+    "portable_spirv_modules": 2,
+    "native_targets": 0,
+    "verification": "Hashes del lector original y cotejo SHA-256 de cada modulo con el SPIR-V validado por HOST.",
+    "corruption_test": "Un bit del sombreador de fragmento alterado produjo SpirvHash en 272, sin extraer archivos.",
+    "binding_rejection_test": "Un shader valido en Vulkan con binding 1 se rechazo antes de producir un SPIR-V preparado."
+  },
+  "run_gpu": {
+    "viewport": [480, 360],
+    "pipelines": 1,
+    "textures": 2,
+    "texture_size": [2, 2],
+    "texture_upload_commands": 1,
+    "uploaded_texture_bytes": 32,
+    "texture_bind_commands": 48,
+    "unique_frames": 48,
+    "matching_geometry_pairs": 24,
+    "observed_texels_by_slot": [4, 4],
+    "rgba8_sequence_sha256": "a729249995f43d87883a110468dc03bd55a132765149c4ef54555003e781faab",
+    "mean_submit_wait_readback_write_ms": 5.164
+  },
+  "limits": "Vulkan fuera de pantalla. El GPU ejecuta los shaders compilados por el driver de Windows. Integracion con VERRANO nativo y medicion de presentacion en BMO-X2 pendientes."
+}

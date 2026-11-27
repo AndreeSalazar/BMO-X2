@@ -1891,6 +1891,20 @@
       "falta": "Integrar la tabla de recursos y el backend nativo. Verificar en QEMU y en metal."
     },
     {
+      "id": "verrano-bsf-host",
+      "titulo": "VERRANO / BSF y texturas en HOST",
+      "ruta": "tools/host/gpu/bsf_bridge.rs",
+      "estado": "host",
+      "anillo": "HOST",
+      "lenguaje": "Rust",
+      "posicion": [1640, 2340],
+      "que": "Usa el contenedor BSF1 de BMO-X para dos shaders SPIR-V del banco RTX.",
+      "entrada": "Lector y escritor de BMO-X y sombreadores de vertice y fragmento validados por HOST.",
+      "salida": "Contenedor BSF y dos modulos recuperados con su integridad comprobada.",
+      "aceptacion": "RTX 3060 dibuja 24 pares con igual geometria y texturas distintas; el lector rechaza un bit alterado.",
+      "falta": "Integrar el lector, los recursos y el backend nativo de Ring 3."
+    },
+    {
       "id": "desktop-keyboard",
       "titulo": "Teclado y atajos del escritorio",
       "ruta": "userspace/services/desktop/src/keyboard.rs",
