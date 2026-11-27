@@ -13,7 +13,7 @@ from .catalog_archives import MAX_EXPANDED_BYTES, MAX_MEMBERS, inspect_zip
 from .diagnostics import Rejection
 from .importers.elf import MAX_ELF, pack_elf
 from .importers.pe import probe_pe
-from .pe_admission import import_requirements
+from .pe_admission import import_requirements, pe_execution_plan
 from .sbef.format import inspect
 from .toolchains.windows_catalog import dependency_family
 
@@ -87,6 +87,7 @@ def classify(data, suffix, record):
             record.update(Category='BIBLIOTECA' if kind == 'DLL' else 'EJECUTABLE',
                           Format=f"{pe['SourceFormat']} {pe['Architecture']}",
                           ImageKind=kind, Architecture=pe['Architecture'],
+                          ExecutionPlan=pe_execution_plan(pe['Architecture']),
                           Status='ADMISIBLE' if pe['CanPack'] else 'BLOQUEADO',
                           Blockers=pe['Blockers'],
                           ExtensionMismatch=suffix != ('.dll' if kind == 'DLL' else '.exe'))

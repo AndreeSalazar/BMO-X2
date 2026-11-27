@@ -375,6 +375,12 @@ manteniendo la proteccion entre procesos y respecto del NANO-CORE.
 Rust sostiene servicios actuales; C, C++ y ULTRA-J tienen recorridos
 de construccion propios. Otros productores requieren su perfil probado.
 
+HOST distingue los bits del ejecutable de la ISA del proceso BMO-X2.
+Los perfiles nativos ejecutan x86-64. La ruta prevista para PE32 x86
+usa un [runtime invitado en Ring 3](userspace/runtime/abi/README.md#compatibilidad-pe32-x86)
+que conserva el ABI INVOKE/WAIT. El escritorio gestiona el foco y los
+espacios por sus propios [atajos](userspace/services/desktop/WORKSPACES.md#atajos).
+
 La portabilidad entre CPUs no es un objetivo ni un requisito de BMO-X2.
 Este proyecto se especializa en x86-64. Si se crea una variante para
 POWER u otra CPU, sera un proyecto separado con su HOST, backend,

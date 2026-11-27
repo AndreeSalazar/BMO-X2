@@ -37,7 +37,8 @@ AREA_REASONS['Otras dependencias'] = 'Identificar el contrato del simbolo o expo
 
 BLOCKERS = {
     'PE-MACHINE': ('La imagen PE32 x86 queda fuera del perfil de ejecucion x86-64.',
-                   'Usar una compilacion x86-64 o implementar y probar un cargador y ABI para PE32 x86.'),
+                   'Cargar PE32 y adaptar Win32 dentro de un runtime x86-64 de Ring 3. '
+                   'El runtime ejecutara el codigo x86 por interpretacion o traduccion.'),
     'PE-IMPORTS': ('El perfil PE base no resuelve dependencias Win64 para esta imagen.',
                    'Resolver cada DLL y simbolo con un perfil de proceso probado.'),
     'PE-IAT': ('Las ranuras importadas no tienen destinos ejecutables validados para esta imagen.',
@@ -57,6 +58,13 @@ BLOCKERS = {
     'PE-CLR': ('La imagen requiere CLR y el perfil base ejecuta codigo nativo.',
                'Proveer un perfil que admita este ejecutable administrado.'),
 }
+
+
+def pe_execution_plan(architecture):
+    if architecture == 'x86':
+        return dict(SourceBits=32, ProcessISA='x86-64', Ring=3, Route='guest-runtime',
+                    RuntimeStatus='pending')
+    return dict(SourceBits=64, ProcessISA='x86-64', Ring=3, Route='native')
 
 
 def import_requirements(inventory):
@@ -98,6 +106,7 @@ def import_requirements(inventory):
 
 def explain_pe(inventory):
     findings = []
+    architecture = inventory.get('Architecture', 'x86-64')
     for blocker in inventory['Blockers']:
         code = blocker['Code']
         why, required = BLOCKERS.get(code, (
@@ -121,16 +130,22 @@ def explain_pe(inventory):
             finding['Why'] = 'El HOST no pudo inventariar la tabla de importaciones.'
             finding['Required'] = 'Corregir primero la estructura PE que indica el error de inventario.'
             finding['Observed'] = inventory['ImportInventoryError']
+        elif code == 'PE-IMPORTS' and architecture == 'x86':
+            finding['Why'] = 'Las importaciones requieren el ABI Win32 del futuro runtime invitado.'
+            finding['Required'] = 'Resolverlas dentro de Ring 3 con adaptadores del ABI x86.'
         findings.append(finding)
     return dict(
         Profile='pe-base', Status='eligible' if inventory['CanPack'] else 'blocked',
         Scope='Diagnostico de admision del PE. La evidencia de cada destino se limita a su perfil de prueba.',
+        ExecutionPlan=pe_execution_plan(architecture),
         Blockers=findings, Imports=import_requirements(inventory),
     )
 
 
 def markdown_admission(admission):
     lines = ['# Admision PE en HOST', '', f'**Estado** {admission["Status"]}', '', admission['Scope']]
+    if admission['ExecutionPlan']['Route'] == 'guest-runtime':
+        lines.extend(('', '**Ruta pendiente** PE32 x86 como invitado de un proceso x86-64 en Ring 3.'))
     for item in admission['Blockers']:
         lines.extend(('', f'## {item["Code"]}', '', f'{item["Field"]} en 0x{item["Offset"]:X}.',
                       item['Why'], item['Required']))

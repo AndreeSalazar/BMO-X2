@@ -431,8 +431,12 @@ class Sbef(unittest.TestCase):
             self.assertEqual(inventory['ImportCoverage']['FixtureSymbolCount'], 0)
             self.assertEqual(inventory['Admission']['Imports']['Counts'],
                              dict(available_in_fixture=0, missing=1, ordinal=1))
+            plan = dict(SourceBits=32, ProcessISA='x86-64', Ring=3, Route='guest-runtime',
+                        RuntimeStatus='pending')
+            self.assertEqual(inventory['Admission']['ExecutionPlan'], plan)
             report = json.loads(subprocess.check_output([*base, 'catalog', path, '--game', 'Sample Game']))
             self.assertEqual(report['Files'][0]['Format'], 'PE32 x86')
+            self.assertEqual(report['Files'][0]['ExecutionPlan'], plan)
             self.assertEqual(report['Project']['SuggestedDirectory'], 'Game/Sample Game')
             self.assertEqual(report['LaunchCandidates'][0]['Admission'], 'BLOQUEADO')
             self.assertEqual(report['Dependencies'][0]['Symbols'], ['GetCommandLineW', '#7'])
@@ -470,6 +474,8 @@ class Sbef(unittest.TestCase):
             probe = subprocess.run([*base, 'probe', str(source)], capture_output=True, check=True)
             inventory = json.loads(probe.stdout)
             self.assertFalse(inventory['CanPack'])
+            self.assertEqual(inventory['Admission']['ExecutionPlan'],
+                             dict(SourceBits=64, ProcessISA='x86-64', Ring=3, Route='native'))
             self.assertTrue(inventory['Sections'][0]['Executable'])
             expected = dict(Code='PE-IMPORTS', Offset=opt + 120, Field='DataDirectory.imports')
             self.assertEqual(inventory['Blockers'], [expected])
