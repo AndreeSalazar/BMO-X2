@@ -1,5 +1,32 @@
 # HOST de BMO-X2
 
+## Inventario de entrada
+
+`catalog` inspecciona una carpeta estable y produce un manifiesto JSON de
+archivos y dependencias. Agrupa ejecutables, bibliotecas, paquetes, fuentes,
+datos y entradas en `DESCONOCIDO`. Para cada archivo leido registra SHA-256.
+Las firmas validas de PE, ELF y SBEF se comprueban con los lectores del HOST.
+Las firmas de recursos solo identifican su tipo. Un archivo desconocido
+conserva su motivo de revision y el rechazo del importador cuando existe.
+
+```powershell
+python -B tools/sbef.py catalog .\entrada > .\inventario.json
+python -B tools/sbef.py pack .\entrada\app.elf .\app.sbef --abi 1 --expected-sha256 $sha256Revisado
+```
+
+El manifiesto muestra las DLL y simbolos que declara cada PE. Los candidatos
+locales se cruzan por nombre de archivo. Si coinciden varios, se registra la
+ambiguedad. La columna `FixtureSymbols` cuenta los simbolos con evidencia
+en perfiles del runtime. El enlace definitivo se valida al empaquetar.
+Para una DLL acompanante usa `--expected-dll-sha256` junto al perfil de
+enlace. Si cambia una huella revisada, `pack` rechaza los bytes antes de
+publicar el SBEF.
+
+El inventario abre los archivos como datos y deja enlaces y puntos de
+reanalisis en revision. El resultado acredita formato, huella y
+dependencias. La deteccion de troyanos requiere un analisis antimalware
+independiente.
+
 ## Capas y perfiles x86-64
 
 HOST separa productor, formato, destino y ejecucion. No mantiene un

@@ -1563,9 +1563,9 @@
         4025
       ],
       "que": "Coordina la inspeccion, admision, diagnostico y publicacion de ejecutables x86-64; define el futuro flujo adaptadores -> IR BMO -> backend por ISA.",
-      "entrada": "ELF64 o PE32+ enlazado para los importadores actuales; fuente/IR de productor mediante adaptadores futuros.",
-      "salida": "SBEF admitido, comparacion de builds por archivo y paginas, o rechazo con campo y offset.",
-      "aceptacion": "profiles publica CapabilityCatalog. El intake MSVC liga la declaracion al hash PE y el SBEF emitido por PowerShell ejecuto el fixture ABI en CPL3 bajo QEMU; evidencia Reports/host-msvc-qemu.json; toolchain no atestado.",
+      "entrada": "Carpeta estable para catalogo; ELF64 o PE32+ enlazado para el empaquetador y huellas SHA-256 opcionales.",
+      "salida": "Catalogo JSON de archivos, desconocidos y aristas de dependencias; SBEF admitido, comparacion de builds, o rechazo con campo y offset.",
+      "aceptacion": "profiles publica CapabilityCatalog. El catalogo reconoce formatos y registra DLL ambiguas. pack contrasta huellas revisadas antes de publicar. El intake MSVC ejecuto el fixture ABI en CPL3 bajo QEMU; evidencia Reports/host-msvc-qemu.json.",
       "falta": "Implementar y serializar IR BMO, definir semantica y adaptar productores; la admision de todo compilador no existe. Automatizar procedencia, importar COFF .obj, definir enlace propio, cerrar carga externa SBEF en Ring 3 y anadir imports/runtime solo con semantica propia."
     },
     {

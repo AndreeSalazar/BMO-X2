@@ -1,5 +1,6 @@
 """Provisional SBEF reader and producer acceptance boundaries."""
 from pathlib import Path
+import hashlib
 import json
 import struct
 import subprocess
@@ -225,6 +226,37 @@ class Sbef(unittest.TestCase):
         self.assertEqual(sbef.pack_elf(with_metadata, abi=1), image)
         self.assertEqual(image[-3:], b'\x90AB')
 
+    def test_catalog_classifies_by_content_and_pack_checks_reviewed_hash(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source = root / 'renamed.txt'
+            source.write_bytes(self.elf)
+            (root / 'broken.exe').write_bytes(b'MZ')
+            (root / 'opaque.bin').write_bytes(b'\x00\xff')
+            (root / 'usage.md').write_text('Text only', encoding='utf-8')
+            (root / 'code.py').write_text('raise RuntimeError()', encoding='utf-8')
+            cli = [sys.executable, '-B', sbef.__file__, '--json-errors']
+            report = json.loads(subprocess.check_output([*cli, 'catalog', str(root)]))
+            files = {file['Path']: file for file in report['Files']}
+            self.assertEqual(report['Categories']['DESCONOCIDO'], ['broken.exe', 'opaque.bin'])
+            self.assertEqual(report['Categories']['FUENTE'], ['code.py'])
+            self.assertEqual(report['Categories']['DATOS'], ['usage.md'])
+            self.assertTrue(files['renamed.txt']['ExtensionMismatch'])
+            self.assertEqual(files['broken.exe']['Rejection']['Code'], 'PE-DOS-HEADER')
+            digest = hashlib.sha256(self.elf).hexdigest()
+            self.assertEqual(files['renamed.txt']['SHA256'], digest)
+            output = root / 'app.sbef'
+            pack = [*cli, 'pack', str(source), str(output), '--expected-sha256', digest.upper()]
+            packed = json.loads(subprocess.check_output(pack))
+            self.assertEqual(packed['ReviewedInputSHA256'], digest)
+            self.assertEqual(output.read_bytes(), sbef.pack_elf(self.elf))
+            source.write_bytes(self.elf + b'changed after review')
+            rejected = subprocess.run(pack, capture_output=True)
+            self.assertEqual(rejected.returncode, 1)
+            self.assertEqual(json.loads(rejected.stderr),
+                             dict(Code='HOST-CATALOG-HASH', Field='input', Offset=0))
+            self.assertEqual(output.read_bytes(), sbef.pack_elf(self.elf))
+
     def test_producer_selector_checks_format_before_publication(self):
         with tempfile.TemporaryDirectory() as path:
             source, output = Path(path)/'app.elf', Path(path)/'app.sbef'
@@ -361,6 +393,24 @@ class Sbef(unittest.TestCase):
             markdown = subprocess.check_output([*base, 'probe', str(source), '--format', 'markdown'], text=True)
             self.assertIn('KERNEL32.dll!Sleep', markdown)
             self.assertIn('Ordinal pendiente', markdown)
+            self.assertFalse(output.exists())
+            directory = source.parent / 'alternate'
+            directory.mkdir()
+            dll = bytearray(image)
+            struct.pack_into('<H', dll, 0x84 + 18, 0x2002)
+            first = source.with_name('kernel32.dll')
+            first.write_bytes(dll)
+            (directory / 'KERNEL32.dll').write_bytes(dll)
+            catalog = json.loads(subprocess.check_output([*base, 'catalog', path]))
+            edge = next(edge for edge in catalog['Dependencies'] if edge['From'] == 'app.exe')
+            self.assertEqual(edge['Symbols'], ['Sleep', '#7'])
+            self.assertEqual(edge['Status'], 'AMBIGUA')
+            self.assertEqual(edge['LocalCandidates'], ['alternate/KERNEL32.dll', 'kernel32.dll'])
+            mismatch = subprocess.run([*base, 'pack', str(source), str(output), '--abi', '1',
+                                       '--with-dll', str(first), '--expected-dll-sha256', '0' * 64],
+                                      capture_output=True)
+            self.assertEqual(mismatch.returncode, 1)
+            self.assertEqual(json.loads(mismatch.stderr), dict(Code='HOST-CATALOG-HASH', Field='DLL.file', Offset=0))
             self.assertFalse(output.exists())
             struct.pack_into('<Q', image, 0x240, 0x1200)
             rejected = probe_pe(image)

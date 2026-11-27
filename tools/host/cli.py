@@ -3,10 +3,12 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import re
 import sys
 import tempfile
 
 from .diagnostics import Rejection
+from .file_catalog import catalog_directory
 from .importers.elf import MAX_ELF, pack_elf
 from .importers.pe import pack_pe, pack_pe_tls, pack_pe_with_dll, probe_pe
 from .pe_admission import explain_pe, markdown_admission
@@ -34,6 +36,12 @@ def positive_bytes(value):
     return amount
 
 
+def sha256_hex(value):
+    if not re.fullmatch('[0-9a-fA-F]{64}', value):
+        raise argparse.ArgumentTypeError('Se requieren 64 digitos hexadecimales de SHA-256')
+    return value.lower()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--json-errors', action='store_true', help='Write structured rejection to stderr')
@@ -55,6 +63,8 @@ def main():
                       choices=[LEGACY_FORMAT_VERSION, FORMAT_VERSION], default=FORMAT_VERSION,
                       help='SBEF wire version; v1 is legacy and implies x86-64-v1')
     pack.add_argument('--max-file-bytes', type=positive_bytes)
+    pack.add_argument('--expected-sha256', type=sha256_hex, help='Require the reviewed input SHA-256')
+    pack.add_argument('--expected-dll-sha256', type=sha256_hex, help='Require the reviewed companion DLL SHA-256')
     pack.add_argument('--max-mapped-bytes', type=positive_bytes)
     pack.add_argument('--size-report', action='store_true', help='Show file and memory costs by region')
     pack.add_argument('--explain', action='store_true', help='Explain default PE admission on rejection')
@@ -63,6 +73,8 @@ def main():
     dll_profiles.add_argument('--with-dll-lifecycle', type=Path, help='Bind a fixed Win64 DLL including its entry export')
     dll_profiles.add_argument('--static-tls', action='store_true', help='Materialize the fixed Win64 TLS profile')
     commands.add_parser('inspect').add_argument('input', type=Path)
+    catalog = commands.add_parser('catalog', help='Inventaria archivos y dependencias sin ejecutarlos')
+    catalog.add_argument('root', type=Path)
     plan = commands.add_parser('plan', help='Emit the validated per-process mapping plan')
     plan.add_argument('input', type=Path)
     plan.add_argument('--profile', choices=['default', 'rmlui-native-v1', 'rmlui-native-fhd'], default='default')
@@ -82,6 +94,8 @@ def main():
     args = parser.parse_args()
     if args.action == 'profiles' and args.producer != 'msvc' and (args.category or args.windows_level):
         profiles.error('--category y --windows-level requieren --producer msvc')
+    if args.action == 'pack' and args.expected_dll_sha256 and not (args.with_dll or args.with_dll_lifecycle):
+        pack.error('--expected-dll-sha256 requiere un perfil con DLL')
     try:
         result = run(args)
     except Rejection as error:
@@ -190,6 +204,8 @@ def run(args):
                               getattr(args, 'windows_level', None))
     if args.action == 'inspect':
         return inspect_file(args.input)
+    if args.action == 'catalog':
+        return catalog_directory(args.root)
     if args.action == 'plan':
         with args.input.open('rb') as file:
             image = file.read(image_limit(args.profile) + 1)
@@ -202,11 +218,14 @@ def run(args):
         data = file.read(MAX_ELF + 1)
     if len(data) > MAX_ELF:
         raise Rejection('IMPORT-SIZE', MAX_ELF, 'file')
+    expected = getattr(args, 'expected_sha256', None)
+    if expected is not None and hashlib.sha256(data).hexdigest() != expected:
+        raise Rejection('HOST-CATALOG-HASH', 0, 'input')
     is_pe = data.startswith(b'MZ')
     lifecycle = getattr(args, 'with_dll_lifecycle', None)
     dll_input = lifecycle or getattr(args, 'with_dll', None)
     producer = getattr(args, 'producer', None)
-    declared = {}
+    declared = {'ReviewedInputSHA256': expected} if expected is not None else {}
     if producer is not None:
         profile = PRODUCER_PROFILES[producer]
         signature = b'MZ' if profile['Container'] == 'PE32+' else b'\x7fELF'
@@ -224,9 +243,13 @@ def run(args):
             dll = file.read(MAX_ELF + 1)
         if len(dll) > MAX_ELF:
             raise Rejection('IMPORT-SIZE', MAX_ELF, 'DLL.file')
+        dll_hash = hashlib.sha256(dll).hexdigest()
+        expected_dll = getattr(args, 'expected_dll_sha256', None)
+        if expected_dll is not None and dll_hash != expected_dll:
+            raise Rejection('HOST-CATALOG-HASH', 0, 'DLL.file')
         image, dependency = pack_pe_with_dll(data, dll, abi=args.abi, isa_profile=args.isa_profile,
                                              format_version=args.format_version, lifecycle=lifecycle is not None)
-        declared['LinkedModule'] = dict(dependency, SHA256=hashlib.sha256(dll).hexdigest(), Bytes=len(dll))
+        declared['LinkedModule'] = dict(dependency, SHA256=dll_hash, Bytes=len(dll))
     elif getattr(args, 'static_tls', False):
         image, tls = pack_pe_tls(data, abi=args.abi, isa_profile=args.isa_profile,
                                  format_version=args.format_version)

@@ -1,0 +1,165 @@
+"""Read-only intake of a stable directory before selecting SBEF inputs."""
+
+from collections import defaultdict
+import hashlib
+from itertools import islice
+import os
+from pathlib import Path
+import stat
+
+from .diagnostics import Rejection
+from .importers.elf import MAX_ELF, pack_elf
+from .importers.pe import probe_pe
+from .pe_admission import import_requirements
+from .sbef.format import inspect
+
+
+MAX_ENTRIES = 2048
+MAX_TOTAL_BYTES = 64 * 1024 * 1024
+RESOURCE_HEADERS = (
+    (b'\x89PNG\r\n\x1a\n', 'PNG'),
+    (b'%PDF-', 'PDF'),
+    (b'SQLite format 3\0', 'SQLite'),
+    (b'\x1f\x8b\x08', 'GZIP'),
+    (b'PK\x03\x04', 'ZIP'),
+    (b'PK\x05\x06', 'ZIP'),
+)
+TEXT_SUFFIXES = {'.txt', '.md', '.ini', '.json', '.toml', '.csv', '.xml'}
+SOURCE_SUFFIXES = {'.c', '.h', '.cpp', '.hpp', '.rs', '.py', '.ps1', '.js', '.asm', '.s', '.casm'}
+
+
+def is_link(info):
+    return stat.S_ISLNK(info.st_mode) or bool(
+        getattr(info, 'st_file_attributes', 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT)
+
+
+def fingerprint(info):
+    # Windows can report creation time through lstat and change time through fstat.
+    return info.st_dev, info.st_ino, stat.S_IFMT(info.st_mode), info.st_size, info.st_mtime_ns
+
+
+def unknown(record, reason, **extra):
+    record.update(Category='DESCONOCIDO', Status='REVISION', Reason=reason, **extra)
+
+
+def classify(data, suffix, record):
+    try:
+        if data.startswith(b'MZ'):
+            pe = probe_pe(data)
+            kind = pe['ImageKind']
+            record.update(Category='BIBLIOTECA' if kind == 'DLL' else 'EJECUTABLE',
+                          Format='PE32+ x86-64', ImageKind=kind,
+                          Status='ADMISIBLE' if pe['CanPack'] else 'BLOQUEADO',
+                          Blockers=pe['Blockers'],
+                          ExtensionMismatch=suffix != ('.dll' if kind == 'DLL' else '.exe'))
+            requirements = import_requirements(pe)
+            if requirements['Status'] == 'invalid':
+                record['ImportError'] = requirements['Error']
+                return []
+            return [item for group in requirements['Groups'] for item in group['Imports']]
+        if data.startswith(b'\x7fELF'):
+            pack_elf(data, abi=1)
+            record.update(Category='EJECUTABLE', Format='ELF64 x86-64', Status='ADMISIBLE',
+                          ExtensionMismatch=bool(suffix and suffix != '.elf'))
+            return []
+        if data.startswith(b'SBEF'):
+            package = inspect(data)
+            record.update(Category='PAQUETE', Format='SBEF', Status='ESTRUCTURA_VALIDADA',
+                          AbiVersion=package['AbiVersion'],
+                          ExtensionMismatch=suffix not in ('.sbf', '.sbef'))
+            return []
+    except Rejection as error:
+        unknown(record, 'La cabecera reconocida no paso el importador HOST.', Rejection=error.report())
+        return []
+
+    for signature, name in RESOURCE_HEADERS:
+        if data.startswith(signature):
+            record.update(Category='DATOS', Format=name, Status='FIRMA_RECONOCIDA')
+            return []
+    if suffix in TEXT_SUFFIXES | SOURCE_SUFFIXES and b'\0' not in data:
+        try:
+            data.decode('utf-8-sig')
+        except UnicodeDecodeError:
+            pass
+        else:
+            record.update(Category='FUENTE' if suffix in SOURCE_SUFFIXES else 'DATOS',
+                          Format='Texto UTF-8', Status='REVISION')
+            return []
+    unknown(record, 'Sin formato reconocido por este inventario.')
+    return []
+
+
+def catalog_directory(root):
+    root_info = root.lstat()
+    if is_link(root_info) or not stat.S_ISDIR(root_info.st_mode):
+        raise Rejection('HOST-CATALOG-ROOT', 0, 'root')
+    root = root.resolve(strict=True)
+    entries = []
+    imports = {}
+    libraries = defaultdict(list)
+    pending = [root]
+    visited = 0
+    total = 0
+    while pending:
+        directory = pending.pop()
+        current = directory.lstat()
+        if is_link(current) or not stat.S_ISDIR(current.st_mode):
+            raise Rejection('HOST-CATALOG-DIRECTORY-CHANGED', 0, 'root')
+        with os.scandir(directory) as children:
+            paths = sorted(item.path for item in islice(children, MAX_ENTRIES - visited + 1))
+        children = list(map(Path, paths))
+        visited += len(children)
+        if visited > MAX_ENTRIES:
+            raise Rejection('HOST-CATALOG-ENTRIES', 0, 'root')
+        for path in children:
+            relative = path.relative_to(root).as_posix()
+            record = dict(Path=relative)
+            try:
+                info = path.lstat()
+                if is_link(info):
+                    unknown(record, 'Enlace o punto de reanalisis omitido.')
+                elif stat.S_ISDIR(info.st_mode):
+                    pending.append(path)
+                    continue
+                elif not stat.S_ISREG(info.st_mode):
+                    unknown(record, 'Objeto distinto de un archivo normal.')
+                elif info.st_size > MAX_ELF:
+                    unknown(record, 'Archivo por encima del limite de lectura.', Bytes=info.st_size)
+                else:
+                    if info.st_size > MAX_TOTAL_BYTES - total:
+                        raise Rejection('HOST-CATALOG-BUDGET', 0, 'root')
+                    with path.open('rb') as file:
+                        opened = os.fstat(file.fileno())
+                        data = file.read(info.st_size + 1) if fingerprint(opened) == fingerprint(info) else None
+                    total += len(data) if data is not None else 0
+                    if data is None or len(data) != info.st_size or fingerprint(path.lstat()) != fingerprint(info):
+                        unknown(record, 'El archivo cambio durante el inventario.')
+                    else:
+                        record.update(Bytes=len(data), SHA256=hashlib.sha256(data).hexdigest())
+                        symbols = classify(data, path.suffix.lower(), record)
+                        if symbols:
+                            imports[relative] = symbols
+                        if record.get('ImageKind') == 'DLL':
+                            libraries[path.name.lower()].append(relative)
+            except OSError:
+                unknown(record, 'El archivo no pudo leerse.')
+            entries.append(record)
+
+    edges = []
+    for source, symbols in sorted(imports.items()):
+        by_dll = defaultdict(list)
+        for symbol in symbols:
+            by_dll[symbol['DLL'].lower()].append(symbol)
+        for dll, required in sorted(by_dll.items()):
+            candidates = sorted(libraries[dll])
+            tested = sum(symbol['Status'] == 'available_in_fixture' for symbol in required)
+            edges.append(dict(From=source, DLL=dll, Symbols=[
+                symbol.get('Name', f'#{symbol.get("Ordinal")}') for symbol in required],
+                LocalCandidates=candidates, FixtureSymbols=tested,
+                Status=('AMBIGUA' if len(candidates) > 1 else 'CANDIDATA_LOCAL' if candidates else
+                        'RUNTIME_ACOTADO' if tested else 'PENDIENTE')))
+    entries.sort(key=lambda record: record['Path'])
+    groups = {category: [record['Path'] for record in entries if record['Category'] == category]
+              for category in ('EJECUTABLE', 'BIBLIOTECA', 'PAQUETE', 'FUENTE', 'DATOS', 'DESCONOCIDO')}
+    return dict(Root=str(root), Scope='Inspeccion estatica HOST de formatos, huellas y dependencias.',
+                Files=entries, Categories=groups, Dependencies=edges)
