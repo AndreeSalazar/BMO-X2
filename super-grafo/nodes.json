@@ -1880,15 +1880,15 @@
       "id": "verrano-batch",
       "titulo": "VERRANO / Admision de lotes de dibujo",
       "ruta": "userspace/services/graphics/verrano/lib.rs",
-      "estado": "host",
+      "estado": "qemu",
       "anillo": "3",
       "lenguaje": "Rust",
       "posicion": [1640, 2200],
       "que": "Verifica lotes de dibujo antes de llamar al backend.",
-      "entrada": "Titular autenticado, tabla de buffers, lotes y limites del servicio.",
+      "entrada": "Titular autenticado, tablas de buffers y texturas, lotes y limites del servicio.",
       "salida": "Envio completo o rechazo con indice del dibujo cuando corresponde.",
-      "aceptacion": "HOST prueba un triangulo y el rechazo de rangos, desbordamientos, buffers ajenos y exceso de vertices.",
-      "falta": "Integrar la tabla de recursos y el backend nativo. Verificar en QEMU y en metal."
+      "aceptacion": "HOST prueba rangos, limites y texturas. QEMU verifica el cambio de textura y cuatro rechazos en Ring 3 con un backend por software.",
+      "falta": "Integrar el lector BSF, la tabla de recursos del dispositivo y el backend nativo. Verificar en metal."
     },
     {
       "id": "verrano-bsf-host",

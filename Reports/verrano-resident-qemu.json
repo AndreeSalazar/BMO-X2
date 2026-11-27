@@ -1,0 +1,34 @@
+{
+  "date": "2026-11-27",
+  "environment": "QEMU 11.1.0 con VGA emulada y un backend por software en la sonda.",
+  "build": "tools/build-desktop.ps1 -VerranoProbe -AbiRun build/CASM/run-20261117-215144-66f2e0a9",
+  "run": "build/CASM/run-desktop-eaaaf6efe089",
+  "probe": "userspace/services/desktop/src/bin/desktop_probe.rs",
+  "service": "userspace/services/graphics/verrano/lib.rs",
+  "texture_rejections_checked_in_cpl3": [
+    "TextureGeneration",
+    "TextureOwner",
+    "TextureNotResident",
+    "TextureSlot"
+  ],
+  "result": {
+    "passed": true,
+    "user_cpl": 3,
+    "resident_resources_selected": 2,
+    "desktop_pixels_verified": 4096,
+    "format_version": 1,
+    "abi_version": 1,
+    "sbef_bytes": 2488,
+    "sbef_sha256": "592a3815464964bcbfd8c0eb8cf22ec0f42197d7d837f6f053074637dfca0524",
+    "mapped_code_bytes": 4096,
+    "scrubbed_bytes": 8192
+  },
+  "baseline": {
+    "run": "build/CASM/run-desktop-5639a7e7c9a2",
+    "passed": true,
+    "sbef_bytes": 1544,
+    "mapped_code_bytes": 4096,
+    "desktop_pixels_verified": 4096
+  },
+  "limits": "La sonda comprueba admision en Ring 3 y composicion de referencia sin RTX, VRAM ni ejecucion de SPIR-V. La prueba de RTX en Windows se registra en Reports/verrano-texture-bsf-host.json."
+}

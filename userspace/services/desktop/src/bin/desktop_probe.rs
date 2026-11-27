@@ -18,9 +18,50 @@ unsafe extern "C" {
     fn desktop_complete(pixels: u64) -> !;
 }
 
+#[cfg(verrano_probe)]
+fn desktop_colors() -> Option<[u32; 2]> {
+    use bmo_x2_verrano::{Buffer, Draw, Limits, Rejection, Texture, TextureBinding, submit_textured};
+    use core::{hint::black_box, num::NonZeroU64};
+
+    let textures = [
+        Some(Texture { owner: 1, generation: 7, resident: NonZeroU64::new(1) }),
+        Some(Texture { owner: 1, generation: 7, resident: NonZeroU64::new(2) }),
+        Some(Texture { owner: 2, generation: 7, resident: NonZeroU64::new(3) }),
+        Some(Texture { owner: 1, generation: 7, resident: None }),
+    ];
+    let buffers = [Buffer { owner: 1, bytes: 48 }];
+    let draws = [Draw { buffer: 0, offset: 0, stride: 16, vertices: 3 }];
+    let submit = |slot, generation| {
+        let binding = black_box(TextureBinding { slot, generation });
+        submit_textured(1, &buffers, &draws, Limits { draws: 1, vertices: 3 },
+                        &textures, binding, |_, _, handle| {
+            // Software reference backend with two resident one-texel resources.
+            let colors = [0x00ff5c82, 0x005ad8ff];
+            colors.get(handle.get() as usize - 1).copied().unwrap_or(0)
+        })
+    };
+    let red = submit(0, 7).ok()?;
+    if submit(0, 6) != Err(Rejection::TextureGeneration)
+        || submit(2, 7) != Err(Rejection::TextureOwner)
+        || submit(3, 7) != Err(Rejection::TextureNotResident)
+        || submit(4, 7) != Err(Rejection::TextureSlot)
+    {
+        return None;
+    }
+    Some([red, submit(1, 7).ok()?])
+}
+
+#[cfg(not(verrano_probe))]
+fn desktop_colors() -> Option<[u32; 2]> {
+    Some([0x00ff5c82, 0x005ad8ff])
+}
+
 fn check_desktop() -> Option<u64> {
-    let red = Surface::new(1, 1, &[0x00ff5c82]).unwrap();
-    let blue = Surface::new(1, 1, &[0x005ad8ff]).unwrap();
+    let [red, blue] = desktop_colors()?;
+    let red_pixel = [red];
+    let blue_pixel = [blue];
+    let red = Surface::new(1, 1, &red_pixel).unwrap();
+    let blue = Surface::new(1, 1, &blue_pixel).unwrap();
     let mut desktop = Desktop::<2>::new();
     let mut keyboard = Keyboard::default();
     desktop.open(1, 0, 0, red).unwrap();

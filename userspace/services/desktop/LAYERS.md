@@ -63,8 +63,25 @@ cuadro se arma con el angulo y un descriptor ya preparado. La RTX
 muestrea la textura y dibuja. La CPU lee el cuadro en este banco para
 comprobar el resultado despues. El BSF probado lleva SPIR-V portable.
 El controlador Vulkan genera el codigo de la GPU al crear la tuberia.
-Queda integrar este recorrido con el servicio VERRANO de BMO-X2.
 [Evidencia del BSF y las texturas](../../../Reports/verrano-texture-bsf-host.json).
+
+La [sonda Ring 3 de VERRANO](../../../Reports/verrano-resident-qemu.json)
+usa un backend por software para el mismo contrato de seleccion.
+Un lote presenta ranura y generacion. VERRANO resuelve la textura
+solo si pertenece al cliente y el backend ya confirmo su residencia.
+La tabla de recursos pertenece al servicio. El backend asincrono
+debera conservar cada recurso hasta que el dispositivo termine.
+
+En QEMU, el mismo lote selecciona dos recursos de color distintos.
+Antes de presentar, la sonda exige el rechazo de una generacion
+caducada, una textura ajena, una textura sin residencia y una ranura
+fuera de la tabla. La captura del framebuffer comprueba 4096
+pixeles. Quedan pendientes el lector BSF en el proceso de usuario,
+la tabla de recursos del controlador y la presentacion RTX nativa.
+
+```powershell
+.\tools\build-desktop.ps1 -VerranoProbe -AbiRun $abiRun
+```
 
 La estructura .ujh, la apariencia .ujc y el comportamiento .uj son
 entradas diferentes. Cambiar el tema no debe introducir politica de

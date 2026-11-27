@@ -11,11 +11,16 @@ param(
     [switch]$UltraJ,
     [switch]$Welcome,
     [switch]$Reports,
+    [switch]$VerranoProbe,
     [string]$AbiRun,
     [string]$IntroRun
 )
 $ErrorActionPreference = 'Stop'
 if ($Session) { $Guest = $true }
+if ($VerranoProbe) {
+    if ($Session) { throw '-VerranoProbe usa la sonda grafica sin -Session.' }
+    $Guest = $true
+}
 if ($External -and (-not $Session -or -not $AbiRun)) { throw '-External requiere -Session y -AbiRun.' }
 if ($UsbProbe -and -not $External) { throw '-UsbProbe requiere -External.' }
 if ($UsbMouse -and -not $UsbProbe) { throw '-UsbMouse requiere -UsbProbe.' }
@@ -105,10 +110,21 @@ if ($Session) {
     $linkScript = Join-Path $PSScriptRoot 'desktop/guest.ld'
     $elf = Join-Path $build.FullName 'desktop-guest.elf'
     $image = Join-Path $build.FullName 'desktop-guest.sbef'
+    if ($VerranoProbe) {
+        $elf = Join-Path $build.FullName 'verrano-guest.elf'
+        $image = Join-Path $build.FullName 'verrano-guest.sbef'
+    }
 }
 $flags = @('--edition=2024', '--target', $target, '-D', 'warnings', '-C', 'panic=abort',
            '-C', 'opt-level=s', '-C', 'relocation-model=static', '-C', 'force-unwind-tables=no')
 $usbFlags = @()
+$verranoFlags = @()
+if ($VerranoProbe) {
+    $verranoLibrary = Join-Path $build.FullName 'libbmo_x2_verrano.rlib'
+    & rustc @flags --crate-name bmo_x2_verrano --crate-type rlib (Join-Path $root 'userspace/services/graphics/verrano/lib.rs') -o $verranoLibrary
+    if ($LASTEXITCODE -ne 0) { throw 'Fallo la biblioteca VERRANO de Ring 3.' }
+    $verranoFlags = @('--cfg', 'verrano_probe', '--extern', "bmo_x2_verrano=$verranoLibrary")
+}
 if ($UsbProbe) {
     $usbLibrary = Join-Path $build.FullName 'libbmo_x2_usb.rlib'
     & rustc @flags --crate-name bmo_x2_usb --crate-type rlib (Join-Path $root 'userspace/drivers/usb/src/lib.rs') -o $usbLibrary
@@ -148,11 +164,13 @@ if ($Guest -and -not $Session) {
     $guestFlags = @('--cfg','qemu_desktop','-C',"link-arg=$complete")
     $fixtureArguments = @('--desktop-present', $presentBin)
 }
-& rustc @flags @linkFlags @guestFlags @usbFlags --crate-name desktop_probe --extern "bmo_x2_desktop=$library" $entrySource -o $elf
+& rustc @flags @linkFlags @guestFlags @usbFlags @verranoFlags --crate-name desktop_probe --extern "bmo_x2_desktop=$library" $entrySource -o $elf
 if ($LASTEXITCODE -ne 0) { throw 'Fallo el enlace ELF del escritorio.' }
 $budget = @()
 if ($External) { $budget = @('--max-file-bytes', '16512', '--max-mapped-bytes', '16384') }
-$sizeReport = & $Python -B (Join-Path $root 'tools/sbef.py') pack $elf $image --abi 1 --size-report @budget
+$format = @()
+if ($Guest -and -not $Session) { $format = @('--format-version', '1') }
+$sizeReport = & $Python -B (Join-Path $root 'tools/sbef.py') pack $elf $image --abi 1 --size-report @budget @format
 if ($LASTEXITCODE -ne 0) { throw 'Fallo la admision HOST del escritorio.' }
 $sizePath = [IO.Path]::ChangeExtension($image, 'size.json')
 $sizeReport | Set-Content -LiteralPath $sizePath -Encoding ascii
