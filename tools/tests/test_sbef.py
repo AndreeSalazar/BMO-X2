@@ -399,6 +399,52 @@ class Sbef(unittest.TestCase):
         self.assertEqual(error.exception.report(),
                          dict(Code='SBEF-PERMISSIONS', Offset=52, Field='permissions', RegionIndex=0))
 
+    def test_pe32_game_catalog_reports_architecture_without_win64_coverage(self):
+        image = bytearray(0x400)
+        image[:2] = b'MZ'
+        struct.pack_into('<I', image, 0x3c, 0x80)
+        image[0x80:0x84] = b'PE\0\0'
+        struct.pack_into('<HHIIIHH', image, 0x84, 0x14c, 1, 0, 0, 0, 112, 2)
+        opt = 0x98
+        struct.pack_into('<H', image, opt, 0x10b)
+        struct.pack_into('<I', image, opt + 16, 0x1000)
+        struct.pack_into('<I', image, opt + 28, 0x400000)
+        struct.pack_into('<I', image, opt + 92, 2)
+        struct.pack_into('<II', image, opt + 104, 0x1000, 40)
+        struct.pack_into('<8sIIIIIIHHI', image, opt + 112, b'.text', 512, 0x1000,
+                         512, 0x200, 0, 0, 0, 0, 0x60000000)
+        struct.pack_into('<IIIII', image, 0x200, 0x1040, 0, 0, 0x1030, 0x1090)
+        image[0x230:0x23d] = b'KERNEL32.dll\0'
+        struct.pack_into('<III', image, 0x240, 0x1080, 0x80000007, 0)
+        symbol = b'GetCommandLineW\0'
+        image[0x282:0x282 + len(symbol)] = symbol
+
+        with tempfile.TemporaryDirectory() as path:
+            source, output = Path(path)/'sample.exe', Path(path)/'sample.sbef'
+            source.write_bytes(image)
+            base = [sys.executable, '-B', sbef.__file__, '--json-errors']
+            inventory = json.loads(subprocess.check_output([*base, 'probe', str(source)]))
+            self.assertEqual((inventory['SourceFormat'], inventory['Architecture']), ('PE32', 'x86'))
+            self.assertEqual(inventory['ImageBase'], 0x400000)
+            self.assertEqual(inventory['Imports'], [
+                dict(DLL='KERNEL32.dll', Symbols=[dict(Name='GetCommandLineW'), dict(Ordinal=7)])])
+            self.assertEqual(inventory['ImportCoverage']['FixtureSymbolCount'], 0)
+            self.assertEqual(inventory['Admission']['Imports']['Counts'],
+                             dict(available_in_fixture=0, missing=1, ordinal=1))
+            report = json.loads(subprocess.check_output([*base, 'catalog', path, '--game', 'Sample Game']))
+            self.assertEqual(report['Files'][0]['Format'], 'PE32 x86')
+            self.assertEqual(report['Project']['SuggestedDirectory'], 'Game/Sample Game')
+            self.assertEqual(report['LaunchCandidates'][0]['Admission'], 'BLOQUEADO')
+            self.assertEqual(report['Dependencies'][0]['Symbols'], ['GetCommandLineW', '#7'])
+            producer_probe = subprocess.run(
+                [*base, 'probe', str(source), '--producer', 'msvc'], capture_output=True)
+            self.assertEqual(producer_probe.returncode, 1)
+            self.assertEqual(json.loads(producer_probe.stderr)['Code'], 'HOST-PRODUCER-FORMAT')
+            result = subprocess.run([*base, 'pack', str(source), str(output)], capture_output=True)
+            self.assertEqual(result.returncode, 1)
+            self.assertEqual(json.loads(result.stderr)['Code'], 'PE-MACHINE')
+            self.assertFalse(output.exists())
+
     def test_pe_probe_reports_imports_and_pack_rejects(self):
         image = bytearray(0x400)
         image[:2] = b'MZ'

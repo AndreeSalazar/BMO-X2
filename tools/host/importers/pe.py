@@ -37,7 +37,7 @@ DIRECTORIES = {
 }
 
 
-def _inventory(data):
+def _inventory(data, *, allow_x86=False):
     if len(data) < 64 or data[:2] != b'MZ':
         raise Rejection('PE-DOS-HEADER', 0, 'e_magic')
     pe = struct.unpack_from('<I', data, 0x3c)[0]
@@ -45,25 +45,27 @@ def _inventory(data):
         raise Rejection('PE-SIGNATURE', 0x3c, 'e_lfanew')
     coff = pe + 4
     machine, count, _, _, _, opt_size, flags = COFF.unpack_from(data, coff)
-    if machine != 0x8664:
+    x86 = machine == 0x14c and allow_x86
+    if machine != 0x8664 and not x86:
         raise Rejection('PE-MACHINE', coff, 'Machine')
     if not flags & 2:
         raise Rejection('PE-IMAGE-KIND', coff + 18, 'Characteristics')
     opt = coff + COFF.size
     section_table = opt + opt_size
-    if opt_size < 112 or section_table > len(data):
+    directories_offset = 96 if x86 else 112
+    if opt_size < directories_offset or section_table > len(data):
         raise Rejection('PE-OPTIONAL-SIZE', coff + 16, 'SizeOfOptionalHeader')
-    if struct.unpack_from('<H', data, opt)[0] != 0x20b:
+    if struct.unpack_from('<H', data, opt)[0] != (0x10b if x86 else 0x20b):
         raise Rejection('PE-OPTIONAL-MAGIC', opt, 'Magic')
     entry = struct.unpack_from('<I', data, opt + 16)[0]
-    base = struct.unpack_from('<Q', data, opt + 24)[0]
+    base = struct.unpack_from('<I' if x86 else '<Q', data, opt + (28 if x86 else 24))[0]
     subsystem = struct.unpack_from('<H', data, opt + 68)[0]
     dll_characteristics = struct.unpack_from('<H', data, opt + 70)[0]
     section_alignment, file_alignment = struct.unpack_from('<II', data, opt + 32)
     image_size, header_size = struct.unpack_from('<II', data, opt + 56)
-    directory_count = struct.unpack_from('<I', data, opt + 108)[0]
-    if directory_count > (opt_size - 112) // 8:
-        raise Rejection('PE-DIRECTORY-COUNT', opt + 108, 'NumberOfRvaAndSizes')
+    directory_count = struct.unpack_from('<I', data, opt + directories_offset - 4)[0]
+    if directory_count > (opt_size - directories_offset) // 8:
+        raise Rejection('PE-DIRECTORY-COUNT', opt + directories_offset - 4, 'NumberOfRvaAndSizes')
     if not 1 <= count <= 96 or section_table + count * SECTION.size > len(data):
         raise Rejection('PE-SECTION-TABLE', coff + 2, 'NumberOfSections')
 
@@ -80,16 +82,19 @@ def _inventory(data):
     is_dll = bool(flags & 0x2000)
     blockers = ([Rejection('PE-IMAGE-KIND', coff + 18, 'Characteristics').report()]
                 if is_dll else [])
+    if x86:
+        blockers.insert(0, Rejection('PE-MACHINE', coff, 'Machine').report())
     directories = {}
     for index in range(directory_count):
         name, code = DIRECTORIES.get(index, (f'directory_{index}', 'PE-UNSUPPORTED-DIRECTORY'))
-        record = opt + 112 + index * 8
+        record = opt + directories_offset + index * 8
         rva, size = struct.unpack_from('<II', data, record)
         if rva or size:
             directories[name] = dict(RVA=rva, Bytes=size)
             if index not in (3, 5, 6):
                 blockers.append(Rejection(code, record, f'DataDirectory.{name}').report())
-    result = dict(SourceFormat='PE32+', Architecture='x86-64', EntryRVA=entry, ImageBase=base,
+    result = dict(SourceFormat='PE32' if x86 else 'PE32+', Architecture='x86' if x86 else 'x86-64',
+                  EntryRVA=entry, ImageBase=base,
                   ImageKind='DLL' if is_dll else 'EXE', Subsystem=subsystem,
                   DllCharacteristics=dll_characteristics, SectionAlignment=section_alignment,
                   FileAlignment=file_alignment, ImageSize=image_size, HeaderSize=header_size,
@@ -430,13 +435,17 @@ def _regions(data, result, opt, table, flags):
 
 
 def probe_pe(data):
-    result, opt, table, flags = _inventory(data)
+    result, opt, table, flags = _inventory(data, allow_x86=True)
+    x86 = result['Architecture'] == 'x86'
     imports = result['Directories'].get('imports')
     if imports:
         try:
-            result['Imports'] = inventory_imports(data, result['Sections'], imports, opt + 120)
+            result['Imports'] = inventory_imports(
+                data, result['Sections'], imports, opt + (104 if x86 else 120), x86=x86)
         except Rejection as error:
             result['ImportInventoryError'] = error.report()
+    if x86:
+        return result
     exceptions = result['Directories'].get('exceptions')
     if exceptions:
         try:

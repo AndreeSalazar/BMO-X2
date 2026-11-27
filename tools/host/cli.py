@@ -260,8 +260,11 @@ def run(args):
     elif is_pe:
         if args.action == 'probe':
             result = probe_pe(data)
+            if producer is not None and result['SourceFormat'] != profile['Container']:
+                raise Rejection('HOST-PRODUCER-FORMAT', 0, f'{producer}/{profile["Container"]}')
             if 'ImportInventoryError' not in result:
-                result['ImportCoverage'] = import_coverage(result.get('Imports', []))
+                result['ImportCoverage'] = import_coverage(
+                    result.get('Imports', []), x86=result['Architecture'] == 'x86')
             result['Admission'] = explain_pe(result)
             result.update(declared)
             result['RequestedIsaProfile'] = args.isa_profile

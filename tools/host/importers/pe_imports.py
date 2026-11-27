@@ -1,4 +1,4 @@
-"""Bounded, read-only inventory of regular PE32+ imports."""
+"""Bounded, read-only inventory of regular PE imports."""
 import struct
 
 from ..diagnostics import Rejection
@@ -11,7 +11,10 @@ MAX_SYMBOLS = 4096
 MAX_NAME = 256
 
 
-def inventory_imports(data, sections, directory, directory_offset, *, include_slots=False):
+def inventory_imports(data, sections, directory, directory_offset, *, include_slots=False, x86=False):
+    thunk = struct.Struct('<I') if x86 else THUNK
+    ordinal_bit = 1 << (thunk.size * 8 - 1)
+
     def locate(rva, size, source, field):
         matches = []
         for section in sections:
@@ -49,23 +52,23 @@ def inventory_imports(data, sections, directory, directory_offset, *, include_sl
         if include_slots and (timestamp or forwarder or not lookup or lookup == iat):
             raise Rejection('PE-IMPORT-DESCRIPTOR', at, 'ImportDescriptor')
         dll = name(module, 0, at + 12, 'Name')
-        cursor, available = locate(lookup or iat, THUNK.size, at, 'OriginalFirstThunk/FirstThunk')
+        cursor, available = locate(lookup or iat, thunk.size, at, 'OriginalFirstThunk/FirstThunk')
         symbols = []
-        for slot in range(available // THUNK.size):
-            entry = cursor + slot * THUNK.size
-            value, = THUNK.unpack_from(data, entry)
+        for slot in range(available // thunk.size):
+            entry = cursor + slot * thunk.size
+            value, = thunk.unpack_from(data, entry)
             if not value:
                 break
             if total == MAX_SYMBOLS:
                 raise Rejection('PE-IMPORT-LIMIT', entry, 'ImportLookup')
-            if value >> 63:
-                if value & 0x7fffffffffff0000:
+            if value & ordinal_bit:
+                if value & ~(ordinal_bit | 0xffff):
                     raise Rejection('PE-IMPORT-ORDINAL', entry, 'ImportLookup')
                 symbols.append(dict(Ordinal=value & 0xffff))
             else:
                 symbols.append(dict(Name=name(value, 2, entry, 'ImportByName')))
             if include_slots:
-                symbols[-1].update(IatRVA=iat + slot * THUNK.size, LookupValue=value)
+                symbols[-1].update(IatRVA=iat + slot * thunk.size, LookupValue=value)
             total += 1
         else:
             raise Rejection('PE-IMPORT-TERMINATOR', cursor, 'ImportLookup')

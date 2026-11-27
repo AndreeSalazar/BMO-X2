@@ -73,9 +73,12 @@ python -B tools/sbef.py catalog .\entrada\StarCraft --game "StarCraft" > .\starc
 
 Blizzard ofrece StarCraft clasico y Brood War gratis. El anuncio 1.18
 documenta un backend OpenGL. La arquitectura y las dependencias se
-deben medir sobre el EXE de la edicion concreta. Un PE32 x86 requiere
-una ruta de compatibilidad propia para cargar en BMO-X2. El destino
-actual es x86-64 y el importador PE admite perfiles PE32+ x86-64.
+deben medir sobre el EXE del juego de la edicion concreta. La prueba con
+ese archivo queda pendiente hasta disponer de una copia oficial local.
+Para PE32 x86, `probe` y `catalog` leen cabeceras e importaciones
+regulares por nombre y por ordinal. La admision informa `PE-MACHINE`
+porque BMO-X2 requiere un cargador y ABI x86 para ejecutarlo. Los
+perfiles de prueba Win64 solo cuentan para PE32+ x86-64.
 [Notas oficiales de Blizzard](https://news.blizzard.com/en-us/article/20674424/starcraft-brood-war-patch-1-18-patch-notes).
 
 ### Cinco capas de compatibilidad Windows

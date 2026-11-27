@@ -83,7 +83,7 @@ def dependency_family(dll):
     return level, group
 
 
-def import_coverage(libraries):
+def import_coverage(libraries, *, x86=False):
     profile = WIN64_CONSOLE_PROFILE
     console_dll = profile['DLL'].lower()
     dependencies = []
@@ -92,7 +92,7 @@ def import_coverage(libraries):
     for library in libraries:
         dll = library['DLL'].lower()
         level, group = dependency_family(dll)
-        bindings = profile['Imports'] if dll == console_dll else {}
+        bindings = profile['Imports'] if not x86 and dll == console_dll else {}
         matches, pending = [], []
         for symbol in library['Symbols']:
             target = bindings.get(symbol.get('Name'))
@@ -106,7 +106,8 @@ def import_coverage(libraries):
                                  FixtureSymbols=matches, PendingSymbols=pending))
     return dict(
         Scope='Regular PE imports; fixture matches are diagnostic and do not bind or admit the PE.',
-        FixtureProfile=profile['Name'], LibraryCount=len(dependencies), SymbolCount=total_symbols,
+        FixtureProfile=None if x86 else profile['Name'],
+        LibraryCount=len(dependencies), SymbolCount=total_symbols,
         FixtureSymbolCount=fixture_symbols, PendingSymbolCount=total_symbols - fixture_symbols,
         Libraries=dependencies,
     )

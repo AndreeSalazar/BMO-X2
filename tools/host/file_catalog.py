@@ -85,7 +85,8 @@ def classify(data, suffix, record):
             pe = probe_pe(data)
             kind = pe['ImageKind']
             record.update(Category='BIBLIOTECA' if kind == 'DLL' else 'EJECUTABLE',
-                          Format='PE32+ x86-64', ImageKind=kind,
+                          Format=f"{pe['SourceFormat']} {pe['Architecture']}",
+                          ImageKind=kind, Architecture=pe['Architecture'],
                           Status='ADMISIBLE' if pe['CanPack'] else 'BLOQUEADO',
                           Blockers=pe['Blockers'],
                           ExtensionMismatch=suffix != ('.dll' if kind == 'DLL' else '.exe'))
@@ -198,21 +199,21 @@ def catalog_directory(root, *, deep=False, game=None):
                             record['Archive'] = inspect_zip(
                                 data, classify, role_hint, name_findings, archive_budget)
                         if symbols:
-                            imports[relative] = symbols
+                            imports[relative] = record['Architecture'], symbols
                         if record.get('ImageKind') == 'DLL':
-                            libraries[path.name.lower()].append(relative)
+                            libraries[record['Architecture'], path.name.lower()].append(relative)
             except OSError:
                 unknown(record, 'El archivo no pudo leerse.')
             entries.append(record)
 
     edges = []
     launch_dependencies = defaultdict(list)
-    for source, symbols in sorted(imports.items()):
+    for source, (architecture, symbols) in sorted(imports.items()):
         by_dll = defaultdict(list)
         for symbol in symbols:
             by_dll[symbol['DLL'].lower()].append(symbol)
         for dll, required in sorted(by_dll.items()):
-            candidates = sorted(libraries[dll])
+            candidates = sorted(libraries[architecture, dll])
             tested = sum(symbol['Status'] == 'available_in_fixture' for symbol in required)
             edge = dict(From=source, DLL=dll, Symbols=[
                 symbol.get('Name', f'#{symbol.get("Ordinal")}') for symbol in required],

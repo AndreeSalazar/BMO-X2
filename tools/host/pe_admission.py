@@ -36,6 +36,8 @@ AREA_REASONS = {title: reason for title, reason, _ in AREAS}
 AREA_REASONS['Otras dependencias'] = 'Identificar el contrato del simbolo o exportacion y probarlo en su modulo.'
 
 BLOCKERS = {
+    'PE-MACHINE': ('La imagen PE32 x86 queda fuera del perfil de ejecucion x86-64.',
+                   'Usar una compilacion x86-64 o implementar y probar un cargador y ABI para PE32 x86.'),
     'PE-IMPORTS': ('El perfil PE base no resuelve dependencias Win64 para esta imagen.',
                    'Resolver cada DLL y simbolo con un perfil de proceso probado.'),
     'PE-IAT': ('Las ranuras importadas no tienen destinos ejecutables validados para esta imagen.',
@@ -61,6 +63,7 @@ def import_requirements(inventory):
     if 'ImportInventoryError' in inventory:
         return dict(Status='invalid', Error=inventory['ImportInventoryError'])
     areas = {}
+    profiles = () if inventory.get('Architecture') == 'x86' else WIN64_SESSION_PROFILES
     counts = dict(available_in_fixture=0, missing=0, ordinal=0)
     for library in inventory.get('Imports', []):
         dll = library['DLL']
@@ -68,7 +71,7 @@ def import_requirements(inventory):
             name = symbol.get('Name')
             fixtures = [
                 dict(Profile=profile['Name'], Target=profile['Imports'][name])
-                for profile in WIN64_SESSION_PROFILES
+                for profile in profiles
                 if dll.lower() == profile['DLL'].lower() and name in profile['Imports']
             ]
             area = (AREA_BY_SYMBOL.get(name, 'Otras dependencias') if dll.lower() == 'kernel32.dll'
