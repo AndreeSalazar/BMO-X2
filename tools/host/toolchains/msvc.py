@@ -69,7 +69,8 @@ def build_external_tls(root, out, assembler):
 
 def build_external_console(root, out, assembler, *, heap=False, package_file=False,
                            use_clang=False, gzip_source=None, minigzip_args=None, corrupt_input=False,
-                           minigzip_input=None, minigzip_disk=False, minigzip_fat=False, process_exit=None):
+                           minigzip_input=None, minigzip_disk=False, minigzip_fat=False, process_exit=None,
+                           terminate_process=False):
     """Link the existing MSVC client against the external console import profile."""
     cc = msvc_x64_compiler()
     sdk = Path(os.environ['ProgramFiles(x86)']) / 'Windows Kits/10/Lib'
@@ -130,9 +131,11 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
             command_path.write_bytes(command_bytes)
             env[f'BMO_WIN64_CMDLINE{suffix}'] = str(command_path.resolve())
             command_strings[f'BMO_WIN64_COMMAND_LINE{suffix}'] = (command_bytes, 1 if suffix else 2)
-        units.extend(('process_start', 'last_error', 'thread_slots', 'fiber_slots'))
+        units.extend(('process_start', 'last_error', 'thread_slots', 'fiber_slots', 'critical_section', 'environment'))
         profile = WIN64_PROCESS_PROFILE
         compile_flags = ['/O1', f'/DBMO_WIN64_EXIT_CODE=0x{process_exit:08x}UL']
+        if terminate_process:
+            compile_flags.append('/DBMO_WIN64_TERMINATE')
         client_source = root / 'tools/tests/msvc_process_start.cpp'
         file_report.update(argv=argv, command_line=command, ansi_code_page=65001, exit_code=process_exit)
     if gzip_source is not None:

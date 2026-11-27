@@ -377,15 +377,18 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
         cases, cli = (minigzip_file_case(args, run, llvm) if args.input_file
                       else minigzip_cases(run, llvm, args.msvc_minigzip))
     elif args.msvc_process:
-        calls = 2 + (len(PROCESS_OUTPUT) + 7) // 8 + (len(PROCESS_FLS_OUTPUT) + 7) // 8
+        base_calls = 2 + (len(PROCESS_OUTPUT) + 7) // 8
         cases = []
         console = {}
-        for producer, code in (('msvc', 0), ('clang-cl', 0xdeadbeef)):
-            name = f'{producer}-process-start'
+        for producer, code, terminate in (('msvc', 0, False), ('clang-cl', 0xdeadbeef, False),
+                                          ('msvc', 0x8000002a, True)):
+            name = f'{producer}-process-{"terminate" if terminate else "start"}'
             build = run / name
             build.mkdir()
             image, details = build_external_console(
-                ROOT, build, llvm / 'clang.exe', process_exit=code, use_clang=producer == 'clang-cl')
+                ROOT, build, llvm / 'clang.exe', process_exit=code, use_clang=producer == 'clang-cl',
+                terminate_process=terminate)
+            calls = base_calls if terminate else base_calls + (len(PROCESS_FLS_OUTPUT) + 7) // 8
             cases.append((name, image, f'SBEF WIN64 EXIT {code:016X}', calls))
             console[name] = details
     elif args.msvc_console or args.msvc_heap or args.msvc_package_file or args.msvc_gzip:
@@ -710,7 +713,7 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             elif name.endswith('-handler'):
                 expected_stdout = GS_HANDLER_OUTPUT
             elif args.msvc_process:
-                expected_stdout = PROCESS_OUTPUT + PROCESS_FLS_OUTPUT
+                expected_stdout = PROCESS_OUTPUT if name.endswith('-terminate') else PROCESS_OUTPUT + PROCESS_FLS_OUTPUT
             elif cli is not None:
                 scenario = cli[name]
                 if disk_mode:
@@ -785,7 +788,11 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                                      oversized_exit_rejected=True, dynamic_tls_slots=64,
                                      dynamic_tls_reuse_verified=True, slist_header_bytes=16,
                                      fls_slots=128, fls_free_callback_verified=True,
-                                     fls_exit_callback_verified=True, large_readonly_tail_verified=True,
+                                     fls_exit_callback_verified=not name.endswith('-terminate'),
+                                     terminate_skipped_fls_callback=name.endswith('-terminate'),
+                                     large_readonly_tail_verified=True,
+                                     critical_section_recursion_verified=True,
+                                     environment_snapshots_verified=True,
                                      sbef_bytes=len(image), sbef_limit_bytes=QEMU_SBEF_LIMIT)
             elif cli is not None:
                 scenario.update(stdout_bytes=len(stdout), stdout_sha256=hashlib.sha256(stdout).hexdigest())

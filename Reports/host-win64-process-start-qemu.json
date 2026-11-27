@@ -1,5 +1,5 @@
 {
-  "run": "run-sbef-ring0-7nq8v1x4",
+  "run": "run-sbef-ring0-uainw4zr",
   "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
   "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
   "probe_sha256": "b2215c2323abd063cf34f19f1cd7d8a2045e7f842f271f4b9e560d014b1108ab",
@@ -7,21 +7,21 @@
   "private_pages": 347,
   "user_frame_budget": 64,
   "scratch_bytes_scrubbed": 1421312,
-  "passed": 2,
+  "passed": 3,
   "cases": [
     {
       "case": "msvc-process-start",
-      "sha256": "f9f16ecb1bffcf87d94c4728321c6da80d0b10b491d093198c3499cc5e719ded",
+      "sha256": "61c5c85091653a78c211bc60f728519dd14bdb66d6b998aaa189e67a8e835876",
       "receipt": 0,
-      "user_pages": 63,
+      "user_pages": 64,
       "syscalls": 9,
       "wait_wakes": 0,
       "staging_bytes_scrubbed": 245760,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000003B537",
+        "SBEF FAT32 BYTES 000000000003B7C7",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 000000000000003F",
+        "SBEF USER PAGES 0000000000000040",
         "SBEF WIN64 EXIT 0000000000000000",
         "SBEF SYSCALLS 0000000000000009",
         "SBEF WAIT WAKES 0000000000000000",
@@ -33,19 +33,41 @@
     },
     {
       "case": "clang-cl-process-start",
-      "sha256": "03381135071881223eee5a41435f7e444cc9f0385de96ea629ee1e89109aa7bf",
+      "sha256": "d9bcfe8f52ba16177b4fc2e9397ca51408f9b03a3c21610ae0e78ab2760021aa",
       "receipt": 0,
-      "user_pages": 63,
+      "user_pages": 64,
       "syscalls": 9,
       "wait_wakes": 0,
       "staging_bytes_scrubbed": 245760,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000003B4A1",
+        "SBEF FAT32 BYTES 000000000003B71B",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 000000000000003F",
+        "SBEF USER PAGES 0000000000000040",
         "SBEF WIN64 EXIT 00000000DEADBEEF",
         "SBEF SYSCALLS 0000000000000009",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 000000000003C000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "msvc-process-terminate",
+      "sha256": "4292c21c9dcd2097b45b9c3ad26fbd9d34411887c3bd6a96ee013e55c6bde796",
+      "receipt": 0,
+      "user_pages": 64,
+      "syscalls": 8,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 245760,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 000000000003B7D3",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000040",
+        "SBEF WIN64 EXIT 000000008000002A",
+        "SBEF SYSCALLS 0000000000000008",
         "SBEF WAIT WAKES 0000000000000000",
         "SBEF ABI GATE RESTORED",
         "SBEF FAT32 SCRUBBED 000000000003C000",
@@ -80,7 +102,19 @@
           "FlsAlloc": "bmo_fls_alloc",
           "FlsFree": "bmo_fls_free",
           "FlsGetValue": "bmo_fls_get_value",
-          "FlsSetValue": "bmo_fls_set_value"
+          "FlsSetValue": "bmo_fls_set_value",
+          "GetCurrentThreadId": "bmo_get_current_thread_id",
+          "InitializeCriticalSectionEx": "bmo_initialize_critical_section_ex",
+          "InitializeCriticalSectionAndSpinCount": "bmo_initialize_critical_section_and_spin_count",
+          "EnterCriticalSection": "bmo_enter_critical_section",
+          "LeaveCriticalSection": "bmo_leave_critical_section",
+          "DeleteCriticalSection": "bmo_delete_critical_section",
+          "GetEnvironmentStringsW": "bmo_get_environment_strings_w",
+          "FreeEnvironmentStringsW": "bmo_free_environment_strings_w",
+          "SetEnvironmentVariableW": "bmo_set_environment_variable_w",
+          "GetCurrentProcess": "bmo_get_current_process",
+          "GetCurrentProcessId": "bmo_get_current_process_id",
+          "TerminateProcess": "bmo_terminate_process"
         },
         "Scope": "Single-threaded QEMU startup with UTF-16, UTF-8 ACP, DWORD exit and dynamic TLS/FLS"
       },
@@ -141,18 +175,54 @@
             },
             {
               "Name": "FlsSetValue"
+            },
+            {
+              "Name": "GetCurrentThreadId"
+            },
+            {
+              "Name": "InitializeCriticalSectionEx"
+            },
+            {
+              "Name": "InitializeCriticalSectionAndSpinCount"
+            },
+            {
+              "Name": "EnterCriticalSection"
+            },
+            {
+              "Name": "LeaveCriticalSection"
+            },
+            {
+              "Name": "DeleteCriticalSection"
+            },
+            {
+              "Name": "GetEnvironmentStringsW"
+            },
+            {
+              "Name": "FreeEnvironmentStringsW"
+            },
+            {
+              "Name": "SetEnvironmentVariableW"
+            },
+            {
+              "Name": "GetCurrentProcess"
+            },
+            {
+              "Name": "GetCurrentProcessId"
+            },
+            {
+              "Name": "TerminateProcess"
             }
           ]
         }
       ],
-      "pe_bytes": 244224,
-      "pe_sha256": "5e63aaaa186f6240d3ef0510cc762a729ee17953fceafa2d0145e063fbd0240f",
+      "pe_bytes": 244736,
+      "pe_sha256": "07db9e853ac2801655222ec066c23c6065fab9928268a4984edf3777e4c7d31d",
       "producer": "msvc",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
       "rejected_import": {
         "Code": "PE-SESSION-IMPORT",
-        "Offset": 360,
+        "Offset": 352,
         "Field": "KERNEL32.dll!OtherFile"
       },
       "argv": [
@@ -166,9 +236,9 @@
       "command_line": "\"minigzip demo.exe\" -c \"\" \"datos \u00f1\ud83d\ude00.bin\" a\\\"b \"C:\\dir con espacio\\\\\"",
       "ansi_code_page": 65001,
       "exit_code": 0,
-      "command_line_va": 1076077272,
+      "command_line_va": 1076073752,
       "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
-      "command_line_a_va": 1076077198,
+      "command_line_a_va": 1076073678,
       "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
       "stdout": "Win64 startup, last error, TLS and SList OK\r\nFLS OK\r\n",
       "stdout_bytes": 53,
@@ -179,8 +249,11 @@
       "fls_slots": 128,
       "fls_free_callback_verified": true,
       "fls_exit_callback_verified": true,
+      "terminate_skipped_fls_callback": false,
       "large_readonly_tail_verified": true,
-      "sbef_bytes": 242999,
+      "critical_section_recursion_verified": true,
+      "environment_snapshots_verified": true,
+      "sbef_bytes": 243655,
       "sbef_limit_bytes": 262144
     },
     "clang-cl-process-start": {
@@ -206,7 +279,19 @@
           "FlsAlloc": "bmo_fls_alloc",
           "FlsFree": "bmo_fls_free",
           "FlsGetValue": "bmo_fls_get_value",
-          "FlsSetValue": "bmo_fls_set_value"
+          "FlsSetValue": "bmo_fls_set_value",
+          "GetCurrentThreadId": "bmo_get_current_thread_id",
+          "InitializeCriticalSectionEx": "bmo_initialize_critical_section_ex",
+          "InitializeCriticalSectionAndSpinCount": "bmo_initialize_critical_section_and_spin_count",
+          "EnterCriticalSection": "bmo_enter_critical_section",
+          "LeaveCriticalSection": "bmo_leave_critical_section",
+          "DeleteCriticalSection": "bmo_delete_critical_section",
+          "GetEnvironmentStringsW": "bmo_get_environment_strings_w",
+          "FreeEnvironmentStringsW": "bmo_free_environment_strings_w",
+          "SetEnvironmentVariableW": "bmo_set_environment_variable_w",
+          "GetCurrentProcess": "bmo_get_current_process",
+          "GetCurrentProcessId": "bmo_get_current_process_id",
+          "TerminateProcess": "bmo_terminate_process"
         },
         "Scope": "Single-threaded QEMU startup with UTF-16, UTF-8 ACP, DWORD exit and dynamic TLS/FLS"
       },
@@ -260,7 +345,43 @@
               "Name": "FlsFree"
             },
             {
+              "Name": "GetCurrentThreadId"
+            },
+            {
+              "Name": "InitializeCriticalSectionEx"
+            },
+            {
+              "Name": "InitializeCriticalSectionAndSpinCount"
+            },
+            {
+              "Name": "EnterCriticalSection"
+            },
+            {
+              "Name": "LeaveCriticalSection"
+            },
+            {
+              "Name": "DeleteCriticalSection"
+            },
+            {
+              "Name": "GetEnvironmentStringsW"
+            },
+            {
+              "Name": "SetEnvironmentVariableW"
+            },
+            {
+              "Name": "FreeEnvironmentStringsW"
+            },
+            {
               "Name": "InitializeSListHead"
+            },
+            {
+              "Name": "GetCurrentProcessId"
+            },
+            {
+              "Name": "GetCurrentProcess"
+            },
+            {
+              "Name": "TerminateProcess"
             },
             {
               "Name": "GetStdHandle"
@@ -271,14 +392,14 @@
           ]
         }
       ],
-      "pe_bytes": 244224,
-      "pe_sha256": "76d62f0264a79ba15565e039d2908d4bd5810eec5fbdde6b88971d178dfbc75c",
+      "pe_bytes": 244736,
+      "pe_sha256": "ce8dd4bee62b684baf3536cfc1ce3dcd7a6cf117d3def334e3cf9ff43c213df9",
       "producer": "clang-cl",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
       "rejected_import": {
         "Code": "PE-SESSION-IMPORT",
-        "Offset": 336,
+        "Offset": 352,
         "Field": "KERNEL32.dll!OtherFile"
       },
       "argv": [
@@ -292,9 +413,9 @@
       "command_line": "\"minigzip demo.exe\" -c \"\" \"datos \u00f1\ud83d\ude00.bin\" a\\\"b \"C:\\dir con espacio\\\\\"",
       "ansi_code_page": 65001,
       "exit_code": 3735928559,
-      "command_line_va": 1076077234,
+      "command_line_va": 1076073728,
       "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
-      "command_line_a_va": 1076077161,
+      "command_line_a_va": 1076073654,
       "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
       "stdout": "Win64 startup, last error, TLS and SList OK\r\nFLS OK\r\n",
       "stdout_bytes": 53,
@@ -305,8 +426,188 @@
       "fls_slots": 128,
       "fls_free_callback_verified": true,
       "fls_exit_callback_verified": true,
+      "terminate_skipped_fls_callback": false,
       "large_readonly_tail_verified": true,
-      "sbef_bytes": 242849,
+      "critical_section_recursion_verified": true,
+      "environment_snapshots_verified": true,
+      "sbef_bytes": 243483,
+      "sbef_limit_bytes": 262144
+    },
+    "msvc-process-terminate": {
+      "profile": {
+        "Name": "win64-process-start-v1",
+        "AbiVersion": 1,
+        "DLL": "KERNEL32.dll",
+        "Imports": {
+          "GetStdHandle": "bmo_session_stdout",
+          "WriteFile": "bmo_session_write",
+          "GetCommandLineW": "bmo_get_command_line_w",
+          "GetCommandLineA": "bmo_get_command_line_a",
+          "GetStartupInfoW": "bmo_get_startup_info_w",
+          "GetACP": "bmo_get_acp",
+          "GetLastError": "bmo_get_last_error",
+          "SetLastError": "bmo_set_last_error",
+          "ExitProcess": "bmo_exit_process",
+          "TlsAlloc": "bmo_tls_alloc",
+          "TlsFree": "bmo_tls_free",
+          "TlsGetValue": "bmo_tls_get_value",
+          "TlsSetValue": "bmo_tls_set_value",
+          "InitializeSListHead": "bmo_initialize_slist_head",
+          "FlsAlloc": "bmo_fls_alloc",
+          "FlsFree": "bmo_fls_free",
+          "FlsGetValue": "bmo_fls_get_value",
+          "FlsSetValue": "bmo_fls_set_value",
+          "GetCurrentThreadId": "bmo_get_current_thread_id",
+          "InitializeCriticalSectionEx": "bmo_initialize_critical_section_ex",
+          "InitializeCriticalSectionAndSpinCount": "bmo_initialize_critical_section_and_spin_count",
+          "EnterCriticalSection": "bmo_enter_critical_section",
+          "LeaveCriticalSection": "bmo_leave_critical_section",
+          "DeleteCriticalSection": "bmo_delete_critical_section",
+          "GetEnvironmentStringsW": "bmo_get_environment_strings_w",
+          "FreeEnvironmentStringsW": "bmo_free_environment_strings_w",
+          "SetEnvironmentVariableW": "bmo_set_environment_variable_w",
+          "GetCurrentProcess": "bmo_get_current_process",
+          "GetCurrentProcessId": "bmo_get_current_process_id",
+          "TerminateProcess": "bmo_terminate_process"
+        },
+        "Scope": "Single-threaded QEMU startup with UTF-16, UTF-8 ACP, DWORD exit and dynamic TLS/FLS"
+      },
+      "imports": [
+        {
+          "DLL": "KERNEL32.dll",
+          "Symbols": [
+            {
+              "Name": "GetCommandLineW"
+            },
+            {
+              "Name": "GetCommandLineA"
+            },
+            {
+              "Name": "GetStartupInfoW"
+            },
+            {
+              "Name": "GetACP"
+            },
+            {
+              "Name": "GetLastError"
+            },
+            {
+              "Name": "SetLastError"
+            },
+            {
+              "Name": "ExitProcess"
+            },
+            {
+              "Name": "GetStdHandle"
+            },
+            {
+              "Name": "WriteFile"
+            },
+            {
+              "Name": "TlsAlloc"
+            },
+            {
+              "Name": "TlsFree"
+            },
+            {
+              "Name": "TlsGetValue"
+            },
+            {
+              "Name": "TlsSetValue"
+            },
+            {
+              "Name": "InitializeSListHead"
+            },
+            {
+              "Name": "FlsAlloc"
+            },
+            {
+              "Name": "FlsFree"
+            },
+            {
+              "Name": "FlsGetValue"
+            },
+            {
+              "Name": "FlsSetValue"
+            },
+            {
+              "Name": "GetCurrentThreadId"
+            },
+            {
+              "Name": "InitializeCriticalSectionEx"
+            },
+            {
+              "Name": "InitializeCriticalSectionAndSpinCount"
+            },
+            {
+              "Name": "EnterCriticalSection"
+            },
+            {
+              "Name": "LeaveCriticalSection"
+            },
+            {
+              "Name": "DeleteCriticalSection"
+            },
+            {
+              "Name": "GetEnvironmentStringsW"
+            },
+            {
+              "Name": "FreeEnvironmentStringsW"
+            },
+            {
+              "Name": "SetEnvironmentVariableW"
+            },
+            {
+              "Name": "GetCurrentProcess"
+            },
+            {
+              "Name": "GetCurrentProcessId"
+            },
+            {
+              "Name": "TerminateProcess"
+            }
+          ]
+        }
+      ],
+      "pe_bytes": 244736,
+      "pe_sha256": "06b118ebff4ce1a89b67b221b310a913d617091867d9712be1546bf394b781fc",
+      "producer": "msvc",
+      "msvc_toolset": "14.44.35207",
+      "sdk": "10.0.26100.0",
+      "rejected_import": {
+        "Code": "PE-SESSION-IMPORT",
+        "Offset": 352,
+        "Field": "KERNEL32.dll!OtherFile"
+      },
+      "argv": [
+        "minigzip demo.exe",
+        "-c",
+        "",
+        "datos \u00f1\ud83d\ude00.bin",
+        "a\"b",
+        "C:\\dir con espacio\\"
+      ],
+      "command_line": "\"minigzip demo.exe\" -c \"\" \"datos \u00f1\ud83d\ude00.bin\" a\\\"b \"C:\\dir con espacio\\\\\"",
+      "ansi_code_page": 65001,
+      "exit_code": 2147483690,
+      "command_line_va": 1076073752,
+      "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
+      "command_line_a_va": 1076073678,
+      "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
+      "stdout": "Win64 startup, last error, TLS and SList OK\r\n",
+      "stdout_bytes": 45,
+      "oversized_exit_rejected": true,
+      "dynamic_tls_slots": 64,
+      "dynamic_tls_reuse_verified": true,
+      "slist_header_bytes": 16,
+      "fls_slots": 128,
+      "fls_free_callback_verified": true,
+      "fls_exit_callback_verified": false,
+      "terminate_skipped_fls_callback": true,
+      "large_readonly_tail_verified": true,
+      "critical_section_recursion_verified": true,
+      "environment_snapshots_verified": true,
+      "sbef_bytes": 243667,
       "sbef_limit_bytes": 262144
     }
   },
@@ -327,27 +628,26 @@
       "size_of_image": 241664,
       "guard_flags": 256,
       "imports": {
-        "available_in_fixture": 31,
-        "missing": 49,
+        "available_in_fixture": 43,
+        "missing": 37,
         "ordinal": 0
       },
       "groups": {
         "Arranque y entorno": {
           "fixture": [
-            "GetStartupInfoW",
-            "ExitProcess",
-            "GetCommandLineA",
-            "GetCommandLineW"
-          ],
-          "pending": [
             "GetCurrentProcess",
             "TerminateProcess",
             "GetCurrentProcessId",
             "GetCurrentThreadId",
+            "GetStartupInfoW",
+            "ExitProcess",
+            "GetCommandLineA",
+            "GetCommandLineW",
             "GetEnvironmentStringsW",
             "FreeEnvironmentStringsW",
             "SetEnvironmentVariableW"
-          ]
+          ],
+          "pending": []
         },
         "Archivos y consola": {
           "fixture": [
@@ -391,6 +691,10 @@
         "TLS y sincronizacion": {
           "fixture": [
             "InitializeSListHead",
+            "EnterCriticalSection",
+            "LeaveCriticalSection",
+            "DeleteCriticalSection",
+            "InitializeCriticalSectionAndSpinCount",
             "TlsAlloc",
             "TlsGetValue",
             "TlsSetValue",
@@ -398,15 +702,10 @@
             "FlsAlloc",
             "FlsGetValue",
             "FlsSetValue",
-            "FlsFree"
-          ],
-          "pending": [
-            "EnterCriticalSection",
-            "LeaveCriticalSection",
-            "DeleteCriticalSection",
-            "InitializeCriticalSectionAndSpinCount",
+            "FlsFree",
             "InitializeCriticalSectionEx"
-          ]
+          ],
+          "pending": []
         },
         "Cargador de modulos": {
           "fixture": [],
@@ -476,27 +775,26 @@
       "size_of_image": 258048,
       "guard_flags": 256,
       "imports": {
-        "available_in_fixture": 31,
-        "missing": 49,
+        "available_in_fixture": 43,
+        "missing": 37,
         "ordinal": 0
       },
       "groups": {
         "Arranque y entorno": {
           "fixture": [
             "ExitProcess",
+            "FreeEnvironmentStringsW",
             "GetCommandLineA",
             "GetCommandLineW",
-            "GetStartupInfoW"
-          ],
-          "pending": [
-            "FreeEnvironmentStringsW",
             "GetCurrentProcess",
             "GetCurrentProcessId",
             "GetCurrentThreadId",
             "GetEnvironmentStringsW",
+            "GetStartupInfoW",
             "SetEnvironmentVariableW",
             "TerminateProcess"
-          ]
+          ],
+          "pending": []
         },
         "Archivos y consola": {
           "fixture": [
@@ -539,23 +837,22 @@
         },
         "TLS y sincronizacion": {
           "fixture": [
+            "DeleteCriticalSection",
+            "EnterCriticalSection",
             "FlsAlloc",
             "FlsFree",
             "FlsGetValue",
             "FlsSetValue",
+            "InitializeCriticalSectionAndSpinCount",
+            "InitializeCriticalSectionEx",
             "InitializeSListHead",
+            "LeaveCriticalSection",
             "TlsAlloc",
             "TlsFree",
             "TlsGetValue",
             "TlsSetValue"
           ],
-          "pending": [
-            "DeleteCriticalSection",
-            "EnterCriticalSection",
-            "InitializeCriticalSectionAndSpinCount",
-            "InitializeCriticalSectionEx",
-            "LeaveCriticalSection"
-          ]
+          "pending": []
         },
         "Cargador de modulos": {
           "fixture": [],

@@ -369,6 +369,19 @@ verifica que liberar un indice con un valor ejecuta su callback una sola
 vez y que `ExitProcess` ejecuta el callback pendiente antes de entregar
 el codigo de salida al supervisor. La sonda usa un unico contexto FLS.
 [Contrato de callbacks FLS](https://learn.microsoft.com/en-us/windows/win32/api/winnt/nc-winnt-pfls_callback_function).
+
+El perfil tambien verifica las cinco importaciones de secciones criticas
+que usa el PE, con recursion, propiedad del hilo, liberacion y reuso. La
+sesion tiene un hilo y desactiva la espera activa. Las API de identidad
+devuelven los identificadores de la sesion. `TerminateProcess` admite el
+pseudohandle propio y termina con el DWORD indicado sin recorrer los
+callbacks de FLS.
+
+El entorno parte vacio y admite 512 unidades UTF-16, dos copias activas
+y nombres ASCII sin distincion de mayusculas. Las copias conservan el
+estado que tenia el bloque cuando se solicitaron. La prueba cubre la
+insercion ordenada, sustitucion, borrado y rechazo de cambios que
+excedan la capacidad.
 [Informe del arranque Win64 y admision del PE original](../../Reports/host-win64-process-start-qemu.json).
 
 ```powershell
@@ -398,14 +411,14 @@ indices del proceso de los valores de cada hilo.
 [TLS de Wine](https://github.com/wine-mirror/wine/blob/master/dlls/kernelbase/thread.c).
 
 Los dos PE originales importan 80 simbolos de `KERNEL32.dll`.
-Hay 31 destinos con evidencia en perfiles acotados y 49 pendientes.
+Hay 43 destinos con evidencia en perfiles acotados y 37 pendientes.
 El informe de QEMU registra ambos hashes y los nombres por area.
 Los PE declaran 241664 bytes (MSVC) y 258048 bytes (clang-cl) de imagen.
 El lector FAT32 y el supervisor de QEMU aceptan hasta 262144 bytes de
-archivo SBEF. El banco del proceso verifico paquetes de 242999 y
-242849 bytes con MSVC y clang-cl, incluyendo la lectura del extremo de
+archivo SBEF. El banco del proceso verifico paquetes de 243483 a
+243667 bytes con MSVC y clang-cl, incluyendo la lectura del extremo de
 la region de solo lectura y el borrado del area temporal. Cada caso
-uso 63 de 64 marcos de usuario. El presupuesto de marcos para la imagen
+uso los 64 marcos de usuario. El presupuesto de marcos para la imagen
 original depende de las secciones, el runtime integrado y la pila.
 
 La admision del original requiere resolver la IAT contra el runtime
