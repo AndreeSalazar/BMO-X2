@@ -31,6 +31,10 @@ __declspec(dllimport) void SetLastError(unsigned long);
 __declspec(dllimport) void ExitProcess(unsigned long);
 __declspec(dllimport) void* GetStdHandle(unsigned long);
 __declspec(dllimport) int SetStdHandle(unsigned long, void*);
+__declspec(dllimport) int GetConsoleMode(void*, unsigned long*);
+__declspec(dllimport) unsigned GetConsoleOutputCP(void);
+__declspec(dllimport) int ReadConsoleW(void*, wchar_t*, unsigned long, unsigned long*, void*);
+__declspec(dllimport) int WriteConsoleW(void*, const wchar_t*, unsigned long, unsigned long*, void*);
 __declspec(dllimport) int WriteFile(void*, const void*, unsigned long, unsigned long*, void*);
 __declspec(dllimport) unsigned long TlsAlloc(void);
 __declspec(dllimport) int TlsFree(unsigned long);
@@ -208,6 +212,15 @@ static void check_std_handles(void) {
     constexpr auto out = static_cast<unsigned long>(-11);
     constexpr auto err = static_cast<unsigned long>(-12);
     auto* original = GetStdHandle(out);
+    unsigned long mode = 0xa5;
+    unsigned long chars = 0x5a;
+    wchar_t buffer[] = L"z";
+    if (GetConsoleMode(original, &mode) || GetLastError() != 6 || mode != 0xa5 ||
+        GetConsoleOutputCP() || GetLastError() != 6 ||
+        ReadConsoleW(GetStdHandle(in), buffer, 1, &chars, nullptr) || GetLastError() != 6 ||
+        buffer[0] != L'z' || chars != 0x5a ||
+        WriteConsoleW(original, buffer, 1, &chars, nullptr) || GetLastError() != 6 ||
+        chars != 0x5a) ExitProcess(189);
     auto* redirected = reinterpret_cast<void*>(0x1234);
     if (!original || GetStdHandle(in) || GetStdHandle(err) != original ||
         !SetStdHandle(out, redirected) || GetStdHandle(out) != redirected ||

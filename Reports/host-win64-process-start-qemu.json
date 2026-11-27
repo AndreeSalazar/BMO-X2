@@ -1,5 +1,5 @@
 {
-  "run": "run-sbef-ring0-7lg85hpx",
+  "run": "run-sbef-ring0-17kq2swr",
   "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
   "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
   "probe_sha256": "4c801bc0180fca9daa4d4a914bdf9fa167e607297b1b673761d39920f6d24092",
@@ -11,7 +11,7 @@
   "cases": [
     {
       "case": "msvc-process-start",
-      "sha256": "60ffa59977945d607cf5b934ec8985b0c6ad4c8a32cfab49ca22802b2ced68fd",
+      "sha256": "e300644390bc216664ddbff425f5c7ad28fd72dfb7fde467d9686574fa229dfa",
       "receipt": 0,
       "user_pages": 70,
       "syscalls": 14,
@@ -19,7 +19,7 @@
       "staging_bytes_scrubbed": 258048,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000003EDCC",
+        "SBEF FAT32 BYTES 000000000003EFFD",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000046",
         "SBEF WIN64 EXIT 0000000000000000",
@@ -33,51 +33,51 @@
     },
     {
       "case": "clang-cl-process-start",
-      "sha256": "13bdb778e0a32014618ca43c990b57ac5dcfe860913d506e7c724c697e1d03d6",
+      "sha256": "2f68cc0da727983beb4ef492de3238961668ac165aa9a50cf4f4d75e60b3c44b",
       "receipt": 0,
       "user_pages": 70,
       "syscalls": 14,
       "wait_wakes": 2,
-      "staging_bytes_scrubbed": 258048,
+      "staging_bytes_scrubbed": 262144,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000003EDC1",
+        "SBEF FAT32 BYTES 000000000003F021",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000046",
         "SBEF WIN64 EXIT 00000000DEADBEEF",
         "SBEF SYSCALLS 000000000000000E",
         "SBEF WAIT WAKES 0000000000000002",
         "SBEF ABI GATE RESTORED",
-        "SBEF FAT32 SCRUBBED 000000000003F000",
+        "SBEF FAT32 SCRUBBED 0000000000040000",
         "SBEF MAP RESTORED AND SCRUBBED"
       ],
       "passed": true
     },
     {
       "case": "msvc-process-terminate",
-      "sha256": "c7ce4b9f7773dc9ff406452b0a9a4dc54687233c42d7e9fe56f1333280e37bd7",
+      "sha256": "42b0dd65f6db81423cca09f94a985f9ae778a83c2c21997577bf1028efdb825b",
       "receipt": 0,
       "user_pages": 70,
       "syscalls": 13,
       "wait_wakes": 2,
-      "staging_bytes_scrubbed": 258048,
+      "staging_bytes_scrubbed": 262144,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000003EDD8",
+        "SBEF FAT32 BYTES 000000000003F009",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000046",
         "SBEF WIN64 EXIT 000000008000002A",
         "SBEF SYSCALLS 000000000000000D",
         "SBEF WAIT WAKES 0000000000000002",
         "SBEF ABI GATE RESTORED",
-        "SBEF FAT32 SCRUBBED 000000000003F000",
+        "SBEF FAT32 SCRUBBED 0000000000040000",
         "SBEF MAP RESTORED AND SCRUBBED"
       ],
       "passed": true
     },
     {
       "case": "msvc-process-page-budget",
-      "sha256": "00cda14cbfd1ba0093aa6ef648e90253bec7810ab6377fe190d0ffd43dde5122",
+      "sha256": "594e3cb9d265f01280eaf32b0644b2d7d5a22618782af67a978f70320cb3cd89",
       "receipt": 0,
       "user_pages": 0,
       "syscalls": 0,
@@ -85,7 +85,7 @@
       "staging_bytes_scrubbed": 258048,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000003EDCC",
+        "SBEF FAT32 BYTES 000000000003EFFD",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER BUDGET",
         "SBEF REJECTED BEFORE USER MAP",
@@ -106,6 +106,10 @@
         "Imports": {
           "GetStdHandle": "bmo_get_std_handle",
           "SetStdHandle": "bmo_set_std_handle",
+          "GetConsoleMode": "bmo_get_console_mode",
+          "GetConsoleOutputCP": "bmo_get_console_output_cp",
+          "ReadConsoleW": "bmo_read_console_w",
+          "WriteConsoleW": "bmo_write_console_w",
           "WriteFile": "bmo_session_write",
           "GetCommandLineW": "bmo_get_command_line_w",
           "GetCommandLineA": "bmo_get_command_line_a",
@@ -250,6 +254,18 @@
               "Name": "SetStdHandle"
             },
             {
+              "Name": "GetConsoleMode"
+            },
+            {
+              "Name": "GetConsoleOutputCP"
+            },
+            {
+              "Name": "ReadConsoleW"
+            },
+            {
+              "Name": "WriteConsoleW"
+            },
+            {
               "Name": "WriteFile"
             },
             {
@@ -318,8 +334,8 @@
           ]
         }
       ],
-      "pe_bytes": 259072,
-      "pe_sha256": "2b15951c7dd6bd3c72fbc4a72ec57611c8d684e08fe0ca500edd3560ed24fab9",
+      "pe_bytes": 259584,
+      "pe_sha256": "a645126d8d788cb6db6ba782619f3120d4fcbea9491a305447eaea0c0eeccc5f",
       "producer": "msvc",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
@@ -342,14 +358,14 @@
       "ansi_code_page": 65001,
       "exit_code": 0,
       "image_base": 1071644672,
-      "runtime_function_count": 52,
-      "runtime_function_sha256": "478d381999195a37613b26d969d6cb81d9a93db6769e492324910c6b9cc0aac4",
-      "command_line_va": 1076076362,
+      "runtime_function_count": 54,
+      "runtime_function_sha256": "8b10d7a0ef02ee0401a324436636e83faa1053d1096ac01723f648fc2eb05c27",
+      "command_line_va": 1076076546,
       "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
-      "command_line_a_va": 1076076288,
+      "command_line_a_va": 1076076472,
       "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
-      "resident_export_count": 52,
-      "resident_exports_sha256": "da4e5fb50a336dd970385f215900265ffa8e2516620c87a7433965840b779f56",
+      "resident_export_count": 56,
+      "resident_exports_sha256": "fb4ac915603a49a825a65e9522ced9d7eff08fb73be565bcb88b8cba8d5fb55c",
       "stdout": "Win64 startup, last error, TLS and SList OK\r\nFLS OK\r\n",
       "stdout_bytes": 53,
       "oversized_exit_rejected": true,
@@ -373,7 +389,8 @@
       "capture_context_verified": true,
       "runtime_function_lookup_verified": true,
       "explicit_exception_filter_verified": true,
-      "sbef_bytes": 257484,
+      "redirected_console_behavior_verified": true,
+      "sbef_bytes": 258045,
       "sbef_limit_bytes": 262144
     },
     "clang-cl-process-start": {
@@ -384,6 +401,10 @@
         "Imports": {
           "GetStdHandle": "bmo_get_std_handle",
           "SetStdHandle": "bmo_set_std_handle",
+          "GetConsoleMode": "bmo_get_console_mode",
+          "GetConsoleOutputCP": "bmo_get_console_output_cp",
+          "ReadConsoleW": "bmo_read_console_w",
+          "WriteConsoleW": "bmo_write_console_w",
           "WriteFile": "bmo_session_write",
           "GetCommandLineW": "bmo_get_command_line_w",
           "GetCommandLineA": "bmo_get_command_line_a",
@@ -564,6 +585,9 @@
               "Name": "GetStdHandle"
             },
             {
+              "Name": "GetConsoleMode"
+            },
+            {
               "Name": "WriteFile"
             },
             {
@@ -585,6 +609,15 @@
               "Name": "IsProcessorFeaturePresent"
             },
             {
+              "Name": "GetConsoleOutputCP"
+            },
+            {
+              "Name": "ReadConsoleW"
+            },
+            {
+              "Name": "WriteConsoleW"
+            },
+            {
               "Name": "RtlCaptureContext"
             },
             {
@@ -596,14 +629,14 @@
           ]
         }
       ],
-      "pe_bytes": 259072,
-      "pe_sha256": "1d6a44658c5ce31bbc32fa0065a6ae7c3aa5eaf33b41453804ee363321075554",
+      "pe_bytes": 259584,
+      "pe_sha256": "85207a9d0a24a1622a347627f2e6bf5f13f5b187e9dfb0283a7c8b330b69068e",
       "producer": "clang-cl",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
       "rejected_import": {
         "Code": "PE-SESSION-IMPORT",
-        "Offset": 336,
+        "Offset": 344,
         "Field": "KERNEL32.dll!OtherFile"
       },
       "argv": [
@@ -620,14 +653,14 @@
       "ansi_code_page": 65001,
       "exit_code": 3735928559,
       "image_base": 1071644672,
-      "runtime_function_count": 44,
-      "runtime_function_sha256": "f1af7c5ddf253487c0952e3db32d83e77a3e4df99d41d52dfccbae22cd860fc0",
-      "command_line_va": 1076076378,
+      "runtime_function_count": 45,
+      "runtime_function_sha256": "6724014102555c68756823b7c5bf0f944845bee511e600ad592a78d453310bf7",
+      "command_line_va": 1076076546,
       "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
-      "command_line_a_va": 1076076304,
+      "command_line_a_va": 1076076472,
       "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
-      "resident_export_count": 52,
-      "resident_exports_sha256": "7ed49e091cbee8d3c7bb4eefbfcc20060aa87de765ab704b44ec765a6636de89",
+      "resident_export_count": 56,
+      "resident_exports_sha256": "f86babbdb1bf8b144f47ac0948cab019d5e8a0600c5678775845407e4afb5dd2",
       "stdout": "Win64 startup, last error, TLS and SList OK\r\nFLS OK\r\n",
       "stdout_bytes": 53,
       "oversized_exit_rejected": true,
@@ -651,7 +684,8 @@
       "capture_context_verified": true,
       "runtime_function_lookup_verified": true,
       "explicit_exception_filter_verified": true,
-      "sbef_bytes": 257473,
+      "redirected_console_behavior_verified": true,
+      "sbef_bytes": 258081,
       "sbef_limit_bytes": 262144
     },
     "msvc-process-terminate": {
@@ -662,6 +696,10 @@
         "Imports": {
           "GetStdHandle": "bmo_get_std_handle",
           "SetStdHandle": "bmo_set_std_handle",
+          "GetConsoleMode": "bmo_get_console_mode",
+          "GetConsoleOutputCP": "bmo_get_console_output_cp",
+          "ReadConsoleW": "bmo_read_console_w",
+          "WriteConsoleW": "bmo_write_console_w",
           "WriteFile": "bmo_session_write",
           "GetCommandLineW": "bmo_get_command_line_w",
           "GetCommandLineA": "bmo_get_command_line_a",
@@ -806,6 +844,18 @@
               "Name": "SetStdHandle"
             },
             {
+              "Name": "GetConsoleMode"
+            },
+            {
+              "Name": "GetConsoleOutputCP"
+            },
+            {
+              "Name": "ReadConsoleW"
+            },
+            {
+              "Name": "WriteConsoleW"
+            },
+            {
               "Name": "WriteFile"
             },
             {
@@ -874,8 +924,8 @@
           ]
         }
       ],
-      "pe_bytes": 259072,
-      "pe_sha256": "dbf8e74b8bfe82cc5a9f98d42b5985407e02e38a54e1956df9ef7e58599725b0",
+      "pe_bytes": 259584,
+      "pe_sha256": "52456edc77ec8639823c161e40915cc80ca02401762b1fdc76455317c0990b68",
       "producer": "msvc",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
@@ -898,14 +948,14 @@
       "ansi_code_page": 65001,
       "exit_code": 2147483690,
       "image_base": 1071644672,
-      "runtime_function_count": 52,
-      "runtime_function_sha256": "319c5de8664e4910255a20630915f305014bb45bd08698de28142a4676400637",
-      "command_line_va": 1076076362,
+      "runtime_function_count": 54,
+      "runtime_function_sha256": "74eb4d31b6380f488da59a7debcbece1f2107d43803b0af0dd5ef04b8f413760",
+      "command_line_va": 1076076546,
       "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
-      "command_line_a_va": 1076076288,
+      "command_line_a_va": 1076076472,
       "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
-      "resident_export_count": 52,
-      "resident_exports_sha256": "da4e5fb50a336dd970385f215900265ffa8e2516620c87a7433965840b779f56",
+      "resident_export_count": 56,
+      "resident_exports_sha256": "fb4ac915603a49a825a65e9522ced9d7eff08fb73be565bcb88b8cba8d5fb55c",
       "stdout": "Win64 startup, last error, TLS and SList OK\r\n",
       "stdout_bytes": 45,
       "oversized_exit_rejected": true,
@@ -929,7 +979,8 @@
       "capture_context_verified": true,
       "runtime_function_lookup_verified": true,
       "explicit_exception_filter_verified": true,
-      "sbef_bytes": 257496,
+      "redirected_console_behavior_verified": true,
+      "sbef_bytes": 258057,
       "sbef_limit_bytes": 262144
     }
   },
@@ -950,8 +1001,8 @@
       "size_of_image": 241664,
       "guard_flags": 256,
       "imports": {
-        "available_in_fixture": 67,
-        "missing": 13,
+        "available_in_fixture": 71,
+        "missing": 9,
         "ordinal": 0
       },
       "groups": {
@@ -973,6 +1024,7 @@
         },
         "Archivos y consola": {
           "fixture": [
+            "WriteConsoleW",
             "GetLastError",
             "SetLastError",
             "CreateFileW",
@@ -982,6 +1034,9 @@
             "GetStdHandle",
             "WriteFile",
             "ReadFile",
+            "GetConsoleMode",
+            "ReadConsoleW",
+            "GetConsoleOutputCP",
             "SetStdHandle",
             "SetEndOfFile",
             "GetFileSizeEx",
@@ -991,12 +1046,7 @@
             "DeleteFileW",
             "FlushFileBuffers"
           ],
-          "pending": [
-            "WriteConsoleW",
-            "GetConsoleMode",
-            "ReadConsoleW",
-            "GetConsoleOutputCP"
-          ]
+          "pending": []
         },
         "Memoria": {
           "fixture": [
@@ -1099,8 +1149,8 @@
       "size_of_image": 258048,
       "guard_flags": 256,
       "imports": {
-        "available_in_fixture": 67,
-        "missing": 13,
+        "available_in_fixture": 71,
+        "missing": 9,
         "ordinal": 0
       },
       "groups": {
@@ -1129,23 +1179,22 @@
             "FindFirstFileExW",
             "FindNextFileW",
             "FlushFileBuffers",
+            "GetConsoleMode",
+            "GetConsoleOutputCP",
             "GetFileSizeEx",
             "GetFileType",
             "GetLastError",
             "GetStdHandle",
+            "ReadConsoleW",
             "ReadFile",
             "SetEndOfFile",
             "SetFilePointerEx",
             "SetLastError",
             "SetStdHandle",
+            "WriteConsoleW",
             "WriteFile"
           ],
-          "pending": [
-            "GetConsoleMode",
-            "GetConsoleOutputCP",
-            "ReadConsoleW",
-            "WriteConsoleW"
-          ]
+          "pending": []
         },
         "Memoria": {
           "fixture": [

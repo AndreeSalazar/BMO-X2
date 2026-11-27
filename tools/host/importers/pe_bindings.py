@@ -71,6 +71,10 @@ WIN64_PROCESS_PROFILE = {
     'Imports': {
         'GetStdHandle': 'bmo_get_std_handle',
         'SetStdHandle': 'bmo_set_std_handle',
+        'GetConsoleMode': 'bmo_get_console_mode',
+        'GetConsoleOutputCP': 'bmo_get_console_output_cp',
+        'ReadConsoleW': 'bmo_read_console_w',
+        'WriteConsoleW': 'bmo_write_console_w',
         'WriteFile': SESSION_EXPORTS['WriteFile'],
         'GetCommandLineW': 'bmo_get_command_line_w',
         'GetCommandLineA': 'bmo_get_command_line_a',

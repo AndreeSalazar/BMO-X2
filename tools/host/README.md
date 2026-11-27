@@ -467,6 +467,11 @@ con NUL y rechazo de un modulo ajeno al perfil. `SetStdHandle` actualiza
 las tres ranuras de la sesion. El banco parte con salida y error
 redirigidos al mismo flujo y sin entrada heredada. Verifica que cambiar
 una ranura conserva las demas y que la escritura valida el handle.
+El perfil de salida redirigida verifica que `GetConsoleMode`,
+`GetConsoleOutputCP`, `ReadConsoleW` y `WriteConsoleW` devuelven
+`ERROR_INVALID_HANDLE` cuando la sesion carece de consola Win64.
+La salida binaria se escribe con `WriteFile`. La consola interactiva
+queda fuera de esta evidencia.
 
 El runtime registra el ejecutable principal y un proveedor residente
 `KERNEL32.dll`. El HOST genera una tabla de solo lectura a partir del
@@ -523,12 +528,12 @@ indices del proceso de los valores de cada hilo.
 [TLS de Wine](https://github.com/wine-mirror/wine/blob/master/dlls/kernelbase/thread.c).
 
 Los dos PE originales importan 80 simbolos de `KERNEL32.dll`.
-Hay 67 destinos con evidencia en perfiles acotados y 13 pendientes.
+Hay 71 destinos con evidencia en perfiles acotados y 9 pendientes.
 El informe de QEMU registra ambos hashes y los nombres por area.
 Los PE declaran 241664 bytes (MSVC) y 258048 bytes (clang-cl) de imagen.
 El lector FAT32 y el supervisor de QEMU aceptan hasta 262144 bytes de
-archivo SBEF. El banco del proceso verifico paquetes de 257473 a
-257496 bytes con MSVC y clang-cl. Cada ejecucion uso 69 paginas de
+archivo SBEF. El banco del proceso verifico paquetes de 258045 a
+258081 bytes con MSVC y clang-cl. Cada ejecucion uso 69 paginas de
 regiones y una de pila. Este perfil dispone de 96 marcos para las
 regiones y rechaza una solicitud de 97 antes de publicar los mapeos.
 El perfil general de QEMU conserva su limite de 64 marcos para regiones.

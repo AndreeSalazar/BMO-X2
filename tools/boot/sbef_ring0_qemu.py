@@ -813,6 +813,7 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                                          runtime_module_lookup_verified=True, dynamic_export_call_verified=True,
                                          capture_context_verified=True, runtime_function_lookup_verified=True,
                                          explicit_exception_filter_verified=True,
+                                         redirected_console_behavior_verified=True,
                                          sbef_bytes=len(image), sbef_limit_bytes=QEMU_SBEF_LIMIT)
             elif cli is not None:
                 scenario.update(stdout_bytes=len(stdout), stdout_sha256=hashlib.sha256(stdout).hexdigest())
