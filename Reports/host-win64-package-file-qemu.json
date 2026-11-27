@@ -1,5 +1,5 @@
 {
-  "run": "run-sbef-ring0-ftjh4r6k",
+  "run": "run-sbef-ring0-lpvgrpwo",
   "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
   "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
   "probe_sha256": "6cb305e8b7460744f29ff5591b784c3acc0072bdfb7277ff750f5690f9e2a4a6",
@@ -11,7 +11,7 @@
   "cases": [
     {
       "case": "msvc-package-file",
-      "sha256": "e81bca16ca55fafe8ef73a4238c666926e5e99fba12c1d5c841926942707a67e",
+      "sha256": "ca81a2cd17b42a13daeeda6dbc5cef49771df9d54208e3206e4cffaaddb0edcf",
       "receipt": 0,
       "user_pages": 26,
       "syscalls": 11,
@@ -19,7 +19,7 @@
       "staging_bytes_scrubbed": 12288,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 0000000000002581",
+        "SBEF FAT32 BYTES 00000000000028F1",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 000000000000001A",
         "SBEF WIN64 EXIT 0000000000000000",
@@ -33,7 +33,7 @@
     },
     {
       "case": "clang-cl-package-file",
-      "sha256": "8f36bbbde3d4717504c95defda026025020262fdc1f27d36bd7d906ab3f46a9e",
+      "sha256": "19d8bdb632729dff43f22bfeedd824549bf3625d6fdd40d2a60ba0a6896ffeff",
       "receipt": 0,
       "user_pages": 26,
       "syscalls": 11,
@@ -41,7 +41,7 @@
       "staging_bytes_scrubbed": 12288,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 0000000000002509",
+        "SBEF FAT32 BYTES 00000000000028C9",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 000000000000001A",
         "SBEF WIN64 EXIT 0000000000000000",
@@ -69,12 +69,14 @@
         "HeapAlloc": "bmo_heap_alloc",
         "HeapFree": "bmo_heap_free",
         "HeapReAlloc": "bmo_heap_realloc",
+        "HeapSize": "bmo_heap_size",
         "CreateFileW": "bmo_package_open",
         "ReadFile": "bmo_package_read",
         "CloseHandle": "bmo_package_close",
         "GetLastError": "bmo_get_last_error",
         "GetFileType": "bmo_package_file_type",
-        "GetFileSizeEx": "bmo_package_file_size"
+        "GetFileSizeEx": "bmo_package_file_size",
+        "SetFilePointerEx": "bmo_package_seek"
       },
       "Scope": "External single-threaded QEMU fixture with a read-only package input"
     },
@@ -104,6 +106,9 @@
             "Name": "HeapFree"
           },
           {
+            "Name": "HeapSize"
+          },
+          {
             "Name": "CreateFileW"
           },
           {
@@ -120,18 +125,21 @@
           },
           {
             "Name": "GetFileSizeEx"
+          },
+          {
+            "Name": "SetFilePointerEx"
           }
         ]
       }
     ],
-    "pe_bytes": 10752,
-    "pe_sha256": "34bd0ec8c250cd25bb49e2999d548075d41b8577d9110b2a69ac6b66143f3bbd",
+    "pe_bytes": 11776,
+    "pe_sha256": "3180d36e9384c00602c3f4f15f13991e036ad1e6f7578ae001dac55f15bc7747",
     "producer": "msvc",
     "msvc_toolset": "14.44.35207",
     "sdk": "10.0.26100.0",
     "rejected_import": {
       "Code": "PE-SESSION-IMPORT",
-      "Offset": 344,
+      "Offset": 352,
       "Field": "KERNEL32.dll!OtherFile"
     },
     "package_file": {
@@ -152,12 +160,14 @@
           "HeapAlloc": "bmo_heap_alloc",
           "HeapFree": "bmo_heap_free",
           "HeapReAlloc": "bmo_heap_realloc",
+          "HeapSize": "bmo_heap_size",
           "CreateFileW": "bmo_package_open",
           "ReadFile": "bmo_package_read",
           "CloseHandle": "bmo_package_close",
           "GetLastError": "bmo_get_last_error",
           "GetFileType": "bmo_package_file_type",
-          "GetFileSizeEx": "bmo_package_file_size"
+          "GetFileSizeEx": "bmo_package_file_size",
+          "SetFilePointerEx": "bmo_package_seek"
         },
         "Scope": "External single-threaded QEMU fixture with a read-only package input"
       },
@@ -181,6 +191,9 @@
               "Name": "HeapAlloc"
             },
             {
+              "Name": "HeapSize"
+            },
+            {
               "Name": "HeapFree"
             },
             {
@@ -202,19 +215,22 @@
               "Name": "ReadFile"
             },
             {
+              "Name": "SetFilePointerEx"
+            },
+            {
               "Name": "CloseHandle"
             }
           ]
         }
       ],
-      "pe_bytes": 10752,
-      "pe_sha256": "9c502c9f97e3e0bcc529ab13f2c712d85b791f00ac885d6777b6586e08903cd4",
+      "pe_bytes": 11776,
+      "pe_sha256": "6e443784eee367aaa73974e56b410cb22e136bdaa5be5e639b079a9e1521eef5",
       "producer": "clang-cl",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
       "rejected_import": {
         "Code": "PE-SESSION-IMPORT",
-        "Offset": 344,
+        "Offset": 352,
         "Field": "KERNEL32.dll!OtherFile"
       },
       "package_file": {
@@ -225,5 +241,37 @@
     },
     "stdout": "Hola mundo desde C++ / MSVC en BMO-X2\r\n",
     "stdout_bytes": 39
+  },
+  "original_minigzip_admission": {
+    "msvc": {
+      "input_sha256": "e01b3b7f663763291a75058343bff61a5dc651e6f4b8be1e786b65def8d5a5be",
+      "pack_rejection": "PE-IMPORTS",
+      "imports": {
+        "available_in_fixture": 22,
+        "missing": 58,
+        "ordinal": 0
+      },
+      "blockers": [
+        "PE-IMPORTS",
+        "PE-LOAD-CONFIG",
+        "PE-IAT"
+      ],
+      "qemu_ran": false
+    },
+    "clang-cl": {
+      "input_sha256": "b5fc3970f3ce6784436cc31bc45738cbd9ce75a054af1be146939d9672754020",
+      "pack_rejection": "PE-IMPORTS",
+      "imports": {
+        "available_in_fixture": 22,
+        "missing": 58,
+        "ordinal": 0
+      },
+      "blockers": [
+        "PE-IMPORTS",
+        "PE-LOAD-CONFIG",
+        "PE-IAT"
+      ],
+      "qemu_ran": false
+    }
   }
 }

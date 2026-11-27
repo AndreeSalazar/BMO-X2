@@ -14,6 +14,7 @@ __declspec(dllimport) void* GetProcessHeap(void);
 __declspec(dllimport) void* HeapAlloc(void*, unsigned long, size_t);
 __declspec(dllimport) void* HeapReAlloc(void*, unsigned long, void*, size_t);
 __declspec(dllimport) int HeapFree(void*, unsigned long, void*);
+__declspec(dllimport) size_t HeapSize(void*, unsigned long, const void*);
 
 static bool check_heap() {
     const unsigned long zero = 8, in_place = 16;
@@ -22,6 +23,8 @@ static bool check_heap() {
     auto* first = static_cast<unsigned char*>(HeapAlloc(heap, zero, 31));
     void* neighbor = HeapAlloc(heap, 0, 32);
     if (!heap || !first || !neighbor || (reinterpret_cast<size_t>(first) & 15) ||
+        HeapSize(heap, 0, first) != 31 || HeapSize(heap, 1, neighbor) != 32 ||
+        HeapSize(heap, 0, first + 16) != static_cast<size_t>(-1) ||
         HeapAlloc(nullptr, 0, 1) || HeapAlloc(heap, 0, capacity + 1) || !HeapFree(heap, 0, nullptr) ||
         HeapFree(heap, 0, first + 16) || HeapReAlloc(heap, in_place, first, 64)) {
         return false;
@@ -31,7 +34,8 @@ static bool check_heap() {
         first[i] = static_cast<unsigned char>(i + 1);
     }
     auto* moved = static_cast<unsigned char*>(HeapReAlloc(heap, zero, first, 65));
-    if (!moved || moved == first || HeapFree(heap, 0, first)) return false;
+    if (!moved || moved == first || HeapSize(heap, 0, moved) != 65 ||
+        HeapSize(heap, 0, first) != static_cast<size_t>(-1) || HeapFree(heap, 0, first)) return false;
     for (size_t i = 0; i < 65; ++i) {
         if (moved[i] != (i < 31 ? i + 1 : 0)) return false;
     }
@@ -56,6 +60,7 @@ __declspec(dllimport) int CloseHandle(void*);
 __declspec(dllimport) unsigned long GetLastError(void);
 __declspec(dllimport) unsigned long GetFileType(void*);
 __declspec(dllimport) int GetFileSizeEx(void*, long long*);
+__declspec(dllimport) int SetFilePointerEx(void*, long long, long long*, unsigned long);
 
 static bool check_package_file() {
     constexpr unsigned long generic_read = 0x80000000, open_existing = 3;
@@ -77,6 +82,14 @@ static bool check_package_file() {
     if (!buffer) return false;
     unsigned long received = 0;
     if (ReadFile(file, buffer, 1, &received, &received) || received || GetLastError() != 87) return false;
+    long long position = -1;
+    if (!SetFilePointerEx(file, -1, &position, 2) || position != file_size - 1 ||
+        !ReadFile(file, buffer, 1, &received, nullptr) || received != 1 ||
+        buffer[0] != static_cast<unsigned char>(29 * (file_size - 1) + BMO_PACKAGE_SEED) ||
+        !SetFilePointerEx(file, 5, &position, 1) || position != file_size + 5 ||
+        !ReadFile(file, buffer, 1, &received, nullptr) || received ||
+        SetFilePointerEx(file, -1, &position, 0) || position != file_size + 5 || GetLastError() != 131 ||
+        !SetFilePointerEx(file, 0, nullptr, 0)) return false;
     unsigned long offset = 0;
     while (offset < file_size) {
         const unsigned long remaining = file_size - offset;

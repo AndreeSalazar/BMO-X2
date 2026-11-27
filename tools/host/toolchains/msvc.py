@@ -172,9 +172,9 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
     link_map = out / 'console.map'
     exports = profile['Imports']
     if gzip_source is not None:
-        unused = {'GetTickCount64', 'HeapReAlloc', 'GetFileType', 'GetFileSizeEx'}
+        unused = {'GetTickCount64', 'HeapReAlloc', 'HeapSize', 'GetFileType', 'GetFileSizeEx'}
         if minigzip_args is not None:
-            unused.add('GetLastError')
+            unused.update(('GetLastError', 'SetFilePointerEx', 'SetEndOfFile', 'FlushFileBuffers'))
         exports = {api: target for api, target in exports.items() if api not in unused}
     subprocess.run([cc.with_name('link.exe'), '/nologo', '/machine:x64', '/nodefaultlib', '/subsystem:console',
                     '/entry:bmo_win64_start', '/base:0x3fe00000', '/align:2097152', '/fixed', '/Brepro',

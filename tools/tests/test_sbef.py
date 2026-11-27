@@ -25,7 +25,7 @@ class Sbef(unittest.TestCase):
                 ('PE-IMPORTS', 'imports'), ('PE-LOAD-CONFIG', 'load_config'), ('PE-IAT', 'iat'))],
             Imports=[
                 dict(DLL='kernel32.DLL', Symbols=[dict(Name='GetCommandLineW'), dict(Name='ExitProcess'),
-                                                  dict(Name='HeapSize'), dict(Ordinal=8)]),
+                                                  dict(Name='VirtualProtect'), dict(Ordinal=8)]),
                 dict(DLL='example.dll', Symbols=[dict(Name='GetCommandLineW')]),
             ],
             Directories=dict(iat=dict(RVA=4096, Bytes=48)),

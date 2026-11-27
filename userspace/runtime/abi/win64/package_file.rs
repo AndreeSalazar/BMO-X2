@@ -17,6 +17,7 @@ const ERROR_ACCESS_DENIED: u32 = 5;
 const ERROR_INVALID_HANDLE: u32 = 6;
 const ERROR_SHARING_VIOLATION: u32 = 32;
 const ERROR_INVALID_PARAMETER: u32 = 87;
+const ERROR_NEGATIVE_SEEK: u32 = 131;
 #[cfg(bmo_package_output)]
 const ERROR_DISK_FULL: u32 = 112;
 
@@ -112,6 +113,74 @@ fn file_length(handle_state: u64) -> usize {
 }
 
 #[unsafe(no_mangle)]
+pub unsafe extern "win64" fn bmo_package_seek(
+    handle: usize, distance: i64, position: *mut i64, method: u32,
+) -> i32 {
+    let Some(state) = active(handle) else { return 0 };
+    let base = match method {
+        0 => 0,
+        1 => (state & CURSOR_MASK) as i64,
+        2 => file_length(state) as i64,
+        _ => {
+            fail(ERROR_INVALID_PARAMETER);
+            return 0;
+        }
+    };
+    let Some(next) = base.checked_add(distance) else {
+        fail(ERROR_INVALID_PARAMETER);
+        return 0;
+    };
+    if next < 0 || next as u64 > CURSOR_MASK {
+        fail(if next < 0 { ERROR_NEGATIVE_SEEK } else { ERROR_INVALID_PARAMETER });
+        return 0;
+    }
+    SLOT.store((state & !CURSOR_MASK) | next as u64, Relaxed);
+    if !position.is_null() {
+        unsafe { position.write_unaligned(next) };
+    }
+    1
+}
+
+#[cfg(bmo_package_output)]
+fn writable(handle: usize) -> Option<u64> {
+    let state = active(handle)?;
+    if state & WRITABLE != 0 {
+        Some(state)
+    } else {
+        fail(ERROR_ACCESS_DENIED);
+        None
+    }
+}
+
+#[cfg(bmo_package_output)]
+fn zero_gap(start: usize, end: usize) {
+    for offset in start..end {
+        unsafe { scratch::buffer().add(offset).write_volatile(0) };
+    }
+}
+
+#[cfg(bmo_package_output)]
+#[unsafe(no_mangle)]
+pub extern "win64" fn bmo_package_set_eof(handle: usize) -> i32 {
+    let Some(state) = writable(handle) else { return 0 };
+    let position = (state & CURSOR_MASK) as usize;
+    if position > scratch::CAPACITY {
+        fail(ERROR_DISK_FULL);
+        return 0;
+    }
+    zero_gap(file_length(state), position);
+    scratch::set_length(position);
+    1
+}
+
+#[cfg(bmo_package_output)]
+#[unsafe(no_mangle)]
+pub extern "win64" fn bmo_package_flush(handle: usize) -> i32 {
+    // A RAM file has no deferred writes or underlying block device.
+    i32::from(writable(handle).is_some())
+}
+
+#[unsafe(no_mangle)]
 pub extern "win64" fn bmo_package_file_type(handle: usize) -> u32 {
     if handle == SESSION_STDOUT { 2 } else { u32::from(active(handle).is_some()) }
 }
@@ -186,7 +255,7 @@ pub unsafe extern "win64" fn bmo_package_read(
     #[cfg(not(bmo_package_output))]
     let source = CONTENT.as_ptr();
     let start = (current & CURSOR_MASK) as usize;
-    let count = (bytes as usize).min(file_length(current) - start);
+    let count = (bytes as usize).min(file_length(current).saturating_sub(start));
     for offset in 0..count {
         unsafe { destination.add(offset).write_volatile(source.add(start + offset).read()) };
     }
@@ -219,21 +288,22 @@ pub unsafe extern "win64" fn bmo_package_write(
         fail(ERROR_INVALID_PARAMETER);
         return 0;
     }
-    let Some(current) = active(handle) else { return 0 };
-    if current & WRITABLE == 0 {
-        fail(ERROR_ACCESS_DENIED);
-        return 0;
-    }
+    let Some(current) = writable(handle) else { return 0 };
     let start = (current & CURSOR_MASK) as usize;
     let count = bytes as usize;
-    if count > scratch::CAPACITY - start {
+    if count == 0 {
+        return 1;
+    }
+    if count > scratch::CAPACITY.saturating_sub(start) {
         fail(ERROR_DISK_FULL);
         return 0;
     }
+    let length = file_length(current);
+    zero_gap(length, start);
     for offset in 0..count {
         unsafe { scratch::buffer().add(start + offset).write_volatile(source.add(offset).read()) };
     }
-    scratch::set_length(start + count);
+    scratch::set_length(length.max(start + count));
     SLOT.store(current + count as u64, Relaxed);
     unsafe { written.write_unaligned(bytes) };
     1

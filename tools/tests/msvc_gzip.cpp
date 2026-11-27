@@ -10,6 +10,9 @@ __declspec(dllimport) void* CreateFileW(const wchar_t*, unsigned long, unsigned 
 __declspec(dllimport) int ReadFile(void*, void*, unsigned long, unsigned long*, void*);
 __declspec(dllimport) int CloseHandle(void*);
 __declspec(dllimport) unsigned long GetLastError(void);
+__declspec(dllimport) int SetFilePointerEx(void*, long long, long long*, unsigned long);
+__declspec(dllimport) int SetEndOfFile(void*);
+__declspec(dllimport) int FlushFileBuffers(void*);
 __declspec(dllimport) void* GetStdHandle(unsigned long);
 __declspec(dllimport) int WriteFile(void*, const void*, unsigned long, unsigned long*, void*);
 void* memset(void*, int, size_t);
@@ -129,14 +132,25 @@ bool persist(const Output& output, unsigned char* recovered) {
     void* file = open(generic_write, create_always);
     unsigned long count = 0;
     const auto half = output.size / 2;
+    if (output.size + 2 > buffer_limit) return false;
     if (file == invalid || !WriteFile(file, output.bytes, half, &count, nullptr) || count != half ||
         WriteFile(file, output.bytes, buffer_limit + 1, &count, nullptr) || count || GetLastError() != 112 ||
         !WriteFile(file, output.bytes + half, output.size - half, &count, nullptr) ||
-        count != output.size - half || !CloseHandle(file) ||
+        count != output.size - half) return false;
+    long long position = -1;
+    if (!SetFilePointerEx(file, 0, nullptr, 0) ||
+        !WriteFile(file, output.bytes, 1, &count, nullptr) || count != 1 ||
+        !SetFilePointerEx(file, -1, &position, 2) || position != output.size - 1 ||
+        !SetEndOfFile(file) ||
+        !WriteFile(file, output.bytes + position, 1, &count, nullptr) || count != 1 ||
+        !SetFilePointerEx(file, 2, &position, 2) || position != output.size + 2 ||
+        !SetEndOfFile(file) || !FlushFileBuffers(file) || !CloseHandle(file) ||
         WriteFile(file, output.bytes, 1, &count, nullptr) || count || GetLastError() != 6) return false;
     file = open(generic_read, open_existing);
     if (file == invalid || WriteFile(file, output.bytes, 1, &count, nullptr) || count || GetLastError() != 5 ||
-        !ReadFile(file, recovered, buffer_limit, &count, nullptr) || count != output.size ||
+        SetEndOfFile(file) || GetLastError() != 5 || FlushFileBuffers(file) || GetLastError() != 5 ||
+        !ReadFile(file, recovered, buffer_limit, &count, nullptr) || count != output.size + 2 ||
+        recovered[output.size] || recovered[output.size + 1] ||
         !ReadFile(file, recovered, 1, &count, nullptr) || count || !CloseHandle(file)) return false;
     for (unsigned long index = 0; index < output.size; ++index) {
         if (recovered[index] != output.bytes[index]) return false;

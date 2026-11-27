@@ -28,6 +28,7 @@ WIN64_HEAP_PROFILE = {
         'HeapAlloc': 'bmo_heap_alloc',
         'HeapFree': 'bmo_heap_free',
         'HeapReAlloc': 'bmo_heap_realloc',
+        'HeapSize': 'bmo_heap_size',
     },
     'Scope': 'External QEMU console fixture with a bounded process heap',
 }
@@ -43,6 +44,7 @@ WIN64_FILE_PROFILE = {
         'GetLastError': 'bmo_get_last_error',
         'GetFileType': 'bmo_package_file_type',
         'GetFileSizeEx': 'bmo_package_file_size',
+        'SetFilePointerEx': 'bmo_package_seek',
     },
     'Scope': 'External single-threaded QEMU fixture with a read-only package input',
 }
@@ -50,7 +52,12 @@ WIN64_FILE_PROFILE = {
 WIN64_SCRATCH_FILE_PROFILE = {
     **WIN64_FILE_PROFILE,
     'Name': 'win64-scratch-file-v1',
-    'Imports': {**WIN64_FILE_PROFILE['Imports'], 'WriteFile': 'bmo_package_write'},
+    'Imports': {
+        **WIN64_FILE_PROFILE['Imports'],
+        'WriteFile': 'bmo_package_write',
+        'SetEndOfFile': 'bmo_package_set_eof',
+        'FlushFileBuffers': 'bmo_package_flush',
+    },
     'Scope': 'External single-threaded QEMU fixture with a 4 KiB volatile output file',
 }
 

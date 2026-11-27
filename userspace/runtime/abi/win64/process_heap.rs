@@ -108,6 +108,14 @@ pub extern "win64" fn bmo_get_process_heap() -> usize {
 }
 
 #[unsafe(no_mangle)]
+pub extern "win64" fn bmo_heap_size(heap: usize, flags: u32, ptr: *mut u8) -> usize {
+    if heap != PROCESS_HEAP || flags & !NO_SERIALIZE != 0 {
+        return usize::MAX;
+    }
+    find_block(ptr, &HeapGuard::acquire()).map_or(usize::MAX, |(_, size)| size)
+}
+
+#[unsafe(no_mangle)]
 pub extern "win64" fn bmo_heap_alloc(heap: usize, flags: u32, size: usize) -> *mut u8 {
     if heap != PROCESS_HEAP || flags & !(NO_SERIALIZE | ZERO_MEMORY) != 0 || size > CAPACITY {
         return null_mut();

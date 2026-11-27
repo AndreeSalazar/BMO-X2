@@ -1,5 +1,5 @@
 {
-  "run": "run-sbef-ring0-sk2bxhwt",
+  "run": "run-sbef-ring0-u2ql96eb",
   "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
   "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
   "probe_sha256": "6cb305e8b7460744f29ff5591b784c3acc0072bdfb7277ff750f5690f9e2a4a6",
@@ -11,17 +11,17 @@
   "cases": [
     {
       "case": "msvc-gzip",
-      "sha256": "09418f59f47febc859d25307f4d976a6f793f0eba34fd46e651ca57c523744a0",
+      "sha256": "e93f6b0e3bbcac729a1983b96ef4f64b6ef2d12a6edb265201fb205ea5dd291f",
       "receipt": 0,
-      "user_pages": 33,
+      "user_pages": 34,
       "syscalls": 150,
       "wait_wakes": 0,
       "staging_bytes_scrubbed": 40960,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000000998C",
+        "SBEF FAT32 BYTES 0000000000009E50",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000021",
+        "SBEF USER PAGES 0000000000000022",
         "SBEF WIN64 EXIT 0000000000000000",
         "SBEF SYSCALLS 0000000000000096",
         "SBEF WAIT WAKES 0000000000000000",
@@ -34,27 +34,31 @@
       "decoded_sha256": "3f16d4f53e89239a22a4f7b268f137638c716336d4229229b5b2add761d43cd1",
       "compressed_bytes": 1190,
       "compressed_sha256": "5a14782bfc8e0ceccde2c78a7689bd880371a910339f14e3460e0468482c7986",
-      "sbef_bytes": 39308,
+      "sbef_bytes": 40528,
       "sbef_limit_bytes": 65536,
       "corrupt_crc_rejected": true,
       "scratch_file_round_trip": true,
       "scratch_file_limit_rejected": true,
       "scratch_file_truncated": true,
-      "windows_minigzip_decoded_guest_output": true
+      "windows_minigzip_decoded_guest_output": true,
+      "seek_overwrite_preserved_tail": true,
+      "set_eof_truncated_and_extended": true,
+      "extended_bytes_zero": true,
+      "flush_denied_for_read_only": true
     },
     {
       "case": "clang-cl-gzip",
-      "sha256": "c9afd84b28cc209bfe0ca6e28bc8e788c3d9362209180abbd0e5b8d3dc3ebc70",
+      "sha256": "7f3ae266bde66e9ab17d172dcea185af58a93d6fd454d5a1a4f3fe432f91e376",
       "receipt": 0,
-      "user_pages": 33,
+      "user_pages": 34,
       "syscalls": 92,
       "wait_wakes": 0,
       "staging_bytes_scrubbed": 40960,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 00000000000094BF",
+        "SBEF FAT32 BYTES 0000000000009963",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000021",
+        "SBEF USER PAGES 0000000000000022",
         "SBEF WIN64 EXIT 0000000000000000",
         "SBEF SYSCALLS 000000000000005C",
         "SBEF WAIT WAKES 0000000000000000",
@@ -67,19 +71,23 @@
       "decoded_sha256": "14ca33edf09ff71a2bf9726a6ef490eac77a5d10fad44f57b17c5844daf145e9",
       "compressed_bytes": 726,
       "compressed_sha256": "10701de886061b5d2a5484cfb6ac059381fc6931b1722fec5177360202de966b",
-      "sbef_bytes": 38079,
+      "sbef_bytes": 39267,
       "sbef_limit_bytes": 65536,
       "corrupt_crc_rejected": true,
       "scratch_file_round_trip": true,
       "scratch_file_limit_rejected": true,
       "scratch_file_truncated": true,
-      "windows_minigzip_decoded_guest_output": true
+      "windows_minigzip_decoded_guest_output": true,
+      "seek_overwrite_preserved_tail": true,
+      "set_eof_truncated_and_extended": true,
+      "extended_bytes_zero": true,
+      "flush_denied_for_read_only": true
     },
     {
       "case": "msvc-gzip-staging-limit",
-      "sha256": "0115a93d39196c8fa3597d4258a598d222918b4f6a14b7bccceb0ebbe069ddbb",
+      "sha256": "56aefaa0174ffe1d67492208256df93c88eface8ff5dbde24d695b0d48e4ecd1",
       "receipt": 0,
-      "user_pages": 33,
+      "user_pages": 34,
       "syscalls": 150,
       "wait_wakes": 0,
       "staging_bytes_scrubbed": 65536,
@@ -87,7 +95,7 @@
         "SBEF CPL0 POST-EBS",
         "SBEF FAT32 BYTES 0000000000010000",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000021",
+        "SBEF USER PAGES 0000000000000022",
         "SBEF WIN64 EXIT 0000000000000000",
         "SBEF SYSCALLS 0000000000000096",
         "SBEF WAIT WAKES 0000000000000000",
@@ -106,7 +114,11 @@
       "scratch_file_round_trip": true,
       "scratch_file_limit_rejected": true,
       "scratch_file_truncated": true,
-      "windows_minigzip_decoded_guest_output": true
+      "windows_minigzip_decoded_guest_output": true,
+      "seek_overwrite_preserved_tail": true,
+      "set_eof_truncated_and_extended": true,
+      "extended_bytes_zero": true,
+      "flush_denied_for_read_only": true
     }
   ],
   "extension_bytes": 1004,
@@ -125,7 +137,10 @@
         "CreateFileW": "bmo_package_open",
         "ReadFile": "bmo_package_read",
         "CloseHandle": "bmo_package_close",
-        "GetLastError": "bmo_package_last_error"
+        "GetLastError": "bmo_get_last_error",
+        "SetFilePointerEx": "bmo_package_seek",
+        "SetEndOfFile": "bmo_package_set_eof",
+        "FlushFileBuffers": "bmo_package_flush"
       },
       "Scope": "External single-threaded QEMU fixture with a 4 KiB volatile output file"
     },
@@ -155,6 +170,15 @@
             "Name": "GetLastError"
           },
           {
+            "Name": "SetFilePointerEx"
+          },
+          {
+            "Name": "SetEndOfFile"
+          },
+          {
+            "Name": "FlushFileBuffers"
+          },
+          {
             "Name": "GetStdHandle"
           },
           {
@@ -163,14 +187,14 @@
         ]
       }
     ],
-    "pe_bytes": 40960,
-    "pe_sha256": "a8d912c265b9db1ee30bfb2d8f166dd4ec583891fe13cb1ffe0f529d51ea5391",
+    "pe_bytes": 41984,
+    "pe_sha256": "635c636be652ee13c4c231a7a2ed478044d08675107b47a7a0000d28b2bee9cb",
     "producer": "msvc",
     "msvc_toolset": "14.44.35207",
     "sdk": "10.0.26100.0",
     "rejected_import": {
       "Code": "PE-SESSION-IMPORT",
-      "Offset": 352,
+      "Offset": 360,
       "Field": "KERNEL32.dll!OtherFile"
     },
     "package_file": {
@@ -193,7 +217,10 @@
           "CreateFileW": "bmo_package_open",
           "ReadFile": "bmo_package_read",
           "CloseHandle": "bmo_package_close",
-          "GetLastError": "bmo_package_last_error"
+          "GetLastError": "bmo_get_last_error",
+          "SetFilePointerEx": "bmo_package_seek",
+          "SetEndOfFile": "bmo_package_set_eof",
+          "FlushFileBuffers": "bmo_package_flush"
         },
         "Scope": "External single-threaded QEMU fixture with a 4 KiB volatile output file"
       },
@@ -220,25 +247,34 @@
               "Name": "HeapFree"
             },
             {
-              "Name": "GetStdHandle"
+              "Name": "GetLastError"
             },
             {
               "Name": "WriteFile"
             },
             {
-              "Name": "GetLastError"
+              "Name": "SetFilePointerEx"
+            },
+            {
+              "Name": "SetEndOfFile"
+            },
+            {
+              "Name": "FlushFileBuffers"
+            },
+            {
+              "Name": "GetStdHandle"
             }
           ]
         }
       ],
-      "pe_bytes": 39424,
-      "pe_sha256": "89319a0f6c5c5291f725650a8beee215ef18e259e6dd615a2e82c5fdafd8d953",
+      "pe_bytes": 40960,
+      "pe_sha256": "ac35b6d34c3d9f38261e37c9d87808f7bbf9b88ffb7100898247a764a592834a",
       "producer": "clang-cl",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
       "rejected_import": {
         "Code": "PE-SESSION-IMPORT",
-        "Offset": 344,
+        "Offset": 352,
         "Field": "KERNEL32.dll!OtherFile"
       },
       "package_file": {

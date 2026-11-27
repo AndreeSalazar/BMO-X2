@@ -231,6 +231,8 @@ El perfil de prueba `win64-console-heap-v1` liga `GetProcessHeap`,
 privada de 64 KiB con bloques alineados a 16 bytes. El banco comprueba
 asignacion, relleno cero, realojamiento con datos conservados, crecimiento
 en sitio, identificadores invalidos, agotamiento y reutilizacion.
+`HeapSize` consulta el tamano de un bloque activo y rechaza punteros
+interiores y bloques liberados.
 [Evidencia en QEMU con MSVC y clang-cl](../../Reports/host-win64-heap-qemu.json).
 
 ```powershell
@@ -241,7 +243,9 @@ El perfil `win64-package-file-v1` incorpora `CreateFileW`, `ReadFile`,
 `CloseHandle`, `GetLastError`, `GetFileType` y `GetFileSizeEx` para un
 archivo de entrada empaquetado en una region de solo lectura del SBEF.
 Las consultas distinguen el archivo y stdout, verifican el tamano sin
-mover el cursor y rechazan handles cerrados. Es un perfil sincrono de un solo
+mover el cursor y rechazan handles cerrados. `SetFilePointerEx` admite
+posiciones relativas al inicio, al cursor y al final, con una posicion
+maxima acotada. Es un perfil sincrono de un solo
 hilo con un handle abierto a la vez. El banco comprueba lectura parcial,
 fin de archivo, reapertura desde el inicio y rechazo de handles caducados.
 [Evidencia en QEMU con MSVC y clang-cl](../../Reports/host-win64-package-file-qemu.json).
@@ -259,6 +263,9 @@ en una arena volatil de 4 KiB del proceso. La prueba lo reabre, valida
 sus bytes y lo trunca con
 `CREATE_ALWAYS`. Tambien verifica accesos invalidos y que un intento de
 escritura sin espacio conserva los datos y la posicion.
+El banco tambien prueba sobreescritura sin truncar, truncado y extension
+con `SetEndOfFile`. Los huecos del archivo de RAM se inicializan a cero.
+`FlushFileBuffers` valida el acceso de escritura del archivo en RAM.
 QEMU captura el GZIP resultante y el HOST lo descomprime para comparar
 los bytes con la referencia. El lector del cliente admite un miembro
 sin campos opcionales. Un tercer caso carga exactamente 65536 bytes de
