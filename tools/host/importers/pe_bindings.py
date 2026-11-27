@@ -65,7 +65,8 @@ WIN64_PROCESS_PROFILE = {
     **WIN64_CONSOLE_PROFILE,
     'Name': 'win64-process-start-v1',
     'Imports': {
-        'GetStdHandle': SESSION_EXPORTS['GetStdHandle'],
+        'GetStdHandle': 'bmo_get_std_handle',
+        'SetStdHandle': 'bmo_set_std_handle',
         'WriteFile': SESSION_EXPORTS['WriteFile'],
         'GetCommandLineW': 'bmo_get_command_line_w',
         'GetCommandLineA': 'bmo_get_command_line_a',
@@ -100,6 +101,11 @@ WIN64_PROCESS_PROFILE = {
         'GetCurrentProcess': 'bmo_get_current_process',
         'GetCurrentProcessId': 'bmo_get_current_process_id',
         'TerminateProcess': 'bmo_terminate_process',
+        'QueryPerformanceCounter': 'bmo_query_performance_counter',
+        'QueryPerformanceFrequency': 'bmo_query_performance_frequency',
+        'IsProcessorFeaturePresent': 'bmo_is_processor_feature_present',
+        'IsDebuggerPresent': 'bmo_is_debugger_present',
+        'GetModuleFileNameW': 'bmo_get_module_file_name_w',
     },
     'Scope': 'Single-threaded QEMU startup with UTF-16, UTF-8 ACP, DWORD exit and dynamic TLS/FLS',
 }

@@ -10,10 +10,16 @@ __declspec(dllimport) int IsValidCodePage(unsigned);
 __declspec(dllimport) int GetCPInfo(unsigned, void*);
 __declspec(dllimport) int MultiByteToWideChar(unsigned, unsigned, const char*, int, wchar_t*, int);
 __declspec(dllimport) int WideCharToMultiByte(unsigned, unsigned, const wchar_t*, int, char*, int, const char*, int*);
+__declspec(dllimport) int QueryPerformanceCounter(long long*);
+__declspec(dllimport) int QueryPerformanceFrequency(long long*);
+__declspec(dllimport) int IsProcessorFeaturePresent(unsigned long);
+__declspec(dllimport) int IsDebuggerPresent(void);
+__declspec(dllimport) unsigned long GetModuleFileNameW(void*, wchar_t*, unsigned long);
 __declspec(dllimport) unsigned long GetLastError(void);
 __declspec(dllimport) void SetLastError(unsigned long);
 __declspec(dllimport) void ExitProcess(unsigned long);
 __declspec(dllimport) void* GetStdHandle(unsigned long);
+__declspec(dllimport) int SetStdHandle(unsigned long, void*);
 __declspec(dllimport) int WriteFile(void*, const void*, unsigned long, unsigned long*, void*);
 __declspec(dllimport) unsigned long TlsAlloc(void);
 __declspec(dllimport) int TlsFree(unsigned long);
@@ -57,6 +63,58 @@ struct LargeReadOnly {
 
 static const LargeReadOnly large_readonly = {0x42, {}, 0x6d};
 static volatile unsigned char large_private[8192];
+
+static void check_image_path(void) {
+    constexpr wchar_t expected[] = LR"(X:\BMO-X2\minigzip demo.exe)";
+    constexpr auto length = sizeof(expected) / sizeof(expected[0]) - 1;
+    wchar_t full[length + 2] = {};
+    full[length + 1] = 0x55;
+    SetLastError(123);
+    if (GetModuleFileNameW(nullptr, full, length + 1) != length || GetLastError() != 123 ||
+        full[length + 1] != 0x55) ExitProcess(166);
+    for (unsigned i = 0; i <= length; ++i) if (full[i] != expected[i]) ExitProcess(167);
+    wchar_t short_path[] = {0xffff, 0xffff, 0xffff, 0x55};
+    if (GetModuleFileNameW(nullptr, short_path, 3) != 3 || GetLastError() != 122 ||
+        short_path[0] != L'X' || short_path[1] != L':' || short_path[2] ||
+        short_path[3] != 0x55) ExitProcess(168);
+    if (GetModuleFileNameW(nullptr, short_path, 0) || GetLastError() != 122 ||
+        GetModuleFileNameW(reinterpret_cast<void*>(12345), short_path, 3) ||
+        GetLastError() != 126 || short_path[0] != L'X') ExitProcess(169);
+}
+
+static void check_std_handles(void) {
+    constexpr auto in = static_cast<unsigned long>(-10);
+    constexpr auto out = static_cast<unsigned long>(-11);
+    constexpr auto err = static_cast<unsigned long>(-12);
+    auto* original = GetStdHandle(out);
+    auto* redirected = reinterpret_cast<void*>(0x1234);
+    if (!original || GetStdHandle(in) || GetStdHandle(err) != original ||
+        !SetStdHandle(out, redirected) || GetStdHandle(out) != redirected ||
+        GetStdHandle(err) != original) ExitProcess(170);
+    unsigned long count = 1;
+    if (WriteFile(GetStdHandle(out), "X", 1, &count, nullptr) || count ||
+        !SetStdHandle(out, original) || GetStdHandle(out) != original) ExitProcess(171);
+    if (!SetStdHandle(in, redirected) || GetStdHandle(in) != redirected ||
+        !SetStdHandle(in, nullptr) || GetStdHandle(in) ||
+        SetStdHandle(0, original) || GetLastError() != 87 ||
+        reinterpret_cast<bmo_word>(GetStdHandle(0)) != ~bmo_word{0} || GetLastError() != 87) ExitProcess(172);
+}
+
+static void check_platform(void) {
+    long long frequency = 0, start = -1, end = -1;
+    SetLastError(123);
+    if (IsDebuggerPresent() || !IsProcessorFeaturePresent(2) || !IsProcessorFeaturePresent(6) ||
+        !IsProcessorFeaturePresent(9) || !IsProcessorFeaturePresent(10) || !IsProcessorFeaturePresent(12) ||
+        IsProcessorFeaturePresent(23) || IsProcessorFeaturePresent(39) || IsProcessorFeaturePresent(40) ||
+        IsProcessorFeaturePresent(41) || IsProcessorFeaturePresent(0xfffffffful) ||
+        !QueryPerformanceFrequency(&frequency) || frequency != 1000000000 ||
+        !QueryPerformanceCounter(&start) || start < 0 || GetLastError() != 123) ExitProcess(163);
+    const auto seq = bmo_invoke(2, 1, 0, 0, 0);
+    if (seq.status != BMO_OK || bmo_wait(2, seq.value, static_cast<bmo_word>(start) + 10000151).status != BMO_TIMED_OUT ||
+        !QueryPerformanceCounter(&end) || end - start < 10000151 || GetLastError() != 123) ExitProcess(164);
+    if (QueryPerformanceCounter(nullptr) || GetLastError() != 87 ||
+        QueryPerformanceFrequency(nullptr) || GetLastError() != 87) ExitProcess(165);
+}
 
 static void check_text_encoding(void) {
     constexpr unsigned utf8 = 65001;
@@ -296,6 +354,9 @@ extern "C" void bmo_main(void) {
     check_critical_sections();
     check_environment();
     check_text_encoding();
+    check_platform();
+    check_image_path();
+    check_std_handles();
     for (auto& word : slist) word = ~bmo_word{0};
     InitializeSListHead(const_cast<bmo_word*>(slist));
     if (slist[0] || slist[1] || slist[2] != ~bmo_word{0} || slist[3] != ~bmo_word{0}) ExitProcess(112);

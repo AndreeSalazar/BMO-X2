@@ -390,6 +390,20 @@ comprueba pares sustitutos, secuencias truncadas y el modo de rechazo o
 reemplazo. El perfil instala solo la pagina 65001, tambien usada como
 ACP, OEM y ACP del hilo. `GetOEMCP`, `IsValidCodePage` y `GetCPInfo`
 exponen esa configuracion.
+
+`QueryPerformanceCounter` y `QueryPerformanceFrequency` presentan el
+reloj monotonico del supervisor en nanosegundos. El PIT del banco
+actualiza el contador aproximadamente cada 10 ms. La prueba espera un
+plazo del ABI y comprueba que el contador avanza. Las consultas de CPU
+usan CPUID y, para AVX, el estado vectorial habilitado por el sistema.
+El perfil carece de un mecanismo Win64 para adjuntar un depurador.
+
+`GetModuleFileNameW` devuelve la ruta virtual declarada por el HOST para
+el ejecutable principal. La prueba cubre un buffer exacto, truncamiento
+con NUL y rechazo de un modulo ajeno al perfil. `SetStdHandle` actualiza
+las tres ranuras de la sesion. El banco parte con salida y error
+redirigidos al mismo flujo y sin entrada heredada. Verifica que cambiar
+una ranura conserva las demas y que la escritura valida el handle.
 [Informe del arranque Win64 y admision del PE original](../../Reports/host-win64-process-start-qemu.json).
 
 ```powershell
@@ -419,12 +433,12 @@ indices del proceso de los valores de cada hilo.
 [TLS de Wine](https://github.com/wine-mirror/wine/blob/master/dlls/kernelbase/thread.c).
 
 Los dos PE originales importan 80 simbolos de `KERNEL32.dll`.
-Hay 48 destinos con evidencia en perfiles acotados y 32 pendientes.
+Hay 53 destinos con evidencia en perfiles acotados y 27 pendientes.
 El informe de QEMU registra ambos hashes y los nombres por area.
 Los PE declaran 241664 bytes (MSVC) y 258048 bytes (clang-cl) de imagen.
 El lector FAT32 y el supervisor de QEMU aceptan hasta 262144 bytes de
-archivo SBEF. El banco del proceso verifico paquetes de 247396 a
-247468 bytes con MSVC y clang-cl. Cada ejecucion uso 66 paginas de
+archivo SBEF. El banco del proceso verifico paquetes de 250755 a
+250775 bytes con MSVC y clang-cl. Cada ejecucion uso 67 paginas de
 regiones y una de pila. Este perfil dispone de 96 marcos para las
 regiones y rechaza una solicitud de 97 antes de publicar los mapeos.
 El perfil general de QEMU conserva su limite de 64 marcos para regiones.

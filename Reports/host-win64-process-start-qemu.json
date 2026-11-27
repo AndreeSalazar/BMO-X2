@@ -1,5 +1,5 @@
 {
-  "run": "run-sbef-ring0-og__em8v",
+  "run": "run-sbef-ring0-rwm80zs_",
   "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
   "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
   "probe_sha256": "4c801bc0180fca9daa4d4a914bdf9fa167e607297b1b673761d39920f6d24092",
@@ -11,85 +11,85 @@
   "cases": [
     {
       "case": "msvc-process-start",
-      "sha256": "22d080f84ce84f8b11cb65cdec4bc4292b9e131b90577bce08e3599976e04dd5",
+      "sha256": "48070d73ef8a94c96b3630d9be855f8864b01ecea2cb33b408679234209f971a",
       "receipt": 0,
-      "user_pages": 67,
-      "syscalls": 9,
-      "wait_wakes": 0,
-      "staging_bytes_scrubbed": 249856,
+      "user_pages": 68,
+      "syscalls": 13,
+      "wait_wakes": 2,
+      "staging_bytes_scrubbed": 253952,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000003C664",
+        "SBEF FAT32 BYTES 000000000003D38B",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000043",
+        "SBEF USER PAGES 0000000000000044",
         "SBEF WIN64 EXIT 0000000000000000",
-        "SBEF SYSCALLS 0000000000000009",
-        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF SYSCALLS 000000000000000D",
+        "SBEF WAIT WAKES 0000000000000002",
         "SBEF ABI GATE RESTORED",
-        "SBEF FAT32 SCRUBBED 000000000003D000",
+        "SBEF FAT32 SCRUBBED 000000000003E000",
         "SBEF MAP RESTORED AND SCRUBBED"
       ],
       "passed": true
     },
     {
       "case": "clang-cl-process-start",
-      "sha256": "16761ef8d821fdd5fbc479f5d73ca42b52a48312778b15b456ab8972f6802aba",
+      "sha256": "de6bdf4aa713e3e0c62252214af1e10643dba282349e7bbe6bcd80f259dba160",
       "receipt": 0,
-      "user_pages": 67,
-      "syscalls": 9,
-      "wait_wakes": 0,
-      "staging_bytes_scrubbed": 249856,
+      "user_pages": 68,
+      "syscalls": 13,
+      "wait_wakes": 2,
+      "staging_bytes_scrubbed": 253952,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000003C6AC",
+        "SBEF FAT32 BYTES 000000000003D383",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000043",
+        "SBEF USER PAGES 0000000000000044",
         "SBEF WIN64 EXIT 00000000DEADBEEF",
-        "SBEF SYSCALLS 0000000000000009",
-        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF SYSCALLS 000000000000000D",
+        "SBEF WAIT WAKES 0000000000000002",
         "SBEF ABI GATE RESTORED",
-        "SBEF FAT32 SCRUBBED 000000000003D000",
+        "SBEF FAT32 SCRUBBED 000000000003E000",
         "SBEF MAP RESTORED AND SCRUBBED"
       ],
       "passed": true
     },
     {
       "case": "msvc-process-terminate",
-      "sha256": "6496e20da1539bfb85ebdc7b1739c35a4e092c2a8b6c34d8ae799c43ebc189b5",
+      "sha256": "f2a4c44c4288e96e58a71b3b62517d9544180d51ee982705e71797d33e0c1741",
       "receipt": 0,
-      "user_pages": 67,
-      "syscalls": 8,
-      "wait_wakes": 0,
-      "staging_bytes_scrubbed": 249856,
+      "user_pages": 68,
+      "syscalls": 12,
+      "wait_wakes": 2,
+      "staging_bytes_scrubbed": 253952,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000003C670",
+        "SBEF FAT32 BYTES 000000000003D397",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000043",
+        "SBEF USER PAGES 0000000000000044",
         "SBEF WIN64 EXIT 000000008000002A",
-        "SBEF SYSCALLS 0000000000000008",
-        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF SYSCALLS 000000000000000C",
+        "SBEF WAIT WAKES 0000000000000002",
         "SBEF ABI GATE RESTORED",
-        "SBEF FAT32 SCRUBBED 000000000003D000",
+        "SBEF FAT32 SCRUBBED 000000000003E000",
         "SBEF MAP RESTORED AND SCRUBBED"
       ],
       "passed": true
     },
     {
       "case": "msvc-process-page-budget",
-      "sha256": "a82086edc4d19dc6c82e4eb51b1c8d3b2807b4961d05897d33d59bf60e3ec631",
+      "sha256": "e3e36eb8e84844a8497c8c17e22125b65a9c38a6e98b059ec5ec17b1511c0356",
       "receipt": 0,
       "user_pages": 0,
       "syscalls": 0,
       "wait_wakes": 0,
-      "staging_bytes_scrubbed": 249856,
+      "staging_bytes_scrubbed": 253952,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000003C664",
+        "SBEF FAT32 BYTES 000000000003D38B",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER BUDGET",
         "SBEF REJECTED BEFORE USER MAP",
-        "SBEF FAT32 SCRUBBED 000000000003D000",
+        "SBEF FAT32 SCRUBBED 000000000003E000",
         "SBEF MAP RESTORED AND SCRUBBED"
       ],
       "passed": true
@@ -104,7 +104,8 @@
         "AbiVersion": 1,
         "DLL": "KERNEL32.dll",
         "Imports": {
-          "GetStdHandle": "bmo_session_stdout",
+          "GetStdHandle": "bmo_get_std_handle",
+          "SetStdHandle": "bmo_set_std_handle",
           "WriteFile": "bmo_session_write",
           "GetCommandLineW": "bmo_get_command_line_w",
           "GetCommandLineA": "bmo_get_command_line_a",
@@ -138,7 +139,12 @@
           "SetEnvironmentVariableW": "bmo_set_environment_variable_w",
           "GetCurrentProcess": "bmo_get_current_process",
           "GetCurrentProcessId": "bmo_get_current_process_id",
-          "TerminateProcess": "bmo_terminate_process"
+          "TerminateProcess": "bmo_terminate_process",
+          "QueryPerformanceCounter": "bmo_query_performance_counter",
+          "QueryPerformanceFrequency": "bmo_query_performance_frequency",
+          "IsProcessorFeaturePresent": "bmo_is_processor_feature_present",
+          "IsDebuggerPresent": "bmo_is_debugger_present",
+          "GetModuleFileNameW": "bmo_get_module_file_name_w"
         },
         "Scope": "Single-threaded QEMU startup with UTF-16, UTF-8 ACP, DWORD exit and dynamic TLS/FLS"
       },
@@ -174,6 +180,21 @@
               "Name": "WideCharToMultiByte"
             },
             {
+              "Name": "QueryPerformanceCounter"
+            },
+            {
+              "Name": "QueryPerformanceFrequency"
+            },
+            {
+              "Name": "IsProcessorFeaturePresent"
+            },
+            {
+              "Name": "IsDebuggerPresent"
+            },
+            {
+              "Name": "GetModuleFileNameW"
+            },
+            {
               "Name": "GetLastError"
             },
             {
@@ -184,6 +205,9 @@
             },
             {
               "Name": "GetStdHandle"
+            },
+            {
+              "Name": "SetStdHandle"
             },
             {
               "Name": "WriteFile"
@@ -254,8 +278,8 @@
           ]
         }
       ],
-      "pe_bytes": 248832,
-      "pe_sha256": "06ebedf528ff3ff48bd5d3a0ce8077a9e3771941011f88b2a68e16f4b050cec3",
+      "pe_bytes": 251904,
+      "pe_sha256": "f160e408cbbe4d1d4caa7c0dd90f9f151b59d5503324b07ba5963f841967c325",
       "producer": "msvc",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
@@ -273,11 +297,12 @@
         "C:\\dir con espacio\\"
       ],
       "command_line": "\"minigzip demo.exe\" -c \"\" \"datos \u00f1\ud83d\ude00.bin\" a\\\"b \"C:\\dir con espacio\\\\\"",
+      "image_path": "X:\\BMO-X2\\minigzip demo.exe",
       "ansi_code_page": 65001,
       "exit_code": 0,
-      "command_line_va": 1076073882,
+      "command_line_va": 1076074042,
       "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
-      "command_line_a_va": 1076073808,
+      "command_line_a_va": 1076073968,
       "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
       "stdout": "Win64 startup, last error, TLS and SList OK\r\nFLS OK\r\n",
       "stdout_bytes": 53,
@@ -293,7 +318,11 @@
       "critical_section_recursion_verified": true,
       "environment_snapshots_verified": true,
       "utf8_utf16_conversion_verified": true,
-      "sbef_bytes": 247396,
+      "performance_counter_verified": true,
+      "processor_features_verified": true,
+      "main_image_path_verified": true,
+      "standard_handle_slots_verified": true,
+      "sbef_bytes": 250763,
       "sbef_limit_bytes": 262144
     },
     "clang-cl-process-start": {
@@ -302,7 +331,8 @@
         "AbiVersion": 1,
         "DLL": "KERNEL32.dll",
         "Imports": {
-          "GetStdHandle": "bmo_session_stdout",
+          "GetStdHandle": "bmo_get_std_handle",
+          "SetStdHandle": "bmo_set_std_handle",
           "WriteFile": "bmo_session_write",
           "GetCommandLineW": "bmo_get_command_line_w",
           "GetCommandLineA": "bmo_get_command_line_a",
@@ -336,7 +366,12 @@
           "SetEnvironmentVariableW": "bmo_set_environment_variable_w",
           "GetCurrentProcess": "bmo_get_current_process",
           "GetCurrentProcessId": "bmo_get_current_process_id",
-          "TerminateProcess": "bmo_terminate_process"
+          "TerminateProcess": "bmo_terminate_process",
+          "QueryPerformanceCounter": "bmo_query_performance_counter",
+          "QueryPerformanceFrequency": "bmo_query_performance_frequency",
+          "IsProcessorFeaturePresent": "bmo_is_processor_feature_present",
+          "IsDebuggerPresent": "bmo_is_debugger_present",
+          "GetModuleFileNameW": "bmo_get_module_file_name_w"
         },
         "Scope": "Single-threaded QEMU startup with UTF-16, UTF-8 ACP, DWORD exit and dynamic TLS/FLS"
       },
@@ -432,6 +467,27 @@
               "Name": "WideCharToMultiByte"
             },
             {
+              "Name": "IsDebuggerPresent"
+            },
+            {
+              "Name": "QueryPerformanceCounter"
+            },
+            {
+              "Name": "QueryPerformanceFrequency"
+            },
+            {
+              "Name": "GetModuleFileNameW"
+            },
+            {
+              "Name": "GetStdHandle"
+            },
+            {
+              "Name": "WriteFile"
+            },
+            {
+              "Name": "SetStdHandle"
+            },
+            {
               "Name": "InitializeSListHead"
             },
             {
@@ -444,16 +500,13 @@
               "Name": "TerminateProcess"
             },
             {
-              "Name": "GetStdHandle"
-            },
-            {
-              "Name": "WriteFile"
+              "Name": "IsProcessorFeaturePresent"
             }
           ]
         }
       ],
-      "pe_bytes": 248832,
-      "pe_sha256": "667247ea9fbc6c3e108dc4e14dd57edd8f04f43d148b1e980547dee06d166ee9",
+      "pe_bytes": 252416,
+      "pe_sha256": "6edbfff00f5e8dddcf604531e47dd951934d3ebb50390f9f09e99e8ccdc61f8d",
       "producer": "clang-cl",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
@@ -471,11 +524,12 @@
         "C:\\dir con espacio\\"
       ],
       "command_line": "\"minigzip demo.exe\" -c \"\" \"datos \u00f1\ud83d\ude00.bin\" a\\\"b \"C:\\dir con espacio\\\\\"",
+      "image_path": "X:\\BMO-X2\\minigzip demo.exe",
       "ansi_code_page": 65001,
       "exit_code": 3735928559,
-      "command_line_va": 1076073864,
+      "command_line_va": 1076074052,
       "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
-      "command_line_a_va": 1076073790,
+      "command_line_a_va": 1076073978,
       "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
       "stdout": "Win64 startup, last error, TLS and SList OK\r\nFLS OK\r\n",
       "stdout_bytes": 53,
@@ -491,7 +545,11 @@
       "critical_section_recursion_verified": true,
       "environment_snapshots_verified": true,
       "utf8_utf16_conversion_verified": true,
-      "sbef_bytes": 247468,
+      "performance_counter_verified": true,
+      "processor_features_verified": true,
+      "main_image_path_verified": true,
+      "standard_handle_slots_verified": true,
+      "sbef_bytes": 250755,
       "sbef_limit_bytes": 262144
     },
     "msvc-process-terminate": {
@@ -500,7 +558,8 @@
         "AbiVersion": 1,
         "DLL": "KERNEL32.dll",
         "Imports": {
-          "GetStdHandle": "bmo_session_stdout",
+          "GetStdHandle": "bmo_get_std_handle",
+          "SetStdHandle": "bmo_set_std_handle",
           "WriteFile": "bmo_session_write",
           "GetCommandLineW": "bmo_get_command_line_w",
           "GetCommandLineA": "bmo_get_command_line_a",
@@ -534,7 +593,12 @@
           "SetEnvironmentVariableW": "bmo_set_environment_variable_w",
           "GetCurrentProcess": "bmo_get_current_process",
           "GetCurrentProcessId": "bmo_get_current_process_id",
-          "TerminateProcess": "bmo_terminate_process"
+          "TerminateProcess": "bmo_terminate_process",
+          "QueryPerformanceCounter": "bmo_query_performance_counter",
+          "QueryPerformanceFrequency": "bmo_query_performance_frequency",
+          "IsProcessorFeaturePresent": "bmo_is_processor_feature_present",
+          "IsDebuggerPresent": "bmo_is_debugger_present",
+          "GetModuleFileNameW": "bmo_get_module_file_name_w"
         },
         "Scope": "Single-threaded QEMU startup with UTF-16, UTF-8 ACP, DWORD exit and dynamic TLS/FLS"
       },
@@ -570,6 +634,21 @@
               "Name": "WideCharToMultiByte"
             },
             {
+              "Name": "QueryPerformanceCounter"
+            },
+            {
+              "Name": "QueryPerformanceFrequency"
+            },
+            {
+              "Name": "IsProcessorFeaturePresent"
+            },
+            {
+              "Name": "IsDebuggerPresent"
+            },
+            {
+              "Name": "GetModuleFileNameW"
+            },
+            {
               "Name": "GetLastError"
             },
             {
@@ -580,6 +659,9 @@
             },
             {
               "Name": "GetStdHandle"
+            },
+            {
+              "Name": "SetStdHandle"
             },
             {
               "Name": "WriteFile"
@@ -650,8 +732,8 @@
           ]
         }
       ],
-      "pe_bytes": 248832,
-      "pe_sha256": "5d20f1b482fe17130bc3e12ab02eb4b1c751b9c4ebb178edb9681c3c04858f93",
+      "pe_bytes": 251904,
+      "pe_sha256": "5217cd798924bd31757a56e00e56b76e466ac04a27cc9535cc2946671ecc3e55",
       "producer": "msvc",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
@@ -669,11 +751,12 @@
         "C:\\dir con espacio\\"
       ],
       "command_line": "\"minigzip demo.exe\" -c \"\" \"datos \u00f1\ud83d\ude00.bin\" a\\\"b \"C:\\dir con espacio\\\\\"",
+      "image_path": "X:\\BMO-X2\\minigzip demo.exe",
       "ansi_code_page": 65001,
       "exit_code": 2147483690,
-      "command_line_va": 1076073882,
+      "command_line_va": 1076074042,
       "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
-      "command_line_a_va": 1076073808,
+      "command_line_a_va": 1076073968,
       "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
       "stdout": "Win64 startup, last error, TLS and SList OK\r\n",
       "stdout_bytes": 45,
@@ -689,7 +772,11 @@
       "critical_section_recursion_verified": true,
       "environment_snapshots_verified": true,
       "utf8_utf16_conversion_verified": true,
-      "sbef_bytes": 247408,
+      "performance_counter_verified": true,
+      "processor_features_verified": true,
+      "main_image_path_verified": true,
+      "standard_handle_slots_verified": true,
+      "sbef_bytes": 250775,
       "sbef_limit_bytes": 262144
     }
   },
@@ -710,8 +797,8 @@
       "size_of_image": 241664,
       "guard_flags": 256,
       "imports": {
-        "available_in_fixture": 48,
-        "missing": 32,
+        "available_in_fixture": 53,
+        "missing": 27,
         "ordinal": 0
       },
       "groups": {
@@ -742,6 +829,7 @@
             "GetStdHandle",
             "WriteFile",
             "ReadFile",
+            "SetStdHandle",
             "SetEndOfFile",
             "GetFileSizeEx",
             "FlushFileBuffers"
@@ -751,7 +839,6 @@
             "GetConsoleMode",
             "ReadConsoleW",
             "GetConsoleOutputCP",
-            "SetStdHandle",
             "FindClose",
             "FindFirstFileExW",
             "FindNextFileW",
@@ -790,14 +877,15 @@
           "pending": []
         },
         "Cargador de modulos": {
-          "fixture": [],
+          "fixture": [
+            "GetModuleFileNameW"
+          ],
           "pending": [
             "GetModuleHandleW",
             "FreeLibrary",
             "GetProcAddress",
             "LoadLibraryExW",
-            "GetModuleHandleExW",
-            "GetModuleFileNameW"
+            "GetModuleHandleExW"
           ]
         },
         "Excepciones y contexto": {
@@ -829,12 +917,13 @@
           ]
         },
         "Tiempo y plataforma": {
-          "fixture": [],
-          "pending": [
+          "fixture": [
             "IsProcessorFeaturePresent",
             "QueryPerformanceCounter",
+            "IsDebuggerPresent"
+          ],
+          "pending": [
             "GetSystemTimeAsFileTime",
-            "IsDebuggerPresent",
             "EncodePointer"
           ]
         }
@@ -857,8 +946,8 @@
       "size_of_image": 258048,
       "guard_flags": 256,
       "imports": {
-        "available_in_fixture": 48,
-        "missing": 32,
+        "available_in_fixture": 53,
+        "missing": 27,
         "ordinal": 0
       },
       "groups": {
@@ -891,6 +980,7 @@
             "SetEndOfFile",
             "SetFilePointerEx",
             "SetLastError",
+            "SetStdHandle",
             "WriteFile"
           ],
           "pending": [
@@ -901,7 +991,6 @@
             "GetConsoleMode",
             "GetConsoleOutputCP",
             "ReadConsoleW",
-            "SetStdHandle",
             "WriteConsoleW"
           ]
         },
@@ -937,10 +1026,11 @@
           "pending": []
         },
         "Cargador de modulos": {
-          "fixture": [],
+          "fixture": [
+            "GetModuleFileNameW"
+          ],
           "pending": [
             "FreeLibrary",
-            "GetModuleFileNameW",
             "GetModuleHandleExW",
             "GetModuleHandleW",
             "GetProcAddress",
@@ -976,13 +1066,14 @@
           ]
         },
         "Tiempo y plataforma": {
-          "fixture": [],
-          "pending": [
-            "EncodePointer",
-            "GetSystemTimeAsFileTime",
+          "fixture": [
             "IsDebuggerPresent",
             "IsProcessorFeaturePresent",
             "QueryPerformanceCounter"
+          ],
+          "pending": [
+            "EncodePointer",
+            "GetSystemTimeAsFileTime"
           ]
         }
       },

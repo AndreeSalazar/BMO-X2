@@ -131,14 +131,19 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
             command_path.write_bytes(command_bytes)
             env[f'BMO_WIN64_CMDLINE{suffix}'] = str(command_path.resolve())
             command_strings[f'BMO_WIN64_COMMAND_LINE{suffix}'] = (command_bytes, 1 if suffix else 2)
+        image_path = r'X:\BMO-X2\minigzip demo.exe'
+        image_path_file = out / 'image-path-utf-16-le.bin'
+        image_path_file.write_bytes((image_path + '\0').encode('utf-16-le'))
+        env['BMO_WIN64_IMAGE_PATH'] = str(image_path_file.resolve())
         units.extend(('process_start', 'last_error', 'thread_slots', 'fiber_slots', 'critical_section',
-                      'environment', 'text_encoding'))
+                      'environment', 'text_encoding', 'platform', 'process_handles'))
         profile = WIN64_PROCESS_PROFILE
         compile_flags = ['/O1', f'/DBMO_WIN64_EXIT_CODE=0x{process_exit:08x}UL']
         if terminate_process:
             compile_flags.append('/DBMO_WIN64_TERMINATE')
         client_source = root / 'tools/tests/msvc_process_start.cpp'
-        file_report.update(argv=argv, command_line=command, ansi_code_page=65001, exit_code=process_exit)
+        file_report.update(argv=argv, command_line=command, image_path=image_path,
+                           ansi_code_page=65001, exit_code=process_exit)
     if gzip_source is not None:
         gzip_source = gzip_source.resolve(strict=True)
         compile_flags = ['/O1', '/DZ_SOLO', f'/I{gzip_source}']

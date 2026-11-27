@@ -380,7 +380,7 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
         cases, cli = (minigzip_file_case(args, run, llvm) if args.input_file
                       else minigzip_cases(run, llvm, args.msvc_minigzip))
     elif args.msvc_process:
-        base_calls = 2 + (len(PROCESS_OUTPUT) + 7) // 8
+        base_calls = 6 + (len(PROCESS_OUTPUT) + 7) // 8
         cases = []
         console = {}
         for producer, code, terminate in (('msvc', 0, False), ('clang-cl', 0xdeadbeef, False),
@@ -690,8 +690,10 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             wakes = int(wake_line.removeprefix(wake_prefix) or '0', 16)
             if (args.peer or dll_report or tls_report or crt_report) and wakes:
                 raise ValueError(f'{name}: WAIT entro al bucle del PIT. Ver {folder}')
-            if (gzip_run or args.msvc_process) and wakes:
+            if gzip_run and wakes:
                 raise ValueError(f'{name}: WAIT inesperado. Ver {folder}')
+            if args.msvc_process and not 0 <= wakes <= 2:
+                raise ValueError(f'{name}: WAIT excedio dos ticks del PIT. Ver {folder}')
             if console and not (args.msvc_gzip or args.msvc_process) and not 1 <= wakes <= 3:
                 raise ValueError(f'{name}: WAIT debia despertar en uno a tres ticks. Ver {folder}')
             if not extension and not 1 <= wakes <= 2:
@@ -806,6 +808,8 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                                          critical_section_recursion_verified=True,
                                          environment_snapshots_verified=True,
                                          utf8_utf16_conversion_verified=True,
+                                         performance_counter_verified=True, processor_features_verified=True,
+                                         main_image_path_verified=True, standard_handle_slots_verified=True,
                                          sbef_bytes=len(image), sbef_limit_bytes=QEMU_SBEF_LIMIT)
             elif cli is not None:
                 scenario.update(stdout_bytes=len(stdout), stdout_sha256=hashlib.sha256(stdout).hexdigest())
