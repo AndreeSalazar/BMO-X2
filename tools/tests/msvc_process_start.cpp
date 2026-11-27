@@ -15,12 +15,61 @@ __declspec(dllimport) int TlsFree(unsigned long);
 __declspec(dllimport) void* TlsGetValue(unsigned long);
 __declspec(dllimport) int TlsSetValue(unsigned long, void*);
 __declspec(dllimport) void InitializeSListHead(void*);
+using FlsCallback = void (*)(void*);
+__declspec(dllimport) unsigned long FlsAlloc(FlsCallback);
+__declspec(dllimport) int FlsFree(unsigned long);
+__declspec(dllimport) void* FlsGetValue(unsigned long);
+__declspec(dllimport) int FlsSetValue(unsigned long, void*);
 }
 
 static unsigned long written;
 static volatile unsigned char startup[106];
 static unsigned long slots[64];
 alignas(16) static volatile bmo_word slist[4];
+static unsigned long fls_slots[128];
+static unsigned long exit_slot;
+static unsigned releases;
+static int token;
+
+struct LargeReadOnly {
+    unsigned char start;
+    unsigned char middle[232 * 1024 - 2];
+    unsigned char end;
+};
+
+static const LargeReadOnly large_readonly = {0x42, {}, 0x6d};
+
+static void on_fls_free(void* value) {
+    if (value != &token || FlsGetValue(fls_slots[0]) || GetLastError()) ExitProcess(113);
+    ++releases;
+}
+
+static void on_fls_exit(void* value) {
+    if (value != &token || FlsGetValue(exit_slot) != &token || GetLastError()) ExitProcess(114);
+    static constexpr char message[] = "FLS OK\r\n";
+    unsigned long count;
+    if (!WriteFile(GetStdHandle(static_cast<unsigned long>(-11)), message, sizeof(message) - 1,
+                   &count, nullptr) || count != sizeof(message) - 1) ExitProcess(115);
+}
+
+static void check_fls(void) {
+    for (auto& slot : fls_slots) {
+        slot = FlsAlloc(on_fls_free);
+        if (slot >= 128 || FlsGetValue(slot) || GetLastError()) ExitProcess(116);
+    }
+    if (FlsAlloc(nullptr) != 0xfffffffful || GetLastError() != 259) ExitProcess(117);
+    if (!FlsSetValue(fls_slots[0], &token) || FlsGetValue(fls_slots[0]) != &token ||
+        !FlsFree(fls_slots[0]) || releases != 1) ExitProcess(118);
+    if (FlsFree(fls_slots[0]) || GetLastError() != 87) ExitProcess(119);
+    for (unsigned index = 1; index < 128; ++index) {
+        if (!FlsFree(fls_slots[index])) ExitProcess(120);
+    }
+    if (releases != 1 || FlsSetValue(128, &token) || GetLastError() != 87) ExitProcess(121);
+    SetLastError(0);
+    if (FlsGetValue(128) || GetLastError() != 87) ExitProcess(122);
+    exit_slot = FlsAlloc(on_fls_exit);
+    if (exit_slot != fls_slots[0] || FlsGetValue(exit_slot) || !FlsSetValue(exit_slot, &token)) ExitProcess(123);
+}
 
 static void check_dynamic_tls(void) {
     for (auto& slot : slots) {
@@ -45,6 +94,8 @@ static void check_dynamic_tls(void) {
 }
 
 extern "C" void bmo_main(void) {
+    const volatile auto& large = large_readonly;
+    if (large.start != 0x42 || large.middle[sizeof(large.middle) / 2] || large.end != 0x6d) ExitProcess(124);
     static constexpr wchar_t expected[] =
         LR"cmd("minigzip demo.exe" -c "" "datos )cmd"
         L"\u00f1\U0001f600"
@@ -76,6 +127,7 @@ extern "C" void bmo_main(void) {
     SetLastError(0);
     if (GetLastError()) ExitProcess(102);
     check_dynamic_tls();
+    check_fls();
     for (auto& word : slist) word = ~bmo_word{0};
     InitializeSListHead(const_cast<bmo_word*>(slist));
     if (slist[0] || slist[1] || slist[2] != ~bmo_word{0} || slist[3] != ~bmo_word{0}) ExitProcess(112);

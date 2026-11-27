@@ -26,6 +26,7 @@ struct ResultWords {
 
 unsafe extern "win64" {
     fn bmo_invoke(cap: u64, op: u64, arg0: u64, arg1: u64, arg2: u64) -> ResultWords;
+    fn bmo_fls_shutdown();
 }
 
 #[unsafe(no_mangle)]
@@ -63,6 +64,7 @@ pub unsafe extern "win64" fn bmo_initialize_slist_head(head: *mut SListHeader) {
 #[unsafe(no_mangle)]
 pub extern "win64" fn bmo_exit_process(code: u32) -> ! {
     unsafe {
+        bmo_fls_shutdown();
         bmo_invoke(4, 2, u64::from(code), 0, 0);
         // The supervisor terminates the process. A returning gate is fatal.
         asm!("ud2", options(noreturn, nostack));

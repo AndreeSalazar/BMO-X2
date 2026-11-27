@@ -32,8 +32,10 @@ PEER_PAGES = 353
 CONSOLE_PAGES = 347
 TLS_PAGES = 348
 MINIGZIP_IO_LIMIT = 4096
+GZIP_STAGING_TEST_BYTES = 65536
 CONSOLE_OUTPUT = b'Hola mundo desde C++ / MSVC en BMO-X2\r\n'
 PROCESS_OUTPUT = b'Win64 startup, last error, TLS and SList OK\r\n'
+PROCESS_FLS_OUTPUT = b'FLS OK\r\n'
 CRT_OUTPUT = b'MSVC CRT: inicio, main y cierre OK\r\n'
 GS_HANDLER_OUTPUT = b'MSVC CRT: __GSHandlerCheck OK\r\n'
 GS_UNWIND_OUTPUT = b'MSVC CRT: unwind de dos marcos OK\r\n'
@@ -184,7 +186,7 @@ def msvc_rebase_cases(executable, run):
 def gzip_boundary_image(image):
     """Materialize zero-fill in RW without changing the guest memory contents."""
     data_region = load_plan(image)['Regions'][-1]
-    padding = QEMU_SBEF_LIMIT - len(image)
+    padding = GZIP_STAGING_TEST_BYTES - len(image)
     if data_region['Permissions'] != 'RW' or not 0 < padding <= data_region['BssBytes']:
         raise ValueError('El SBEF GZIP no tiene relleno RW para comprobar el limite de carga')
     padded = bytearray(image) + bytes(padding)
@@ -375,7 +377,7 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
         cases, cli = (minigzip_file_case(args, run, llvm) if args.input_file
                       else minigzip_cases(run, llvm, args.msvc_minigzip))
     elif args.msvc_process:
-        calls = 2 + (len(PROCESS_OUTPUT) + 7) // 8
+        calls = 2 + (len(PROCESS_OUTPUT) + 7) // 8 + (len(PROCESS_FLS_OUTPUT) + 7) // 8
         cases = []
         console = {}
         for producer, code in (('msvc', 0), ('clang-cl', 0xdeadbeef)):
@@ -514,7 +516,7 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                     valid_layout = plan['RegionCount'] == 3 and 23 <= pages <= 26
                 elif args.msvc_process:
                     valid_layout = ([region['Permissions'] for region in plan['Regions']] == ['RX', 'R', 'RW']
-                                    and pages == 4)
+                                    and 60 <= pages <= 64 and len(image) >= 236032)
                 else:
                     expected_regions, expected_pages = (5, 7) if tls_report else (6, 7) if dll_report else (
                         (4, 5) if rebase else (3, 7) if args.msvc_crt_gs_native else (3, 4 if crt_report else 5)
@@ -708,7 +710,7 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             elif name.endswith('-handler'):
                 expected_stdout = GS_HANDLER_OUTPUT
             elif args.msvc_process:
-                expected_stdout = PROCESS_OUTPUT
+                expected_stdout = PROCESS_OUTPUT + PROCESS_FLS_OUTPUT
             elif cli is not None:
                 scenario = cli[name]
                 if disk_mode:
@@ -781,7 +783,10 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             elif args.msvc_process:
                 console[name].update(stdout=stdout.decode('ascii'), stdout_bytes=len(stdout),
                                      oversized_exit_rejected=True, dynamic_tls_slots=64,
-                                     dynamic_tls_reuse_verified=True, slist_header_bytes=16)
+                                     dynamic_tls_reuse_verified=True, slist_header_bytes=16,
+                                     fls_slots=128, fls_free_callback_verified=True,
+                                     fls_exit_callback_verified=True, large_readonly_tail_verified=True,
+                                     sbef_bytes=len(image), sbef_limit_bytes=QEMU_SBEF_LIMIT)
             elif cli is not None:
                 scenario.update(stdout_bytes=len(stdout), stdout_sha256=hashlib.sha256(stdout).hexdigest())
             elif args.msvc_gzip:

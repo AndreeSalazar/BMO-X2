@@ -1,8 +1,8 @@
 {
-  "run": "run-sbef-ring0-adb65ve3",
+  "run": "run-sbef-ring0-7nq8v1x4",
   "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
   "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
-  "probe_sha256": "6cb305e8b7460744f29ff5591b784c3acc0072bdfb7277ff750f5690f9e2a4a6",
+  "probe_sha256": "b2215c2323abd063cf34f19f1cd7d8a2045e7f842f271f4b9e560d014b1108ab",
   "probe_bytes": 4072,
   "private_pages": 347,
   "user_frame_budget": 64,
@@ -11,44 +11,44 @@
   "cases": [
     {
       "case": "msvc-process-start",
-      "sha256": "ca796955a8ac3a73d13878d9e70f965f6b737cd6abc815c213f24d26dd84209a",
+      "sha256": "f9f16ecb1bffcf87d94c4728321c6da80d0b10b491d093198c3499cc5e719ded",
       "receipt": 0,
-      "user_pages": 4,
-      "syscalls": 8,
+      "user_pages": 63,
+      "syscalls": 9,
       "wait_wakes": 0,
-      "staging_bytes_scrubbed": 4096,
+      "staging_bytes_scrubbed": 245760,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 0000000000000F2B",
+        "SBEF FAT32 BYTES 000000000003B537",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000004",
+        "SBEF USER PAGES 000000000000003F",
         "SBEF WIN64 EXIT 0000000000000000",
-        "SBEF SYSCALLS 0000000000000008",
+        "SBEF SYSCALLS 0000000000000009",
         "SBEF WAIT WAKES 0000000000000000",
         "SBEF ABI GATE RESTORED",
-        "SBEF FAT32 SCRUBBED 0000000000001000",
+        "SBEF FAT32 SCRUBBED 000000000003C000",
         "SBEF MAP RESTORED AND SCRUBBED"
       ],
       "passed": true
     },
     {
       "case": "clang-cl-process-start",
-      "sha256": "684279864db1b699aa17810df6930f6aedea80795251bdb684a0efa425bd1a81",
+      "sha256": "03381135071881223eee5a41435f7e444cc9f0385de96ea629ee1e89109aa7bf",
       "receipt": 0,
-      "user_pages": 4,
-      "syscalls": 8,
+      "user_pages": 63,
+      "syscalls": 9,
       "wait_wakes": 0,
-      "staging_bytes_scrubbed": 4096,
+      "staging_bytes_scrubbed": 245760,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 0000000000000EB1",
+        "SBEF FAT32 BYTES 000000000003B4A1",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000004",
+        "SBEF USER PAGES 000000000000003F",
         "SBEF WIN64 EXIT 00000000DEADBEEF",
-        "SBEF SYSCALLS 0000000000000008",
+        "SBEF SYSCALLS 0000000000000009",
         "SBEF WAIT WAKES 0000000000000000",
         "SBEF ABI GATE RESTORED",
-        "SBEF FAT32 SCRUBBED 0000000000001000",
+        "SBEF FAT32 SCRUBBED 000000000003C000",
         "SBEF MAP RESTORED AND SCRUBBED"
       ],
       "passed": true
@@ -76,9 +76,13 @@
           "TlsFree": "bmo_tls_free",
           "TlsGetValue": "bmo_tls_get_value",
           "TlsSetValue": "bmo_tls_set_value",
-          "InitializeSListHead": "bmo_initialize_slist_head"
+          "InitializeSListHead": "bmo_initialize_slist_head",
+          "FlsAlloc": "bmo_fls_alloc",
+          "FlsFree": "bmo_fls_free",
+          "FlsGetValue": "bmo_fls_get_value",
+          "FlsSetValue": "bmo_fls_set_value"
         },
-        "Scope": "Single-threaded QEMU startup with UTF-16, UTF-8 ACP, DWORD exit and 64 dynamic TLS slots"
+        "Scope": "Single-threaded QEMU startup with UTF-16, UTF-8 ACP, DWORD exit and dynamic TLS/FLS"
       },
       "imports": [
         {
@@ -125,18 +129,30 @@
             },
             {
               "Name": "InitializeSListHead"
+            },
+            {
+              "Name": "FlsAlloc"
+            },
+            {
+              "Name": "FlsFree"
+            },
+            {
+              "Name": "FlsGetValue"
+            },
+            {
+              "Name": "FlsSetValue"
             }
           ]
         }
       ],
-      "pe_bytes": 5632,
-      "pe_sha256": "fefb188fa1b9d78f6241a83628491ef97a3dda211809cb2af06a7b0828e673cb",
+      "pe_bytes": 244224,
+      "pe_sha256": "5e63aaaa186f6240d3ef0510cc762a729ee17953fceafa2d0145e063fbd0240f",
       "producer": "msvc",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
       "rejected_import": {
         "Code": "PE-SESSION-IMPORT",
-        "Offset": 352,
+        "Offset": 360,
         "Field": "KERNEL32.dll!OtherFile"
       },
       "argv": [
@@ -150,16 +166,22 @@
       "command_line": "\"minigzip demo.exe\" -c \"\" \"datos \u00f1\ud83d\ude00.bin\" a\\\"b \"C:\\dir con espacio\\\\\"",
       "ansi_code_page": 65001,
       "exit_code": 0,
-      "command_line_va": 1075839560,
+      "command_line_va": 1076077272,
       "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
-      "command_line_a_va": 1075839486,
+      "command_line_a_va": 1076077198,
       "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
-      "stdout": "Win64 startup, last error, TLS and SList OK\r\n",
-      "stdout_bytes": 45,
+      "stdout": "Win64 startup, last error, TLS and SList OK\r\nFLS OK\r\n",
+      "stdout_bytes": 53,
       "oversized_exit_rejected": true,
       "dynamic_tls_slots": 64,
       "dynamic_tls_reuse_verified": true,
-      "slist_header_bytes": 16
+      "slist_header_bytes": 16,
+      "fls_slots": 128,
+      "fls_free_callback_verified": true,
+      "fls_exit_callback_verified": true,
+      "large_readonly_tail_verified": true,
+      "sbef_bytes": 242999,
+      "sbef_limit_bytes": 262144
     },
     "clang-cl-process-start": {
       "profile": {
@@ -180,19 +202,23 @@
           "TlsFree": "bmo_tls_free",
           "TlsGetValue": "bmo_tls_get_value",
           "TlsSetValue": "bmo_tls_set_value",
-          "InitializeSListHead": "bmo_initialize_slist_head"
+          "InitializeSListHead": "bmo_initialize_slist_head",
+          "FlsAlloc": "bmo_fls_alloc",
+          "FlsFree": "bmo_fls_free",
+          "FlsGetValue": "bmo_fls_get_value",
+          "FlsSetValue": "bmo_fls_set_value"
         },
-        "Scope": "Single-threaded QEMU startup with UTF-16, UTF-8 ACP, DWORD exit and 64 dynamic TLS slots"
+        "Scope": "Single-threaded QEMU startup with UTF-16, UTF-8 ACP, DWORD exit and dynamic TLS/FLS"
       },
       "imports": [
         {
           "DLL": "KERNEL32.dll",
           "Symbols": [
             {
-              "Name": "GetCommandLineW"
+              "Name": "ExitProcess"
             },
             {
-              "Name": "ExitProcess"
+              "Name": "GetCommandLineW"
             },
             {
               "Name": "GetCommandLineA"
@@ -222,6 +248,18 @@
               "Name": "TlsFree"
             },
             {
+              "Name": "FlsAlloc"
+            },
+            {
+              "Name": "FlsGetValue"
+            },
+            {
+              "Name": "FlsSetValue"
+            },
+            {
+              "Name": "FlsFree"
+            },
+            {
               "Name": "InitializeSListHead"
             },
             {
@@ -233,14 +271,14 @@
           ]
         }
       ],
-      "pe_bytes": 5120,
-      "pe_sha256": "d782561f0fe07c35ef6cb2e8d69d5471af37b511bc7b5860c3eb53518a26f693",
+      "pe_bytes": 244224,
+      "pe_sha256": "76d62f0264a79ba15565e039d2908d4bd5810eec5fbdde6b88971d178dfbc75c",
       "producer": "clang-cl",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
       "rejected_import": {
         "Code": "PE-SESSION-IMPORT",
-        "Offset": 352,
+        "Offset": 336,
         "Field": "KERNEL32.dll!OtherFile"
       },
       "argv": [
@@ -254,16 +292,22 @@
       "command_line": "\"minigzip demo.exe\" -c \"\" \"datos \u00f1\ud83d\ude00.bin\" a\\\"b \"C:\\dir con espacio\\\\\"",
       "ansi_code_page": 65001,
       "exit_code": 3735928559,
-      "command_line_va": 1075839544,
+      "command_line_va": 1076077234,
       "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
-      "command_line_a_va": 1075839470,
+      "command_line_a_va": 1076077161,
       "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
-      "stdout": "Win64 startup, last error, TLS and SList OK\r\n",
-      "stdout_bytes": 45,
+      "stdout": "Win64 startup, last error, TLS and SList OK\r\nFLS OK\r\n",
+      "stdout_bytes": 53,
       "oversized_exit_rejected": true,
       "dynamic_tls_slots": 64,
       "dynamic_tls_reuse_verified": true,
-      "slist_header_bytes": 16
+      "slist_header_bytes": 16,
+      "fls_slots": 128,
+      "fls_free_callback_verified": true,
+      "fls_exit_callback_verified": true,
+      "large_readonly_tail_verified": true,
+      "sbef_bytes": 242849,
+      "sbef_limit_bytes": 262144
     }
   },
   "original_minigzip_admission": {
@@ -283,8 +327,8 @@
       "size_of_image": 241664,
       "guard_flags": 256,
       "imports": {
-        "available_in_fixture": 27,
-        "missing": 53,
+        "available_in_fixture": 31,
+        "missing": 49,
         "ordinal": 0
       },
       "groups": {
@@ -350,17 +394,17 @@
             "TlsAlloc",
             "TlsGetValue",
             "TlsSetValue",
-            "TlsFree"
+            "TlsFree",
+            "FlsAlloc",
+            "FlsGetValue",
+            "FlsSetValue",
+            "FlsFree"
           ],
           "pending": [
             "EnterCriticalSection",
             "LeaveCriticalSection",
             "DeleteCriticalSection",
             "InitializeCriticalSectionAndSpinCount",
-            "FlsAlloc",
-            "FlsGetValue",
-            "FlsSetValue",
-            "FlsFree",
             "InitializeCriticalSectionEx"
           ]
         },
@@ -432,8 +476,8 @@
       "size_of_image": 258048,
       "guard_flags": 256,
       "imports": {
-        "available_in_fixture": 27,
-        "missing": 53,
+        "available_in_fixture": 31,
+        "missing": 49,
         "ordinal": 0
       },
       "groups": {
@@ -495,6 +539,10 @@
         },
         "TLS y sincronizacion": {
           "fixture": [
+            "FlsAlloc",
+            "FlsFree",
+            "FlsGetValue",
+            "FlsSetValue",
             "InitializeSListHead",
             "TlsAlloc",
             "TlsFree",
@@ -504,10 +552,6 @@
           "pending": [
             "DeleteCriticalSection",
             "EnterCriticalSection",
-            "FlsAlloc",
-            "FlsFree",
-            "FlsGetValue",
-            "FlsSetValue",
             "InitializeCriticalSectionAndSpinCount",
             "InitializeCriticalSectionEx",
             "LeaveCriticalSection"

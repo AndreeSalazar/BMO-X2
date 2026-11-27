@@ -2,7 +2,7 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-QEMU_SBEF_LIMIT = 65536  # Mirrors kernel/loader/sbef_qemu_media.h.
+QEMU_SBEF_LIMIT = 262144  # Mirrors kernel/loader/sbef_qemu_media.h.
 
 
 def workspace(path):

@@ -79,8 +79,12 @@ WIN64_PROCESS_PROFILE = {
         'TlsGetValue': 'bmo_tls_get_value',
         'TlsSetValue': 'bmo_tls_set_value',
         'InitializeSListHead': 'bmo_initialize_slist_head',
+        'FlsAlloc': 'bmo_fls_alloc',
+        'FlsFree': 'bmo_fls_free',
+        'FlsGetValue': 'bmo_fls_get_value',
+        'FlsSetValue': 'bmo_fls_set_value',
     },
-    'Scope': 'Single-threaded QEMU startup with UTF-16, UTF-8 ACP, DWORD exit and 64 dynamic TLS slots',
+    'Scope': 'Single-threaded QEMU startup with UTF-16, UTF-8 ACP, DWORD exit and dynamic TLS/FLS',
 }
 
 WIN64_SESSION_PROFILES = (
