@@ -1,5 +1,5 @@
 {
-  "run": "run-sbef-ring0-3drppne_",
+  "run": "run-sbef-ring0-9alc9df1",
   "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
   "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
   "probe_sha256": "6cb305e8b7460744f29ff5591b784c3acc0072bdfb7277ff750f5690f9e2a4a6",
@@ -7,11 +7,11 @@
   "private_pages": 347,
   "user_frame_budget": 64,
   "scratch_bytes_scrubbed": 1421312,
-  "passed": 17,
+  "passed": 20,
   "cases": [
     {
       "case": "msvc-minigzip-disk-write",
-      "sha256": "4454d82433405978916c0efbbcf91718a6fbd9ca298cc8ba37b44491a6ac22f1",
+      "sha256": "88e77528bff8dfda1ca8cd2426f2df67ce5ca217a2c1bd0bebf96a77b4fa03af",
       "receipt": 0,
       "user_pages": 36,
       "syscalls": 781,
@@ -19,7 +19,7 @@
       "staging_bytes_scrubbed": 49152,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000000B3F8",
+        "SBEF FAT32 BYTES 000000000000B748",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000024",
         "SBEF WIN64 EXIT 0000000000000000",
@@ -33,17 +33,17 @@
     },
     {
       "case": "clang-cl-minigzip-disk-read",
-      "sha256": "a5d2cde91c2f5fedc76096e8bd892407bc83e06f7184433bfc592ab31e71ca98",
+      "sha256": "18122e56980cf50aba5b12b198c52561f796dfad104bd8978ca358e2b9f53a75",
       "receipt": 0,
-      "user_pages": 34,
+      "user_pages": 35,
       "syscalls": 970,
       "wait_wakes": 0,
       "staging_bytes_scrubbed": 45056,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000000A35B",
+        "SBEF FAT32 BYTES 000000000000A7CB",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000022",
+        "SBEF USER PAGES 0000000000000023",
         "SBEF WIN64 EXIT 0000000000000000",
         "SBEF SYSCALLS 00000000000003CA",
         "SBEF WAIT WAKES 0000000000000000",
@@ -55,17 +55,17 @@
     },
     {
       "case": "clang-cl-minigzip-disk-bad-crc",
-      "sha256": "a5d2cde91c2f5fedc76096e8bd892407bc83e06f7184433bfc592ab31e71ca98",
+      "sha256": "18122e56980cf50aba5b12b198c52561f796dfad104bd8978ca358e2b9f53a75",
       "receipt": 0,
-      "user_pages": 34,
+      "user_pages": 35,
       "syscalls": 586,
       "wait_wakes": 0,
       "staging_bytes_scrubbed": 45056,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000000A35B",
+        "SBEF FAT32 BYTES 000000000000A7CB",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000022",
+        "SBEF USER PAGES 0000000000000023",
         "SBEF WIN64 EXIT 0000000000000001",
         "SBEF SYSCALLS 000000000000024A",
         "SBEF WAIT WAKES 0000000000000000",
@@ -77,17 +77,17 @@
     },
     {
       "case": "clang-cl-minigzip-disk-missing",
-      "sha256": "a5d2cde91c2f5fedc76096e8bd892407bc83e06f7184433bfc592ab31e71ca98",
+      "sha256": "18122e56980cf50aba5b12b198c52561f796dfad104bd8978ca358e2b9f53a75",
       "receipt": 0,
-      "user_pages": 34,
+      "user_pages": 35,
       "syscalls": 391,
       "wait_wakes": 0,
       "staging_bytes_scrubbed": 45056,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000000A35B",
+        "SBEF FAT32 BYTES 000000000000A7CB",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000022",
+        "SBEF USER PAGES 0000000000000023",
         "SBEF WIN64 EXIT 0000000000000001",
         "SBEF SYSCALLS 0000000000000187",
         "SBEF WAIT WAKES 0000000000000000",
@@ -99,17 +99,17 @@
     },
     {
       "case": "clang-cl-minigzip-disk-cycle",
-      "sha256": "a5d2cde91c2f5fedc76096e8bd892407bc83e06f7184433bfc592ab31e71ca98",
+      "sha256": "18122e56980cf50aba5b12b198c52561f796dfad104bd8978ca358e2b9f53a75",
       "receipt": 0,
-      "user_pages": 34,
+      "user_pages": 35,
       "syscalls": 391,
       "wait_wakes": 0,
       "staging_bytes_scrubbed": 45056,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000000A35B",
+        "SBEF FAT32 BYTES 000000000000A7CB",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000022",
+        "SBEF USER PAGES 0000000000000023",
         "SBEF WIN64 EXIT 0000000000000001",
         "SBEF SYSCALLS 0000000000000187",
         "SBEF WAIT WAKES 0000000000000000",
@@ -121,7 +121,7 @@
     },
     {
       "case": "msvc-minigzip-disk-exists",
-      "sha256": "4454d82433405978916c0efbbcf91718a6fbd9ca298cc8ba37b44491a6ac22f1",
+      "sha256": "88e77528bff8dfda1ca8cd2426f2df67ce5ca217a2c1bd0bebf96a77b4fa03af",
       "receipt": 0,
       "user_pages": 36,
       "syscalls": 391,
@@ -129,7 +129,7 @@
       "staging_bytes_scrubbed": 49152,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000000B3F8",
+        "SBEF FAT32 BYTES 000000000000B748",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000024",
         "SBEF WIN64 EXIT 0000000000000001",
@@ -143,19 +143,19 @@
     },
     {
       "case": "msvc-minigzip-disk-replace",
-      "sha256": "05072d6ac0be8d08494444bc1c55fd3d7efdc7e993b76165a4370fa34864ee8e",
+      "sha256": "5004045e5052f1e2a4bfdd93b95c6861742f81b4478efcd46b2d7255073e5b22",
       "receipt": 0,
       "user_pages": 36,
-      "syscalls": 1106,
+      "syscalls": 1431,
       "wait_wakes": 0,
       "staging_bytes_scrubbed": 49152,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000000B3F8",
+        "SBEF FAT32 BYTES 000000000000B748",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000024",
         "SBEF WIN64 EXIT 0000000000000000",
-        "SBEF SYSCALLS 0000000000000452",
+        "SBEF SYSCALLS 0000000000000597",
         "SBEF WAIT WAKES 0000000000000000",
         "SBEF ABI GATE RESTORED",
         "SBEF FAT32 SCRUBBED 000000000000C000",
@@ -165,17 +165,17 @@
     },
     {
       "case": "clang-cl-minigzip-disk-read-replacement",
-      "sha256": "a5d2cde91c2f5fedc76096e8bd892407bc83e06f7184433bfc592ab31e71ca98",
+      "sha256": "18122e56980cf50aba5b12b198c52561f796dfad104bd8978ca358e2b9f53a75",
       "receipt": 0,
-      "user_pages": 34,
+      "user_pages": 35,
       "syscalls": 905,
       "wait_wakes": 0,
       "staging_bytes_scrubbed": 45056,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000000A35B",
+        "SBEF FAT32 BYTES 000000000000A7CB",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000022",
+        "SBEF USER PAGES 0000000000000023",
         "SBEF WIN64 EXIT 0000000000000000",
         "SBEF SYSCALLS 0000000000000389",
         "SBEF WAIT WAKES 0000000000000000",
@@ -187,7 +187,7 @@
     },
     {
       "case": "msvc-minigzip-disk-no-space",
-      "sha256": "05072d6ac0be8d08494444bc1c55fd3d7efdc7e993b76165a4370fa34864ee8e",
+      "sha256": "5004045e5052f1e2a4bfdd93b95c6861742f81b4478efcd46b2d7255073e5b22",
       "receipt": 0,
       "user_pages": 36,
       "syscalls": 391,
@@ -195,7 +195,7 @@
       "staging_bytes_scrubbed": 49152,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000000B3F8",
+        "SBEF FAT32 BYTES 000000000000B748",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000024",
         "SBEF WIN64 EXIT 0000000000000001",
@@ -209,19 +209,19 @@
     },
     {
       "case": "msvc-minigzip-disk-cut-before",
-      "sha256": "93fb4196b19baeeadaeffa3bd6703938413c93dbd125c106c632bff07e07ea55",
+      "sha256": "993fb831baa6b37230858264a0dd721bf2ea22afe50d527ad1f10c958d0fd1f3",
       "receipt": 0,
       "user_pages": 36,
-      "syscalls": 716,
+      "syscalls": 1041,
       "wait_wakes": 0,
       "staging_bytes_scrubbed": 49152,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000000B3F8",
+        "SBEF FAT32 BYTES 000000000000B750",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000024",
         "SBEF WIN64 EXIT 0000000000000003",
-        "SBEF SYSCALLS 00000000000002CC",
+        "SBEF SYSCALLS 0000000000000411",
         "SBEF WAIT WAKES 0000000000000000",
         "SBEF ABI GATE RESTORED",
         "SBEF FAT32 SCRUBBED 000000000000C000",
@@ -231,19 +231,19 @@
     },
     {
       "case": "clang-cl-minigzip-disk-recover-before",
-      "sha256": "a5d2cde91c2f5fedc76096e8bd892407bc83e06f7184433bfc592ab31e71ca98",
+      "sha256": "18122e56980cf50aba5b12b198c52561f796dfad104bd8978ca358e2b9f53a75",
       "receipt": 0,
-      "user_pages": 34,
-      "syscalls": 1230,
+      "user_pages": 35,
+      "syscalls": 1425,
       "wait_wakes": 0,
       "staging_bytes_scrubbed": 45056,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000000A35B",
+        "SBEF FAT32 BYTES 000000000000A7CB",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000022",
+        "SBEF USER PAGES 0000000000000023",
         "SBEF WIN64 EXIT 0000000000000000",
-        "SBEF SYSCALLS 00000000000004CE",
+        "SBEF SYSCALLS 0000000000000591",
         "SBEF WAIT WAKES 0000000000000000",
         "SBEF ABI GATE RESTORED",
         "SBEF FAT32 SCRUBBED 000000000000B000",
@@ -253,19 +253,19 @@
     },
     {
       "case": "msvc-minigzip-disk-cut-after",
-      "sha256": "c372c80c7183cec6eb1ef9d534cf91d00848d7b5b3406dd9ab4584d9c04fc12e",
+      "sha256": "7cbfe45097f5d5294f406a75d1454190f62797aad1dfd09d6b3bc296d4242d29",
       "receipt": 0,
       "user_pages": 36,
-      "syscalls": 846,
+      "syscalls": 1171,
       "wait_wakes": 0,
       "staging_bytes_scrubbed": 49152,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000000B3F8",
+        "SBEF FAT32 BYTES 000000000000B750",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000024",
         "SBEF WIN64 EXIT 0000000000000003",
-        "SBEF SYSCALLS 000000000000034E",
+        "SBEF SYSCALLS 0000000000000493",
         "SBEF WAIT WAKES 0000000000000000",
         "SBEF ABI GATE RESTORED",
         "SBEF FAT32 SCRUBBED 000000000000C000",
@@ -275,19 +275,19 @@
     },
     {
       "case": "clang-cl-minigzip-disk-recover-after",
-      "sha256": "a5d2cde91c2f5fedc76096e8bd892407bc83e06f7184433bfc592ab31e71ca98",
+      "sha256": "18122e56980cf50aba5b12b198c52561f796dfad104bd8978ca358e2b9f53a75",
       "receipt": 0,
-      "user_pages": 34,
-      "syscalls": 1165,
+      "user_pages": 35,
+      "syscalls": 1295,
       "wait_wakes": 0,
       "staging_bytes_scrubbed": 45056,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000000A35B",
+        "SBEF FAT32 BYTES 000000000000A7CB",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000022",
+        "SBEF USER PAGES 0000000000000023",
         "SBEF WIN64 EXIT 0000000000000000",
-        "SBEF SYSCALLS 000000000000048D",
+        "SBEF SYSCALLS 000000000000050F",
         "SBEF WAIT WAKES 0000000000000000",
         "SBEF ABI GATE RESTORED",
         "SBEF FAT32 SCRUBBED 000000000000B000",
@@ -297,19 +297,19 @@
     },
     {
       "case": "clang-cl-minigzip-disk-torn-primary",
-      "sha256": "a5d2cde91c2f5fedc76096e8bd892407bc83e06f7184433bfc592ab31e71ca98",
+      "sha256": "18122e56980cf50aba5b12b198c52561f796dfad104bd8978ca358e2b9f53a75",
       "receipt": 0,
-      "user_pages": 34,
-      "syscalls": 1230,
+      "user_pages": 35,
+      "syscalls": 1425,
       "wait_wakes": 0,
       "staging_bytes_scrubbed": 45056,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000000A35B",
+        "SBEF FAT32 BYTES 000000000000A7CB",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000022",
+        "SBEF USER PAGES 0000000000000023",
         "SBEF WIN64 EXIT 0000000000000000",
-        "SBEF SYSCALLS 00000000000004CE",
+        "SBEF SYSCALLS 0000000000000591",
         "SBEF WAIT WAKES 0000000000000000",
         "SBEF ABI GATE RESTORED",
         "SBEF FAT32 SCRUBBED 000000000000B000",
@@ -319,19 +319,19 @@
     },
     {
       "case": "clang-cl-minigzip-disk-torn-secondary",
-      "sha256": "a5d2cde91c2f5fedc76096e8bd892407bc83e06f7184433bfc592ab31e71ca98",
+      "sha256": "18122e56980cf50aba5b12b198c52561f796dfad104bd8978ca358e2b9f53a75",
       "receipt": 0,
-      "user_pages": 34,
-      "syscalls": 1165,
+      "user_pages": 35,
+      "syscalls": 1295,
       "wait_wakes": 0,
       "staging_bytes_scrubbed": 45056,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000000A35B",
+        "SBEF FAT32 BYTES 000000000000A7CB",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000022",
+        "SBEF USER PAGES 0000000000000023",
         "SBEF WIN64 EXIT 0000000000000000",
-        "SBEF SYSCALLS 000000000000048D",
+        "SBEF SYSCALLS 000000000000050F",
         "SBEF WAIT WAKES 0000000000000000",
         "SBEF ABI GATE RESTORED",
         "SBEF FAT32 SCRUBBED 000000000000B000",
@@ -341,19 +341,19 @@
     },
     {
       "case": "clang-cl-minigzip-disk-torn-fat",
-      "sha256": "a5d2cde91c2f5fedc76096e8bd892407bc83e06f7184433bfc592ab31e71ca98",
+      "sha256": "18122e56980cf50aba5b12b198c52561f796dfad104bd8978ca358e2b9f53a75",
       "receipt": 0,
-      "user_pages": 34,
-      "syscalls": 1230,
+      "user_pages": 35,
+      "syscalls": 1425,
       "wait_wakes": 0,
       "staging_bytes_scrubbed": 45056,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000000A35B",
+        "SBEF FAT32 BYTES 000000000000A7CB",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000022",
+        "SBEF USER PAGES 0000000000000023",
         "SBEF WIN64 EXIT 0000000000000000",
-        "SBEF SYSCALLS 00000000000004CE",
+        "SBEF SYSCALLS 0000000000000591",
         "SBEF WAIT WAKES 0000000000000000",
         "SBEF ABI GATE RESTORED",
         "SBEF FAT32 SCRUBBED 000000000000B000",
@@ -363,19 +363,85 @@
     },
     {
       "case": "clang-cl-minigzip-disk-torn-both",
-      "sha256": "a5d2cde91c2f5fedc76096e8bd892407bc83e06f7184433bfc592ab31e71ca98",
+      "sha256": "18122e56980cf50aba5b12b198c52561f796dfad104bd8978ca358e2b9f53a75",
       "receipt": 0,
-      "user_pages": 34,
+      "user_pages": 35,
       "syscalls": 391,
       "wait_wakes": 0,
       "staging_bytes_scrubbed": 45056,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000000A35B",
+        "SBEF FAT32 BYTES 000000000000A7CB",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000022",
+        "SBEF USER PAGES 0000000000000023",
         "SBEF WIN64 EXIT 0000000000000001",
         "SBEF SYSCALLS 0000000000000187",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 000000000000B000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "clang-cl-minigzip-disk-torn-directory",
+      "sha256": "18122e56980cf50aba5b12b198c52561f796dfad104bd8978ca358e2b9f53a75",
+      "receipt": 0,
+      "user_pages": 35,
+      "syscalls": 1490,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 45056,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 000000000000A7CB",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000023",
+        "SBEF WIN64 EXIT 0000000000000000",
+        "SBEF SYSCALLS 00000000000005D2",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 000000000000B000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "clang-cl-minigzip-disk-torn-payload",
+      "sha256": "18122e56980cf50aba5b12b198c52561f796dfad104bd8978ca358e2b9f53a75",
+      "receipt": 0,
+      "user_pages": 35,
+      "syscalls": 1620,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 45056,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 000000000000A7CB",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000023",
+        "SBEF WIN64 EXIT 0000000000000000",
+        "SBEF SYSCALLS 0000000000000654",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 000000000000B000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "clang-cl-minigzip-disk-torn-both-payloads",
+      "sha256": "18122e56980cf50aba5b12b198c52561f796dfad104bd8978ca358e2b9f53a75",
+      "receipt": 0,
+      "user_pages": 35,
+      "syscalls": 716,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 45056,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 000000000000A7CB",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000023",
+        "SBEF WIN64 EXIT 0000000000000001",
+        "SBEF SYSCALLS 00000000000002CC",
         "SBEF WAIT WAKES 0000000000000000",
         "SBEF ABI GATE RESTORED",
         "SBEF FAT32 SCRUBBED 000000000000B000",
@@ -435,8 +501,8 @@
           ]
         }
       ],
-      "pe_bytes": 47616,
-      "pe_sha256": "6ddcf418aac5e5444a5cfa8565fd06e39152ce962102f212c187e27e4cf14ffb",
+      "pe_bytes": 48128,
+      "pe_sha256": "c469258109d6a0da395819a8d63944ff5f46e4a71a21f6834114c2165034a0b2",
       "producer": "msvc",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
@@ -509,8 +575,8 @@
           ]
         }
       ],
-      "pe_bytes": 43520,
-      "pe_sha256": "faac9623d07afb7613a3328c5542dc8921717e1b707afd5c1ee3f140b06ad695",
+      "pe_bytes": 44544,
+      "pe_sha256": "35eb50eea684d49420b5a0170443b16b46cb9d68266c05d16ae475a0fa9fce6f",
       "producer": "clang-cl",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
@@ -583,8 +649,8 @@
           ]
         }
       ],
-      "pe_bytes": 43520,
-      "pe_sha256": "faac9623d07afb7613a3328c5542dc8921717e1b707afd5c1ee3f140b06ad695",
+      "pe_bytes": 44544,
+      "pe_sha256": "35eb50eea684d49420b5a0170443b16b46cb9d68266c05d16ae475a0fa9fce6f",
       "producer": "clang-cl",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
@@ -657,8 +723,8 @@
           ]
         }
       ],
-      "pe_bytes": 43520,
-      "pe_sha256": "faac9623d07afb7613a3328c5542dc8921717e1b707afd5c1ee3f140b06ad695",
+      "pe_bytes": 44544,
+      "pe_sha256": "35eb50eea684d49420b5a0170443b16b46cb9d68266c05d16ae475a0fa9fce6f",
       "producer": "clang-cl",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
@@ -731,8 +797,8 @@
           ]
         }
       ],
-      "pe_bytes": 43520,
-      "pe_sha256": "faac9623d07afb7613a3328c5542dc8921717e1b707afd5c1ee3f140b06ad695",
+      "pe_bytes": 44544,
+      "pe_sha256": "35eb50eea684d49420b5a0170443b16b46cb9d68266c05d16ae475a0fa9fce6f",
       "producer": "clang-cl",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
@@ -805,8 +871,8 @@
           ]
         }
       ],
-      "pe_bytes": 47616,
-      "pe_sha256": "6ddcf418aac5e5444a5cfa8565fd06e39152ce962102f212c187e27e4cf14ffb",
+      "pe_bytes": 48128,
+      "pe_sha256": "c469258109d6a0da395819a8d63944ff5f46e4a71a21f6834114c2165034a0b2",
       "producer": "msvc",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
@@ -879,8 +945,8 @@
           ]
         }
       ],
-      "pe_bytes": 47616,
-      "pe_sha256": "afba6bb37cd9fdcfd511e3b3364bff7b49f41eec15ba998fe9795cf4c711fe99",
+      "pe_bytes": 48128,
+      "pe_sha256": "4a0381c4feba351d8e184cc7098f29f6d7f746f729a9d105636707bf5d9b6a74",
       "producer": "msvc",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
@@ -953,8 +1019,8 @@
           ]
         }
       ],
-      "pe_bytes": 43520,
-      "pe_sha256": "faac9623d07afb7613a3328c5542dc8921717e1b707afd5c1ee3f140b06ad695",
+      "pe_bytes": 44544,
+      "pe_sha256": "35eb50eea684d49420b5a0170443b16b46cb9d68266c05d16ae475a0fa9fce6f",
       "producer": "clang-cl",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
@@ -1027,8 +1093,8 @@
           ]
         }
       ],
-      "pe_bytes": 47616,
-      "pe_sha256": "afba6bb37cd9fdcfd511e3b3364bff7b49f41eec15ba998fe9795cf4c711fe99",
+      "pe_bytes": 48128,
+      "pe_sha256": "4a0381c4feba351d8e184cc7098f29f6d7f746f729a9d105636707bf5d9b6a74",
       "producer": "msvc",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
@@ -1101,8 +1167,8 @@
           ]
         }
       ],
-      "pe_bytes": 47616,
-      "pe_sha256": "772448e62f46aac0ffdb8bf578fec5e0ac59d8ac46576a14ba1749e6e3d2610b",
+      "pe_bytes": 48128,
+      "pe_sha256": "0e4dcdf8ff6f81aae84ff93a637cae42055dcb276cc0022cf990fbf1441a136e",
       "producer": "msvc",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
@@ -1175,8 +1241,8 @@
           ]
         }
       ],
-      "pe_bytes": 43520,
-      "pe_sha256": "faac9623d07afb7613a3328c5542dc8921717e1b707afd5c1ee3f140b06ad695",
+      "pe_bytes": 44544,
+      "pe_sha256": "35eb50eea684d49420b5a0170443b16b46cb9d68266c05d16ae475a0fa9fce6f",
       "producer": "clang-cl",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
@@ -1249,8 +1315,8 @@
           ]
         }
       ],
-      "pe_bytes": 47616,
-      "pe_sha256": "f086b79c5fddb3c13195944452734c3b2d4db03342ab5f8770b047d7e05de3f0",
+      "pe_bytes": 48128,
+      "pe_sha256": "b767e2e2c261c2fff366df003c0c34836c1d52157e3d290d773bca42762f6385",
       "producer": "msvc",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
@@ -1323,8 +1389,8 @@
           ]
         }
       ],
-      "pe_bytes": 43520,
-      "pe_sha256": "faac9623d07afb7613a3328c5542dc8921717e1b707afd5c1ee3f140b06ad695",
+      "pe_bytes": 44544,
+      "pe_sha256": "35eb50eea684d49420b5a0170443b16b46cb9d68266c05d16ae475a0fa9fce6f",
       "producer": "clang-cl",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
@@ -1397,8 +1463,8 @@
           ]
         }
       ],
-      "pe_bytes": 43520,
-      "pe_sha256": "faac9623d07afb7613a3328c5542dc8921717e1b707afd5c1ee3f140b06ad695",
+      "pe_bytes": 44544,
+      "pe_sha256": "35eb50eea684d49420b5a0170443b16b46cb9d68266c05d16ae475a0fa9fce6f",
       "producer": "clang-cl",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
@@ -1473,8 +1539,8 @@
           ]
         }
       ],
-      "pe_bytes": 43520,
-      "pe_sha256": "faac9623d07afb7613a3328c5542dc8921717e1b707afd5c1ee3f140b06ad695",
+      "pe_bytes": 44544,
+      "pe_sha256": "35eb50eea684d49420b5a0170443b16b46cb9d68266c05d16ae475a0fa9fce6f",
       "producer": "clang-cl",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
@@ -1549,8 +1615,8 @@
           ]
         }
       ],
-      "pe_bytes": 43520,
-      "pe_sha256": "faac9623d07afb7613a3328c5542dc8921717e1b707afd5c1ee3f140b06ad695",
+      "pe_bytes": 44544,
+      "pe_sha256": "35eb50eea684d49420b5a0170443b16b46cb9d68266c05d16ae475a0fa9fce6f",
       "producer": "clang-cl",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
@@ -1625,8 +1691,8 @@
           ]
         }
       ],
-      "pe_bytes": 43520,
-      "pe_sha256": "faac9623d07afb7613a3328c5542dc8921717e1b707afd5c1ee3f140b06ad695",
+      "pe_bytes": 44544,
+      "pe_sha256": "35eb50eea684d49420b5a0170443b16b46cb9d68266c05d16ae475a0fa9fce6f",
       "producer": "clang-cl",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
@@ -1650,6 +1716,234 @@
       "exit_code": 1,
       "point": "before",
       "target": "both",
+      "stdout_bytes": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "clang-cl-minigzip-disk-torn-directory": {
+      "profile": {
+        "Name": "win64-scratch-file-v1",
+        "AbiVersion": 1,
+        "DLL": "KERNEL32.dll",
+        "Imports": {
+          "GetStdHandle": "bmo_session_stdout",
+          "WriteFile": "bmo_package_write",
+          "GetProcessHeap": "bmo_get_process_heap",
+          "HeapAlloc": "bmo_heap_alloc",
+          "HeapFree": "bmo_heap_free",
+          "CreateFileW": "bmo_package_open",
+          "ReadFile": "bmo_package_read",
+          "CloseHandle": "bmo_package_close"
+        },
+        "Scope": "External single-threaded QEMU fixture with a 4 KiB volatile output file"
+      },
+      "imports": [
+        {
+          "DLL": "KERNEL32.dll",
+          "Symbols": [
+            {
+              "Name": "GetProcessHeap"
+            },
+            {
+              "Name": "HeapAlloc"
+            },
+            {
+              "Name": "HeapFree"
+            },
+            {
+              "Name": "CreateFileW"
+            },
+            {
+              "Name": "ReadFile"
+            },
+            {
+              "Name": "CloseHandle"
+            },
+            {
+              "Name": "GetStdHandle"
+            },
+            {
+              "Name": "WriteFile"
+            }
+          ]
+        }
+      ],
+      "pe_bytes": 44544,
+      "pe_sha256": "35eb50eea684d49420b5a0170443b16b46cb9d68266c05d16ae475a0fa9fce6f",
+      "producer": "clang-cl",
+      "msvc_toolset": "14.44.35207",
+      "sdk": "10.0.26100.0",
+      "rejected_import": {
+        "Code": "PE-SESSION-IMPORT",
+        "Offset": 352,
+        "Field": "KERNEL32.dll!OtherFile"
+      },
+      "package_file": {
+        "path": "input.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "zlib_header_sha256": "2c404dcaa08709c2a129aea18f3dad4fb5acc5cb52ef12b6223bf8e78c195801",
+      "argv": [
+        "minigzip",
+        "--disk-read"
+      ],
+      "argv_sha256": "6a0f4a4231cf003c2f6c72f6791b76639ae9e6fdae6c8870a22b5713461f72e5",
+      "mode": "disk-torn",
+      "exit_code": 0,
+      "point": "after",
+      "target": "directory",
+      "stdout_bytes": 3072,
+      "stdout_sha256": "60e62ba240e5b7fe29478dfb1ed9da994a11d190ffcb7fad9db67d2fcfd79763"
+    },
+    "clang-cl-minigzip-disk-torn-payload": {
+      "profile": {
+        "Name": "win64-scratch-file-v1",
+        "AbiVersion": 1,
+        "DLL": "KERNEL32.dll",
+        "Imports": {
+          "GetStdHandle": "bmo_session_stdout",
+          "WriteFile": "bmo_package_write",
+          "GetProcessHeap": "bmo_get_process_heap",
+          "HeapAlloc": "bmo_heap_alloc",
+          "HeapFree": "bmo_heap_free",
+          "CreateFileW": "bmo_package_open",
+          "ReadFile": "bmo_package_read",
+          "CloseHandle": "bmo_package_close"
+        },
+        "Scope": "External single-threaded QEMU fixture with a 4 KiB volatile output file"
+      },
+      "imports": [
+        {
+          "DLL": "KERNEL32.dll",
+          "Symbols": [
+            {
+              "Name": "GetProcessHeap"
+            },
+            {
+              "Name": "HeapAlloc"
+            },
+            {
+              "Name": "HeapFree"
+            },
+            {
+              "Name": "CreateFileW"
+            },
+            {
+              "Name": "ReadFile"
+            },
+            {
+              "Name": "CloseHandle"
+            },
+            {
+              "Name": "GetStdHandle"
+            },
+            {
+              "Name": "WriteFile"
+            }
+          ]
+        }
+      ],
+      "pe_bytes": 44544,
+      "pe_sha256": "35eb50eea684d49420b5a0170443b16b46cb9d68266c05d16ae475a0fa9fce6f",
+      "producer": "clang-cl",
+      "msvc_toolset": "14.44.35207",
+      "sdk": "10.0.26100.0",
+      "rejected_import": {
+        "Code": "PE-SESSION-IMPORT",
+        "Offset": 352,
+        "Field": "KERNEL32.dll!OtherFile"
+      },
+      "package_file": {
+        "path": "input.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "zlib_header_sha256": "2c404dcaa08709c2a129aea18f3dad4fb5acc5cb52ef12b6223bf8e78c195801",
+      "argv": [
+        "minigzip",
+        "--disk-read"
+      ],
+      "argv_sha256": "6a0f4a4231cf003c2f6c72f6791b76639ae9e6fdae6c8870a22b5713461f72e5",
+      "mode": "disk-torn",
+      "exit_code": 0,
+      "point": "after",
+      "target": "payload",
+      "stdout_bytes": 3072,
+      "stdout_sha256": "60e62ba240e5b7fe29478dfb1ed9da994a11d190ffcb7fad9db67d2fcfd79763"
+    },
+    "clang-cl-minigzip-disk-torn-both-payloads": {
+      "profile": {
+        "Name": "win64-scratch-file-v1",
+        "AbiVersion": 1,
+        "DLL": "KERNEL32.dll",
+        "Imports": {
+          "GetStdHandle": "bmo_session_stdout",
+          "WriteFile": "bmo_package_write",
+          "GetProcessHeap": "bmo_get_process_heap",
+          "HeapAlloc": "bmo_heap_alloc",
+          "HeapFree": "bmo_heap_free",
+          "CreateFileW": "bmo_package_open",
+          "ReadFile": "bmo_package_read",
+          "CloseHandle": "bmo_package_close"
+        },
+        "Scope": "External single-threaded QEMU fixture with a 4 KiB volatile output file"
+      },
+      "imports": [
+        {
+          "DLL": "KERNEL32.dll",
+          "Symbols": [
+            {
+              "Name": "GetProcessHeap"
+            },
+            {
+              "Name": "HeapAlloc"
+            },
+            {
+              "Name": "HeapFree"
+            },
+            {
+              "Name": "CreateFileW"
+            },
+            {
+              "Name": "ReadFile"
+            },
+            {
+              "Name": "CloseHandle"
+            },
+            {
+              "Name": "GetStdHandle"
+            },
+            {
+              "Name": "WriteFile"
+            }
+          ]
+        }
+      ],
+      "pe_bytes": 44544,
+      "pe_sha256": "35eb50eea684d49420b5a0170443b16b46cb9d68266c05d16ae475a0fa9fce6f",
+      "producer": "clang-cl",
+      "msvc_toolset": "14.44.35207",
+      "sdk": "10.0.26100.0",
+      "rejected_import": {
+        "Code": "PE-SESSION-IMPORT",
+        "Offset": 352,
+        "Field": "KERNEL32.dll!OtherFile"
+      },
+      "package_file": {
+        "path": "input.bin",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "zlib_header_sha256": "2c404dcaa08709c2a129aea18f3dad4fb5acc5cb52ef12b6223bf8e78c195801",
+      "argv": [
+        "minigzip",
+        "--disk-read"
+      ],
+      "argv_sha256": "6a0f4a4231cf003c2f6c72f6791b76639ae9e6fdae6c8870a22b5713461f72e5",
+      "mode": "disk-torn",
+      "exit_code": 1,
+      "point": "after",
+      "target": "both-payloads",
       "stdout_bytes": 0,
       "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     }
@@ -1695,6 +1989,9 @@
       "torn_secondary_recovered": true,
       "torn_fat_link_recovered": true,
       "both_journal_copies_torn_rejected": true,
+      "torn_directory_rolled_back": true,
+      "torn_payload_rolled_back": true,
+      "both_payloads_torn_rejected": true,
       "recovered_bytes_match_windows_minigzip": true
     },
     "replacement": {

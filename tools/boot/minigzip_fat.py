@@ -106,7 +106,7 @@ def exhaust_pool(image):
 
 
 def verify_interruption(initial, final, stopped, *, committed):
-    entry, old_chain, _, old_size = output_layout(initial)
+    entry, old_chain, old_offsets, old_size = output_layout(initial)
     new_entry, new_chain, offsets, new_size = output_layout(final)
     if new_entry != entry:
         raise ValueError('El reemplazo debe conservar la entrada FAT16')
@@ -120,7 +120,10 @@ def verify_interruption(initial, final, stopped, *, committed):
             expected[offset:offset + 2] = final[offset:offset + 2]
     if committed:
         expected[entry:entry + 32] = final[entry:entry + 32]
-    record = struct.pack('<4sII4s4s', b'BMJ1', old_size, new_size, bytes(old_chain), bytes(new_chain))
+    old_payload = b''.join(initial[offset:offset + SECTOR] for offset in old_offsets)[:old_size]
+    new_payload = b''.join(final[offset:offset + SECTOR] for offset in offsets)[:new_size]
+    record = struct.pack('<4sII4s4sII', b'BMJ2', old_size, new_size, bytes(old_chain), bytes(new_chain),
+                         zlib.crc32(old_payload), zlib.crc32(new_payload))
     record += struct.pack('<I', zlib.crc32(record))
     for offset in JOURNAL_COPIES:
         expected[offset:offset + SECTOR] = record.ljust(SECTOR, b'\0')
@@ -129,7 +132,7 @@ def verify_interruption(initial, final, stopped, *, committed):
     return final if committed else bytes(retained)
 
 
-def tear_interruption(stopped, target, replacement_chain):
+def tear_interruption(stopped, target, replacement_chain, original=None, final=None):
     image = bytearray(stopped)
     if target == 'fat':
         # One byte of the new end-of-chain marker reached the first FAT.
@@ -137,9 +140,29 @@ def tear_interruption(stopped, target, replacement_chain):
         if image[offset:offset + 2] != b'\xff\xff':
             raise ValueError('El punto de corte no contiene la marca FAT esperada')
         image[offset + 1] = 0
+    elif target == 'directory':
+        entry, _, _, _ = output_layout(original)
+        # The first-cluster update reached disk; the size write did not.
+        image[entry + 28:entry + 32] = original[entry + 28:entry + 32]
+    elif target in ('payload', 'both-payloads'):
+        _, _, offsets, _ = output_layout(final)
+        # Only the first half of the replacement's first sector reached disk.
+        offset = offsets[0] + SECTOR // 2
+        image[offset:offset + SECTOR // 2] = original[offset:offset + SECTOR // 2]
+        if target == 'both-payloads':
+            _, _, old_offsets, _ = output_layout(original)
+            image[old_offsets[0] + SECTOR // 2:old_offsets[0] + SECTOR] = bytes(SECTOR // 2)
     else:
         copies = {'primary': JOURNAL_COPIES[:1], 'secondary': JOURNAL_COPIES[1:], 'both': JOURNAL_COPIES}[target]
         for offset in copies:
             # The first 16 bytes reached the disk; the rest stayed clear.
             image[offset + 16:offset + SECTOR] = bytes(SECTOR - 16)
     return bytes(image)
+
+
+def expected_torn_rollback(original, final, damaged):
+    expected = bytearray(original)
+    _, _, offsets, _ = output_layout(final)
+    for offset in offsets:
+        expected[offset:offset + SECTOR] = damaged[offset:offset + SECTOR]
+    return expected

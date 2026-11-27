@@ -21,7 +21,8 @@ from scope import QEMU_SBEF_LIMIT, ROOT, workspace
 from bridge_hex import assemble
 from fat32_read import Fat32
 from minigzip_fat import (
-    FAT_HEADS, exhaust_pool, initial_image, output_layout, tear_interruption, verify_interruption, verify_output,
+    FAT_HEADS, exhaust_pool, expected_torn_rollback, initial_image, output_layout,
+    tear_interruption, verify_interruption, verify_output,
 )
 
 
@@ -304,6 +305,7 @@ def minigzip_disk_cases(run, llvm, source, original, *, replacement=None):
             cases.append((recover, cases[1][1], 'SBEF WIN64 EXIT 0000000000000000', 1))
         for target, point, exit_code in (
             ('primary', 'before', 0), ('secondary', 'after', 0), ('fat', 'before', 0), ('both', 'before', 1),
+            ('directory', 'after', 0), ('payload', 'after', 0), ('both-payloads', 'after', 1),
         ):
             name = f'clang-cl-minigzip-disk-torn-{target}'
             variants[name] = dict(variants[cases[1][0]], mode='disk-torn', point=point, target=target,
@@ -532,7 +534,8 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             elif disk_role == 'disk-torn':
                 point = disk_case['point']
                 active_disk = run / f'minigzip-torn-{disk_case["target"]}.img'
-                torn_disk = tear_interruption(stopped_disks[point], disk_case['target'], replacement_chain)
+                torn_disk = tear_interruption(stopped_disks[point], disk_case['target'], replacement_chain,
+                                              original=written_disk, final=replaced_disk)
                 active_disk.write_bytes(torn_disk)
             elif cli[name]['exit_code']:
                 negative_disk = bytearray(written_disk)
@@ -578,7 +581,7 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                 if bounded_gzip(updated) != replacement:
                     raise ValueError(f'{name}: reemplazo distinto de la referencia. Ver {folder}')
                 replaced_disk = after_boot
-                calls = (15 + len(replacement_chain)) * 65 + 1
+                calls = (15 + 2 * len(replacement_chain) + len(chain)) * 65 + 1
             elif disk_role == 'disk-read-replacement':
                 if after_boot != replaced_disk:
                     raise ValueError(f'{name}: la lectura modifico el reemplazo. Ver {folder}')
@@ -588,16 +591,22 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                 stopped_disks[point] = after_boot
                 recovered_disks[point] = verify_interruption(
                     written_disk, replaced_disk, after_boot, committed=committed)
-                calls = ((11 if committed else 9) + len(replacement_chain)) * 65 + 1
+                calls = ((11 if committed else 9) + 2 * len(replacement_chain) + len(chain)) * 65 + 1
             elif disk_role == 'disk-torn' and disk_case['exit_code']:
                 if after_boot != torn_disk:
                     raise ValueError(f'{name}: el rechazo del diario altero el disco. Ver {folder}')
-                calls = 6 * 65 + 1
+                reads = len(chain) + len(replacement_chain) if disk_case['target'] == 'both-payloads' else 0
+                calls = (6 + reads) * 65 + 1
             elif disk_role.startswith('disk-recover-') or disk_role == 'disk-torn':
-                if after_boot != recovered_disks[point]:
+                damaged = disk_case.get('target')
+                rollback = damaged in ('directory', 'payload')
+                expected_disk = (expected_torn_rollback(written_disk, replaced_disk, torn_disk) if rollback
+                                 else recovered_disks[point])
+                if after_boot != expected_disk:
                     raise ValueError(f'{name}: la recuperacion dejo cambios inesperados. Ver {folder}')
-                recovered_chain = replacement_chain if point == 'after' else chain
-                calls = (10 + len(recovered_chain)) * 65 + 1 + (len(original) + 7) // 8
+                recovered_chain = replacement_chain if point == 'after' and not rollback else chain
+                extra = int(rollback) + (len(replacement_chain) if damaged == 'payload' else 0)
+                calls = (10 + 2 * len(recovered_chain) + extra) * 65 + 1 + (len(original) + 7) // 8
             elif disk_role == 'disk-read':
                 if after_boot != written_disk:
                     raise ValueError(f'{name}: la lectura modifico el disco. Ver {folder}')
@@ -686,7 +695,8 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                 scenario = cli[name]
                 if disk_mode:
                     if disk_role == 'disk-torn' and not disk_case['exit_code']:
-                        reference = replacement if point == 'after' else original
+                        reference = (replacement if point == 'after' and disk_case['target'] == 'secondary'
+                                     else original)
                     else:
                         reference = {
                             'disk-read': original, 'disk-read-replacement': replacement,
@@ -803,7 +813,10 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                                                              both_journal_copies_cleared=True,
                                                              torn_primary_recovered=True, torn_secondary_recovered=True,
                                                              torn_fat_link_recovered=True,
-                                                             both_journal_copies_torn_rejected=True),
+                                                             both_journal_copies_torn_rejected=True,
+                                                             torn_directory_rolled_back=True,
+                                                             torn_payload_rolled_back=True,
+                                                             both_payloads_torn_rejected=True),
                                                replacement=dict(
                                                    cluster_chain=replacement_chain, gzip_bytes=len(updated),
                                                    sha256=hashlib.sha256(replacement).hexdigest(),

@@ -315,11 +315,15 @@ borra las dos copias al terminar.
 
 El banco detiene una ejecucion entre las dos escrituras FAT y otra
 despues de publicar el directorio. Sobre copias de esas imagenes, el
-banco simula escrituras parciales en cada copia del diario y en un
-enlace FAT de la cadena descartada. Arranques independientes verifican
-los datos y los espejos FAT. Dos copias de diario invalidas producen un
-rechazo sin cambios en el disco. El banco requiere una entrada de
-directorio coherente y no simula escrituras parciales del contenido GZIP.
+banco simula escrituras parciales en cada copia del diario, un enlace
+FAT, los campos de cluster inicial y tamano del directorio y un sector
+GZIP. El diario contiene el CRC de ambas versiones. El escritor verifica
+la copia nueva antes de publicarla. Si al reiniciar sus datos estan
+incompletos o los campos del directorio mezclan ambas versiones, el
+invitado vuelve a la copia anterior tras verificar su CRC. Dos copias
+de diario invalidas o dos cargas GZIP danadas producen un rechazo sin
+cambios en el disco. El perfil conserva el nombre y los demas campos
+de la entrada y opera sobre el volumen virtual del banco.
 
 El ejecutable Windows distribuido requiere su arranque CRT, mas memoria
 de carga y mas servicios Win64. El perfil adaptado usa entradas y salidas

@@ -67,15 +67,18 @@ unsigned long word(const unsigned char* bytes) {
         (static_cast<unsigned long>(bytes[3]) << 24);
 }
 
-unsigned long crc32_gzip(const Output& output) {
-    unsigned long crc = 0xffffffff;
-    for (unsigned long index = 0; index < output.size; ++index) {
-        crc ^= output.bytes[index];
+unsigned long crc32_update(unsigned long crc, const unsigned char* bytes, unsigned long size) {
+    for (unsigned long index = 0; index < size; ++index) {
+        crc ^= bytes[index];
         for (unsigned bit = 0; bit < 8; ++bit) {
             crc = (crc >> 1) ^ (0xedb88320 & (0ul - (crc & 1)));
         }
     }
-    return crc ^ 0xffffffff;
+    return crc;
+}
+
+unsigned long crc32_gzip(const Output& output) {
+    return crc32_update(0xffffffff, output.bytes, output.size) ^ 0xffffffff;
 }
 
 bool gunzip(void* heap, unsigned char* input, unsigned long size, unsigned char* window, Output& output) {

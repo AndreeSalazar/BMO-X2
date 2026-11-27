@@ -116,8 +116,12 @@ bool write_disk(const Output& output, bool replace, unsigned cut) {
         if (cluster != 5 && !fat_word(table + 2 * cluster)) clusters[free_count++] = cluster;
     }
     if (free_count != count) return false;
-    if (replace && !fat_begin(sector, word(entry + 28), previous, previous_count,
-                              output.size, clusters, count)) return false;
+    if (replace) {
+        const auto old_size = word(entry + 28);
+        unsigned long old_crc = 0;
+        if (!fat_payload_crc(previous, previous_count, old_size, sector, old_crc) ||
+            !fat_begin(sector, old_size, previous, previous_count, old_crc, output, clusters, count)) return false;
+    }
 
     // Flush the data first, then both FAT copies, then publish the name.
     for (unsigned index = 0; index < count; ++index) {
@@ -127,6 +131,11 @@ bool write_disk(const Output& output, bool replace, unsigned cut) {
         }
         if (!fat_sector(fat_lba(clusters[index]), sector, true)) return false;
         fat_store(table + 2 * clusters[index], index + 1 < count ? clusters[index + 1] : 0xffff, 2);
+    }
+    if (replace) {
+        unsigned long written_crc = 0;
+        if (!fat_payload_crc(clusters, count, output.size, sector, written_crc) ||
+            written_crc != crc32_gzip(output)) return false;
     }
     if (!fat_sector(1, table, true)) return false;
     if (cut == 1) return true;
