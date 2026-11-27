@@ -1,12 +1,14 @@
 """Provisional SBEF reader and producer acceptance boundaries."""
 from pathlib import Path
 import hashlib
+from io import BytesIO
 import json
 import struct
 import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import sbef
@@ -257,6 +259,54 @@ class Sbef(unittest.TestCase):
                              dict(Code='HOST-CATALOG-HASH', Field='input', Offset=0))
             self.assertEqual(output.read_bytes(), sbef.pack_elf(self.elf))
 
+    def test_deep_catalog_reads_zip_members_with_limits_and_keeps_paths_virtual(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            inner = BytesIO()
+            with zipfile.ZipFile(inner, 'w') as nested:
+                nested.writestr('readme.txt', b'nested file')
+            bundle = root / 'assets.zip'
+            with zipfile.ZipFile(bundle, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
+                archive.writestr('bin/pretend.txt', self.elf)
+                archive.writestr('resources.pak', bytes(2 * 1024 * 1024 + 1))
+                archive.writestr('../outside.txt', b'not extracted')
+                archive.writestr('a.dll', b'first')
+                archive.writestr('A.dll', b'second')
+                archive.writestr('nested.zip', inner.getvalue())
+                archive.writestr('manual.txt.exe', self.elf)
+            (root / 'launcher.pdf.exe').write_bytes(self.elf)
+            (root / 'broken.zip').write_bytes(b'PK\x03\x04')
+            crc_bundle = BytesIO()
+            with zipfile.ZipFile(crc_bundle, 'w') as archive:
+                archive.writestr('original.txt', b'integrity marker')
+            (root / 'bad-crc.zip').write_bytes(crc_bundle.getvalue().replace(b'integrity marker', b'gntegrity marker'))
+            cli = [sys.executable, '-B', sbef.__file__, 'catalog', str(root), '--deep']
+            report = json.loads(subprocess.check_output(cli))
+            files = {item['Path']: item for item in report['Files']}
+            archive = files['assets.zip']['Archive']
+            entries = {item['Path']: item for item in archive['Entries']}
+            self.assertEqual(archive['Status'], 'REVISION')
+            self.assertEqual(archive['DeclaredEntries'], 7)
+            self.assertEqual(entries['bin/pretend.txt']['Category'], 'EJECUTABLE')
+            self.assertTrue(entries['bin/pretend.txt']['ExtensionMismatch'])
+            self.assertTrue(entries['bin/pretend.txt']['SHA256'])
+            self.assertIn('RUTA_DE_ARCHIVO_NO_ADMITIDA', entries['../outside.txt']['Findings'])
+            self.assertIn('NOMBRE_DUPLICADO', entries['a.dll']['Findings'])
+            self.assertIn('NOMBRE_DUPLICADO', entries['A.dll']['Findings'])
+            self.assertNotIn('SHA256', entries['resources.pak'])
+            self.assertEqual(entries['nested.zip']['Archive']['Entries'][0]['Category'], 'DATOS')
+            self.assertIn('DOBLE_EXTENSION_EJECUTABLE', entries['manual.txt.exe']['NameFindings'])
+            self.assertEqual(files['broken.zip']['Archive']['Status'], 'REVISION')
+            crc_entry = files['bad-crc.zip']['Archive']['Entries'][0]
+            self.assertNotIn('SHA256', crc_entry)
+            self.assertIn('integridad', crc_entry['Reason'])
+            self.assertIn('DOBLE_EXTENSION_EJECUTABLE', files['launcher.pdf.exe']['NameFindings'])
+            self.assertIn('launcher.pdf.exe', report['RoleGroups']['LANZADOR_O_INSTALADOR'])
+            self.assertTrue(report['LaunchCandidates'][0]['RequiresReview'])
+            self.assertEqual(report['Coverage']['ArchiveMembersListed'], 9)
+            self.assertEqual(sorted(item.name for item in root.iterdir()),
+                             ['assets.zip', 'bad-crc.zip', 'broken.zip', 'launcher.pdf.exe'])
+
     def test_producer_selector_checks_format_before_publication(self):
         with tempfile.TemporaryDirectory() as path:
             source, output = Path(path)/'app.elf', Path(path)/'app.sbef'
@@ -401,9 +451,12 @@ class Sbef(unittest.TestCase):
             first = source.with_name('kernel32.dll')
             first.write_bytes(dll)
             (directory / 'KERNEL32.dll').write_bytes(dll)
-            catalog = json.loads(subprocess.check_output([*base, 'catalog', path]))
+            catalog = json.loads(subprocess.check_output([*base, 'catalog', path, '--deep']))
             edge = next(edge for edge in catalog['Dependencies'] if edge['From'] == 'app.exe')
             self.assertEqual(edge['Symbols'], ['Sleep', '#7'])
+            self.assertEqual(edge['SymbolsWithoutRuntimeEvidence'], ['Sleep', '#7'])
+            self.assertEqual(catalog['LaunchCandidates'][0]['DeclaredDLLs'], ['kernel32.dll'])
+            self.assertEqual(catalog['LaunchCandidates'][0]['Blockers'], [expected])
             self.assertEqual(edge['Status'], 'AMBIGUA')
             self.assertEqual(edge['LocalCandidates'], ['alternate/KERNEL32.dll', 'kernel32.dll'])
             mismatch = subprocess.run([*base, 'pack', str(source), str(output), '--abi', '1',

@@ -75,6 +75,8 @@ def main():
     commands.add_parser('inspect').add_argument('input', type=Path)
     catalog = commands.add_parser('catalog', help='Inventaria archivos y dependencias sin ejecutarlos')
     catalog.add_argument('root', type=Path)
+    catalog.add_argument('--deep', action='store_true',
+                         help='Anota roles sugeridos y examina miembros ZIP con presupuestos acotados')
     plan = commands.add_parser('plan', help='Emit the validated per-process mapping plan')
     plan.add_argument('input', type=Path)
     plan.add_argument('--profile', choices=['default', 'rmlui-native-v1', 'rmlui-native-fhd'], default='default')
@@ -205,7 +207,7 @@ def run(args):
     if args.action == 'inspect':
         return inspect_file(args.input)
     if args.action == 'catalog':
-        return catalog_directory(args.root)
+        return catalog_directory(args.root, deep=getattr(args, 'deep', False))
     if args.action == 'plan':
         with args.input.open('rb') as file:
             image = file.read(image_limit(args.profile) + 1)

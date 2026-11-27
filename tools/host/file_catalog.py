@@ -6,7 +6,9 @@ from itertools import islice
 import os
 from pathlib import Path
 import stat
+import unicodedata
 
+from .catalog_archives import MAX_EXPANDED_BYTES, MAX_MEMBERS, inspect_zip
 from .diagnostics import Rejection
 from .importers.elf import MAX_ELF, pack_elf
 from .importers.pe import probe_pe
@@ -16,6 +18,8 @@ from .sbef.format import inspect
 
 MAX_ENTRIES = 2048
 MAX_TOTAL_BYTES = 64 * 1024 * 1024
+DEEP_ENTRIES = 32768
+DEEP_TOTAL_BYTES = 256 * 1024 * 1024
 RESOURCE_HEADERS = (
     (b'\x89PNG\r\n\x1a\n', 'PNG'),
     (b'%PDF-', 'PDF'),
@@ -24,8 +28,39 @@ RESOURCE_HEADERS = (
     (b'PK\x03\x04', 'ZIP'),
     (b'PK\x05\x06', 'ZIP'),
 )
-TEXT_SUFFIXES = {'.txt', '.md', '.ini', '.json', '.toml', '.csv', '.xml'}
+TEXT_SUFFIXES = {'.txt', '.md', '.ini', '.cfg', '.json', '.toml', '.csv', '.xml', '.yaml', '.yml'}
 SOURCE_SUFFIXES = {'.c', '.h', '.cpp', '.hpp', '.rs', '.py', '.ps1', '.js', '.asm', '.s', '.casm'}
+
+
+def role_hint(path):
+    suffix = path.suffix.lower()
+    name = path.stem.casefold()
+    if suffix == '.exe':
+        if any(word in name for word in ('launcher', 'setup', 'installer', 'updater')):
+            return 'LANZADOR_O_INSTALADOR'
+        return 'EJECUTABLE'
+    if suffix in ('.dll', '.so', '.asi', '.ocx'):
+        return 'MODULO'
+    if suffix in ('.pak', '.rpf', '.vpk', '.ucas', '.utoc', '.zip', '.7z', '.rar'):
+        return 'CONTENEDOR_DE_RECURSOS'
+    if suffix in ('.ini', '.cfg', '.json', '.toml', '.xml', '.yaml', '.yml'):
+        return 'CONFIGURACION'
+    if suffix in ('.bat', '.cmd', '.ps1', '.vbs', '.js', '.lua', '.py'):
+        return 'SCRIPT'
+    if suffix in ('.png', '.dds', '.jpg', '.jpeg', '.ogg', '.wav', '.mp4', '.webm'):
+        return 'RECURSO_MULTIMEDIA'
+    return 'SIN_INDICIO'
+
+
+def name_findings(path):
+    findings = []
+    if any(unicodedata.category(char) in ('Cc', 'Cf') for char in path.name):
+        findings.append('CARACTERES_DE_CONTROL_O_FORMATO')
+    if path.suffix.lower() in ('.exe', '.scr', '.bat', '.cmd', '.ps1', '.vbs') and (
+        Path(path.stem).suffix.lower() in TEXT_SUFFIXES | {'.pdf', '.jpg', '.png', '.docx', '.zip'}
+    ):
+        findings.append('DOBLE_EXTENSION_EJECUTABLE')
+    return findings
 
 
 def is_link(info):
@@ -89,7 +124,7 @@ def classify(data, suffix, record):
     return []
 
 
-def catalog_directory(root):
+def catalog_directory(root, *, deep=False):
     root_info = root.lstat()
     if is_link(root_info) or not stat.S_ISDIR(root_info.st_mode):
         raise Rejection('HOST-CATALOG-ROOT', 0, 'root')
@@ -100,20 +135,32 @@ def catalog_directory(root):
     pending = [root]
     visited = 0
     total = 0
+    truncated = False
+    max_entries = DEEP_ENTRIES if deep else MAX_ENTRIES
+    byte_budget = DEEP_TOTAL_BYTES if deep else MAX_TOTAL_BYTES
+    archive_budget = {'bytes': MAX_EXPANDED_BYTES, 'members': MAX_MEMBERS}
     while pending:
         directory = pending.pop()
         current = directory.lstat()
         if is_link(current) or not stat.S_ISDIR(current.st_mode):
             raise Rejection('HOST-CATALOG-DIRECTORY-CHANGED', 0, 'root')
         with os.scandir(directory) as children:
-            paths = sorted(item.path for item in islice(children, MAX_ENTRIES - visited + 1))
+            paths = sorted(item.path for item in islice(children, max_entries - visited + 1))
         children = list(map(Path, paths))
+        remaining = max_entries - visited
+        if len(children) > remaining:
+            if not deep:
+                raise Rejection('HOST-CATALOG-ENTRIES', 0, 'root')
+            truncated = True
+            children = children[:remaining]
         visited += len(children)
-        if visited > MAX_ENTRIES:
-            raise Rejection('HOST-CATALOG-ENTRIES', 0, 'root')
         for path in children:
             relative = path.relative_to(root).as_posix()
             record = dict(Path=relative)
+            if deep:
+                record['RoleHint'] = role_hint(path)
+                if findings := name_findings(path):
+                    record['NameFindings'] = findings
             try:
                 info = path.lstat()
                 if is_link(info):
@@ -125,8 +172,10 @@ def catalog_directory(root):
                     unknown(record, 'Objeto distinto de un archivo normal.')
                 elif info.st_size > MAX_ELF:
                     unknown(record, 'Archivo por encima del limite de lectura.', Bytes=info.st_size)
+                elif deep and info.st_size > byte_budget - total:
+                    unknown(record, 'Presupuesto global de lectura agotado.', Bytes=info.st_size)
                 else:
-                    if info.st_size > MAX_TOTAL_BYTES - total:
+                    if info.st_size > byte_budget - total:
                         raise Rejection('HOST-CATALOG-BUDGET', 0, 'root')
                     with path.open('rb') as file:
                         opened = os.fstat(file.fileno())
@@ -137,6 +186,9 @@ def catalog_directory(root):
                     else:
                         record.update(Bytes=len(data), SHA256=hashlib.sha256(data).hexdigest())
                         symbols = classify(data, path.suffix.lower(), record)
+                        if deep and record.get('Format') == 'ZIP':
+                            record['Archive'] = inspect_zip(
+                                data, classify, role_hint, name_findings, archive_budget)
                         if symbols:
                             imports[relative] = symbols
                         if record.get('ImageKind') == 'DLL':
@@ -146,6 +198,7 @@ def catalog_directory(root):
             entries.append(record)
 
     edges = []
+    launch_dependencies = defaultdict(list)
     for source, symbols in sorted(imports.items()):
         by_dll = defaultdict(list)
         for symbol in symbols:
@@ -153,13 +206,39 @@ def catalog_directory(root):
         for dll, required in sorted(by_dll.items()):
             candidates = sorted(libraries[dll])
             tested = sum(symbol['Status'] == 'available_in_fixture' for symbol in required)
-            edges.append(dict(From=source, DLL=dll, Symbols=[
+            edge = dict(From=source, DLL=dll, Symbols=[
                 symbol.get('Name', f'#{symbol.get("Ordinal")}') for symbol in required],
                 LocalCandidates=candidates, FixtureSymbols=tested,
                 Status=('AMBIGUA' if len(candidates) > 1 else 'CANDIDATA_LOCAL' if candidates else
-                        'RUNTIME_ACOTADO' if tested else 'PENDIENTE')))
+                        'RUNTIME_ACOTADO' if tested else 'PENDIENTE'))
+            if deep:
+                edge['SymbolsWithoutRuntimeEvidence'] = [
+                    symbol.get('Name', f'#{symbol.get("Ordinal")}') for symbol in required
+                    if symbol['Status'] != 'available_in_fixture']
+                launch_dependencies[source].append(dll)
+            edges.append(edge)
     entries.sort(key=lambda record: record['Path'])
     groups = {category: [record['Path'] for record in entries if record['Category'] == category]
               for category in ('EJECUTABLE', 'BIBLIOTECA', 'PAQUETE', 'FUENTE', 'DATOS', 'DESCONOCIDO')}
-    return dict(Root=str(root), Scope='Inspeccion estatica HOST de formatos, huellas y dependencias.',
-                Files=entries, Categories=groups, Dependencies=edges)
+    report = dict(Root=str(root), Scope='Inspeccion estatica HOST de formatos, huellas y dependencias.',
+                  Files=entries, Categories=groups, Dependencies=edges)
+    if deep:
+        report['Coverage'] = dict(DirectoryTraversalTruncated=truncated, EntriesVisited=visited,
+                                  FilesHashed=sum('SHA256' in item for item in entries),
+                                  ArchiveMembersListed=MAX_MEMBERS - archive_budget['members'],
+                                  ArchiveBytesCharged=MAX_EXPANDED_BYTES - archive_budget['bytes'])
+        report['LaunchCandidates'] = [
+            dict(Path=item['Path'], Admission=item['Status'],
+                 DeclaredDLLs=launch_dependencies[item['Path']],
+                 Blockers=item.get('Blockers', []),
+                 RequiresReview=bool(item.get('ExtensionMismatch') or item.get('NameFindings') or
+                                     item['Status'] != 'ADMISIBLE'))
+            for item in entries if item['Category'] == 'EJECUTABLE']
+        report['Review'] = [item['Path'] for item in entries if (
+            item['Status'] in ('REVISION', 'BLOQUEADO') or item.get('ExtensionMismatch') or
+            item.get('NameFindings') or item.get('Archive', {}).get('Status') == 'REVISION')]
+        role_groups = defaultdict(list)
+        for item in entries:
+            role_groups[item['RoleHint']].append(item['Path'])
+        report['RoleGroups'] = dict(sorted(role_groups.items()))
+    return report

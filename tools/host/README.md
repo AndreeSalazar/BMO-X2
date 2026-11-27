@@ -27,6 +27,35 @@ reanalisis en revision. El resultado acredita formato, huella y
 dependencias. La deteccion de troyanos requiere un analisis antimalware
 independiente.
 
+Para una instalacion con varios ejecutables y paquetes de recursos, usa el
+inventario profundo y guarda el JSON fuera de la carpeta examinada.
+
+```powershell
+python -B tools/sbef.py catalog .\entrada --deep > .\inventario-profundo.json
+```
+
+`RoleGroups` agrupa los papeles sugeridos por el nombre. `Category` y
+`Status` muestran lo que el lector pudo comprobar a partir de los bytes.
+`LaunchCandidates` identifica ejecutables candidatos y marca los que
+requieren revision. `Dependencies` conserva sus importaciones estaticas
+y los candidatos DLL e identifica los simbolos sin evidencia en el
+runtime. Cada candidato muestra sus DLL declaradas y sus bloqueos de
+admision. El orden efectivo de carga depende del lanzador y
+del runtime. `Review` reune formatos desconocidos, bloqueos y nombres
+enganosos.
+
+El modo profundo lee miembros ZIP en memoria y comprueba su integridad
+al llegar al final de cada miembro. Expone nombres duplicados, rutas
+fuera del perfil, enlaces y contenido cifrado. El informe conserva el
+nombre, el tamano y el motivo de cualquier miembro omitido. Los formatos
+propietarios sin lector, como RPF, quedan con el papel sugerido y su
+estado de revision.
+
+El barrido profundo cubre hasta 32768 entradas y 256 MiB de lectura de
+archivos, con 16 MiB por archivo. La expansion ZIP tiene dos niveles,
+2048 miembros en total, 2 MiB por miembro y 16 MiB acumulados.
+`Coverage` y los motivos de revision indican los limites alcanzados.
+
 ## Capas y perfiles x86-64
 
 HOST separa productor, formato, destino y ejecucion. No mantiene un
