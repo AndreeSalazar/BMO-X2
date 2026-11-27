@@ -9,7 +9,10 @@ import struct
 import subprocess
 import tempfile
 import unittest
+import zlib
 
+from .gsp_init_compare import read_bmo
+from .gsp_args import encode
 from .sec2_booter import prepare_sec2_booter
 from .test_sec2_booter import booter
 
@@ -69,7 +72,9 @@ class FwsecLaunch(unittest.TestCase):
                         "/export:nvidia_prepare_sec2_image", "/export:nvidia_execute_sec2_booter",
                         "/export:nvidia_gsp_init_615", "/export:nvidia_gsp_snapshot_615",
                         "/export:nvidia_gsp_pcie_flags_615",
+                        "/export:nvidia_gsp_console_bytes_615",
                         "/export:nvidia_gsp_install_shared_surfaces",
+                        "/export:nvidia_gsp_check_boot_queues",
                         "/export:nvidia_gsp_efi_time_to_ns", "/export:nvidia_gsp_seed_ptimer",
                         "/export:nvidia_gsp_read_ptimer",
                         "/export:test_read_tsc",
@@ -99,7 +104,8 @@ class FwsecLaunch(unittest.TestCase):
         cls.execute_sec2.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_void_p]
         cls.execute_sec2.restype = ctypes.c_int
         cls.gsp_init = cls.library.nvidia_gsp_init_615
-        cls.gsp_init.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint64]
+        cls.gsp_init.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint64,
+                                 ctypes.c_uint64, ctypes.c_void_p, ctypes.c_void_p]
         cls.gsp_init.restype = ctypes.c_uint64
         cls.gsp_snapshot = cls.library.nvidia_gsp_snapshot_615
         cls.gsp_snapshot.argtypes = [ctypes.c_void_p]*6
@@ -199,16 +205,23 @@ class FwsecLaunch(unittest.TestCase):
     def test_gsp_init_accepts_only_a_matching_reply(self):
         for sequence, status, expected in ((1, 0, 0x801), (1, 0x40, 0x802), (2, 0, 0x807)):
             with self.subTest(sequence=sequence, status=status):
-                backing = ctypes.create_string_buffer(0x83000)
+                backing = ctypes.create_string_buffer(0x94000)
                 address = (ctypes.addressof(backing)+4095)&-4096
                 queue = (ctypes.c_ubyte*0x82000).from_address(address)
+                capture = ctypes.create_string_buffer(4096)
+                amdvi_mmio = ctypes.create_string_buffer(32)
+                struct.pack_into('<I', amdvi_mmio, 0x18, 0x50)
+                early_log = (ctypes.c_uint64 * 8192).from_address(address + 0x83000)
+                early_log[0] = 8193
+                for index in range(8185, 8193):
+                    early_log[1 + index % 8191] = index
                 struct.pack_into('<4I',queue,0x42004,0x40000,4096,63,4096)
                 self.write(FALCON+0x1388,0x80)
                 self.write(FALCON+0xc00,0)
                 self.write(FALCON+0xc80,0)
                 with ThreadPoolExecutor(max_workers=1) as worker:
                     run = worker.submit(self.gsp_init, ctypes.byref(self.mapping,FALCON),
-                                        address,25_000_000,(0x0043dc13<<32)|(0x402<<8)|0xa1)
+                                        address,25_000_000,(0x0043dc13<<32)|(0x402<<8)|0xa1,0x870000,capture,amdvi_mmio)
                     struct.pack_into('<I', queue, 0x42000, 2)
                     while self.read(FALCON+0xc00)!=1 and not run.done():
                         pass
@@ -216,6 +229,22 @@ class FwsecLaunch(unittest.TestCase):
                     frame = struct.unpack_from('<6I', queue, 0x3000)
                     command, payload_size = struct.unpack_from('<2I', queue, 0x3018)
                     self.assertEqual(command, 0x00010001)
+                    self.assertEqual(capture.raw[:544], bytes(queue[0x3000:0x3220]))
+                    self.assertEqual(struct.unpack_from('<4I', capture.raw, 544), (0, 0, 0x50, 0))
+                    self.assertEqual(struct.unpack_from('<9Q', capture.raw, 560),
+                                     (8193, *range(8185, 8193)))
+                    self.assertFalse(any(capture.raw[632:]))
+                    tx = capture.raw[:544]
+                    self.assertEqual(struct.unpack_from('<2IQ', tx, 528), (0x20001033, 1, 1))
+                    template = bytearray(tx)
+                    for offset, length in ((84, 4), (260, 4), (336, 8), (192, 8)):
+                        template[offset:offset+length] = bytes(length)
+                    line = f'INIT TX / REV 000000A1 LINK 0043DC13 PCIE 00000402 MEM 00870000 CL 00000001 CRC {zlib.crc32(tx):08X}'
+                    self.assertEqual(read_bmo(template, line), tx[64:])
+                    with self.assertRaisesRegex(ValueError, 'CL value differs'):
+                        read_bmo(template, line.replace('CL 00000001', 'CL 00000002'))
+                    with self.assertRaisesRegex(ValueError, 'checksum'):
+                        read_bmo(template, line.replace('00870000', '00871000'))
                     self.assertEqual(frame, (0x4d435450, 64+payload_size, 0xc0000001,
                                              0x2610de7e, 40+payload_size, 0))
                     self.assertEqual(struct.unpack_from('<II',queue,0x3050),(3,0xa1))
@@ -225,9 +254,11 @@ class FwsecLaunch(unittest.TestCase):
                                   bytes(queue[0x3040:0x3040+payload_size]))
                     self.assertIn(struct.pack('<IIQ', 0x20001000, 1, 0x402),
                                   bytes(queue[0x3040:0x3040+payload_size]))
+                    self.assertIn(struct.pack('<IIQ', 0x20001031, 1, 0x870000),
+                                  bytes(queue[0x3040:0x3040+payload_size]))
                     version = struct.pack('<II', 0x30001101, 10) + b'615.78.08'+bytes(7)
                     identity = struct.pack('<4I', 0x1102, 0, 0x1110, 3)
-                    self.assertEqual(bytes(queue[0x3040+payload_size-40:0x3040+payload_size]),
+                    self.assertEqual(bytes(queue[0x3040+payload_size-56:0x3040+payload_size-16]),
                                      version+identity)
                     struct.pack_into('<8IQI',queue,0x43000,0x4d435450,72,0xc0000001,
                                      0x2610de7e,48,0,0x01010001,8,sequence,status)
@@ -254,13 +285,62 @@ class FwsecLaunch(unittest.TestCase):
             with self.subTest(caps=caps, device=device, buses=buses, pcie=pcie):
                 self.assertEqual(flags(caps, device, buses, pcie), expected)
 
+    def test_gsp_console_bytes_require_a_matching_linear_framebuffer(self):
+        size = self.library.nvidia_gsp_console_bytes_615
+        size.argtypes = [ctypes.c_void_p, ctypes.c_uint64]
+        size.restype = ctypes.c_uint64
+        for base, length, stride, pixel_format, expected in (
+            (0xd0000000, 0x900000, 2048, 1, 0x870000),
+            (0xd0000000, 0x7e9000, 1920, 0, 0x7e9000),
+            (0xd0001000, 0x900000, 2048, 1, 0),
+            (0xd0000000, 0x860000, 2048, 1, 0),
+            (0xd0000000, 0x900000, 1919, 1, 0),
+            (0xd0000000, 0x900000, 2048, 3, 0),
+        ):
+            with self.subTest(base=base, length=length, stride=stride, pixel_format=pixel_format):
+                handoff = ctypes.create_string_buffer(0x30)
+                struct.pack_into('<2Q4I', handoff, 0x10, base, length, 1920, 1080, stride, pixel_format)
+                self.assertEqual(size(handoff, 0xd0000000), expected)
+
     def test_gsp_init_rejects_unrecognized_pcie_flags_before_submission(self):
         backing = ctypes.create_string_buffer(8192)
         address = (ctypes.addressof(backing)+4095)&-4096
         self.assertEqual(
-            self.gsp_init(ctypes.byref(self.mapping, FALCON), address, 25_000_000, (1<<8)|0xa1),
+            self.gsp_init(ctypes.byref(self.mapping, FALCON), address, 25_000_000, (1<<8)|0xa1, 0, None, None),
             0x805<<32,
         )
+
+    def test_gsp_init_leaves_tx_unwritten_when_status_queue_is_invalid(self):
+        backing = ctypes.create_string_buffer(0x44000)
+        address = (ctypes.addressof(backing) + 4095) & -4096
+        queue = (ctypes.c_ubyte * 0x43000).from_address(address)
+        struct.pack_into('<5I', queue, 0x42000, 2, 0x40000, 4096, 62, 4096)
+        self.write(FALCON + 0x1388, 0x80)
+        self.assertEqual(self.gsp_init(ctypes.byref(self.mapping, FALCON), address,
+                                       1_000_000, 0xa1, 0, None, None), 0x805 << 32 | 2)
+        self.assertFalse(any(queue[0x3000:0x4000]))
+        self.assertEqual(self.read(FALCON + 0xc00), 0)
+
+    def test_boot_queue_guard_checks_pointers_and_dma_permissions(self):
+        check = self.library.nvidia_gsp_check_boot_queues
+        check.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+        check.restype = ctypes.c_int
+        base_iova = 0x0A000000
+        addresses = [base_iova + i * 4096 for i in range(1, 130)]
+        backing = ctypes.create_string_buffer(130 * 4096 + 4095)
+        base = (ctypes.addressof(backing) + 4095) & -4096
+        ctypes.memmove(base, encode(base_iova, addresses), 130 * 4096)
+        leaves = (ctypes.c_uint64 * 130)(*[
+            (base + i * 4096) | ((0x2 if i < 2 else 0x6) << 60) | 1
+            for i in range(130)])
+        self.assertEqual(check(base, leaves), 1)
+        for index in (0, 1, 2, 129):
+            leaves[index] ^= 1 << 62
+            self.assertEqual(check(base, leaves), 0)
+            leaves[index] ^= 1 << 62
+        last_pointer = ctypes.c_uint64.from_address(base + 4096 + 128 * 8)
+        last_pointer.value = 0
+        self.assertEqual(check(base, leaves), 0)
 
     def test_gsp_consumed_command_without_reply_is_reported_as_timeout(self):
         backing = ctypes.create_string_buffer(0x83000)
@@ -270,7 +350,7 @@ class FwsecLaunch(unittest.TestCase):
         self.write(FALCON+0x1388, 0x80)
         with ThreadPoolExecutor(max_workers=1) as worker:
             run = worker.submit(self.gsp_init, ctypes.byref(self.mapping, FALCON),
-                                address, 1_000_000, 0xa1)
+                                address, 1_000_000, 0xa1, 0, None, None)
             while self.read(FALCON+0xc00)!=1 and not run.done():
                 pass
             self.assertFalse(run.done(), "GSP INIT was not submitted")

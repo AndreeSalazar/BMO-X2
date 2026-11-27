@@ -2,13 +2,15 @@
 # Win64 ABI RCX = GSP BAR0 alias, RDX = private RMARGS physical base,
 # R8 = ticks per 10 ms, R9 = PCIe Link Capabilities (high dword)
 # and measured PCIe flags (bits 8..23) and PCI revision (bits 0..7).
+# Fifth argument = validated GOP console bytes, or zero when unverified.
+# Sixth argument = optional, supervisor-only frame capture page.
+# Seventh argument = optional AMD-Vi event MMIO alias for the pre-TX sample.
 # RAX = {GMCAPI status or observed dword, trial status in high dword}.
 # Caller retains the verified GSP domain and RTX Bus Master until return.
 .set GSP_TX_HEAD, 0xc00
 .set GSP_TX_TAIL, 0xc04
 .set GSP_RX_HEAD, 0xc80
 .set GSP_RX_TAIL, 0xc84
-.set GSP_615_TX_ENTRY, 0x3000
 .set GSP_615_RX_HEADER, 0x42000
 .set GSP_615_RX_ENTRY, 0x43000
 .set GSP_615_NVDM_GMCAPI, 0x2610de7e
@@ -56,18 +58,6 @@ nvidia_gsp_init_615:
     test %eax, %eax             # LibOS processor suspended while awaiting RM.
     jns .Lgsp_615_receipt
 .Lgsp_615_processor_ready:
-    # Fill the single unpublished TX slot. The initial queue is zeroed.
-    lea GSP_615_TX_ENTRY(%r14), %rdi
-    lea .Lgsp_615_request(%rip), %rsi
-    mov $(.Lgsp_615_request_end-.Lgsp_615_request)/8, %ecx
-    cld
-    rep movsq
-    movzbl %r9b, %eax
-    mov %eax, (GSP_615_TX_ENTRY+.Lgsp_615_revision-.Lgsp_615_request+4)(%r14)
-    shr $32, %r9
-    mov %r9d, (GSP_615_TX_ENTRY+.Lgsp_615_link_cap-.Lgsp_615_request+4)(%r14)
-    mov %r15, (GSP_615_TX_ENTRY+.Lgsp_615_pcie_flags-.Lgsp_615_request+8)(%r14)
-
     # Match the status header initialized by firmware before linking it.
     mov $0x804, %r11d
     imul $400, %rbx, %r10
@@ -98,6 +88,60 @@ nvidia_gsp_init_615:
     movl $0, GSP_RX_TAIL(%r13)
     cmpl $0, GSP_RX_TAIL(%r13)
     jne .Lgsp_615_receipt
+
+    # Fill the unpublished TX slot only after linking the status queue.
+    lea GSP_615_TX_ENTRY(%r14), %rdi
+    lea .Lgsp_615_request(%rip), %rsi
+    mov $(.Lgsp_615_request_end-.Lgsp_615_request)/8, %ecx
+    cld
+    rep movsq
+    movzbl %r9b, %eax
+    mov %eax, (GSP_615_TX_ENTRY+.Lgsp_615_revision-.Lgsp_615_request+4)(%r14)
+    mov %r9d, %eax
+    shr $8, %eax
+    shr $32, %r9
+    mov %r9d, (GSP_615_TX_ENTRY+.Lgsp_615_link_cap-.Lgsp_615_request+4)(%r14)
+    mov %rax, (GSP_615_TX_ENTRY+.Lgsp_615_pcie_flags-.Lgsp_615_request+8)(%r14)
+    mov 88(%rsp), %rax
+    mov %rax, (GSP_615_TX_ENTRY+.Lgsp_615_console_mem-.Lgsp_615_request+8)(%r14)
+
+    mov 96(%rsp), %rdi
+    test %rdi, %rdi
+    jz .Lgsp_615_publish
+    lea GSP_615_TX_ENTRY(%r14), %rsi
+    mov $(GSP_615_INIT_FRAME_BYTES/8), %ecx
+    rep movsq
+    mov 104(%rsp), %rdx
+    test %rdx, %rdx
+    jz .Lgsp_615_publish
+    mov 0x18(%rdx), %eax
+    mov %eax, (GSP_INIT_EVENT_TAILS+8-GSP_615_INIT_FRAME_BYTES)(%rdi)
+    # Preserve early firmware evidence before INIT can change it. LOGINIT
+    # is a 16-page ring with one producer word and 8191 data words.
+    lea (GSP_PRE_TX_LOG-GSP_615_INIT_FRAME_BYTES)(%rdi), %rdi
+    lea GSP_LOGINIT_OFFSET(%r14), %rsi
+    lfence
+    mov (%rsi), %r8
+    cmp $GSP_PRE_TX_LOG_WORDS, %r8
+    jb .Lgsp_615_publish
+    lea -GSP_PRE_TX_LOG_WORDS(%r8), %r9
+    mov $GSP_PRE_TX_LOG_WORDS, %ecx
+.Lgsp_615_early_log:
+    mov %r9, %rax
+    xor %edx, %edx
+    mov $8191, %r10d
+    div %r10
+    mov 8(%rsi,%rdx,8), %rax
+    mov %rax, 8(%rdi)
+    add $8, %rdi
+    inc %r9
+    dec %ecx
+    jnz .Lgsp_615_early_log
+    lfence
+    cmp %r8, (%rsi)
+    jne .Lgsp_615_publish
+    mov %r8, -8*GSP_PRE_TX_LOG_WORDS(%rdi)
+.Lgsp_615_publish:
     sfence
     movl $1, GSP_TX_HEAD(%r13)
     mov $0x806, %r11d
@@ -206,6 +250,38 @@ nvidia_gsp_init_615:
     pop %rdi
     pop %rsi
     pop %rbx
+    ret
+
+# Win64 RCX = trusted GOP handoff, RDX = verified GPU BAR1 address.
+# The size-only INIT field can cover a console at the aperture start.
+.globl nvidia_gsp_console_bytes_615
+nvidia_gsp_console_bytes_615:
+.Lgsp_console_bytes_615:
+    xor %eax, %eax
+    test %rdx, %rdx
+    jz .Lgsp_console_done
+    cmp %rdx, 0x10(%rcx)
+    jne .Lgsp_console_done
+    cmpl $1, 0x2c(%rcx)
+    ja .Lgsp_console_done
+    mov 0x20(%rcx), %edx
+    test %edx, %edx
+    jz .Lgsp_console_done
+    mov 0x28(%rcx), %r8d
+    cmp %edx, %r8d
+    jb .Lgsp_console_done
+    cmp $8192, %r8d
+    ja .Lgsp_console_done
+    mov 0x24(%rcx), %edx
+    cmp $4096, %edx
+    ja .Lgsp_console_done
+    imul %rdx, %r8
+    shl $2, %r8
+    test $4095, %r8d
+    jnz .Lgsp_console_done
+    cmp 0x18(%rcx), %r8
+    cmovbe %r8, %rax
+.Lgsp_console_done:
     ret
 
 # Win64 RCX = endpoint Device Capabilities, EDX = bridge class/revision,
@@ -335,7 +411,8 @@ nvidia_gsp_snapshot_615:
     gsp_u64 0x1013, 0
     gsp_u64 0x1020, 0x2900
     gsp_u64 0x1022, GSP_NOTIFY_OP_IOVA # NOTIFY_OP_SHARED_SURF_PHYS_ADDR.
-    gsp_u64 0x1031, 0
+.Lgsp_615_console_mem:
+    gsp_u64 0x1031, 0             # CONSOLE_MEM_SIZE, patched from the GOP handoff.
     gsp_u64 0x1032, 0x7ffffffff000
     gsp_u32 0x70, 1               # HOST_ARCH_X86_64.
     gsp_u32 0x71, 0               # HOST_OS_OTHER.
@@ -373,7 +450,19 @@ nvidia_gsp_snapshot_615:
     .zero 6
     gsp_u32 0x1102, 0            # No NVIDIA internal build changelist.
     gsp_u32 0x1110, 3            # UNSTABLE_INTERFACE_SUPPORT is U32.
+.Lgsp_615_cl_flags:
+    # This board-only request follows successful PCI config reads in physical_falcon.inc.
+    gsp_u64 0x1033, 1            # CL_FLAGS_PCIE_CONFIG_ACCESSIBLE only.
 .Lgsp_615_request_end:
+    .if (.Lgsp_615_request_end-.Lgsp_615_request) != GSP_615_INIT_FRAME_BYTES
+    .error "Update the bounded GSP_INIT diagnostic frame length"
+    .endif
+    .if (.Lgsp_615_revision-.Lgsp_615_request) != 80 || (.Lgsp_615_link_cap-.Lgsp_615_request) != 256 || (.Lgsp_615_pcie_flags-.Lgsp_615_request) != 328 || (.Lgsp_615_console_mem-.Lgsp_615_request) != 184
+    .error "Update the GSP_INIT diagnostic field offsets"
+    .endif
+    .if (.Lgsp_615_cl_flags-.Lgsp_615_request) != 528
+    .error "Update the GSP_INIT Core Logic diagnostic field offset"
+    .endif
     .if (.Lgsp_615_request_end-.Lgsp_615_request) > 4096
     .error "GSP_INIT must fit one MSGQ slot"
     .endif

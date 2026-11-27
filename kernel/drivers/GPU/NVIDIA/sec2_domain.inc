@@ -42,6 +42,23 @@
     pop %r8
     test %eax, %eax
     jz .Lsec2_domain_bad
+    # Check the queue contract against the detached root before publishing it.
+    mov GSP_NATIVE_QUEUE_BASE(%rbp), %rcx
+    cmp GSP_STAGE_BASE(%rbp), %rcx
+    jb .Lsec2_domain_bad
+    lea -(130*4096)(%r9), %rax
+    cmp %rax, %rcx
+    ja .Lsec2_domain_bad
+    push %r8
+    push %r9
+    push %r10
+    lea -(((SEC2_WPR_IOVA>>12)&511)*8)(%r10), %rdx
+    call .Lgsp_check_boot_queues
+    pop %r10
+    pop %r9
+    pop %r8
+    test %eax, %eax
+    jz .Lsec2_domain_bad
     add $8, %r10
     mov $SEC2_IOMMU_ALIAS, %ecx
     movabs $0x0000220000001405, %rax
@@ -118,6 +135,53 @@
     ret
 .Lsec2_domain_ready:
     mov $1, %eax
+    ret
+
+# Win64 RCX = RMARGS CPU base, RDX = first leaf of the 0x0a000000 aperture.
+# Verify the firmware-facing pointers and the exact first 130 translations.
+.globl nvidia_gsp_check_boot_queues
+nvidia_gsp_check_boot_queues:
+.Lgsp_check_boot_queues:
+    xor %eax, %eax
+    test %rcx, %rcx
+    jz .Lgsp_boot_queues_done
+    test $4095, %ecx
+    jnz .Lgsp_boot_queues_done
+    movabs $0x000000b820505347, %r8
+    cmp %r8, (%rcx)
+    jne .Lgsp_boot_queues_done
+    cmpq $0x0a001000, 24(%rcx)
+    jne .Lgsp_boot_queues_done
+    cmpq $0x1000, 32(%rcx)
+    jne .Lgsp_boot_queues_done
+    cmpq $0x41000, 40(%rcx)
+    jne .Lgsp_boot_queues_done
+    cmpl $129, 68(%rcx)
+    jne .Lgsp_boot_queues_done
+    movabs $0x2000000000000001, %r8
+    or %rcx, %r8
+    cmp %r8, (%rdx)                  # Read-only RMARGS.
+    jne .Lgsp_boot_queues_done
+    mov $0x0a001000, %r9d
+    mov %rcx, %r10
+    add $4096, %r10
+    add $8, %rdx
+    add $4096, %r8
+.Lgsp_boot_queue_page:
+    cmp %r9, (%r10)
+    jne .Lgsp_boot_queues_done
+    cmp %r8, (%rdx)
+    jne .Lgsp_boot_queues_done
+    # All leaves following the GspMem pointer table are read/write.
+    bts $62, %r8
+    add $4096, %r8
+    add $4096, %r9
+    add $8, %r10
+    add $8, %rdx
+    cmp $0x0a082000, %r9d
+    jb .Lgsp_boot_queue_page
+    mov $1, %eax
+.Lgsp_boot_queues_done:
     ret
 
 # Win64: RCX = RMARGS, RDX = monitor page followed by zeroed notify page,

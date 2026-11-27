@@ -748,11 +748,13 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
                 time.sleep(.03)
             raise ValueError(f'DIRECTOR did not reach {expected:#x} after {last_keys}; last state {state:#x}')
         last_keys=()
-        def key(*keys):
+        def key(*keys, before_release=None):
             nonlocal last_keys
             last_keys=keys
             if not uses_full_hd or symbols.get('usb')!='both' or keys==('f12',):
                 command('send-key',{'keys':[{'type':'qcode','data':k} for k in keys],'hold-time':80})
+                if before_release is not None:
+                    before_release()
                 return
             # A full CPU render under TCG can delay HID polling. Have Ring 3
             # acknowledge each edge before pressing or releasing another key.
@@ -761,6 +763,8 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
                 observe_ring3()
                 return struct.unpack('<Q',memory(keyboard_address,8,'keyboard-edge-count'))[0]
             for down,sequence in ((True,keys),(False,reversed(keys))):
+                if not down and before_release is not None:
+                    before_release()
                 for name in sequence:
                     before=reports()
                     command('input-send-event',{'events':[{'type':'key','data':{
@@ -875,27 +879,30 @@ def verify_native_ui(command,memory,prefix,image,case,symbols_path,*,amdvi_coexi
                 stage=(prefix.parent.parent/'xhci.bin').read_bytes()
                 if memory(code,8192,'dual-code-copy')!=stage.ljust(8192,b'\0'):raise ValueError('Dual code copy')
                 if dma_census is not None:
+                    panel_timeout = 240 if uses_full_hd else 75
                     def frame_counter():
                         return struct.unpack('<2Q',memory(state-0x3c000000+8,16,'dma-panel-frame'))
                     def toggle_panel(status):
                         _, previous=frame_counter()
-                        key('f2')
                         def presented():
                             contents=serial.read_text(errors='replace')
                             if 'BMO UI FAIL:' in contents:raise ValueError(contents[-1800:])
                             phase, frames=frame_counter()
                             return f'DMA_PANEL={status}' in contents and phase==3 and frames>previous
-                        wait_input(presented, 'DMA inventory panel did not switch to '+status, 75)
+                        # TCG can still be drawing the full panel after the
+                        # key-down report. Wait for presentation before key-up.
+                        key('f2', before_release=lambda: wait_input(
+                            presented, 'DMA inventory panel did not switch to '+status, panel_timeout))
                     toggle_panel('ON')
                     shot=Path(str(prefix)+'-dma-census.ppm')
                     command('screendump',{'filename':str(shot)})
                     if symbols.get('storage_state'):
                         _, previous=frame_counter()
-                        key('f3')
                         def storage_open():
                             phase, frames=frame_counter()
                             return 'STORAGE_PANEL=ON' in serial.read_text(errors='replace') and phase==3 and frames>previous
-                        wait_input(storage_open, 'F3 did not present the storage handoff page', 75)
+                        key('f3', before_release=lambda: wait_input(
+                            storage_open, 'F3 did not present the storage handoff page', panel_timeout))
                         storage_shot=Path(str(prefix)+'-storage-state.ppm')
                         command('screendump',{'filename':str(storage_shot)})
                         amdvi_proof.update(StoragePanelVerified=True,StorageScreenshot=storage_shot.name,

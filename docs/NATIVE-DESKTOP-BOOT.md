@@ -1639,9 +1639,200 @@ El perfil de captura imprime `GSP / PCIE_FLAGS` junto a la respuesta
 de INIT. El banco HOST comprueba los dos bits juntos y por separado.
 La plantilla INIT conserva los mismos 464 bytes que el EFI anterior.
 El cambio de `PCIE_FLAGS` solo aparece en el mensaje publicado en RAM.
-La causa de `0x40` queda por verificar en METAL. Las
-reservas VRAM, datos ACPI y politicas VF se conservan como
-diferencias del host hasta tener sus servicios correspondientes.
+
+En Windows, el comparador HOST admite `--gcc` con el mismo GCC x86-64 ELF
+del ensayo DOOM. Compila el validador NVKV en C freestanding, comprueba
+que el objeto carece de relocalizaciones y ejecuta sus bytes mediante
+una DLL de prueba temporal. La captura exitosa de OpenRM paso con
+2256 bytes y 56 claves. El EFI del candidato paso con 464 bytes y 38
+claves. El informe identifica `PCIE_FLAGS` como campo muestreado al
+arrancar. Esta prueba acredita el formato, y la aceptacion del mensaje
+publicado durante el arranque se comprueba en la RTX fisica.
+
+```powershell
+python -B -m tools.host.gpu.NVIDIA.gsp_init_compare GSPINIT.TXT RTX-FWSEC.EFI --gcc build/tools/gcc-15.2.0/bin/x86_64-elf-gcc.exe
+```
+
+En METAL (2026-11-27, candidato `run-rmlui-media-aaacc06e74b0`), la
+captura del escritorio mostro `PCIE_FLAGS 00000402`, SEC2 `701`,
+`RX 00000001` e INIT `802 / 00000040`, con `LOGRM 00000855`.
+Los flags igualaron a OpenRM y el rechazo persistio. El cotejo HOST
+del EFI instalado registra 18 claves ausentes, 8 valores distintos,
+3 campos de arranque y una direccion DMA por cotejar por funcion.
+Un campo que se puede investigar por separado es `CONSOLE_MEM_SIZE`
+(`0x1031`). OpenRM anuncia 8847360 bytes a partir de su reserva de
+consola y BMO-X2 anuncia cero. Antes de probar ese campo hay que
+verificar que BMO-X2 tenga una reserva VRAM equivalente.
+[Codificacion de la reserva de consola en OpenRM](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c#L4697).
+
+El siguiente candidato modifica solo el valor de INIT `0x1031` en RAM.
+Calcula `altura * pixeles_por_linea * 4` a partir del GOP entregado por UEFI.
+Usa el resultado si la consola empieza en el BAR1 de la RTX ya validada,
+el formato es lineal de 32 bits y el calculo queda alineado a pagina y dentro
+del tamano del framebuffer. Si alguna condicion falla, publica cero.
+El escritorio imprime `GSP / CONSOLE_MEM_SIZE`. El valor `00870000`
+corresponde a Full HD con paso de 2048 pixeles y coincide con la captura
+OpenRM. HOST verifico tambien el paso de 1920, los rechazos y el valor
+que se escribe en la cola TX. El candidato `run-rmlui-media-dad613370b6b`
+paso 3 de 3 casos en QEMU y se copio a `RTX-FWSEC.EFI` con las cuatro
+huellas verificadas. En METAL, la captura del escritorio del 2026-11-27
+mostro `CONSOLE_MEM_SIZE 00870000`, `PCIE_FLAGS 00000402`, SEC2 `701`,
+`RX 00000001` e INIT `802 / 00000040`, con `LOGRM 00000855`.
+Igualar el tamano de consola de OpenRM tampoco basto para aceptar INIT.
+El estado interno que produce `0x40` sigue sin identificar.
+
+Para cotejar el mensaje real, el modulo copia los 528 bytes de TX a una
+pagina privada de CPU inmediatamente antes de publicar el indice de la
+cola. El diagnostico entrega solo esos 528 bytes tras una respuesta INIT
+y el cierre confirmado de PCIe. El escritorio muestra `INIT TX / REV ...
+LINK ... PCIE ... MEM ... CRC ...`. Esta linea tambien sale por serie y
+permite trasladar la captura desde una sola foto.
+
+HOST combina los cuatro valores de la linea con la plantilla del EFI exacto
+de ese arranque. Verifica CRC32 sobre la trama completa antes de comparar
+los NVKV con OpenRM. El informe distingue la trama de TX de la plantilla.
+HOST comprobo la copia y la reconstruccion, incluido el rechazo de un
+valor alterado. `run-rmlui-media-7569c6764830` paso 3 de 3 casos en QEMU
+y quedo instalado en `RTX-FWSEC.EFI`. En METAL (2026-11-27) la pantalla
+mostro `REV 000000A1 LINK 00454D04 PCIE 00000402 MEM 00870000 CRC 4A3ACADA`
+e INIT `802 / 00000040`. HOST reconstruyo los 528 bytes con el EFI de
+ese arranque, verifico el CRC y valido los NVKV con GCC. Los cuatro
+valores de arranque coinciden con OpenRM. Quedan 18 claves ausentes,
+7 con valores distintos y la direccion DMA de NotifyOp por cotejar
+por funcion.
+
+Entre las claves ausentes esta `CL_FLAGS` (`0x1033`). OpenRM anuncia
+`0x2108002181` junto con la identidad y los registros del chipset.
+El bit 0 declara acceso a configuracion PCIe. El resto describe
+capacidades y ajustes de plataforma. Se puede ensayar primero el
+bit 0 tras verificar el acceso nativo y evaluar el resto con datos
+del chipset. La captura no determina que `CL_FLAGS` cause `0x40`.
+[Codificacion de Core Logic en OpenRM](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c#L5072).
+
+El ensayo siguiente agrega solo `CL_FLAGS=0x1` a INIT. El modulo de
+la RTX de esta placa ya exige lecturas PCI correctas de identidad, clase,
+BAR y capacidad de enlace para llegar a publicar el mensaje. La trama
+pasa de 528 a 544 bytes y la linea `INIT TX` incluye `CL 00000001` y el
+CRC de la nueva trama. HOST admite las dos versiones y comprueba la
+correspondencia de la captura con su EFI. El ensayo comprueba si el
+firmware acepta esta declaracion de acceso PCIe.
+El candidato `run-rmlui-media-cc6fc4e91b39` paso 33 pruebas HOST y 3
+casos QEMU. HOST valido con GCC la trama nueva y comprobo que el unico
+NVKV agregado era `CL_FLAGS=0x1`. Se instalo `RTX-FWSEC.EFI` y se
+verificaron las cuatro huellas. En METAL la trama con `CL 00000001`
+tuvo CRC `A0AE6889`. HOST verifico la captura con GCC. Persistieron
+`802 / 00000040`, `LOGRM 00000855` y el evento AMD-Vi `20002900` a
+IOVA cero. El bit de acceso a la configuracion PCIe fue insuficiente.
+El cotejo de la trama real deja 17 claves ausentes, 8 valores distintos
+y la direccion DMA de NotifyOp por verificar segun su funcion.
+
+El siguiente ensayo registra la posicion de la cola de eventos AMD-Vi
+en cuatro puntos. `BOOT` se toma justo antes del booter de SEC2, `SEC2`
+al confirmar su recibo, `TX` antes de publicar INIT y `RX` al volver con
+la respuesta. La pantalla muestra los cuatro offsets en hexadecimal.
+Si la cola avanza, F4 permite comprobar el solicitante y la direccion
+de las entradas de ese tramo. Un avance por si solo no identifica
+al dispositivo ni prueba causalidad. La trama INIT se conserva igual.
+El candidato `run-rmlui-media-57719c022694` paso 33 pruebas HOST y 3
+casos QEMU. La prueba Full HD de QEMU espera la presentacion de los
+paneles antes de soltar F2 y F3 y comprueba ambos flancos. El candidato
+se instalo en UEFI con cuatro huellas verificadas. En METAL, la cola
+mostro `BOOT 000 SEC2 000 TX 050 RX 0A0`. Con entradas de 16 bytes,
+aparecen cinco entre SEC2 y el envio, y cinco mas hasta la respuesta.
+El INIT mantuvo CRC `A0AE6889` y recibio `802 / 00000040`. El resumen
+AMD-Vi muestra un primer fallo de `29:00.0` a IOVA cero. Para comprobar
+la identidad y direccion de cada tramo se requieren EV000 a EV009 de
+este mismo arranque. F4 abre la captura y F5 permite pasar de LOGRM
+a las filas de eventos.
+
+HOST admite la linea de la cola y las filas EV copiadas en un archivo
+de texto con `python -B -m tools.host.gpu.NVIDIA.gsp_capture captura.txt --event-screen`.
+Agrupa por tramo, solicitante y direccion, y rechaza capturas incompletas
+o con vuelta de la cola. La prueba conserva IOVA cero sin mapa.
+
+Las tres fotos del mismo arranque completaron las filas. HOST decodifico
+`EV000` a `EV004` entre SEC2 y TX y `EV005` a `EV009` entre TX y RX.
+Las diez son identicas: `00002900 20000005 00000000 00000000`.
+Son fallos de pagina de E/S de `29:00.0`, con contexto crudo `0005`
+e IOVA cero. LOGRM mantuvo el productor `0855` durante la copia. La
+peticion INIT queda fuera del origen temporal de las primeras cinco
+entradas. El registro AMD-Vi identifica al solicitante PCI, pero no el
+motor interno ni el campo que origina el acceso.
+
+La proxima comprobacion es cotejar los argumentos anteriores a TX
+(`RMARGS`, la tabla de mensajes y las regiones LIBOS) con OpenRM 615.78.08
+y sus traducciones DMA vigentes. En OpenRM hay punteros que permanecen
+en cero condicionalmente, por ejemplo el heap de memoria del host en
+una GPU con VRAM. Hay que identificar un descriptor requerido antes de
+cambiar su asignacion.
+
+OpenRM 615.78.08 prepara los datos del host antes de arrancar el
+firmware y enlaza la cola de estado antes de enviar la solicitud INIT.
+BMO-X2 ahora espera la cabecera RX, valida su
+geometria y confirma su indice antes de escribir la trama en el slot
+TX. El banco HOST confirma que una cabecera RX invalida conserva el
+slot TX en cero y que las respuestas validas y rechazadas se siguen
+correlacionando. El contenido de la trama se conserva. Esta prueba
+evalua el orden frente a los fallos DMA; el origen de la IOVA cero
+sigue pendiente.
+El candidato `run-rmlui-media-66a11774f1bf` paso 35 pruebas HOST y 3
+casos QEMU. Se instalo en UEFI con cuatro huellas verificadas. La
+trama de 544 bytes permite reproducir el CRC fisico anterior. En METAL
+la captura mostro el mismo CRC `A0AE6889`, SEC2 `701`, la cola
+`BOOT 000 SEC2 000 TX 050 RX 0A0` e INIT `802 / 00000040`.
+El primer evento sigue siendo `20002900` a IOVA cero. Posponer la
+escritura de TX hasta validar RX no cambio la cantidad de eventos
+previos al envio ni el rechazo de INIT en este arranque.
+
+El siguiente ensayo comprueba el contrato DMA de RMARGS y GspMem
+antes de publicar la raiz de la RTX y habilitar Bus Master. Valida
+la cabecera RMARGS, la direccion y offsets de las colas, las 129
+IOVA de GspMem y las 130 hojas iniciales. RMARGS y la tabla de
+punteros requieren lectura; las paginas de las colas requieren
+lectura y escritura. Una desviacion deja SEC2 en `707`. HOST
+comprobo el caso valido y los rechazos por permisos o IOVA cero.
+La comprobacion conserva IOVA cero fuera del mapa y la trama INIT
+anterior. El origen del fallo de pagina sigue por identificar.
+El candidato `run-rmlui-media-525f34d66a6c` paso 36 pruebas HOST y 3
+casos QEMU. Se instalo con cuatro huellas verificadas. En METAL la
+captura mostro SEC2 `701`, lo que implica que la comprobacion de
+RMARGS, GspMem y sus 130 hojas paso antes de iniciar el booter.
+Se repitieron `BOOT 000 SEC2 000 TX 050 RX 0A0`, el primer evento
+`20002900` a IOVA cero e INIT `802 / 00000040` con CRC `A0AE6889`.
+La comprobacion cubre las colas iniciales. Falta cotejar los otros
+descriptores de arranque y el momento en que el firmware los consume.
+
+El registro del arranque exitoso de Linux presenta dominio traducido,
+agrega `29:00.0` a su grupo IOMMU y completa INIT. En esa captura no
+aparece `IO_PAGE_FAULT`. En BMO-X2, la captura de un rechazo conserva
+LOGRM. El siguiente ensayo guarda tambien ocho palabras de LOGINIT
+justo antes de publicar TX, junto a la posicion previa de AMD-Vi.
+Solo muestra las palabras si el productor de LOGINIT coincide antes
+y despues de copiarlas. HOST verifico la copia incluida la vuelta
+de la cola y mantuvo la trama INIT anterior.
+El candidato `run-rmlui-media-7a48e02d1ba7` paso 36 pruebas HOST y 3
+casos QEMU. El EFI reproduce la trama de 544 bytes y su CRC fisico
+`A0AE6889`. Se instalo con cuatro huellas verificadas. Falta la
+captura de LOGINIT del arranque en METAL. Tras los reinicios reportados,
+la pantalla mostro AMD-Vi Status `02`, prueba `100` y `USB 000 LPC 000
+FWSEC 000`. El bit de interrupcion de eventos estaba marcado y la
+comprobacion de reposo exige Status cero antes de publicar las bases.
+Este arranque se detuvo antes de ejecutar FWSEC e INIT. GPULOG.TXT
+solo conserva el estado anterior a ExitBootServices. La captura no
+identifica el origen de los reinicios anteriores.
+
+Se retiro de la ESP el ensayo de LOGINIT y se restauro
+`run-rmlui-media-525f34d66a6c` con las cuatro huellas verificadas.
+Esta version llego al escritorio en la prueba anterior y obtuvo
+`802 / 00000040`; el retroceso no confirma una correccion del GSP
+ni del reinicio. La entrada BMO-X2 Original sigue disponible.
+[Argumentos de arranque de OpenRM](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c#L6139).
+[Secuencia GSP de OpenRM](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/src/kernel/gpu/gsp/arch/turing/kernel_gsp_tu102.c#L463).
+
+```powershell
+python -B -m tools.host.gpu.NVIDIA.gsp_init_compare GSPINIT.TXT RTX-FWSEC.EFI --tx 'INIT TX / REV ... LINK ... PCIE ... MEM ... CRC ...'
+```
+[Obtencion del tamano de consola en NVIDIA Linux](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/kernel-open/nvidia/nv.c#L6169-L6197).
 [Definiciones GMCAPI 615.78.08](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/interface/gmcapi/gmcapi_system_info.h).
 
 En Linux, Nouveau separa la reserva DMA para firmware, la espera

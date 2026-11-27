@@ -109,6 +109,14 @@ amdvi_physical_mmio_begin:
     je .Lphysical_rtx_ptimer_before
     cmp $0x2302, %r10
     je .Lphysical_rtx_pcie_flags
+    cmp $0x2303, %r10
+    je .Lphysical_rtx_console_bytes
+    lea -0x23fe(%r10), %rax
+    cmp $(2+GSP_615_INIT_FRAME_BYTES/8), %rax
+    jbe .Lphysical_rtx_init_frame
+    lea -0x2450(%r10), %rax
+    cmp $GSP_PRE_TX_LOG_WORDS, %rax
+    jbe .Lphysical_rtx_early_log
     lea -17(%r10), %rax
     cmp $(GSP_TRACE_BYTES/8), %rax
     jae .Lphysical_rtx_invalid
@@ -135,6 +143,44 @@ amdvi_physical_mmio_begin:
     ret
 .Lphysical_rtx_pcie_flags:
     mov GSP_PCIE_INIT_FLAGS(%rbp), %rax
+    movabs $0x1ffffffff, %rcx
+    and %rcx, %rax
+    ret
+.Lphysical_rtx_console_bytes:
+    mov (GSP_PCIE_INIT_FLAGS+4)(%rbp), %eax
+    shr %eax
+    ret
+.Lphysical_rtx_init_frame:
+    # Read only a completed INIT transaction after verified PCIe drain.
+    cmpl $0x701, (NVIDIA_SEC2_EXEC_RECEIPT+4)(%rbp)
+    jne .Lphysical_rtx_trace_empty
+    mov (NVIDIA_GSP_INIT_RECEIPT+4)(%rbp), %ecx
+    sub $0x801, %ecx
+    cmp $1, %ecx
+    ja .Lphysical_rtx_trace_empty
+    mov GSP_PHYSICAL_DTE_BASE(%rbp), %rcx
+    cmpl $GSP_615_INIT_FRAME_BYTES, GSP_INIT_CAPTURE_OFFSET+4(%rcx)
+    jne .Lphysical_rtx_trace_empty
+    cmp $2, %eax
+    jb .Lphysical_rtx_init_tails
+    sub $2, %eax
+    test %eax, %eax
+    jz .Lphysical_rtx_init_size
+    mov GSP_INIT_CAPTURE_OFFSET-8(%rcx,%rax,8), %rax
+    ret
+.Lphysical_rtx_init_size:
+    mov $GSP_615_INIT_FRAME_BYTES, %eax
+    ret
+.Lphysical_rtx_init_tails:
+    mov (GSP_INIT_CAPTURE_OFFSET+GSP_INIT_EVENT_TAILS)(%rcx,%rax,8), %rax
+    ret
+.Lphysical_rtx_early_log:
+    cmpl $0x701, (NVIDIA_SEC2_EXEC_RECEIPT+4)(%rbp)
+    jne .Lphysical_rtx_trace_empty
+    mov GSP_PHYSICAL_DTE_BASE(%rbp), %rcx
+    cmpq $0, (GSP_INIT_CAPTURE_OFFSET+GSP_PRE_TX_LOG)(%rcx)
+    je .Lphysical_rtx_trace_empty
+    mov (GSP_INIT_CAPTURE_OFFSET+GSP_PRE_TX_LOG)(%rcx,%rax,8), %rax
     ret
 .Lphysical_rtx_summary:
     # Preserve stage and preparation. Other fields carry the low byte of

@@ -154,6 +154,14 @@ def main():
         raise ValueError('Rebuild the RTX desktop with guest.py --nvidia-trace-export before staging media')
     if args.nvidia_trace_export and b'PTIMER / tras escritura' not in sbef:
         raise ValueError('Rebuild the RTX desktop with PTIMER readback before staging media')
+    if args.nvidia_trace_export and b'GSP / CONSOLE_MEM_SIZE' not in sbef:
+        raise ValueError('Rebuild the RTX desktop with the GSP console size receipt before staging media')
+    if args.nvidia_trace_export and b'CL %08X CRC' not in sbef:
+        raise ValueError('Rebuild the RTX desktop with the INIT TX Core Logic receipt before staging media')
+    if args.nvidia_trace_export and b'AMD-Vi colas / BOOT' not in sbef:
+        raise ValueError('Rebuild the RTX desktop with the AMD-Vi event timeline before staging media')
+    if args.nvidia_trace_export and b'LOGINIT antes TX' not in sbef:
+        raise ValueError('Rebuild the RTX desktop with the pre-TX LOGINIT receipt before staging media')
     run=ROOT/'build/CASM'/('run-rmlui-media-'+uuid.uuid4().hex[:12]);run.mkdir()
     gsp = None
     nvidia_reader_flags = []

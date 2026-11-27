@@ -6,8 +6,10 @@ import subprocess
 import struct
 import tempfile
 import unittest
+import zlib
 
-from .gsp_capture import compare_logrm, decode, decode_packed_tail, read_openrm_logrm, read_screen, read_serial
+from .gsp_capture import (compare_logrm, decode, decode_event_pages, decode_packed_tail,
+                          read_openrm_logrm, read_screen, read_serial)
 
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -17,6 +19,23 @@ SOURCE = r'''
 #include <cstdio>
 
 int main() {
+    BmoNvidia::InitReceipt init{};
+    if (!BmoNvidia::read_init_receipt([](unsigned selector) -> uint64_t {
+        switch (selector - 0x2400) {
+        case 0: return 544;
+        case 11: return 0x000000a100000003;
+        case 24: return 0x120001031;
+        case 25: return 0x870000;
+        case 33: return 0x0043dc1300000052;
+        case 42: return 0x120001000;
+        case 43: return 0x402;
+        case 67: return 0x120001033;
+        case 68: return 1;
+        default: return 0;
+        }
+    }, init)) return 1;
+    std::printf("INIT TX / REV %08X LINK %08X PCIE %08X MEM %08X CL %08X CRC %08X\n",
+                init.revision, init.link, init.pcie, init.console, init.cl, init.crc);
     std::puts("GSP_TRACE=000000CB 00000000 000000A0 00000000 00000049 00000020 0000001A 20002900 0000000000000000");
     BmoNvidia::export_gsp_trace([](unsigned selector) -> uint64_t {
         switch (selector - BmoNvidia::trace_selector) {
@@ -34,6 +53,20 @@ int main() {
 
 
 class GspScreenCapture(unittest.TestCase):
+    def test_event_pages_require_all_rows_and_group_by_phase(self):
+        timeline = 'AMD-Vi colas / BOOT 000 SEC2 000 TX 050 RX 0A0\n'
+        rows = [f'EV{i:03d} 00002900 20000005 00000000 {i // 5:08X}' for i in range(10)]
+        report = decode_event_pages(timeline + '\n'.join(rows))
+        phases = report['phases']
+        self.assertEqual([phase['records'] for phase in phases], [0, 0, 5, 5])
+        self.assertEqual(phases[2]['events'][0]['requester'], '29:00.0')
+        self.assertEqual(phases[2]['events'][0]['address'], '0x0000000000000000')
+        self.assertEqual(phases[3]['events'][0]['address'], '0x0000000100000000')
+        with self.assertRaisesRegex(ValueError, 'Falta EV009'):
+            decode_event_pages(timeline + '\n'.join(rows[:-1]))
+        with self.assertRaisesRegex(ValueError, 'vuelta al inicio'):
+            decode_event_pages(timeline.replace('RX 0A0', 'RX 030') + '\n'.join(rows))
+
     def test_compare_openrm_ring_tail_with_native_rejection(self):
         log = (
             'BMO_GSP_LOGRM_BEGIN=0000000000000002 0000000000000002\n'
@@ -93,6 +126,15 @@ class GspSerialCapture(unittest.TestCase):
                                                 address='0x0000000000000000', count=2)])
         self.assertEqual(report['loginit']['self_iova'], '0x000000000A083000')
         self.assertFalse(report['loginit']['producer_changed_during_copy'])
+
+    def test_init_receipt_matches_crc_over_exact_frame_bytes(self):
+        frame = bytearray(544)
+        for index, value in ((10, 0x000000a100000003), (23, 0x120001031),
+                             (24, 0x870000), (32, 0x0043dc1300000052),
+                             (41, 0x120001000), (42, 0x402), (66, 0x120001033), (67, 1)):
+            struct.pack_into('<Q', frame, index * 8, value)
+        expected = f'INIT TX / REV 000000A1 LINK 0043DC13 PCIE 00000402 MEM 00870000 CL 00000001 CRC {zlib.crc32(frame):08X}'
+        self.assertEqual(self.serial.splitlines()[0], expected.encode('ascii'))
 
     def test_missing_row_and_truncation_are_rejected(self):
         for broken in (self.serial.replace(b'GSPD=00000:', b'GSPD=00040:', 1), self.serial[:-50]):

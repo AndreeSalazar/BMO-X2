@@ -582,6 +582,12 @@ extern "C" void bmo_main() {
                 log(amdvi_line);
                 log("\n");
             }
+            const auto console_bytes=doom_invoke(3,3,amdvi_diagnostic,0x2303);
+            snprintf(amdvi_line,sizeof(amdvi_line),"GSP / CONSOLE_MEM_SIZE %08X",unsigned(console_bytes));
+            hardware_report+="<br/>";
+            hardware_report+=amdvi_line;
+            log(amdvi_line);
+            log("\n");
             const auto after_write=doom_invoke(3,3,amdvi_diagnostic,0x2300);
             const auto before_init=doom_invoke(3,3,amdvi_diagnostic,0x2301);
             snprintf(amdvi_line,sizeof(amdvi_line),
@@ -592,6 +598,46 @@ extern "C" void bmo_main() {
             hardware_report+=amdvi_line;
             log(amdvi_line);
             log("\n");
+            BmoNvidia::InitReceipt tx{};
+            if(BmoNvidia::read_init_receipt([](unsigned selector) {
+                return doom_invoke(3,3,amdvi_diagnostic,selector);
+            },tx)) {
+                snprintf(amdvi_line,sizeof(amdvi_line),
+                         "INIT TX / REV %08X LINK %08X PCIE %08X MEM %08X CL %08X CRC %08X",
+                         tx.revision,tx.link,tx.pcie,tx.console,tx.cl,tx.crc);
+                hardware_report+="<br/>";
+                hardware_report+=amdvi_line;
+                log(amdvi_line);
+                log("\n");
+                const auto boot_sec2=doom_invoke(3,3,amdvi_diagnostic,0x23fe);
+                const auto tx_rx=doom_invoke(3,3,amdvi_diagnostic,0x23ff);
+                snprintf(amdvi_line,sizeof(amdvi_line),
+                         "AMD-Vi colas / BOOT %03X SEC2 %03X TX %03X RX %03X",
+                         unsigned(boot_sec2),unsigned(boot_sec2>>32),unsigned(tx_rx),unsigned(tx_rx>>32));
+                hardware_report+="<br/>";
+                hardware_report+=amdvi_line;
+                log(amdvi_line);
+                log("\n");
+                const auto producer=doom_invoke(3,3,amdvi_diagnostic,0x2450);
+                if(producer) {
+                    snprintf(amdvi_line,sizeof(amdvi_line),"LOGINIT antes TX / productor %08X%08X",
+                             unsigned(producer>>32),unsigned(producer));
+                    hardware_report+="<br/>";
+                    hardware_report+=amdvi_line;
+                    log(amdvi_line);
+                    log("\n");
+                    for(unsigned row=0;row<4;++row) {
+                        const auto a=doom_invoke(3,3,amdvi_diagnostic,0x2451+2*row);
+                        const auto b=doom_invoke(3,3,amdvi_diagnostic,0x2452+2*row);
+                        snprintf(amdvi_line,sizeof(amdvi_line),"INIT LOG %u / %08X%08X %08X%08X",row,
+                                 unsigned(a>>32),unsigned(a),unsigned(b>>32),unsigned(b));
+                        hardware_report+="<br/>";
+                        hardware_report+=amdvi_line;
+                        log(amdvi_line);
+                        log("\n");
+                    }
+                }
+            }
 #endif
         }
         if(gsp_capture) {

@@ -158,16 +158,9 @@ def read_serial(stream):
     return capture
 
 
-def decode(trace, summary=None):
-    if len(trace) != TRACE_BYTES:
-        raise ValueError('La captura GSP debe tener 17 paginas')
-    tx_head, tx_tail, event_bytes, producer_after = struct.unpack_from('<4I', trace, PAGE - 16)
-    if event_bytes > PAGE - 16 or event_bytes % 16:
-        raise ValueError('Longitud de eventos AMD-Vi invalida')
-    producer, log_iova = struct.unpack_from('<QQ', trace, PAGE)
-    log_key = 'logrm' if log_iova == 0x0A0A3000 else 'loginit'
+def summarize_events(records):
     groups = Counter()
-    for device, detail, low, high in struct.iter_unpack('<4I', trace[:event_bytes]):
+    for device, detail, low, high in records:
         kind = detail >> 28
         if kind:
             groups[(device & 0xffff, kind, (detail >> 16) & 0xfff, detail & 0xffff, (high << 32) | low)] += 1
@@ -178,6 +171,45 @@ def decode(trace, summary=None):
                            event_type=kind, event='IO_PAGE_FAULT' if kind == 2 else None,
                            flags=f'0x{flags:03X}', context_raw=f'0x{context:04X}',
                            address=f'0x{address:016X}', count=count))
+    return events
+
+
+def decode_event_pages(text):
+    timeline = re.findall(
+        r'(?im)^AMD-Vi colas / BOOT ([0-9a-f]+) SEC2 ([0-9a-f]+) TX ([0-9a-f]+) RX ([0-9a-f]+)[ \t\r]*$',
+        text)
+    if len(timeline) != 1:
+        raise ValueError('Se requiere una linea AMD-Vi colas del mismo arranque que los eventos')
+    tails = [0, *(int(offset, 16) for offset in timeline[0])]
+    if tails != sorted(tails) or any(tail >= PAGE or tail % 16 for tail in tails):
+        raise ValueError('Cola AMD-Vi desalineada o con vuelta al inicio')
+    records = {}
+    for row in re.findall(r'(?im)^EV([0-9]{3}) +([a-f0-9]{8}) +([a-f0-9]{8}) +([a-f0-9]{8}) +([a-f0-9]{8})[ \t\r]*$', text):
+        index = int(row[0])
+        record = tuple(int(word, 16) for word in row[1:])
+        if index >= PAGE // 16 - 1 or (index in records and records[index] != record):
+            raise ValueError(f'Evento EV{index:03d} fuera de rango o contradictorio')
+        records[index] = record
+    phases = []
+    for name, first, end in zip(('pre_boot', 'boot_to_sec2', 'sec2_to_tx', 'tx_to_rx'), tails, tails[1:]):
+        indexes = range(first // 16, end // 16)
+        missing = [index for index in indexes if index not in records]
+        if missing:
+            raise ValueError(f'Falta EV{missing[0]:03d} en {name}')
+        phases.append(dict(phase=name, first_offset=first, end_offset=end,
+                           records=len(indexes), events=summarize_events(records[index] for index in indexes)))
+    return dict(schema=1, evidence='BMO-X2 AMD-Vi screen capture', phases=phases)
+
+
+def decode(trace, summary=None):
+    if len(trace) != TRACE_BYTES:
+        raise ValueError('La captura GSP debe tener 17 paginas')
+    tx_head, tx_tail, event_bytes, producer_after = struct.unpack_from('<4I', trace, PAGE - 16)
+    if event_bytes > PAGE - 16 or event_bytes % 16:
+        raise ValueError('Longitud de eventos AMD-Vi invalida')
+    producer, log_iova = struct.unpack_from('<QQ', trace, PAGE)
+    log_key = 'logrm' if log_iova == 0x0A0A3000 else 'loginit'
+    events = summarize_events(struct.iter_unpack('<4I', trace[:event_bytes]))
     report = dict(schema=1, evidence='BMO-X2 GSP init failure snapshot', sha256=hashlib.sha256(trace).hexdigest(),
                   tx_head=tx_head, tx_tail=tx_tail, event_bytes=event_bytes, events=events)
     report[log_key] = dict(producer=f'0x{producer:016X}', producer_after_low=f'0x{producer_after:08X}',
@@ -198,17 +230,21 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('serial', type=Path)
     parser.add_argument('--raw', type=Path, help='Write the validated 17-page capture to a binary file')
-    parser.add_argument('--screen', action='store_true', help='Read the transcribed GSP tail panel')
+    source = parser.add_mutually_exclusive_group()
+    source.add_argument('--screen', action='store_true', help='Read the transcribed GSP tail panel')
+    source.add_argument('--event-screen', action='store_true', help='Read the AMD-Vi timeline and EV rows from F4')
     parser.add_argument('--openrm-logrm', type=Path, help='Compare the screen capture with an OpenRM LOGRM reference')
     args = parser.parse_args()
-    if args.screen and args.raw:
-        parser.error('--screen no contiene las 17 paginas requeridas por --raw')
+    if (args.screen or args.event_screen) and args.raw:
+        parser.error('Las capturas de pantalla no contienen las 17 paginas requeridas por --raw')
     if args.openrm_logrm and not args.screen:
         parser.error('--openrm-logrm requiere --screen')
     if args.raw and args.raw.resolve() == args.serial.resolve():
         parser.error('El archivo bruto debe ser distinto del registro serie')
     try:
-        if args.screen:
+        if args.event_screen:
+            report = decode_event_pages(args.serial.read_text(encoding='utf-8-sig'))
+        elif args.screen:
             report = decode_packed_tail(*read_screen(args.serial.read_text(encoding='utf-8-sig')))
             if args.openrm_logrm:
                 reference = decode_packed_tail(*read_openrm_logrm(args.openrm_logrm.read_text(encoding='utf-8-sig')))

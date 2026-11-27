@@ -23,7 +23,7 @@ nvidia_physical_begin:
     push %rdi
     mov %rsp, %r13
     and $-16, %rsp
-    sub $64, %rsp
+    sub $80, %rsp
     cmpq $0, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)
     jne .Lboard_skip
     movq $0, GSP_PCIE_INIT_FLAGS(%rbp)
@@ -87,7 +87,7 @@ nvidia_physical_begin:
     xor %eax, %eax
     repe scasq
     jne .Lboard_exit
-    mov %r10, 48(%rsp)
+    mov %r10, 64(%rsp)
     movabs $0x80000000fb00001b, %rax
     .irp page,FALCON_CPU_PAGES
     lea (\page*4096)(%rax), %rcx
@@ -210,6 +210,9 @@ nvidia_physical_begin:
     call .Lboard_command
     cmp %cx, %ax
     jne .Lboard_sec2_revoke
+    mov GSP_PHYSICAL_DTE_BASE(%rbp), %rax
+    mov SEC2_IOMMU_ALIAS+8192+0x18, %ecx
+    mov %ecx, GSP_INIT_CAPTURE_OFFSET+GSP_INIT_EVENT_TAILS(%rax)
     mov $SEC2_CPU_ALIAS, %ecx
     mov STORAGE_TSC_10MS(%rbp), %rdx
     lea NVIDIA_FWSEC_LAUNCH_RECEIPT(%rbp), %r8
@@ -220,6 +223,9 @@ nvidia_physical_begin:
     mov %eax, NVIDIA_SEC2_EXEC_RECEIPT(%rbp)
     cmpl $0x701, (NVIDIA_SEC2_EXEC_RECEIPT+4)(%rbp)
     jne .Lboard_sec2_revoke
+    mov GSP_PHYSICAL_DTE_BASE(%rbp), %rax
+    mov SEC2_IOMMU_ALIAS+8192+0x18, %ecx
+    mov %ecx, GSP_INIT_CAPTURE_OFFSET+GSP_INIT_EVENT_TAILS+4(%rax)
     movl $0x805, (NVIDIA_GSP_INIT_RECEIPT+4)(%rbp)
     mov $0x14, %eax
     call .Lboard_pci_read
@@ -253,18 +259,30 @@ nvidia_physical_begin:
     mov %r9, 32(%rsp)
     call .Lboard_gsp_pcie_flags
     mov %eax, GSP_PCIE_INIT_FLAGS(%rbp)
-    movl $1, (GSP_PCIE_INIT_FLAGS+4)(%rbp)
     shl $8, %eax
     or %rax, 32(%rsp)
     mov $FALCON_BOARD_VA, %ecx
     call .Lgsp_read_ptimer
     mov %rax, GSP_PTIMER_BEFORE_INIT(%rbp)
+    mov %rbp, %rcx
+    mov $0xd0000000, %edx         # BAR1 verified above on the matching RTX.
+    call .Lgsp_console_bytes_615
     mov 32(%rsp), %r9
+    mov %rax, 32(%rsp)
+    lea 1(%rax,%rax), %eax       # Upper dword carries bytes and its valid flag.
+    mov %eax, (GSP_PCIE_INIT_FLAGS+4)(%rbp)
+    mov GSP_PHYSICAL_DTE_BASE(%rbp), %rax
+    lea GSP_INIT_CAPTURE_OFFSET(%rax), %rax
+    mov %rax, 40(%rsp)
+    movq $(SEC2_IOMMU_ALIAS+8192), 48(%rsp)
     mov GSP_NATIVE_QUEUE_BASE(%rbp), %rdx
     mov $(FALCON_BOARD_VA+0x110000), %ecx
     mov STORAGE_TSC_10MS(%rbp), %r8
     call .Lgsp_init_615
     mov %rax, NVIDIA_GSP_INIT_RECEIPT(%rbp)
+    mov GSP_PHYSICAL_DTE_BASE(%rbp), %r9
+    mov SEC2_IOMMU_ALIAS+8192+0x18, %ecx
+    mov %ecx, GSP_INIT_CAPTURE_OFFSET+GSP_INIT_EVENT_TAILS+12(%r9)
     shr $32, %rax
     mov GSP_NATIVE_QUEUE_BASE(%rbp), %rdx
     cmp $0x802, %eax
@@ -309,7 +327,7 @@ nvidia_physical_begin:
 .Lboard_unmap:
     movq $0, FALCON_BOARD_PDE(%rbp)
     call .Lboard_flush
-    mov 48(%rsp), %r10
+    mov 64(%rsp), %r10
     .irp page,FALCON_CPU_PAGES
     movq $0, (\page*8)(%r10)
     .endr
