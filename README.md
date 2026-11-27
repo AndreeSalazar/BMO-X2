@@ -1,5 +1,7 @@
 # BMO-X2
 
+![Gato geometrico de BMO-X2 con ojos turquesa y la leyenda PC SOBERANO](docs/branding/bmo-x2-pc-soberano.png)
+
 **Un sistema x86-64 que permite seguir el camino desde el codigo fuente
 hasta los bytes que ejecuta la CPU.** CASM construye los perfiles probados
 del NANO-CORE en Ring 0. HOST prepara los binarios, SBEF describe como
@@ -7,16 +9,51 @@ cargarlos y Ring 3 aloja los servicios, el escritorio y ULTRA-J.
 
 *Eddi Salazar · Lima, Peru*
 
+[PC Soberano](#pc-soberano) ·
 [Herencia](#herencia-de-tres-proyectos) ·
 [HOST](#estado-de-host-y-toolchains) ·
 [Arquitectura](#identidad-nano-core-host-aislado-y-ring-3-abierto) ·
 [ULTRA-J](#ultra-j-control-desde-la-aplicacion) ·
 [Probar en QEMU](#probar-en-qemu)
 
+## PC Soberano
+
+**La persona que usa el equipo tiene la ultima palabra sobre lo que
+ejecuta y los recursos que concede.** El nombre toma de la soberania de
+las naciones la idea de decidir dentro de su propio ambito. En BMO-X2,
+ese ambito es el PC. El escritorio ofrece un punto de partida estable
+y el usuario decide que hacer desde ahi. Puede autorizar una sesion
+remota con permisos explicitos y retirarlos cuando quiera.
+
+En el META-KERNEL de BMO-X2, HOST inspecciona el binario y prepara un
+SBEF con un perfil declarado. Ring 3 aporta los servicios que espera
+el programa. El NANO-CORE, como Orquestador Maestro en Ring 0, aplica
+el contrato y hace cumplir los permisos. Su objetivo es ser pequeno y
+autosuficiente para aislar y revocar acceso, incluso si el escritorio
+deja de responder.
+
+| Situacion | Respuesta prevista |
+|---|---|
+| Una aplicacion solicita una prioridad o un recurso fuera de sus permisos. | Denegar la solicitud y registrar el proceso, la operacion y el permiso requerido. |
+| El usuario activa la emergencia. | Detener la ejecucion, revocar sus accesos y contener las operaciones pendientes. Si se concedio DMA directo, el supervisor debe poder bloquearlo. |
+| Un sensor confirma una condicion termica critica o falla un dispositivo. | Aplicar la proteccion del recurso. Registrar la causa como incierta cuando la evidencia sea insuficiente. Las protecciones del hardware son la ultima barrera. |
+
+Tras contener un incidente, el sistema debe mostrar que se ejecuto, su
+carpeta de origen cuando se conozca, la huella del SBEF, los modulos
+cargados y los permisos revocados. El usuario puede aislar el paquete
+o retirar su arranque automatico. El borrado definitivo requiere una
+decision aparte sobre los archivos identificados.
+
+**Prueba de aceptacion pendiente.** Colgar una aplicacion mientras
+escribe en una salida temporal, activar la emergencia con el escritorio
+sin responder y comprobar que se corta la escritura, se revoca el
+permiso y el informe identifica el ejecutable y su origen.
+
 ## Herencia de tres proyectos
 
 BMO-X2 es hijo de BMO-X. Reune tres lineas de trabajo del mismo autor
 y elige de cada una las piezas que sirven a su propio diseno.
+El nuevo gato conserva los ojos turquesa de BMO-X como rasgo de familia.
 
 | Proyecto de origen | Que aporta a BMO-X2 |
 |---|---|
