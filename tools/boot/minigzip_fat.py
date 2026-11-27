@@ -1,11 +1,13 @@
 """Build and verify the constrained FAT16 specimen used by the QEMU GZIP test."""
 
 import struct
+import zlib
 
 
 SECTOR = 512
 OUTPUT_NAME = b'OUTPUT  GZ '
 FAT_HEADS = (1 * SECTOR, 33 * SECTOR)
+JOURNAL = 78 * SECTOR
 
 
 def initial_image():
@@ -16,6 +18,7 @@ def initial_image():
     image[510:512] = b'\x55\xaa'
     for fat in FAT_HEADS:
         struct.pack_into('<6H', image, fat, 0xfff8, 0xffff, 0, 0xffff, 0, 0xffff)
+        struct.pack_into('<H', image, fat + 26, 0xfff7)
     for slot, name, cluster, content in (
         (0, b'KEEP    TXT', 3, b'BMO FAT16 control\r\n'),
         (1, b'KEEP2   TXT', 5, b'BMO FAT16 fragmentation control\r\n'),
@@ -99,3 +102,26 @@ def exhaust_pool(image):
             if not struct.unpack_from('<H', saturated, head + 2 * cluster)[0]:
                 struct.pack_into('<H', saturated, head + 2 * cluster, 0xfff7)
     return saturated
+
+
+def verify_interruption(initial, final, stopped, *, committed):
+    entry, old_chain, _, old_size = output_layout(initial)
+    new_entry, new_chain, offsets, new_size = output_layout(final)
+    if new_entry != entry:
+        raise ValueError('El reemplazo debe conservar la entrada FAT16')
+    retained = bytearray(initial)
+    for offset in offsets:
+        retained[offset:offset + SECTOR] = final[offset:offset + SECTOR]
+    expected = bytearray(retained)
+    for head in FAT_HEADS if committed else FAT_HEADS[:1]:
+        for cluster in new_chain:
+            offset = head + 2 * cluster
+            expected[offset:offset + 2] = final[offset:offset + 2]
+    if committed:
+        expected[entry:entry + 32] = final[entry:entry + 32]
+    record = struct.pack('<4sII4s4s', b'BMJ1', old_size, new_size, bytes(old_chain), bytes(new_chain))
+    record += struct.pack('<I', zlib.crc32(record))
+    expected[JOURNAL:JOURNAL + SECTOR] = record.ljust(SECTOR, b'\0')
+    if stopped != expected:
+        raise ValueError('La imagen interrumpida difiere del punto de corte esperado')
+    return final if committed else bytes(retained)

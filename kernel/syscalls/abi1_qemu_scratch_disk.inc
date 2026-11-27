@@ -31,7 +31,7 @@
     jb .Lscratch_bpb
     cmp $70, %r10              # Cluster 5 belongs to the control file.
     je .Labi1_bad_args
-    cmp $77, %r10
+    cmp $78, %r10              # Last sector is reserved for the replacement journal.
     jbe .Lscratch_lba_ok
 .Lscratch_bpb:
     test %rcx, %rcx

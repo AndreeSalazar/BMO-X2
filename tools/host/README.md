@@ -307,8 +307,16 @@ python -B tools/boot/sbef_ring0_qemu.py $validatorRun --msvc-minigzip-fat $zlibS
 
 El perfil admite hasta cuatro clusters de 512 bytes por archivo y opera
 sobre una raiz y un grupo de clusters acotados. La publicacion requiere
-espacio libre para la copia nueva. Las rutas generales y la recuperacion
-tras una interrupcion entre escrituras siguen pendientes.
+espacio libre para la copia nueva. El sector 78 guarda un registro de
+reemplazo con CRC antes de modificar los datos. Al reabrir, la entrada
+de directorio determina que cadena conservar. El invitado reconcilia
+las copias FAT y borra el registro al terminar.
+
+El banco detiene una ejecucion entre las dos escrituras FAT y otra
+despues de publicar el directorio. Arranques independientes recuperan
+el archivo anterior y el nuevo, respectivamente. Estas pruebas se
+detienen despues de escrituras completas. Los sectores escritos
+parcialmente y las rutas generales quedan fuera del perfil.
 
 El ejecutable Windows distribuido requiere su arranque CRT, mas memoria
 de carga y mas servicios Win64. El perfil adaptado usa entradas y salidas

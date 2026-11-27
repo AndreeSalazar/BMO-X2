@@ -198,7 +198,7 @@ bool equals(const char* first, const char* second) {
 constexpr bmo_word disk_signature = 0x314f4d42;
 constexpr unsigned disk_payload_limit = 504;
 
-bool write_disk(const Output& output, bool) {
+bool write_disk(const Output& output, bool, unsigned) {
     if (output.size > disk_payload_limit) return false;
     const bmo_word header = disk_signature | (static_cast<bmo_word>(output.size) << 32);
     if (bmo_invoke(4, 3, header, 0, 0).status) return false;
@@ -230,7 +230,7 @@ bool read_disk(Output& input) {
 }
 #endif
 
-int disk_main(bool reading, bool replace = false) {
+int disk_main(bool reading, bool replace = false, unsigned cut = 0) {
     void* heap = GetProcessHeap();
     Output input{static_cast<unsigned char*>(HeapAlloc(heap, 0, buffer_limit)), 0};
     Output output{static_cast<unsigned char*>(HeapAlloc(heap, 0, buffer_limit)), 0};
@@ -241,11 +241,11 @@ int disk_main(bool reading, bool replace = false) {
             && write_stdout(output);
         ok = HeapFree(heap, 0, window) && ok;
     } else if (ok) {
-        ok = read_input(input) && gzip(heap, input, output, 9) && write_disk(output, replace);
+        ok = read_input(input) && gzip(heap, input, output, 9) && write_disk(output, replace, cut);
     }
     const bool freed_input = HeapFree(heap, 0, input.bytes);
     const bool freed_output = HeapFree(heap, 0, output.bytes);
-    return ok && freed_input && freed_output ? 0 : 1;
+    return ok && freed_input && freed_output ? (cut ? 3 : 0) : 1;
 }
 #endif
 
@@ -255,6 +255,8 @@ int minigzip_main(size_t argc, const char* const* argv) {
     if (argc == 2 && equals(argv[1], "--disk-read")) return disk_main(true);
 #ifdef BMO_MINIGZIP_FAT
     if (argc == 2 && equals(argv[1], "--disk-replace")) return disk_main(false, true);
+    if (argc == 2 && equals(argv[1], "--disk-cut-before")) return disk_main(false, true, 1);
+    if (argc == 2 && equals(argv[1], "--disk-cut-after")) return disk_main(false, true, 2);
 #endif
 #endif
     bool decode = false, copyout = false;
