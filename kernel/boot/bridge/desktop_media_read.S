@@ -1,4 +1,12 @@
 .text
+#ifdef BMO_QEMU_SBEF_MEDIA
+#include "../../loader/sbef_qemu_media.h"
+#define DESKTOP_FILE_LIMIT BMO_QEMU_SBEF_MAX
+#define DESKTOP_FILE_PAGES BMO_QEMU_SBEF_STAGING_PAGES
+#else
+#define DESKTOP_FILE_LIMIT 16512
+#define DESKTOP_FILE_PAGES 5
+#endif
 #define DESKTOP_READER_OFFSET 0x3000
 #ifdef BMO_EXTENDED_MEDIA_READER
 #define DESKTOP_XHCI_MEDIA_OFFSET 0x5000
@@ -63,7 +71,7 @@ desktop_media_read:
     cld
     rep stosq
 #endif
-#ifdef RMLUI_MEDIA
+#if defined(RMLUI_MEDIA) || defined(BMO_QEMU_SBEF_MEDIA)
     movq $0x0fffffff, 0xa8(%rbp)
     mov $1, %ecx                 # AllocateMaxAddress, inside the identity map
 #else
@@ -73,7 +81,7 @@ desktop_media_read:
 #ifdef RMLUI_MEDIA
     mov $513, %r8d
 #else
-    mov $5, %r8d
+    mov $DESKTOP_FILE_PAGES, %r8d
 #endif
     lea 0xa8(%rbp), %r9
     call *0x28(%r14)
@@ -82,7 +90,7 @@ desktop_media_read:
 #ifdef RMLUI_MEDIA
     movq $513, 0xc8(%rbp)
 #else
-    movq $5, 0xc8(%rbp)
+    movq $DESKTOP_FILE_PAGES, 0xc8(%rbp)
 #endif
     mov 0x88(%rbp), %rcx
     lea 0x38(%rbp), %rdx
@@ -100,7 +108,7 @@ desktop_media_read:
 #ifdef RMLUI_MEDIA
     movq $0x200001, 0xb0(%rbp)
 #else
-    movq $16513, 0xb0(%rbp)
+    movq $(DESKTOP_FILE_LIMIT+1), 0xb0(%rbp)
 #endif
     mov 0x40(%rbp), %rcx
     lea 0xb0(%rbp), %rdx
@@ -111,7 +119,7 @@ desktop_media_read:
 #ifdef RMLUI_MEDIA
     cmpq $0x200000, 0xb0(%rbp)
 #else
-    cmpq $16512, 0xb0(%rbp)
+    cmpq $DESKTOP_FILE_LIMIT, 0xb0(%rbp)
 #endif
     ja release
     cmpq $64, 0xb0(%rbp)
@@ -157,7 +165,7 @@ desktop_media_read:
 #ifdef RMLUI_MEDIA
     mov $513, %edx
 #else
-    mov $5, %edx
+    mov $DESKTOP_FILE_PAGES, %edx
 #endif
     sub %eax, %edx
     jz staging_ready

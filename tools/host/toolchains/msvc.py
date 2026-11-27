@@ -1,4 +1,5 @@
 """Build the COFF client and its freestanding Win64 ABI fixture."""
+import gzip
 import hashlib
 import json
 import os
@@ -12,8 +13,11 @@ from pathlib import Path
 
 from ..importers.pe import pack_pe, pack_pe_gs_fixture, pack_pe_tls, pack_pe_with_dll, probe_pe
 from ..diagnostics import Rejection
-from ..importers.pe_bindings import SESSION_EXPORTS, WIN64_CONSOLE_PROFILE
-from ..sbef.format import LEGACY_FORMAT_VERSION, inspect
+from ..importers.pe_bindings import (
+    SESSION_EXPORTS, WIN64_CONSOLE_PROFILE, WIN64_FILE_PROFILE, WIN64_HEAP_PROFILE,
+    WIN64_SCRATCH_FILE_PROFILE,
+)
+from ..sbef.format import LEGACY_FORMAT_VERSION, inspect, load_plan
 
 
 def msvc_x64_compiler():
@@ -63,7 +67,9 @@ def build_external_tls(root, out, assembler):
     return package.read_bytes(), report
 
 
-def build_external_console(root, out, assembler):
+def build_external_console(root, out, assembler, *, heap=False, package_file=False,
+                           use_clang=False, gzip_source=None, minigzip_args=None, corrupt_input=False,
+                           minigzip_input=None, minigzip_disk=False, minigzip_fat=False):
     """Link the existing MSVC client against the external console import profile."""
     cc = msvc_x64_compiler()
     sdk = Path(os.environ['ProgramFiles(x86)']) / 'Windows Kits/10/Lib'
@@ -72,19 +78,88 @@ def build_external_console(root, out, assembler):
         raise ValueError('La consola exige kernel32.lib del Windows SDK')
     abi = root / 'userspace/runtime/abi/win64'
     client, entry, pe = (out / name for name in ('console-client.obj', 'console-entry.obj', 'console.exe'))
-    subprocess.run([cc, '/nologo', '/std:c++17', '/c', '/GS-', '/Zl', '/Od',
-                    '/DBMO_MSVC_EXTERNAL_CONSOLE', f'/Fo{client}', root / 'tools/tests/msvc_sections.cpp'],
+    compiler = assembler.with_name('clang-cl.exe') if use_clang else cc
+    package_file = package_file or gzip_source is not None
+    defines = ['/DBMO_MSVC_EXTERNAL_HEAP'] if heap or package_file else []
+    units = ['portal', 'console_v1']
+    profile = WIN64_CONSOLE_PROFILE
+    file_report = {}
+    if heap or package_file:
+        units.append('process_heap')
+        profile = WIN64_HEAP_PROFILE
+    env = None
+    argv_data = None
+    if package_file:
+        seed = 19 if use_clang else 7
+        contents = bytes((29 * index + seed) & 255 for index in range(1027))
+        if minigzip_input is not None:
+            contents = minigzip_input
+        elif gzip_source is not None:
+            original = bytes((index // 13 * 29 + index % 11 * seed) & 255 for index in range(2048))
+            (out / 'expected-output.bin').write_bytes(original)
+            contents = (original if minigzip_args is not None and '-d' not in minigzip_args
+                        else gzip.compress(original, mtime=0))
+            if corrupt_input:
+                contents = contents[:-8] + bytes([contents[-8] ^ 1]) + contents[-7:]
+        source_file = out / 'input.bin'
+        source_file.write_bytes(contents)
+        env = {**os.environ, 'BMO_PACKAGE_INPUT': str(source_file.resolve())}
+        if minigzip_args is not None:
+            argv_path = out / 'argv.bin'
+            argv_data = b'\0'.join(arg.encode('ascii') for arg in ('minigzip', *minigzip_args)) + b'\0'
+            argv_path.write_bytes(argv_data)
+            env['BMO_PACKAGE_ARGV'] = str(argv_path.resolve())
+        units.append('package_file')
+        defines.extend(['/DBMO_MSVC_PACKAGE_FILE', f'/DBMO_PACKAGE_SEED={seed}'])
+        profile = WIN64_FILE_PROFILE
+        if gzip_source is not None:
+            profile = WIN64_SCRATCH_FILE_PROFILE
+        file_report = dict(package_file=dict(path=source_file.name, bytes=len(contents),
+                                             sha256=hashlib.sha256(contents).hexdigest()))
+    compile_flags = ['/Od', '/DBMO_MSVC_EXTERNAL_CONSOLE', *defines]
+    client_source = root / 'tools/tests/msvc_sections.cpp'
+    objects = [entry, client]
+    if gzip_source is not None:
+        gzip_source = gzip_source.resolve(strict=True)
+        compile_flags = ['/O1', '/DZ_SOLO', f'/I{gzip_source}']
+        if minigzip_args is not None:
+            compile_flags.append('/DBMO_MINIGZIP_CLI')
+        if minigzip_disk:
+            compile_flags.append('/DBMO_MINIGZIP_DISK')
+        if minigzip_fat:
+            compile_flags.append('/DBMO_MINIGZIP_FAT')
+        client_source = root / 'tools/tests/msvc_gzip.cpp'
+        for name in ('infback', 'inffast', 'inftrees', 'deflate', 'trees', 'adler32', 'crc32', 'zutil'):
+            obj = out / f'{name}.obj'
+            flags = ['/clang:-ffreestanding'] if use_clang else ['/Oi-']
+            subprocess.run([compiler, '/nologo', '/c', '/GS-', '/Zl', '/Gy', *flags,
+                            *compile_flags, f'/Fo{obj}', gzip_source / f'{name}.c'],
+                           cwd=out, check=True)
+            objects.append(obj)
+        header = (gzip_source / 'zlib.h').read_bytes()
+        file_report['zlib_header_sha256'] = hashlib.sha256(header).hexdigest()
+    subprocess.run([compiler, '/nologo', '/std:c++17', '/c', '/GS-', '/Zl',
+                    *compile_flags, f'/Fo{client}', client_source],
                    cwd=out, check=True)
     subprocess.run([assembler, '--target=x86_64-pc-windows-msvc', '-c', abi / 'entry.S', '-o', entry], check=True)
-    objects = [entry, client]
-    for unit in ('portal', 'console_v1'):
+    for unit in units:
         obj = out / f'console-{unit}.obj'
+        scratch = gzip_source is not None and unit == 'package_file'
+        rust_flags = ['--cfg', 'bmo_package_output'] if scratch else []
+        if scratch and minigzip_args is not None:
+            rust_flags += ['--cfg', 'bmo_package_argv']
         subprocess.run(['rustc', '--edition=2024', '--target=x86_64-pc-windows-msvc', '--crate-type=lib',
-                        '--emit=obj', '-Cpanic=abort', '-Copt-level=2', abi / f'{unit}.rs', '-o', obj], check=True)
+                        '--emit=obj', '-Cpanic=abort', '-Copt-level=s' if scratch else '-Copt-level=2',
+                        *rust_flags, abi / f'{unit}.rs', '-o', obj],
+                       check=True, env=env if unit == 'package_file' else None)
         objects.append(obj)
     link_map = out / 'console.map'
-    profile = WIN64_CONSOLE_PROFILE
     exports = profile['Imports']
+    if gzip_source is not None:
+        unused = {'GetTickCount64', 'HeapReAlloc'}
+        if minigzip_args is not None:
+            unused.add('GetLastError')
+        exports = {api: target for api, target in exports.items() if api not in unused}
     subprocess.run([cc.with_name('link.exe'), '/nologo', '/machine:x64', '/nodefaultlib', '/subsystem:console',
                     '/entry:bmo_win64_start', '/base:0x3fe00000', '/align:2097152', '/fixed', '/Brepro',
                     '/incremental:no', '/merge:.pdata=.rdata', *('/include:' + name for name in exports.values()),
@@ -96,6 +171,17 @@ def build_external_console(root, out, assembler):
     bindings = {api: symbols[name] for api, name in exports.items()}
     source = pe.read_bytes()
     payload = pack_pe(source, abi=profile['AbiVersion'], bindings=bindings)
+    if package_file:
+        readonly = next(region for region in load_plan(payload)['Regions'] if region['Permissions'] == 'R')
+        start = readonly['FileOffset']
+        readonly_bytes = payload[start:start + readonly['FileBytes']]
+        if contents not in readonly_bytes:
+            raise ValueError('El archivo de entrada debe quedar en una region de solo lectura')
+        if argv_data is not None:
+            if argv_data not in readonly_bytes:
+                raise ValueError('Los argumentos deben quedar en una region de solo lectura')
+            file_report.update(argv=['minigzip', *minigzip_args],
+                               argv_sha256=hashlib.sha256(argv_data).hexdigest())
     (out / 'console.sbef').write_bytes(payload)
 
     # Change only the imported name and exercise the same binder before QEMU.
@@ -108,10 +194,11 @@ def build_external_console(root, out, assembler):
             raise
     else:
         raise ValueError('HOST admitio una importacion fuera del catalogo')
-    return payload, dict(profile=profile, imports=probe_pe(source)['Imports'],
+    return payload, dict(profile={**profile, 'Imports': exports}, imports=probe_pe(source)['Imports'],
                          pe_bytes=len(source), pe_sha256=hashlib.sha256(source).hexdigest(),
+                         producer='clang-cl' if use_clang else 'msvc',
                          msvc_toolset=cc.parents[3].name, sdk=libraries[-1].parents[2].name,
-                         rejected_import=rejected)
+                         rejected_import=rejected, **file_report)
 
 
 def build_external_crt(root, out, assembler, *, guarded=False, native_gs=False):

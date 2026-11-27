@@ -2,6 +2,10 @@
 .Labi1_console:
     test %r8, %r8
     jnz .Labi1_bad_args
+#ifdef BMO_QEMU_GZIP_DISK
+    cmp $3, %rsi
+    jae .Labi1_scratch_disk
+#endif
     cmp $2, %rsi
     je .Labi1_console_exit
     cmp $1, %rsi
@@ -48,4 +52,7 @@
 .Labi1_console_receipt: .asciz "SBEF WIN64 EXIT "
 #ifdef BMO_EXTERNAL_DLL_LIFECYCLE
 .Labi1_dll_clear: .asciz "SBEF DLL COUNTER CLEARED\n"
+#endif
+#ifdef BMO_QEMU_GZIP_DISK
+#include "abi1_qemu_scratch_disk.inc"
 #endif

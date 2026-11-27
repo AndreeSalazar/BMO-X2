@@ -1,4 +1,5 @@
 # QEMU-only mapping, entry and teardown of the FAT32 executable.
+#include "sbef_qemu_media.h"
 .macro supervisor_pt page, address
     lea (\page*4096+3)(%r12), %rax
     mov %rax, (0x2000+8*(\address>>21))(%r12)
@@ -12,23 +13,23 @@
     mov 0xb0(%rbp), %rdx
     cmp $64, %rdx
     jb .Lfail
-    cmp $16512, %rdx
+    cmp $BMO_QEMU_SBEF_MAX, %rdx
     ja .Lfail
     mov %rdx, (10*4096+0xb78)(%r12)
     lea 4095(%rdx), %rcx
     shr $12, %rcx
     cmp 0xc8(%rbp), %rcx
     ja .Lfail
-    cmpq $5, 0xc8(%rbp)
+    cmpq $BMO_QEMU_SBEF_STAGING_PAGES, 0xc8(%rbp)
     ja .Lfail
     mov 0xa8(%rbp), %rax
     test $4095, %eax
     jnz .Lfail
     cmp $0x100000, %rax
     jb .Lfail
-    cmp $0x0fffb000, %rax
+    cmp $(0x10000000 - BMO_QEMU_SBEF_STAGING_PAGES*4096), %rax
     ja .Lfail
-    mov %rcx, %rdx
+    mov 0xc8(%rbp), %rdx
     shl $12, %rdx
     add %rax, %rdx
     cmp %r12, %rdx

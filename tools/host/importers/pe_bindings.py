@@ -19,10 +19,44 @@ WIN64_CONSOLE_PROFILE = {
     'Scope': 'External QEMU console fixture',
 }
 
+WIN64_HEAP_PROFILE = {
+    **WIN64_CONSOLE_PROFILE,
+    'Name': 'win64-console-heap-v1',
+    'Imports': {
+        **SESSION_EXPORTS,
+        'GetProcessHeap': 'bmo_get_process_heap',
+        'HeapAlloc': 'bmo_heap_alloc',
+        'HeapFree': 'bmo_heap_free',
+        'HeapReAlloc': 'bmo_heap_realloc',
+    },
+    'Scope': 'External QEMU console fixture with a bounded process heap',
+}
+
+WIN64_FILE_PROFILE = {
+    **WIN64_HEAP_PROFILE,
+    'Name': 'win64-package-file-v1',
+    'Imports': {
+        **WIN64_HEAP_PROFILE['Imports'],
+        'CreateFileW': 'bmo_package_open',
+        'ReadFile': 'bmo_package_read',
+        'CloseHandle': 'bmo_package_close',
+        'GetLastError': 'bmo_package_last_error',
+    },
+    'Scope': 'External single-threaded QEMU fixture with a read-only package input',
+}
+
+WIN64_SCRATCH_FILE_PROFILE = {
+    **WIN64_FILE_PROFILE,
+    'Name': 'win64-scratch-file-v1',
+    'Imports': {**WIN64_FILE_PROFILE['Imports'], 'WriteFile': 'bmo_package_write'},
+    'Scope': 'External single-threaded QEMU fixture with a 4 KiB volatile output file',
+}
+
 
 def bind_session_imports(data, image, opt, segments, bindings):
-    if not bindings.keys() <= SESSION_EXPORTS.keys():
-        unknown = min(bindings.keys() - SESSION_EXPORTS.keys())
+    allowed = WIN64_FILE_PROFILE['Imports']
+    if not bindings.keys() <= allowed.keys():
+        unknown = min(bindings.keys() - allowed.keys())
         raise Rejection('PE-SESSION-TARGET', opt + 16, f'KERNEL32.dll!{unknown}')
     bind_fixed_imports(data, image, opt, segments, 'KERNEL32.dll', bindings, segments[:1])
 

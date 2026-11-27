@@ -8,7 +8,7 @@ import shutil
 import struct
 import uuid
 import zlib
-from scope import workspace
+from scope import QEMU_SBEF_LIMIT, workspace
 from sbef_probe_cases import MUTATIONS, mutated_packet
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -17,6 +17,7 @@ parser.add_argument('--caso', choices=['normal', 'firma', 'suma', 'ausente', 'ex
 parser.add_argument('--profile',choices=['hello','flappy-preview'],default='hello')
 parser.add_argument('--bmo-x2-folder', action='store_true', help='Use a separate payload folder in the virtual image')
 parser.add_argument('--desktop', type=Path, help='Add the desktop SBEF to the BMO-X2 folder')
+parser.add_argument('--qemu-sbef-media', action='store_true', help='Use the external QEMU SBEF staging budget')
 parser.add_argument('--native-ui',action='store_true',help='Explicit large UI profile in BMO-X2/DESKTOP')
 parser.add_argument('--native-case', choices=['external-permissions', 'amdvi-missing'],
                     help='Keep the native desktop case on a separate virtual disk')
@@ -33,6 +34,8 @@ if args.bmo_x2_folder and (args.profile != 'hello' or args.caso != 'normal'):
 if args.desktop and not args.bmo_x2_folder:
     parser.error('--desktop requires --bmo-x2-folder')
 if args.native_ui and not args.desktop:parser.error('--native-ui requires --desktop')
+if args.qemu_sbef_media and (not args.desktop or args.native_ui):
+    parser.error('--qemu-sbef-media requires --desktop without --native-ui')
 if args.native_case and not args.native_ui:parser.error('--native-case requires --native-ui')
 if args.nvidia_probe and not args.native_ui:parser.error('--nvidia-probe requires --native-ui')
 if args.gpu_preflight and (not args.native_ui or not args.nvidia_probe):
@@ -186,7 +189,8 @@ with output.open('r+b') as disk:
         directory[packet_pos:packet_pos + 32] = entry(b'INICIO  X86', 0x20, chain[0], len(oversized))
     if args.desktop:
         desktop = args.desktop.read_bytes()
-        if not 64 <= len(desktop) <= (2*1024*1024 if args.native_ui else 16512):
+        limit = 2*1024*1024 if args.native_ui else QEMU_SBEF_LIMIT if args.qemu_sbef_media else 16512
+        if not 64 <= len(desktop) <= limit:
             raise ValueError('Tamano invalido del SBEF de escritorio')
         desktop_chain = allocate((len(desktop) + cluster_bytes - 1) // cluster_bytes)
         for n, cluster in enumerate(desktop_chain):

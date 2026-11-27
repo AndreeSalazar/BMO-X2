@@ -1,0 +1,171 @@
+{
+  "run": "run-sbef-ring0-m7_3_luf",
+  "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
+  "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
+  "probe_sha256": "48fb2fd28517f9604144fa22fee0417f71f696a086e8e3ad95d7fc8e1f11bca1",
+  "probe_bytes": 4072,
+  "private_pages": 347,
+  "user_frame_budget": 64,
+  "scratch_bytes_scrubbed": 1421312,
+  "passed": 2,
+  "cases": [
+    {
+      "case": "msvc-heap",
+      "sha256": "ce87cd54bd88a2d95596c7194af09c008690b450de67cb5c44faadc0c6edf68b",
+      "receipt": 0,
+      "user_pages": 26,
+      "syscalls": 11,
+      "wait_wakes": 3,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 00000000000016ED",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 000000000000001A",
+        "SBEF WIN64 EXIT 0000000000000000",
+        "SBEF SYSCALLS 000000000000000B",
+        "SBEF WAIT WAKES 0000000000000003",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "clang-cl-heap",
+      "sha256": "adc17268f817cb3e67cc7278cf6872f3aabfe0950233cd3efb6557cd129dc01d",
+      "receipt": 0,
+      "user_pages": 26,
+      "syscalls": 11,
+      "wait_wakes": 3,
+      "staging_bytes_scrubbed": 8192,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000001606",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 000000000000001A",
+        "SBEF WIN64 EXIT 0000000000000000",
+        "SBEF SYSCALLS 000000000000000B",
+        "SBEF WAIT WAKES 0000000000000003",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000002000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    }
+  ],
+  "extension_bytes": 1004,
+  "extension_sha256": "22523702dddf7ad74b8938e71bf0977fb8a562ab6f67da1250ef020079bae10d",
+  "win64_heap": {
+    "profile": {
+      "Name": "win64-console-heap-v1",
+      "AbiVersion": 1,
+      "DLL": "KERNEL32.dll",
+      "Imports": {
+        "GetTickCount64": "bmo_session_tick_ms",
+        "GetStdHandle": "bmo_session_stdout",
+        "WriteFile": "bmo_session_write",
+        "GetProcessHeap": "bmo_get_process_heap",
+        "HeapAlloc": "bmo_heap_alloc",
+        "HeapFree": "bmo_heap_free",
+        "HeapReAlloc": "bmo_heap_realloc"
+      },
+      "Scope": "External QEMU console fixture with a bounded process heap"
+    },
+    "imports": [
+      {
+        "DLL": "KERNEL32.dll",
+        "Symbols": [
+          {
+            "Name": "GetStdHandle"
+          },
+          {
+            "Name": "WriteFile"
+          },
+          {
+            "Name": "GetProcessHeap"
+          },
+          {
+            "Name": "HeapAlloc"
+          },
+          {
+            "Name": "HeapReAlloc"
+          },
+          {
+            "Name": "HeapFree"
+          },
+          {
+            "Name": "GetTickCount64"
+          }
+        ]
+      }
+    ],
+    "pe_bytes": 7168,
+    "pe_sha256": "0a984dfe348084d72f9d474972931914d1439b6b4efcb6a8dfe92e1edf3a3c86",
+    "producer": "msvc",
+    "msvc_toolset": "14.44.35207",
+    "sdk": "10.0.26100.0",
+    "rejected_import": {
+      "Code": "PE-SESSION-IMPORT",
+      "Offset": 344,
+      "Field": "KERNEL32.dll!OtherFile"
+    },
+    "clang_cl": {
+      "profile": {
+        "Name": "win64-console-heap-v1",
+        "AbiVersion": 1,
+        "DLL": "KERNEL32.dll",
+        "Imports": {
+          "GetTickCount64": "bmo_session_tick_ms",
+          "GetStdHandle": "bmo_session_stdout",
+          "WriteFile": "bmo_session_write",
+          "GetProcessHeap": "bmo_get_process_heap",
+          "HeapAlloc": "bmo_heap_alloc",
+          "HeapFree": "bmo_heap_free",
+          "HeapReAlloc": "bmo_heap_realloc"
+        },
+        "Scope": "External QEMU console fixture with a bounded process heap"
+      },
+      "imports": [
+        {
+          "DLL": "KERNEL32.dll",
+          "Symbols": [
+            {
+              "Name": "WriteFile"
+            },
+            {
+              "Name": "GetStdHandle"
+            },
+            {
+              "Name": "GetProcessHeap"
+            },
+            {
+              "Name": "HeapAlloc"
+            },
+            {
+              "Name": "HeapFree"
+            },
+            {
+              "Name": "HeapReAlloc"
+            },
+            {
+              "Name": "GetTickCount64"
+            }
+          ]
+        }
+      ],
+      "pe_bytes": 7168,
+      "pe_sha256": "e48eb00c4fe5d19f2f1eb518760f7d59a63368867b84f64e552cf62c9c4fbfbb",
+      "producer": "clang-cl",
+      "msvc_toolset": "14.44.35207",
+      "sdk": "10.0.26100.0",
+      "rejected_import": {
+        "Code": "PE-SESSION-IMPORT",
+        "Offset": 344,
+        "Field": "KERNEL32.dll!OtherFile"
+      }
+    },
+    "stdout": "Hola mundo desde C++ / MSVC en BMO-X2\r\n",
+    "stdout_bytes": 39
+  }
+}

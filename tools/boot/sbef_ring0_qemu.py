@@ -1,5 +1,6 @@
 """Boot the audited CASM Native validator in a guarded post-EBS QEMU profile."""
 import argparse
+import gzip
 import hashlib
 import json
 import os
@@ -8,6 +9,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+import zlib
 from pathlib import Path
 
 from casm_sbef_qemu import CHECKS, test_vectors, validate
@@ -15,9 +17,10 @@ from host.diagnostics import Rejection
 from host.sbef.format import encode_header, inspect, load_plan
 from host.importers.pe_tls import TLS_BASES, TLS_STORAGE, TLS_VECTOR
 from host.toolchains.msvc import build_external_console, build_external_crt, build_external_dll, build_external_tls
-from scope import ROOT, workspace
+from scope import QEMU_SBEF_LIMIT, ROOT, workspace
 from bridge_hex import assemble
 from fat32_read import Fat32
+from minigzip_fat import FAT_HEADS, exhaust_pool, initial_image, output_layout, verify_output
 
 
 PAGES = 267
@@ -25,6 +28,7 @@ EXTERNAL_PAGES = 346
 PEER_PAGES = 353
 CONSOLE_PAGES = 347
 TLS_PAGES = 348
+MINIGZIP_IO_LIMIT = 4096
 CONSOLE_OUTPUT = b'Hola mundo desde C++ / MSVC en BMO-X2\r\n'
 CRT_OUTPUT = b'MSVC CRT: inicio, main y cierre OK\r\n'
 GS_HANDLER_OUTPUT = b'MSVC CRT: __GSHandlerCheck OK\r\n'
@@ -69,12 +73,12 @@ def stage(run, bridge, body, external=None):
                         '-File', tools / 'disk.ps1', '-OutputRoot', run,
                         '-Programa', 'build/Puente_Metal/METAL/INICIO.X86', '-GPT'],
                        cwd=run, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=30)
-        extra = ['--bmo-x2-folder', '--desktop', external] if external else []
+        extra = ['--bmo-x2-folder', '--desktop', external, '--qemu-sbef-media'] if external else []
         subprocess.run([sys.executable, '-B', tools / 'prepare.py', '--workspace', run, *extra],
                        stdout=log, stderr=subprocess.STDOUT, check=True, timeout=30)
 
 
-def run_qemu(qemu, run, *, console=False):
+def run_qemu(qemu, run, *, console=False, scratch_disk=None):
     share = qemu.parent / 'share'
     variables = run / 'vars.fd'
     shutil.copyfile(share / 'edk2-i386-vars.fd', variables)
@@ -91,6 +95,9 @@ def run_qemu(qemu, run, *, console=False):
     if console:
         command.extend(['-chardev', f'file,id=stdout,path={run / "stdout.log"}',
                         '-device', 'isa-debugcon,iobase=0xea,chardev=stdout'])
+    if scratch_disk is not None:
+        command.extend(['-drive', f'if=none,id=bmoscratch,file={scratch_disk},format=raw,cache=writethrough',
+                        '-device', 'ide-hd,drive=bmoscratch,bus=ide.1,unit=0'])
     with (run / 'qemu.log').open('wb') as log:
         result = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, timeout=45)
     lines = trace.read_text(encoding='ascii').splitlines()
@@ -170,13 +177,133 @@ def msvc_rebase_cases(executable, run):
                        source_toolchain=fixture['Toolchain'])
 
 
+def gzip_boundary_image(image):
+    """Materialize zero-fill in RW without changing the guest memory contents."""
+    data_region = load_plan(image)['Regions'][-1]
+    padding = QEMU_SBEF_LIMIT - len(image)
+    if data_region['Permissions'] != 'RW' or not 0 < padding <= data_region['BssBytes']:
+        raise ValueError('El SBEF GZIP no tiene relleno RW para comprobar el limite de carga')
+    padded = bytearray(image) + bytes(padding)
+    struct.pack_into('<I', padded, 12, len(padded))
+    struct.pack_into('<I', padded, data_region['RecordOffset'] + 12, data_region['FileBytes'] + padding)
+    return padded
+
+
+def minigzip_cases(run, llvm, source):
+    cases = []
+    variants = {}
+    for producer in ('msvc', 'clang-cl'):
+        for role, argv, exit_code in (
+            ('compress', ['-c', '-9', 'input.bin'], 0),
+            ('decompress', ['-d', '-c'], 0),
+            ('bad-crc', ['-d', '-c', 'input.bin'], 1),
+            ('bad-args', ['-c', '-x'], 2),
+        ):
+            name = f'{producer}-minigzip-{role}'
+            build = run / name
+            build.mkdir()
+            image, details = build_external_console(
+                ROOT, build, llvm / 'clang.exe', gzip_source=source,
+                use_clang=producer == 'clang-cl', minigzip_args=argv, corrupt_input=role == 'bad-crc')
+            variants[name] = dict(details, mode=role, exit_code=exit_code)
+            cases.append((name, image, f'SBEF WIN64 EXIT {exit_code:016X}', 1))
+    return cases, variants
+
+
+def minigzip_file_case(args, run, llvm):
+    with args.input_file.open('rb') as source:
+        data = source.read(MINIGZIP_IO_LIMIT + 1)
+    if len(data) > MINIGZIP_IO_LIMIT:
+        raise ValueError(f'La entrada excede {MINIGZIP_IO_LIMIT} bytes en el perfil minigzip')
+    producer = args.minigzip_producer
+    role = 'decompress' if args.decompress else 'compress'
+    name = f'{producer}-minigzip-{role}'
+    build = run / name
+    build.mkdir()
+    argv = ['-d', '-c'] if args.decompress else ['-c', f'-{args.level}']
+    image, details = build_external_console(
+        ROOT, build, llvm / 'clang.exe', gzip_source=args.msvc_minigzip,
+        use_clang=producer == 'clang-cl', minigzip_args=argv, minigzip_input=data)
+    return [(name, image, 'SBEF WIN64 EXIT 0000000000000000', 1)], {
+        name: dict(details, mode=role, exit_code=0)}
+
+
+def bounded_gzip(data):
+    decoder = zlib.decompressobj(wbits=31)
+    decoded = decoder.decompress(data, MINIGZIP_IO_LIMIT + 1)
+    if len(decoded) > MINIGZIP_IO_LIMIT or not decoder.eof or decoder.unused_data:
+        raise ValueError('Salida GZIP invalida, concatenada o fuera del presupuesto')
+    return decoded
+
+
+def publish_minigzip(output, data):
+    temp = None
+    try:
+        with tempfile.NamedTemporaryFile(dir=output.parent, delete=False) as file:
+            temp = Path(file.name)
+            file.write(data)
+            file.flush()
+            os.fsync(file.fileno())
+        os.link(temp, output)
+    finally:
+        if temp is not None:
+            temp.unlink(missing_ok=True)
+
+
+def minigzip_disk_cases(run, llvm, source, original, *, replacement=None):
+    cases = []
+    variants = {}
+    fat = replacement is not None
+    for producer, role in (('msvc', 'disk-write'), ('clang-cl', 'disk-read')):
+        name = f'{producer}-minigzip-{role}'
+        folder = run / name
+        folder.mkdir()
+        image, details = build_external_console(
+            ROOT, folder, llvm / 'clang.exe', gzip_source=source, use_clang=producer == 'clang-cl',
+            minigzip_args=[f'--{role}'], minigzip_input=original if role == 'disk-write' else b'',
+            minigzip_disk=True, minigzip_fat=fat)
+        variants[name] = dict(details, mode=role, exit_code=0)
+        cases.append((name, image, 'SBEF WIN64 EXIT 0000000000000000', 1))
+    negative = 'clang-cl-minigzip-disk-bad-crc'
+    variants[negative] = dict(variants[name], mode='disk-bad-crc', exit_code=1)
+    cases.append((negative, image, 'SBEF WIN64 EXIT 0000000000000001', 1))
+    if fat:
+        for mode in ('missing', 'cycle', 'exists'):
+            writer = mode == 'exists'
+            target = cases[0] if writer else cases[1]
+            negative = f'{variants[target[0]]["producer"]}-minigzip-disk-{mode}'
+            variants[negative] = dict(variants[target[0]], mode=f'disk-{mode}', exit_code=1)
+            cases.append((negative, target[1], 'SBEF WIN64 EXIT 0000000000000001', 1))
+        replace = 'msvc-minigzip-disk-replace'
+        folder = run / replace
+        folder.mkdir()
+        image, details = build_external_console(
+            ROOT, folder, llvm / 'clang.exe', gzip_source=source, minigzip_args=['--disk-replace'],
+            minigzip_input=replacement, minigzip_disk=True, minigzip_fat=True)
+        for name, role, payload, info, exit_code in (
+            (replace, 'disk-replace', image, details, 0),
+            ('clang-cl-minigzip-disk-read-replacement', 'disk-read-replacement',
+             cases[1][1], variants[cases[1][0]], 0),
+            ('msvc-minigzip-disk-no-space', 'disk-no-space', image, details, 1),
+        ):
+            variants[name] = dict(info, mode=role, exit_code=exit_code)
+            cases.append((name, payload, f'SBEF WIN64 EXIT {exit_code:016X}', 1))
+    return cases, variants
+
+
 def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *, native_crt=None):
-    bridge = external_bridge(bridge, assemble_stage(llvm, READER, run))
+    bridge = external_bridge(bridge, assemble_stage(llvm, READER, run, BMO_QEMU_SBEF_MEDIA=1))
     rebase = None
     console = None
     crt_report = None
     dll_report = None
     tls_report = None
+    cli = None
+    disk_source = args.msvc_minigzip_disk or args.msvc_minigzip_fat
+    disk_mode = disk_source is not None
+    fat_mode = args.msvc_minigzip_fat is not None
+    gzip_run = args.msvc_gzip or args.msvc_minigzip or disk_mode
+    scratch_disk = None
     if args.msvc_tls:
         image, tls_report = build_external_tls(ROOT, run, llvm / 'clang.exe')
         second = next(region for region in load_plan(image)['Regions'] if region['VirtualStart'] == TLS_BASES[1])
@@ -209,10 +336,35 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                 raise ValueError('Cambio la direccion del contador de la DLL')
             cases += (('msvc-dll-refused', rejected, 'SBEF WIN64 EXIT 0000000000000002', 1),)
             dll_report['RefusedAttachModule'] = attach_report['LinkedModule']
-    elif args.msvc_console:
-        image, console = build_external_console(ROOT, run, llvm / 'clang.exe')
+    elif disk_mode:
+        original = (hashlib.shake_256(b'BMO-X2 FAT16 multi-cluster').digest(1280) + bytes(1792)
+                    if fat_mode else bytes(range(256)) * 12)
+        replacement = (hashlib.shake_256(b'BMO-X2 FAT16 replacement').digest(700) + bytes(2372)
+                       if fat_mode else None)
+        cases, cli = minigzip_disk_cases(run, llvm, disk_source, original, replacement=replacement)
+        scratch_disk = run / 'minigzip-scratch.img'
+        initial_disk = initial_image() if fat_mode else b'BMO QEMU scratch'.ljust(1024*1024, b'\0')
+        scratch_disk.write_bytes(initial_disk)
+    elif args.msvc_minigzip:
+        cases, cli = (minigzip_file_case(args, run, llvm) if args.input_file
+                      else minigzip_cases(run, llvm, args.msvc_minigzip))
+    elif args.msvc_console or args.msvc_heap or args.msvc_package_file or args.msvc_gzip:
+        options = dict(heap=args.msvc_heap, package_file=args.msvc_package_file, gzip_source=args.msvc_gzip)
+        image, console = build_external_console(ROOT, run, llvm / 'clang.exe', **options)
         calls = 6 + (len(CONSOLE_OUTPUT) + 7) // 8
-        cases = (('msvc-console', image, 'SBEF WIN64 EXIT 0000000000000000', calls),)
+        label = 'gzip' if args.msvc_gzip else 'package-file' if args.msvc_package_file else (
+            'heap' if args.msvc_heap else 'console')
+        cases = ((f'msvc-{label}', image, 'SBEF WIN64 EXIT 0000000000000000', calls),)
+        if args.msvc_heap or args.msvc_package_file or args.msvc_gzip:
+            clang_dir = run / 'clang-cl'
+            clang_dir.mkdir()
+            clang_image, clang_report = build_external_console(
+                ROOT, clang_dir, llvm / 'clang.exe', use_clang=True, **options)
+            console['clang_cl'] = clang_report
+            cases += ((f'clang-cl-{label}', clang_image, 'SBEF WIN64 EXIT 0000000000000000', calls),)
+        if args.msvc_gzip:
+            cases += (('msvc-gzip-staging-limit', gzip_boundary_image(image),
+                       'SBEF WIN64 EXIT 0000000000000000', calls),)
     elif args.msvc_crt or args.msvc_crt_gs or args.msvc_crt_gs_native:
         guarded = args.msvc_crt_gs or args.msvc_crt_gs_native
         image, crt_report = native_crt or build_external_crt(ROOT, run, llvm / 'clang.exe', guarded=guarded)
@@ -298,9 +450,11 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             ('page-budget', budget, 'SBEF USER BUDGET', 0),
             ('abi', abi, 'SBEF ABI UNSUPPORTED', 0),
         )
-    stdout_report = console or crt_report
+    stdout_report = console or crt_report or cli
     results = []
     for name, image, policy, calls in cases:
+        if len(image) > QEMU_SBEF_LIMIT:
+            raise ValueError(f'{name}: SBEF de {len(image)} bytes supera el limite de {QEMU_SBEF_LIMIT}')
         receipt = 0
         pages = 0
         try:
@@ -315,10 +469,17 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             if calls or rebase or dll_report or crt_report:
                 plan = load_plan(image)
                 pages = (2 if tls_report else 1) + sum(region['PageCount'] for region in plan['Regions'])
-                expected_regions, expected_pages = (5, 7) if tls_report else (6, 7) if dll_report else (
-                    (4, 5) if rebase else (3, 7) if args.msvc_crt_gs_native else (3, 4 if crt_report else 5)
-                    if stdout_report else (8, 10))
-                if info['AbiVersion'] != 1 or plan['RegionCount'] != expected_regions or pages != expected_pages:
+                if gzip_run:
+                    valid_layout = ([region['Permissions'] for region in plan['Regions']] == ['RX', 'R', 'RW']
+                                    and pages <= 64)
+                elif args.msvc_heap or args.msvc_package_file:
+                    valid_layout = plan['RegionCount'] == 3 and 23 <= pages <= 26
+                else:
+                    expected_regions, expected_pages = (5, 7) if tls_report else (6, 7) if dll_report else (
+                        (4, 5) if rebase else (3, 7) if args.msvc_crt_gs_native else (3, 4 if crt_report else 5)
+                        if stdout_report else (8, 10))
+                    valid_layout = plan['RegionCount'] == expected_regions and pages == expected_pages
+                if info['AbiVersion'] != 1 or not valid_layout:
                     raise ValueError('Cambio el contrato de la muestra externa')
         folder = run / ('run-' + name)
         folder.mkdir()
@@ -332,7 +493,81 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                 raise ValueError('El archivo SBEF de la imagen FAT32 difiere del fixture')
         finally:
             volume.close()
-        observed = run_qemu(args.qemu.resolve(), folder, console=stdout_report is not None)
+        active_disk = scratch_disk
+        if disk_mode:
+            disk_role = cli[name]['mode']
+            if disk_role in ('disk-replace', 'disk-read-replacement'):
+                active_disk = run / 'minigzip-replaced.img'
+                if disk_role == 'disk-replace':
+                    active_disk.write_bytes(written_disk)
+            elif cli[name]['exit_code']:
+                negative_disk = bytearray(written_disk)
+                if disk_role == 'disk-bad-crc':
+                    crc_offset = len(compressed) - 8
+                    physical = (offsets[crc_offset // 512] + crc_offset % 512
+                                if fat_mode else data_offset + crc_offset)
+                    negative_disk[physical] ^= 1
+                elif disk_role == 'disk-missing':
+                    entry, _, _, _ = output_layout(written_disk)
+                    negative_disk[entry] = ord('X')
+                elif disk_role == 'disk-cycle':
+                    for head in FAT_HEADS:
+                        struct.pack_into('<H', negative_disk, head + 2 * chain[0], chain[0])
+                elif disk_role == 'disk-no-space':
+                    negative_disk = exhaust_pool(written_disk)
+                active_disk = run / f'minigzip-{disk_role}.img'
+                active_disk.write_bytes(negative_disk)
+        observed = run_qemu(args.qemu.resolve(), folder, console=stdout_report is not None,
+                            scratch_disk=active_disk)
+        if disk_mode:
+            after_boot = active_disk.read_bytes()
+            if disk_role == 'disk-write':
+                if fat_mode:
+                    compressed, chain, offsets = verify_output(initial_disk, after_boot)
+                    data_offset = offsets[0]
+                    calls = (7 + len(chain)) * 65 + 1
+                else:
+                    magic, size = struct.unpack_from('<4sI', after_boot, 512)
+                    if magic != b'BMO1' or not 18 <= size <= 504:
+                        raise ValueError(f'{name}: cabecera GZIP ausente del sector persistente. Ver {folder}')
+                    data_offset = 520
+                    compressed = after_boot[data_offset:data_offset+size]
+                    if (after_boot[:512] != initial_disk[:512] or after_boot[1024:] != initial_disk[1024:]
+                            or any(after_boot[data_offset+size:1024])):
+                        raise ValueError(f'{name}: cambios fuera del registro persistente. Ver {folder}')
+                    calls = 66
+                if bounded_gzip(compressed) != original:
+                    raise ValueError(f'{name}: sector persistido invalido. Ver {folder}')
+                written_disk = after_boot
+            elif disk_role == 'disk-replace':
+                updated, replacement_chain, _ = verify_output(written_disk, after_boot, replaced=True)
+                if bounded_gzip(updated) != replacement:
+                    raise ValueError(f'{name}: reemplazo distinto de la referencia. Ver {folder}')
+                replaced_disk = after_boot
+                calls = (9 + len(replacement_chain)) * 65 + 1
+            elif disk_role == 'disk-read-replacement':
+                if after_boot != replaced_disk:
+                    raise ValueError(f'{name}: la lectura modifico el reemplazo. Ver {folder}')
+                calls = (4 + len(replacement_chain)) * 65 + 1 + (len(replacement) + 7) // 8
+            elif disk_role == 'disk-read':
+                if after_boot != written_disk:
+                    raise ValueError(f'{name}: la lectura modifico el disco. Ver {folder}')
+                calls = ((4 + len(chain)) * 65 + 1 if fat_mode else 3 + (len(compressed) + 7) // 8)
+                calls += (len(original) + 7) // 8
+            else:
+                if after_boot != negative_disk:
+                    raise ValueError(f'{name}: el rechazo modifico el disco. Ver {folder}')
+                calls = ((4 + (len(chain) if disk_role == 'disk-bad-crc' else 0)) * 65 + 1
+                         if fat_mode else 3 + (len(compressed) + 7) // 8)
+        elif gzip_run:
+            output_bytes = (folder / 'stdout.log').stat().st_size
+            failed_cli = cli is not None and cli[name]['exit_code'] != 0
+            minimum = 0 if cli is not None and cli[name]['mode'] == 'decompress' else 18
+            if (failed_cli and output_bytes != 0) or (not failed_cli and
+                    not minimum <= output_bytes <= MINIGZIP_IO_LIMIT):
+                exit_receipt = next((line for line in observed if line.startswith('SBEF WIN64 EXIT ')), '')
+                raise ValueError(f'{name}: {output_bytes} bytes de stdout {exit_receipt}. Ver {folder / "debug.log"}')
+            calls = 1 + (output_bytes + 7) // 8
         expected = ['SBEF CPL0 POST-EBS', f'SBEF FAT32 BYTES {len(image):016X}', f'SBEF RECEIPT {receipt:016X}']
         if pages:
             expected.append(f'SBEF USER PAGES {pages:016X}')
@@ -366,7 +601,9 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             wakes = int(wake_line.removeprefix(wake_prefix) or '0', 16)
             if (args.peer or dll_report or tls_report or crt_report) and wakes:
                 raise ValueError(f'{name}: WAIT entro al bucle del PIT. Ver {folder}')
-            if console and not 1 <= wakes <= 3:
+            if gzip_run and wakes:
+                raise ValueError(f'{name}: WAIT inesperado. Ver {folder}')
+            if console and not args.msvc_gzip and not 1 <= wakes <= 3:
                 raise ValueError(f'{name}: WAIT debia despertar en uno a tres ticks. Ver {folder}')
             if not extension and not 1 <= wakes <= 2:
                 raise ValueError(f'{name}: WAIT debia despertar en uno o dos ticks. Ver {folder}')
@@ -396,9 +633,29 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                 expected_stdout = b''
             elif name.endswith('-handler'):
                 expected_stdout = GS_HANDLER_OUTPUT
+            elif cli is not None:
+                scenario = cli[name]
+                if disk_mode:
+                    reference = {'disk-read': original, 'disk-read-replacement': replacement}.get(disk_role, b'')
+                elif args.input_file:
+                    original = (run / name / 'input.bin').read_bytes()
+                    reference = bounded_gzip(original) if args.decompress else original
+                else:
+                    reference = b'' if scenario['exit_code'] else (run / name / 'expected-output.bin').read_bytes()
+                actual = bounded_gzip(stdout) if scenario['mode'] == 'compress' else stdout
+                if actual != reference:
+                    raise ValueError(f'{name}: salida distinta de Windows. Ver {folder}')
+                expected_stdout = None
+            elif args.msvc_gzip:
+                build_dir = run / 'clang-cl' if name.startswith('clang-cl-') else run
+                expected_decoded = (build_dir / 'expected-output.bin').read_bytes()
+                decoded = gzip.decompress(stdout)
+                if decoded != expected_decoded or len(stdout) >= len(decoded):
+                    raise ValueError(f'{name}: el GZIP del invitado difiere de la referencia. Ver {folder}')
+                expected_stdout = None
             else:
                 expected_stdout = (CRT_OUTPUT if crt_report else CONSOLE_OUTPUT) if calls else b''
-            if stdout != expected_stdout:
+            if expected_stdout is not None and stdout != expected_stdout:
                 raise ValueError(f'{name}: stdout inesperado {stdout!r}. Ver {folder}')
             if '-cpu-seh-' in name:
                 crt_report.setdefault('seh_fixture', {})[label] = stdout.decode('ascii')
@@ -438,6 +695,11 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                 crt_report['dispatch_fixture']['stdout'] = stdout.decode('ascii')
             elif name.endswith('-handler-mismatch'):
                 crt_report['dispatch_fixture']['mismatch_stdout_bytes'] = len(stdout)
+            elif cli is not None:
+                scenario.update(stdout_bytes=len(stdout), stdout_sha256=hashlib.sha256(stdout).hexdigest())
+            elif args.msvc_gzip:
+                build_report = console['clang_cl'] if name.startswith('clang-cl-') else console
+                build_report.update(stdout_sha256=hashlib.sha256(stdout).hexdigest(), stdout_bytes=len(stdout))
             elif calls:
                 stdout_report.update(stdout=stdout.decode('ascii'), stdout_bytes=len(stdout))
             else:
@@ -445,6 +707,12 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
         results.append(dict(case=name, sha256=hashlib.sha256(image).hexdigest(), receipt=receipt,
                             user_pages=pages, syscalls=calls, wait_wakes=wakes, staging_bytes_scrubbed=staged_bytes,
                             trace=observed, passed=True))
+        if args.msvc_gzip:
+            results[-1].update(decoded_bytes=len(decoded), decoded_sha256=hashlib.sha256(decoded).hexdigest(),
+                               compressed_bytes=len(stdout), compressed_sha256=hashlib.sha256(stdout).hexdigest(),
+                               sbef_bytes=len(image), sbef_limit_bytes=QEMU_SBEF_LIMIT,
+                               corrupt_crc_rejected=True, scratch_file_round_trip=True,
+                               scratch_file_limit_rejected=True, scratch_file_truncated=True)
         print(f'{name}: comprobado', flush=True)
     private_pages = TLS_PAGES if tls_report else PEER_PAGES if args.peer else (
         CONSOLE_PAGES if stdout_report or dll_report else EXTERNAL_PAGES)
@@ -457,7 +725,28 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
     if stdout_report or dll_report or tls_report:
         report.update(extension_bytes=len(extension), extension_sha256=hashlib.sha256(extension).hexdigest())
     if console:
-        report['msvc_console'] = console
+        key = 'win64_gzip' if args.msvc_gzip else 'win64_package_file' if args.msvc_package_file else (
+            'win64_heap' if args.msvc_heap else 'msvc_console')
+        report[key] = console
+    if cli is not None:
+        report['win64_minigzip_cli'] = cli
+    if disk_mode:
+        report['win64_minigzip_disk'] = dict(
+            disk=scratch_disk.name, lba=data_offset // 512, sector_bytes=512, gzip_bytes=len(compressed),
+            gzip_sha256=hashlib.sha256(compressed).hexdigest(), original_bytes=len(original),
+            original_sha256=hashlib.sha256(original).hexdigest(), other_sectors_unchanged=True,
+            read_only_boot_preserved_disk=True, corrupt_crc_rejected=True)
+        if fat_mode:
+            report['win64_minigzip_disk'].update(filesystem='FAT16', file='OUTPUT.GZ',
+                                               directory_lba=65, cluster_chain=chain,
+                                               data_lbas=[offset // 512 for offset in offsets],
+                                               new_directory_entry=True, fat_copies_verified=True,
+                                               missing_filename_rejected=True, cycle_rejected=True,
+                                               existing_filename_preserved=True,
+                                               replacement=dict(
+                                                   cluster_chain=replacement_chain, gzip_bytes=len(updated),
+                                                   sha256=hashlib.sha256(replacement).hexdigest(),
+                                                   old_clusters_released=True, no_space_preserved_disk=True))
     if crt_report:
         report['msvc_crt'] = crt_report
     if dll_report:
@@ -467,6 +756,9 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
     if rebase:
         report['msvc_rebase'] = rebase
     (run / 'qemu-results.json').write_text(json.dumps(report, indent=2)+'\n', encoding='ascii')
+    if args.output_file:
+        publish_minigzip(args.output_file, stdout)
+        print(f'Archivo generado: {args.output_file}', flush=True)
 
 
 def main():
@@ -478,6 +770,22 @@ def main():
     profiles.add_argument('--peer', action='store_true', help='Test WAIT with a second isolated CPL3 context')
     profiles.add_argument('--msvc-rebase', type=Path, metavar='EXE', help='Run the audited MSVC DIR64 fixture')
     profiles.add_argument('--msvc-console', action='store_true', help='Build and run the external Win64 console fixture')
+    profiles.add_argument('--msvc-heap', action='store_true', help='Run the Win64 process heap with MSVC and clang-cl')
+    profiles.add_argument('--msvc-package-file', action='store_true',
+                          help='Run the Win64 read-only package file with MSVC and clang-cl')
+    profiles.add_argument('--msvc-gzip', type=Path, metavar='ZLIB_SOURCE',
+                          help='Decode and compress gzip in CPL3 with zlib built by MSVC and clang-cl')
+    profiles.add_argument('--msvc-minigzip', type=Path, metavar='ZLIB_SOURCE',
+                          help='Run the adapted minigzip command line in Win64 CPL3')
+    profiles.add_argument('--msvc-minigzip-disk', type=Path, metavar='ZLIB_SOURCE',
+                          help='Persist GZIP to a separate virtual disk and read it after reboot')
+    profiles.add_argument('--msvc-minigzip-fat', type=Path, metavar='ZLIB_SOURCE',
+                          help='Create and reload a multi-cluster OUTPUT.GZ in a FAT16 virtual disk')
+    parser.add_argument('--input-file', type=Path, help='Package one local minigzip input file')
+    parser.add_argument('--output-file', type=Path, help='Save verified guest output to a new local file')
+    parser.add_argument('--minigzip-producer', choices=('msvc', 'clang-cl'))
+    parser.add_argument('--decompress', action='store_true', help='Decode the local GZIP input')
+    parser.add_argument('--level', type=int, choices=range(1, 10), help='Compression level for a local input')
     profiles.add_argument('--msvc-crt', action='store_true', help='Test selected static UCRT functions in a Win64 process')
     profiles.add_argument('--msvc-crt-gs', action='store_true', help='Test MSVC /GS success and fail-fast in CPL3')
     profiles.add_argument('--msvc-crt-gs-native', action='store_true',
@@ -486,7 +794,21 @@ def main():
     profiles.add_argument('--msvc-dll-lifecycle', action='store_true', help='Test attach, detach and refused attach')
     profiles.add_argument('--msvc-tls', action='store_true', help='Test the static Win64 TLS template on two CPL3 threads')
     args = parser.parse_args()
-    win64 = (args.msvc_console or args.msvc_crt or args.msvc_crt_gs or args.msvc_crt_gs_native or args.msvc_dll
+    if args.input_file or args.output_file or args.minigzip_producer or args.decompress or args.level:
+        if not (args.msvc_minigzip and args.input_file and args.output_file):
+            parser.error('El modo de archivo exige --msvc-minigzip, --input-file y --output-file')
+        if args.decompress and args.level is not None:
+            parser.error('--level se aplica solo a la compresion')
+        if not args.input_file.is_file() or not args.output_file.parent.is_dir():
+            parser.error('Se requiere un archivo de entrada y una carpeta de salida existentes')
+        if os.path.lexists(args.output_file):
+            parser.error('La ruta de salida ya existe')
+        args.level = args.level or 6
+        args.minigzip_producer = args.minigzip_producer or 'msvc'
+    win64 = (args.msvc_console or args.msvc_heap or args.msvc_package_file or args.msvc_gzip or args.msvc_minigzip
+             or args.msvc_minigzip_disk or args.msvc_minigzip_fat
+             or args.msvc_crt
+             or args.msvc_crt_gs or args.msvc_crt_gs_native or args.msvc_dll
              or args.msvc_dll_lifecycle or args.msvc_tls)
     external = args.external or args.peer or win64 or args.msvc_rebase is not None
     module = json.loads((workspace(args.module_run) / 'validator.module.json').read_bytes())
@@ -513,6 +835,10 @@ def main():
         mode['BMO_EXTERNAL_PEER'] = 1
     if win64:
         mode['BMO_EXTERNAL_WIN64'] = 1
+    if args.msvc_minigzip_disk or args.msvc_minigzip_fat:
+        mode['BMO_QEMU_GZIP_DISK'] = 1
+    if args.msvc_minigzip_fat:
+        mode['BMO_QEMU_GZIP_FAT'] = 1
     if args.msvc_dll_lifecycle:
         mode['BMO_EXTERNAL_DLL_LIFECYCLE'] = 1
     if args.msvc_tls:

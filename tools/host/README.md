@@ -194,6 +194,139 @@ API sets, los imports diferidos y la carga dinamica quedan pendientes.
 de consola del fixture `win64-console-v1`. El resultado de admision del
 perfil base se lee en `CanPack` y `Blockers`.
 
+### Banco de aplicaciones Windows x64
+
+`tools/tests/windows_apps.py` ejecuta binarios locales en Windows y comprueba
+`probe` y `pack --abi 1` para cada PE. El informe JSON conserva el inventario
+de imports y el rechazo del empaquetador. Un rechazo debe coincidir con el
+inventario y el directorio de prueba debe quedar sin un SBEF parcial.
+
+```powershell
+python -B tools/tests/windows_apps.py --sqlite-msvc $sqliteMsvc --sqlite-clang-cl $sqliteClangCl --minigzip-msvc $gzipMsvc --minigzip-clang-cl $gzipClangCl --tar (Get-Command tar.exe).Source --seven-zip $sevenZip --notepad-plus-plus $notepadPlusPlus
+```
+
+Los dos binarios de SQLite son obligatorios. El banco comprueba 1000 filas,
+rollback, reapertura, integridad y rechazo de una clave duplicada.
+`minigzip` comprueba la ida y vuelta de datos binarios. Los archivadores
+recuperan un directorio con un nombre Unicode y un archivo vacio. Notepad++
+se inventaria estaticamente. El informe corresponde a Windows y HOST,
+con ejecucion QEMU pendiente para estos binarios.
+
+El perfil de prueba `win64-console-heap-v1` liga `GetProcessHeap`,
+`HeapAlloc`, `HeapReAlloc` y `HeapFree` al runtime Rust. Usa una arena
+privada de 64 KiB con bloques alineados a 16 bytes. El banco comprueba
+asignacion, relleno cero, realojamiento con datos conservados, crecimiento
+en sitio, identificadores invalidos, agotamiento y reutilizacion.
+[Evidencia en QEMU con MSVC y clang-cl](../../Reports/host-win64-heap-qemu.json).
+
+```powershell
+python -B tools/boot/sbef_ring0_qemu.py $validatorRun --msvc-heap
+```
+
+El perfil `win64-package-file-v1` incorpora `CreateFileW`, `ReadFile`,
+`CloseHandle` y `GetLastError` para un archivo de entrada empaquetado en
+una region de solo lectura del SBEF. Es un perfil sincrono de un solo
+hilo con un handle abierto a la vez. El banco comprueba lectura parcial,
+fin de archivo, reapertura desde el inicio y rechazo de handles caducados.
+[Evidencia en QEMU con MSVC y clang-cl](../../Reports/host-win64-package-file-qemu.json).
+
+```powershell
+python -B tools/boot/sbef_ring0_qemu.py $validatorRun --msvc-package-file
+```
+
+El banco de GZIP compila `inflateBack` y `deflate` desde zlib para ambos
+productores. El cliente lee una entrada GZIP empaquetada, verifica su
+longitud y CRC-32, rechaza una copia con el CRC alterado y vuelve a
+comprimir los bytes en Ring 3. El perfil `win64-scratch-file-v1` escribe
+el GZIP resultante mediante `WriteFile` en `output.bin`. El archivo vive
+en una arena volatil de 4 KiB del proceso. La prueba lo reabre, valida
+sus bytes y lo trunca con
+`CREATE_ALWAYS`. Tambien verifica accesos invalidos y que un intento de
+escritura sin espacio conserva los datos y la posicion.
+QEMU captura el GZIP resultante y el HOST lo descomprime para comparar
+los bytes con la referencia. El lector del cliente admite un miembro
+sin campos opcionales. Un tercer caso carga exactamente 65536 bytes de
+SBEF y comprueba la limpieza del area de staging y del mapa temporal.
+[Informe de GZIP y comparacion con minigzip en Windows](../../Reports/host-win64-gzip-qemu.json).
+
+```powershell
+python -B tools/boot/sbef_ring0_qemu.py $validatorRun --msvc-gzip $zlibSource
+```
+
+El CLI adaptado `minigzip` toma su vector de argumentos de la seccion de
+solo lectura del SBEF. Soporta `-c`, `-d`, niveles `-1` a `-9` y la
+entrada empaquetada `input.bin`. El banco ejecuta compresion, descompresion,
+CRC invalido y argumentos invalidos con ambos compiladores. Los dos casos
+de error comprueban el codigo de salida y stdout vacio.
+[Informe del CLI adaptado y contraste con minigzip en Windows](../../Reports/host-win64-minigzip-cli-qemu.json).
+
+```powershell
+python -B tools/boot/sbef_ring0_qemu.py $validatorRun --msvc-minigzip $zlibSource
+```
+
+Para usar archivos locales, el HOST empaqueta una entrada por arranque y
+guarda la salida binaria de QEMU tras validar el codigo de salida y los
+bytes. La publicacion exige una ruta nueva y una carpeta existente en un
+sistema de archivos con enlaces duros. El archivo intermedio se elimina
+si falla la publicacion.
+[Informe de compresion y reapertura en dos arranques QEMU](../../Reports/host-win64-minigzip-files-qemu.json).
+
+```powershell
+python -B tools/boot/sbef_ring0_qemu.py $validatorRun --msvc-minigzip $zlibSource --input-file datos.bin --output-file datos.gz --level 9
+python -B tools/boot/sbef_ring0_qemu.py $validatorRun --msvc-minigzip $zlibSource --input-file datos.gz --output-file recuperado.bin --decompress --minigzip-producer clang-cl
+```
+
+El banco de disco virtual usa una imagen IDE secundaria exclusiva de
+QEMU. El cliente MSVC comprime en Ring 3 y el supervisor publica un
+registro GZIP en el sector 1 con `FLUSH CACHE`. En otro arranque, el
+cliente clang-cl lee el mismo sector y recupera los datos sin recibir una
+entrada empaquetada. El banco compara todos los demas sectores, verifica
+que la lectura conserva la imagen y prueba un CRC alterado en una copia.
+Este transporte de prueba admite 504 bytes de GZIP en un sector.
+[Informe de escritura y lectura en arranques QEMU separados](../../Reports/host-win64-minigzip-disk-qemu.json).
+
+```powershell
+python -B tools/boot/sbef_ring0_qemu.py $validatorRun --msvc-minigzip-disk $zlibSource
+```
+
+El perfil FAT16 crea `OUTPUT.GZ` en el directorio raiz. Asigna clusters
+libres, escribe el GZIP, actualiza las dos copias FAT y publica la
+entrada de directorio. Un segundo arranque busca el mismo nombre y
+recupera los datos siguiendo una cadena fragmentada. El HOST verifica
+los cambios byte a byte en la imagen, incluidos ambos espejos FAT y
+la conservacion de los archivos vecinos. El reemplazo escribe otra
+cadena, publica la nueva entrada y luego libera la cadena anterior.
+Otro arranque comprueba los bytes del reemplazo. Las pruebas negativas
+cubren CRC alterado, nombre ausente, cadena ciclica, creacion con nombre
+existente y falta de clusters libres. Cada control usa una copia separada.
+[Informe de OUTPUT.GZ en QEMU](../../Reports/host-win64-minigzip-fat-qemu.json).
+
+```powershell
+python -B tools/boot/sbef_ring0_qemu.py $validatorRun --msvc-minigzip-fat $zlibSource
+```
+
+El perfil admite hasta cuatro clusters de 512 bytes por archivo y opera
+sobre una raiz y un grupo de clusters acotados. La publicacion requiere
+espacio libre para la copia nueva. Las rutas generales y la recuperacion
+tras una interrupcion entre escrituras siguen pendientes.
+
+El ejecutable Windows distribuido requiere su arranque CRT, mas memoria
+de carga y mas servicios Win64. El perfil adaptado usa entradas y salidas
+de hasta 4 KiB, lee del paquete y emite por stdout. La persistencia de este
+flujo la realiza el HOST en Windows. La IAT
+resuelta queda de solo lectura. El cargador debe interpretar o rechazar
+explicitamente las caracteristicas declaradas en `load_config`.
+
+Para registrar compatibilidad en QEMU, conservar el hash del PE y del
+SBEF, la salida de consola, el codigo de salida y la evidencia del
+resultado. Para `minigzip`, comprobar la igualdad del SHA-256 tras
+descomprimir. Para SQLite, exigir `1000|1001000` en memoria y luego
+`integrity_check = ok` con los mismos datos tras abrir la base en un
+segundo proceso. Los PE de SQLite inspeccionados superan 1.5 MiB de
+`SizeOfImage`. El banco QEMU actual tiene 64 paginas de usuario, por lo
+que la prueba del CLI completo requiere ampliar el presupuesto verificado
+de carga, ademas de implementar sus dependencias.
+
 El destino de BMO-X2 es exclusivamente x86-64. La base fijada es
 `x86-64-v1`; cada SBEF v2 declara el minimo `v1`, `v2`, `v3` o `v4`. El
 codigo de las sondas LLVM compara ese requisito con CPUID y con el estado

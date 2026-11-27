@@ -1,0 +1,805 @@
+{
+  "run": "run-sbef-ring0-rqg9fry4",
+  "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
+  "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
+  "probe_sha256": "6cb305e8b7460744f29ff5591b784c3acc0072bdfb7277ff750f5690f9e2a4a6",
+  "probe_bytes": 4072,
+  "private_pages": 347,
+  "user_frame_budget": 64,
+  "scratch_bytes_scrubbed": 1421312,
+  "passed": 8,
+  "cases": [
+    {
+      "case": "msvc-minigzip-compress",
+      "sha256": "ad1f43532ce07f452b001e762161cb773caff803c984c6f0f1be0baa460d88a6",
+      "receipt": 0,
+      "user_pages": 33,
+      "syscalls": 150,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 40960,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000009A3C",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000021",
+        "SBEF WIN64 EXIT 0000000000000000",
+        "SBEF SYSCALLS 0000000000000096",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 000000000000A000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "msvc-minigzip-decompress",
+      "sha256": "a94d31816878c8ad729647f1db2779574ef472fcc2e3263e79df36427de3ab05",
+      "receipt": 0,
+      "user_pages": 33,
+      "syscalls": 257,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 40960,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 000000000000965C",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000021",
+        "SBEF WIN64 EXIT 0000000000000000",
+        "SBEF SYSCALLS 0000000000000101",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 000000000000A000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "msvc-minigzip-bad-crc",
+      "sha256": "f61a4d5ac3a7d5d7a6e5bfa8cdec743607ad05fdd73e598e7a4e92dc0112e650",
+      "receipt": 0,
+      "user_pages": 33,
+      "syscalls": 1,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 40960,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 000000000000966C",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000021",
+        "SBEF WIN64 EXIT 0000000000000001",
+        "SBEF SYSCALLS 0000000000000001",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 000000000000A000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "msvc-minigzip-bad-args",
+      "sha256": "60d2fa3e22475e9975df3ee036d34a43203d3fb78d1f625ecd7c36c0c14d5048",
+      "receipt": 0,
+      "user_pages": 33,
+      "syscalls": 1,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 40960,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000009A34",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000021",
+        "SBEF WIN64 EXIT 0000000000000002",
+        "SBEF SYSCALLS 0000000000000001",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 000000000000A000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "clang-cl-minigzip-compress",
+      "sha256": "8a56c3a532011ab56b16394a338892010b1952c061e52bf88d7b9127a6a6f0cb",
+      "receipt": 0,
+      "user_pages": 33,
+      "syscalls": 92,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 40960,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 000000000000974F",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000021",
+        "SBEF WIN64 EXIT 0000000000000000",
+        "SBEF SYSCALLS 000000000000005C",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 000000000000A000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "clang-cl-minigzip-decompress",
+      "sha256": "ed5701216c7e37f3787d016166eee6a7a3bd37ec38ad4acbcf64ffd4396942d5",
+      "receipt": 0,
+      "user_pages": 33,
+      "syscalls": 257,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 40960,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 00000000000091E7",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000021",
+        "SBEF WIN64 EXIT 0000000000000000",
+        "SBEF SYSCALLS 0000000000000101",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 000000000000A000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "clang-cl-minigzip-bad-crc",
+      "sha256": "8dae41b4029ea0f5f00f951d7bd6dcfb3de824fe133606725ba58003902064e8",
+      "receipt": 0,
+      "user_pages": 33,
+      "syscalls": 1,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 40960,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 00000000000091EF",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000021",
+        "SBEF WIN64 EXIT 0000000000000001",
+        "SBEF SYSCALLS 0000000000000001",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 000000000000A000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "clang-cl-minigzip-bad-args",
+      "sha256": "d98ba5229f68f39f42a6bfba46f402722fbf9087faa3e3deb28fb7a0156d3e2f",
+      "receipt": 0,
+      "user_pages": 33,
+      "syscalls": 1,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 40960,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 0000000000009747",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000021",
+        "SBEF WIN64 EXIT 0000000000000002",
+        "SBEF SYSCALLS 0000000000000001",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 000000000000A000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    }
+  ],
+  "extension_bytes": 1004,
+  "extension_sha256": "c55a882a7eb262e14e9c7309ce2ca1058902d494ec0517c88a1fbbf6c9955858",
+  "win64_minigzip_cli": {
+    "msvc-minigzip-compress": {
+      "profile": {
+        "Name": "win64-scratch-file-v1",
+        "AbiVersion": 1,
+        "DLL": "KERNEL32.dll",
+        "Imports": {
+          "GetStdHandle": "bmo_session_stdout",
+          "WriteFile": "bmo_package_write",
+          "GetProcessHeap": "bmo_get_process_heap",
+          "HeapAlloc": "bmo_heap_alloc",
+          "HeapFree": "bmo_heap_free",
+          "CreateFileW": "bmo_package_open",
+          "ReadFile": "bmo_package_read",
+          "CloseHandle": "bmo_package_close"
+        },
+        "Scope": "External single-threaded QEMU fixture with a 4 KiB volatile output file"
+      },
+      "imports": [
+        {
+          "DLL": "KERNEL32.dll",
+          "Symbols": [
+            {
+              "Name": "GetProcessHeap"
+            },
+            {
+              "Name": "HeapAlloc"
+            },
+            {
+              "Name": "HeapFree"
+            },
+            {
+              "Name": "CreateFileW"
+            },
+            {
+              "Name": "ReadFile"
+            },
+            {
+              "Name": "CloseHandle"
+            },
+            {
+              "Name": "GetStdHandle"
+            },
+            {
+              "Name": "WriteFile"
+            }
+          ]
+        }
+      ],
+      "pe_bytes": 40448,
+      "pe_sha256": "c1f3f6218e781e687bcc8021c88adac1333c5c0782444ed66aaf1438c958887d",
+      "producer": "msvc",
+      "msvc_toolset": "14.44.35207",
+      "sdk": "10.0.26100.0",
+      "rejected_import": {
+        "Code": "PE-SESSION-IMPORT",
+        "Offset": 360,
+        "Field": "KERNEL32.dll!OtherFile"
+      },
+      "package_file": {
+        "path": "input.bin",
+        "bytes": 2048,
+        "sha256": "3f16d4f53e89239a22a4f7b268f137638c716336d4229229b5b2add761d43cd1"
+      },
+      "zlib_header_sha256": "2c404dcaa08709c2a129aea18f3dad4fb5acc5cb52ef12b6223bf8e78c195801",
+      "argv": [
+        "minigzip",
+        "-c",
+        "-9",
+        "input.bin"
+      ],
+      "argv_sha256": "29bfa09b06c3ed0350bb054494f9744954b863135b9daca0958c61f9f58536e6",
+      "mode": "compress",
+      "exit_code": 0,
+      "stdout_bytes": 1190,
+      "stdout_sha256": "f7d0c1e633c06c36675397e71d6569fc1334d16ba4f0fd6883ec301f9c52cff6",
+      "windows_reference_bytes": 2048,
+      "windows_reference_matches": true
+    },
+    "msvc-minigzip-decompress": {
+      "profile": {
+        "Name": "win64-scratch-file-v1",
+        "AbiVersion": 1,
+        "DLL": "KERNEL32.dll",
+        "Imports": {
+          "GetStdHandle": "bmo_session_stdout",
+          "WriteFile": "bmo_package_write",
+          "GetProcessHeap": "bmo_get_process_heap",
+          "HeapAlloc": "bmo_heap_alloc",
+          "HeapFree": "bmo_heap_free",
+          "CreateFileW": "bmo_package_open",
+          "ReadFile": "bmo_package_read",
+          "CloseHandle": "bmo_package_close"
+        },
+        "Scope": "External single-threaded QEMU fixture with a 4 KiB volatile output file"
+      },
+      "imports": [
+        {
+          "DLL": "KERNEL32.dll",
+          "Symbols": [
+            {
+              "Name": "GetProcessHeap"
+            },
+            {
+              "Name": "HeapAlloc"
+            },
+            {
+              "Name": "HeapFree"
+            },
+            {
+              "Name": "CreateFileW"
+            },
+            {
+              "Name": "ReadFile"
+            },
+            {
+              "Name": "CloseHandle"
+            },
+            {
+              "Name": "GetStdHandle"
+            },
+            {
+              "Name": "WriteFile"
+            }
+          ]
+        }
+      ],
+      "pe_bytes": 39936,
+      "pe_sha256": "c8ef79e94751e7acc2d3df88bb5b0469014d15bcecd499b73ad4fd69996d3e4b",
+      "producer": "msvc",
+      "msvc_toolset": "14.44.35207",
+      "sdk": "10.0.26100.0",
+      "rejected_import": {
+        "Code": "PE-SESSION-IMPORT",
+        "Offset": 360,
+        "Field": "KERNEL32.dll!OtherFile"
+      },
+      "package_file": {
+        "path": "input.bin",
+        "bytes": 1068,
+        "sha256": "7139577afd35e4bdac92ba7b14fd35ddd8b319437c03a6de5569061bc6bc9fed"
+      },
+      "zlib_header_sha256": "2c404dcaa08709c2a129aea18f3dad4fb5acc5cb52ef12b6223bf8e78c195801",
+      "argv": [
+        "minigzip",
+        "-d",
+        "-c"
+      ],
+      "argv_sha256": "0c234f7e40ce84c4cfbecb4995abe7447f890f56c4f9a274decd87d7a5f3a5ad",
+      "mode": "decompress",
+      "exit_code": 0,
+      "stdout_bytes": 2048,
+      "stdout_sha256": "3f16d4f53e89239a22a4f7b268f137638c716336d4229229b5b2add761d43cd1",
+      "windows_reference_bytes": 2048,
+      "windows_reference_matches": true
+    },
+    "msvc-minigzip-bad-crc": {
+      "profile": {
+        "Name": "win64-scratch-file-v1",
+        "AbiVersion": 1,
+        "DLL": "KERNEL32.dll",
+        "Imports": {
+          "GetStdHandle": "bmo_session_stdout",
+          "WriteFile": "bmo_package_write",
+          "GetProcessHeap": "bmo_get_process_heap",
+          "HeapAlloc": "bmo_heap_alloc",
+          "HeapFree": "bmo_heap_free",
+          "CreateFileW": "bmo_package_open",
+          "ReadFile": "bmo_package_read",
+          "CloseHandle": "bmo_package_close"
+        },
+        "Scope": "External single-threaded QEMU fixture with a 4 KiB volatile output file"
+      },
+      "imports": [
+        {
+          "DLL": "KERNEL32.dll",
+          "Symbols": [
+            {
+              "Name": "GetProcessHeap"
+            },
+            {
+              "Name": "HeapAlloc"
+            },
+            {
+              "Name": "HeapFree"
+            },
+            {
+              "Name": "CreateFileW"
+            },
+            {
+              "Name": "ReadFile"
+            },
+            {
+              "Name": "CloseHandle"
+            },
+            {
+              "Name": "GetStdHandle"
+            },
+            {
+              "Name": "WriteFile"
+            }
+          ]
+        }
+      ],
+      "pe_bytes": 39936,
+      "pe_sha256": "a208c421cf626b7bc9bda55ee8bd1373d32dc623d2ead065022d058ca0a891fa",
+      "producer": "msvc",
+      "msvc_toolset": "14.44.35207",
+      "sdk": "10.0.26100.0",
+      "rejected_import": {
+        "Code": "PE-SESSION-IMPORT",
+        "Offset": 360,
+        "Field": "KERNEL32.dll!OtherFile"
+      },
+      "package_file": {
+        "path": "input.bin",
+        "bytes": 1068,
+        "sha256": "4dbc2df5c8c5635661b6f0e1d948c8772b33c396efe73f96e9fceb9395905204"
+      },
+      "zlib_header_sha256": "2c404dcaa08709c2a129aea18f3dad4fb5acc5cb52ef12b6223bf8e78c195801",
+      "argv": [
+        "minigzip",
+        "-d",
+        "-c",
+        "input.bin"
+      ],
+      "argv_sha256": "60227beaeca8bb9e80f41b87ec1976dbfc6bbe15304777de14a16830619f63a8",
+      "mode": "bad-crc",
+      "exit_code": 1,
+      "stdout_bytes": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "msvc-minigzip-bad-args": {
+      "profile": {
+        "Name": "win64-scratch-file-v1",
+        "AbiVersion": 1,
+        "DLL": "KERNEL32.dll",
+        "Imports": {
+          "GetStdHandle": "bmo_session_stdout",
+          "WriteFile": "bmo_package_write",
+          "GetProcessHeap": "bmo_get_process_heap",
+          "HeapAlloc": "bmo_heap_alloc",
+          "HeapFree": "bmo_heap_free",
+          "CreateFileW": "bmo_package_open",
+          "ReadFile": "bmo_package_read",
+          "CloseHandle": "bmo_package_close"
+        },
+        "Scope": "External single-threaded QEMU fixture with a 4 KiB volatile output file"
+      },
+      "imports": [
+        {
+          "DLL": "KERNEL32.dll",
+          "Symbols": [
+            {
+              "Name": "GetProcessHeap"
+            },
+            {
+              "Name": "HeapAlloc"
+            },
+            {
+              "Name": "HeapFree"
+            },
+            {
+              "Name": "CreateFileW"
+            },
+            {
+              "Name": "ReadFile"
+            },
+            {
+              "Name": "CloseHandle"
+            },
+            {
+              "Name": "GetStdHandle"
+            },
+            {
+              "Name": "WriteFile"
+            }
+          ]
+        }
+      ],
+      "pe_bytes": 40448,
+      "pe_sha256": "245e1e42621939372d01832628defd72618b632fe378c0f725aeedf7f83f3e73",
+      "producer": "msvc",
+      "msvc_toolset": "14.44.35207",
+      "sdk": "10.0.26100.0",
+      "rejected_import": {
+        "Code": "PE-SESSION-IMPORT",
+        "Offset": 360,
+        "Field": "KERNEL32.dll!OtherFile"
+      },
+      "package_file": {
+        "path": "input.bin",
+        "bytes": 2048,
+        "sha256": "3f16d4f53e89239a22a4f7b268f137638c716336d4229229b5b2add761d43cd1"
+      },
+      "zlib_header_sha256": "2c404dcaa08709c2a129aea18f3dad4fb5acc5cb52ef12b6223bf8e78c195801",
+      "argv": [
+        "minigzip",
+        "-c",
+        "-x"
+      ],
+      "argv_sha256": "291ecf1e767ccce5395b5b5cc20435955190954c147505d7ddf7190218b3647b",
+      "mode": "bad-args",
+      "exit_code": 2,
+      "stdout_bytes": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "clang-cl-minigzip-compress": {
+      "profile": {
+        "Name": "win64-scratch-file-v1",
+        "AbiVersion": 1,
+        "DLL": "KERNEL32.dll",
+        "Imports": {
+          "GetStdHandle": "bmo_session_stdout",
+          "WriteFile": "bmo_package_write",
+          "GetProcessHeap": "bmo_get_process_heap",
+          "HeapAlloc": "bmo_heap_alloc",
+          "HeapFree": "bmo_heap_free",
+          "CreateFileW": "bmo_package_open",
+          "ReadFile": "bmo_package_read",
+          "CloseHandle": "bmo_package_close"
+        },
+        "Scope": "External single-threaded QEMU fixture with a 4 KiB volatile output file"
+      },
+      "imports": [
+        {
+          "DLL": "KERNEL32.dll",
+          "Symbols": [
+            {
+              "Name": "GetProcessHeap"
+            },
+            {
+              "Name": "HeapAlloc"
+            },
+            {
+              "Name": "CreateFileW"
+            },
+            {
+              "Name": "ReadFile"
+            },
+            {
+              "Name": "CloseHandle"
+            },
+            {
+              "Name": "HeapFree"
+            },
+            {
+              "Name": "GetStdHandle"
+            },
+            {
+              "Name": "WriteFile"
+            }
+          ]
+        }
+      ],
+      "pe_bytes": 40448,
+      "pe_sha256": "01f43f386a2ea01a7b1da5c8c2654fe3389258620f35e811faf4be7fb1c81b11",
+      "producer": "clang-cl",
+      "msvc_toolset": "14.44.35207",
+      "sdk": "10.0.26100.0",
+      "rejected_import": {
+        "Code": "PE-SESSION-IMPORT",
+        "Offset": 352,
+        "Field": "KERNEL32.dll!OtherFile"
+      },
+      "package_file": {
+        "path": "input.bin",
+        "bytes": 2048,
+        "sha256": "14ca33edf09ff71a2bf9726a6ef490eac77a5d10fad44f57b17c5844daf145e9"
+      },
+      "zlib_header_sha256": "2c404dcaa08709c2a129aea18f3dad4fb5acc5cb52ef12b6223bf8e78c195801",
+      "argv": [
+        "minigzip",
+        "-c",
+        "-9",
+        "input.bin"
+      ],
+      "argv_sha256": "29bfa09b06c3ed0350bb054494f9744954b863135b9daca0958c61f9f58536e6",
+      "mode": "compress",
+      "exit_code": 0,
+      "stdout_bytes": 726,
+      "stdout_sha256": "2170ffcac99f3603d2f631c62ee626adb5b504f8f90c5221e3cff4690407f7d1",
+      "windows_reference_bytes": 2048,
+      "windows_reference_matches": true
+    },
+    "clang-cl-minigzip-decompress": {
+      "profile": {
+        "Name": "win64-scratch-file-v1",
+        "AbiVersion": 1,
+        "DLL": "KERNEL32.dll",
+        "Imports": {
+          "GetStdHandle": "bmo_session_stdout",
+          "WriteFile": "bmo_package_write",
+          "GetProcessHeap": "bmo_get_process_heap",
+          "HeapAlloc": "bmo_heap_alloc",
+          "HeapFree": "bmo_heap_free",
+          "CreateFileW": "bmo_package_open",
+          "ReadFile": "bmo_package_read",
+          "CloseHandle": "bmo_package_close"
+        },
+        "Scope": "External single-threaded QEMU fixture with a 4 KiB volatile output file"
+      },
+      "imports": [
+        {
+          "DLL": "KERNEL32.dll",
+          "Symbols": [
+            {
+              "Name": "GetProcessHeap"
+            },
+            {
+              "Name": "HeapAlloc"
+            },
+            {
+              "Name": "CreateFileW"
+            },
+            {
+              "Name": "ReadFile"
+            },
+            {
+              "Name": "CloseHandle"
+            },
+            {
+              "Name": "HeapFree"
+            },
+            {
+              "Name": "GetStdHandle"
+            },
+            {
+              "Name": "WriteFile"
+            }
+          ]
+        }
+      ],
+      "pe_bytes": 38912,
+      "pe_sha256": "c285a2d92880bccae6cb53de55e409696f63d504156d6cbe4d809457bf3cf484",
+      "producer": "clang-cl",
+      "msvc_toolset": "14.44.35207",
+      "sdk": "10.0.26100.0",
+      "rejected_import": {
+        "Code": "PE-SESSION-IMPORT",
+        "Offset": 352,
+        "Field": "KERNEL32.dll!OtherFile"
+      },
+      "package_file": {
+        "path": "input.bin",
+        "bytes": 675,
+        "sha256": "fe1cb4415561989c7cdea030ecc2a6b1936ca546de8d5047bac09a210bd482e8"
+      },
+      "zlib_header_sha256": "2c404dcaa08709c2a129aea18f3dad4fb5acc5cb52ef12b6223bf8e78c195801",
+      "argv": [
+        "minigzip",
+        "-d",
+        "-c"
+      ],
+      "argv_sha256": "0c234f7e40ce84c4cfbecb4995abe7447f890f56c4f9a274decd87d7a5f3a5ad",
+      "mode": "decompress",
+      "exit_code": 0,
+      "stdout_bytes": 2048,
+      "stdout_sha256": "14ca33edf09ff71a2bf9726a6ef490eac77a5d10fad44f57b17c5844daf145e9",
+      "windows_reference_bytes": 2048,
+      "windows_reference_matches": true
+    },
+    "clang-cl-minigzip-bad-crc": {
+      "profile": {
+        "Name": "win64-scratch-file-v1",
+        "AbiVersion": 1,
+        "DLL": "KERNEL32.dll",
+        "Imports": {
+          "GetStdHandle": "bmo_session_stdout",
+          "WriteFile": "bmo_package_write",
+          "GetProcessHeap": "bmo_get_process_heap",
+          "HeapAlloc": "bmo_heap_alloc",
+          "HeapFree": "bmo_heap_free",
+          "CreateFileW": "bmo_package_open",
+          "ReadFile": "bmo_package_read",
+          "CloseHandle": "bmo_package_close"
+        },
+        "Scope": "External single-threaded QEMU fixture with a 4 KiB volatile output file"
+      },
+      "imports": [
+        {
+          "DLL": "KERNEL32.dll",
+          "Symbols": [
+            {
+              "Name": "GetProcessHeap"
+            },
+            {
+              "Name": "HeapAlloc"
+            },
+            {
+              "Name": "CreateFileW"
+            },
+            {
+              "Name": "ReadFile"
+            },
+            {
+              "Name": "CloseHandle"
+            },
+            {
+              "Name": "HeapFree"
+            },
+            {
+              "Name": "GetStdHandle"
+            },
+            {
+              "Name": "WriteFile"
+            }
+          ]
+        }
+      ],
+      "pe_bytes": 38912,
+      "pe_sha256": "ace2ef1ebaaa5fce142a6f9bc38c7b3a1a7ceeec90e14a4cefefbd6750afb5d6",
+      "producer": "clang-cl",
+      "msvc_toolset": "14.44.35207",
+      "sdk": "10.0.26100.0",
+      "rejected_import": {
+        "Code": "PE-SESSION-IMPORT",
+        "Offset": 352,
+        "Field": "KERNEL32.dll!OtherFile"
+      },
+      "package_file": {
+        "path": "input.bin",
+        "bytes": 675,
+        "sha256": "8c7c02274e8929f846baf7c902b1ca799197ac9fcab2c8f9683c8db212f3f866"
+      },
+      "zlib_header_sha256": "2c404dcaa08709c2a129aea18f3dad4fb5acc5cb52ef12b6223bf8e78c195801",
+      "argv": [
+        "minigzip",
+        "-d",
+        "-c",
+        "input.bin"
+      ],
+      "argv_sha256": "60227beaeca8bb9e80f41b87ec1976dbfc6bbe15304777de14a16830619f63a8",
+      "mode": "bad-crc",
+      "exit_code": 1,
+      "stdout_bytes": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "clang-cl-minigzip-bad-args": {
+      "profile": {
+        "Name": "win64-scratch-file-v1",
+        "AbiVersion": 1,
+        "DLL": "KERNEL32.dll",
+        "Imports": {
+          "GetStdHandle": "bmo_session_stdout",
+          "WriteFile": "bmo_package_write",
+          "GetProcessHeap": "bmo_get_process_heap",
+          "HeapAlloc": "bmo_heap_alloc",
+          "HeapFree": "bmo_heap_free",
+          "CreateFileW": "bmo_package_open",
+          "ReadFile": "bmo_package_read",
+          "CloseHandle": "bmo_package_close"
+        },
+        "Scope": "External single-threaded QEMU fixture with a 4 KiB volatile output file"
+      },
+      "imports": [
+        {
+          "DLL": "KERNEL32.dll",
+          "Symbols": [
+            {
+              "Name": "GetProcessHeap"
+            },
+            {
+              "Name": "HeapAlloc"
+            },
+            {
+              "Name": "CreateFileW"
+            },
+            {
+              "Name": "ReadFile"
+            },
+            {
+              "Name": "CloseHandle"
+            },
+            {
+              "Name": "HeapFree"
+            },
+            {
+              "Name": "GetStdHandle"
+            },
+            {
+              "Name": "WriteFile"
+            }
+          ]
+        }
+      ],
+      "pe_bytes": 40448,
+      "pe_sha256": "c371aba4625a784a74411e36d51b46050c1fbe28b99ec6007032de11b93f925a",
+      "producer": "clang-cl",
+      "msvc_toolset": "14.44.35207",
+      "sdk": "10.0.26100.0",
+      "rejected_import": {
+        "Code": "PE-SESSION-IMPORT",
+        "Offset": 352,
+        "Field": "KERNEL32.dll!OtherFile"
+      },
+      "package_file": {
+        "path": "input.bin",
+        "bytes": 2048,
+        "sha256": "14ca33edf09ff71a2bf9726a6ef490eac77a5d10fad44f57b17c5844daf145e9"
+      },
+      "zlib_header_sha256": "2c404dcaa08709c2a129aea18f3dad4fb5acc5cb52ef12b6223bf8e78c195801",
+      "argv": [
+        "minigzip",
+        "-c",
+        "-x"
+      ],
+      "argv_sha256": "291ecf1e767ccce5395b5b5cc20435955190954c147505d7ddf7190218b3647b",
+      "mode": "bad-args",
+      "exit_code": 2,
+      "stdout_bytes": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}
