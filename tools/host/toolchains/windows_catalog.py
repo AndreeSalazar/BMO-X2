@@ -73,6 +73,16 @@ def windows_catalog(level=None):
     ]
 
 
+def dependency_family(dll):
+    dll = dll.lower()
+    level, group = DLL_GROUPS.get(dll, (None, None))
+    if group is None and dll.endswith('.dll'):
+        for prefix, contract_level, contract_group in CONTRACT_GROUPS:
+            if dll.startswith(prefix):
+                return contract_level, contract_group
+    return level, group
+
+
 def import_coverage(libraries):
     profile = WIN64_CONSOLE_PROFILE
     console_dll = profile['DLL'].lower()
@@ -81,12 +91,7 @@ def import_coverage(libraries):
     total_symbols = 0
     for library in libraries:
         dll = library['DLL'].lower()
-        level, group = DLL_GROUPS.get(dll, (None, None))
-        if group is None and dll.endswith('.dll'):
-            for prefix, contract_level, contract_group in CONTRACT_GROUPS:
-                if dll.startswith(prefix):
-                    level, group = contract_level, contract_group
-                    break
+        level, group = dependency_family(dll)
         bindings = profile['Imports'] if dll == console_dll else {}
         matches, pending = [], []
         for symbol in library['Symbols']:

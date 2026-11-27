@@ -5,6 +5,7 @@ import hashlib
 from itertools import islice
 import os
 from pathlib import Path
+import re
 import stat
 import unicodedata
 
@@ -14,6 +15,7 @@ from .importers.elf import MAX_ELF, pack_elf
 from .importers.pe import probe_pe
 from .pe_admission import import_requirements
 from .sbef.format import inspect
+from .toolchains.windows_catalog import dependency_family
 
 
 MAX_ENTRIES = 2048
@@ -124,7 +126,13 @@ def classify(data, suffix, record):
     return []
 
 
-def catalog_directory(root, *, deep=False):
+def catalog_directory(root, *, deep=False, game=None):
+    if game is not None:
+        if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9 _-]{0,63}', game) or game != game.rstrip():
+            raise Rejection('HOST-CATALOG-TITLE', 0, 'game')
+        if re.fullmatch(r'AUX|CON|NUL|PRN|COM[0-9]|LPT[0-9]', game, re.IGNORECASE):
+            raise Rejection('HOST-CATALOG-TITLE', 0, 'game')
+        deep = True
     root_info = root.lstat()
     if is_link(root_info) or not stat.S_ISDIR(root_info.st_mode):
         raise Rejection('HOST-CATALOG-ROOT', 0, 'root')
@@ -212,6 +220,10 @@ def catalog_directory(root, *, deep=False):
                 Status=('AMBIGUA' if len(candidates) > 1 else 'CANDIDATA_LOCAL' if candidates else
                         'RUNTIME_ACOTADO' if tested else 'PENDIENTE'))
             if deep:
+                level, family = dependency_family(dll)
+                edge.update(Family=family or 'unknown', Level=level,
+                            FamilyEvidence='Nombre de DLL o prefijo API Set del catalogo HOST.' if family
+                            else 'Dependencia declarada fuera del catalogo Windows.')
                 edge['SymbolsWithoutRuntimeEvidence'] = [
                     symbol.get('Name', f'#{symbol.get("Ordinal")}') for symbol in required
                     if symbol['Status'] != 'available_in_fixture']
@@ -241,4 +253,10 @@ def catalog_directory(root, *, deep=False):
         for item in entries:
             role_groups[item['RoleHint']].append(item['Path'])
         report['RoleGroups'] = dict(sorted(role_groups.items()))
+    if game is not None:
+        report['Project'] = dict(
+            Category='Game', Title=game, SuggestedDirectory=f'Game/{game}',
+            CategoryEvidence='Declarada por el usuario.',
+            DependencyFamilies=sorted({edge['Family'] for edge in edges if edge.get('Family')}),
+            ExecutionEvidence='Inventario estatico. La ejecucion requiere una prueba del perfil SBEF.')
     return report

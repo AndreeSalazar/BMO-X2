@@ -1564,7 +1564,7 @@
       ],
       "que": "Coordina la inspeccion, admision, diagnostico y publicacion de ejecutables x86-64; define el futuro flujo adaptadores -> IR BMO -> backend por ISA.",
       "entrada": "Carpeta estable para catalogo; ELF64 o PE32+ enlazado para el empaquetador y huellas SHA-256 opcionales.",
-      "salida": "Catalogo JSON con roles sugeridos, dependencias y revision; inventario ZIP acotado en modo profundo; SBEF admitido, comparacion de builds, o rechazo con campo y offset.",
+      "salida": "Catalogo JSON con roles sugeridos, familias de dependencias y revision; propuesta Game por titulo declarado; inventario ZIP acotado; SBEF admitido o rechazo con campo y offset.",
       "aceptacion": "profiles publica CapabilityCatalog. El catalogo reconoce formatos y registra DLL ambiguas. pack contrasta huellas revisadas antes de publicar. El intake MSVC ejecuto el fixture ABI en CPL3 bajo QEMU; evidencia Reports/host-msvc-qemu.json.",
       "falta": "Implementar y serializar IR BMO, definir semantica y adaptar productores; la admision de todo compilador no existe. Automatizar procedencia, importar COFF .obj, definir enlace propio, cerrar carga externa SBEF en Ring 3 y anadir imports/runtime solo con semantica propia."
     },

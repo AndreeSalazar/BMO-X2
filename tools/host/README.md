@@ -56,6 +56,48 @@ archivos, con 16 MiB por archivo. La expansion ZIP tiene dos niveles,
 2048 miembros en total, 2 MiB por miembro y 16 MiB acumulados.
 `Coverage` y los motivos de revision indican los limites alcanzados.
 
+### Juegos y destino del paquete
+
+`catalog --game "StarCraft"` registra el titulo declarado, propone
+`Game/StarCraft` y muestra los ejecutables candidatos, sus bloqueos y
+las familias de dependencias detectadas. La categoria del proyecto
+organiza la salida. La familia de una dependencia se obtiene del nombre
+de su DLL o del prefijo API Set. El HOST conserva las rutas relativas de
+los recursos en el inventario para que el runtime pueda respetarlas.
+El catalogo solo emite un informe. Para producir un SBEF, el empaquetador
+debe admitir el binario y resolver el ABI requerido.
+
+```powershell
+python -B tools/sbef.py catalog .\entrada\StarCraft --game "StarCraft" > .\starcraft.json
+```
+
+Blizzard ofrece StarCraft clasico y Brood War gratis. El anuncio 1.18
+documenta un backend OpenGL. La arquitectura y las dependencias se
+deben medir sobre el EXE de la edicion concreta. Un PE32 x86 requiere
+una ruta de compatibilidad propia para cargar en BMO-X2. El destino
+actual es x86-64 y el importador PE admite perfiles PE32+ x86-64.
+[Notas oficiales de Blizzard](https://news.blizzard.com/en-us/article/20674424/starcraft-brood-war-patch-1-18-patch-notes).
+
+### Cinco capas de compatibilidad Windows
+
+| Capa | Trabajo y criterio de cierre |
+|---|---|
+| Cargador PE x86-64 | Validar EXE, DLL, relocaciones, IAT, imports diferidos, reenvios, API Sets, TLS, excepciones y protecciones de imagen. Probar la carga y el punto de entrada del binario original en QEMU. |
+| Aplicaciones nativas | Proveer CRT de MSVC y servicios Win32 de archivos, ventanas, entrada, registro, COM/RPC, red, certificados, instaladores y servicios. Probar flujos completos por aplicacion. |
+| Juegos y multimedia | Proveer graficos, shaders, audio, video, mandos y acceso a recursos en sus rutas. Probar el arranque, el primer cuadro y la entrada en una sesion reproducible. |
+| Aplicaciones administradas y modernas | Admitir los runtimes y frameworks requeridos, como .NET, Windows Forms, WPF, WinRT, WinUI y Windows App SDK. Probar inicio y operaciones de una aplicacion representativa por perfil. |
+| Controladores y software privilegiado | Revisar requisitos de kernel y dispositivos. El NANO-CORE concede recursos mediante contratos de BMO-X2. La admision de aplicaciones no concede privilegios para instalar controladores. |
+
+El HOST conecta el codigo admitido con servicios compatibles en Ring 3.
+Reempaquetar conserva la semantica que espera el programa, incluida la
+convencion de llamadas y el comportamiento de las funciones importadas.
+Con fuentes autorizadas se puede construir una variante contra un ABI
+de BMO-X2. Cada variante requiere evidencia propia.
+[Formato PE](https://learn.microsoft.com/en-us/windows/win32/debug/pe-format) ·
+[API Sets](https://learn.microsoft.com/en-us/windows/win32/apiindex/api-set-loader-operation) ·
+[API de escritorio](https://learn.microsoft.com/en-us/windows/apps/api-reference/) ·
+[WDK](https://learn.microsoft.com/windows-hardware/drivers/download-the-wdk).
+
 ## Capas y perfiles x86-64
 
 HOST separa productor, formato, destino y ejecucion. No mantiene un
