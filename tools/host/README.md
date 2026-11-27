@@ -626,6 +626,31 @@ fixtures. Extensiones de fabricante o fuera de estos niveles quedan sin
 declarar. La jerarquia v1-v4 sigue los niveles de microarquitectura del
 [x86-64 psABI](https://gitlab.com/x86-psABIs/x86-64-ABI/blob/master/x86-64-ABI/low-level-sys-info.tex).
 
+## Avance de los tres compiladores
+
+Corte del 27 de noviembre de 2026. Cada punto cuenta como un hito del
+plan actual cuando tiene evidencia. El porcentaje mide este plan de
+HOST x86-64 y su ejecucion en BMO-X2.
+
+| Familia | Avance | Hitos comprobados | Hitos pendientes |
+|---|---:|---|---|
+| MSVC | 6/10 (60%) | Empaque PE32+, cliente en CPL3, secciones y DIR64, arranque Win64 acotado con argumentos y salida, CRT acotado con /GS, DLL mediada con TLS estatico. | Unwind y excepciones C++ generales, arranque estandar /MT, arranque estandar /MD, aplicacion original completa. |
+| LLVM | 5/8 (62.5%) | Admision PE32+ y ELF64, clientes de ambos formatos en CPL3, reutilizacion de paginas SysV, arranque Win64 acotado con clang-cl, minigzip adaptado en QEMU. | Carga externa general de ELF64 con dos procesos sucesivos, cliente clang-cl con arranque y runtime estandar, prueba integral en hardware. |
+| GCC | 5/8 (62.5%) | Recompilacion con procedencia, empaque ELF64, cliente SysV en CPL3, reutilizacion de paginas, port de DOOM. | Carga externa general de ELF64 con dos procesos sucesivos, runtime C++ para el perfil, prueba integral en hardware. |
+
+La repeticion en QEMU paso cuatro casos de arranque y control Win64
+desde FAT32. GCC y Clang recompilaron el mismo cliente C. En cada ruta
+ELF el banco ejecuto dos clientes SBEF v1 embebidos y comprobo CPL3,
+rechazo de capacidad invalida, estado -4 observado en WAIT y limpieza
+de 8192 bytes antes de reutilizar las dos paginas.
+[Versiones, huellas y corridas](../../Reports/host-producers-qemu.json).
+
+Los dos PE originales de minigzip tienen 71 de 80 imports de
+`KERNEL32.dll` con evidencia en perfiles acotados (88.75%). El ensayo
+de aceptacion sigue siendo ejecutar uno de esos PE originales y
+recuperar exactamente los bytes de entrada tras descomprimir.
+[Arranque Win64 y cobertura de imports](../../Reports/host-win64-process-start-qemu.json).
+
 ## Estado de MSVC y C++
 
 **Objetivo actual**. Ejecutar en Ring 3 un programa de consola C++ con la

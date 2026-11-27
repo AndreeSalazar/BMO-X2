@@ -192,7 +192,7 @@ PROFILES = [
         'Admission': 'producer-neutral-format-profile',
         'AdmissionEvidence': 'La salida GCC solo se admite si cumple el perfil ELF estatico compartido; el lector no infiere procedencia GCC.',
         'Execution': 'fixture-specific',
-        'ExecutionEvidence': 'HOST volvio a empaquetar el cliente GCC ELF archivado y lo ejecuto en CPL3/QEMU con SBEF v1 embebido.',
+        'ExecutionEvidence': 'HOST recompilo y empaqueto el cliente con GCC y LLD; QEMU verifico CPL3 y reutilizacion de paginas con SBEF v1 embebido.',
         'SharedImplementation': ['tools/host/importers/elf.py', 'tools/host/sbef/format.py'],
         'KnownGaps': ['matriz de productores GCC por version', 'servicios de runtime que requiere cada programa', 'carga generica de procesos SBEF externos'],
     },
@@ -259,11 +259,10 @@ PRODUCER_WORK_PLAN = {
         'Work': 'Ruta ELF64 para C y aplicaciones portadas con adaptadores BMO-X2.',
         'CallingConvention': 'System V AMD64',
         'Evidence': [
-            ['Cliente GCC ELF archivado en CPL3', 'Reports/host-producers-qemu.json'],
+            ['Cliente GCC ELF recompilado en CPL3', 'Reports/host-producers-qemu.json'],
             ['Doom con GCC x86-64 ELF', 'userspace/apps/doom/README.md'],
         ],
         'Milestones': [
-            ['Procedencia', 'Reconstruir el cliente ABI y registrar GCC, enlazador, opciones y huellas en una sola corrida.'],
             ['Carga externa', 'Abrir, cerrar y reabrir el SBEF GCC verificando aislamiento y limpieza.'],
             ['Aplicacion', 'Usar Doom para comprobar archivo WAD, reloj, entrada y framebuffer por los contratos del cargador general.'],
         ],

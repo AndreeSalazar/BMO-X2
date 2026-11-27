@@ -99,11 +99,21 @@ def main():
                     '-o', str(elf)], check=True, cwd=out)
     # This frozen embedded ABI fixture predates SBEF v2. Keep it as a
     # legacy x86-64-v1 package; external loaders use the current v2 format.
-    image = pack_elf(elf.read_bytes(), abi=1, format_version=LEGACY_FORMAT_VERSION)
+    executable = elf.read_bytes()
+    image = pack_elf(executable, abi=1, format_version=LEGACY_FORMAT_VERSION)
     sbef.write_bytes(image)
     producer = {'c': args.toolchain, 'cpp': f'{args.toolchain}-cpp', 'rust': 'rust'}[args.language]
+    source = CLIENT.with_suffix('.rs') if args.language == 'rust' else CLIENT
+    compiler = 'rustc' if args.language == 'rust' else cc
+    provenance = dict(
+        CompilerVersion=subprocess.check_output([compiler, '--version'], text=True).splitlines()[0],
+        LinkerVersion=subprocess.check_output([args.ld, '--version'], text=True).splitlines()[0],
+        SourceSHA256=hashlib.sha256(source.read_bytes()).hexdigest(),
+        ElfSHA256=hashlib.sha256(executable).hexdigest(),
+    )
     print(json.dumps(dict(Toolchain=producer, Stage='SBEF', PortalBytes=raw.stat().st_size,
-                          SHA256=hashlib.sha256(image).hexdigest(), Image=inspect(image)), indent=2), flush=True)
+                          SHA256=hashlib.sha256(image).hexdigest(), Provenance=provenance,
+                          Image=inspect(image)), indent=2), flush=True)
     if args.abi_run:
         command = [sys.executable, '-B', str(ROOT/'tools/boot/doom_qemu.py'),
                    str(args.abi_run.resolve()), str(sbef), '--toolchain-client', producer]

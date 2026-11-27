@@ -87,5 +87,46 @@
       "wait_status": -4,
       "reclaimed_pages": 2
     }
-  ]
+  ],
+  "recheck_2026_11_27": {
+    "win64_process_start": {
+      "qemu_run": "run-sbef-ring0-1dlqh1fy",
+      "passed": [
+        "msvc-process-start",
+        "clang-cl-process-start",
+        "msvc-process-terminate",
+        "msvc-process-page-budget"
+      ]
+    },
+    "elf_abi_reuse": {
+      "source": "tools/tests/abi_client.c",
+      "source_sha256": "df3133afb802a7bfbb4d4de2b8fbd55a659060e9e6864d8d5e43bbaee1a75c8b",
+      "linker": "LLD 23.1.2 (85ac560262434c9ccfc0c183ec22d4138ed647fb)",
+      "sbef_version": 1,
+      "loading": "embedded QEMU ABI fixture",
+      "verified_per_run": {
+        "clients": 2,
+        "cpl": 3,
+        "syscalls_per_client": 3,
+        "invalid_capability_rejected": true,
+        "wait_status": -4,
+        "reclaimed_and_reused_pages": 2,
+        "scrubbed_bytes": 8192
+      },
+      "runs": [
+        {
+          "compiler": "GCC 15.2.0",
+          "qemu_run": "run-abi-gcc-7774fae2d35d",
+          "elf_sha256": "d763fb8506c7f0e51ae76d8258984b2d8746752c669d763599eb1c1473df9ad4",
+          "sbef_sha256": "97b3017d51a448c7687bba20d94fb49400b135dfbc70e96e55aa4e3c2833f615"
+        },
+        {
+          "compiler": "Clang 23.1.2 (85ac560262434c9ccfc0c183ec22d4138ed647fb)",
+          "qemu_run": "run-abi-clang-abcbd3171615",
+          "elf_sha256": "7447edd6603613235cf012de58da2a3feac92604b04e39f32a7c95cb907ce9ce",
+          "sbef_sha256": "cee56185f5b298ae55e985d88effa37de1ab75a1f2536ab604f3704b2ab3b33b"
+        }
+      ]
+    }
+  }
 }

@@ -77,12 +77,14 @@ ejecucion. El cargador aplica el contrato y Ring 3 ofrece los servicios
 del ABI. El escritorio original arranca por GOP y el ensayo RTX queda
 en pausa.
 
+[Avance de HOST por prueba de cierre: MSVC, LLVM y GCC](tools/host/README.md#avance-de-los-tres-compiladores).
+
 | Productor y perfil | Estado comprobado | Limite actual |
 |---|---|---|
 | MSVC `cl.exe` + `link.exe`, PE32+ | QEMU acredita DIR64, consola, DLL fija, TLS estatico, funciones UCRT, `/GS` y desenrollado Win64 acotado. | Los EXE C++ con el arranque estandar de MSVC siguen pendientes. [Estado y pruebas de cierre](tools/host/README.md#estado-de-msvc-y-c). |
 | LLVM Clang + LLD, ELF64 estatico | Cliente C freestanding: ELF -> HOST -> SBEF -> CPL3 en QEMU. | La prueba cubre el cliente ABI embebido. |
-| LLVM `clang-cl` + `lld-link`, PE32+ | Cliente C freestanding: PE -> HOST -> SBEF -> CPL3 en QEMU. | Perfil PE fijo de una region RX, sin imports. |
-| GCC, ELF64 estatico | Cliente ABI en Ring 3 y ruta concreta de DOOM en QEMU. | El cliente ABI se reempaqueto desde el ELF archivado. |
+| LLVM `clang-cl` + `lld-link`, PE32+ | Cliente ABI en CPL3 y arranque Win64 acotado desde FAT32 en QEMU. | Entrada estandar y runtime general pendientes. |
+| GCC, ELF64 estatico | Cliente ABI recompilado con GCC 15.2.0 y LLD 23.1.2. QEMU verifica CPL3 y reutilizacion de paginas. Tambien hay una ruta concreta de DOOM. | La prueba ABI usa SBEF v1 embebido. |
 | `rustc`, ELF64 estatico | Cliente ABI en Ring 3 bajo QEMU. Rust sostiene servicios y escritorio. | Cada crate externo necesita cumplir el perfil y sus dependencias. |
 
 La primera prueba integrada MSVC empaqueto un PE de 1,536 bytes como SBEF de
