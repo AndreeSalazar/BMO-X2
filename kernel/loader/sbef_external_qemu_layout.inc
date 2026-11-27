@@ -31,12 +31,17 @@
 .set USER_PT, 269
 .set USER_STACK_PT, 277
 .set USER_FRAME, 278
+#ifdef BMO_QEMU_WIN64_PROCESS
+.set USER_MAX_PAGES, 96
+#else
 .set USER_MAX_PAGES, 64
-.set COPY_PT, 343
-.set TABLE_PT, 344
-.set IDT_PHYS, 345
+#endif
+# The reserved stack frame follows the user frames.
+.set COPY_PT, USER_FRAME+USER_MAX_PAGES+1
+.set TABLE_PT, COPY_PT+1
+.set IDT_PHYS, TABLE_PT+1
 #ifdef BMO_EXTERNAL_EXT
-.set PROBE_EXT, 346
+.set PROBE_EXT, IDT_PHYS+1
 #endif
 #ifdef BMO_EXTERNAL_PEER
 .set PEER_ROOT, 347
@@ -57,7 +62,7 @@
 .set TLS_OLD_GS, DATA+0xbf0
 .set TLS_STATE, DATA+0xbf8
 #else
-.set POOL_PAGES, 347
+.set POOL_PAGES, PROBE_EXT+1
 #endif
 .set WIN64_OUTPUT_BYTES, DATA+0xbe0
 #else

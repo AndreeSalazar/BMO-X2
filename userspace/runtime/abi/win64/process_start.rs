@@ -5,7 +5,6 @@ use core::arch::asm;
 
 const COMMAND_BYTES: usize = include_bytes!(env!("BMO_WIN64_CMDLINE")).len();
 const ANSI_BYTES: usize = include_bytes!(env!("BMO_WIN64_CMDLINE_A")).len();
-const CP_UTF8: u32 = 65001;
 const STARTUP_INFO_BYTES: usize = 104;
 const SESSION_PROCESS_ID: u32 = 4;
 const CURRENT_PROCESS: usize = usize::MAX;
@@ -36,11 +35,6 @@ unsafe extern "win64" {
 #[unsafe(no_mangle)]
 pub extern "win64" fn bmo_get_command_line_w() -> *const u16 {
     BMO_WIN64_COMMAND_LINE.0.as_ptr().cast()
-}
-
-#[unsafe(no_mangle)]
-pub extern "win64" fn bmo_get_acp() -> u32 {
-    CP_UTF8
 }
 
 #[unsafe(no_mangle)]

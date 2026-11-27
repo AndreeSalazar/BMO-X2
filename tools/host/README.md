@@ -382,6 +382,14 @@ y nombres ASCII sin distincion de mayusculas. Las copias conservan el
 estado que tenia el bloque cuando se solicitaron. La prueba cubre la
 insercion ordenada, sustitucion, borrado y rechazo de cambios que
 excedan la capacidad.
+
+Las conversiones `MultiByteToWideChar` y `WideCharToMultiByte` unen
+UTF-8 con UTF-16, con consulta de tamano, longitudes explicitas, NUL
+incluido cuando corresponde y validacion de flags y buffers. El banco
+comprueba pares sustitutos, secuencias truncadas y el modo de rechazo o
+reemplazo. El perfil instala solo la pagina 65001, tambien usada como
+ACP, OEM y ACP del hilo. `GetOEMCP`, `IsValidCodePage` y `GetCPInfo`
+exponen esa configuracion.
 [Informe del arranque Win64 y admision del PE original](../../Reports/host-win64-process-start-qemu.json).
 
 ```powershell
@@ -411,15 +419,17 @@ indices del proceso de los valores de cada hilo.
 [TLS de Wine](https://github.com/wine-mirror/wine/blob/master/dlls/kernelbase/thread.c).
 
 Los dos PE originales importan 80 simbolos de `KERNEL32.dll`.
-Hay 43 destinos con evidencia en perfiles acotados y 37 pendientes.
+Hay 48 destinos con evidencia en perfiles acotados y 32 pendientes.
 El informe de QEMU registra ambos hashes y los nombres por area.
 Los PE declaran 241664 bytes (MSVC) y 258048 bytes (clang-cl) de imagen.
 El lector FAT32 y el supervisor de QEMU aceptan hasta 262144 bytes de
-archivo SBEF. El banco del proceso verifico paquetes de 243483 a
-243667 bytes con MSVC y clang-cl, incluyendo la lectura del extremo de
-la region de solo lectura y el borrado del area temporal. Cada caso
-uso los 64 marcos de usuario. El presupuesto de marcos para la imagen
-original depende de las secciones, el runtime integrado y la pila.
+archivo SBEF. El banco del proceso verifico paquetes de 247396 a
+247468 bytes con MSVC y clang-cl. Cada ejecucion uso 66 paginas de
+regiones y una de pila. Este perfil dispone de 96 marcos para las
+regiones y rechaza una solicitud de 97 antes de publicar los mapeos.
+El perfil general de QEMU conserva su limite de 64 marcos para regiones.
+El presupuesto de la imagen original depende de las secciones, el
+runtime integrado y la pila.
 
 La admision del original requiere resolver la IAT contra el runtime
 integrado y publicarla de solo lectura, inicializar la cookie de

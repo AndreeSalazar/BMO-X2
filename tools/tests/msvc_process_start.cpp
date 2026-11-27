@@ -5,6 +5,11 @@ __declspec(dllimport) const wchar_t* GetCommandLineW(void);
 __declspec(dllimport) const char* GetCommandLineA(void);
 __declspec(dllimport) void GetStartupInfoW(void*);
 __declspec(dllimport) unsigned GetACP(void);
+__declspec(dllimport) unsigned GetOEMCP(void);
+__declspec(dllimport) int IsValidCodePage(unsigned);
+__declspec(dllimport) int GetCPInfo(unsigned, void*);
+__declspec(dllimport) int MultiByteToWideChar(unsigned, unsigned, const char*, int, wchar_t*, int);
+__declspec(dllimport) int WideCharToMultiByte(unsigned, unsigned, const wchar_t*, int, char*, int, const char*, int*);
 __declspec(dllimport) unsigned long GetLastError(void);
 __declspec(dllimport) void SetLastError(unsigned long);
 __declspec(dllimport) void ExitProcess(unsigned long);
@@ -51,6 +56,67 @@ struct LargeReadOnly {
 };
 
 static const LargeReadOnly large_readonly = {0x42, {}, 0x6d};
+static volatile unsigned char large_private[8192];
+
+static void check_text_encoding(void) {
+    constexpr unsigned utf8 = 65001;
+    constexpr wchar_t wide[] = L"A\u00f1\u20ac\U0001f600";
+    constexpr char bytes[] = "A\xc3\xb1\xe2\x82\xac\xf0\x9f\x98\x80";
+    wchar_t decoded[7] = {};
+    char encoded[12] = {};
+    unsigned char info[20];
+    for (auto& byte : info) byte = 0xa5;
+    SetLastError(123);
+    if (GetOEMCP() != utf8 || !IsValidCodePage(utf8) || IsValidCodePage(0) || IsValidCodePage(1252) ||
+        !GetCPInfo(1, info) || GetLastError() != 123) ExitProcess(148);
+    if (info[0] != 4 || info[4] != '?' || info[18] != 0xa5 || info[19] != 0xa5) ExitProcess(149);
+    for (unsigned i = 1; i < 18; ++i) {
+        if (i != 4 && info[i]) ExitProcess(150);
+    }
+    if (GetCPInfo(1252, info) || GetLastError() != 87 || info[0] != 4) ExitProcess(151);
+    decoded[6] = 0x55;
+    encoded[11] = 0x55;
+    if (MultiByteToWideChar(utf8, 8, bytes, -1, nullptr, 0) != 6 ||
+        MultiByteToWideChar(0, 8, bytes, -1, decoded, 6) != 6 || decoded[6] != 0x55 ||
+        WideCharToMultiByte(utf8, 0x80, wide, -1, nullptr, 0, nullptr, nullptr) != 11 ||
+        WideCharToMultiByte(3, 0x80, wide, -1, encoded, 11, nullptr, nullptr) != 11 ||
+        encoded[11] != 0x55) ExitProcess(152);
+    for (unsigned i = 0; i < 6; ++i) if (decoded[i] != wide[i]) ExitProcess(153);
+    for (unsigned i = 0; i < 11; ++i) if (encoded[i] != bytes[i]) ExitProcess(154);
+
+    constexpr char embedded[] = {'X', 0, 'Y'};
+    if (MultiByteToWideChar(utf8, 0, embedded, 3, decoded, 3) != 3 ||
+        decoded[0] != L'X' || decoded[1] || decoded[2] != L'Y' ||
+        WideCharToMultiByte(utf8, 0, decoded, 3, encoded, 3, nullptr, nullptr) != 3 ||
+        encoded[0] != 'X' || encoded[1] || encoded[2] != 'Y') ExitProcess(155);
+
+    constexpr char malformed[] = "\xed\xa0\x80" "Q\xe2\x81";
+    if (MultiByteToWideChar(utf8, 8, malformed, 6, nullptr, 0) || GetLastError() != 1113 ||
+        MultiByteToWideChar(utf8, 0, malformed, 6, decoded, 4) != 4 ||
+        decoded[0] != 0xfffd || decoded[1] != 0xfffd || decoded[2] != L'Q' ||
+        decoded[3] != 0xfffd) ExitProcess(156);
+    static constexpr wchar_t lone[] = {0xd800, L'Q'};
+    if (WideCharToMultiByte(utf8, 0x80, lone, 2, nullptr, 0, nullptr, nullptr) || GetLastError() != 1113 ||
+        WideCharToMultiByte(utf8, 0, lone, 2, encoded, 4, nullptr, nullptr) != 4 ||
+        static_cast<unsigned char>(encoded[0]) != 0xef || static_cast<unsigned char>(encoded[1]) != 0xbf ||
+        static_cast<unsigned char>(encoded[2]) != 0xbd || encoded[3] != 'Q') ExitProcess(157);
+
+    decoded[1] = 0x55;
+    encoded[1] = 0x55;
+    if (MultiByteToWideChar(utf8, 0, bytes, -1, decoded, 1) || GetLastError() != 122 ||
+        decoded[1] != 0x55 || WideCharToMultiByte(utf8, 0, wide, -1, encoded, 1, nullptr, nullptr) ||
+        GetLastError() != 122 || encoded[1] != 0x55) ExitProcess(158);
+    int used_default = 77;
+    if (MultiByteToWideChar(utf8, 1, bytes, -1, decoded, 6) || GetLastError() != 1004 ||
+        WideCharToMultiByte(utf8, 0x400, wide, -1, encoded, 11, nullptr, nullptr) ||
+        GetLastError() != 1004 || WideCharToMultiByte(utf8, 0, wide, -1, encoded, 11, nullptr, &used_default) ||
+        GetLastError() != 87 || used_default != 77) ExitProcess(159);
+    if (MultiByteToWideChar(utf8, 0, bytes, 0, decoded, 6) || GetLastError() != 87 ||
+        WideCharToMultiByte(utf8, 0, wide, -1, nullptr, 2, nullptr, nullptr) || GetLastError() != 87 ||
+        WideCharToMultiByte(utf8, 0, wide, -1, encoded, -1, nullptr, nullptr) || GetLastError() != 87 ||
+        MultiByteToWideChar(utf8, 0, reinterpret_cast<const char*>(decoded), 2, decoded, 2) ||
+        GetLastError() != 87) ExitProcess(160);
+}
 
 template <unsigned N>
 static bool environment_matches(const wchar_t* block, const wchar_t (&expected)[N]) {
@@ -192,6 +258,9 @@ static void check_dynamic_tls(void) {
 extern "C" void bmo_main(void) {
     const volatile auto& large = large_readonly;
     if (large.start != 0x42 || large.middle[sizeof(large.middle) / 2] || large.end != 0x6d) ExitProcess(124);
+    if (large_private[0] || large_private[sizeof(large_private) - 1]) ExitProcess(161);
+    large_private[sizeof(large_private) - 1] = large.end;
+    if (large_private[0] || large_private[sizeof(large_private) - 1] != 0x6d) ExitProcess(162);
     static constexpr wchar_t expected[] =
         LR"cmd("minigzip demo.exe" -c "" "datos )cmd"
         L"\u00f1\U0001f600"
@@ -226,6 +295,7 @@ extern "C" void bmo_main(void) {
     check_fls();
     check_critical_sections();
     check_environment();
+    check_text_encoding();
     for (auto& word : slist) word = ~bmo_word{0};
     InitializeSListHead(const_cast<bmo_word*>(slist));
     if (slist[0] || slist[1] || slist[2] != ~bmo_word{0} || slist[3] != ~bmo_word{0}) ExitProcess(112);

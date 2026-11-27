@@ -31,6 +31,9 @@ EXTERNAL_PAGES = 346
 PEER_PAGES = 353
 CONSOLE_PAGES = 347
 TLS_PAGES = 348
+BASE_USER_FRAMES = 64
+PROCESS_USER_FRAMES = 96
+PROCESS_PAGES = CONSOLE_PAGES + PROCESS_USER_FRAMES - BASE_USER_FRAMES
 MINIGZIP_IO_LIMIT = 4096
 GZIP_STAGING_TEST_BYTES = 65536
 CONSOLE_OUTPUT = b'Hola mundo desde C++ / MSVC en BMO-X2\r\n'
@@ -391,6 +394,12 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             calls = base_calls if terminate else base_calls + (len(PROCESS_FLS_OUTPUT) + 7) // 8
             cases.append((name, image, f'SBEF WIN64 EXIT {code:016X}', calls))
             console[name] = details
+        over_budget = bytearray(cases[0][1])
+        regions = load_plan(over_budget)['Regions']
+        last = regions[-1]
+        extra = PROCESS_USER_FRAMES + 1 - sum(region['PageCount'] for region in regions)
+        struct.pack_into('<I', over_budget, last['RecordOffset'] + 16, last['MemoryBytes'] + extra * 4096)
+        cases.append(('msvc-process-page-budget', over_budget, 'SBEF USER BUDGET', 0))
     elif args.msvc_console or args.msvc_heap or args.msvc_package_file or args.msvc_gzip:
         options = dict(heap=args.msvc_heap, package_file=args.msvc_package_file, gzip_source=args.msvc_gzip)
         image, console = build_external_console(ROOT, run, llvm / 'clang.exe', **options)
@@ -519,7 +528,8 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                     valid_layout = plan['RegionCount'] == 3 and 23 <= pages <= 26
                 elif args.msvc_process:
                     valid_layout = ([region['Permissions'] for region in plan['Regions']] == ['RX', 'R', 'RW']
-                                    and 60 <= pages <= 64 and len(image) >= 236032)
+                                    and BASE_USER_FRAMES + 1 < pages <= PROCESS_USER_FRAMES + 1
+                                    and len(image) >= 236032)
                 else:
                     expected_regions, expected_pages = (5, 7) if tls_report else (6, 7) if dll_report else (
                         (4, 5) if rebase else (3, 7) if args.msvc_crt_gs_native else (3, 4 if crt_report else 5)
@@ -713,7 +723,8 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             elif name.endswith('-handler'):
                 expected_stdout = GS_HANDLER_OUTPUT
             elif args.msvc_process:
-                expected_stdout = PROCESS_OUTPUT if name.endswith('-terminate') else PROCESS_OUTPUT + PROCESS_FLS_OUTPUT
+                expected_stdout = b'' if not calls else (
+                    PROCESS_OUTPUT if name.endswith('-terminate') else PROCESS_OUTPUT + PROCESS_FLS_OUTPUT)
             elif cli is not None:
                 scenario = cli[name]
                 if disk_mode:
@@ -784,16 +795,18 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             elif name.endswith('-handler-mismatch'):
                 crt_report['dispatch_fixture']['mismatch_stdout_bytes'] = len(stdout)
             elif args.msvc_process:
-                console[name].update(stdout=stdout.decode('ascii'), stdout_bytes=len(stdout),
-                                     oversized_exit_rejected=True, dynamic_tls_slots=64,
-                                     dynamic_tls_reuse_verified=True, slist_header_bytes=16,
-                                     fls_slots=128, fls_free_callback_verified=True,
-                                     fls_exit_callback_verified=not name.endswith('-terminate'),
-                                     terminate_skipped_fls_callback=name.endswith('-terminate'),
-                                     large_readonly_tail_verified=True,
-                                     critical_section_recursion_verified=True,
-                                     environment_snapshots_verified=True,
-                                     sbef_bytes=len(image), sbef_limit_bytes=QEMU_SBEF_LIMIT)
+                if calls:
+                    console[name].update(stdout=stdout.decode('ascii'), stdout_bytes=len(stdout),
+                                         oversized_exit_rejected=True, dynamic_tls_slots=64,
+                                         dynamic_tls_reuse_verified=True, slist_header_bytes=16,
+                                         fls_slots=128, fls_free_callback_verified=True,
+                                         fls_exit_callback_verified=not name.endswith('-terminate'),
+                                         terminate_skipped_fls_callback=name.endswith('-terminate'),
+                                         large_readonly_tail_verified=True,
+                                         critical_section_recursion_verified=True,
+                                         environment_snapshots_verified=True,
+                                         utf8_utf16_conversion_verified=True,
+                                         sbef_bytes=len(image), sbef_limit_bytes=QEMU_SBEF_LIMIT)
             elif cli is not None:
                 scenario.update(stdout_bytes=len(stdout), stdout_sha256=hashlib.sha256(stdout).hexdigest())
             elif args.msvc_gzip:
@@ -814,10 +827,11 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                                scratch_file_limit_rejected=True, scratch_file_truncated=True)
         print(f'{name}: comprobado', flush=True)
     private_pages = TLS_PAGES if tls_report else PEER_PAGES if args.peer else (
-        CONSOLE_PAGES if stdout_report or dll_report else EXTERNAL_PAGES)
+        PROCESS_PAGES if args.msvc_process else CONSOLE_PAGES if stdout_report or dll_report else EXTERNAL_PAGES)
     report = dict(run=run.name, evidence='QEMU/OVMF, SBEF from virtual FAT32 and real CPL3',
                   validator_text_sha256=module['text_sha256'], probe_sha256=hashlib.sha256(body).hexdigest(),
-                  probe_bytes=len(body), private_pages=private_pages, user_frame_budget=64,
+                  probe_bytes=len(body), private_pages=private_pages,
+                  user_frame_budget=PROCESS_USER_FRAMES if args.msvc_process else BASE_USER_FRAMES,
                   scratch_bytes_scrubbed=private_pages*4096, passed=len(results), cases=results)
     if args.peer:
         report.update(peer_extension_bytes=len(extension), peer_extension_sha256=hashlib.sha256(extension).hexdigest())
@@ -938,7 +952,7 @@ def main():
     print(f'Run: {run}', flush=True)
     llvm = Path(os.environ['ProgramFiles']) / 'LLVM/bin'
     private_pages = TLS_PAGES if args.msvc_tls else PEER_PAGES if args.peer else (
-        CONSOLE_PAGES if win64 else EXTERNAL_PAGES if external else PAGES)
+        PROCESS_PAGES if args.msvc_process else CONSOLE_PAGES if win64 else EXTERNAL_PAGES if external else PAGES)
     allocator = assemble_stage(llvm, ALLOCATOR, run, BMO_DMA_LAB_PAGES=private_pages)
     mode = dict(BMO_EXTERNAL_SBEF=1) if external else {}
     if args.peer:

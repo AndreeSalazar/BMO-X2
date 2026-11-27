@@ -1,76 +1,95 @@
 {
-  "run": "run-sbef-ring0-uainw4zr",
+  "run": "run-sbef-ring0-og__em8v",
   "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
   "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
-  "probe_sha256": "b2215c2323abd063cf34f19f1cd7d8a2045e7f842f271f4b9e560d014b1108ab",
+  "probe_sha256": "4c801bc0180fca9daa4d4a914bdf9fa167e607297b1b673761d39920f6d24092",
   "probe_bytes": 4072,
-  "private_pages": 347,
-  "user_frame_budget": 64,
-  "scratch_bytes_scrubbed": 1421312,
-  "passed": 3,
+  "private_pages": 379,
+  "user_frame_budget": 96,
+  "scratch_bytes_scrubbed": 1552384,
+  "passed": 4,
   "cases": [
     {
       "case": "msvc-process-start",
-      "sha256": "61c5c85091653a78c211bc60f728519dd14bdb66d6b998aaa189e67a8e835876",
+      "sha256": "22d080f84ce84f8b11cb65cdec4bc4292b9e131b90577bce08e3599976e04dd5",
       "receipt": 0,
-      "user_pages": 64,
+      "user_pages": 67,
       "syscalls": 9,
       "wait_wakes": 0,
-      "staging_bytes_scrubbed": 245760,
+      "staging_bytes_scrubbed": 249856,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000003B7C7",
+        "SBEF FAT32 BYTES 000000000003C664",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000040",
+        "SBEF USER PAGES 0000000000000043",
         "SBEF WIN64 EXIT 0000000000000000",
         "SBEF SYSCALLS 0000000000000009",
         "SBEF WAIT WAKES 0000000000000000",
         "SBEF ABI GATE RESTORED",
-        "SBEF FAT32 SCRUBBED 000000000003C000",
+        "SBEF FAT32 SCRUBBED 000000000003D000",
         "SBEF MAP RESTORED AND SCRUBBED"
       ],
       "passed": true
     },
     {
       "case": "clang-cl-process-start",
-      "sha256": "d9bcfe8f52ba16177b4fc2e9397ca51408f9b03a3c21610ae0e78ab2760021aa",
+      "sha256": "16761ef8d821fdd5fbc479f5d73ca42b52a48312778b15b456ab8972f6802aba",
       "receipt": 0,
-      "user_pages": 64,
+      "user_pages": 67,
       "syscalls": 9,
       "wait_wakes": 0,
-      "staging_bytes_scrubbed": 245760,
+      "staging_bytes_scrubbed": 249856,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000003B71B",
+        "SBEF FAT32 BYTES 000000000003C6AC",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000040",
+        "SBEF USER PAGES 0000000000000043",
         "SBEF WIN64 EXIT 00000000DEADBEEF",
         "SBEF SYSCALLS 0000000000000009",
         "SBEF WAIT WAKES 0000000000000000",
         "SBEF ABI GATE RESTORED",
-        "SBEF FAT32 SCRUBBED 000000000003C000",
+        "SBEF FAT32 SCRUBBED 000000000003D000",
         "SBEF MAP RESTORED AND SCRUBBED"
       ],
       "passed": true
     },
     {
       "case": "msvc-process-terminate",
-      "sha256": "4292c21c9dcd2097b45b9c3ad26fbd9d34411887c3bd6a96ee013e55c6bde796",
+      "sha256": "6496e20da1539bfb85ebdc7b1739c35a4e092c2a8b6c34d8ae799c43ebc189b5",
       "receipt": 0,
-      "user_pages": 64,
+      "user_pages": 67,
       "syscalls": 8,
       "wait_wakes": 0,
-      "staging_bytes_scrubbed": 245760,
+      "staging_bytes_scrubbed": 249856,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000003B7D3",
+        "SBEF FAT32 BYTES 000000000003C670",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000040",
+        "SBEF USER PAGES 0000000000000043",
         "SBEF WIN64 EXIT 000000008000002A",
         "SBEF SYSCALLS 0000000000000008",
         "SBEF WAIT WAKES 0000000000000000",
         "SBEF ABI GATE RESTORED",
-        "SBEF FAT32 SCRUBBED 000000000003C000",
+        "SBEF FAT32 SCRUBBED 000000000003D000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "msvc-process-page-budget",
+      "sha256": "a82086edc4d19dc6c82e4eb51b1c8d3b2807b4961d05897d33d59bf60e3ec631",
+      "receipt": 0,
+      "user_pages": 0,
+      "syscalls": 0,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 249856,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 000000000003C664",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER BUDGET",
+        "SBEF REJECTED BEFORE USER MAP",
+        "SBEF FAT32 SCRUBBED 000000000003D000",
         "SBEF MAP RESTORED AND SCRUBBED"
       ],
       "passed": true
@@ -91,6 +110,11 @@
           "GetCommandLineA": "bmo_get_command_line_a",
           "GetStartupInfoW": "bmo_get_startup_info_w",
           "GetACP": "bmo_get_acp",
+          "GetOEMCP": "bmo_get_oem_cp",
+          "IsValidCodePage": "bmo_is_valid_code_page",
+          "GetCPInfo": "bmo_get_cp_info",
+          "MultiByteToWideChar": "bmo_multi_byte_to_wide_char",
+          "WideCharToMultiByte": "bmo_wide_char_to_multi_byte",
           "GetLastError": "bmo_get_last_error",
           "SetLastError": "bmo_set_last_error",
           "ExitProcess": "bmo_exit_process",
@@ -133,6 +157,21 @@
             },
             {
               "Name": "GetACP"
+            },
+            {
+              "Name": "GetOEMCP"
+            },
+            {
+              "Name": "IsValidCodePage"
+            },
+            {
+              "Name": "GetCPInfo"
+            },
+            {
+              "Name": "MultiByteToWideChar"
+            },
+            {
+              "Name": "WideCharToMultiByte"
             },
             {
               "Name": "GetLastError"
@@ -215,14 +254,14 @@
           ]
         }
       ],
-      "pe_bytes": 244736,
-      "pe_sha256": "07db9e853ac2801655222ec066c23c6065fab9928268a4984edf3777e4c7d31d",
+      "pe_bytes": 248832,
+      "pe_sha256": "06ebedf528ff3ff48bd5d3a0ce8077a9e3771941011f88b2a68e16f4b050cec3",
       "producer": "msvc",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
       "rejected_import": {
         "Code": "PE-SESSION-IMPORT",
-        "Offset": 352,
+        "Offset": 344,
         "Field": "KERNEL32.dll!OtherFile"
       },
       "argv": [
@@ -236,9 +275,9 @@
       "command_line": "\"minigzip demo.exe\" -c \"\" \"datos \u00f1\ud83d\ude00.bin\" a\\\"b \"C:\\dir con espacio\\\\\"",
       "ansi_code_page": 65001,
       "exit_code": 0,
-      "command_line_va": 1076073752,
+      "command_line_va": 1076073882,
       "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
-      "command_line_a_va": 1076073678,
+      "command_line_a_va": 1076073808,
       "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
       "stdout": "Win64 startup, last error, TLS and SList OK\r\nFLS OK\r\n",
       "stdout_bytes": 53,
@@ -253,7 +292,8 @@
       "large_readonly_tail_verified": true,
       "critical_section_recursion_verified": true,
       "environment_snapshots_verified": true,
-      "sbef_bytes": 243655,
+      "utf8_utf16_conversion_verified": true,
+      "sbef_bytes": 247396,
       "sbef_limit_bytes": 262144
     },
     "clang-cl-process-start": {
@@ -268,6 +308,11 @@
           "GetCommandLineA": "bmo_get_command_line_a",
           "GetStartupInfoW": "bmo_get_startup_info_w",
           "GetACP": "bmo_get_acp",
+          "GetOEMCP": "bmo_get_oem_cp",
+          "IsValidCodePage": "bmo_is_valid_code_page",
+          "GetCPInfo": "bmo_get_cp_info",
+          "MultiByteToWideChar": "bmo_multi_byte_to_wide_char",
+          "WideCharToMultiByte": "bmo_wide_char_to_multi_byte",
           "GetLastError": "bmo_get_last_error",
           "SetLastError": "bmo_set_last_error",
           "ExitProcess": "bmo_exit_process",
@@ -372,6 +417,21 @@
               "Name": "FreeEnvironmentStringsW"
             },
             {
+              "Name": "GetOEMCP"
+            },
+            {
+              "Name": "IsValidCodePage"
+            },
+            {
+              "Name": "GetCPInfo"
+            },
+            {
+              "Name": "MultiByteToWideChar"
+            },
+            {
+              "Name": "WideCharToMultiByte"
+            },
+            {
               "Name": "InitializeSListHead"
             },
             {
@@ -392,14 +452,14 @@
           ]
         }
       ],
-      "pe_bytes": 244736,
-      "pe_sha256": "ce8dd4bee62b684baf3536cfc1ce3dcd7a6cf117d3def334e3cf9ff43c213df9",
+      "pe_bytes": 248832,
+      "pe_sha256": "667247ea9fbc6c3e108dc4e14dd57edd8f04f43d148b1e980547dee06d166ee9",
       "producer": "clang-cl",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
       "rejected_import": {
         "Code": "PE-SESSION-IMPORT",
-        "Offset": 352,
+        "Offset": 344,
         "Field": "KERNEL32.dll!OtherFile"
       },
       "argv": [
@@ -413,9 +473,9 @@
       "command_line": "\"minigzip demo.exe\" -c \"\" \"datos \u00f1\ud83d\ude00.bin\" a\\\"b \"C:\\dir con espacio\\\\\"",
       "ansi_code_page": 65001,
       "exit_code": 3735928559,
-      "command_line_va": 1076073728,
+      "command_line_va": 1076073864,
       "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
-      "command_line_a_va": 1076073654,
+      "command_line_a_va": 1076073790,
       "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
       "stdout": "Win64 startup, last error, TLS and SList OK\r\nFLS OK\r\n",
       "stdout_bytes": 53,
@@ -430,7 +490,8 @@
       "large_readonly_tail_verified": true,
       "critical_section_recursion_verified": true,
       "environment_snapshots_verified": true,
-      "sbef_bytes": 243483,
+      "utf8_utf16_conversion_verified": true,
+      "sbef_bytes": 247468,
       "sbef_limit_bytes": 262144
     },
     "msvc-process-terminate": {
@@ -445,6 +506,11 @@
           "GetCommandLineA": "bmo_get_command_line_a",
           "GetStartupInfoW": "bmo_get_startup_info_w",
           "GetACP": "bmo_get_acp",
+          "GetOEMCP": "bmo_get_oem_cp",
+          "IsValidCodePage": "bmo_is_valid_code_page",
+          "GetCPInfo": "bmo_get_cp_info",
+          "MultiByteToWideChar": "bmo_multi_byte_to_wide_char",
+          "WideCharToMultiByte": "bmo_wide_char_to_multi_byte",
           "GetLastError": "bmo_get_last_error",
           "SetLastError": "bmo_set_last_error",
           "ExitProcess": "bmo_exit_process",
@@ -487,6 +553,21 @@
             },
             {
               "Name": "GetACP"
+            },
+            {
+              "Name": "GetOEMCP"
+            },
+            {
+              "Name": "IsValidCodePage"
+            },
+            {
+              "Name": "GetCPInfo"
+            },
+            {
+              "Name": "MultiByteToWideChar"
+            },
+            {
+              "Name": "WideCharToMultiByte"
             },
             {
               "Name": "GetLastError"
@@ -569,14 +650,14 @@
           ]
         }
       ],
-      "pe_bytes": 244736,
-      "pe_sha256": "06b118ebff4ce1a89b67b221b310a913d617091867d9712be1546bf394b781fc",
+      "pe_bytes": 248832,
+      "pe_sha256": "5d20f1b482fe17130bc3e12ab02eb4b1c751b9c4ebb178edb9681c3c04858f93",
       "producer": "msvc",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
       "rejected_import": {
         "Code": "PE-SESSION-IMPORT",
-        "Offset": 352,
+        "Offset": 344,
         "Field": "KERNEL32.dll!OtherFile"
       },
       "argv": [
@@ -590,9 +671,9 @@
       "command_line": "\"minigzip demo.exe\" -c \"\" \"datos \u00f1\ud83d\ude00.bin\" a\\\"b \"C:\\dir con espacio\\\\\"",
       "ansi_code_page": 65001,
       "exit_code": 2147483690,
-      "command_line_va": 1076073752,
+      "command_line_va": 1076073882,
       "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
-      "command_line_a_va": 1076073678,
+      "command_line_a_va": 1076073808,
       "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
       "stdout": "Win64 startup, last error, TLS and SList OK\r\n",
       "stdout_bytes": 45,
@@ -607,7 +688,8 @@
       "large_readonly_tail_verified": true,
       "critical_section_recursion_verified": true,
       "environment_snapshots_verified": true,
-      "sbef_bytes": 243667,
+      "utf8_utf16_conversion_verified": true,
+      "sbef_bytes": 247408,
       "sbef_limit_bytes": 262144
     }
   },
@@ -628,8 +710,8 @@
       "size_of_image": 241664,
       "guard_flags": 256,
       "imports": {
-        "available_in_fixture": 43,
-        "missing": 37,
+        "available_in_fixture": 48,
+        "missing": 32,
         "ordinal": 0
       },
       "groups": {
@@ -733,16 +815,16 @@
         },
         "Texto y pagina de codigos": {
           "fixture": [
-            "GetACP"
-          ],
-          "pending": [
             "WideCharToMultiByte",
             "MultiByteToWideChar",
+            "IsValidCodePage",
+            "GetACP",
+            "GetOEMCP",
+            "GetCPInfo"
+          ],
+          "pending": [
             "CompareStringW",
             "LCMapStringW",
-            "IsValidCodePage",
-            "GetOEMCP",
-            "GetCPInfo",
             "GetStringTypeW"
           ]
         },
@@ -775,8 +857,8 @@
       "size_of_image": 258048,
       "guard_flags": 256,
       "imports": {
-        "available_in_fixture": 43,
-        "missing": 37,
+        "available_in_fixture": 48,
+        "missing": 32,
         "ordinal": 0
       },
       "groups": {
@@ -880,17 +962,17 @@
         },
         "Texto y pagina de codigos": {
           "fixture": [
-            "GetACP"
+            "GetACP",
+            "GetCPInfo",
+            "GetOEMCP",
+            "IsValidCodePage",
+            "MultiByteToWideChar",
+            "WideCharToMultiByte"
           ],
           "pending": [
             "CompareStringW",
-            "GetCPInfo",
-            "GetOEMCP",
             "GetStringTypeW",
-            "IsValidCodePage",
-            "LCMapStringW",
-            "MultiByteToWideChar",
-            "WideCharToMultiByte"
+            "LCMapStringW"
           ]
         },
         "Tiempo y plataforma": {
