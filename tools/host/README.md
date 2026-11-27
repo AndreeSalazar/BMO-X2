@@ -238,8 +238,10 @@ python -B tools/boot/sbef_ring0_qemu.py $validatorRun --msvc-heap
 ```
 
 El perfil `win64-package-file-v1` incorpora `CreateFileW`, `ReadFile`,
-`CloseHandle` y `GetLastError` para un archivo de entrada empaquetado en
-una region de solo lectura del SBEF. Es un perfil sincrono de un solo
+`CloseHandle`, `GetLastError`, `GetFileType` y `GetFileSizeEx` para un
+archivo de entrada empaquetado en una region de solo lectura del SBEF.
+Las consultas distinguen el archivo y stdout, verifican el tamano sin
+mover el cursor y rechazan handles cerrados. Es un perfil sincrono de un solo
 hilo con un handle abierto a la vez. El banco comprueba lectura parcial,
 fin de archivo, reapertura desde el inicio y rechazo de handles caducados.
 [Evidencia en QEMU con MSVC y clang-cl](../../Reports/host-win64-package-file-qemu.json).
@@ -340,10 +342,14 @@ cambios en el disco. El perfil conserva el nombre y los demas campos
 de la entrada y opera sobre el volumen virtual del banco.
 
 El perfil de arranque `win64-process-start-v1` enlaza
-`GetCommandLineW` y `ExitProcess` en la IAT de solo lectura. QEMU
-comprueba UTF-16 con espacios, un argumento vacio, comillas, barras
-invertidas y un par sustituto. El supervisor registra el codigo de
-salida DWORD completo y rechaza valores mayores a 32 bits.
+`GetCommandLineW`, `GetCommandLineA`, `GetACP`, `GetStartupInfoW`,
+`GetLastError`, `SetLastError` y `ExitProcess` en la IAT de solo
+lectura. QEMU comprueba las dos representaciones de la linea de
+comandos, incluida la pagina de codigos UTF-8 65001 del perfil.
+La estructura `STARTUPINFOW` Win64 ocupa 104 bytes y devuelve los
+valores por defecto de la sesion. El estado de error se comparte
+con los servicios de archivos en esta sesion de un hilo. El supervisor
+registra el DWORD completo y rechaza valores mayores a 32 bits.
 [Informe del arranque Win64 y admision del PE original](../../Reports/host-win64-process-start-qemu.json).
 
 ```powershell

@@ -1,11 +1,12 @@
 //! Package input and optional scratch output for the single-threaded Win64 fixture.
 #![no_std]
 
-use core::sync::atomic::{AtomicU32, AtomicU64, Ordering::Relaxed};
+use core::sync::atomic::{AtomicU64, Ordering::Relaxed};
 
 const PATH: [u16; 10] = [105, 110, 112, 117, 116, 46, 98, 105, 110, 0];
 const CONTENT: &[u8] = include_bytes!(env!("BMO_PACKAGE_INPUT"));
 const INVALID_HANDLE: usize = usize::MAX;
+const SESSION_STDOUT: usize = 4;
 const LIVE: u64 = 1 << 31;
 const OUTPUT: u64 = 1 << 30;
 const WRITABLE: u64 = 1 << 29;
@@ -23,7 +24,9 @@ const _: () = assert!(CONTENT.len() <= CURSOR_MASK as usize);
 
 // High bits identify an open generation. Low bits hold its cursor and live flag.
 static SLOT: AtomicU64 = AtomicU64::new(HANDLE_TAG);
-static LAST_ERROR: AtomicU32 = AtomicU32::new(0);
+unsafe extern "win64" {
+    fn bmo_set_last_error(error: u32);
+}
 
 #[cfg(bmo_package_argv)]
 #[unsafe(no_mangle)]
@@ -58,7 +61,7 @@ mod scratch {
 }
 
 fn fail(error: u32) {
-    LAST_ERROR.store(error, Relaxed);
+    unsafe { bmo_set_last_error(error) };
 }
 
 unsafe fn path_equals(path: *const u16, name: &[u16]) -> bool {
@@ -100,9 +103,28 @@ fn active(handle: usize) -> Option<u64> {
     }
 }
 
+fn file_length(handle_state: u64) -> usize {
+    if handle_state & OUTPUT != 0 {
+        #[cfg(bmo_package_output)]
+        return scratch::length().unwrap_or(0);
+    }
+    CONTENT.len()
+}
+
 #[unsafe(no_mangle)]
-pub extern "win64" fn bmo_package_last_error() -> u32 {
-    LAST_ERROR.load(Relaxed)
+pub extern "win64" fn bmo_package_file_type(handle: usize) -> u32 {
+    if handle == SESSION_STDOUT { 2 } else { u32::from(active(handle).is_some()) }
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "win64" fn bmo_package_file_size(handle: usize, size: *mut i64) -> i32 {
+    if size.is_null() {
+        fail(ERROR_INVALID_PARAMETER);
+        return 0;
+    }
+    let Some(state) = active(handle) else { return 0 };
+    unsafe { size.write_unaligned(file_length(state) as i64) };
+    1
 }
 
 #[unsafe(no_mangle)]
@@ -156,15 +178,15 @@ pub unsafe extern "win64" fn bmo_package_read(
         return 0;
     }
     #[cfg(bmo_package_output)]
-    let (source, length) = if current & OUTPUT != 0 {
-        (scratch::buffer() as *const u8, scratch::length().unwrap_or(0))
+    let source = if current & OUTPUT != 0 {
+        scratch::buffer() as *const u8
     } else {
-        (CONTENT.as_ptr(), CONTENT.len())
+        CONTENT.as_ptr()
     };
     #[cfg(not(bmo_package_output))]
-    let (source, length) = (CONTENT.as_ptr(), CONTENT.len());
+    let source = CONTENT.as_ptr();
     let start = (current & CURSOR_MASK) as usize;
-    let count = (bytes as usize).min(length - start);
+    let count = (bytes as usize).min(file_length(current) - start);
     for offset in 0..count {
         unsafe { destination.add(offset).write_volatile(source.add(start + offset).read()) };
     }
@@ -185,7 +207,7 @@ pub unsafe extern "win64" fn bmo_package_write(
     handle: usize, source: *const u8, bytes: u32, written: *mut u32, overlapped: usize,
 ) -> i32 {
     // Existing stdout handle for this fixture.
-    if handle == 4 {
+    if handle == SESSION_STDOUT {
         return unsafe { bmo_session_write(handle, source, bytes, written, overlapped) };
     }
     if written.is_null() {

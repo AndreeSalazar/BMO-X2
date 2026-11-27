@@ -89,7 +89,7 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
         profile = WIN64_HEAP_PROFILE
     env = None
     argv_data = None
-    command_bytes = None
+    command_strings = {}
     if package_file:
         seed = 19 if use_clang else 7
         contents = bytes((29 * index + seed) & 255 for index in range(1027))
@@ -110,7 +110,7 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
             argv_data = b'\0'.join(arg.encode('ascii') for arg in ('minigzip', *minigzip_args)) + b'\0'
             argv_path.write_bytes(argv_data)
             env['BMO_PACKAGE_ARGV'] = str(argv_path.resolve())
-        units.append('package_file')
+        units.extend(('package_file', 'last_error'))
         defines.extend(['/DBMO_MSVC_PACKAGE_FILE', f'/DBMO_PACKAGE_SEED={seed}'])
         profile = WIN64_FILE_PROFILE
         if gzip_source is not None:
@@ -123,16 +123,18 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
     if process_exit is not None:
         argv = ['minigzip demo.exe', '-c', '', 'datos \u00f1\U0001f600.bin', 'a"b', 'C:\\dir con espacio\\']
         command = subprocess.list2cmdline(argv)
-        command_bytes = (command + '\0').encode('utf-16-le')
-        command_path = out / 'command-line.bin'
-        command_path.write_bytes(command_bytes)
-        env = {**os.environ, 'BMO_WIN64_CMDLINE': str(command_path.resolve())}
-        units.append('process_start')
+        env = dict(os.environ)
+        for suffix, encoding in (('', 'utf-16-le'), ('_A', 'utf-8')):
+            command_bytes = (command + '\0').encode(encoding)
+            command_path = out / f'command-line-{encoding}.bin'
+            command_path.write_bytes(command_bytes)
+            env[f'BMO_WIN64_CMDLINE{suffix}'] = str(command_path.resolve())
+            command_strings[f'BMO_WIN64_COMMAND_LINE{suffix}'] = (command_bytes, 1 if suffix else 2)
+        units.extend(('process_start', 'last_error'))
         profile = WIN64_PROCESS_PROFILE
         compile_flags = ['/O1', f'/DBMO_WIN64_EXIT_CODE=0x{process_exit:08x}UL']
         client_source = root / 'tools/tests/msvc_process_start.cpp'
-        file_report.update(argv=argv, command_line=command, command_line_sha256=hashlib.sha256(command_bytes).hexdigest(),
-                           exit_code=process_exit)
+        file_report.update(argv=argv, command_line=command, ansi_code_page=65001, exit_code=process_exit)
     if gzip_source is not None:
         gzip_source = gzip_source.resolve(strict=True)
         compile_flags = ['/O1', '/DZ_SOLO', f'/I{gzip_source}']
@@ -170,7 +172,7 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
     link_map = out / 'console.map'
     exports = profile['Imports']
     if gzip_source is not None:
-        unused = {'GetTickCount64', 'HeapReAlloc'}
+        unused = {'GetTickCount64', 'HeapReAlloc', 'GetFileType', 'GetFileSizeEx'}
         if minigzip_args is not None:
             unused.add('GetLastError')
         exports = {api: target for api, target in exports.items() if api not in unused}
@@ -178,9 +180,7 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
                     '/entry:bmo_win64_start', '/base:0x3fe00000', '/align:2097152', '/fixed', '/Brepro',
                     '/incremental:no', '/merge:.pdata=.rdata', *('/include:' + name for name in exports.values()),
                     f'/map:{link_map}', f'/out:{pe}', *objects, libraries[-1]], cwd=out, check=True)
-    names = set(exports.values())
-    if command_bytes is not None:
-        names.add('BMO_WIN64_COMMAND_LINE')
+    names = set(exports.values()) | command_strings.keys()
     pattern = r'^\s+[0-9A-Fa-f]+:[0-9A-Fa-f]+\s+(' + '|'.join(sorted(names)) + r')\s+([0-9A-Fa-f]+)\b'
     symbols = {name: int(address, 16) for name, address in re.findall(pattern, link_map.read_text(), re.M)}
     if symbols.keys() != names:
@@ -188,7 +188,7 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
     bindings = {api: symbols[name] for api, name in exports.items()}
     source = pe.read_bytes()
     payload = pack_pe(source, abi=profile['AbiVersion'], bindings=bindings)
-    if package_file or command_bytes is not None:
+    if package_file or command_strings:
         readonly = next(region for region in load_plan(payload)['Regions'] if region['Permissions'] == 'R')
         start = readonly['FileOffset']
         readonly_bytes = payload[start:start + readonly['FileBytes']]
@@ -199,12 +199,14 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
                 raise ValueError('Los argumentos deben quedar en una region de solo lectura')
             file_report.update(argv=['minigzip', *minigzip_args],
                                argv_sha256=hashlib.sha256(argv_data).hexdigest())
-        if command_bytes is not None:
-            address = symbols['BMO_WIN64_COMMAND_LINE']
+        for symbol, (command_bytes, alignment) in command_strings.items():
+            address = symbols[symbol]
             offset = address - readonly['VirtualStart']
-            if address % 2 or offset < 0 or readonly_bytes[offset:offset + len(command_bytes)] != command_bytes:
-                raise ValueError('GetCommandLineW requiere UTF-16 alineado en una region de solo lectura')
-            file_report['command_line_va'] = address
+            if address % alignment or offset < 0 or readonly_bytes[offset:offset + len(command_bytes)] != command_bytes:
+                raise ValueError(f'{symbol} debe quedar alineado en una region de solo lectura')
+            key = 'command_line_a' if symbol.endswith('_A') else 'command_line'
+            file_report[f'{key}_va'] = address
+            file_report[f'{key}_sha256'] = hashlib.sha256(command_bytes).hexdigest()
     (out / 'console.sbef').write_bytes(payload)
 
     # Change only the imported name and exercise the same binder before QEMU.

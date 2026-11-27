@@ -1,5 +1,5 @@
 {
-  "run": "run-sbef-ring0-c0lzqu6d",
+  "run": "run-sbef-ring0-ceaaq5uh",
   "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
   "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
   "probe_sha256": "6cb305e8b7460744f29ff5591b784c3acc0072bdfb7277ff750f5690f9e2a4a6",
@@ -11,7 +11,7 @@
   "cases": [
     {
       "case": "msvc-process-start",
-      "sha256": "23062308c13d165c3e7640d3738d3f1b3ef3e92ca832e213b3acae7e0c1c0071",
+      "sha256": "627df0eae9b03b63ee5780325e41832fd170d4aeb2d308bcab1464c2e7aa1358",
       "receipt": 0,
       "user_pages": 4,
       "syscalls": 7,
@@ -19,7 +19,7 @@
       "staging_bytes_scrubbed": 4096,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 00000000000007B9",
+        "SBEF FAT32 BYTES 0000000000000A9A",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000004",
         "SBEF WIN64 EXIT 0000000000000000",
@@ -33,7 +33,7 @@
     },
     {
       "case": "clang-cl-process-start",
-      "sha256": "a7ca19bcf3a9ff0aaba549b3c24287de1a5065cf927d562a59be330e75e20307",
+      "sha256": "2f69283050becd42de5105eae6518c7b651d29676af6034b28b2dead3b2c6b4d",
       "receipt": 0,
       "user_pages": 4,
       "syscalls": 7,
@@ -41,7 +41,7 @@
       "staging_bytes_scrubbed": 4096,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 00000000000007A2",
+        "SBEF FAT32 BYTES 0000000000000A5F",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000004",
         "SBEF WIN64 EXIT 00000000DEADBEEF",
@@ -66,14 +66,37 @@
           "GetStdHandle": "bmo_session_stdout",
           "WriteFile": "bmo_session_write",
           "GetCommandLineW": "bmo_get_command_line_w",
+          "GetCommandLineA": "bmo_get_command_line_a",
+          "GetStartupInfoW": "bmo_get_startup_info_w",
+          "GetACP": "bmo_get_acp",
+          "GetLastError": "bmo_get_last_error",
+          "SetLastError": "bmo_set_last_error",
           "ExitProcess": "bmo_exit_process"
         },
-        "Scope": "External QEMU startup fixture with a packaged UTF-16 command line and DWORD exit"
+        "Scope": "Single-threaded QEMU startup with UTF-16, UTF-8 ACP, default startup info and DWORD exit"
       },
       "imports": [
         {
           "DLL": "KERNEL32.dll",
           "Symbols": [
+            {
+              "Name": "GetCommandLineW"
+            },
+            {
+              "Name": "GetCommandLineA"
+            },
+            {
+              "Name": "GetStartupInfoW"
+            },
+            {
+              "Name": "GetACP"
+            },
+            {
+              "Name": "GetLastError"
+            },
+            {
+              "Name": "SetLastError"
+            },
             {
               "Name": "ExitProcess"
             },
@@ -82,21 +105,18 @@
             },
             {
               "Name": "WriteFile"
-            },
-            {
-              "Name": "GetCommandLineW"
             }
           ]
         }
       ],
-      "pe_bytes": 3584,
-      "pe_sha256": "a79e2a8cdff4c8ef42e60dd92c4b9e15faaf8bab3ecf37bfd79a759942b49e05",
+      "pe_bytes": 4096,
+      "pe_sha256": "aa55b990cdf899074d92774e54752b96ac46b965fd3b579d6c82b68fb09ac2b4",
       "producer": "msvc",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
       "rejected_import": {
         "Code": "PE-SESSION-IMPORT",
-        "Offset": 352,
+        "Offset": 344,
         "Field": "KERNEL32.dll!OtherFile"
       },
       "argv": [
@@ -108,11 +128,14 @@
         "C:\\dir con espacio\\"
       ],
       "command_line": "\"minigzip demo.exe\" -c \"\" \"datos \u00f1\ud83d\ude00.bin\" a\\\"b \"C:\\dir con espacio\\\\\"",
-      "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
+      "ansi_code_page": 65001,
       "exit_code": 0,
-      "command_line_va": 1075839254,
-      "stdout": "GetCommandLineW and ExitProcess OK\r\n",
-      "stdout_bytes": 36,
+      "command_line_va": 1075839440,
+      "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
+      "command_line_a_va": 1075839367,
+      "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
+      "stdout": "Win64 startup info and last error OK\r\n",
+      "stdout_bytes": 38,
       "oversized_exit_rejected": true
     },
     "clang-cl-process-start": {
@@ -124,37 +147,57 @@
           "GetStdHandle": "bmo_session_stdout",
           "WriteFile": "bmo_session_write",
           "GetCommandLineW": "bmo_get_command_line_w",
+          "GetCommandLineA": "bmo_get_command_line_a",
+          "GetStartupInfoW": "bmo_get_startup_info_w",
+          "GetACP": "bmo_get_acp",
+          "GetLastError": "bmo_get_last_error",
+          "SetLastError": "bmo_set_last_error",
           "ExitProcess": "bmo_exit_process"
         },
-        "Scope": "External QEMU startup fixture with a packaged UTF-16 command line and DWORD exit"
+        "Scope": "Single-threaded QEMU startup with UTF-16, UTF-8 ACP, default startup info and DWORD exit"
       },
       "imports": [
         {
           "DLL": "KERNEL32.dll",
           "Symbols": [
             {
+              "Name": "GetCommandLineW"
+            },
+            {
               "Name": "ExitProcess"
+            },
+            {
+              "Name": "GetCommandLineA"
+            },
+            {
+              "Name": "GetACP"
+            },
+            {
+              "Name": "GetLastError"
+            },
+            {
+              "Name": "SetLastError"
+            },
+            {
+              "Name": "GetStartupInfoW"
             },
             {
               "Name": "GetStdHandle"
             },
             {
               "Name": "WriteFile"
-            },
-            {
-              "Name": "GetCommandLineW"
             }
           ]
         }
       ],
-      "pe_bytes": 3072,
-      "pe_sha256": "61eb1060f5793dd4a113152e11f72a6940dfbbb8beee9ba651845f6dd2e87338",
+      "pe_bytes": 4096,
+      "pe_sha256": "44243919ee69720bbb251b235aa787db020fc2bb350d81f2e28d0885fa884e52",
       "producer": "clang-cl",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
       "rejected_import": {
         "Code": "PE-SESSION-IMPORT",
-        "Offset": 352,
+        "Offset": 344,
         "Field": "KERNEL32.dll!OtherFile"
       },
       "argv": [
@@ -166,11 +209,14 @@
         "C:\\dir con espacio\\"
       ],
       "command_line": "\"minigzip demo.exe\" -c \"\" \"datos \u00f1\ud83d\ude00.bin\" a\\\"b \"C:\\dir con espacio\\\\\"",
-      "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
+      "ansi_code_page": 65001,
       "exit_code": 3735928559,
-      "command_line_va": 1075839254,
-      "stdout": "GetCommandLineW and ExitProcess OK\r\n",
-      "stdout_bytes": 36,
+      "command_line_va": 1075839440,
+      "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
+      "command_line_a_va": 1075839367,
+      "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
+      "stdout": "Win64 startup info and last error OK\r\n",
+      "stdout_bytes": 38,
       "oversized_exit_rejected": true
     }
   },
@@ -179,8 +225,18 @@
       "input_sha256": "e01b3b7f663763291a75058343bff61a5dc651e6f4b8be1e786b65def8d5a5be",
       "pack_rejection": {
         "Code": "PE-IMPORTS",
-        "Offset": 392,
-        "Field": "DataDirectory.imports"
+        "Field": "DataDirectory.imports",
+        "Offset": 392
+      },
+      "blockers": [
+        "PE-IMPORTS",
+        "PE-LOAD-CONFIG",
+        "PE-IAT"
+      ],
+      "imports": {
+        "available_in_fixture": 18,
+        "missing": 62,
+        "ordinal": 0
       },
       "qemu_ran": false
     },
@@ -188,8 +244,18 @@
       "input_sha256": "b5fc3970f3ce6784436cc31bc45738cbd9ce75a054af1be146939d9672754020",
       "pack_rejection": {
         "Code": "PE-IMPORTS",
-        "Offset": 264,
-        "Field": "DataDirectory.imports"
+        "Field": "DataDirectory.imports",
+        "Offset": 264
+      },
+      "blockers": [
+        "PE-IMPORTS",
+        "PE-LOAD-CONFIG",
+        "PE-IAT"
+      ],
+      "imports": {
+        "available_in_fixture": 18,
+        "missing": 62,
+        "ordinal": 0
       },
       "qemu_ran": false
     }

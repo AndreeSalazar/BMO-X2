@@ -1,8 +1,8 @@
 {
-  "run": "run-sbef-ring0-ottt_qnk",
+  "run": "run-sbef-ring0-ftjh4r6k",
   "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
   "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
-  "probe_sha256": "48fb2fd28517f9604144fa22fee0417f71f696a086e8e3ad95d7fc8e1f11bca1",
+  "probe_sha256": "6cb305e8b7460744f29ff5591b784c3acc0072bdfb7277ff750f5690f9e2a4a6",
   "probe_bytes": 4072,
   "private_pages": 347,
   "user_frame_budget": 64,
@@ -11,7 +11,7 @@
   "cases": [
     {
       "case": "msvc-package-file",
-      "sha256": "ec0fe32c5c5fd481180ee0afa2fd4d0a856389df7ee5b34e54e7f353c4689a3b",
+      "sha256": "e81bca16ca55fafe8ef73a4238c666926e5e99fba12c1d5c841926942707a67e",
       "receipt": 0,
       "user_pages": 26,
       "syscalls": 11,
@@ -19,7 +19,7 @@
       "staging_bytes_scrubbed": 12288,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 0000000000002343",
+        "SBEF FAT32 BYTES 0000000000002581",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 000000000000001A",
         "SBEF WIN64 EXIT 0000000000000000",
@@ -33,7 +33,7 @@
     },
     {
       "case": "clang-cl-package-file",
-      "sha256": "528f6835bf05cffa6c3f6f265d9b1c9e45675896a022e0c55aabdaaf71fef029",
+      "sha256": "8f36bbbde3d4717504c95defda026025020262fdc1f27d36bd7d906ab3f46a9e",
       "receipt": 0,
       "user_pages": 26,
       "syscalls": 11,
@@ -41,7 +41,7 @@
       "staging_bytes_scrubbed": 12288,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000000229C",
+        "SBEF FAT32 BYTES 0000000000002509",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 000000000000001A",
         "SBEF WIN64 EXIT 0000000000000000",
@@ -55,7 +55,7 @@
     }
   ],
   "extension_bytes": 1004,
-  "extension_sha256": "22523702dddf7ad74b8938e71bf0977fb8a562ab6f67da1250ef020079bae10d",
+  "extension_sha256": "c55a882a7eb262e14e9c7309ce2ca1058902d494ec0517c88a1fbbf6c9955858",
   "win64_package_file": {
     "profile": {
       "Name": "win64-package-file-v1",
@@ -72,7 +72,9 @@
         "CreateFileW": "bmo_package_open",
         "ReadFile": "bmo_package_read",
         "CloseHandle": "bmo_package_close",
-        "GetLastError": "bmo_package_last_error"
+        "GetLastError": "bmo_get_last_error",
+        "GetFileType": "bmo_package_file_type",
+        "GetFileSizeEx": "bmo_package_file_size"
       },
       "Scope": "External single-threaded QEMU fixture with a read-only package input"
     },
@@ -112,12 +114,18 @@
           },
           {
             "Name": "GetLastError"
+          },
+          {
+            "Name": "GetFileType"
+          },
+          {
+            "Name": "GetFileSizeEx"
           }
         ]
       }
     ],
-    "pe_bytes": 10240,
-    "pe_sha256": "82d5d39813ea99f9741c5719ce84dffd907db85324c394e38fe7be8b70c72069",
+    "pe_bytes": 10752,
+    "pe_sha256": "34bd0ec8c250cd25bb49e2999d548075d41b8577d9110b2a69ac6b66143f3bbd",
     "producer": "msvc",
     "msvc_toolset": "14.44.35207",
     "sdk": "10.0.26100.0",
@@ -147,7 +155,9 @@
           "CreateFileW": "bmo_package_open",
           "ReadFile": "bmo_package_read",
           "CloseHandle": "bmo_package_close",
-          "GetLastError": "bmo_package_last_error"
+          "GetLastError": "bmo_get_last_error",
+          "GetFileType": "bmo_package_file_type",
+          "GetFileSizeEx": "bmo_package_file_size"
         },
         "Scope": "External single-threaded QEMU fixture with a read-only package input"
       },
@@ -183,6 +193,12 @@
               "Name": "GetLastError"
             },
             {
+              "Name": "GetFileType"
+            },
+            {
+              "Name": "GetFileSizeEx"
+            },
+            {
               "Name": "ReadFile"
             },
             {
@@ -191,8 +207,8 @@
           ]
         }
       ],
-      "pe_bytes": 10240,
-      "pe_sha256": "70f3253779397877da2c1dea512adb8bc4d2ccb8079b1de26de1d63d1207eb92",
+      "pe_bytes": 10752,
+      "pe_sha256": "9c502c9f97e3e0bcc529ab13f2c712d85b791f00ac885d6777b6586e08903cd4",
       "producer": "clang-cl",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",

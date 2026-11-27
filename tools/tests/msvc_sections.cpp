@@ -54,6 +54,8 @@ __declspec(dllimport) void* CreateFileW(const wchar_t*, unsigned long, unsigned 
 __declspec(dllimport) int ReadFile(void*, void*, unsigned long, unsigned long*, void*);
 __declspec(dllimport) int CloseHandle(void*);
 __declspec(dllimport) unsigned long GetLastError(void);
+__declspec(dllimport) unsigned long GetFileType(void*);
+__declspec(dllimport) int GetFileSizeEx(void*, long long*);
 
 static bool check_package_file() {
     constexpr unsigned long generic_read = 0x80000000, open_existing = 3;
@@ -67,6 +69,10 @@ static bool check_package_file() {
     if (file == invalid ||
         CreateFileW(L"input.bin", generic_read, 1, nullptr, open_existing, 0, nullptr) != invalid ||
         GetLastError() != 32) return false;
+    long long size = -1;
+    if (GetFileType(file) != 1 || GetFileType(GetStdHandle(static_cast<unsigned long>(-11))) != 2 ||
+        !GetFileSizeEx(file, &size) || size != file_size ||
+        GetFileSizeEx(file, nullptr) || GetLastError() != 87) return false;
     auto* buffer = static_cast<unsigned char*>(HeapAlloc(GetProcessHeap(), 0, chunk));
     if (!buffer) return false;
     unsigned long received = 0;
@@ -83,6 +89,9 @@ static bool check_package_file() {
     }
     if (!ReadFile(file, buffer, chunk, &received, nullptr) || received ||
         !CloseHandle(file) || CloseHandle(file) || GetLastError() != 6) return false;
+    size = -1;
+    if (GetFileType(file) || GetLastError() != 6 || GetFileSizeEx(file, &size) ||
+        size != -1 || GetLastError() != 6) return false;
     void* reopened = CreateFileW(L"input.bin", generic_read, 1, nullptr, open_existing, 0, nullptr);
     return reopened != invalid && reopened != file &&
         !ReadFile(file, buffer, 1, &received, nullptr) && !received && GetLastError() == 6 &&

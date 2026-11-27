@@ -40,7 +40,9 @@ WIN64_FILE_PROFILE = {
         'CreateFileW': 'bmo_package_open',
         'ReadFile': 'bmo_package_read',
         'CloseHandle': 'bmo_package_close',
-        'GetLastError': 'bmo_package_last_error',
+        'GetLastError': 'bmo_get_last_error',
+        'GetFileType': 'bmo_package_file_type',
+        'GetFileSizeEx': 'bmo_package_file_size',
     },
     'Scope': 'External single-threaded QEMU fixture with a read-only package input',
 }
@@ -59,9 +61,14 @@ WIN64_PROCESS_PROFILE = {
         'GetStdHandle': SESSION_EXPORTS['GetStdHandle'],
         'WriteFile': SESSION_EXPORTS['WriteFile'],
         'GetCommandLineW': 'bmo_get_command_line_w',
+        'GetCommandLineA': 'bmo_get_command_line_a',
+        'GetStartupInfoW': 'bmo_get_startup_info_w',
+        'GetACP': 'bmo_get_acp',
+        'GetLastError': 'bmo_get_last_error',
+        'SetLastError': 'bmo_set_last_error',
         'ExitProcess': 'bmo_exit_process',
     },
-    'Scope': 'External QEMU startup fixture with a packaged UTF-16 command line and DWORD exit',
+    'Scope': 'Single-threaded QEMU startup with UTF-16, UTF-8 ACP, default startup info and DWORD exit',
 }
 
 WIN64_SESSION_PROFILES = (
