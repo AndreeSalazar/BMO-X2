@@ -1,6 +1,7 @@
 // Included by the bounded FAT16 fixture in msvc_gzip.cpp.
 constexpr unsigned fat_root_lba = 65;
 constexpr unsigned fat_journal_lba = 78;
+constexpr unsigned fat_journal_mirror_lba = 79;
 constexpr unsigned fat_sector_size = 512;
 constexpr unsigned fat_first_cluster = 4, fat_last_cluster = 12, fat_max_clusters = 4;
 constexpr char fat_filename[] = "OUTPUT  GZ ";

@@ -20,7 +20,9 @@ from host.toolchains.msvc import build_external_console, build_external_crt, bui
 from scope import QEMU_SBEF_LIMIT, ROOT, workspace
 from bridge_hex import assemble
 from fat32_read import Fat32
-from minigzip_fat import FAT_HEADS, exhaust_pool, initial_image, output_layout, verify_interruption, verify_output
+from minigzip_fat import (
+    FAT_HEADS, exhaust_pool, initial_image, output_layout, tear_interruption, verify_interruption, verify_output,
+)
 
 
 PAGES = 267
@@ -300,6 +302,13 @@ def minigzip_disk_cases(run, llvm, source, original, *, replacement=None):
             recover = f'clang-cl-minigzip-disk-recover-{point}'
             variants[recover] = dict(variants[cases[1][0]], mode=f'disk-recover-{point}', exit_code=0)
             cases.append((recover, cases[1][1], 'SBEF WIN64 EXIT 0000000000000000', 1))
+        for target, point, exit_code in (
+            ('primary', 'before', 0), ('secondary', 'after', 0), ('fat', 'before', 0), ('both', 'before', 1),
+        ):
+            name = f'clang-cl-minigzip-disk-torn-{target}'
+            variants[name] = dict(variants[cases[1][0]], mode='disk-torn', point=point, target=target,
+                                  exit_code=exit_code)
+            cases.append((name, cases[1][1], f'SBEF WIN64 EXIT {exit_code:016X}', 1))
     return cases, variants
 
 
@@ -316,6 +325,8 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
     fat_mode = args.msvc_minigzip_fat is not None
     gzip_run = args.msvc_gzip or args.msvc_minigzip or disk_mode
     scratch_disk = None
+    stopped_disks = {}
+    recovered_disks = {}
     if args.msvc_tls:
         image, tls_report = build_external_tls(ROOT, run, llvm / 'clang.exe')
         second = next(region for region in load_plan(image)['Regions'] if region['VirtualStart'] == TLS_BASES[1])
@@ -507,7 +518,8 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             volume.close()
         active_disk = scratch_disk
         if disk_mode:
-            disk_role = cli[name]['mode']
+            disk_case = cli[name]
+            disk_role = disk_case['mode']
             if disk_role in ('disk-replace', 'disk-read-replacement'):
                 active_disk = run / 'minigzip-replaced.img'
                 if disk_role == 'disk-replace':
@@ -517,6 +529,11 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                 active_disk = run / f'minigzip-interrupted-{point}.img'
                 if disk_role.startswith('disk-cut-'):
                     active_disk.write_bytes(written_disk)
+            elif disk_role == 'disk-torn':
+                point = disk_case['point']
+                active_disk = run / f'minigzip-torn-{disk_case["target"]}.img'
+                torn_disk = tear_interruption(stopped_disks[point], disk_case['target'], replacement_chain)
+                active_disk.write_bytes(torn_disk)
             elif cli[name]['exit_code']:
                 negative_disk = bytearray(written_disk)
                 if disk_role == 'disk-bad-crc':
@@ -542,7 +559,7 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                 if fat_mode:
                     compressed, chain, offsets = verify_output(initial_disk, after_boot)
                     data_offset = offsets[0]
-                    calls = (8 + len(chain)) * 65 + 1
+                    calls = (9 + len(chain)) * 65 + 1
                 else:
                     magic, size = struct.unpack_from('<4sI', after_boot, 512)
                     if magic != b'BMO1' or not 18 <= size <= 504:
@@ -561,29 +578,35 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                 if bounded_gzip(updated) != replacement:
                     raise ValueError(f'{name}: reemplazo distinto de la referencia. Ver {folder}')
                 replaced_disk = after_boot
-                calls = (12 + len(replacement_chain)) * 65 + 1
+                calls = (15 + len(replacement_chain)) * 65 + 1
             elif disk_role == 'disk-read-replacement':
                 if after_boot != replaced_disk:
                     raise ValueError(f'{name}: la lectura modifico el reemplazo. Ver {folder}')
-                calls = (5 + len(replacement_chain)) * 65 + 1 + (len(replacement) + 7) // 8
+                calls = (6 + len(replacement_chain)) * 65 + 1 + (len(replacement) + 7) // 8
             elif disk_role.startswith('disk-cut-'):
                 committed = disk_role.endswith('-after')
-                recovered_disk = verify_interruption(written_disk, replaced_disk, after_boot, committed=committed)
-                calls = ((9 if committed else 7) + len(replacement_chain)) * 65 + 1
-            elif disk_role.startswith('disk-recover-'):
-                if after_boot != recovered_disk:
+                stopped_disks[point] = after_boot
+                recovered_disks[point] = verify_interruption(
+                    written_disk, replaced_disk, after_boot, committed=committed)
+                calls = ((11 if committed else 9) + len(replacement_chain)) * 65 + 1
+            elif disk_role == 'disk-torn' and disk_case['exit_code']:
+                if after_boot != torn_disk:
+                    raise ValueError(f'{name}: el rechazo del diario altero el disco. Ver {folder}')
+                calls = 6 * 65 + 1
+            elif disk_role.startswith('disk-recover-') or disk_role == 'disk-torn':
+                if after_boot != recovered_disks[point]:
                     raise ValueError(f'{name}: la recuperacion dejo cambios inesperados. Ver {folder}')
-                recovered_chain = replacement_chain if disk_role.endswith('-after') else chain
-                calls = (8 + len(recovered_chain)) * 65 + 1 + (len(original) + 7) // 8
+                recovered_chain = replacement_chain if point == 'after' else chain
+                calls = (10 + len(recovered_chain)) * 65 + 1 + (len(original) + 7) // 8
             elif disk_role == 'disk-read':
                 if after_boot != written_disk:
                     raise ValueError(f'{name}: la lectura modifico el disco. Ver {folder}')
-                calls = ((5 + len(chain)) * 65 + 1 if fat_mode else 3 + (len(compressed) + 7) // 8)
+                calls = ((6 + len(chain)) * 65 + 1 if fat_mode else 3 + (len(compressed) + 7) // 8)
                 calls += (len(original) + 7) // 8
             else:
                 if after_boot != negative_disk:
                     raise ValueError(f'{name}: el rechazo modifico el disco. Ver {folder}')
-                calls = ((5 + (len(chain) if disk_role == 'disk-bad-crc' else 0)) * 65 + 1
+                calls = ((6 + (len(chain) if disk_role == 'disk-bad-crc' else 0)) * 65 + 1
                          if fat_mode else 3 + (len(compressed) + 7) // 8)
         elif gzip_run:
             output_bytes = (folder / 'stdout.log').stat().st_size
@@ -662,10 +685,13 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             elif cli is not None:
                 scenario = cli[name]
                 if disk_mode:
-                    reference = {
-                        'disk-read': original, 'disk-read-replacement': replacement,
-                        'disk-recover-before': original, 'disk-recover-after': replacement,
-                    }.get(disk_role, b'')
+                    if disk_role == 'disk-torn' and not disk_case['exit_code']:
+                        reference = replacement if point == 'after' else original
+                    else:
+                        reference = {
+                            'disk-read': original, 'disk-read-replacement': replacement,
+                            'disk-recover-before': original, 'disk-recover-after': replacement,
+                        }.get(disk_role, b'')
                 elif args.input_file:
                     original = (run / name / 'input.bin').read_bytes()
                     reference = bounded_gzip(original) if args.decompress else original
@@ -772,9 +798,12 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                                                new_directory_entry=True, fat_copies_verified=True,
                                                missing_filename_rejected=True, cycle_rejected=True,
                                                existing_filename_preserved=True,
-                                               recovery=dict(journal_lba=78, interrupted_mirror_rolled_back=True,
+                                               recovery=dict(journal_lbas=[78, 79], interrupted_mirror_rolled_back=True,
                                                              published_replacement_recovered=True,
-                                                             journal_cleared=True),
+                                                             both_journal_copies_cleared=True,
+                                                             torn_primary_recovered=True, torn_secondary_recovered=True,
+                                                             torn_fat_link_recovered=True,
+                                                             both_journal_copies_torn_rejected=True),
                                                replacement=dict(
                                                    cluster_chain=replacement_chain, gzip_bytes=len(updated),
                                                    sha256=hashlib.sha256(replacement).hexdigest(),

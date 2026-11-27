@@ -7,7 +7,7 @@ import zlib
 SECTOR = 512
 OUTPUT_NAME = b'OUTPUT  GZ '
 FAT_HEADS = (1 * SECTOR, 33 * SECTOR)
-JOURNAL = 78 * SECTOR
+JOURNAL_COPIES = (78 * SECTOR, 79 * SECTOR)
 
 
 def initial_image():
@@ -19,6 +19,7 @@ def initial_image():
     for fat in FAT_HEADS:
         struct.pack_into('<6H', image, fat, 0xfff8, 0xffff, 0, 0xffff, 0, 0xffff)
         struct.pack_into('<H', image, fat + 26, 0xfff7)
+        struct.pack_into('<H', image, fat + 28, 0xfff7)
     for slot, name, cluster, content in (
         (0, b'KEEP    TXT', 3, b'BMO FAT16 control\r\n'),
         (1, b'KEEP2   TXT', 5, b'BMO FAT16 fragmentation control\r\n'),
@@ -121,7 +122,24 @@ def verify_interruption(initial, final, stopped, *, committed):
         expected[entry:entry + 32] = final[entry:entry + 32]
     record = struct.pack('<4sII4s4s', b'BMJ1', old_size, new_size, bytes(old_chain), bytes(new_chain))
     record += struct.pack('<I', zlib.crc32(record))
-    expected[JOURNAL:JOURNAL + SECTOR] = record.ljust(SECTOR, b'\0')
+    for offset in JOURNAL_COPIES:
+        expected[offset:offset + SECTOR] = record.ljust(SECTOR, b'\0')
     if stopped != expected:
         raise ValueError('La imagen interrumpida difiere del punto de corte esperado')
     return final if committed else bytes(retained)
+
+
+def tear_interruption(stopped, target, replacement_chain):
+    image = bytearray(stopped)
+    if target == 'fat':
+        # One byte of the new end-of-chain marker reached the first FAT.
+        offset = FAT_HEADS[0] + 2 * replacement_chain[-1]
+        if image[offset:offset + 2] != b'\xff\xff':
+            raise ValueError('El punto de corte no contiene la marca FAT esperada')
+        image[offset + 1] = 0
+    else:
+        copies = {'primary': JOURNAL_COPIES[:1], 'secondary': JOURNAL_COPIES[1:], 'both': JOURNAL_COPIES}[target]
+        for offset in copies:
+            # The first 16 bytes reached the disk; the rest stayed clear.
+            image[offset + 16:offset + SECTOR] = bytes(SECTOR - 16)
+    return bytes(image)

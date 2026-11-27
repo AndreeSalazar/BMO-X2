@@ -307,16 +307,19 @@ python -B tools/boot/sbef_ring0_qemu.py $validatorRun --msvc-minigzip-fat $zlibS
 
 El perfil admite hasta cuatro clusters de 512 bytes por archivo y opera
 sobre una raiz y un grupo de clusters acotados. La publicacion requiere
-espacio libre para la copia nueva. El sector 78 guarda un registro de
-reemplazo con CRC antes de modificar los datos. Al reabrir, la entrada
-de directorio determina que cadena conservar. El invitado reconcilia
-las copias FAT y borra el registro al terminar.
+espacio libre para la copia nueva. Los sectores 78 y 79 guardan copias
+del registro con CRC antes de modificar los datos. Al reabrir, la
+entrada de directorio determina que cadena conservar. Si solo una copia
+del registro es valida, el invitado la usa para reconciliar la FAT y
+borra las dos copias al terminar.
 
 El banco detiene una ejecucion entre las dos escrituras FAT y otra
-despues de publicar el directorio. Arranques independientes recuperan
-el archivo anterior y el nuevo, respectivamente. Estas pruebas se
-detienen despues de escrituras completas. Los sectores escritos
-parcialmente y las rutas generales quedan fuera del perfil.
+despues de publicar el directorio. Sobre copias de esas imagenes, el
+banco simula escrituras parciales en cada copia del diario y en un
+enlace FAT de la cadena descartada. Arranques independientes verifican
+los datos y los espejos FAT. Dos copias de diario invalidas producen un
+rechazo sin cambios en el disco. El banco requiere una entrada de
+directorio coherente y no simula escrituras parciales del contenido GZIP.
 
 El ejecutable Windows distribuido requiere su arranque CRT, mas memoria
 de carga y mas servicios Win64. El perfil adaptado usa entradas y salidas
