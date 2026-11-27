@@ -72,16 +72,26 @@ python -B tools/sbef.py catalog .\entrada\StarCraft --game "StarCraft" > .\starc
 ```
 
 Blizzard ofrece StarCraft clasico y Brood War gratis. El anuncio 1.18
-documenta un backend OpenGL. La arquitectura y las dependencias se
-deben medir sobre el EXE del juego de la edicion concreta. La prueba con
-ese archivo queda pendiente hasta disponer de una copia oficial local.
+documenta un backend OpenGL.
+[Notas oficiales de Blizzard](https://news.blizzard.com/en-us/article/20674424/starcraft-brood-war-patch-1-18-patch-notes).
+
+En Windows HOST se inspecciono la instalacion oficial 1.23.10.13515.
+Incluye `x86/StarCraft.exe` (PE32) y `x86_64/StarCraft.exe` (PE32+).
+Windows verifico la firma de Blizzard de ambos archivos. Los dos
+reportaron `PE-IMPORT-RVA` en `DataDirectory.imports`: el tamano
+declarado excede el rango respaldado por el archivo. La instalacion
+incluye `D3DCompiler_42.dll` y `D3DX9_42.dll`. Su presencia por si sola
+no acredita que el ejecutable use esas bibliotecas. El intento de
+`pack` del EXE x86-64 termino en `PE-EXPORTS` sin emitir SBEF. Se
+catalogaron 695 archivos con huella y se registraron ocho por encima
+del limite de lectura individual. La ejecucion en QEMU queda pendiente.
+
 Para PE32 x86, `probe` y `catalog` leen cabeceras e importaciones
 regulares por nombre y por ordinal. `ExecutionPlan` distingue los
 bits del EXE de la ISA del proceso BMO-X2. Para PE32, la admision
 mantiene `PE-MACHINE` y senala el
 [runtime invitado x86 en Ring 3](../../userspace/runtime/abi/README.md#compatibilidad-pe32-x86)
 como pendiente. Los perfiles de prueba Win64 solo cuentan para PE32+ x86-64.
-[Notas oficiales de Blizzard](https://news.blizzard.com/en-us/article/20674424/starcraft-brood-war-patch-1-18-patch-notes).
 
 ### Cinco capas de compatibilidad Windows
 
