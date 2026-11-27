@@ -1,6 +1,6 @@
 # BMO-X2
 
-![Gato geometrico de BMO-X2 con ojos turquesa y la leyenda PC SOBERANO](docs/branding/bmo-x2-pc-soberano.png)
+![Gato sentado de BMO-X2 con ojos turquesa, cola en bucle y la leyenda PC SOBERANO](docs/branding/bmo-x2-pc-soberano.png)
 
 **Un sistema x86-64 que permite seguir el camino desde el codigo fuente
 hasta los bytes que ejecuta la CPU.** CASM construye los perfiles probados
@@ -53,7 +53,8 @@ permiso y el informe identifica el ejecutable y su origen.
 
 BMO-X2 es hijo de BMO-X. Reune tres lineas de trabajo del mismo autor
 y elige de cada una las piezas que sirven a su propio diseno.
-El nuevo gato conserva los ojos turquesa de BMO-X como rasgo de familia.
+El gato de BMO-X2 conserva la silueta sentada, la cola en bucle y los
+ojos turquesa del gato original de BMO-X.
 
 | Proyecto de origen | Que aporta a BMO-X2 |
 |---|---|
