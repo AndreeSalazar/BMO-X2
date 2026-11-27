@@ -76,11 +76,24 @@ En QEMU, el mismo lote selecciona dos recursos de color distintos.
 Antes de presentar, la sonda exige el rechazo de una generacion
 caducada, una textura ajena, una textura sin residencia y una ranura
 fuera de la tabla. La captura del framebuffer comprueba 4096
-pixeles. Quedan pendientes el lector BSF en el proceso de usuario,
-la tabla de recursos del controlador y la presentacion RTX nativa.
+pixeles. Quedan pendientes la tabla de recursos del controlador y
+la presentacion RTX nativa.
 
 ```powershell
 .\tools\build-desktop.ps1 -VerranoProbe -AbiRun $abiRun
+```
+
+El lector compartido `bsf.rs` comprueba el contenedor BSF1, el perfil
+y la huella de cada shader en Ring 3, al abrir el paquete. La sonda
+externa admite el mismo BSF de la prueba con Vulkan y rechaza una
+copia con un bit alterado antes de admitir las texturas. El BSF va
+embebido en el SBEF de la sonda. La GPU de QEMU presenta el cuadro
+de referencia por software. Quedan la carga desde el servicio de
+archivos y la ejecucion de los shaders en el backend RTX.
+[Evidencia del lector BSF en Ring 3](../../../Reports/verrano-bsf-qemu.json).
+
+```powershell
+.\tools\desktop\rmlui\guest.ps1 -AbiRun $abiRun -VerranoBsf .\build\gpu\NVIDIA\texture-host\triangle.bsf
 ```
 
 La estructura .ujh, la apariencia .ujc y el comportamiento .uj son

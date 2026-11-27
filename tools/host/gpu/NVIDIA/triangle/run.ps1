@@ -38,19 +38,8 @@ $RenderMode = @()
 $ExportMode = @()
 if ($Textured) {
     if (-not $BmoRoot) { $BmoRoot = Join-Path (Split-Path $Root) 'BMO' }
-    $BmoRoot = (Resolve-Path -LiteralPath $BmoRoot).Path
-    $Hash = Join-Path $Build 'libbmo_hash.rlib'
-    $Front = Join-Path $Build 'libbmo_spirv_front.rlib'
-    $Bsf = Join-Path $Build 'libbmo_bsf.rlib'
     $Bridge = Join-Path $Build 'bsf-bridge.exe'
-    $RustLibrary = @('--edition=2021', '--crate-type=rlib')
-    & rustc @RustLibrary --crate-name bmo_hash (Join-Path $BmoRoot 'platform/shared/bmo-hash/src/lib.rs') -o $Hash
-    if ($LASTEXITCODE) { throw "BSF BLAKE3: $LASTEXITCODE" }
-    & rustc @RustLibrary --crate-name bmo_spirv_front (Join-Path $BmoRoot 'toolchain/lang/spirv/src/lib.rs') -o $Front
-    if ($LASTEXITCODE) { throw "BSF frontend: $LASTEXITCODE" }
-    $RustBsf = @('--extern', "bmo_hash=$Hash", '--extern', "bmo_spirv_front=$Front")
-    & rustc @RustLibrary @RustBsf --crate-name bmo_bsf (Join-Path $BmoRoot 'toolchain/lang/spirv/bsf/src/lib.rs') -o $Bsf
-    if ($LASTEXITCODE) { throw "BSF library: $LASTEXITCODE" }
+    $Bsf = & (Join-Path $PSScriptRoot '../../build-bsf.ps1') -BmoRoot $BmoRoot -Output $Build
     & rustc --edition=2021 -L "dependency=$Build" --extern "bmo_bsf=$Bsf" (Join-Path $PSScriptRoot '../../bsf_bridge.rs') -o $Bridge
     if ($LASTEXITCODE) { throw "BSF bridge: $LASTEXITCODE" }
     $Package = Join-Path $Build 'triangle.bsf'

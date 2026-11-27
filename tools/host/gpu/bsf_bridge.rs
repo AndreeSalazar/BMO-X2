@@ -1,10 +1,10 @@
 //! HOST adapter for the original BMO-X BSF1 reader and writer.
-use bmo_bsf::{Bsf, ModuleIn};
+use bmo_bsf::ModuleIn;
 use std::{env, fs, io::{self, Read}, path::Path};
 
-const STAGES: [(u8, &[u8]); 2] = [(0, b"vs"), (4, b"ps")];
-const SHADER: u64 = 1 << 1;
-const MAX_SHADER: usize = 16 * 1024;
+#[path = "../../../userspace/services/graphics/verrano/bsf.rs"]
+mod profile;
+use profile::{MAX_PACKAGE, MAX_SHADER, SHADER, STAGES};
 
 fn bounded_read(path: &Path, limit: usize) -> io::Result<Vec<u8>> {
     let mut result = Vec::new();
@@ -33,22 +33,8 @@ fn main() -> Result<(), String> {
         bmo_bsf::write(&modules, &mut output).map_err(fault)?;
         fs::write(package, output).map_err(|error| error.to_string())?;
     } else if mode == "unpack" {
-        let input = read(package, 2 * MAX_SHADER + 1024)?;
-        let bsf = Bsf::parse(&input).map_err(fault)?;
-        bsf.verify_all().map_err(fault)?;
-        if bsf.module_count() != STAGES.len() || bsf.target_count() != 0 {
-            return Err("BSF profile requires two portable shader modules".into());
-        }
-        let mut shaders = [&[][..]; 2];
-        for (index, (model, name)) in STAGES.iter().copied().enumerate() {
-            let module = bsf.module(index);
-            if module.model() != model || module.name() != name || module.binding_count() != 0 ||
-                !(20..=MAX_SHADER).contains(&module.spirv_len())
-            {
-                return Err(format!("Invalid BSF shader module {index}"));
-            }
-            shaders[index] = module.spirv().map_err(fault)?;
-        }
+        let input = read(package, MAX_PACKAGE)?;
+        let shaders = profile::load(&input).map_err(|error| error.to_string())?;
         for (path, data) in [vertex, fragment].into_iter().zip(shaders) {
             fs::write(path, data).map_err(|error| error.to_string())?;
         }

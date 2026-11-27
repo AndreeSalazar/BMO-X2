@@ -5,12 +5,13 @@ import time
 from cpu_config import register
 
 
-def verify_raster(command, memory, prefix, expected_path):
+def verify_raster(command, memory, prefix, expected_path, *, bsf_probe=False):
     expected = expected_path.read_bytes()
+    code_end = 0x40003000 if bsf_probe else 0x40002000
     deadline = time.monotonic() + 25
     while time.monotonic() < deadline:
         regs = command('human-monitor-command', {'command-line': 'info registers'})
-        if 'CPL=3' not in regs or not 0x40000000 <= register(regs, 'RIP') < 0x40002000:
+        if 'CPL=3' not in regs or not 0x40000000 <= register(regs, 'RIP') < code_end:
             time.sleep(0.04)
             continue
         # Rust owns RBP. Read the existing supervisor descriptor, never a guest register guess.
@@ -43,9 +44,11 @@ def verify_raster(command, memory, prefix, expected_path):
             if raw[offset:offset+4] != color:
                 raise ValueError(f'Rust HOST/guest difieren en pixel {x},{y}')
     command('screendump', {'filename': str(prefix)+'-raster.ppm'})
-    return dict(Case='normal', Passed=True, Evidence='QEMU', CPL=3,
-                SharedRustRasterizer=True, FullRmlUiEngine=False,
-                HostGuestPixelsIdentical=True, LogicalPixelsVerified=256,
-                PhysicalPixelsVerified=128*scale*128*scale,
-                ReferenceSHA256=hashlib.sha256(expected).hexdigest(),
+    report = dict(Case='normal', Passed=True, Evidence='QEMU', CPL=3,
+                  HostGuestPixelsIdentical=True, LogicalPixelsVerified=256,
+                  PhysicalPixelsVerified=128*scale*128*scale,
+                  ReferenceSHA256=hashlib.sha256(expected).hexdigest())
+    if bsf_probe:
+        return dict(report, Scope='BSF1 profile and software reference output in external SBEF')
+    return dict(report, SharedRustRasterizer=True, FullRmlUiEngine=False,
                 Scope='Triangle winding, gradient, clipping and premultiplied texture in external SBEF')

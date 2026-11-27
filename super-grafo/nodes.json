@@ -1888,7 +1888,7 @@
       "entrada": "Titular autenticado, tablas de buffers y texturas, lotes y limites del servicio.",
       "salida": "Envio completo o rechazo con indice del dibujo cuando corresponde.",
       "aceptacion": "HOST prueba rangos, limites y texturas. QEMU verifica el cambio de textura y cuatro rechazos en Ring 3 con un backend por software.",
-      "falta": "Integrar el lector BSF, la tabla de recursos del dispositivo y el backend nativo. Verificar en metal."
+      "falta": "Integrar la tabla de recursos del dispositivo y el backend nativo. Verificar en metal."
     },
     {
       "id": "verrano-bsf-host",
@@ -1902,7 +1902,21 @@
       "entrada": "Lector y escritor de BMO-X y sombreadores de vertice y fragmento validados por HOST.",
       "salida": "Contenedor BSF y dos modulos recuperados con su integridad comprobada.",
       "aceptacion": "RTX 3060 dibuja 24 pares con igual geometria y texturas distintas; el lector rechaza un bit alterado.",
-      "falta": "Integrar el lector, los recursos y el backend nativo de Ring 3."
+      "falta": "Anadir objetivos de GPU nativos validados y usar el backend de Ring 3."
+    },
+    {
+      "id": "verrano-bsf-reader",
+      "titulo": "VERRANO / Lector BSF en Ring 3",
+      "ruta": "userspace/services/graphics/verrano/bsf.rs",
+      "estado": "qemu",
+      "anillo": "3",
+      "lenguaje": "Rust",
+      "posicion": [1640, 2420],
+      "que": "Admite dos modulos portables de un BSF1 original y comprueba sus hashes una vez.",
+      "entrada": "BSF1 preparado por HOST y un SBEF externo con el servicio de prueba.",
+      "salida": "Dos modulos SPIR-V verificados o rechazo antes de admitir recursos.",
+      "aceptacion": "QEMU coteja el cuadro del BSF valido y el rechazo de un bit alterado, ambos en CPL3.",
+      "falta": "Leer desde el servicio de archivos y crear una tuberia en el backend RTX nativo."
     },
     {
       "id": "desktop-keyboard",

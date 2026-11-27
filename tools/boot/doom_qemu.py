@@ -33,6 +33,7 @@ def main():
     profiles.add_argument('--desktop-doom', action='store_true')
     profiles.add_argument('--toolchain-client', choices=('gcc', 'clang', 'gcc-cpp', 'clang-cpp', 'rust', 'msvc', 'clang-cl'))
     profiles.add_argument('--rmlui-renderer', type=Path, help='Expected 16x16 Rust CPU raster probe, not a full RmlUi port')
+    profiles.add_argument('--verrano-bsf', type=Path, help='Reference pixels for the CPL3 BSF reader probe')
     profiles.add_argument('--rmlui-native', type=Path, help='Symbol manifest for the real native UI engine profile')
     profiles.add_argument('--msvc-sections', type=Path, help='Symbol manifest for the three-region MSVC clock fixture')
     parser.add_argument('--wad', type=Path)
@@ -40,19 +41,20 @@ def main():
     args = parser.parse_args()
     if args.desktop_welcome and not (args.intro and args.session_gate and args.external_loader):
         parser.error('La bienvenida requiere intro, sesion y cargador externo')
-    if args.rmlui_renderer and (not args.external_loader or not args.session_gate or args.intro):
+    raster_reference = args.rmlui_renderer or args.verrano_bsf
+    if raster_reference and (not args.external_loader or not args.session_gate or args.intro):
         parser.error('La sonda Rust requiere cargador externo, puerta de sesion y no usa intro')
     if args.reuse and not args.toolchain_client:
         parser.error('--reuse requiere --toolchain-client')
     if args.toolchain_client and (args.session_gate or args.desktop_present or args.external_loader or args.intro):
         parser.error('El cliente ABI usa el paquete CASM embebido')
-    engine = args.doom_engine or args.desktop_doom or bool(args.rmlui_native or args.msvc_sections)
+    engine = args.doom_engine or args.desktop_doom or bool(args.rmlui_native or args.msvc_sections or args.verrano_bsf)
     doom = args.doom_external or engine
     if doom and not (args.external_loader and args.session_gate):
         parser.error('DOOM externo requiere cargador y puerta de sesion')
     if args.wad and not doom:
         parser.error('El WAD requiere la sonda DOOM externa')
-    if engine and not (args.wad or args.rmlui_native or args.msvc_sections):
+    if engine and not (args.wad or args.rmlui_native or args.msvc_sections or args.verrano_bsf):
         parser.error('El motor requiere el IWAD')
     if args.wad:
         with args.wad.open('rb') as stream:
@@ -85,14 +87,16 @@ def main():
         application = 'rmlui'
     if args.msvc_sections:
         application = 'msvc-sections'
+    if args.verrano_bsf:
+        application = 'verrano'
     if args.toolchain_client:
         application = f'abi-{args.toolchain_client}'
     run = reference.parent / f'run-{application}-{uuid.uuid4().hex[:12]}'
     run.mkdir()
     if args.desktop_welcome:
         (run / 'welcome.txt').write_text('QEMU\n', encoding='ascii')
-    if args.rmlui_renderer:
-        expected_pixels = args.rmlui_renderer.read_bytes()
+    if raster_reference:
+        expected_pixels = raster_reference.read_bytes()
         if len(expected_pixels) != 16*16*4:
             raise ValueError('Referencia raster invalida')
         (run / 'raster-expected.bin').write_bytes(expected_pixels)
@@ -132,6 +136,8 @@ def main():
         profile = 'desktop-doom'
     if args.rmlui_renderer:
         profile = 'rmlui-raster-probe'
+    if args.verrano_bsf:
+        profile = 'verrano-bsf-probe'
     if args.rmlui_native:
         profile = 'rmlui-native'
     if args.msvc_sections:
@@ -181,6 +187,8 @@ def main():
         milestone = 'Rust desktop CABINA launches DoomGeneric E1M1 in CPL3'
     if args.rmlui_renderer:
         milestone = 'Shared no_std Rust CPU rasterizer executes in CPL3; full RmlUi engine remains HOST'
+    if args.verrano_bsf:
+        milestone = 'VERRANO checks the original BSF1 container in CPL3 with a software reference backend'
     if args.rmlui_native:
         milestone = 'Native RmlUi/FreeType C++ engine and Rust CPU drawing, with ULTRA-J action in CPL3'
     if args.desktop_welcome:

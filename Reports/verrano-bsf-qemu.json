@@ -1,0 +1,38 @@
+{
+  "date": "2026-11-27",
+  "environment": "QEMU 11.1.0 con VGA emulada y salida de referencia por software.",
+  "command": "tools/desktop/rmlui/guest.ps1 -VerranoBsf build/gpu/NVIDIA/texture-host/triangle.bsf -AbiRun build/CASM/run-20261117-215144-66f2e0a9",
+  "reader": "userspace/services/graphics/verrano/bsf.rs",
+  "probe": "userspace/services/graphics/verrano/guest.rs",
+  "bmo_revision": "6076bdefefc67877419ca53633c6e40cb45fc92d",
+  "valid_bsf_sha256": "063dc4c6167d22e8779d6230b018d4eef2b53c0e139adc5a2f7ebde57621c49e",
+  "guest": {
+    "format": "SBEF v2, ABI 1",
+    "sbef_bytes": 15327,
+    "text_bytes": 11551,
+    "mapped_region_bytes": 20480,
+    "layout": "Cargador amplio existente de la sonda nativa. El lector completo excedio las dos paginas RX de la sonda RmlUi compacta."
+  },
+  "cases": {
+    "valid": {
+      "run": "build/CASM/run-verrano-4de670292669",
+      "sbef_sha256": "a9ad673f2fafafe154365a337ba65f83fcb3d8190136a6c844d32cab85c393ec",
+      "cpl": 3,
+      "physical_pixels_verified": 65536,
+      "outcome": "Se verificaron los dos modulos del BSF y se admitieron dos referencias de textura."
+    },
+    "one_bit_changed": {
+      "run": "build/CASM/run-verrano-472fe2b0f633",
+      "sbef_sha256": "1738e7e96f667670b537dfba45ac446033049f3b7bb484a00aec7686d5341d20",
+      "cpl": 3,
+      "physical_pixels_verified": 65536,
+      "outcome": "SpirvHash antes de invocar el backend de texturas. El cuadro de diagnostico coincidio con la referencia."
+    },
+    "external_permissions": "El cargador rechazo el SBEF mutado antes de copiar codigo de usuario en ambos runs."
+  },
+  "regressions": {
+    "rmlui_compact": "build/CASM/run-desktop-42fc533f5798",
+    "windows_rtx3060": "El banco Vulkan con el lector compartido repitio el SHA-256 de los 48 cuadros de Reports/verrano-texture-bsf-host.json."
+  },
+  "limits": "El guest verifica el BSF y usa un backend de referencia. Quedan por integrar la carga desde el servicio de archivos, la ejecucion de shaders, los recursos en VRAM y la presentacion fisica."
+}
