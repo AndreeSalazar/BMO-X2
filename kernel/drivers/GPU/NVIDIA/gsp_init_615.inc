@@ -1,7 +1,7 @@
 # One GMCAPI_CMD_GSP_INIT on the 615 MSGQ v2 boot queues.
 # Win64 ABI RCX = GSP BAR0 alias, RDX = private RMARGS physical base,
 # R8 = ticks per 10 ms, R9 = PCIe Link Capabilities (high dword)
-# and measured PCI revision (low dword, 8 bits).
+# and measured PCIe flags (bits 8..23) and PCI revision (bits 0..7).
 # RAX = {GMCAPI status or observed dword, trial status in high dword}.
 # Caller retains the verified GSP domain and RTX Bus Master until return.
 .set GSP_TX_HEAD, 0xc00
@@ -13,6 +13,8 @@
 .set GSP_615_RX_ENTRY, 0x43000
 .set GSP_615_NVDM_GMCAPI, 0x2610de7e
 .set GSP_615_INIT_REPLY, 0x01010001
+.set GSP_615_PCIE_FLR, 0x002
+.set GSP_615_PCIE_UPSTREAM, 0x400
 
 .globl nvidia_gsp_init_615
 nvidia_gsp_init_615:
@@ -36,8 +38,10 @@ nvidia_gsp_init_615:
     jb .Lgsp_615_receipt
     cmp $100000000, %rbx
     ja .Lgsp_615_receipt
-    cmp $255, %r9d
-    ja .Lgsp_615_receipt
+    mov %r9d, %r15d
+    shr $8, %r15d
+    test $~(GSP_615_PCIE_FLR | GSP_615_PCIE_UPSTREAM), %r15d
+    jnz .Lgsp_615_receipt
 
     mov $0x803, %r11d
     movl $0, 0x80(%r13)          # appVersion from the verified GA10x monitor.
@@ -58,9 +62,11 @@ nvidia_gsp_init_615:
     mov $(.Lgsp_615_request_end-.Lgsp_615_request)/8, %ecx
     cld
     rep movsq
-    mov %r9d, (GSP_615_TX_ENTRY+.Lgsp_615_revision-.Lgsp_615_request+4)(%r14)
+    movzbl %r9b, %eax
+    mov %eax, (GSP_615_TX_ENTRY+.Lgsp_615_revision-.Lgsp_615_request+4)(%r14)
     shr $32, %r9
     mov %r9d, (GSP_615_TX_ENTRY+.Lgsp_615_link_cap-.Lgsp_615_request+4)(%r14)
+    mov %r15, (GSP_615_TX_ENTRY+.Lgsp_615_pcie_flags-.Lgsp_615_request+8)(%r14)
 
     # Match the status header initialized by firmware before linking it.
     mov $0x804, %r11d
@@ -202,6 +208,36 @@ nvidia_gsp_init_615:
     pop %rbx
     ret
 
+# Win64 RCX = endpoint Device Capabilities, EDX = bridge class/revision,
+# R8 = bridge primary/secondary/subordinate buses, R9 = bridge PCIe header.
+# The caller has already checked the bridge vendor/device and type-1 header.
+# Reject absent, indirect, or misidentified ports without executing FLR.
+.globl nvidia_gsp_pcie_flags_615
+nvidia_gsp_pcie_flags_615:
+.Lgsp_pcie_flags_615:
+    xor %eax, %eax
+    cmp $-1, %ecx
+    je .Lgsp_pcie_port
+    test $0x10000000, %ecx      # PCI_EXP_DEVCAP_FLR
+    jz .Lgsp_pcie_port
+    mov $GSP_615_PCIE_FLR, %eax
+.Lgsp_pcie_port:
+    shr $8, %edx
+    cmp $0x060400, %edx
+    jne .Lgsp_pcie_done
+    and $0xffffff, %r8d
+    cmp $0x292900, %r8d        # Primary 00, direct secondary/subordinate 29.
+    jne .Lgsp_pcie_done
+    and $0x00ff00ff, %r9d      # Ignore next capability pointer.
+    cmp $0x00410010, %r9d      # PCIe root port, capability v1 or v2.
+    je .Lgsp_pcie_direct
+    cmp $0x00420010, %r9d
+    jne .Lgsp_pcie_done
+.Lgsp_pcie_direct:
+    or $GSP_615_PCIE_UPSTREAM, %eax
+.Lgsp_pcie_done:
+    ret
+
 # Read-only init failure snapshot. Win64: RCX = GSP, RDX = selected log,
 # R8 = event MMIO, R9 = private event ring, fifth arg = summary,
 # sixth arg = private 17-page trace (event page, then 64-KiB log).
@@ -319,7 +355,8 @@ nvidia_gsp_snapshot_615:
     gsp_u32 0x60, 0               # GRID_BUILD_CSP.
     gsp_u32 0x80, 0               # VF_TOTAL_VFS exposed by this host.
     gsp_u32 0x81, 0               # VF_FIRST_VF_OFFSET.
-    gsp_u64 0x1000, 0             # No host PCIe services advertised.
+.Lgsp_615_pcie_flags:
+    gsp_u64 0x1000, 0             # Filled only from PCI config observations.
     gsp_u64 0x1001, 0             # No host platform services advertised.
     gsp_u64 0x1002, 0             # No host display or power callbacks.
     gsp_u64 0x1003, 0             # No host VF services advertised.

@@ -3,6 +3,7 @@
 .set FALCON_BOARD_PDE, 0x15408
 .set FALCON_BOARD_VA, 0x10200000
 .set FALCON_BOARD_RID, 0x80290000
+.set FALCON_BOARD_ROOT_RID, 0x80001900
 .set SEC2_FUSE_ALIAS_SLOT, 2
 .set SEC2_FUSE_ALIAS, FALCON_BOARD_VA + SEC2_FUSE_ALIAS_SLOT*4096
 .set SEC2_CPU_ALIAS, FALCON_BOARD_VA+0x3000
@@ -25,6 +26,7 @@ nvidia_physical_begin:
     sub $64, %rsp
     cmpq $0, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)
     jne .Lboard_skip
+    movq $0, GSP_PCIE_INIT_FLAGS(%rbp)
     movl $0x406, NVIDIA_FWSEC_LAUNCH_STATUS(%rbp)
     cmpl $2, GSP_FWSEC_DOMAIN_STATUS(%rbp)
     jne .Lboard_skip
@@ -249,6 +251,11 @@ nvidia_physical_begin:
     shl $32, %rax
     or %rax, %r9
     mov %r9, 32(%rsp)
+    call .Lboard_gsp_pcie_flags
+    mov %eax, GSP_PCIE_INIT_FLAGS(%rbp)
+    movl $1, (GSP_PCIE_INIT_FLAGS+4)(%rbp)
+    shl $8, %eax
+    or %rax, 32(%rsp)
     mov $FALCON_BOARD_VA, %ecx
     call .Lgsp_read_ptimer
     mov %rax, GSP_PTIMER_BEFORE_INIT(%rbp)
@@ -335,15 +342,57 @@ nvidia_physical_begin:
     pop %rbx
     ret
 
-# Locate PCIe Device Control/Status within the conventional capabilities.
-# A 48-entry budget rejects cycles, malformed pointers, and absent PCIe.
-.Lboard_pcie_status:
-    mov $4, %eax
+# Sample the one root port previously identified on this board. All accesses
+# below are PCI configuration reads and no reset is issued.
+.Lboard_gsp_pcie_flags:
+    lea -4(%r14), %eax          # Device Capabilities, before Device Control.
     call .Lboard_pci_read
+    mov %eax, %ecx
+    mov $FALCON_BOARD_ROOT_RID, %r8d
+    xor %eax, %eax
+    call .Lboard_pci_read_at
+    cmp $0x14831022, %eax
+    jne .Lboard_gsp_pcie_no_root
+    mov $0xc, %eax
+    call .Lboard_pci_read_at
+    and $0x007f0000, %eax       # Header Type 1, ignoring multifunction.
+    cmp $0x00010000, %eax
+    jne .Lboard_gsp_pcie_no_root
+    call .Lboard_pcie_cap
+    jc .Lboard_gsp_pcie_no_root
+    mov %eax, %r9d
+    mov $8, %eax
+    call .Lboard_pci_read_at
+    mov %eax, %r11d
+    mov $0x18, %eax
+    call .Lboard_pci_read_at
+    cmp $-1, %eax
+    je .Lboard_gsp_pcie_no_root
+    mov %eax, %r8d
+    mov %r11d, %edx
+    jmp .Lgsp_pcie_flags_615
+.Lboard_gsp_pcie_no_root:
+    xor %edx, %edx             # Suppress upstream when the root is unverified.
+    jmp .Lgsp_pcie_flags_615
+
+# Locate PCIe Device Control/Status within the conventional capabilities.
+.Lboard_pcie_status:
+    mov $FALCON_BOARD_RID, %r8d
+    call .Lboard_pcie_cap
+    jc .Lboard_pcie_status_done
+    lea 8(%r10), %r14d
+.Lboard_pcie_status_done:
+    ret
+
+# A 48-entry budget rejects cycles, malformed pointers, and absent PCIe.
+# R8 = configuration address prefix. R10 = capability offset on success.
+.Lboard_pcie_cap:
+    mov $4, %eax
+    call .Lboard_pci_read_at
     test $0x00100000, %eax
     jz .Lboard_pcie_bad
     mov $0x34, %eax
-    call .Lboard_pci_read
+    call .Lboard_pci_read_at
     mov $48, %r11d
 .Lboard_pcie_next:
     movzbl %al, %r10d
@@ -354,7 +403,7 @@ nvidia_physical_begin:
     test $3, %r10d
     jnz .Lboard_pcie_bad
     mov %r10d, %eax
-    call .Lboard_pci_read
+    call .Lboard_pci_read_at
     cmp $0x10, %al               # PCI Express capability ID.
     je .Lboard_pcie_found
     shr $8, %eax
@@ -366,7 +415,6 @@ nvidia_physical_begin:
 .Lboard_pcie_found:
     cmp $0xf0, %r10d             # Link Capabilities must fit in PCI config space.
     ja .Lboard_pcie_bad
-    lea 8(%r10), %r14d
     clc
     ret
 
@@ -381,6 +429,10 @@ nvidia_physical_begin:
     ret
 .Lboard_pci_read:
     or $FALCON_BOARD_RID, %eax
+    jmp .Lboard_pci_access
+.Lboard_pci_read_at:
+    or %r8d, %eax
+.Lboard_pci_access:
     mov $0xcf8, %dx
     out %eax, %dx
     add $4, %dx

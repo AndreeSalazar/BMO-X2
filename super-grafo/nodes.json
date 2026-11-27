@@ -2770,11 +2770,11 @@
       "lenguaje": "ASM x86-64",
       "ring0_platform_probe": true,
       "posicion": [12250, 3830],
-      "que": "Enlaza MSGQ v2 y envia una solicitud fija GMCAPI GSP_INIT.",
+      "que": "Enlaza MSGQ v2 y envia GMCAPI GSP_INIT con capacidades PCIe medidas.",
       "entrada": "SEC2 701, BAR y dominio de la placa comprobados, RMARGS 615.78.08.",
       "salida": "Respuesta correlacionada o copia de LOGINIT, indices TX y eventos AMD-Vi antes del cierre PCIe. El perfil opcional exporta por serie desde el panel F4.",
       "aceptacion": "HOST prueba la correlacion, los 255 eventos y LOGINIT sin consumir la cola. El exportador opcional recupera 17 paginas en una ida y vuelta con CRC32. Evidencia Reports/nvidia-gsp-serial-capture-host.json.",
-      "falta": "METAL con 7fd4589 recibio GSP 802 / 40. Falta verificar INIT con PTIMER inicializado y completar el canal grafico."
+      "falta": "METAL con 7fd4589 recibio GSP 802 / 40. Falta medir el recibo PCIE_FLAGS del nuevo candidato y completar el canal grafico."
     },
     {
       "id": "nvidia-gsp-ptimer-native",

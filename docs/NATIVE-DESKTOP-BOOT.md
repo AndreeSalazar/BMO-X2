@@ -1630,10 +1630,16 @@ GA10x. Su ELF no anuncia secciones `.logging_metadata` ni
 El primer contraste de plataforma reproducible es el puente PCIe
 `00:03.1` hacia el bus `29`. OpenRM anuncia `PCIE_FLAGS=0x402`
 (`FLR_SUPPORTED` y `UPSTREAM_ADDRESS_VALID`). BMO-X2 ya muestrea
-`PCIE_LINK_CAP` y anuncia cero en ese otro campo. La siguiente
-prueba de una sola variable podria medir la capacidad FLR y la
-identidad del puerto aguas arriba y anunciar solamente lo que el
-host respalde. Esto no identifica el origen de `0x40`. Las
+`PCIE_LINK_CAP`. El candidato anterior anunciaba cero en
+`PCIE_FLAGS`. El nuevo ensayo lee Device Capabilities de la RTX y
+comprueba el puerto directo `00:03.1`, su identificador AMD, su
+cabecera de puente y sus buses antes de publicar la clave `0x1000`.
+Cada bit depende de su propia lectura. El ensayo no solicita FLR.
+El perfil de captura imprime `GSP / PCIE_FLAGS` junto a la respuesta
+de INIT. El banco HOST comprueba los dos bits juntos y por separado.
+La plantilla INIT conserva los mismos 464 bytes que el EFI anterior.
+El cambio de `PCIE_FLAGS` solo aparece en el mensaje publicado en RAM.
+La causa de `0x40` queda por verificar en METAL. Las
 reservas VRAM, datos ACPI y politicas VF se conservan como
 diferencias del host hasta tener sus servicios correspondientes.
 [Definiciones GMCAPI 615.78.08](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/615.78.08/src/nvidia/interface/gmcapi/gmcapi_system_info.h).

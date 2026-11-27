@@ -68,6 +68,7 @@ class FwsecLaunch(unittest.TestCase):
                         "/export:amdvi_stage_fwsec_domain", "/export:amdvi_matches_board_ivrs",
                         "/export:nvidia_prepare_sec2_image", "/export:nvidia_execute_sec2_booter",
                         "/export:nvidia_gsp_init_615", "/export:nvidia_gsp_snapshot_615",
+                        "/export:nvidia_gsp_pcie_flags_615",
                         "/export:nvidia_gsp_install_shared_surfaces",
                         "/export:nvidia_gsp_efi_time_to_ns", "/export:nvidia_gsp_seed_ptimer",
                         "/export:nvidia_gsp_read_ptimer",
@@ -207,7 +208,7 @@ class FwsecLaunch(unittest.TestCase):
                 self.write(FALCON+0xc80,0)
                 with ThreadPoolExecutor(max_workers=1) as worker:
                     run = worker.submit(self.gsp_init, ctypes.byref(self.mapping,FALCON),
-                                        address,25_000_000,(0x0043dc13<<32)|0xa1)
+                                        address,25_000_000,(0x0043dc13<<32)|(0x402<<8)|0xa1)
                     struct.pack_into('<I', queue, 0x42000, 2)
                     while self.read(FALCON+0xc00)!=1 and not run.done():
                         pass
@@ -222,6 +223,8 @@ class FwsecLaunch(unittest.TestCase):
                                   bytes(queue[0x3040:0x3040+payload_size]))
                     self.assertIn(struct.pack('<IIQ', 0x20001022, 1, 0x0A1FE000),
                                   bytes(queue[0x3040:0x3040+payload_size]))
+                    self.assertIn(struct.pack('<IIQ', 0x20001000, 1, 0x402),
+                                  bytes(queue[0x3040:0x3040+payload_size]))
                     version = struct.pack('<II', 0x30001101, 10) + b'615.78.08'+bytes(7)
                     identity = struct.pack('<4I', 0x1102, 0, 0x1110, 3)
                     self.assertEqual(bytes(queue[0x3040+payload_size-40:0x3040+payload_size]),
@@ -234,6 +237,30 @@ class FwsecLaunch(unittest.TestCase):
                     if expected == 0x802:
                         self.assertEqual(receipt & 0xffffffff, status)
                     self.assertEqual(self.read(FALCON+0xc84),int(sequence==1))
+
+    def test_gsp_pcie_flags_require_independent_hardware_evidence(self):
+        flags = self.library.nvidia_gsp_pcie_flags_615
+        flags.argtypes = [ctypes.c_uint32] * 4
+        flags.restype = ctypes.c_uint32
+        for caps, device, buses, pcie, expected in (
+            (0x10000000, 0x06040051, 0x292900, 0x0142a010, 0x402),
+            (0,          0x06040051, 0x292900, 0x0141a010, 0x400),
+            (0xffffffff, 0x06040051, 0x292900, 0x0142a010, 0x400),
+            (0x10000000, 0x06040051, 0x2a2900, 0x0142a010, 2),
+            (0x10000000, 0x06040051, 0xffffffff, 0x0142a010, 2),
+            (0,          0x06010051, 0x292900, 0x0142a010, 0),
+            (0,          0x06040051, 0x292900, 0x0162a010, 0),
+        ):
+            with self.subTest(caps=caps, device=device, buses=buses, pcie=pcie):
+                self.assertEqual(flags(caps, device, buses, pcie), expected)
+
+    def test_gsp_init_rejects_unrecognized_pcie_flags_before_submission(self):
+        backing = ctypes.create_string_buffer(8192)
+        address = (ctypes.addressof(backing)+4095)&-4096
+        self.assertEqual(
+            self.gsp_init(ctypes.byref(self.mapping, FALCON), address, 25_000_000, (1<<8)|0xa1),
+            0x805<<32,
+        )
 
     def test_gsp_consumed_command_without_reply_is_reported_as_timeout(self):
         backing = ctypes.create_string_buffer(0x83000)

@@ -574,6 +574,14 @@ extern "C" void bmo_main() {
             hardware_report+="<br/>";
             hardware_report+=amdvi_line;
 #ifdef BMO_NVIDIA_TRACE_EXPORT
+            const auto pcie_flags=doom_invoke(3,3,amdvi_diagnostic,0x2302);
+            if(pcie_flags>>32==1) {
+                snprintf(amdvi_line,sizeof(amdvi_line),"GSP / PCIE_FLAGS %08X",unsigned(pcie_flags));
+                hardware_report+="<br/>";
+                hardware_report+=amdvi_line;
+                log(amdvi_line);
+                log("\n");
+            }
             const auto after_write=doom_invoke(3,3,amdvi_diagnostic,0x2300);
             const auto before_init=doom_invoke(3,3,amdvi_diagnostic,0x2301);
             snprintf(amdvi_line,sizeof(amdvi_line),
