@@ -1,5 +1,5 @@
 {
-  "run": "run-sbef-ring0-ceaaq5uh",
+  "run": "run-sbef-ring0-adb65ve3",
   "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
   "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
   "probe_sha256": "6cb305e8b7460744f29ff5591b784c3acc0072bdfb7277ff750f5690f9e2a4a6",
@@ -11,19 +11,19 @@
   "cases": [
     {
       "case": "msvc-process-start",
-      "sha256": "627df0eae9b03b63ee5780325e41832fd170d4aeb2d308bcab1464c2e7aa1358",
+      "sha256": "ca796955a8ac3a73d13878d9e70f965f6b737cd6abc815c213f24d26dd84209a",
       "receipt": 0,
       "user_pages": 4,
-      "syscalls": 7,
+      "syscalls": 8,
       "wait_wakes": 0,
       "staging_bytes_scrubbed": 4096,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 0000000000000A9A",
+        "SBEF FAT32 BYTES 0000000000000F2B",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000004",
         "SBEF WIN64 EXIT 0000000000000000",
-        "SBEF SYSCALLS 0000000000000007",
+        "SBEF SYSCALLS 0000000000000008",
         "SBEF WAIT WAKES 0000000000000000",
         "SBEF ABI GATE RESTORED",
         "SBEF FAT32 SCRUBBED 0000000000001000",
@@ -33,19 +33,19 @@
     },
     {
       "case": "clang-cl-process-start",
-      "sha256": "2f69283050becd42de5105eae6518c7b651d29676af6034b28b2dead3b2c6b4d",
+      "sha256": "684279864db1b699aa17810df6930f6aedea80795251bdb684a0efa425bd1a81",
       "receipt": 0,
       "user_pages": 4,
-      "syscalls": 7,
+      "syscalls": 8,
       "wait_wakes": 0,
       "staging_bytes_scrubbed": 4096,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 0000000000000A5F",
+        "SBEF FAT32 BYTES 0000000000000EB1",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER PAGES 0000000000000004",
         "SBEF WIN64 EXIT 00000000DEADBEEF",
-        "SBEF SYSCALLS 0000000000000007",
+        "SBEF SYSCALLS 0000000000000008",
         "SBEF WAIT WAKES 0000000000000000",
         "SBEF ABI GATE RESTORED",
         "SBEF FAT32 SCRUBBED 0000000000001000",
@@ -71,9 +71,14 @@
           "GetACP": "bmo_get_acp",
           "GetLastError": "bmo_get_last_error",
           "SetLastError": "bmo_set_last_error",
-          "ExitProcess": "bmo_exit_process"
+          "ExitProcess": "bmo_exit_process",
+          "TlsAlloc": "bmo_tls_alloc",
+          "TlsFree": "bmo_tls_free",
+          "TlsGetValue": "bmo_tls_get_value",
+          "TlsSetValue": "bmo_tls_set_value",
+          "InitializeSListHead": "bmo_initialize_slist_head"
         },
-        "Scope": "Single-threaded QEMU startup with UTF-16, UTF-8 ACP, default startup info and DWORD exit"
+        "Scope": "Single-threaded QEMU startup with UTF-16, UTF-8 ACP, DWORD exit and 64 dynamic TLS slots"
       },
       "imports": [
         {
@@ -105,18 +110,33 @@
             },
             {
               "Name": "WriteFile"
+            },
+            {
+              "Name": "TlsAlloc"
+            },
+            {
+              "Name": "TlsFree"
+            },
+            {
+              "Name": "TlsGetValue"
+            },
+            {
+              "Name": "TlsSetValue"
+            },
+            {
+              "Name": "InitializeSListHead"
             }
           ]
         }
       ],
-      "pe_bytes": 4096,
-      "pe_sha256": "aa55b990cdf899074d92774e54752b96ac46b965fd3b579d6c82b68fb09ac2b4",
+      "pe_bytes": 5632,
+      "pe_sha256": "fefb188fa1b9d78f6241a83628491ef97a3dda211809cb2af06a7b0828e673cb",
       "producer": "msvc",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
       "rejected_import": {
         "Code": "PE-SESSION-IMPORT",
-        "Offset": 344,
+        "Offset": 352,
         "Field": "KERNEL32.dll!OtherFile"
       },
       "argv": [
@@ -130,13 +150,16 @@
       "command_line": "\"minigzip demo.exe\" -c \"\" \"datos \u00f1\ud83d\ude00.bin\" a\\\"b \"C:\\dir con espacio\\\\\"",
       "ansi_code_page": 65001,
       "exit_code": 0,
-      "command_line_va": 1075839440,
+      "command_line_va": 1075839560,
       "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
-      "command_line_a_va": 1075839367,
+      "command_line_a_va": 1075839486,
       "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
-      "stdout": "Win64 startup info and last error OK\r\n",
-      "stdout_bytes": 38,
-      "oversized_exit_rejected": true
+      "stdout": "Win64 startup, last error, TLS and SList OK\r\n",
+      "stdout_bytes": 45,
+      "oversized_exit_rejected": true,
+      "dynamic_tls_slots": 64,
+      "dynamic_tls_reuse_verified": true,
+      "slist_header_bytes": 16
     },
     "clang-cl-process-start": {
       "profile": {
@@ -152,9 +175,14 @@
           "GetACP": "bmo_get_acp",
           "GetLastError": "bmo_get_last_error",
           "SetLastError": "bmo_set_last_error",
-          "ExitProcess": "bmo_exit_process"
+          "ExitProcess": "bmo_exit_process",
+          "TlsAlloc": "bmo_tls_alloc",
+          "TlsFree": "bmo_tls_free",
+          "TlsGetValue": "bmo_tls_get_value",
+          "TlsSetValue": "bmo_tls_set_value",
+          "InitializeSListHead": "bmo_initialize_slist_head"
         },
-        "Scope": "Single-threaded QEMU startup with UTF-16, UTF-8 ACP, default startup info and DWORD exit"
+        "Scope": "Single-threaded QEMU startup with UTF-16, UTF-8 ACP, DWORD exit and 64 dynamic TLS slots"
       },
       "imports": [
         {
@@ -182,6 +210,21 @@
               "Name": "GetStartupInfoW"
             },
             {
+              "Name": "TlsAlloc"
+            },
+            {
+              "Name": "TlsSetValue"
+            },
+            {
+              "Name": "TlsGetValue"
+            },
+            {
+              "Name": "TlsFree"
+            },
+            {
+              "Name": "InitializeSListHead"
+            },
+            {
               "Name": "GetStdHandle"
             },
             {
@@ -190,14 +233,14 @@
           ]
         }
       ],
-      "pe_bytes": 4096,
-      "pe_sha256": "44243919ee69720bbb251b235aa787db020fc2bb350d81f2e28d0885fa884e52",
+      "pe_bytes": 5120,
+      "pe_sha256": "d782561f0fe07c35ef6cb2e8d69d5471af37b511bc7b5860c3eb53518a26f693",
       "producer": "clang-cl",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
       "rejected_import": {
         "Code": "PE-SESSION-IMPORT",
-        "Offset": 344,
+        "Offset": 352,
         "Field": "KERNEL32.dll!OtherFile"
       },
       "argv": [
@@ -211,13 +254,16 @@
       "command_line": "\"minigzip demo.exe\" -c \"\" \"datos \u00f1\ud83d\ude00.bin\" a\\\"b \"C:\\dir con espacio\\\\\"",
       "ansi_code_page": 65001,
       "exit_code": 3735928559,
-      "command_line_va": 1075839440,
+      "command_line_va": 1075839544,
       "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
-      "command_line_a_va": 1075839367,
+      "command_line_a_va": 1075839470,
       "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
-      "stdout": "Win64 startup info and last error OK\r\n",
-      "stdout_bytes": 38,
-      "oversized_exit_rejected": true
+      "stdout": "Win64 startup, last error, TLS and SList OK\r\n",
+      "stdout_bytes": 45,
+      "oversized_exit_rejected": true,
+      "dynamic_tls_slots": 64,
+      "dynamic_tls_reuse_verified": true,
+      "slist_header_bytes": 16
     }
   },
   "original_minigzip_admission": {
@@ -225,18 +271,148 @@
       "input_sha256": "e01b3b7f663763291a75058343bff61a5dc651e6f4b8be1e786b65def8d5a5be",
       "pack_rejection": {
         "Code": "PE-IMPORTS",
-        "Field": "DataDirectory.imports",
-        "Offset": 392
+        "Offset": 392,
+        "Field": "DataDirectory.imports"
       },
       "blockers": [
         "PE-IMPORTS",
         "PE-LOAD-CONFIG",
         "PE-IAT"
       ],
+      "pe_bytes": 223232,
+      "size_of_image": 241664,
+      "guard_flags": 256,
       "imports": {
-        "available_in_fixture": 18,
-        "missing": 62,
+        "available_in_fixture": 27,
+        "missing": 53,
         "ordinal": 0
+      },
+      "groups": {
+        "Arranque y entorno": {
+          "fixture": [
+            "GetStartupInfoW",
+            "ExitProcess",
+            "GetCommandLineA",
+            "GetCommandLineW"
+          ],
+          "pending": [
+            "GetCurrentProcess",
+            "TerminateProcess",
+            "GetCurrentProcessId",
+            "GetCurrentThreadId",
+            "GetEnvironmentStringsW",
+            "FreeEnvironmentStringsW",
+            "SetEnvironmentVariableW"
+          ]
+        },
+        "Archivos y consola": {
+          "fixture": [
+            "GetLastError",
+            "SetLastError",
+            "CreateFileW",
+            "GetFileType",
+            "CloseHandle",
+            "SetFilePointerEx",
+            "GetStdHandle",
+            "WriteFile",
+            "ReadFile",
+            "SetEndOfFile",
+            "GetFileSizeEx",
+            "FlushFileBuffers"
+          ],
+          "pending": [
+            "WriteConsoleW",
+            "GetConsoleMode",
+            "ReadConsoleW",
+            "GetConsoleOutputCP",
+            "SetStdHandle",
+            "FindClose",
+            "FindFirstFileExW",
+            "FindNextFileW",
+            "DeleteFileW"
+          ]
+        },
+        "Memoria": {
+          "fixture": [
+            "HeapFree",
+            "HeapAlloc",
+            "GetProcessHeap",
+            "HeapSize",
+            "HeapReAlloc"
+          ],
+          "pending": [
+            "VirtualProtect"
+          ]
+        },
+        "TLS y sincronizacion": {
+          "fixture": [
+            "InitializeSListHead",
+            "TlsAlloc",
+            "TlsGetValue",
+            "TlsSetValue",
+            "TlsFree"
+          ],
+          "pending": [
+            "EnterCriticalSection",
+            "LeaveCriticalSection",
+            "DeleteCriticalSection",
+            "InitializeCriticalSectionAndSpinCount",
+            "FlsAlloc",
+            "FlsGetValue",
+            "FlsSetValue",
+            "FlsFree",
+            "InitializeCriticalSectionEx"
+          ]
+        },
+        "Cargador de modulos": {
+          "fixture": [],
+          "pending": [
+            "GetModuleHandleW",
+            "FreeLibrary",
+            "GetProcAddress",
+            "LoadLibraryExW",
+            "GetModuleHandleExW",
+            "GetModuleFileNameW"
+          ]
+        },
+        "Excepciones y contexto": {
+          "fixture": [],
+          "pending": [
+            "RtlCaptureContext",
+            "RtlLookupFunctionEntry",
+            "RtlVirtualUnwind",
+            "UnhandledExceptionFilter",
+            "SetUnhandledExceptionFilter",
+            "RtlUnwindEx",
+            "RaiseException",
+            "RtlPcToFileHeader"
+          ]
+        },
+        "Texto y pagina de codigos": {
+          "fixture": [
+            "GetACP"
+          ],
+          "pending": [
+            "WideCharToMultiByte",
+            "MultiByteToWideChar",
+            "CompareStringW",
+            "LCMapStringW",
+            "IsValidCodePage",
+            "GetOEMCP",
+            "GetCPInfo",
+            "GetStringTypeW"
+          ]
+        },
+        "Tiempo y plataforma": {
+          "fixture": [],
+          "pending": [
+            "IsProcessorFeaturePresent",
+            "QueryPerformanceCounter",
+            "GetSystemTimeAsFileTime",
+            "IsDebuggerPresent",
+            "EncodePointer"
+          ]
+        }
       },
       "qemu_ran": false
     },
@@ -244,18 +420,148 @@
       "input_sha256": "b5fc3970f3ce6784436cc31bc45738cbd9ce75a054af1be146939d9672754020",
       "pack_rejection": {
         "Code": "PE-IMPORTS",
-        "Field": "DataDirectory.imports",
-        "Offset": 264
+        "Offset": 264,
+        "Field": "DataDirectory.imports"
       },
       "blockers": [
         "PE-IMPORTS",
         "PE-LOAD-CONFIG",
         "PE-IAT"
       ],
+      "pe_bytes": 236032,
+      "size_of_image": 258048,
+      "guard_flags": 256,
       "imports": {
-        "available_in_fixture": 18,
-        "missing": 62,
+        "available_in_fixture": 27,
+        "missing": 53,
         "ordinal": 0
+      },
+      "groups": {
+        "Arranque y entorno": {
+          "fixture": [
+            "ExitProcess",
+            "GetCommandLineA",
+            "GetCommandLineW",
+            "GetStartupInfoW"
+          ],
+          "pending": [
+            "FreeEnvironmentStringsW",
+            "GetCurrentProcess",
+            "GetCurrentProcessId",
+            "GetCurrentThreadId",
+            "GetEnvironmentStringsW",
+            "SetEnvironmentVariableW",
+            "TerminateProcess"
+          ]
+        },
+        "Archivos y consola": {
+          "fixture": [
+            "CloseHandle",
+            "CreateFileW",
+            "FlushFileBuffers",
+            "GetFileSizeEx",
+            "GetFileType",
+            "GetLastError",
+            "GetStdHandle",
+            "ReadFile",
+            "SetEndOfFile",
+            "SetFilePointerEx",
+            "SetLastError",
+            "WriteFile"
+          ],
+          "pending": [
+            "DeleteFileW",
+            "FindClose",
+            "FindFirstFileExW",
+            "FindNextFileW",
+            "GetConsoleMode",
+            "GetConsoleOutputCP",
+            "ReadConsoleW",
+            "SetStdHandle",
+            "WriteConsoleW"
+          ]
+        },
+        "Memoria": {
+          "fixture": [
+            "GetProcessHeap",
+            "HeapAlloc",
+            "HeapFree",
+            "HeapReAlloc",
+            "HeapSize"
+          ],
+          "pending": [
+            "VirtualProtect"
+          ]
+        },
+        "TLS y sincronizacion": {
+          "fixture": [
+            "InitializeSListHead",
+            "TlsAlloc",
+            "TlsFree",
+            "TlsGetValue",
+            "TlsSetValue"
+          ],
+          "pending": [
+            "DeleteCriticalSection",
+            "EnterCriticalSection",
+            "FlsAlloc",
+            "FlsFree",
+            "FlsGetValue",
+            "FlsSetValue",
+            "InitializeCriticalSectionAndSpinCount",
+            "InitializeCriticalSectionEx",
+            "LeaveCriticalSection"
+          ]
+        },
+        "Cargador de modulos": {
+          "fixture": [],
+          "pending": [
+            "FreeLibrary",
+            "GetModuleFileNameW",
+            "GetModuleHandleExW",
+            "GetModuleHandleW",
+            "GetProcAddress",
+            "LoadLibraryExW"
+          ]
+        },
+        "Excepciones y contexto": {
+          "fixture": [],
+          "pending": [
+            "RaiseException",
+            "RtlCaptureContext",
+            "RtlLookupFunctionEntry",
+            "RtlPcToFileHeader",
+            "RtlUnwindEx",
+            "RtlVirtualUnwind",
+            "SetUnhandledExceptionFilter",
+            "UnhandledExceptionFilter"
+          ]
+        },
+        "Texto y pagina de codigos": {
+          "fixture": [
+            "GetACP"
+          ],
+          "pending": [
+            "CompareStringW",
+            "GetCPInfo",
+            "GetOEMCP",
+            "GetStringTypeW",
+            "IsValidCodePage",
+            "LCMapStringW",
+            "MultiByteToWideChar",
+            "WideCharToMultiByte"
+          ]
+        },
+        "Tiempo y plataforma": {
+          "fixture": [],
+          "pending": [
+            "EncodePointer",
+            "GetSystemTimeAsFileTime",
+            "IsDebuggerPresent",
+            "IsProcessorFeaturePresent",
+            "QueryPerformanceCounter"
+          ]
+        }
       },
       "qemu_ran": false
     }

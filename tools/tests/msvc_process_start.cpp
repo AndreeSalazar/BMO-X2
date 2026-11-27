@@ -10,10 +10,39 @@ __declspec(dllimport) void SetLastError(unsigned long);
 __declspec(dllimport) void ExitProcess(unsigned long);
 __declspec(dllimport) void* GetStdHandle(unsigned long);
 __declspec(dllimport) int WriteFile(void*, const void*, unsigned long, unsigned long*, void*);
+__declspec(dllimport) unsigned long TlsAlloc(void);
+__declspec(dllimport) int TlsFree(unsigned long);
+__declspec(dllimport) void* TlsGetValue(unsigned long);
+__declspec(dllimport) int TlsSetValue(unsigned long, void*);
+__declspec(dllimport) void InitializeSListHead(void*);
 }
 
 static unsigned long written;
 static volatile unsigned char startup[106];
+static unsigned long slots[64];
+alignas(16) static volatile bmo_word slist[4];
+
+static void check_dynamic_tls(void) {
+    for (auto& slot : slots) {
+        slot = TlsAlloc();
+        SetLastError(123);
+        if (slot >= 64 || TlsGetValue(slot) || GetLastError()) ExitProcess(103);
+        if (!TlsSetValue(slot, &slot) || TlsGetValue(slot) != &slot) ExitProcess(104);
+    }
+    for (auto& slot : slots) {
+        if (TlsGetValue(slot) != &slot) ExitProcess(105);
+    }
+    if (TlsAlloc() != 0xfffffffful || GetLastError() != 259) ExitProcess(106);
+    if (!TlsFree(slots[0]) || TlsFree(slots[0]) || GetLastError() != 87) ExitProcess(107);
+    const auto recycled = TlsAlloc();
+    if (recycled != slots[0] || TlsGetValue(recycled) || GetLastError()) ExitProcess(108);
+    if (TlsSetValue(64, &slots[0]) || GetLastError() != 87) ExitProcess(109);
+    SetLastError(0);
+    if (TlsGetValue(64) || GetLastError() != 87) ExitProcess(110);
+    for (auto slot : slots) {
+        if (!TlsFree(slot)) ExitProcess(111);
+    }
+}
 
 extern "C" void bmo_main(void) {
     static constexpr wchar_t expected[] =
@@ -46,8 +75,12 @@ extern "C" void bmo_main(void) {
     if (GetLastError() != 0xa1b2c3d4ul) ExitProcess(101);
     SetLastError(0);
     if (GetLastError()) ExitProcess(102);
+    check_dynamic_tls();
+    for (auto& word : slist) word = ~bmo_word{0};
+    InitializeSListHead(const_cast<bmo_word*>(slist));
+    if (slist[0] || slist[1] || slist[2] != ~bmo_word{0} || slist[3] != ~bmo_word{0}) ExitProcess(112);
     if (bmo_invoke(4, 2, 0x100000000ull, 0, 0).status != BMO_BAD_ARG) ExitProcess(93);
-    static constexpr char message[] = "Win64 startup info and last error OK\r\n";
+    static constexpr char message[] = "Win64 startup, last error, TLS and SList OK\r\n";
     if (written || !WriteFile(GetStdHandle(static_cast<unsigned long>(-11)), message, sizeof(message) - 1,
                    &written, nullptr) || written != sizeof(message) - 1) ExitProcess(94);
     ExitProcess(BMO_WIN64_EXIT_CODE);

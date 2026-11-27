@@ -357,6 +357,13 @@ La estructura `STARTUPINFOW` Win64 ocupa 104 bytes y devuelve los
 valores por defecto de la sesion. El estado de error se comparte
 con los servicios de archivos en esta sesion de un hilo. El supervisor
 registra el DWORD completo y rechaza valores mayores a 32 bits.
+El mismo perfil comprueba `TlsAlloc`, `TlsGetValue`, `TlsSetValue` y
+`TlsFree` con 64 indices dinamicos. Las pruebas cubren valores nulos,
+agotamiento, reuso, indices fuera de rango y el efecto de
+`TlsGetValue` sobre LastError. Tambien cubre `InitializeSListHead`
+con una cabecera Win64 alineada de 16 bytes. El runtime de esta prueba
+corre un solo hilo. El banco de TLS estatico de dos hilos usa un
+perfil distinto.
 [Informe del arranque Win64 y admision del PE original](../../Reports/host-win64-process-start-qemu.json).
 
 ```powershell
@@ -369,6 +376,34 @@ de hasta 4 KiB, lee del paquete y emite por stdout. La persistencia de este
 flujo la realiza el HOST en Windows. La IAT
 resuelta queda de solo lectura. El cargador debe interpretar o rechazar
 explicitamente las caracteristicas declaradas en `load_config`.
+
+### Ruta del PE original de minigzip
+
+El HOST compila cuando recibe fuentes. Cuando recibe el EXE, inspecciona
+el PE, valida los metadatos y prepara su paquete SBEF. Los servicios
+Win64, el estado del proceso y el arranque CRT corresponden al cargador
+y al runtime Ring 3 de BMO-X2. El supervisor arbitra el mapeo y los
+servicios que requieren privilegios.
+
+Wine ofrece dos referencias de implementacion. Su cargador recorre los
+descriptores de importacion y resuelve dependencias antes de entregar
+el control al ejecutable. Sus API de TLS separan la asignacion de
+indices del proceso de los valores de cada hilo.
+[Cargador de Wine](https://github.com/wine-mirror/wine/blob/master/dlls/ntdll/loader.c)
+[TLS de Wine](https://github.com/wine-mirror/wine/blob/master/dlls/kernelbase/thread.c).
+
+Los dos PE originales importan 80 simbolos de `KERNEL32.dll`.
+Hay 27 destinos con evidencia en perfiles acotados y 53 pendientes.
+El informe de QEMU registra ambos hashes y los nombres por area.
+Los PE declaran 241664 bytes (MSVC) y 258048 bytes (clang-cl) de imagen.
+El banco reserva 64 marcos de usuario y debe medir el espacio del
+runtime y la pila ademas de las secciones del PE.
+
+La admision del original requiere resolver la IAT contra el runtime
+integrado y publicarla de solo lectura, inicializar la cookie de
+seguridad y aplicar el contrato CFG declarado en `load_config`. El
+resultado se valida con el PE original en QEMU, registrando el codigo
+de salida y comparando los bytes tras comprimir y descomprimir.
 
 Para registrar compatibilidad en QEMU, conservar el hash del PE y del
 SBEF, la salida de consola, el codigo de salida y la evidencia del

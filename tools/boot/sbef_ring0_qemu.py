@@ -33,7 +33,7 @@ CONSOLE_PAGES = 347
 TLS_PAGES = 348
 MINIGZIP_IO_LIMIT = 4096
 CONSOLE_OUTPUT = b'Hola mundo desde C++ / MSVC en BMO-X2\r\n'
-PROCESS_OUTPUT = b'Win64 startup info and last error OK\r\n'
+PROCESS_OUTPUT = b'Win64 startup, last error, TLS and SList OK\r\n'
 CRT_OUTPUT = b'MSVC CRT: inicio, main y cierre OK\r\n'
 GS_HANDLER_OUTPUT = b'MSVC CRT: __GSHandlerCheck OK\r\n'
 GS_UNWIND_OUTPUT = b'MSVC CRT: unwind de dos marcos OK\r\n'
@@ -780,7 +780,8 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                 crt_report['dispatch_fixture']['mismatch_stdout_bytes'] = len(stdout)
             elif args.msvc_process:
                 console[name].update(stdout=stdout.decode('ascii'), stdout_bytes=len(stdout),
-                                     oversized_exit_rejected=True)
+                                     oversized_exit_rejected=True, dynamic_tls_slots=64,
+                                     dynamic_tls_reuse_verified=True, slist_header_bytes=16)
             elif cli is not None:
                 scenario.update(stdout_bytes=len(stdout), stdout_sha256=hashlib.sha256(stdout).hexdigest())
             elif args.msvc_gzip:

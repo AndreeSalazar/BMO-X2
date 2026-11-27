@@ -52,6 +52,14 @@ pub unsafe extern "win64" fn bmo_get_startup_info_w(info: *mut u8) {
     }
 }
 
+#[repr(C, align(16))]
+pub struct SListHeader([u64; 2]);
+
+#[unsafe(no_mangle)]
+pub unsafe extern "win64" fn bmo_initialize_slist_head(head: *mut SListHeader) {
+    unsafe { head.write(SListHeader([0; 2])) };
+}
+
 #[unsafe(no_mangle)]
 pub extern "win64" fn bmo_exit_process(code: u32) -> ! {
     unsafe {
