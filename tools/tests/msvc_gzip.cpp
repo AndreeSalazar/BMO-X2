@@ -13,6 +13,10 @@ __declspec(dllimport) unsigned long GetLastError(void);
 __declspec(dllimport) int SetFilePointerEx(void*, long long, long long*, unsigned long);
 __declspec(dllimport) int SetEndOfFile(void*);
 __declspec(dllimport) int FlushFileBuffers(void*);
+__declspec(dllimport) void* FindFirstFileExW(const wchar_t*, unsigned, void*, unsigned, void*, unsigned long);
+__declspec(dllimport) int FindNextFileW(void*, void*);
+__declspec(dllimport) int FindClose(void*);
+__declspec(dllimport) int DeleteFileW(const wchar_t*);
 __declspec(dllimport) void* GetStdHandle(unsigned long);
 __declspec(dllimport) int WriteFile(void*, const void*, unsigned long, unsigned long*, void*);
 void* memset(void*, int, size_t);
@@ -121,14 +125,56 @@ bool gzip(void* heap, const Output& input, Output& output, int level = 6) {
 }
 
 #ifndef BMO_MINIGZIP_CLI
-bool persist(const Output& output, unsigned char* recovered) {
+struct FindData {
+    unsigned long attributes;
+    unsigned long timestamps[6];
+    unsigned long size_high;
+    unsigned long size_low;
+    unsigned long reserved[2];
+    wchar_t name[260];
+    wchar_t alternate[14];
+};
+static_assert(sizeof(FindData) == 592);
+
+bool matches(const FindData& data, const wchar_t* expected, unsigned long size, unsigned long attributes) {
+    if (data.size_high || data.size_low != size || data.attributes != attributes || data.alternate[0]) return false;
+    for (unsigned index = 0; ; ++index) {
+        if (data.name[index] != expected[index]) return false;
+        if (!expected[index]) return true;
+    }
+}
+
+bool search_files(unsigned long input_bytes, unsigned long output_bytes, bool output_exists, void* open_file = nullptr) {
+    struct { FindData data; unsigned long guard; } found;
+    found.guard = 0xa1b2c3d4;
+    const auto invalid = reinterpret_cast<void*>(static_cast<size_t>(-1));
+    auto* search = FindFirstFileExW(L"*.BIN", 1, &found.data, 0, nullptr, 2);
+    if (search == invalid || !matches(found.data, L"input.bin", input_bytes, 1)) return false;
+    if (open_file && (FindClose(open_file) || GetLastError() != 6 || CloseHandle(search) ||
+                      GetLastError() != 6)) return false;
+    if (FindFirstFileExW(L"*", 0, &found.data, 0, nullptr, 0) != invalid || GetLastError() != 4) return false;
+    if (output_exists && (!FindNextFileW(search, &found.data) ||
+        !matches(found.data, L"output.bin", output_bytes, 0x80))) return false;
+    if (FindNextFileW(search, &found.data) || GetLastError() != 18 || found.guard != 0xa1b2c3d4 ||
+        !FindClose(search) || FindNextFileW(search, &found.data) || GetLastError() != 6) return false;
+    if (FindFirstFileExW(L"INPUT.BIN", 0, &found.data, 0, nullptr, 1) != invalid ||
+        GetLastError() != 2 || FindFirstFileExW(L"*.zip", 0, &found.data, 0, nullptr, 0) != invalid ||
+        GetLastError() != 2) return false;
+    auto* exact = FindFirstFileExW(L"INP?T.BIN", 0, &found.data, 0, nullptr, 0);
+    return exact != invalid && exact != search && matches(found.data, L"input.bin", input_bytes, 1) && FindClose(exact);
+}
+
+bool persist(const Output& output, unsigned char* recovered, unsigned long input_bytes) {
     constexpr unsigned long generic_read = 0x80000000, generic_write = 0x40000000;
     constexpr unsigned long create_always = 2, open_existing = 3;
     const auto invalid = reinterpret_cast<void*>(static_cast<size_t>(-1));
     auto open = [](unsigned long access, unsigned long disposition) {
-        return CreateFileW(L"output.bin", access, 1, nullptr, disposition, 0, nullptr);
+        return CreateFileW(L"OUTPUT.BIN", access, 1, nullptr, disposition, 0, nullptr);
     };
-    if (open(generic_read, open_existing) != invalid || GetLastError() != 2) return false;
+    if (open(generic_read, open_existing) != invalid || GetLastError() != 2 ||
+        DeleteFileW(L"INPUT.BIN") || GetLastError() != 5 ||
+        DeleteFileW(L"output.bin") || GetLastError() != 2 ||
+        !search_files(input_bytes, 0, false)) return false;
     void* file = open(generic_write, create_always);
     unsigned long count = 0;
     const auto half = output.size / 2;
@@ -136,7 +182,8 @@ bool persist(const Output& output, unsigned char* recovered) {
     if (file == invalid || !WriteFile(file, output.bytes, half, &count, nullptr) || count != half ||
         WriteFile(file, output.bytes, buffer_limit + 1, &count, nullptr) || count || GetLastError() != 112 ||
         !WriteFile(file, output.bytes + half, output.size - half, &count, nullptr) ||
-        count != output.size - half) return false;
+        count != output.size - half || DeleteFileW(L"OUTPUT.BIN") || GetLastError() != 32 ||
+        !search_files(input_bytes, output.size, true, file)) return false;
     long long position = -1;
     if (!SetFilePointerEx(file, 0, nullptr, 0) ||
         !WriteFile(file, output.bytes, 1, &count, nullptr) || count != 1 ||
@@ -158,7 +205,9 @@ bool persist(const Output& output, unsigned char* recovered) {
     file = open(generic_write, create_always);
     if (file == invalid || !CloseHandle(file)) return false;
     file = open(generic_read, open_existing);
-    return file != invalid && ReadFile(file, recovered, 1, &count, nullptr) && !count && CloseHandle(file);
+    return file != invalid && ReadFile(file, recovered, 1, &count, nullptr) && !count && CloseHandle(file) &&
+        DeleteFileW(L"output.bin") && open(generic_read, open_existing) == invalid && GetLastError() == 2 &&
+        !DeleteFileW(L"output.bin") && GetLastError() == 2 && search_files(input_bytes, 0, false);
 }
 #endif
 
@@ -195,7 +244,7 @@ int run_gzip() {
     if (!HeapFree(heap, 0, window)) return 7;
     Output compressed{input, 0};
     if (!gzip(heap, output, compressed)) return 8;
-    if (!persist(compressed, decoded)) return 9;
+    if (!persist(compressed, decoded, size)) return 9;
     if (!write_stdout({decoded, compressed.size})) return 6;
     return HeapFree(heap, 0, decoded) && HeapFree(heap, 0, input) ? 0 : 7;
 }

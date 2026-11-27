@@ -828,7 +828,9 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                                compressed_bytes=len(stdout), compressed_sha256=hashlib.sha256(stdout).hexdigest(),
                                sbef_bytes=len(image), sbef_limit_bytes=QEMU_SBEF_LIMIT,
                                corrupt_crc_rejected=True, scratch_file_round_trip=True,
-                               scratch_file_limit_rejected=True, scratch_file_truncated=True)
+                               scratch_file_limit_rejected=True, scratch_file_truncated=True,
+                               package_enumeration_verified=True, file_delete_sharing_verified=True,
+                               scratch_delete_verified=True)
         print(f'{name}: comprobado', flush=True)
     private_pages = TLS_PAGES if tls_report else PEER_PAGES if args.peer else (
         PROCESS_PAGES if args.msvc_process else CONSOLE_PAGES if stdout_report or dll_report else EXTERNAL_PAGES)

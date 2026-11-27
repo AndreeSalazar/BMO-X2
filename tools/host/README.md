@@ -266,6 +266,13 @@ escritura sin espacio conserva los datos y la posicion.
 El banco tambien prueba sobreescritura sin truncar, truncado y extension
 con `SetEndOfFile`. Los huecos del archivo de RAM se inicializan a cero.
 `FlushFileBuffers` valida el acceso de escritura del archivo en RAM.
+El perfil admite `FindFirstFileExW`, `FindNextFileW` y `FindClose`
+para una busqueda activa en la raiz del paquete. Soporta patrones
+`*` y `?` sobre sus nombres ASCII y devuelve el tamano y los
+atributos del archivo. Los manejadores de busqueda son independientes
+de los manejadores de lectura y escritura. La enumeracion incluye
+`output.bin` mientras exista. `DeleteFileW` elimina esa salida de RAM
+una vez cerrada y rechaza el borrado de la entrada de solo lectura.
 QEMU captura el GZIP resultante y el HOST lo descomprime para comparar
 los bytes con la referencia. El lector del cliente admite un miembro
 sin campos opcionales. Un tercer caso carga exactamente 65536 bytes de
@@ -433,7 +440,7 @@ indices del proceso de los valores de cada hilo.
 [TLS de Wine](https://github.com/wine-mirror/wine/blob/master/dlls/kernelbase/thread.c).
 
 Los dos PE originales importan 80 simbolos de `KERNEL32.dll`.
-Hay 53 destinos con evidencia en perfiles acotados y 27 pendientes.
+Hay 57 destinos con evidencia en perfiles acotados y 23 pendientes.
 El informe de QEMU registra ambos hashes y los nombres por area.
 Los PE declaran 241664 bytes (MSVC) y 258048 bytes (clang-cl) de imagen.
 El lector FAT32 y el supervisor de QEMU aceptan hasta 262144 bytes de

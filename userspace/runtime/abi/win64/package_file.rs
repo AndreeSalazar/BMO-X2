@@ -3,7 +3,12 @@
 
 use core::sync::atomic::{AtomicU64, Ordering::Relaxed};
 
+#[cfg(bmo_package_output)]
+mod package_find;
+
 const PATH: [u16; 10] = [105, 110, 112, 117, 116, 46, 98, 105, 110, 0];
+#[cfg(bmo_package_output)]
+const OUTPUT_PATH: [u16; 11] = [111, 117, 116, 112, 117, 116, 46, 98, 105, 110, 0];
 const CONTENT: &[u8] = include_bytes!(env!("BMO_PACKAGE_INPUT"));
 const INVALID_HANDLE: usize = usize::MAX;
 const SESSION_STDOUT: usize = 4;
@@ -56,6 +61,10 @@ mod scratch {
         LENGTH.store(size, Relaxed);
     }
 
+    pub fn remove() {
+        LENGTH.store(MISSING, Relaxed);
+    }
+
     pub fn buffer() -> *mut u8 {
         addr_of_mut!(DATA).cast()
     }
@@ -67,14 +76,17 @@ fn fail(error: u32) {
 
 unsafe fn path_equals(path: *const u16, name: &[u16]) -> bool {
     name.iter().enumerate().all(|(index, expected)| {
-        unsafe { path.add(index).read_unaligned() == *expected }
+        ascii_lower(unsafe { path.add(index).read_unaligned() }) == *expected
     })
+}
+
+fn ascii_lower(unit: u16) -> u16 {
+    if (65..=90).contains(&unit) { unit + 32 } else { unit }
 }
 
 fn open_mode(path: *const u16, access: u32, disposition: u32) -> Result<u64, u32> {
     #[cfg(bmo_package_output)]
     {
-        const OUTPUT_PATH: [u16; 11] = [111, 117, 116, 112, 117, 116, 46, 98, 105, 110, 0];
         if unsafe { path_equals(path, &OUTPUT_PATH) } {
             return match (access, disposition) {
                 (0x4000_0000, 2) => Ok(OUTPUT | WRITABLE),
@@ -92,6 +104,32 @@ fn open_mode(path: *const u16, access: u32, disposition: u32) -> Result<u64, u32
     } else {
         Err(ERROR_FILE_NOT_FOUND)
     }
+}
+
+#[cfg(bmo_package_output)]
+#[unsafe(no_mangle)]
+pub unsafe extern "win64" fn bmo_package_delete(path: *const u16) -> i32 {
+    if path.is_null() {
+        fail(ERROR_INVALID_PARAMETER);
+        return 0;
+    }
+    if unsafe { path_equals(path, &PATH) } {
+        fail(ERROR_ACCESS_DENIED);
+        return 0;
+    }
+    if unsafe { path_equals(path, &OUTPUT_PATH) } {
+        if let Some(length) = scratch::length() {
+            if SLOT.load(Relaxed) & (LIVE | OUTPUT) == LIVE | OUTPUT {
+                fail(ERROR_SHARING_VIOLATION);
+                return 0;
+            }
+            zero_gap(0, length);
+            scratch::remove();
+            return 1;
+        }
+    }
+    fail(ERROR_FILE_NOT_FOUND);
+    0
 }
 
 fn active(handle: usize) -> Option<u64> {

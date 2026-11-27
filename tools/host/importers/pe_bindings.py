@@ -57,6 +57,10 @@ WIN64_SCRATCH_FILE_PROFILE = {
         'WriteFile': 'bmo_package_write',
         'SetEndOfFile': 'bmo_package_set_eof',
         'FlushFileBuffers': 'bmo_package_flush',
+        'FindFirstFileExW': 'bmo_package_find_first',
+        'FindNextFileW': 'bmo_package_find_next',
+        'FindClose': 'bmo_package_find_close',
+        'DeleteFileW': 'bmo_package_delete',
     },
     'Scope': 'External single-threaded QEMU fixture with a 4 KiB volatile output file',
 }

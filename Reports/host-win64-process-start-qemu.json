@@ -797,8 +797,8 @@
       "size_of_image": 241664,
       "guard_flags": 256,
       "imports": {
-        "available_in_fixture": 53,
-        "missing": 27,
+        "available_in_fixture": 57,
+        "missing": 23,
         "ordinal": 0
       },
       "groups": {
@@ -832,17 +832,17 @@
             "SetStdHandle",
             "SetEndOfFile",
             "GetFileSizeEx",
+            "FindClose",
+            "FindFirstFileExW",
+            "FindNextFileW",
+            "DeleteFileW",
             "FlushFileBuffers"
           ],
           "pending": [
             "WriteConsoleW",
             "GetConsoleMode",
             "ReadConsoleW",
-            "GetConsoleOutputCP",
-            "FindClose",
-            "FindFirstFileExW",
-            "FindNextFileW",
-            "DeleteFileW"
+            "GetConsoleOutputCP"
           ]
         },
         "Memoria": {
@@ -946,8 +946,8 @@
       "size_of_image": 258048,
       "guard_flags": 256,
       "imports": {
-        "available_in_fixture": 53,
-        "missing": 27,
+        "available_in_fixture": 57,
+        "missing": 23,
         "ordinal": 0
       },
       "groups": {
@@ -971,6 +971,10 @@
           "fixture": [
             "CloseHandle",
             "CreateFileW",
+            "DeleteFileW",
+            "FindClose",
+            "FindFirstFileExW",
+            "FindNextFileW",
             "FlushFileBuffers",
             "GetFileSizeEx",
             "GetFileType",
@@ -984,10 +988,6 @@
             "WriteFile"
           ],
           "pending": [
-            "DeleteFileW",
-            "FindClose",
-            "FindFirstFileExW",
-            "FindNextFileW",
             "GetConsoleMode",
             "GetConsoleOutputCP",
             "ReadConsoleW",
