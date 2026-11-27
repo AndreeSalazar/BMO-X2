@@ -21,6 +21,9 @@ from ..importers.pe_imports import inventory_imports
 from ..sbef.format import LEGACY_FORMAT_VERSION, inspect, load_plan
 
 
+PROCESS_FUNCTION_METADATA = struct.Struct('<9Q')
+
+
 def msvc_x64_compiler():
     vs = Path(os.environ['ProgramFiles']) / 'Microsoft Visual Studio'
     compilers = sorted(vs.glob('*/*/VC/Tools/MSVC/*/bin/Hostx64/x64/cl.exe'))
@@ -28,6 +31,40 @@ def msvc_x64_compiler():
     if not cc.is_file() or not cc.with_name('link.exe').is_file():
         raise ValueError('La prueba exige MSVC x64')
     return cc
+
+
+def publish_process_function_table(payload, source, inventory, descriptor_address):
+    regions = load_plan(payload)['Regions']
+    readonly = next(region for region in regions if region['Permissions'] == 'R')
+    descriptor = descriptor_address - readonly['VirtualStart']
+    descriptor_end = descriptor + PROCESS_FUNCTION_METADATA.size
+    offset = readonly['FileOffset'] + descriptor
+    if (len(regions) != 3 or descriptor < 0 or descriptor % 8 or
+            descriptor_end > readonly['FileBytes'] or any(payload[offset:offset + PROCESS_FUNCTION_METADATA.size])):
+        raise ValueError('El descriptor Win64 debe reservar 72 bytes en solo lectura')
+
+    directory = inventory['Directories']['exceptions']
+    base = inventory['ImageBase']
+    table_address = base + directory['RVA']
+    table_bytes = directory['Bytes']
+    relative = table_address - readonly['VirtualStart']
+    if (relative < 0 or relative + table_bytes > readonly['FileBytes'] or table_bytes % 12 or
+            (relative < descriptor_end and descriptor < relative + table_bytes)):
+        raise ValueError('La tabla x64 debe quedar en una region de solo lectura independiente')
+    section = next(item for item in inventory['Sections']
+                   if item['RVA'] <= directory['RVA'] < item['RVA'] + item['FileBytes'])
+    source_offset = section['FileOffset'] + directory['RVA'] - section['RVA']
+    table_start = readonly['FileOffset'] + relative
+    functions = payload[table_start:table_start + table_bytes]
+    if functions != source[source_offset:source_offset + table_bytes]:
+        raise ValueError('El empaquetado cambio la tabla de funciones del PE')
+
+    bounds = [value for region in regions
+              for value in (region['VirtualStart'], region['VirtualStart'] + region['MemoryBytes'])]
+    data = PROCESS_FUNCTION_METADATA.pack(base, table_address, table_bytes // 12, *bounds)
+    published = payload[:offset] + data + payload[offset + len(data):]
+    return published, dict(image_base=base, runtime_function_count=table_bytes // 12,
+                           runtime_function_sha256=hashlib.sha256(functions).hexdigest())
 
 
 def build_external_tls(root, out, assembler):
@@ -140,7 +177,8 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
             path_file.write_bytes((path + '\0').encode('utf-16-le'))
             env[f'BMO_WIN64_{key}'] = str(path_file.resolve())
         units.extend(('process_start', 'last_error', 'thread_slots', 'fiber_slots', 'critical_section',
-                      'environment', 'text_encoding', 'platform', 'process_handles', 'module_registry'))
+                      'environment', 'text_encoding', 'platform', 'process_handles', 'module_registry',
+                      'function_table', 'exception_filter'))
         profile = WIN64_PROCESS_PROFILE
         module_exports = {**profile['Imports'], 'GetTickCount64': SESSION_EXPORTS['GetTickCount64']}
         compile_flags = ['/O1', f'/DBMO_WIN64_EXIT_CODE=0x{process_exit:08x}UL']
@@ -179,10 +217,16 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
         records.extend(f'.quad .Lexport_{index}, {target}' for index, target in enumerate(module_exports.values()))
         records.append('bmo_win64_exports_end:')
         records.extend(f'.Lexport_{index}: .asciz "{name}"' for index, name in enumerate(module_exports))
+        records.extend(('.p2align 3', '.globl bmo_win64_function_table',
+                        f'bmo_win64_function_table: .zero {PROCESS_FUNCTION_METADATA.size}'))
         table.write_text('\n'.join(records) + '\n', encoding='ascii')
         table_object = out / 'module-exports.obj'
         subprocess.run([assembler, '--target=x86_64-pc-windows-msvc', '-c', table, '-o', table_object], check=True)
         objects.append(table_object)
+        capture = out / 'capture-context.obj'
+        subprocess.run([assembler, '--target=x86_64-pc-windows-msvc', '-c',
+                        abi / 'capture_context.S', '-o', capture], check=True)
+        objects.append(capture)
     for unit in units:
         obj = out / f'console-{unit}.obj'
         scratch = gzip_source is not None and unit == 'package_file'
@@ -209,7 +253,7 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
     names = set(exports.values()) | command_strings.keys()
     if module_exports:
         names.update(module_exports.values())
-        names.update(('bmo_win64_exports', 'bmo_win64_exports_end'))
+        names.update(('bmo_win64_exports', 'bmo_win64_exports_end', 'bmo_win64_function_table'))
     pattern = r'^\s+[0-9A-Fa-f]+:[0-9A-Fa-f]+\s+(' + '|'.join(sorted(names)) + r')\s+([0-9A-Fa-f]+)\b'
     symbols = {name: int(address, 16) for name, address in re.findall(pattern, link_map.read_text(), re.M)}
     if symbols.keys() != names:
@@ -217,6 +261,11 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
     bindings = {api: symbols[name] for api, name in exports.items()}
     source = pe.read_bytes()
     payload = pack_pe(source, abi=profile['AbiVersion'], bindings=bindings)
+    inventory = probe_pe(source)
+    if module_exports:
+        payload, function_report = publish_process_function_table(
+            payload, source, inventory, symbols['bmo_win64_function_table'])
+        file_report.update(function_report)
     if package_file or command_strings:
         readonly = next(region for region in load_plan(payload)['Regions'] if region['Permissions'] == 'R')
         start = readonly['FileOffset']
@@ -256,7 +305,6 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
     (out / 'console.sbef').write_bytes(payload)
 
     # Change only the imported name and exercise the same binder before QEMU.
-    inventory = probe_pe(source)
     directory = inventory['Directories']['imports']
     optional_header = struct.unpack_from('<I', source, 60)[0] + 24
     imported = inventory_imports(source, inventory['Sections'], directory, optional_header + 120, include_slots=True)

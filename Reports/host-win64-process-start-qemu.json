@@ -1,5 +1,5 @@
 {
-  "run": "run-sbef-ring0-yztydvzh",
+  "run": "run-sbef-ring0-7lg85hpx",
   "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
   "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
   "probe_sha256": "4c801bc0180fca9daa4d4a914bdf9fa167e607297b1b673761d39920f6d24092",
@@ -11,17 +11,17 @@
   "cases": [
     {
       "case": "msvc-process-start",
-      "sha256": "6c2c85d6a3042198b1c344c19a10a89a571ffa36d769eb57fb52fcd194326219",
+      "sha256": "60ffa59977945d607cf5b934ec8985b0c6ad4c8a32cfab49ca22802b2ced68fd",
       "receipt": 0,
-      "user_pages": 69,
+      "user_pages": 70,
       "syscalls": 14,
       "wait_wakes": 2,
       "staging_bytes_scrubbed": 258048,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000003E688",
+        "SBEF FAT32 BYTES 000000000003EDCC",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000045",
+        "SBEF USER PAGES 0000000000000046",
         "SBEF WIN64 EXIT 0000000000000000",
         "SBEF SYSCALLS 000000000000000E",
         "SBEF WAIT WAKES 0000000000000002",
@@ -33,17 +33,17 @@
     },
     {
       "case": "clang-cl-process-start",
-      "sha256": "14230e961e4d491eb2b99203f07300622cab6d6b743ca77e24c1bd13c7b1b491",
+      "sha256": "13bdb778e0a32014618ca43c990b57ac5dcfe860913d506e7c724c697e1d03d6",
       "receipt": 0,
-      "user_pages": 69,
+      "user_pages": 70,
       "syscalls": 14,
       "wait_wakes": 2,
       "staging_bytes_scrubbed": 258048,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000003E699",
+        "SBEF FAT32 BYTES 000000000003EDC1",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000045",
+        "SBEF USER PAGES 0000000000000046",
         "SBEF WIN64 EXIT 00000000DEADBEEF",
         "SBEF SYSCALLS 000000000000000E",
         "SBEF WAIT WAKES 0000000000000002",
@@ -55,17 +55,17 @@
     },
     {
       "case": "msvc-process-terminate",
-      "sha256": "c8d7d8998b02c2fefa4c4bb528507353aebfe5d5acb6e1c08358e9da42063f87",
+      "sha256": "c7ce4b9f7773dc9ff406452b0a9a4dc54687233c42d7e9fe56f1333280e37bd7",
       "receipt": 0,
-      "user_pages": 69,
+      "user_pages": 70,
       "syscalls": 13,
       "wait_wakes": 2,
       "staging_bytes_scrubbed": 258048,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000003E694",
+        "SBEF FAT32 BYTES 000000000003EDD8",
         "SBEF RECEIPT 0000000000000000",
-        "SBEF USER PAGES 0000000000000045",
+        "SBEF USER PAGES 0000000000000046",
         "SBEF WIN64 EXIT 000000008000002A",
         "SBEF SYSCALLS 000000000000000D",
         "SBEF WAIT WAKES 0000000000000002",
@@ -77,7 +77,7 @@
     },
     {
       "case": "msvc-process-page-budget",
-      "sha256": "a9b54e489bf496cb9930a63d0a5934589c9bcd9040624644ca77af62acd30506",
+      "sha256": "00cda14cbfd1ba0093aa6ef648e90253bec7810ab6377fe190d0ffd43dde5122",
       "receipt": 0,
       "user_pages": 0,
       "syscalls": 0,
@@ -85,7 +85,7 @@
       "staging_bytes_scrubbed": 258048,
       "trace": [
         "SBEF CPL0 POST-EBS",
-        "SBEF FAT32 BYTES 000000000003E688",
+        "SBEF FAT32 BYTES 000000000003EDCC",
         "SBEF RECEIPT 0000000000000000",
         "SBEF USER BUDGET",
         "SBEF REJECTED BEFORE USER MAP",
@@ -149,7 +149,12 @@
           "GetModuleHandleExW": "bmo_get_module_handle_ex_w",
           "GetProcAddress": "bmo_get_proc_address",
           "LoadLibraryExW": "bmo_load_library_ex_w",
-          "FreeLibrary": "bmo_free_library"
+          "FreeLibrary": "bmo_free_library",
+          "RtlCaptureContext": "bmo_rtl_capture_context",
+          "RtlPcToFileHeader": "bmo_rtl_pc_to_file_header",
+          "RtlLookupFunctionEntry": "bmo_rtl_lookup_function_entry",
+          "SetUnhandledExceptionFilter": "bmo_set_unhandled_exception_filter",
+          "UnhandledExceptionFilter": "bmo_unhandled_exception_filter"
         },
         "Scope": "Single-threaded QEMU startup with UTF-16, UTF-8 ACP, DWORD exit and dynamic TLS/FLS"
       },
@@ -213,6 +218,21 @@
             },
             {
               "Name": "FreeLibrary"
+            },
+            {
+              "Name": "RtlCaptureContext"
+            },
+            {
+              "Name": "RtlPcToFileHeader"
+            },
+            {
+              "Name": "RtlLookupFunctionEntry"
+            },
+            {
+              "Name": "SetUnhandledExceptionFilter"
+            },
+            {
+              "Name": "UnhandledExceptionFilter"
             },
             {
               "Name": "GetLastError"
@@ -298,14 +318,14 @@
           ]
         }
       ],
-      "pe_bytes": 257024,
-      "pe_sha256": "f336eab087552a50d137fbd8f85a011eacdfe014b24bd95f17e8c3474765fb99",
+      "pe_bytes": 259072,
+      "pe_sha256": "2b15951c7dd6bd3c72fbc4a72ec57611c8d684e08fe0ca500edd3560ed24fab9",
       "producer": "msvc",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
       "rejected_import": {
         "Code": "PE-SESSION-IMPORT",
-        "Offset": 352,
+        "Offset": 344,
         "Field": "KERNEL32.dll!OtherFile"
       },
       "argv": [
@@ -321,12 +341,15 @@
       "kernel32_path": "X:\\BMO-X2\\System32\\kernel32.dll",
       "ansi_code_page": 65001,
       "exit_code": 0,
-      "command_line_va": 1076075996,
+      "image_base": 1071644672,
+      "runtime_function_count": 52,
+      "runtime_function_sha256": "478d381999195a37613b26d969d6cb81d9a93db6769e492324910c6b9cc0aac4",
+      "command_line_va": 1076076362,
       "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
-      "command_line_a_va": 1076075923,
+      "command_line_a_va": 1076076288,
       "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
-      "resident_export_count": 47,
-      "resident_exports_sha256": "c83441e85d79cc22868c2963437ba46fe01eaed202b92f68899b9e37a4787318",
+      "resident_export_count": 52,
+      "resident_exports_sha256": "da4e5fb50a336dd970385f215900265ffa8e2516620c87a7433965840b779f56",
       "stdout": "Win64 startup, last error, TLS and SList OK\r\nFLS OK\r\n",
       "stdout_bytes": 53,
       "oversized_exit_rejected": true,
@@ -347,7 +370,10 @@
       "standard_handle_slots_verified": true,
       "runtime_module_lookup_verified": true,
       "dynamic_export_call_verified": true,
-      "sbef_bytes": 255624,
+      "capture_context_verified": true,
+      "runtime_function_lookup_verified": true,
+      "explicit_exception_filter_verified": true,
+      "sbef_bytes": 257484,
       "sbef_limit_bytes": 262144
     },
     "clang-cl-process-start": {
@@ -401,7 +427,12 @@
           "GetModuleHandleExW": "bmo_get_module_handle_ex_w",
           "GetProcAddress": "bmo_get_proc_address",
           "LoadLibraryExW": "bmo_load_library_ex_w",
-          "FreeLibrary": "bmo_free_library"
+          "FreeLibrary": "bmo_free_library",
+          "RtlCaptureContext": "bmo_rtl_capture_context",
+          "RtlPcToFileHeader": "bmo_rtl_pc_to_file_header",
+          "RtlLookupFunctionEntry": "bmo_rtl_lookup_function_entry",
+          "SetUnhandledExceptionFilter": "bmo_set_unhandled_exception_filter",
+          "UnhandledExceptionFilter": "bmo_unhandled_exception_filter"
         },
         "Scope": "Single-threaded QEMU startup with UTF-16, UTF-8 ACP, DWORD exit and dynamic TLS/FLS"
       },
@@ -524,6 +555,12 @@
               "Name": "LoadLibraryExW"
             },
             {
+              "Name": "UnhandledExceptionFilter"
+            },
+            {
+              "Name": "SetUnhandledExceptionFilter"
+            },
+            {
               "Name": "GetStdHandle"
             },
             {
@@ -546,18 +583,27 @@
             },
             {
               "Name": "IsProcessorFeaturePresent"
+            },
+            {
+              "Name": "RtlCaptureContext"
+            },
+            {
+              "Name": "RtlPcToFileHeader"
+            },
+            {
+              "Name": "RtlLookupFunctionEntry"
             }
           ]
         }
       ],
-      "pe_bytes": 257024,
-      "pe_sha256": "d72170c0a1bfc8b10366d17ae200dd3ab3454d594333115778934363e3dde759",
+      "pe_bytes": 259072,
+      "pe_sha256": "1d6a44658c5ce31bbc32fa0065a6ae7c3aa5eaf33b41453804ee363321075554",
       "producer": "clang-cl",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
       "rejected_import": {
         "Code": "PE-SESSION-IMPORT",
-        "Offset": 352,
+        "Offset": 336,
         "Field": "KERNEL32.dll!OtherFile"
       },
       "argv": [
@@ -573,12 +619,15 @@
       "kernel32_path": "X:\\BMO-X2\\System32\\kernel32.dll",
       "ansi_code_page": 65001,
       "exit_code": 3735928559,
-      "command_line_va": 1076076012,
+      "image_base": 1071644672,
+      "runtime_function_count": 44,
+      "runtime_function_sha256": "f1af7c5ddf253487c0952e3db32d83e77a3e4df99d41d52dfccbae22cd860fc0",
+      "command_line_va": 1076076378,
       "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
-      "command_line_a_va": 1076075939,
+      "command_line_a_va": 1076076304,
       "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
-      "resident_export_count": 47,
-      "resident_exports_sha256": "4368cebde6200952723adc316a8d1df6c1f6117c765259388ca1b69ff0a85821",
+      "resident_export_count": 52,
+      "resident_exports_sha256": "7ed49e091cbee8d3c7bb4eefbfcc20060aa87de765ab704b44ec765a6636de89",
       "stdout": "Win64 startup, last error, TLS and SList OK\r\nFLS OK\r\n",
       "stdout_bytes": 53,
       "oversized_exit_rejected": true,
@@ -599,7 +648,10 @@
       "standard_handle_slots_verified": true,
       "runtime_module_lookup_verified": true,
       "dynamic_export_call_verified": true,
-      "sbef_bytes": 255641,
+      "capture_context_verified": true,
+      "runtime_function_lookup_verified": true,
+      "explicit_exception_filter_verified": true,
+      "sbef_bytes": 257473,
       "sbef_limit_bytes": 262144
     },
     "msvc-process-terminate": {
@@ -653,7 +705,12 @@
           "GetModuleHandleExW": "bmo_get_module_handle_ex_w",
           "GetProcAddress": "bmo_get_proc_address",
           "LoadLibraryExW": "bmo_load_library_ex_w",
-          "FreeLibrary": "bmo_free_library"
+          "FreeLibrary": "bmo_free_library",
+          "RtlCaptureContext": "bmo_rtl_capture_context",
+          "RtlPcToFileHeader": "bmo_rtl_pc_to_file_header",
+          "RtlLookupFunctionEntry": "bmo_rtl_lookup_function_entry",
+          "SetUnhandledExceptionFilter": "bmo_set_unhandled_exception_filter",
+          "UnhandledExceptionFilter": "bmo_unhandled_exception_filter"
         },
         "Scope": "Single-threaded QEMU startup with UTF-16, UTF-8 ACP, DWORD exit and dynamic TLS/FLS"
       },
@@ -717,6 +774,21 @@
             },
             {
               "Name": "FreeLibrary"
+            },
+            {
+              "Name": "RtlCaptureContext"
+            },
+            {
+              "Name": "RtlPcToFileHeader"
+            },
+            {
+              "Name": "RtlLookupFunctionEntry"
+            },
+            {
+              "Name": "SetUnhandledExceptionFilter"
+            },
+            {
+              "Name": "UnhandledExceptionFilter"
             },
             {
               "Name": "GetLastError"
@@ -802,14 +874,14 @@
           ]
         }
       ],
-      "pe_bytes": 257024,
-      "pe_sha256": "440b0fed74637f1aaf0fa1b970c688347a30051fed9f7cd8f24c84bc261d683d",
+      "pe_bytes": 259072,
+      "pe_sha256": "dbf8e74b8bfe82cc5a9f98d42b5985407e02e38a54e1956df9ef7e58599725b0",
       "producer": "msvc",
       "msvc_toolset": "14.44.35207",
       "sdk": "10.0.26100.0",
       "rejected_import": {
         "Code": "PE-SESSION-IMPORT",
-        "Offset": 352,
+        "Offset": 344,
         "Field": "KERNEL32.dll!OtherFile"
       },
       "argv": [
@@ -825,12 +897,15 @@
       "kernel32_path": "X:\\BMO-X2\\System32\\kernel32.dll",
       "ansi_code_page": 65001,
       "exit_code": 2147483690,
-      "command_line_va": 1076075996,
+      "image_base": 1071644672,
+      "runtime_function_count": 52,
+      "runtime_function_sha256": "319c5de8664e4910255a20630915f305014bb45bd08698de28142a4676400637",
+      "command_line_va": 1076076362,
       "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
-      "command_line_a_va": 1076075923,
+      "command_line_a_va": 1076076288,
       "command_line_a_sha256": "487ec8e934b6c5322fbcb86b7a8bd863b17d0b5ad91f16211f6eba6d8bc8b231",
-      "resident_export_count": 47,
-      "resident_exports_sha256": "c83441e85d79cc22868c2963437ba46fe01eaed202b92f68899b9e37a4787318",
+      "resident_export_count": 52,
+      "resident_exports_sha256": "da4e5fb50a336dd970385f215900265ffa8e2516620c87a7433965840b779f56",
       "stdout": "Win64 startup, last error, TLS and SList OK\r\n",
       "stdout_bytes": 45,
       "oversized_exit_rejected": true,
@@ -851,7 +926,10 @@
       "standard_handle_slots_verified": true,
       "runtime_module_lookup_verified": true,
       "dynamic_export_call_verified": true,
-      "sbef_bytes": 255636,
+      "capture_context_verified": true,
+      "runtime_function_lookup_verified": true,
+      "explicit_exception_filter_verified": true,
+      "sbef_bytes": 257496,
       "sbef_limit_bytes": 262144
     }
   },
@@ -872,8 +950,8 @@
       "size_of_image": 241664,
       "guard_flags": 256,
       "imports": {
-        "available_in_fixture": 62,
-        "missing": 18,
+        "available_in_fixture": 67,
+        "missing": 13,
         "ordinal": 0
       },
       "groups": {
@@ -963,16 +1041,17 @@
           "pending": []
         },
         "Excepciones y contexto": {
-          "fixture": [],
-          "pending": [
+          "fixture": [
             "RtlCaptureContext",
             "RtlLookupFunctionEntry",
-            "RtlVirtualUnwind",
             "UnhandledExceptionFilter",
             "SetUnhandledExceptionFilter",
-            "RtlUnwindEx",
-            "RaiseException",
             "RtlPcToFileHeader"
+          ],
+          "pending": [
+            "RtlVirtualUnwind",
+            "RtlUnwindEx",
+            "RaiseException"
           ]
         },
         "Texto y pagina de codigos": {
@@ -1020,8 +1099,8 @@
       "size_of_image": 258048,
       "guard_flags": 256,
       "imports": {
-        "available_in_fixture": 62,
-        "missing": 18,
+        "available_in_fixture": 67,
+        "missing": 13,
         "ordinal": 0
       },
       "groups": {
@@ -1111,16 +1190,17 @@
           "pending": []
         },
         "Excepciones y contexto": {
-          "fixture": [],
-          "pending": [
-            "RaiseException",
+          "fixture": [
             "RtlCaptureContext",
             "RtlLookupFunctionEntry",
             "RtlPcToFileHeader",
-            "RtlUnwindEx",
-            "RtlVirtualUnwind",
             "SetUnhandledExceptionFilter",
             "UnhandledExceptionFilter"
+          ],
+          "pending": [
+            "RaiseException",
+            "RtlUnwindEx",
+            "RtlVirtualUnwind"
           ]
         },
         "Texto y pagina de codigos": {

@@ -20,6 +20,12 @@ __declspec(dllimport) int GetModuleHandleExW(unsigned long, const wchar_t*, void
 __declspec(dllimport) void* GetProcAddress(void*, const char*);
 __declspec(dllimport) void* LoadLibraryExW(const wchar_t*, void*, unsigned long);
 __declspec(dllimport) int FreeLibrary(void*);
+__declspec(dllimport) void RtlCaptureContext(void*);
+__declspec(dllimport) bmo_word RtlPcToFileHeader(const void*, bmo_word*);
+__declspec(dllimport) const void* RtlLookupFunctionEntry(bmo_word, bmo_word*, void*);
+using ExceptionFilter = long (*)(void*);
+__declspec(dllimport) ExceptionFilter SetUnhandledExceptionFilter(ExceptionFilter);
+__declspec(dllimport) long UnhandledExceptionFilter(void*);
 __declspec(dllimport) unsigned long GetLastError(void);
 __declspec(dllimport) void SetLastError(unsigned long);
 __declspec(dllimport) void ExitProcess(unsigned long);
@@ -68,6 +74,76 @@ struct LargeReadOnly {
 
 static const LargeReadOnly large_readonly = {0x42, {}, 0x6d};
 static volatile unsigned char large_private[8192];
+static void* filter_argument;
+static unsigned filter_calls;
+
+static long allow_continue(void* argument) {
+    if (argument != filter_argument) ExitProcess(185);
+    ++filter_calls;
+    if (SetUnhandledExceptionFilter(nullptr) != allow_continue) ExitProcess(186);
+    return -1;
+}
+
+static long continue_search(void* argument) {
+    if (argument != filter_argument) ExitProcess(187);
+    ++filter_calls;
+    return 0;
+}
+
+static void check_exception_filters(void) {
+    struct ExceptionPointers { void* record; void* context; } pointers{};
+    filter_argument = &pointers;
+    if (UnhandledExceptionFilter(&pointers) != 1 || SetUnhandledExceptionFilter(continue_search) ||
+        UnhandledExceptionFilter(&pointers) != 1 || filter_calls != 1 ||
+        SetUnhandledExceptionFilter(allow_continue) != continue_search ||
+        UnhandledExceptionFilter(&pointers) != -1 || filter_calls != 2 ||
+        UnhandledExceptionFilter(&pointers) != 1 || filter_calls != 2 ||
+        SetUnhandledExceptionFilter(nullptr)) ExitProcess(188);
+}
+
+struct alignas(16) WinContext {
+    bmo_word homes[6];
+    unsigned long flags, mxcsr;
+    unsigned short segments[6];
+    unsigned long eflags;
+    bmo_word debug[6], registers[16], rip;
+    unsigned long floating_state[128];
+    unsigned char extended[464];
+};
+static_assert(sizeof(WinContext) == 1232);
+
+struct RuntimeFunction {
+    unsigned long begin;
+    unsigned long end;
+    unsigned long unwind;
+};
+
+__declspec(noinline) static void check_unwind_lookup(void) {
+    WinContext context;
+    RtlCaptureContext(&context);
+    const auto stack = context.registers[4];
+    const auto record = reinterpret_cast<bmo_word>(&context);
+    if (context.flags != 0x10000f || context.registers[1] != record ||
+        stack > record || record - stack >= 4096 || (stack & 15) ||
+        (context.segments[0] & 3) != 3 || !(context.eflags & 2) ||
+        context.mxcsr != context.floating_state[6]) ExitProcess(181);
+
+    bmo_word image = 0;
+    const auto module = reinterpret_cast<bmo_word>(GetModuleHandleW(nullptr));
+    if (!module || RtlPcToFileHeader(reinterpret_cast<void*>(context.rip), &image) != module ||
+        image != module || RtlPcToFileHeader(&large_readonly, &image) != module ||
+        image != module) ExitProcess(182);
+    const auto* function = static_cast<const RuntimeFunction*>(RtlLookupFunctionEntry(context.rip, &image, nullptr));
+    if (!function || image != module || image + function->begin > context.rip ||
+        context.rip >= image + function->end || !function->unwind ||
+        RtlPcToFileHeader(reinterpret_cast<void*>(image + function->unwind), nullptr) != image ||
+        RtlLookupFunctionEntry(image + function->begin, nullptr, nullptr) != function ||
+        RtlLookupFunctionEntry(image + function->end, nullptr, nullptr) == function) ExitProcess(183);
+    image = 123;
+    if (RtlLookupFunctionEntry(1, &image, nullptr) || image != 123 ||
+        RtlLookupFunctionEntry(reinterpret_cast<bmo_word>(&large_readonly), &image, nullptr) ||
+        image != 123 || RtlPcToFileHeader(&context, &image) || image) ExitProcess(184);
+}
 
 static void check_module_registry(void) {
     const auto main_image = GetModuleHandleW(nullptr);
@@ -401,6 +477,8 @@ extern "C" void bmo_main(void) {
     check_text_encoding();
     check_platform();
     check_module_registry();
+    check_unwind_lookup();
+    check_exception_filters();
     check_image_path();
     check_std_handles();
     for (auto& word : slist) word = ~bmo_word{0};

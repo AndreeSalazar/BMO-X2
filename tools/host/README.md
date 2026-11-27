@@ -423,7 +423,21 @@ entrada registrada y el rechazo de nombres y ordinales ausentes.
 un enlace estatico y puede resolver `GetTickCount64` aunque la muestra
 carezca de esa importacion directa. `LoadLibraryExW` adquiere una
 referencia al proveedor residente. El perfil admite los dos modulos
-registradas y sus rutas virtuales.
+registrados y sus rutas virtuales.
+
+El perfil captura el `CONTEXT` AMD64 del llamador con
+`RtlCaptureContext`. El HOST conserva la tabla de funciones del PE
+byte por byte y publica en solo lectura su direccion, cantidad de
+entradas y rangos del ejecutable. `RtlPcToFileHeader` devuelve la base
+PE usada para resolver RVA y `RtlLookupFunctionEntry` busca en la
+tabla por el PC capturado. La prueba comprueba entradas validas, el
+limite excluido de cada funcion y consultas fuera de la imagen.
+
+`SetUnhandledExceptionFilter` instala o restaura el callback del
+proceso. La llamada explicita a `UnhandledExceptionFilter` aplica su
+resultado y usa la disposicion por defecto al continuar la busqueda.
+La entrega automatica de excepciones al proceso requiere integrar
+estas API con el despachador.
 [Informe del arranque Win64 y admision del PE original](../../Reports/host-win64-process-start-qemu.json).
 
 ```powershell
@@ -453,12 +467,12 @@ indices del proceso de los valores de cada hilo.
 [TLS de Wine](https://github.com/wine-mirror/wine/blob/master/dlls/kernelbase/thread.c).
 
 Los dos PE originales importan 80 simbolos de `KERNEL32.dll`.
-Hay 62 destinos con evidencia en perfiles acotados y 18 pendientes.
+Hay 67 destinos con evidencia en perfiles acotados y 13 pendientes.
 El informe de QEMU registra ambos hashes y los nombres por area.
 Los PE declaran 241664 bytes (MSVC) y 258048 bytes (clang-cl) de imagen.
 El lector FAT32 y el supervisor de QEMU aceptan hasta 262144 bytes de
-archivo SBEF. El banco del proceso verifico paquetes de 255624 a
-255641 bytes con MSVC y clang-cl. Cada ejecucion uso 68 paginas de
+archivo SBEF. El banco del proceso verifico paquetes de 257473 a
+257496 bytes con MSVC y clang-cl. Cada ejecucion uso 69 paginas de
 regiones y una de pila. Este perfil dispone de 96 marcos para las
 regiones y rechaza una solicitud de 97 antes de publicar los mapeos.
 El perfil general de QEMU conserva su limite de 64 marcos para regiones.

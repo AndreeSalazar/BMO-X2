@@ -30,7 +30,7 @@ enum Module {
 impl Module {
     fn handle(self) -> usize {
         match self {
-            Self::Image => bmo_win64_start as *const () as usize,
+            Self::Image => unsafe { bmo_win64_image_base() },
             Self::Kernel32 => addr_of!(bmo_win64_exports).addr(),
         }
     }
@@ -58,6 +58,7 @@ struct Export {
 
 unsafe extern "win64" {
     fn bmo_win64_start();
+    fn bmo_win64_image_base() -> usize;
     fn bmo_set_last_error(error: u32);
     static bmo_win64_exports: Export;
     static bmo_win64_exports_end: Export;
@@ -79,6 +80,9 @@ fn exports() -> impl Iterator<Item = *const Export> {
 
 fn from_address(address: usize) -> Option<Module> {
     // The fixture registers entry points. A general image mapper will supply module ranges.
+    if address == bmo_win64_start as *const () as usize {
+        return Some(Module::Image);
+    }
     from_handle(address).or_else(|| {
         exports().any(|entry| unsafe { (*entry).target.addr() } == address).then_some(Module::Kernel32)
     })

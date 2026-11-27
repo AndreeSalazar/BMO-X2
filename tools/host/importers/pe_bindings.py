@@ -115,6 +115,11 @@ WIN64_PROCESS_PROFILE = {
         'GetProcAddress': 'bmo_get_proc_address',
         'LoadLibraryExW': 'bmo_load_library_ex_w',
         'FreeLibrary': 'bmo_free_library',
+        'RtlCaptureContext': 'bmo_rtl_capture_context',
+        'RtlPcToFileHeader': 'bmo_rtl_pc_to_file_header',
+        'RtlLookupFunctionEntry': 'bmo_rtl_lookup_function_entry',
+        'SetUnhandledExceptionFilter': 'bmo_set_unhandled_exception_filter',
+        'UnhandledExceptionFilter': 'bmo_unhandled_exception_filter',
     },
     'Scope': 'Single-threaded QEMU startup with UTF-16, UTF-8 ACP, DWORD exit and dynamic TLS/FLS',
 }
