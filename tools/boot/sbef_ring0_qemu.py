@@ -33,6 +33,7 @@ CONSOLE_PAGES = 347
 TLS_PAGES = 348
 MINIGZIP_IO_LIMIT = 4096
 CONSOLE_OUTPUT = b'Hola mundo desde C++ / MSVC en BMO-X2\r\n'
+PROCESS_OUTPUT = b'GetCommandLineW and ExitProcess OK\r\n'
 CRT_OUTPUT = b'MSVC CRT: inicio, main y cierre OK\r\n'
 GS_HANDLER_OUTPUT = b'MSVC CRT: __GSHandlerCheck OK\r\n'
 GS_UNWIND_OUTPUT = b'MSVC CRT: unwind de dos marcos OK\r\n'
@@ -373,6 +374,18 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
     elif args.msvc_minigzip:
         cases, cli = (minigzip_file_case(args, run, llvm) if args.input_file
                       else minigzip_cases(run, llvm, args.msvc_minigzip))
+    elif args.msvc_process:
+        calls = 2 + (len(PROCESS_OUTPUT) + 7) // 8
+        cases = []
+        console = {}
+        for producer, code in (('msvc', 0), ('clang-cl', 0xdeadbeef)):
+            name = f'{producer}-process-start'
+            build = run / name
+            build.mkdir()
+            image, details = build_external_console(
+                ROOT, build, llvm / 'clang.exe', process_exit=code, use_clang=producer == 'clang-cl')
+            cases.append((name, image, f'SBEF WIN64 EXIT {code:016X}', calls))
+            console[name] = details
     elif args.msvc_console or args.msvc_heap or args.msvc_package_file or args.msvc_gzip:
         options = dict(heap=args.msvc_heap, package_file=args.msvc_package_file, gzip_source=args.msvc_gzip)
         image, console = build_external_console(ROOT, run, llvm / 'clang.exe', **options)
@@ -499,6 +512,9 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                                     and pages <= 64)
                 elif args.msvc_heap or args.msvc_package_file:
                     valid_layout = plan['RegionCount'] == 3 and 23 <= pages <= 26
+                elif args.msvc_process:
+                    valid_layout = ([region['Permissions'] for region in plan['Regions']] == ['RX', 'R', 'RW']
+                                    and pages == 4)
                 else:
                     expected_regions, expected_pages = (5, 7) if tls_report else (6, 7) if dll_report else (
                         (4, 5) if rebase else (3, 7) if args.msvc_crt_gs_native else (3, 4 if crt_report else 5)
@@ -659,9 +675,9 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
             wakes = int(wake_line.removeprefix(wake_prefix) or '0', 16)
             if (args.peer or dll_report or tls_report or crt_report) and wakes:
                 raise ValueError(f'{name}: WAIT entro al bucle del PIT. Ver {folder}')
-            if gzip_run and wakes:
+            if (gzip_run or args.msvc_process) and wakes:
                 raise ValueError(f'{name}: WAIT inesperado. Ver {folder}')
-            if console and not args.msvc_gzip and not 1 <= wakes <= 3:
+            if console and not (args.msvc_gzip or args.msvc_process) and not 1 <= wakes <= 3:
                 raise ValueError(f'{name}: WAIT debia despertar en uno a tres ticks. Ver {folder}')
             if not extension and not 1 <= wakes <= 2:
                 raise ValueError(f'{name}: WAIT debia despertar en uno o dos ticks. Ver {folder}')
@@ -691,6 +707,8 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                 expected_stdout = b''
             elif name.endswith('-handler'):
                 expected_stdout = GS_HANDLER_OUTPUT
+            elif args.msvc_process:
+                expected_stdout = PROCESS_OUTPUT
             elif cli is not None:
                 scenario = cli[name]
                 if disk_mode:
@@ -760,6 +778,9 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
                 crt_report['dispatch_fixture']['stdout'] = stdout.decode('ascii')
             elif name.endswith('-handler-mismatch'):
                 crt_report['dispatch_fixture']['mismatch_stdout_bytes'] = len(stdout)
+            elif args.msvc_process:
+                console[name].update(stdout=stdout.decode('ascii'), stdout_bytes=len(stdout),
+                                     oversized_exit_rejected=True)
             elif cli is not None:
                 scenario.update(stdout_bytes=len(stdout), stdout_sha256=hashlib.sha256(stdout).hexdigest())
             elif args.msvc_gzip:
@@ -790,7 +811,8 @@ def run_external(args, run, llvm, bridge, body, stream, module, extension=b'', *
     if stdout_report or dll_report or tls_report:
         report.update(extension_bytes=len(extension), extension_sha256=hashlib.sha256(extension).hexdigest())
     if console:
-        key = 'win64_gzip' if args.msvc_gzip else 'win64_package_file' if args.msvc_package_file else (
+        key = 'win64_process_start' if args.msvc_process else 'win64_gzip' if args.msvc_gzip else (
+            'win64_package_file' if args.msvc_package_file else
             'win64_heap' if args.msvc_heap else 'msvc_console')
         report[key] = console
     if cli is not None:
@@ -844,6 +866,7 @@ def main():
     profiles.add_argument('--peer', action='store_true', help='Test WAIT with a second isolated CPL3 context')
     profiles.add_argument('--msvc-rebase', type=Path, metavar='EXE', help='Run the audited MSVC DIR64 fixture')
     profiles.add_argument('--msvc-console', action='store_true', help='Build and run the external Win64 console fixture')
+    profiles.add_argument('--msvc-process', action='store_true', help='Run the UTF-16 and DWORD Win64 startup fixture')
     profiles.add_argument('--msvc-heap', action='store_true', help='Run the Win64 process heap with MSVC and clang-cl')
     profiles.add_argument('--msvc-package-file', action='store_true',
                           help='Run the Win64 read-only package file with MSVC and clang-cl')
@@ -879,7 +902,7 @@ def main():
             parser.error('La ruta de salida ya existe')
         args.level = args.level or 6
         args.minigzip_producer = args.minigzip_producer or 'msvc'
-    win64 = (args.msvc_console or args.msvc_heap or args.msvc_package_file or args.msvc_gzip or args.msvc_minigzip
+    win64 = (args.msvc_console or args.msvc_process or args.msvc_heap or args.msvc_package_file or args.msvc_gzip or args.msvc_minigzip
              or args.msvc_minigzip_disk or args.msvc_minigzip_fat
              or args.msvc_crt
              or args.msvc_crt_gs or args.msvc_crt_gs_native or args.msvc_dll
@@ -909,6 +932,8 @@ def main():
         mode['BMO_EXTERNAL_PEER'] = 1
     if win64:
         mode['BMO_EXTERNAL_WIN64'] = 1
+    if args.msvc_process:
+        mode['BMO_QEMU_WIN64_PROCESS'] = 1
     if args.msvc_minigzip_disk or args.msvc_minigzip_fat:
         mode['BMO_QEMU_GZIP_DISK'] = 1
     if args.msvc_minigzip_fat:

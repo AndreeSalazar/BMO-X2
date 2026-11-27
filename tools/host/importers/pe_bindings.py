@@ -52,11 +52,23 @@ WIN64_SCRATCH_FILE_PROFILE = {
     'Scope': 'External single-threaded QEMU fixture with a 4 KiB volatile output file',
 }
 
+WIN64_PROCESS_PROFILE = {
+    **WIN64_CONSOLE_PROFILE,
+    'Name': 'win64-process-start-v1',
+    'Imports': {
+        'GetStdHandle': SESSION_EXPORTS['GetStdHandle'],
+        'WriteFile': SESSION_EXPORTS['WriteFile'],
+        'GetCommandLineW': 'bmo_get_command_line_w',
+        'ExitProcess': 'bmo_exit_process',
+    },
+    'Scope': 'External QEMU startup fixture with a packaged UTF-16 command line and DWORD exit',
+}
+
 
 def bind_session_imports(data, image, opt, segments, bindings):
-    allowed = WIN64_FILE_PROFILE['Imports']
-    if not bindings.keys() <= allowed.keys():
-        unknown = min(bindings.keys() - allowed.keys())
+    allowed = WIN64_FILE_PROFILE['Imports'].keys() | WIN64_PROCESS_PROFILE['Imports'].keys()
+    if not bindings.keys() <= allowed:
+        unknown = min(bindings.keys() - allowed)
         raise Rejection('PE-SESSION-TARGET', opt + 16, f'KERNEL32.dll!{unknown}')
     bind_fixed_imports(data, image, opt, segments, 'KERNEL32.dll', bindings, segments[:1])
 

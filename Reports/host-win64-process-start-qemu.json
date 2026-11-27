@@ -1,0 +1,197 @@
+{
+  "run": "run-sbef-ring0-c0lzqu6d",
+  "evidence": "QEMU/OVMF, SBEF from virtual FAT32 and real CPL3",
+  "validator_text_sha256": "5cd8a4a37570850f33d5157fe8d8a656bc00e6cbe2e798153636c96dcf7a7446",
+  "probe_sha256": "6cb305e8b7460744f29ff5591b784c3acc0072bdfb7277ff750f5690f9e2a4a6",
+  "probe_bytes": 4072,
+  "private_pages": 347,
+  "user_frame_budget": 64,
+  "scratch_bytes_scrubbed": 1421312,
+  "passed": 2,
+  "cases": [
+    {
+      "case": "msvc-process-start",
+      "sha256": "23062308c13d165c3e7640d3738d3f1b3ef3e92ca832e213b3acae7e0c1c0071",
+      "receipt": 0,
+      "user_pages": 4,
+      "syscalls": 7,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 4096,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 00000000000007B9",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000004",
+        "SBEF WIN64 EXIT 0000000000000000",
+        "SBEF SYSCALLS 0000000000000007",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000001000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    },
+    {
+      "case": "clang-cl-process-start",
+      "sha256": "a7ca19bcf3a9ff0aaba549b3c24287de1a5065cf927d562a59be330e75e20307",
+      "receipt": 0,
+      "user_pages": 4,
+      "syscalls": 7,
+      "wait_wakes": 0,
+      "staging_bytes_scrubbed": 4096,
+      "trace": [
+        "SBEF CPL0 POST-EBS",
+        "SBEF FAT32 BYTES 00000000000007A2",
+        "SBEF RECEIPT 0000000000000000",
+        "SBEF USER PAGES 0000000000000004",
+        "SBEF WIN64 EXIT 00000000DEADBEEF",
+        "SBEF SYSCALLS 0000000000000007",
+        "SBEF WAIT WAKES 0000000000000000",
+        "SBEF ABI GATE RESTORED",
+        "SBEF FAT32 SCRUBBED 0000000000001000",
+        "SBEF MAP RESTORED AND SCRUBBED"
+      ],
+      "passed": true
+    }
+  ],
+  "extension_bytes": 1002,
+  "extension_sha256": "ecbd2893a097c9ecf883412f3c18521d5254d8099e639dbd5d5c4f496a60b923",
+  "win64_process_start": {
+    "msvc-process-start": {
+      "profile": {
+        "Name": "win64-process-start-v1",
+        "AbiVersion": 1,
+        "DLL": "KERNEL32.dll",
+        "Imports": {
+          "GetStdHandle": "bmo_session_stdout",
+          "WriteFile": "bmo_session_write",
+          "GetCommandLineW": "bmo_get_command_line_w",
+          "ExitProcess": "bmo_exit_process"
+        },
+        "Scope": "External QEMU startup fixture with a packaged UTF-16 command line and DWORD exit"
+      },
+      "imports": [
+        {
+          "DLL": "KERNEL32.dll",
+          "Symbols": [
+            {
+              "Name": "ExitProcess"
+            },
+            {
+              "Name": "GetStdHandle"
+            },
+            {
+              "Name": "WriteFile"
+            },
+            {
+              "Name": "GetCommandLineW"
+            }
+          ]
+        }
+      ],
+      "pe_bytes": 3584,
+      "pe_sha256": "a79e2a8cdff4c8ef42e60dd92c4b9e15faaf8bab3ecf37bfd79a759942b49e05",
+      "producer": "msvc",
+      "msvc_toolset": "14.44.35207",
+      "sdk": "10.0.26100.0",
+      "rejected_import": {
+        "Code": "PE-SESSION-IMPORT",
+        "Offset": 352,
+        "Field": "KERNEL32.dll!OtherFile"
+      },
+      "argv": [
+        "minigzip demo.exe",
+        "-c",
+        "",
+        "datos \u00f1\ud83d\ude00.bin",
+        "a\"b",
+        "C:\\dir con espacio\\"
+      ],
+      "command_line": "\"minigzip demo.exe\" -c \"\" \"datos \u00f1\ud83d\ude00.bin\" a\\\"b \"C:\\dir con espacio\\\\\"",
+      "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
+      "exit_code": 0,
+      "command_line_va": 1075839254,
+      "stdout": "GetCommandLineW and ExitProcess OK\r\n",
+      "stdout_bytes": 36,
+      "oversized_exit_rejected": true
+    },
+    "clang-cl-process-start": {
+      "profile": {
+        "Name": "win64-process-start-v1",
+        "AbiVersion": 1,
+        "DLL": "KERNEL32.dll",
+        "Imports": {
+          "GetStdHandle": "bmo_session_stdout",
+          "WriteFile": "bmo_session_write",
+          "GetCommandLineW": "bmo_get_command_line_w",
+          "ExitProcess": "bmo_exit_process"
+        },
+        "Scope": "External QEMU startup fixture with a packaged UTF-16 command line and DWORD exit"
+      },
+      "imports": [
+        {
+          "DLL": "KERNEL32.dll",
+          "Symbols": [
+            {
+              "Name": "ExitProcess"
+            },
+            {
+              "Name": "GetStdHandle"
+            },
+            {
+              "Name": "WriteFile"
+            },
+            {
+              "Name": "GetCommandLineW"
+            }
+          ]
+        }
+      ],
+      "pe_bytes": 3072,
+      "pe_sha256": "61eb1060f5793dd4a113152e11f72a6940dfbbb8beee9ba651845f6dd2e87338",
+      "producer": "clang-cl",
+      "msvc_toolset": "14.44.35207",
+      "sdk": "10.0.26100.0",
+      "rejected_import": {
+        "Code": "PE-SESSION-IMPORT",
+        "Offset": 352,
+        "Field": "KERNEL32.dll!OtherFile"
+      },
+      "argv": [
+        "minigzip demo.exe",
+        "-c",
+        "",
+        "datos \u00f1\ud83d\ude00.bin",
+        "a\"b",
+        "C:\\dir con espacio\\"
+      ],
+      "command_line": "\"minigzip demo.exe\" -c \"\" \"datos \u00f1\ud83d\ude00.bin\" a\\\"b \"C:\\dir con espacio\\\\\"",
+      "command_line_sha256": "8ee3b88ed7606e0a28e58f1eea542c1be9a157c1fdb725a6bc273c3fbdf89927",
+      "exit_code": 3735928559,
+      "command_line_va": 1075839254,
+      "stdout": "GetCommandLineW and ExitProcess OK\r\n",
+      "stdout_bytes": 36,
+      "oversized_exit_rejected": true
+    }
+  },
+  "original_minigzip_admission": {
+    "msvc": {
+      "input_sha256": "e01b3b7f663763291a75058343bff61a5dc651e6f4b8be1e786b65def8d5a5be",
+      "pack_rejection": {
+        "Code": "PE-IMPORTS",
+        "Offset": 392,
+        "Field": "DataDirectory.imports"
+      },
+      "qemu_ran": false
+    },
+    "clang-cl": {
+      "input_sha256": "b5fc3970f3ce6784436cc31bc45738cbd9ce75a054af1be146939d9672754020",
+      "pack_rejection": {
+        "Code": "PE-IMPORTS",
+        "Offset": 264,
+        "Field": "DataDirectory.imports"
+      },
+      "qemu_ran": false
+    }
+  }
+}

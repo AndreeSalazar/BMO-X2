@@ -1,7 +1,7 @@
 """Registro machine-readable de productores, formatos y perfiles x86-64."""
 
 from .importers.pe_bindings import (
-    WIN64_CONSOLE_PROFILE, WIN64_FILE_PROFILE, WIN64_HEAP_PROFILE, WIN64_SCRATCH_FILE_PROFILE,
+    WIN64_CONSOLE_PROFILE, WIN64_FILE_PROFILE, WIN64_HEAP_PROFILE, WIN64_PROCESS_PROFILE, WIN64_SCRATCH_FILE_PROFILE,
 )
 from .importers.pe_exports import DLL_LIFECYCLE_PROFILE, FIXED_DLL_PROFILE
 from .importers.pe_tls import TLS_PROFILE
@@ -374,7 +374,7 @@ def profile_report(producer=None, category=None, windows_level=None):
             result.update(CapabilityStates=MSVC_CAPABILITY_STATES,
                           CapabilityGroups=[] if windows_level else msvc_catalog(category),
                           RuntimeImportProfiles=[WIN64_CONSOLE_PROFILE, WIN64_HEAP_PROFILE, WIN64_FILE_PROFILE,
-                                                 WIN64_SCRATCH_FILE_PROFILE, FIXED_DLL_PROFILE,
+                                                 WIN64_SCRATCH_FILE_PROFILE, WIN64_PROCESS_PROFILE, FIXED_DLL_PROFILE,
                                                  DLL_LIFECYCLE_PROFILE, TLS_PROFILE])
             if category is None:
                 result['WindowsImportCatalog'] = windows_catalog(windows_level)
@@ -388,7 +388,7 @@ def profile_report(producer=None, category=None, windows_level=None):
         'AdmissionPolicy': ADMISSION_POLICY,
         'CapabilityCatalog': CAPABILITY_CATALOG,
         'RuntimeImportProfiles': [WIN64_CONSOLE_PROFILE, WIN64_HEAP_PROFILE, WIN64_FILE_PROFILE,
-                                  WIN64_SCRATCH_FILE_PROFILE, FIXED_DLL_PROFILE,
+                                  WIN64_SCRATCH_FILE_PROFILE, WIN64_PROCESS_PROFILE, FIXED_DLL_PROFILE,
                                   DLL_LIFECYCLE_PROFILE, TLS_PROFILE],
         'ProducerIdentityRule': 'pack y probe aceptan --producer, verifican el formato y registran el SHA-256 de entrada. La declaracion no atesta el compilador ni el enlazador.',
         'StatusLegend': {

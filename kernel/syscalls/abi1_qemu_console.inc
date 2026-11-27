@@ -30,8 +30,14 @@
 .Labi1_console_exit:
     test %r10, %r10
     jnz .Labi1_bad_args
+#ifdef BMO_QEMU_WIN64_PROCESS
+    mov %ecx, %eax
+    cmp %rax, %rcx
+    jne .Labi1_bad_args
+#else
     cmp $255, %rcx
     ja .Labi1_bad_args
+#endif
 #ifdef BMO_EXTERNAL_TLS
     test %rcx, %rcx
     jnz .Ltls_final_exit

@@ -325,6 +325,17 @@ de diario invalidas o dos cargas GZIP danadas producen un rechazo sin
 cambios en el disco. El perfil conserva el nombre y los demas campos
 de la entrada y opera sobre el volumen virtual del banco.
 
+El perfil de arranque `win64-process-start-v1` enlaza
+`GetCommandLineW` y `ExitProcess` en la IAT de solo lectura. QEMU
+comprueba UTF-16 con espacios, un argumento vacio, comillas, barras
+invertidas y un par sustituto. El supervisor registra el codigo de
+salida DWORD completo y rechaza valores mayores a 32 bits.
+[Informe del arranque Win64 y admision del PE original](../../Reports/host-win64-process-start-qemu.json).
+
+```powershell
+python -B tools/boot/sbef_ring0_qemu.py $validatorRun --msvc-process
+```
+
 El ejecutable Windows distribuido requiere su arranque CRT, mas memoria
 de carga y mas servicios Win64. El perfil adaptado usa entradas y salidas
 de hasta 4 KiB, lee del paquete y emite por stdout. La persistencia de este

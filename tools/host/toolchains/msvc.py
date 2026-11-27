@@ -15,7 +15,7 @@ from ..importers.pe import pack_pe, pack_pe_gs_fixture, pack_pe_tls, pack_pe_wit
 from ..diagnostics import Rejection
 from ..importers.pe_bindings import (
     SESSION_EXPORTS, WIN64_CONSOLE_PROFILE, WIN64_FILE_PROFILE, WIN64_HEAP_PROFILE,
-    WIN64_SCRATCH_FILE_PROFILE,
+    WIN64_PROCESS_PROFILE, WIN64_SCRATCH_FILE_PROFILE,
 )
 from ..sbef.format import LEGACY_FORMAT_VERSION, inspect, load_plan
 
@@ -69,7 +69,7 @@ def build_external_tls(root, out, assembler):
 
 def build_external_console(root, out, assembler, *, heap=False, package_file=False,
                            use_clang=False, gzip_source=None, minigzip_args=None, corrupt_input=False,
-                           minigzip_input=None, minigzip_disk=False, minigzip_fat=False):
+                           minigzip_input=None, minigzip_disk=False, minigzip_fat=False, process_exit=None):
     """Link the existing MSVC client against the external console import profile."""
     cc = msvc_x64_compiler()
     sdk = Path(os.environ['ProgramFiles(x86)']) / 'Windows Kits/10/Lib'
@@ -89,6 +89,7 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
         profile = WIN64_HEAP_PROFILE
     env = None
     argv_data = None
+    command_bytes = None
     if package_file:
         seed = 19 if use_clang else 7
         contents = bytes((29 * index + seed) & 255 for index in range(1027))
@@ -119,6 +120,19 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
     compile_flags = ['/Od', '/DBMO_MSVC_EXTERNAL_CONSOLE', *defines]
     client_source = root / 'tools/tests/msvc_sections.cpp'
     objects = [entry, client]
+    if process_exit is not None:
+        argv = ['minigzip demo.exe', '-c', '', 'datos \u00f1\U0001f600.bin', 'a"b', 'C:\\dir con espacio\\']
+        command = subprocess.list2cmdline(argv)
+        command_bytes = (command + '\0').encode('utf-16-le')
+        command_path = out / 'command-line.bin'
+        command_path.write_bytes(command_bytes)
+        env = {**os.environ, 'BMO_WIN64_CMDLINE': str(command_path.resolve())}
+        units.append('process_start')
+        profile = WIN64_PROCESS_PROFILE
+        compile_flags = ['/O1', f'/DBMO_WIN64_EXIT_CODE=0x{process_exit:08x}UL']
+        client_source = root / 'tools/tests/msvc_process_start.cpp'
+        file_report.update(argv=argv, command_line=command, command_line_sha256=hashlib.sha256(command_bytes).hexdigest(),
+                           exit_code=process_exit)
     if gzip_source is not None:
         gzip_source = gzip_source.resolve(strict=True)
         compile_flags = ['/O1', '/DZ_SOLO', f'/I{gzip_source}']
@@ -151,7 +165,7 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
         subprocess.run(['rustc', '--edition=2024', '--target=x86_64-pc-windows-msvc', '--crate-type=lib',
                         '--emit=obj', '-Cpanic=abort', '-Copt-level=s' if scratch else '-Copt-level=2',
                         *rust_flags, abi / f'{unit}.rs', '-o', obj],
-                       check=True, env=env if unit == 'package_file' else None)
+                       check=True, env=env if unit in ('package_file', 'process_start') else None)
         objects.append(obj)
     link_map = out / 'console.map'
     exports = profile['Imports']
@@ -164,24 +178,33 @@ def build_external_console(root, out, assembler, *, heap=False, package_file=Fal
                     '/entry:bmo_win64_start', '/base:0x3fe00000', '/align:2097152', '/fixed', '/Brepro',
                     '/incremental:no', '/merge:.pdata=.rdata', *('/include:' + name for name in exports.values()),
                     f'/map:{link_map}', f'/out:{pe}', *objects, libraries[-1]], cwd=out, check=True)
-    pattern = r'^\s+[0-9A-Fa-f]+:[0-9A-Fa-f]+\s+(' + '|'.join(exports.values()) + r')\s+([0-9A-Fa-f]+)\b'
+    names = set(exports.values())
+    if command_bytes is not None:
+        names.add('BMO_WIN64_COMMAND_LINE')
+    pattern = r'^\s+[0-9A-Fa-f]+:[0-9A-Fa-f]+\s+(' + '|'.join(sorted(names)) + r')\s+([0-9A-Fa-f]+)\b'
     symbols = {name: int(address, 16) for name, address in re.findall(pattern, link_map.read_text(), re.M)}
-    if symbols.keys() != set(exports.values()):
+    if symbols.keys() != names:
         raise ValueError('Faltan simbolos de la consola MSVC')
     bindings = {api: symbols[name] for api, name in exports.items()}
     source = pe.read_bytes()
     payload = pack_pe(source, abi=profile['AbiVersion'], bindings=bindings)
-    if package_file:
+    if package_file or command_bytes is not None:
         readonly = next(region for region in load_plan(payload)['Regions'] if region['Permissions'] == 'R')
         start = readonly['FileOffset']
         readonly_bytes = payload[start:start + readonly['FileBytes']]
-        if contents not in readonly_bytes:
+        if package_file and contents not in readonly_bytes:
             raise ValueError('El archivo de entrada debe quedar en una region de solo lectura')
         if argv_data is not None:
             if argv_data not in readonly_bytes:
                 raise ValueError('Los argumentos deben quedar en una region de solo lectura')
             file_report.update(argv=['minigzip', *minigzip_args],
                                argv_sha256=hashlib.sha256(argv_data).hexdigest())
+        if command_bytes is not None:
+            address = symbols['BMO_WIN64_COMMAND_LINE']
+            offset = address - readonly['VirtualStart']
+            if address % 2 or offset < 0 or readonly_bytes[offset:offset + len(command_bytes)] != command_bytes:
+                raise ValueError('GetCommandLineW requiere UTF-16 alineado en una region de solo lectura')
+            file_report['command_line_va'] = address
     (out / 'console.sbef').write_bytes(payload)
 
     # Change only the imported name and exercise the same binder before QEMU.
